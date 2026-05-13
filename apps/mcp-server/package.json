@@ -1,0 +1,35 @@
+{
+    "name": "@buyong-mcp/acp-bridge",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "acp-bridge": "./dist/index.js"
+    },
+    "main": "./dist/index.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "dev": "tsx watch src/index.ts",
+        "start": "node dist/index.js",
+        "check-types": "tsc -p tsconfig.json --noEmit",
+        "inspect": "mcp-inspector tsx src/index.ts",
+        "inspect:built": "mcp-inspector node dist/index.js"
+    },
+    "dependencies": {
+        "@agentclientprotocol/claude-agent-acp": "0.33.1",
+        "@agentclientprotocol/sdk": "^0.21.0",
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "@zed-industries/codex-acp": "^0.14.0",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@modelcontextprotocol/inspector": "^0.21.2",
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^25.7.0",
+        "tsx": "^4.21.0",
+        "typescript": "6.0.3"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}

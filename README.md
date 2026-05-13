@@ -1,159 +1,122 @@
-# Turborepo starter
+# buyong-mcp
 
-This Turborepo starter is maintained by the Turborepo core team.
+코딩 에이전트들 사이의 페어 프로그래밍 브리지.
 
-## Using this example
+이 monorepo는 MCP(Model Context Protocol) 서버 하나를 제공하며, 그 서버는
+ACP(Zed Agent Client Protocol) client 역할을 한다. 즉, 호출하는 에이전트
+(예: Claude Code)는 MCP 도구처럼 다른 코딩 에이전트(Codex, Gemini CLI 등)를
+부를 수 있고, 내부적으로는 그 에이전트를 ACP 서버 프로세스로 띄워서 대화를
+중계한다.
 
-Run the following command:
+## 가설
 
-```sh
-npx create-turbo@latest
+코딩 에이전트마다 강점이 다르다. 사람 페어 프로그래밍에서 driver/navigator가
+역할을 바꾸듯, 에이전트도 서로에게 의견을 구하면서 작업하면 단일 루프보다
+견고한 결과가 나온다.
+
+## 구조
+
+```
+apps/
+  mcp-server/                # MCP stdio 서버 (단일 앱)
+    src/
+      index.ts               # 엔트리
+      tools/                 # MCP 도구 표면 (list_models, ask_pair, continue_pair)
+      agents/                # 에이전트 어댑터 + registry
+        common/              # 공통 AgentAdapter + ACP 어댑터 생성기
+        claude-code/         # Claude Code ACP 설정
+        codex/               # Codex ACP 설정
+        gemini-cli/          # Gemini CLI ACP 설정
+      acp/                   # ACP client wrapper
+packages/
+  typescript-config/         # 공유 tsconfig (base, node)
 ```
 
-## What's inside?
+에이전트별로 따로 떼어내야 할 만큼 커지면 그때 `packages/agents/*`로 분리한다.
 
-This Turborepo includes the following packages/apps:
+## 개발
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+pnpm install
+ACP_BRIDGE_PROMPT_TIMEOUT_MS=600000 pnpm dev                                  # turbo dev (전체)
+ACP_BRIDGE_PROMPT_TIMEOUT_MS=600000 pnpm --filter @buyong-mcp/acp-bridge dev      # MCP 서버만 watch
+ACP_BRIDGE_PROMPT_TIMEOUT_MS=600000 pnpm --filter @buyong-mcp/acp-bridge inspect  # MCP Inspector로 디버깅 UI 띄우기
+pnpm check-types
+pnpm build
+pnpm lint                                 # Biome check
+pnpm format                               # Biome check --write
 ```
 
-Without global `turbo`, use your package manager:
+## 에이전트 설정
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+기본 페어 후보는 `claude-code`, `codex`, `gemini-cli` 세 개다. `list_models`로 후보의
+`agent_id`를 조회하고, `ask_pair`에 `agent_id`를 넘겨 새 세션을 만든 뒤, 반환된
+`session_id`를 `continue_pair`에 넘겨 같은 후보와 이어서 대화한다.
+
+MCP 서버가 초기화될 때 현재 작업 디렉터리에 `.acp_bridge/config.toml`을 만든다. 파일이
+이미 있으면 덮어쓰지 않는다. 빈 문자열이면 해당 어댑터의 기본값을 사용한다.
+`permission`은 이전 설정 파일과의 호환을 위해 파싱하지만 읽기 전용 동작을 바꾸지 않는다.
+
+```toml
+[agents.claude-code]
+model = ""
+permission = ""
+reasoning = ""
+
+[agents.codex]
+model = ""
+permission = ""
+reasoning = ""
+
+[agents.gemini-cli]
+model = ""
+permission = ""
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+전달 경로는 어댑터마다 다르다.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- `claude-code`: `model`, `effort` 설정 옵션을 전달하고, 권한 모드는 항상 `plan`으로 고정한다.
+- `codex`: `model`, `reasoning_effort` 설정 옵션을 전달하고, 권한 모드는 항상 `read-only`로 고정한다.
+- `gemini-cli`: `model`만 세션 모델로 전달한다. Gemini ACP 경로에는 `reasoning`이 없으므로 설정 파일에 `reasoning` 값을 넣으면 초기화가 실패한다.
 
-```sh
-turbo build --filter=docs
+`claude-code`와 `codex` 어댑터 실행 파일은 이 패키지의 `node_modules/.bin`에서
+자동으로 찾는다. 전역 설치 위치가 다른 실행 파일을 쓰고 싶을 때만 아래 환경 변수로
+덮어쓴다. `*_ARGS` 값은 JSON 문자열 배열이어야 한다.
+
+```bash
+ACP_BRIDGE_CLAUDE_CODE_COMMAND=/path/to/claude-agent-acp
+ACP_BRIDGE_CLAUDE_CODE_ARGS='[]'
+
+ACP_BRIDGE_CODEX_COMMAND=/path/to/codex-acp
+ACP_BRIDGE_CODEX_ARGS='[]'
+
+ACP_BRIDGE_GEMINI_CLI_COMMAND=gemini
+ACP_BRIDGE_GEMINI_CLI_ARGS='["--acp"]'
 ```
 
-Without global `turbo`:
+`ACP_BRIDGE_PROMPT_TIMEOUT_MS`는 필수이며 양의 정수 밀리초 값이어야 한다. 예를 들어
+`600000`은 페어 후보의 한 응답 턴을 10분까지 기다린다.
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+ACP 도구 실행 권한은 항상 읽기 전용으로 동작한다. `read`, `search`, `fetch`, `think`
+권한 요청만 허용하고 파일 수정, 삭제, 이동, 명령 실행, 모드 전환 요청은 거절한다.
+이전 호환을 위해 `ACP_BRIDGE_PERMISSION_POLICY` 값이 있어도 읽지만 동작에는 반영하지 않는다.
+
+## Pre-commit
+
+`husky`와 `lint-staged`로 커밋 전 검사를 돌린다. 스테이징된 자바스크립트, 타입스크립트, JSON 파일에는 `biome check --write`를 실행하고 수정 결과를 다시 스테이징한다.
+
+```bash
+pnpm install                 # husky 훅 설치
+pnpm exec lint-staged        # 스테이징된 파일에 수동 실행
 ```
 
-### Develop
+설정은 `package.json`의 `lint-staged`와 `.husky/pre-commit`. 타입스크립트 파일이 스테이징되어 있으면 `tsc` 검사도 함께 실행한다.
 
-To develop all apps and packages, run the following command:
+## 사용 도구
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- [Turborepo](https://turborepo.com), [pnpm workspaces](https://pnpm.io/workspaces)
+- [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- [@modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) — MCP 서버 디버깅
+- [@agentclientprotocol/sdk](https://github.com/zed-industries/agent-client-protocol)
+- [Biome](https://biomejs.dev) — 린트 + 포매터 (ESLint+Prettier 대체)
+- [Husky](https://typicode.github.io/husky), [lint-staged](https://github.com/lint-staged/lint-staged) — pre-commit 훅 러너
