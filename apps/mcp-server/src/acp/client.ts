@@ -18,9 +18,11 @@ import {
     type PairAskInput,
     type PairContinueInput,
     PairSessionClosedError,
+    type PairTurnMeta,
     type PairTurnResult,
 } from "../agents/common/types.js";
 import { DEFAULT_OPERATION_TIMEOUT_MS } from "../config/defaults.js";
+import { parseJsonAnswer } from "../tools/json-extract.js";
 
 export interface AcpAgentLaunchOptions {
     command: string;
@@ -162,7 +164,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
             await this.setSessionConfigOptions(sessionResult.sessionId, sessionResult.configOptions);
             await this.setSessionModel(sessionResult.sessionId);
             await this.setSessionMode(sessionResult.sessionId);
-            return this.prompt(sessionResult.sessionId, input.prompt, input.context);
+            return this.prompt(sessionResult.sessionId, input.prompt, input.context, input.files);
         } catch (error) {
             throw this.withStderrContext(error);
         }
@@ -170,7 +172,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
 
     async continuePair(input: PairContinueInput): Promise<PairTurnResult> {
         try {
-            return await this.prompt(input.sessionId, input.prompt, input.context);
+            return await this.prompt(input.sessionId, input.prompt, input.context, input.files);
         } catch (error) {
             throw this.withStderrContext(error);
         }
@@ -183,8 +185,30 @@ class StdioAcpAgentSession implements AcpAgentSession {
         await this.connection.closed.catch(() => undefined);
     }
 
-    private async prompt(sessionId: string, prompt: string, context?: string): Promise<PairTurnResult> {
+    private async prompt(
+        sessionId: string,
+        prompt: string,
+        context?: string,
+        files?: readonly string[],
+    ): Promise<PairTurnResult> {
+        const firstTurn = await this.runPromptTurn(sessionId, formatPrompt(prompt, context, files));
+        if (!firstTurn.hadText || parseJsonAnswer(firstTurn.result.answer) != null) {
+            return firstTurn.result;
+        }
+
+        const retryTurn = await this.runPromptTurn(sessionId, REJSON_REQUEST_PROMPT);
+        if (!retryTurn.hadText) {
+            return firstTurn.result;
+        }
+        return retryTurn.result;
+    }
+
+    private async runPromptTurn(
+        sessionId: string,
+        text: string,
+    ): Promise<{ result: PairTurnResult; hadText: boolean }> {
         this.client.beginTurn(sessionId);
+        const startedAt = performance.now();
         try {
             const promptResponse = await Promise.race([
                 this.connection.prompt({
@@ -192,7 +216,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
                     prompt: [
                         {
                             type: "text",
-                            text: formatPrompt(prompt, context),
+                            text,
                         },
                     ],
                 }),
@@ -200,14 +224,25 @@ class StdioAcpAgentSession implements AcpAgentSession {
                 rejectAfterTimeout(this.promptTimeoutMs, new AcpPromptTimeoutError(sessionId, this.promptTimeoutMs)),
             ]);
 
+            const elapsedMs = Math.round(performance.now() - startedAt);
+            const stopReason = String(promptResponse.stopReason ?? "unknown");
             const answer = this.client.finishTurn(sessionId);
+            const meta: PairTurnMeta = {
+                elapsed_ms: elapsedMs,
+                stop_reason: stopReason,
+                agent_id: "",
+            };
             if (answer.length > 0) {
-                return { sessionId, answer };
+                return { result: { sessionId, answer, meta }, hadText: true };
             }
 
             return {
-                sessionId,
-                answer: `ACP agent completed without text output. stopReason=${promptResponse.stopReason}`,
+                result: {
+                    sessionId,
+                    answer: `ACP agent completed without text output. stopReason=${stopReason}`,
+                    meta,
+                },
+                hadText: false,
             };
         } catch (error) {
             this.client.finishTurn(sessionId);
@@ -357,19 +392,31 @@ class AcpBridgeClient implements Client {
     }
 }
 
-function formatPrompt(prompt: string, context?: string): string {
+const REJSON_REQUEST_PROMPT =
+    "Previous response was not valid JSON. Re-emit only the JSON object matching the schema. No prose, no fenced block prefix beyond the JSON itself.";
+
+function formatPrompt(prompt: string, context?: string, files?: readonly string[]): string {
     const pairReviewInstructions = [
-        "You are a read-only pair reviewer consulted only because the user explicitly asked for another coding agent's opinion.",
+        "You are a read-only pair reviewer (navigator) consulted only because the user explicitly asked for another coding agent's opinion.",
         "Do not modify files, run commands, change modes, or perform work beyond read-only analysis.",
-        "Challenge the main agent's assumptions when needed, but keep the feedback actionable.",
-        "Return only a JSON object with these keys: summary, agreements, concerns, recommendation, confidence, follow_up_questions.",
-        'Use confidence as one of "low", "medium", or "high". Use arrays for agreements, concerns, and follow_up_questions.',
+        "Take a clear position against the main agent's stated position. Challenge assumptions when warranted, but keep feedback actionable.",
+        "Return only a single JSON object with these keys: stance, summary, agreements, concerns, recommendation, follow_up_questions.",
+        '`stance` is one of: "agree", "disagree", "partial", "insufficient_info". Set stance against the main agent\'s position. If main_agent_position is empty or missing, use "insufficient_info".',
+        'If stance is not "agree", `concerns` must list specific reasons. `agreements`, `concerns`, and `follow_up_questions` are arrays of strings. `summary` and `recommendation` are strings.',
+        "Do not include a `confidence` field; do not invent fields outside the schema.",
     ].join("\n");
 
-    if (context == null || context.trim().length === 0) {
-        return `${pairReviewInstructions}\n\nQuestion:\n${prompt}`;
+    const sections: string[] = [pairReviewInstructions];
+    if (files != null && files.length > 0) {
+        sections.push(
+            `Before answering, you may read these files with your read tool. Final reply must still be a single JSON object.\n${files.join("\n")}`,
+        );
     }
-    return `${pairReviewInstructions}\n\nContext:\n${context}\n\nQuestion:\n${prompt}`;
+    if (context != null && context.trim().length > 0) {
+        sections.push(`Context:\n${context}`);
+    }
+    sections.push(`Question:\n${prompt}`);
+    return sections.join("\n\n");
 }
 
 function hasSelectConfigValue(

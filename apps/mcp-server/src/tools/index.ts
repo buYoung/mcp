@@ -1,19 +1,22 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { isPairSessionClosedError } from "../agents/common/types.js";
+import { isPairSessionClosedError, type PairTurnMeta, type PairTurnResult } from "../agents/common/types.js";
 import { agentRegistry } from "../agents/registry.js";
+import { parseJsonAnswer } from "./json-extract.js";
 
 interface PairSessionRecord {
     agentId: string;
     lastAccessedAt: number;
 }
 
+type PairStance = "agree" | "disagree" | "partial" | "insufficient_info";
+
 interface PairOpinion {
+    stance: PairStance;
     summary: string;
     agreements: string[];
     concerns: string[];
     recommendation: string;
-    confidence: "low" | "medium" | "high";
     follow_up_questions: string[];
     parse_status: "parsed" | "fallback";
     raw_answer?: string;
@@ -22,17 +25,8 @@ interface PairOpinion {
 const pairSessions = new Map<string, PairSessionRecord>();
 const PAIR_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_PAIR_SESSIONS = 20;
-const EXPLICIT_PAIR_REQUEST_PATTERNS = [
-    /\bfair programming\b/i,
-    /\bpair programming\b/i,
-    /페어\s*프로그래밍/,
-    /공정한\s*프로그래밍/,
-    /다른\s*(?:코드\s*)?(?:에이전트|agent|모델|AI)/i,
-    /(?:에이전트|agent|모델|AI).*(?:의견|생각|검토|리뷰)/i,
-    /(?:의견|생각|검토|리뷰).*(?:에이전트|agent|모델|AI)/i,
-    /크로스\s*체크/,
-    /교차\s*검토/,
-];
+
+let elicitationConfirmed = false;
 
 export function registerTools(server: Server): void {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -41,30 +35,14 @@ export function registerTools(server: Server): void {
                 {
                     name: "list_agents",
                     description:
-                        "List available pair-review agents. Call only when user_request quotes an explicit user request for fair programming, pair programming, or another agent's opinion.",
+                        "List available pair-review agents. Each agent is a separate coding model spawned as a cold child process per ask_pair call — only call when the user explicitly asked for another agent's opinion.",
                     inputSchema: {
                         type: "object",
                         properties: {
                             user_request: {
                                 type: "string",
                                 description:
-                                    "Verbatim user request that explicitly asked for fair programming, pair programming, or another agent's opinion.",
-                            },
-                        },
-                        required: ["user_request"],
-                    },
-                },
-                {
-                    name: "list_models",
-                    description:
-                        "Deprecated alias for list_agents. Call only when user_request quotes an explicit user request for another coding agent's opinion.",
-                    inputSchema: {
-                        type: "object",
-                        properties: {
-                            user_request: {
-                                type: "string",
-                                description:
-                                    "Verbatim user request that explicitly asked for fair programming, pair programming, or another agent's opinion.",
+                                    "Verbatim user request that asked for another coding agent's opinion. Kept for traceability.",
                             },
                         },
                         required: ["user_request"],
@@ -73,7 +51,7 @@ export function registerTools(server: Server): void {
                 {
                     name: "ask_pair",
                     description:
-                        "Ask one pair-review agent for a read-only opinion in a new session. Call only when user_request quotes an explicit user request for fair programming, pair programming, or another agent's opinion.",
+                        "Ask one pair-review agent for a read-only opinion in a new session. Spawns a cold child process — non-trivial latency and token cost. The caller must commit to a tentative position in `main_agent_position` so the pair can agree or push back.",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -88,25 +66,31 @@ export function registerTools(server: Server): void {
                             user_request: {
                                 type: "string",
                                 description:
-                                    "Verbatim user request that explicitly asked for fair programming, pair programming, or another agent's opinion.",
-                            },
-                            context: {
-                                type: "string",
-                                description: "Optional shared context such as files, constraints, or prior decisions.",
+                                    "Verbatim user request that asked for another coding agent's opinion. Kept for traceability.",
                             },
                             main_agent_position: {
                                 type: "string",
                                 description:
-                                    "Optional current position or recommendation from the calling agent, used so the pair reviewer can agree or challenge it.",
+                                    "REQUIRED. Calling agent's tentative position or recommendation. The pair will agree or challenge it.",
+                            },
+                            context: {
+                                type: "string",
+                                description: "Optional shared context such as constraints or prior decisions.",
+                            },
+                            files: {
+                                type: "array",
+                                items: { type: "string" },
+                                description:
+                                    "Optional absolute file paths the pair agent should read directly (read-only). Prefer this over pasting code into `context` to avoid amplifying the main agent's framing.",
                             },
                         },
-                        required: ["agent_id", "prompt", "user_request"],
+                        required: ["agent_id", "prompt", "user_request", "main_agent_position"],
                     },
                 },
                 {
                     name: "continue_pair",
                     description:
-                        "Continue a prior pair-review conversation. Call only when user_request quotes an explicit user request to continue consulting another agent.",
+                        "Continue a prior pair-review conversation. Same cold-start cost does NOT apply — reuses the existing child process for this session_id.",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -121,19 +105,64 @@ export function registerTools(server: Server): void {
                             user_request: {
                                 type: "string",
                                 description:
-                                    "Verbatim user request that explicitly asked to continue fair programming, pair programming, or another agent's opinion.",
+                                    "Verbatim user request that asked to continue consulting another agent. Kept for traceability.",
+                            },
+                            main_agent_position: {
+                                type: "string",
+                                description:
+                                    "Optional updated position from the calling agent for this follow-up turn.",
                             },
                             context: {
                                 type: "string",
                                 description: "Optional additional context for this follow-up turn.",
                             },
-                            main_agent_position: {
-                                type: "string",
-                                description:
-                                    "Optional updated position or recommendation from the calling agent, used so the pair reviewer can agree or challenge it.",
+                            files: {
+                                type: "array",
+                                items: { type: "string" },
+                                description: "Optional additional absolute file paths the pair agent should read.",
                             },
                         },
                         required: ["session_id", "prompt", "user_request"],
+                    },
+                },
+                {
+                    name: "consult_panel",
+                    description:
+                        "Ask multiple pair-review agents in parallel and return their independent opinions plus a stance tally. Each agent_id spawns its own cold child process — cost scales linearly with the number of agents.",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            agent_ids: {
+                                type: "array",
+                                items: { type: "string" },
+                                description: "Two or more pair agent ids returned by list_agents.",
+                                minItems: 2,
+                            },
+                            prompt: {
+                                type: "string",
+                                description: "Narrow question or task to send to each pair-review agent.",
+                            },
+                            user_request: {
+                                type: "string",
+                                description:
+                                    "Verbatim user request that asked for another coding agent's opinion. Kept for traceability.",
+                            },
+                            main_agent_position: {
+                                type: "string",
+                                description:
+                                    "REQUIRED. Calling agent's tentative position. The pair panel will agree or challenge it.",
+                            },
+                            context: {
+                                type: "string",
+                                description: "Optional shared context such as constraints or prior decisions.",
+                            },
+                            files: {
+                                type: "array",
+                                items: { type: "string" },
+                                description: "Optional absolute file paths the pair agents should read directly.",
+                            },
+                        },
+                        required: ["agent_ids", "prompt", "user_request", "main_agent_position"],
                     },
                 },
                 {
@@ -158,19 +187,23 @@ export function registerTools(server: Server): void {
         await cleanupExpiredPairSessions();
         const argumentsValue = readArguments(req.params.arguments);
 
-        if (req.params.name === "list_agents" || req.params.name === "list_models") {
-            readExplicitUserRequest(argumentsValue);
+        if (req.params.name === "list_agents") {
+            const userRequest = readRequiredString(argumentsValue, "user_request");
+            await ensureUserConsent(server, userRequest);
             return textResult({
                 agents: agentRegistry.list().map((agent) => ({
                     agent_id: agent.id,
                     label: agent.label,
                     description: agent.description,
+                    model: agent.model,
                 })),
             });
         }
 
         if (req.params.name === "ask_pair") {
-            readExplicitUserRequest(argumentsValue);
+            const userRequest = readRequiredString(argumentsValue, "user_request");
+            await ensureUserConsent(server, userRequest);
+            const mainAgentPosition = readMainAgentPosition(argumentsValue, true);
             const agentId = readRequiredString(argumentsValue, "agent_id");
             const agent = agentRegistry.get(agentId);
             if (!agent) {
@@ -179,15 +212,18 @@ export function registerTools(server: Server): void {
 
             const pairTurnResult = await agent.askPair({
                 prompt: readRequiredString(argumentsValue, "prompt"),
-                context: buildPairContext(argumentsValue),
+                context: buildPairContext(argumentsValue, mainAgentPosition),
+                files: readOptionalStringArray(argumentsValue, "files"),
             });
             await rememberPairSession(pairTurnResult.sessionId, agent.id);
 
-            return textResult(createPairTurnResponse(pairTurnResult.sessionId, agent.id, pairTurnResult.answer));
+            return textResult(createPairTurnResponse(pairTurnResult, agent.id, agent.model));
         }
 
         if (req.params.name === "continue_pair") {
-            readExplicitUserRequest(argumentsValue);
+            const userRequest = readRequiredString(argumentsValue, "user_request");
+            await ensureUserConsent(server, userRequest);
+            const mainAgentPosition = readMainAgentPosition(argumentsValue, false);
             const sessionId = readRequiredString(argumentsValue, "session_id");
             const pairSession = pairSessions.get(sessionId);
             if (!pairSession) {
@@ -203,17 +239,71 @@ export function registerTools(server: Server): void {
                 const pairTurnResult = await agent.continuePair({
                     sessionId,
                     prompt: readRequiredString(argumentsValue, "prompt"),
-                    context: buildPairContext(argumentsValue),
+                    context: buildPairContext(argumentsValue, mainAgentPosition),
+                    files: readOptionalStringArray(argumentsValue, "files"),
                 });
                 touchPairSession(pairTurnResult.sessionId);
 
-                return textResult(createPairTurnResponse(pairTurnResult.sessionId, agent.id, pairTurnResult.answer));
+                return textResult(createPairTurnResponse(pairTurnResult, agent.id, agent.model));
             } catch (error) {
                 if (isPairSessionClosedError(error)) {
                     pairSessions.delete(sessionId);
                 }
                 throw error;
             }
+        }
+
+        if (req.params.name === "consult_panel") {
+            const userRequest = readRequiredString(argumentsValue, "user_request");
+            await ensureUserConsent(server, userRequest);
+            const mainAgentPosition = readMainAgentPosition(argumentsValue, true);
+            const agentIds = readRequiredStringArray(argumentsValue, "agent_ids");
+            if (agentIds.length < 2) {
+                throw new Error("consult_panel requires at least two agent_ids.");
+            }
+            const prompt = readRequiredString(argumentsValue, "prompt");
+            const context = buildPairContext(argumentsValue, mainAgentPosition);
+            const files = readOptionalStringArray(argumentsValue, "files");
+
+            const settled = await Promise.allSettled(
+                agentIds.map(async (agentId) => {
+                    const agent = agentRegistry.get(agentId);
+                    if (!agent) {
+                        throw new Error(`Unknown agent_id: ${agentId}`);
+                    }
+                    const pairTurnResult = await agent.askPair({ prompt, context, files });
+                    await rememberPairSession(pairTurnResult.sessionId, agent.id);
+                    return { agent, pairTurnResult };
+                }),
+            );
+
+            const results: Array<Record<string, unknown>> = [];
+            const errors: Array<{ agent_id: string; message: string }> = [];
+            const stanceTally: Record<PairStance, number> = {
+                agree: 0,
+                disagree: 0,
+                partial: 0,
+                insufficient_info: 0,
+            };
+
+            settled.forEach((outcome, index) => {
+                const agentId = agentIds[index] ?? "<unknown>";
+                if (outcome.status === "fulfilled") {
+                    const { agent, pairTurnResult } = outcome.value;
+                    const response = createPairTurnResponse(pairTurnResult, agent.id, agent.model);
+                    results.push(response);
+                    stanceTally[response.structured_opinion.stance] += 1;
+                } else {
+                    const message = outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+                    errors.push({ agent_id: agentId, message });
+                }
+            });
+
+            return textResult({
+                results,
+                stance_tally: stanceTally,
+                errors,
+            });
         }
 
         if (req.params.name === "close_pair") {
@@ -233,18 +323,28 @@ export function registerTools(server: Server): void {
     });
 }
 
-function createPairTurnResponse(sessionId: string, agentId: string, answer: string) {
-    return {
-        session_id: sessionId,
+function createPairTurnResponse(pairTurnResult: PairTurnResult, agentId: string, agentModel: string | undefined) {
+    const meta: PairTurnMeta = {
+        ...pairTurnResult.meta,
         agent_id: agentId,
-        answer,
-        structured_opinion: parsePairOpinion(answer),
+    };
+    if (agentModel != null && agentModel.trim().length > 0) {
+        meta.agent_model = agentModel;
+    }
+    return {
+        session_id: pairTurnResult.sessionId,
+        agent_id: agentId,
+        answer: pairTurnResult.answer,
+        structured_opinion: parsePairOpinion(pairTurnResult.answer),
+        meta,
     };
 }
 
-function buildPairContext(argumentsValue: Record<string, unknown>): string | undefined {
+function buildPairContext(
+    argumentsValue: Record<string, unknown>,
+    mainAgentPosition: string | undefined,
+): string | undefined {
     const contextParts: string[] = [];
-    const mainAgentPosition = readOptionalString(argumentsValue, "main_agent_position")?.trim();
     const context = readOptionalString(argumentsValue, "context")?.trim();
 
     if (mainAgentPosition != null && mainAgentPosition.length > 0) {
@@ -255,6 +355,27 @@ function buildPairContext(argumentsValue: Record<string, unknown>): string | und
     }
 
     return contextParts.length > 0 ? contextParts.join("\n\n") : undefined;
+}
+
+function readMainAgentPosition(argumentsValue: Record<string, unknown>, required: boolean): string | undefined {
+    const rawValue = argumentsValue.main_agent_position;
+    if (rawValue == null) {
+        if (required) {
+            throw new Error(
+                "main_agent_position must be non-empty. Decide a tentative position before consulting a pair.",
+            );
+        }
+        return undefined;
+    }
+    if (typeof rawValue !== "string" || rawValue.trim().length === 0) {
+        if (required) {
+            throw new Error(
+                "main_agent_position must be non-empty. Decide a tentative position before consulting a pair.",
+            );
+        }
+        return undefined;
+    }
+    return rawValue.trim();
 }
 
 function parsePairOpinion(answer: string): PairOpinion {
@@ -270,11 +391,11 @@ function parsePairOpinion(answer: string): PairOpinion {
     }
 
     return {
+        stance: readStanceProperty(parsedValue, "stance"),
         summary,
         agreements: readStringArrayProperty(parsedValue, "agreements"),
         concerns: readStringArrayProperty(parsedValue, "concerns"),
         recommendation,
-        confidence: readConfidenceProperty(parsedValue, "confidence"),
         follow_up_questions: readStringArrayProperty(parsedValue, "follow_up_questions"),
         parse_status: "parsed",
     };
@@ -282,47 +403,15 @@ function parsePairOpinion(answer: string): PairOpinion {
 
 function createFallbackPairOpinion(answer: string): PairOpinion {
     return {
-        summary: answer,
+        stance: "insufficient_info",
+        summary: "Pair agent did not return structured JSON. See raw_answer.",
         agreements: [],
         concerns: [],
-        recommendation: answer,
-        confidence: "low",
+        recommendation: "",
         follow_up_questions: [],
         parse_status: "fallback",
         raw_answer: answer,
     };
-}
-
-function parseJsonAnswer(answer: string): Record<string, unknown> | undefined {
-    const candidate = extractJsonCandidate(answer);
-    if (candidate == null) {
-        return undefined;
-    }
-
-    try {
-        const parsedValue = JSON.parse(candidate) as unknown;
-        if (typeof parsedValue === "object" && parsedValue != null && !Array.isArray(parsedValue)) {
-            return parsedValue as Record<string, unknown>;
-        }
-    } catch {
-        return undefined;
-    }
-    return undefined;
-}
-
-function extractJsonCandidate(answer: string): string | undefined {
-    const fencedJsonMatch = /```(?:json)?\s*([\s\S]*?)```/.exec(answer);
-    const fencedJsonCandidate = fencedJsonMatch?.[1]?.trim();
-    if (fencedJsonCandidate != null && fencedJsonCandidate.length > 0) {
-        return fencedJsonCandidate;
-    }
-
-    const objectStartIndex = answer.indexOf("{");
-    const objectEndIndex = answer.lastIndexOf("}");
-    if (objectStartIndex === -1 || objectEndIndex <= objectStartIndex) {
-        return undefined;
-    }
-    return answer.slice(objectStartIndex, objectEndIndex + 1);
 }
 
 function readStringProperty(value: Record<string, unknown>, key: string): string | undefined {
@@ -341,12 +430,17 @@ function readStringArrayProperty(value: Record<string, unknown>, key: string): s
     return propertyValue.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function readConfidenceProperty(value: Record<string, unknown>, key: string): "low" | "medium" | "high" {
+function readStanceProperty(value: Record<string, unknown>, key: string): PairStance {
     const propertyValue = value[key];
-    if (propertyValue === "low" || propertyValue === "medium" || propertyValue === "high") {
+    if (
+        propertyValue === "agree" ||
+        propertyValue === "disagree" ||
+        propertyValue === "partial" ||
+        propertyValue === "insufficient_info"
+    ) {
         return propertyValue;
     }
-    return "low";
+    return "insufficient_info";
 }
 
 async function rememberPairSession(sessionId: string, agentId: string): Promise<void> {
@@ -398,18 +492,52 @@ async function closePairSession(sessionId: string): Promise<boolean> {
     return true;
 }
 
-function readExplicitUserRequest(argumentsValue: Record<string, unknown>): string {
-    const userRequest = readRequiredString(argumentsValue, "user_request");
-    if (!hasExplicitPairRequest(userRequest)) {
-        throw new Error(
-            "Expected user_request to quote an explicit user request for fair programming, pair programming, or another agent's opinion.",
-        );
+async function ensureUserConsent(server: Server, userRequest: string): Promise<void> {
+    if (elicitationConfirmed) {
+        process.stderr.write(`[acp-bridge] pair-consult invoked: ${userRequest}\n`);
+        return;
     }
-    return userRequest;
-}
 
-function hasExplicitPairRequest(userRequest: string): boolean {
-    return EXPLICIT_PAIR_REQUEST_PATTERNS.some((pattern) => pattern.test(userRequest));
+    const clientCapabilities = server.getClientCapabilities();
+    const supportsElicitation = clientCapabilities?.elicitation != null;
+    if (!supportsElicitation) {
+        process.stderr.write(`[acp-bridge] pair-consult invoked (no elicitation support): ${userRequest}\n`);
+        elicitationConfirmed = true;
+        return;
+    }
+
+    try {
+        const elicitResult = await server.elicitInput({
+            message: `Did the user explicitly ask for another coding agent's opinion?\n\nQuoted request: ${userRequest}`,
+            requestedSchema: {
+                type: "object",
+                properties: {
+                    confirm: {
+                        type: "boolean",
+                        title: "Explicit user request",
+                        description: "Yes if the user explicitly asked for another agent's opinion.",
+                    },
+                },
+                required: ["confirm"],
+            },
+        });
+
+        if (elicitResult.action !== "accept" || elicitResult.content?.confirm !== true) {
+            throw new Error(
+                "Pair consultation was not confirmed by the user. Only call pair tools after an explicit user request.",
+            );
+        }
+        elicitationConfirmed = true;
+        process.stderr.write(`[acp-bridge] pair-consult confirmed: ${userRequest}\n`);
+    } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Pair consultation was not confirmed")) {
+            throw error;
+        }
+        process.stderr.write(
+            `[acp-bridge] pair-consult elicitation failed, proceeding with log only: ${userRequest}\n`,
+        );
+        elicitationConfirmed = true;
+    }
 }
 
 function textResult(value: unknown) {
@@ -445,4 +573,28 @@ function readOptionalString(argumentsValue: Record<string, unknown>, key: string
         throw new Error(`Expected string argument: ${key}`);
     }
     return value;
+}
+
+function readRequiredStringArray(argumentsValue: Record<string, unknown>, key: string): string[] {
+    const value = argumentsValue[key];
+    if (!Array.isArray(value)) {
+        throw new Error(`Expected string array argument: ${key}`);
+    }
+    const result = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    if (result.length === 0) {
+        throw new Error(`Expected non-empty string array argument: ${key}`);
+    }
+    return result;
+}
+
+function readOptionalStringArray(argumentsValue: Record<string, unknown>, key: string): string[] | undefined {
+    const value = argumentsValue[key];
+    if (value == null) {
+        return undefined;
+    }
+    if (!Array.isArray(value)) {
+        throw new Error(`Expected string array argument: ${key}`);
+    }
+    const result = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    return result.length > 0 ? result : undefined;
 }

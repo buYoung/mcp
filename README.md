@@ -21,7 +21,7 @@ apps/
   mcp-server/                # MCP stdio 서버 (단일 앱)
     src/
       index.ts               # 엔트리
-      tools/                 # MCP 도구 표면 (list_agents, ask_pair, continue_pair, close_pair)
+      tools/                 # MCP 도구 표면 (list_agents, ask_pair, continue_pair, consult_panel, close_pair)
       agents/                # 에이전트 어댑터 + registry
         common/              # 공통 AgentAdapter + ACP 어댑터 생성기
         claude-code/         # Claude Code ACP 설정
@@ -49,23 +49,42 @@ pnpm format                               # Biome check --write
 
 ## 에이전트 설정
 
-기본 페어 후보는 `claude-code`, `codex`, `gemini-cli` 세 개다. 명시 요청 원문을
-`user_request`로 넘겨 `list_agents`에서 후보의 `agent_id`를 조회하고, `ask_pair`에
-`agent_id`를 넘겨 새 세션을 만든 뒤, 반환된 `session_id`를 `continue_pair`에 넘겨 같은
-후보와 이어서 대화한다. `list_models`는 이전 호환을 위한 별칭이다.
+기본 페어 후보는 `claude-code`, `codex`, `gemini-cli` 세 개다. `list_agents`로 후보의
+`agent_id`를 조회하고, `ask_pair`에 `agent_id`와 `main_agent_position`(필수)을 넘겨
+새 세션을 만든 뒤, 반환된 `session_id`를 `continue_pair`에 넘겨 같은 후보와 이어서
+대화한다. 여러 후보에게 동시에 묻고 싶으면 `consult_panel`에 `agent_ids`를 배열로
+넘긴다. `consult_panel`은 후보별로 별도 child process를 띄우므로 비용이 후보 수만큼
+선형 증가한다.
 
-`ask_pair`와 `continue_pair`는 사용자가 명시적으로 페어 검토를 요청했을 때만 호출해야 한다.
-이를 강제하기 위해 두 도구 모두 `user_request` 인자를 요구한다. 이 값에는 `fair programming`,
-`pair programming`, `다른 에이전트의 의견`, `교차 검토`처럼 사용자의 명시 요청 원문을 넣는다.
-명시 요청으로 판단되지 않으면 도구 호출은 거절된다.
+`ask_pair`/`consult_panel`은 호출하는 에이전트가 자기 **잠정 입장**을 결정한 뒤에만
+사용해야 한다. `main_agent_position`이 비어 있으면 호출은 거절된다 — 페어에게 결정을
+떠넘기는 인지 위탁(cognitive offloading)을 막기 위함이다.
 
-페어 응답은 기존 호환을 위해 원문 `answer`를 유지하면서, `structured_opinion`도 함께 반환한다.
-페어 에이전트에는 `summary`, `agreements`, `concerns`, `recommendation`, `confidence`,
-`follow_up_questions` 키를 가진 JSON 응답을 요청한다. JSON 파싱에 실패하면 `parse_status`가
-`fallback`인 구조로 원문을 보존한다.
+페어가 메인 에이전트의 컨텍스트 요약에만 의존해 메아리방이 되는 것을 막으려면
+`files`(절대 경로 문자열 배열)에 페어가 직접 읽어야 할 파일들을 명시한다. 페어는
+read-only 권한만 가지므로 수정은 불가능하다.
+
+페어 응답은 원문 `answer`와 함께 `structured_opinion`, `meta`를 반환한다.
+`structured_opinion`은 `stance`(`agree`/`disagree`/`partial`/`insufficient_info`),
+`summary`, `agreements`, `concerns`, `recommendation`, `follow_up_questions` 키를
+가진다. JSON 파싱에 실패하면 한 번 재요청한 뒤에도 실패 시 `parse_status`가
+`fallback`인 구조로 `raw_answer`만 보존되고, `recommendation`은 빈 문자열로 둔다
+(메인이 fallback 응답을 권장사항으로 오인하지 않도록).
+
+`meta`에는 `elapsed_ms`, `stop_reason`, `agent_id`, 가능하면 `agent_model`이 들어가
+메인이 cost/latency를 인지할 수 있게 한다.
+
+`user_request`는 인자로 유지하되 정규식 게이트는 두지 않는다. 클라이언트가 MCP
+elicitation을 지원하면 첫 호출 시 사용자에게 명시 확인을 받는다(프로세스 lifetime
+동안 한 번). 미지원 클라이언트에서는 차단하지 않고 stderr에 `[acp-bridge]
+pair-consult invoked: ...` 한 줄만 남긴다.
 
 상담이 끝나면 `close_pair`로 세션을 닫는다. 서버는 유휴 세션을 30분 뒤 정리하고, 동시에
 최대 20개 세션만 유지한다. 같은 `session_id`에 대한 후속 요청과 종료 요청은 순서대로 처리한다.
+
+페어 child process는 풀링하지 않는다(cold-start 정책). 매 `ask_pair`/`consult_panel`
+호출마다 새 child process를 띄우므로, 단발성 의견 조회보다 `continue_pair`로
+같은 세션을 이어 쓰는 편이 비용 면에서 유리하다.
 
 MCP 서버가 초기화될 때 현재 작업 디렉터리에 `.acp_bridge/config.toml`을 만든다. 파일이
 이미 있으면 덮어쓰지 않는다. 빈 문자열이면 해당 어댑터의 기본값을 사용한다.
