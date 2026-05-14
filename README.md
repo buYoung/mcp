@@ -1,4 +1,4 @@
-# buyong-mcp
+# personal-mcp
 
 코딩 에이전트들 사이의 페어 프로그래밍 브리지.
 
