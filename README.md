@@ -21,7 +21,7 @@ apps/
   mcp-server/                # MCP stdio 서버 (단일 앱)
     src/
       index.ts               # 엔트리
-      tools/                 # MCP 도구 표면 (list_models, ask_pair, continue_pair)
+      tools/                 # MCP 도구 표면 (list_agents, ask_pair, continue_pair, close_pair)
       agents/                # 에이전트 어댑터 + registry
         common/              # 공통 AgentAdapter + ACP 어댑터 생성기
         claude-code/         # Claude Code ACP 설정
@@ -49,9 +49,23 @@ pnpm format                               # Biome check --write
 
 ## 에이전트 설정
 
-기본 페어 후보는 `claude-code`, `codex`, `gemini-cli` 세 개다. `list_models`로 후보의
-`agent_id`를 조회하고, `ask_pair`에 `agent_id`를 넘겨 새 세션을 만든 뒤, 반환된
-`session_id`를 `continue_pair`에 넘겨 같은 후보와 이어서 대화한다.
+기본 페어 후보는 `claude-code`, `codex`, `gemini-cli` 세 개다. 명시 요청 원문을
+`user_request`로 넘겨 `list_agents`에서 후보의 `agent_id`를 조회하고, `ask_pair`에
+`agent_id`를 넘겨 새 세션을 만든 뒤, 반환된 `session_id`를 `continue_pair`에 넘겨 같은
+후보와 이어서 대화한다. `list_models`는 이전 호환을 위한 별칭이다.
+
+`ask_pair`와 `continue_pair`는 사용자가 명시적으로 페어 검토를 요청했을 때만 호출해야 한다.
+이를 강제하기 위해 두 도구 모두 `user_request` 인자를 요구한다. 이 값에는 `fair programming`,
+`pair programming`, `다른 에이전트의 의견`, `교차 검토`처럼 사용자의 명시 요청 원문을 넣는다.
+명시 요청으로 판단되지 않으면 도구 호출은 거절된다.
+
+페어 응답은 기존 호환을 위해 원문 `answer`를 유지하면서, `structured_opinion`도 함께 반환한다.
+페어 에이전트에는 `summary`, `agreements`, `concerns`, `recommendation`, `confidence`,
+`follow_up_questions` 키를 가진 JSON 응답을 요청한다. JSON 파싱에 실패하면 `parse_status`가
+`fallback`인 구조로 원문을 보존한다.
+
+상담이 끝나면 `close_pair`로 세션을 닫는다. 서버는 유휴 세션을 30분 뒤 정리하고, 동시에
+최대 20개 세션만 유지한다. 같은 `session_id`에 대한 후속 요청과 종료 요청은 순서대로 처리한다.
 
 MCP 서버가 초기화될 때 현재 작업 디렉터리에 `.acp_bridge/config.toml`을 만든다. 파일이
 이미 있으면 덮어쓰지 않는다. 빈 문자열이면 해당 어댑터의 기본값을 사용한다.

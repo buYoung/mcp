@@ -34,4 +34,5 @@ export interface AgentAdapter {
     readonly description?: string;
     askPair(input: PairAskInput): Promise<PairTurnResult>;
     continuePair(input: PairContinueInput): Promise<PairTurnResult>;
+    closePair(sessionId: string): Promise<void>;
 }

@@ -358,10 +358,18 @@ class AcpBridgeClient implements Client {
 }
 
 function formatPrompt(prompt: string, context?: string): string {
+    const pairReviewInstructions = [
+        "You are a read-only pair reviewer consulted only because the user explicitly asked for another coding agent's opinion.",
+        "Do not modify files, run commands, change modes, or perform work beyond read-only analysis.",
+        "Challenge the main agent's assumptions when needed, but keep the feedback actionable.",
+        "Return only a JSON object with these keys: summary, agreements, concerns, recommendation, confidence, follow_up_questions.",
+        'Use confidence as one of "low", "medium", or "high". Use arrays for agreements, concerns, and follow_up_questions.',
+    ].join("\n");
+
     if (context == null || context.trim().length === 0) {
-        return prompt;
+        return `${pairReviewInstructions}\n\nQuestion:\n${prompt}`;
     }
-    return `Context:\n${context}\n\nQuestion:\n${prompt}`;
+    return `${pairReviewInstructions}\n\nContext:\n${context}\n\nQuestion:\n${prompt}`;
 }
 
 function hasSelectConfigValue(

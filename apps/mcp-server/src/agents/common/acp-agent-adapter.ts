@@ -16,6 +16,7 @@ export interface AcpAgentAdapterOptions {
 
 export function createAcpAgentAdapter(options: AcpAgentAdapterOptions): AgentAdapter {
     const sessions = new Map<string, AcpAgentSession>();
+    const sessionQueues = new Map<string, Promise<unknown>>();
 
     return {
         id: options.id,
@@ -35,19 +36,45 @@ export function createAcpAgentAdapter(options: AcpAgentAdapterOptions): AgentAda
         },
 
         async continuePair(input: PairContinueInput): Promise<PairTurnResult> {
-            const session = sessions.get(input.sessionId);
-            if (!session) {
-                throw new Error(`Unknown session_id for ${options.id}: ${input.sessionId}`);
-            }
-
-            try {
-                return await session.continuePair(input);
-            } catch (error) {
-                if (isPairSessionClosedError(error)) {
-                    sessions.delete(input.sessionId);
+            return runSessionExclusive(input.sessionId, async () => {
+                const session = sessions.get(input.sessionId);
+                if (!session) {
+                    throw new Error(`Unknown session_id for ${options.id}: ${input.sessionId}`);
                 }
-                throw error;
-            }
+
+                try {
+                    return await session.continuePair(input);
+                } catch (error) {
+                    if (isPairSessionClosedError(error)) {
+                        sessions.delete(input.sessionId);
+                    }
+                    throw error;
+                }
+            });
+        },
+
+        async closePair(sessionId: string): Promise<void> {
+            await runSessionExclusive(sessionId, async () => {
+                const session = sessions.get(sessionId);
+                sessions.delete(sessionId);
+                if (session) {
+                    await session.close();
+                }
+            });
         },
     };
+
+    async function runSessionExclusive<T>(sessionId: string, operation: () => Promise<T>): Promise<T> {
+        const previousQueue = sessionQueues.get(sessionId) ?? Promise.resolve();
+        const currentQueue = previousQueue.catch(() => undefined).then(operation);
+        sessionQueues.set(sessionId, currentQueue);
+
+        try {
+            return await currentQueue;
+        } finally {
+            if (sessionQueues.get(sessionId) === currentQueue) {
+                sessionQueues.delete(sessionId);
+            }
+        }
+    }
 }
