@@ -3,8 +3,8 @@ import { createAcpAgentAdapter } from "../common/acp-agent-adapter.js";
 import {
     readAgentCommandConfig,
     readOperationTimeoutMs,
-    readPermissionPolicy,
     readPromptTimeoutMs,
+    resolvePermissionProfile,
 } from "../common/environment.js";
 
 const commandConfig = readAgentCommandConfig("ACP_BRIDGE_GEMINI_CLI", {
@@ -24,7 +24,7 @@ export function createGeminiCliAgent(configuration: AcpBridgeAgentConfiguration 
             cwd: process.cwd(),
             model: configuration.model,
             operationTimeoutMs: readOperationTimeoutMs(),
-            permissionPolicy: readPermissionPolicy(),
+            permissionProfile: resolvePermissionProfile(configuration.permission),
             promptTimeoutMs: readPromptTimeoutMs(),
         },
     });

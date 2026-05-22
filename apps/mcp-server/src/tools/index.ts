@@ -1,3 +1,5 @@
+import { realpath } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { isPairSessionClosedError, type PairTurnMeta, type PairTurnResult } from "../agents/common/types.js";
@@ -26,7 +28,9 @@ const pairSessions = new Map<string, PairSessionRecord>();
 const PAIR_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_PAIR_SESSIONS = 20;
 
-let elicitationConfirmed = false;
+const ELICITATION_TTL_MS = 10 * 60 * 1000;
+const MAX_ELICITATION_ENTRIES = 64;
+const elicitationConfirmations = new Map<string, number>();
 
 export function registerTools(server: Server): void {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -213,7 +217,7 @@ export function registerTools(server: Server): void {
             const pairTurnResult = await agent.askPair({
                 prompt: readRequiredString(argumentsValue, "prompt"),
                 context: buildPairContext(argumentsValue, mainAgentPosition),
-                files: readOptionalStringArray(argumentsValue, "files"),
+                files: await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files")),
             });
             await rememberPairSession(pairTurnResult.sessionId, agent.id);
 
@@ -240,7 +244,7 @@ export function registerTools(server: Server): void {
                     sessionId,
                     prompt: readRequiredString(argumentsValue, "prompt"),
                     context: buildPairContext(argumentsValue, mainAgentPosition),
-                    files: readOptionalStringArray(argumentsValue, "files"),
+                    files: await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files")),
                 });
                 touchPairSession(pairTurnResult.sessionId);
 
@@ -263,7 +267,7 @@ export function registerTools(server: Server): void {
             }
             const prompt = readRequiredString(argumentsValue, "prompt");
             const context = buildPairContext(argumentsValue, mainAgentPosition);
-            const files = readOptionalStringArray(argumentsValue, "files");
+            const files = await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files"));
 
             const settled = await Promise.allSettled(
                 agentIds.map(async (agentId) => {
@@ -493,8 +497,11 @@ async function closePairSession(sessionId: string): Promise<boolean> {
 }
 
 async function ensureUserConsent(server: Server, userRequest: string): Promise<void> {
-    if (elicitationConfirmed) {
-        process.stderr.write(`[acp-bridge] pair-consult invoked: ${userRequest}\n`);
+    const key = elicitationKey(userRequest);
+    pruneExpiredElicitationConfirmations();
+
+    if (isElicitationConfirmed(key)) {
+        process.stderr.write(`[acp-bridge] pair-consult invoked (cached consent): ${userRequest}\n`);
         return;
     }
 
@@ -502,7 +509,7 @@ async function ensureUserConsent(server: Server, userRequest: string): Promise<v
     const supportsElicitation = clientCapabilities?.elicitation != null;
     if (!supportsElicitation) {
         process.stderr.write(`[acp-bridge] pair-consult invoked (no elicitation support): ${userRequest}\n`);
-        elicitationConfirmed = true;
+        rememberElicitationConfirmation(key);
         return;
     }
 
@@ -527,7 +534,7 @@ async function ensureUserConsent(server: Server, userRequest: string): Promise<v
                 "Pair consultation was not confirmed by the user. Only call pair tools after an explicit user request.",
             );
         }
-        elicitationConfirmed = true;
+        rememberElicitationConfirmation(key);
         process.stderr.write(`[acp-bridge] pair-consult confirmed: ${userRequest}\n`);
     } catch (error) {
         if (error instanceof Error && error.message.startsWith("Pair consultation was not confirmed")) {
@@ -536,7 +543,51 @@ async function ensureUserConsent(server: Server, userRequest: string): Promise<v
         process.stderr.write(
             `[acp-bridge] pair-consult elicitation failed, proceeding with log only: ${userRequest}\n`,
         );
-        elicitationConfirmed = true;
+        rememberElicitationConfirmation(key);
+    }
+}
+
+function elicitationKey(userRequest: string): string {
+    return userRequest.trim();
+}
+
+function isElicitationConfirmed(key: string): boolean {
+    const expiresAt = elicitationConfirmations.get(key);
+    if (expiresAt == null) {
+        return false;
+    }
+    if (expiresAt < Date.now()) {
+        elicitationConfirmations.delete(key);
+        return false;
+    }
+    return true;
+}
+
+function rememberElicitationConfirmation(key: string): void {
+    elicitationConfirmations.set(key, Date.now() + ELICITATION_TTL_MS);
+    enforceElicitationCapacity();
+}
+
+function pruneExpiredElicitationConfirmations(): void {
+    const now = Date.now();
+    for (const [key, expiresAt] of elicitationConfirmations) {
+        if (expiresAt < now) {
+            elicitationConfirmations.delete(key);
+        }
+    }
+}
+
+function enforceElicitationCapacity(): void {
+    const excess = elicitationConfirmations.size - MAX_ELICITATION_ENTRIES;
+    if (excess <= 0) {
+        return;
+    }
+    const oldestKeys = [...elicitationConfirmations.entries()]
+        .sort(([, left], [, right]) => left - right)
+        .slice(0, excess)
+        .map(([key]) => key);
+    for (const key of oldestKeys) {
+        elicitationConfirmations.delete(key);
     }
 }
 
@@ -597,4 +648,54 @@ function readOptionalStringArray(argumentsValue: Record<string, unknown>, key: s
     }
     const result = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
     return result.length > 0 ? result : undefined;
+}
+
+async function validateFilesWithinCwd(files: readonly string[] | undefined): Promise<string[] | undefined> {
+    if (files == null || files.length === 0) {
+        return undefined;
+    }
+
+    const cwdBoundary = await resolveBoundary(process.cwd());
+    const validatedFiles: string[] = [];
+
+    for (const rawFilePath of files) {
+        if (!isAbsolute(rawFilePath)) {
+            throw new Error(`File path must be absolute: ${rawFilePath}`);
+        }
+        const absoluteFilePath = resolve(rawFilePath);
+        const canonicalFilePath = await resolveBoundary(absoluteFilePath);
+        if (!isPathWithinBoundary(canonicalFilePath, cwdBoundary)) {
+            throw new Error(
+                `File path is outside the server cwd and was rejected: ${rawFilePath} (resolved=${canonicalFilePath}, cwd=${cwdBoundary})`,
+            );
+        }
+        validatedFiles.push(canonicalFilePath);
+    }
+
+    return validatedFiles;
+}
+
+async function resolveBoundary(absolutePath: string): Promise<string> {
+    try {
+        return await realpath(absolutePath);
+    } catch {
+        return resolve(absolutePath);
+    }
+}
+
+function isPathWithinBoundary(candidatePath: string, boundaryPath: string): boolean {
+    if (candidatePath === boundaryPath) {
+        return true;
+    }
+    const relativePath = relative(boundaryPath, candidatePath);
+    if (relativePath.length === 0) {
+        return true;
+    }
+    if (relativePath.startsWith("..")) {
+        return false;
+    }
+    if (isAbsolute(relativePath)) {
+        return false;
+    }
+    return !relativePath.split(sep).includes("..");
 }

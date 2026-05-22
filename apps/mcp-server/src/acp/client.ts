@@ -10,9 +10,10 @@ import {
     type RequestPermissionResponse,
     type SessionConfigOption,
     type SessionNotification,
+    type SetSessionModeRequest,
+    type SetSessionModeResponse,
     type ToolKind,
 } from "@agentclientprotocol/sdk";
-import type { PermissionPolicy } from "../agents/common/environment.js";
 import {
     isPairSessionClosedError,
     type PairAskInput,
@@ -21,7 +22,11 @@ import {
     type PairTurnMeta,
     type PairTurnResult,
 } from "../agents/common/types.js";
-import { DEFAULT_OPERATION_TIMEOUT_MS } from "../config/defaults.js";
+import {
+    DEFAULT_OPERATION_TIMEOUT_MS,
+    DEFAULT_PERMISSION_PROFILE,
+    type PermissionProfile,
+} from "../config/defaults.js";
 import { parseJsonAnswer } from "../tools/json-extract.js";
 
 export interface AcpAgentLaunchOptions {
@@ -33,7 +38,7 @@ export interface AcpAgentLaunchOptions {
     environmentVariables?: NodeJS.ProcessEnv;
     model?: string;
     mode?: string;
-    permissionPolicy?: PermissionPolicy;
+    permissionProfile?: PermissionProfile;
     operationTimeoutMs?: number;
     promptTimeoutMs?: number;
 }
@@ -52,7 +57,7 @@ export async function launchAcpAgent(_options: AcpAgentLaunchOptions): Promise<A
         cwd: process.cwd(),
         environmentVariables: {},
         operationTimeoutMs: DEFAULT_OPERATION_TIMEOUT_MS,
-        permissionPolicy: "approve_reads" as PermissionPolicy,
+        permissionProfile: DEFAULT_PERMISSION_PROFILE as PermissionProfile,
         promptTimeoutMs: undefined as number | undefined,
         ..._options,
     };
@@ -71,7 +76,7 @@ export async function launchAcpAgent(_options: AcpAgentLaunchOptions): Promise<A
 
     const session = new StdioAcpAgentSession(
         agentProcess,
-        options.permissionPolicy,
+        options.permissionProfile,
         options.cwd,
         options.configOptionOrder,
         options.configOptions,
@@ -97,7 +102,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
 
     constructor(
         private readonly agentProcess: ChildProcessWithoutNullStreams,
-        permissionPolicy: PermissionPolicy,
+        permissionProfile: PermissionProfile,
         private readonly cwd: string,
         private readonly configOptionOrder: readonly string[],
         private readonly configOptions: Readonly<Record<string, string>>,
@@ -106,7 +111,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
         private readonly operationTimeoutMs: number,
         private readonly promptTimeoutMs: number,
     ) {
-        this.client = new AcpBridgeClient(permissionPolicy);
+        this.client = new AcpBridgeClient(permissionProfile);
 
         const input = Writable.toWeb(agentProcess.stdin);
         const output = Readable.toWeb(agentProcess.stdout);
@@ -179,8 +184,22 @@ class StdioAcpAgentSession implements AcpAgentSession {
     }
 
     async close(): Promise<void> {
-        if (!this.agentProcess.killed) {
-            this.agentProcess.kill();
+        if (this.agentProcess.exitCode == null && this.agentProcess.signalCode == null) {
+            try {
+                this.agentProcess.kill("SIGTERM");
+            } catch {
+                // Process may have already exited between the check and the kill call.
+            }
+
+            const exited = await waitForProcessExit(this.agentProcess, SIGTERM_GRACE_PERIOD_MS);
+            if (!exited && this.agentProcess.exitCode == null && this.agentProcess.signalCode == null) {
+                try {
+                    this.agentProcess.kill("SIGKILL");
+                } catch {
+                    // Process may have already exited.
+                }
+                await waitForProcessExit(this.agentProcess, SIGKILL_GRACE_PERIOD_MS);
+            }
         }
         await this.connection.closed.catch(() => undefined);
     }
@@ -353,20 +372,67 @@ class StdioAcpAgentSession implements AcpAgentSession {
     }
 }
 
+const PROFILE_RANK: Record<PermissionProfile, number> = {
+    "read-only": 0,
+    edit: 1,
+    full: 2,
+};
+
+const READ_ONLY_TOOL_KINDS: readonly ToolKind[] = ["read", "search", "fetch", "think"];
+const EDIT_TOOL_KINDS: readonly ToolKind[] = [...READ_ONLY_TOOL_KINDS, "edit", "move"];
+
 class AcpBridgeClient implements Client {
     private readonly answerBuffers = new Map<string, string[]>();
+    private enforceProfile: PermissionProfile;
 
-    constructor(private readonly permissionPolicy: PermissionPolicy) {}
+    constructor(initialProfile: PermissionProfile) {
+        this.enforceProfile = initialProfile;
+    }
 
     async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
-        if (this.permissionPolicy === "approve_reads" && isReadOnlyToolKind(params.toolCall.kind)) {
+        const decision = decidePermission(this.enforceProfile, params.toolCall.kind);
+        auditLog({
+            event: "request_permission",
+            sessionId: params.sessionId,
+            enforceProfile: this.enforceProfile,
+            toolKind: params.toolCall.kind ?? null,
+            decision,
+            visibility: "visible",
+        });
+        if (decision === "allow") {
             return selectPermissionOption(params, ["allow_once", "allow_always"]);
         }
         return selectPermissionOption(params, ["reject_once", "reject_always"]);
     }
 
+    async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse> {
+        // ACP allows agent-initiated mode changes, but our enforcement profile is independent
+        // of the agent's self-reported mode. We acknowledge the call so the agent doesn't fault,
+        // but never mutate `enforceProfile`. See docs/permission.md §0, §1 (P-02).
+        auditLog({
+            event: "agent_set_session_mode",
+            sessionId: params.sessionId,
+            enforceProfile: this.enforceProfile,
+            requestedModeId: params.modeId,
+            decision: "ignored_for_enforcement",
+            visibility: "visible",
+        });
+        return {};
+    }
+
     async sessionUpdate(params: SessionNotification): Promise<void> {
         const update = params.update;
+        if (update.sessionUpdate === "current_mode_update") {
+            auditLog({
+                event: "current_mode_update",
+                sessionId: params.sessionId,
+                enforceProfile: this.enforceProfile,
+                requestedModeId: update.currentModeId,
+                decision: "audit_only",
+                visibility: "visible",
+            });
+            return;
+        }
         if (update.sessionUpdate !== "agent_message_chunk") {
             return;
         }
@@ -389,6 +455,50 @@ class AcpBridgeClient implements Client {
         const answer = (this.answerBuffers.get(sessionId) ?? []).join("").trim();
         this.answerBuffers.delete(sessionId);
         return answer;
+    }
+}
+
+function decidePermission(profile: PermissionProfile, toolKind: ToolKind | null | undefined): "allow" | "reject" {
+    if (toolKind == null) {
+        // Missing kind → treat as non-readonly (defensive). permission.md §9: annotation은 hint, hard default deny.
+        return profile === "full" ? "allow" : "reject";
+    }
+    if (toolKind === "switch_mode") {
+        // Engine's enforce profile is decoupled from agent's self mode; allow the agent to perform
+        // its own UX switch but enforcement remains unchanged.
+        return "allow";
+    }
+    switch (profile) {
+        case "read-only":
+            return READ_ONLY_TOOL_KINDS.includes(toolKind) ? "allow" : "reject";
+        case "edit":
+            return EDIT_TOOL_KINDS.includes(toolKind) ? "allow" : "reject";
+        case "full":
+            // Phase A: no Layer-0 hard block list yet. Phase B will tighten this.
+            return "allow";
+    }
+}
+
+interface AuditEntry {
+    event: string;
+    sessionId: string;
+    enforceProfile: PermissionProfile;
+    decision: string;
+    visibility: "visible" | "partial" | "external";
+    toolKind?: ToolKind | null;
+    requestedModeId?: string;
+}
+
+function auditLog(entry: AuditEntry): void {
+    const payload = {
+        ts: new Date().toISOString(),
+        component: "acp-bridge",
+        ...entry,
+    };
+    try {
+        process.stderr.write(`${JSON.stringify(payload)}\n`);
+    } catch {
+        // Never throw from the audit path.
     }
 }
 
@@ -460,6 +570,26 @@ function rejectAfterTimeout(timeoutMs: number, error: Error): Promise<never> {
     });
 }
 
+const SIGTERM_GRACE_PERIOD_MS = 2_000;
+const SIGKILL_GRACE_PERIOD_MS = 1_000;
+
+function waitForProcessExit(agentProcess: ChildProcessWithoutNullStreams, timeoutMs: number): Promise<boolean> {
+    if (agentProcess.exitCode != null || agentProcess.signalCode != null) {
+        return Promise.resolve(true);
+    }
+    return new Promise<boolean>((resolveExit) => {
+        const timer = setTimeout(() => {
+            agentProcess.removeListener("exit", onExit);
+            resolveExit(false);
+        }, timeoutMs);
+        const onExit = () => {
+            clearTimeout(timer);
+            resolveExit(true);
+        };
+        agentProcess.once("exit", onExit);
+    });
+}
+
 class AcpPromptTimeoutError extends Error {
     constructor(
         readonly sessionId: string,
@@ -468,10 +598,6 @@ class AcpPromptTimeoutError extends Error {
         super(`ACP prompt timed out. sessionId=${sessionId} timeoutMs=${timeoutMs}`);
         this.name = "AcpPromptTimeoutError";
     }
-}
-
-function isReadOnlyToolKind(toolKind: ToolKind | null | undefined): boolean {
-    return toolKind === "read" || toolKind === "search" || toolKind === "fetch" || toolKind === "think";
 }
 
 function selectPermissionOption(
@@ -486,3 +612,6 @@ function selectPermissionOption(
     }
     return { outcome: { outcome: "cancelled" } };
 }
+
+// Suppress unused-import warning until profile-rank-based comparison is wired in Phase B (downgrade-only setSessionMode).
+void PROFILE_RANK;

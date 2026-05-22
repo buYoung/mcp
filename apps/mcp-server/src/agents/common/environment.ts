@@ -1,6 +1,11 @@
 import {
-    DEFAULT_ACP_PERMISSION_POLICY,
     DEFAULT_OPERATION_TIMEOUT_MS,
+    DEFAULT_PERMISSION_PROFILE,
+    isPermissionProfile,
+    OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE,
+    PERMISSION_PROFILE_ENVIRONMENT_VARIABLE,
+    PERMISSION_PROFILES,
+    type PermissionProfile,
     PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE,
 } from "../../config/defaults.js";
 
@@ -14,7 +19,8 @@ export interface AgentCommandConfig {
     commandArguments: readonly string[];
 }
 
-export type PermissionPolicy = typeof DEFAULT_ACP_PERMISSION_POLICY;
+// Backwards-compatible alias. New code should import `PermissionProfile` directly.
+export type PermissionPolicy = PermissionProfile;
 
 export function readAgentCommandConfig(environmentPrefix: string, defaults: AgentCommandDefaults): AgentCommandConfig {
     const command = readEnvironmentString(`${environmentPrefix}_COMMAND`);
@@ -26,17 +32,49 @@ export function readAgentCommandConfig(environmentPrefix: string, defaults: Agen
     };
 }
 
-export function readPermissionPolicy(): PermissionPolicy {
-    readEnvironmentString("ACP_BRIDGE_PERMISSION_POLICY");
-    return DEFAULT_ACP_PERMISSION_POLICY;
+export function readDefaultPermissionProfile(): PermissionProfile {
+    const value = readEnvironmentString(PERMISSION_PROFILE_ENVIRONMENT_VARIABLE);
+    if (value == null) {
+        return DEFAULT_PERMISSION_PROFILE;
+    }
+    if (!isPermissionProfile(value)) {
+        throw new Error(
+            `Expected ${PERMISSION_PROFILE_ENVIRONMENT_VARIABLE} to be one of: ${PERMISSION_PROFILES.join(", ")}`,
+        );
+    }
+    return value;
+}
+
+export function resolvePermissionProfile(
+    perAgentValue: string | undefined,
+    fallback: PermissionProfile = readDefaultPermissionProfile(),
+): PermissionProfile {
+    if (perAgentValue == null || perAgentValue.trim().length === 0) {
+        return fallback;
+    }
+    const trimmed = perAgentValue.trim();
+    if (!isPermissionProfile(trimmed)) {
+        throw new Error(
+            `Invalid per-agent permission profile "${trimmed}". Expected one of: ${PERMISSION_PROFILES.join(", ")}`,
+        );
+    }
+    return trimmed;
 }
 
 export function readOperationTimeoutMs(): number {
-    return DEFAULT_OPERATION_TIMEOUT_MS;
+    const value = readEnvironmentString(OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE);
+    if (value == null) {
+        return DEFAULT_OPERATION_TIMEOUT_MS;
+    }
+    return parsePositiveInteger(OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE, value);
 }
 
 export function readPromptTimeoutMs(): number {
-    return readRequiredPositiveInteger(PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE);
+    const value = readEnvironmentString(PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE);
+    if (value == null) {
+        throw new Error(`Expected ${PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE} to be a positive integer in milliseconds.`);
+    }
+    return parsePositiveInteger(PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE, value);
 }
 
 function readEnvironmentString(name: string): string | undefined {
@@ -61,16 +99,11 @@ function readEnvironmentStringArray(name: string): string[] | undefined {
     return parsedValue;
 }
 
-function readRequiredPositiveInteger(name: string): number {
-    const value = readEnvironmentString(name);
-    if (value == null) {
+function parsePositiveInteger(name: string, rawValue: string): number {
+    if (!/^[1-9]\d*$/.test(rawValue)) {
         throw new Error(`Expected ${name} to be a positive integer in milliseconds.`);
     }
-    if (!/^[1-9]\d*$/.test(value)) {
-        throw new Error(`Expected ${name} to be a positive integer in milliseconds.`);
-    }
-
-    const parsedValue = Number(value);
+    const parsedValue = Number(rawValue);
     if (!Number.isSafeInteger(parsedValue)) {
         throw new Error(`Expected ${name} to be a positive integer in milliseconds.`);
     }

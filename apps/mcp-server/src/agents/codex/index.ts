@@ -4,8 +4,8 @@ import { createAcpAgentAdapter } from "../common/acp-agent-adapter.js";
 import {
     readAgentCommandConfig,
     readOperationTimeoutMs,
-    readPermissionPolicy,
     readPromptTimeoutMs,
+    resolvePermissionProfile,
 } from "../common/environment.js";
 import { resolveLocalNodeBinaryCommand } from "../common/local-binary.js";
 
@@ -32,7 +32,7 @@ export function createCodexAgent(configuration: AcpBridgeAgentConfiguration = {}
             cwd: process.cwd(),
             mode: DEFAULT_CODEX_PERMISSION_MODE,
             operationTimeoutMs: readOperationTimeoutMs(),
-            permissionPolicy: readPermissionPolicy(),
+            permissionProfile: resolvePermissionProfile(configuration.permission),
             promptTimeoutMs: readPromptTimeoutMs(),
         },
     });
