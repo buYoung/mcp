@@ -3,25 +3,22 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { isCommandAvailable } from "../agents/common/binary-availability.js";
 import { isPairSessionClosedError, type PairTurnMeta, type PairTurnResult } from "../agents/common/types.js";
 import { agentRegistry } from "../agents/registry.js";
+import type { ResolvedLimits } from "../config/limits-resolver.js";
 import { validateFilesWithinCwd } from "./files-validation.js";
 import { type PairStance, parsePairOpinion } from "./pair-opinion.js";
 import { PairSessionStore } from "./pair-session-store.js";
-
-const PAIR_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
-const MAX_PAIR_SESSIONS = 20;
-const MAX_CONSULT_PANEL_AGENTS = 5;
-
-const pairSessionStore = new PairSessionStore({
-    idleTimeoutMs: PAIR_SESSION_IDLE_TIMEOUT_MS,
-    maxSessions: MAX_PAIR_SESSIONS,
-    resolveAgent: (agentId) => agentRegistry.get(agentId),
-});
 
 const ELICITATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ELICITATION_ENTRIES = 64;
 const elicitationConfirmations = new Map<string, number>();
 
-export function registerTools(server: Server): void {
+export function registerTools(server: Server, limits: ResolvedLimits): void {
+    const maxConsultPanelAgents = limits.maxConsultPanelAgents;
+    const pairSessionStore = new PairSessionStore({
+        idleTimeoutMs: limits.pairSessionIdleTimeoutMs,
+        maxSessions: limits.maxPairSessions,
+        resolveAgent: (agentId) => agentRegistry.get(agentId),
+    });
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
@@ -128,9 +125,9 @@ export function registerTools(server: Server): void {
                             agent_ids: {
                                 type: "array",
                                 items: { type: "string" },
-                                description: `Two to ${MAX_CONSULT_PANEL_AGENTS} pair agent ids returned by list_agents. Each must be unique.`,
+                                description: `Two to ${maxConsultPanelAgents} pair agent ids returned by list_agents. Each must be unique.`,
                                 minItems: 2,
-                                maxItems: MAX_CONSULT_PANEL_AGENTS,
+                                maxItems: maxConsultPanelAgents,
                                 uniqueItems: true,
                             },
                             prompt: {
@@ -258,9 +255,9 @@ export function registerTools(server: Server): void {
             if (agentIds.length < 2) {
                 throw new Error("consult_panel requires at least two agent_ids.");
             }
-            if (agentIds.length > MAX_CONSULT_PANEL_AGENTS) {
+            if (agentIds.length > maxConsultPanelAgents) {
                 throw new Error(
-                    `consult_panel accepts at most ${MAX_CONSULT_PANEL_AGENTS} agent_ids; got ${agentIds.length}.`,
+                    `consult_panel accepts at most ${maxConsultPanelAgents} agent_ids; got ${agentIds.length}.`,
                 );
             }
             const uniqueAgentIds = [...new Set(agentIds)];

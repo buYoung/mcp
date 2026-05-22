@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { parse as parseToml } from "smol-toml";
 import { SUPPORTED_AGENT_IDS } from "./defaults.js";
 
 export interface AcpBridgeAgentConfiguration {
@@ -8,16 +9,34 @@ export interface AcpBridgeAgentConfiguration {
     reasoning?: string;
 }
 
+export interface AcpBridgeLimitsConfiguration {
+    max_pair_sessions?: number;
+    pair_session_idle_timeout_ms?: number;
+    max_consult_panel_agents?: number;
+    operation_timeout_ms?: number;
+    prompt_timeout_ms?: number;
+    stderr_ring_buffer_chars?: number;
+}
+
 export interface AcpBridgeConfiguration {
     configurationPath: string;
     agents: Record<string, AcpBridgeAgentConfiguration>;
+    limits: AcpBridgeLimitsConfiguration;
 }
-
-type AgentConfigurationKey = keyof AcpBridgeAgentConfiguration;
 
 const CONFIG_DIRECTORY_NAME = ".acp_bridge";
 const CONFIG_FILE_NAME = "config.toml";
 const [CLAUDE_CODE_AGENT_ID, CODEX_AGENT_ID, GEMINI_CLI_AGENT_ID] = SUPPORTED_AGENT_IDS;
+
+const SUPPORTED_AGENT_KEYS = new Set<keyof AcpBridgeAgentConfiguration>(["model", "permission", "reasoning"]);
+const SUPPORTED_LIMIT_KEYS = new Set<keyof AcpBridgeLimitsConfiguration>([
+    "max_pair_sessions",
+    "pair_session_idle_timeout_ms",
+    "max_consult_panel_agents",
+    "operation_timeout_ms",
+    "prompt_timeout_ms",
+    "stderr_ring_buffer_chars",
+]);
 
 const DEFAULT_CONFIG_TEMPLATE = `# acp-bridge configuration
 # Set values to the exact ACP ids each adapter supports.
@@ -36,6 +55,15 @@ reasoning = ""
 [agents.${GEMINI_CLI_AGENT_ID}]
 model = ""
 permission = ""
+
+# Operational limits. Omit a key to fall back to ACP_BRIDGE_* env var, then the built-in default.
+[limits]
+# max_pair_sessions = 20
+# pair_session_idle_timeout_ms = 1800000
+# max_consult_panel_agents = 5
+# operation_timeout_ms = 180000
+# prompt_timeout_ms = 600000
+# stderr_ring_buffer_chars = 16384
 `;
 
 export async function ensureAcpBridgeConfiguration(baseDirectory = process.cwd()): Promise<AcpBridgeConfiguration> {
@@ -46,109 +74,99 @@ export async function ensureAcpBridgeConfiguration(baseDirectory = process.cwd()
     await writeFileIfMissing(configurationPath, DEFAULT_CONFIG_TEMPLATE);
 
     const configurationContents = await readFile(configurationPath, "utf8");
+    let parsed: Record<string, unknown>;
+    try {
+        parsed = parseToml(configurationContents) as Record<string, unknown>;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to parse ${configurationPath}: ${message}`);
+    }
+
     return {
         configurationPath,
-        agents: parseAgentConfigurations(configurationContents, configurationPath),
+        agents: parseAgentConfigurations(parsed, configurationPath),
+        limits: parseLimitsConfiguration(parsed, configurationPath),
     };
 }
 
 function parseAgentConfigurations(
-    configurationContents: string,
+    parsed: Record<string, unknown>,
     configurationPath: string,
 ): Record<string, AcpBridgeAgentConfiguration> {
     const agents: Record<string, AcpBridgeAgentConfiguration> = {};
-    let currentAgentId: string | undefined;
+    for (const agentId of SUPPORTED_AGENT_IDS) {
+        agents[agentId] = {};
+    }
 
-    configurationContents.split(/\r?\n/).forEach((line, lineIndex) => {
-        const lineWithoutComment = stripInlineComment(line).trim();
-        if (lineWithoutComment.length === 0) {
-            return;
+    const agentsTable = parsed.agents;
+    if (agentsTable == null) {
+        return agents;
+    }
+    if (typeof agentsTable !== "object" || Array.isArray(agentsTable)) {
+        throw new Error(`Expected [agents] table at ${configurationPath}`);
+    }
+
+    for (const [agentId, agentValue] of Object.entries(agentsTable as Record<string, unknown>)) {
+        if (!SUPPORTED_AGENT_IDS.includes(agentId as (typeof SUPPORTED_AGENT_IDS)[number])) {
+            throw new Error(`Unsupported agent id "${agentId}" at ${configurationPath}`);
         }
-
-        const sectionMatch = /^\[agents\.([A-Za-z0-9_-]+)\]$/.exec(lineWithoutComment);
-        if (sectionMatch) {
-            const agentId = sectionMatch[1];
-            if (agentId == null) {
-                throw new Error(`Missing agent id at ${configurationPath}:${lineIndex + 1}`);
-            }
-            currentAgentId = agentId;
-            agents[agentId] ??= {};
-            return;
+        if (typeof agentValue !== "object" || agentValue == null || Array.isArray(agentValue)) {
+            throw new Error(`Expected [agents.${agentId}] table at ${configurationPath}`);
         }
-
-        const keyValueMatch = /^(model|permission|reasoning)\s*=\s*(.+)$/.exec(lineWithoutComment);
-        if (keyValueMatch && currentAgentId) {
-            const configurationKey = keyValueMatch[1];
-            const sourceValue = keyValueMatch[2];
-            if (configurationKey == null || sourceValue == null) {
-                throw new Error(`Missing configuration value at ${configurationPath}:${lineIndex + 1}`);
+        const agentConfiguration: AcpBridgeAgentConfiguration = {};
+        for (const [key, value] of Object.entries(agentValue as Record<string, unknown>)) {
+            if (!SUPPORTED_AGENT_KEYS.has(key as keyof AcpBridgeAgentConfiguration)) {
+                throw new Error(`Unsupported agent configuration key "${key}" at ${configurationPath}`);
             }
-            if (!isAgentConfigurationKey(configurationKey)) {
-                throw new Error(`Unsupported configuration key at ${configurationPath}:${lineIndex + 1}`);
+            if (typeof value !== "string") {
+                throw new Error(
+                    `Expected agents.${agentId}.${key} to be a string at ${configurationPath}; got ${typeof value}`,
+                );
             }
-            const configurationValue = parseTomlString(sourceValue, configurationPath, lineIndex + 1).trim();
-            if (configurationValue.length > 0) {
-                if (currentAgentId === "gemini-cli" && configurationKey === "reasoning") {
-                    throw new Error(`Gemini CLI does not support reasoning at ${configurationPath}:${lineIndex + 1}`);
-                }
-                const agentConfiguration = agents[currentAgentId];
-                if (agentConfiguration == null) {
-                    throw new Error(`Missing agent section at ${configurationPath}:${lineIndex + 1}`);
-                }
-                agentConfiguration[configurationKey] = configurationValue;
+            const trimmed = value.trim();
+            if (trimmed.length === 0) {
+                continue;
             }
-            return;
+            if (agentId === GEMINI_CLI_AGENT_ID && key === "reasoning") {
+                throw new Error(`Gemini CLI does not support reasoning at ${configurationPath}`);
+            }
+            agentConfiguration[key as keyof AcpBridgeAgentConfiguration] = trimmed;
         }
-
-        throw new Error(`Unsupported ${CONFIG_FILE_NAME} entry at ${configurationPath}:${lineIndex + 1}`);
-    });
+        agents[agentId] = agentConfiguration;
+    }
 
     return agents;
 }
 
-function isAgentConfigurationKey(configurationKey: string): configurationKey is AgentConfigurationKey {
-    return configurationKey === "model" || configurationKey === "permission" || configurationKey === "reasoning";
-}
-
-function parseTomlString(sourceValue: string, configurationPath: string, lineNumber: number): string {
-    const trimmedValue = sourceValue.trim();
-    if (!trimmedValue.startsWith('"') || !trimmedValue.endsWith('"')) {
-        throw new Error(`Expected TOML string at ${configurationPath}:${lineNumber}`);
+function parseLimitsConfiguration(
+    parsed: Record<string, unknown>,
+    configurationPath: string,
+): AcpBridgeLimitsConfiguration {
+    const limitsTable = parsed.limits;
+    if (limitsTable == null) {
+        return {};
+    }
+    if (typeof limitsTable !== "object" || Array.isArray(limitsTable)) {
+        throw new Error(`Expected [limits] table at ${configurationPath}`);
     }
 
-    try {
-        return JSON.parse(trimmedValue) as string;
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Invalid TOML string at ${configurationPath}:${lineNumber}: ${message}`);
+    const limits: AcpBridgeLimitsConfiguration = {};
+    for (const [key, value] of Object.entries(limitsTable as Record<string, unknown>)) {
+        if (!SUPPORTED_LIMIT_KEYS.has(key as keyof AcpBridgeLimitsConfiguration)) {
+            throw new Error(`Unsupported limits key "${key}" at ${configurationPath}`);
+        }
+        if (typeof value !== "number" && typeof value !== "bigint") {
+            throw new Error(
+                `Expected limits.${key} to be a positive integer at ${configurationPath}; got ${typeof value}`,
+            );
+        }
+        const numericValue = typeof value === "bigint" ? Number(value) : value;
+        if (!Number.isSafeInteger(numericValue) || numericValue <= 0) {
+            throw new Error(`Expected limits.${key} to be a positive integer at ${configurationPath}; got ${value}`);
+        }
+        limits[key as keyof AcpBridgeLimitsConfiguration] = numericValue;
     }
-}
-
-function stripInlineComment(line: string): string {
-    let isInsideString = false;
-    let isEscaped = false;
-
-    for (let characterIndex = 0; characterIndex < line.length; characterIndex += 1) {
-        const character = line[characterIndex];
-
-        if (isEscaped) {
-            isEscaped = false;
-            continue;
-        }
-        if (character === "\\") {
-            isEscaped = true;
-            continue;
-        }
-        if (character === '"') {
-            isInsideString = !isInsideString;
-            continue;
-        }
-        if (character === "#" && !isInsideString) {
-            return line.slice(0, characterIndex);
-        }
-    }
-
-    return line;
+    return limits;
 }
 
 async function writeFileIfMissing(filePath: string, contents: string): Promise<void> {

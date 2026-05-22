@@ -81,4 +81,46 @@ describe("ensureAcpBridgeConfiguration", () => {
 
         await expect(ensureAcpBridgeConfiguration(baseDirectory)).rejects.toThrow();
     });
+
+    it("parses [limits] integers", async () => {
+        const configurationPath = join(baseDirectory, ".acp_bridge", "config.toml");
+        await ensureAcpBridgeConfiguration(baseDirectory);
+        await writeFile(
+            configurationPath,
+            [
+                "[limits]",
+                "max_pair_sessions = 7",
+                "pair_session_idle_timeout_ms = 5000",
+                "max_consult_panel_agents = 3",
+                "operation_timeout_ms = 9000",
+                "prompt_timeout_ms = 4000",
+                "stderr_ring_buffer_chars = 2048",
+                "",
+            ].join("\n"),
+        );
+
+        const configuration = await ensureAcpBridgeConfiguration(baseDirectory);
+        expect(configuration.limits).toEqual({
+            max_pair_sessions: 7,
+            pair_session_idle_timeout_ms: 5000,
+            max_consult_panel_agents: 3,
+            operation_timeout_ms: 9000,
+            prompt_timeout_ms: 4000,
+            stderr_ring_buffer_chars: 2048,
+        });
+    });
+
+    it("rejects negative or non-integer [limits]", async () => {
+        const configurationPath = join(baseDirectory, ".acp_bridge", "config.toml");
+        await ensureAcpBridgeConfiguration(baseDirectory);
+        await writeFile(configurationPath, ["[limits]", "max_pair_sessions = 0", ""].join("\n"));
+        await expect(ensureAcpBridgeConfiguration(baseDirectory)).rejects.toThrow(/max_pair_sessions/);
+    });
+
+    it("rejects unknown [limits] keys", async () => {
+        const configurationPath = join(baseDirectory, ".acp_bridge", "config.toml");
+        await ensureAcpBridgeConfiguration(baseDirectory);
+        await writeFile(configurationPath, ["[limits]", "unknown_limit = 42", ""].join("\n"));
+        await expect(ensureAcpBridgeConfiguration(baseDirectory)).rejects.toThrow(/unknown_limit/);
+    });
 });

@@ -16,6 +16,7 @@ export interface PairTurnMeta {
     stop_reason: string;
     agent_id: string;
     agent_model?: string;
+    agent_model_actual?: string;
 }
 
 export interface PairTurnResult {

@@ -10,15 +10,11 @@ export const DEFAULT_PERMISSION_PROFILE: PermissionProfile = "read-only";
 
 export const PERMISSION_PROFILE_ENVIRONMENT_VARIABLE = "ACP_BRIDGE_PERMISSION_POLICY";
 
-export const OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE = "ACP_BRIDGE_OPERATION_TIMEOUT_MS";
-
 export const DEFAULT_CLAUDE_CODE_PERMISSION_MODE = "plan";
 
 export const DEFAULT_CODEX_PERMISSION_MODE = "read-only";
 
 export const DEFAULT_OPERATION_TIMEOUT_MS = 180_000;
-
-export const PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE = "ACP_BRIDGE_PROMPT_TIMEOUT_MS";
 
 export function isPermissionProfile(value: unknown): value is PermissionProfile {
     return typeof value === "string" && (PERMISSION_PROFILES as readonly string[]).includes(value);

@@ -30,6 +30,7 @@ import {
 import { parseJsonAnswer } from "../tools/json-extract.js";
 import { type LayerZeroHit, layerZeroCheckFromRawInput } from "./layer-zero.js";
 import { decidePermission } from "./permission-decision.js";
+import { StderrRingBuffer } from "./stderr-ring-buffer.js";
 
 export interface AcpAgentLaunchOptions {
     command: string;
@@ -43,6 +44,7 @@ export interface AcpAgentLaunchOptions {
     permissionProfile?: PermissionProfile;
     operationTimeoutMs?: number;
     promptTimeoutMs?: number;
+    stderrRingBufferChars?: number;
 }
 
 export interface AcpAgentSession {
@@ -86,6 +88,7 @@ export async function launchAcpAgent(_options: AcpAgentLaunchOptions): Promise<A
         options.mode,
         options.operationTimeoutMs,
         options.promptTimeoutMs,
+        options.stderrRingBufferChars ?? 16_384,
     );
     try {
         await session.initialize();
@@ -100,7 +103,8 @@ class StdioAcpAgentSession implements AcpAgentSession {
     private readonly client: AcpBridgeClient;
     private readonly connection: ClientSideConnection;
     private readonly processFailure: Promise<never>;
-    private stderrOutput = "";
+    private readonly stderrBuffer: StderrRingBuffer;
+    private readonly actualModelBySession = new Map<string, string>();
 
     constructor(
         private readonly agentProcess: ChildProcessWithoutNullStreams,
@@ -112,15 +116,17 @@ class StdioAcpAgentSession implements AcpAgentSession {
         private readonly mode: string | undefined,
         private readonly operationTimeoutMs: number,
         private readonly promptTimeoutMs: number,
+        stderrRingBufferChars: number,
     ) {
         this.client = new AcpBridgeClient(permissionProfile);
+        this.stderrBuffer = new StderrRingBuffer(stderrRingBufferChars);
 
         const input = Writable.toWeb(agentProcess.stdin);
         const output = Readable.toWeb(agentProcess.stdout);
         this.connection = new ClientSideConnection(() => this.client, ndJsonStream(input, output));
 
         agentProcess.stderr.on("data", (chunk: Buffer | string) => {
-            this.stderrOutput = `${this.stderrOutput}${String(chunk)}`.slice(-4000);
+            this.stderrBuffer.write(chunk);
         });
 
         this.processFailure = new Promise<never>((_resolve, reject) => {
@@ -171,6 +177,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
             await this.setSessionConfigOptions(sessionResult.sessionId, sessionResult.configOptions);
             await this.setSessionModel(sessionResult.sessionId);
             await this.setSessionMode(sessionResult.sessionId);
+            this.recordActualModel(sessionResult.sessionId, sessionResult.models?.currentModelId);
             return this.prompt(sessionResult.sessionId, input.prompt, input.context, input.files);
         } catch (error) {
             throw this.withStderrContext(error);
@@ -253,6 +260,10 @@ class StdioAcpAgentSession implements AcpAgentSession {
                 stop_reason: stopReason,
                 agent_id: "",
             };
+            const actualModel = this.actualModelBySession.get(sessionId);
+            if (actualModel != null && actualModel.length > 0) {
+                meta.agent_model_actual = actualModel;
+            }
             if (answer.length > 0) {
                 return { result: { sessionId, answer, meta }, hadText: true };
             }
@@ -291,7 +302,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
             return;
         }
 
-        await Promise.race([
+        const response = await Promise.race([
             this.connection.unstable_setSessionModel({
                 sessionId,
                 modelId: this.model,
@@ -299,6 +310,15 @@ class StdioAcpAgentSession implements AcpAgentSession {
             this.processFailure,
             rejectAfterTimeout(this.operationTimeoutMs, new Error(`ACP set_model timed out. model=${this.model}`)),
         ]);
+        const echoedModelId = (response as { models?: { currentModelId?: string } | null } | undefined)?.models
+            ?.currentModelId;
+        this.recordActualModel(sessionId, echoedModelId ?? this.model);
+    }
+
+    private recordActualModel(sessionId: string, modelId: string | undefined | null): void {
+        if (typeof modelId === "string" && modelId.length > 0) {
+            this.actualModelBySession.set(sessionId, modelId);
+        }
     }
 
     private async setSessionMode(sessionId: string): Promise<void> {
@@ -366,7 +386,7 @@ class StdioAcpAgentSession implements AcpAgentSession {
             return error;
         }
         const message = error instanceof Error ? error.message : String(error);
-        const stderrMessage = this.stderrOutput.trim();
+        const stderrMessage = this.stderrBuffer.read().trim();
         if (stderrMessage.length === 0) {
             return error instanceof Error ? error : new Error(message);
         }

@@ -1,18 +1,14 @@
 import type { AcpBridgeAgentConfiguration } from "../../config/acp-bridge-config.js";
+import type { ResolvedLimits } from "../../config/limits-resolver.js";
 import { createAcpAgentAdapter } from "../common/acp-agent-adapter.js";
-import {
-    readAgentCommandConfig,
-    readOperationTimeoutMs,
-    readPromptTimeoutMs,
-    resolvePermissionProfile,
-} from "../common/environment.js";
+import { readAgentCommandConfig, resolvePermissionProfile } from "../common/environment.js";
 
 const commandConfig = readAgentCommandConfig("ACP_BRIDGE_GEMINI_CLI", {
     command: "gemini",
     commandArguments: ["--acp"],
 });
 
-export function createGeminiCliAgent(configuration: AcpBridgeAgentConfiguration = {}) {
+export function createGeminiCliAgent(configuration: AcpBridgeAgentConfiguration = {}, limits: ResolvedLimits) {
     return createAcpAgentAdapter({
         id: "gemini-cli",
         label: "Gemini CLI",
@@ -23,9 +19,10 @@ export function createGeminiCliAgent(configuration: AcpBridgeAgentConfiguration 
             commandArguments: commandConfig.commandArguments,
             cwd: process.cwd(),
             model: configuration.model,
-            operationTimeoutMs: readOperationTimeoutMs(),
+            operationTimeoutMs: limits.operationTimeoutMs,
             permissionProfile: resolvePermissionProfile(configuration.permission),
-            promptTimeoutMs: readPromptTimeoutMs(),
+            promptTimeoutMs: limits.promptTimeoutMs,
+            stderrRingBufferChars: limits.stderrRingBufferChars,
         },
     });
 }

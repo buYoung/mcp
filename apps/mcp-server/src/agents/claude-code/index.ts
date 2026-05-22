@@ -1,12 +1,8 @@
 import type { AcpBridgeAgentConfiguration } from "../../config/acp-bridge-config.js";
 import { DEFAULT_CLAUDE_CODE_PERMISSION_MODE } from "../../config/defaults.js";
+import type { ResolvedLimits } from "../../config/limits-resolver.js";
 import { createAcpAgentAdapter } from "../common/acp-agent-adapter.js";
-import {
-    readAgentCommandConfig,
-    readOperationTimeoutMs,
-    readPromptTimeoutMs,
-    resolvePermissionProfile,
-} from "../common/environment.js";
+import { readAgentCommandConfig, resolvePermissionProfile } from "../common/environment.js";
 import { resolveLocalNodeBinaryCommand } from "../common/local-binary.js";
 
 const commandConfig = readAgentCommandConfig(
@@ -14,7 +10,7 @@ const commandConfig = readAgentCommandConfig(
     resolveLocalNodeBinaryCommand("@agentclientprotocol/claude-agent-acp", "claude-agent-acp"),
 );
 
-export function createClaudeCodeAgent(configuration: AcpBridgeAgentConfiguration = {}) {
+export function createClaudeCodeAgent(configuration: AcpBridgeAgentConfiguration = {}, limits: ResolvedLimits) {
     return createAcpAgentAdapter({
         id: "claude-code",
         label: "Claude Code",
@@ -31,9 +27,10 @@ export function createClaudeCodeAgent(configuration: AcpBridgeAgentConfiguration
             },
             cwd: process.cwd(),
             mode: DEFAULT_CLAUDE_CODE_PERMISSION_MODE,
-            operationTimeoutMs: readOperationTimeoutMs(),
+            operationTimeoutMs: limits.operationTimeoutMs,
             permissionProfile: resolvePermissionProfile(configuration.permission),
-            promptTimeoutMs: readPromptTimeoutMs(),
+            promptTimeoutMs: limits.promptTimeoutMs,
+            stderrRingBufferChars: limits.stderrRingBufferChars,
         },
     });
 }

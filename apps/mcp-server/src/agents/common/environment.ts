@@ -1,12 +1,9 @@
 import {
-    DEFAULT_OPERATION_TIMEOUT_MS,
     DEFAULT_PERMISSION_PROFILE,
     isPermissionProfile,
-    OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE,
     PERMISSION_PROFILE_ENVIRONMENT_VARIABLE,
     PERMISSION_PROFILES,
     type PermissionProfile,
-    PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE,
 } from "../../config/defaults.js";
 
 export interface AgentCommandDefaults {
@@ -61,22 +58,6 @@ export function resolvePermissionProfile(
     return trimmed;
 }
 
-export function readOperationTimeoutMs(): number {
-    const value = readEnvironmentString(OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE);
-    if (value == null) {
-        return DEFAULT_OPERATION_TIMEOUT_MS;
-    }
-    return parsePositiveInteger(OPERATION_TIMEOUT_ENVIRONMENT_VARIABLE, value);
-}
-
-export function readPromptTimeoutMs(): number {
-    const value = readEnvironmentString(PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE);
-    if (value == null) {
-        throw new Error(`Expected ${PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE} to be a positive integer in milliseconds.`);
-    }
-    return parsePositiveInteger(PROMPT_TIMEOUT_ENVIRONMENT_VARIABLE, value);
-}
-
 function readEnvironmentString(name: string): string | undefined {
     const value = process.env[name];
     if (value == null || value.trim().length === 0) {
@@ -96,16 +77,5 @@ function readEnvironmentStringArray(name: string): string[] | undefined {
         throw new Error(`Expected ${name} to be a JSON string array.`);
     }
 
-    return parsedValue;
-}
-
-function parsePositiveInteger(name: string, rawValue: string): number {
-    if (!/^[1-9]\d*$/.test(rawValue)) {
-        throw new Error(`Expected ${name} to be a positive integer in milliseconds.`);
-    }
-    const parsedValue = Number(rawValue);
-    if (!Number.isSafeInteger(parsedValue)) {
-        throw new Error(`Expected ${name} to be a positive integer in milliseconds.`);
-    }
     return parsedValue;
 }

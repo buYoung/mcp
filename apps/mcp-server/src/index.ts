@@ -3,6 +3,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerDefaultAgents } from "./agents/register.js";
 import { ensureAcpBridgeConfiguration } from "./config/acp-bridge-config.js";
+import { resolveLimits } from "./config/limits-resolver.js";
 import { registerTools } from "./tools/index.js";
 
 async function main(): Promise<void> {
@@ -19,9 +20,10 @@ async function main(): Promise<void> {
     );
 
     const configuration = await ensureAcpBridgeConfiguration();
+    const limits = resolveLimits(configuration.limits);
 
-    registerDefaultAgents(configuration);
-    registerTools(server);
+    registerDefaultAgents(configuration, limits);
+    registerTools(server, limits);
 
     const transport = new StdioServerTransport();
     await server.connect(transport);

@@ -22,6 +22,7 @@
         "@agentclientprotocol/sdk": "^0.21.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@zed-industries/codex-acp": "^0.14.0",
+        "smol-toml": "^1.6.1",
         "zod": "^4.4.3"
     },
     "devDependencies": {

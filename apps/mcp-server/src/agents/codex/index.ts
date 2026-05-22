@@ -1,12 +1,8 @@
 import type { AcpBridgeAgentConfiguration } from "../../config/acp-bridge-config.js";
 import { DEFAULT_CODEX_PERMISSION_MODE } from "../../config/defaults.js";
+import type { ResolvedLimits } from "../../config/limits-resolver.js";
 import { createAcpAgentAdapter } from "../common/acp-agent-adapter.js";
-import {
-    readAgentCommandConfig,
-    readOperationTimeoutMs,
-    readPromptTimeoutMs,
-    resolvePermissionProfile,
-} from "../common/environment.js";
+import { readAgentCommandConfig, resolvePermissionProfile } from "../common/environment.js";
 import { resolveLocalNodeBinaryCommand } from "../common/local-binary.js";
 
 const commandConfig = readAgentCommandConfig(
@@ -14,7 +10,7 @@ const commandConfig = readAgentCommandConfig(
     resolveLocalNodeBinaryCommand("@zed-industries/codex-acp", "codex-acp"),
 );
 
-export function createCodexAgent(configuration: AcpBridgeAgentConfiguration = {}) {
+export function createCodexAgent(configuration: AcpBridgeAgentConfiguration = {}, limits: ResolvedLimits) {
     return createAcpAgentAdapter({
         id: "codex",
         label: "Codex",
@@ -31,9 +27,10 @@ export function createCodexAgent(configuration: AcpBridgeAgentConfiguration = {}
             },
             cwd: process.cwd(),
             mode: DEFAULT_CODEX_PERMISSION_MODE,
-            operationTimeoutMs: readOperationTimeoutMs(),
+            operationTimeoutMs: limits.operationTimeoutMs,
             permissionProfile: resolvePermissionProfile(configuration.permission),
-            promptTimeoutMs: readPromptTimeoutMs(),
+            promptTimeoutMs: limits.promptTimeoutMs,
+            stderrRingBufferChars: limits.stderrRingBufferChars,
         },
     });
 }
