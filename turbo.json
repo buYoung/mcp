@@ -10,6 +10,10 @@
         "check-types": {
             "dependsOn": ["^check-types"]
         },
+        "test": {
+            "dependsOn": [],
+            "outputs": []
+        },
         "dev": {
             "cache": false,
             "persistent": true

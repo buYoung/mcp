@@ -1,27 +1,13 @@
-import { realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { isPairSessionClosedError, type PairTurnMeta, type PairTurnResult } from "../agents/common/types.js";
 import { agentRegistry } from "../agents/registry.js";
-import { parseJsonAnswer } from "./json-extract.js";
+import { validateFilesWithinCwd } from "./files-validation.js";
+import { type PairStance, parsePairOpinion } from "./pair-opinion.js";
 
 interface PairSessionRecord {
     agentId: string;
     lastAccessedAt: number;
-}
-
-type PairStance = "agree" | "disagree" | "partial" | "insufficient_info";
-
-interface PairOpinion {
-    stance: PairStance;
-    summary: string;
-    agreements: string[];
-    concerns: string[];
-    recommendation: string;
-    follow_up_questions: string[];
-    parse_status: "parsed" | "fallback";
-    raw_answer?: string;
 }
 
 const pairSessions = new Map<string, PairSessionRecord>();
@@ -382,71 +368,6 @@ function readMainAgentPosition(argumentsValue: Record<string, unknown>, required
     return rawValue.trim();
 }
 
-function parsePairOpinion(answer: string): PairOpinion {
-    const parsedValue = parseJsonAnswer(answer);
-    if (parsedValue == null) {
-        return createFallbackPairOpinion(answer);
-    }
-
-    const summary = readStringProperty(parsedValue, "summary");
-    const recommendation = readStringProperty(parsedValue, "recommendation");
-    if (summary == null || recommendation == null) {
-        return createFallbackPairOpinion(answer);
-    }
-
-    return {
-        stance: readStanceProperty(parsedValue, "stance"),
-        summary,
-        agreements: readStringArrayProperty(parsedValue, "agreements"),
-        concerns: readStringArrayProperty(parsedValue, "concerns"),
-        recommendation,
-        follow_up_questions: readStringArrayProperty(parsedValue, "follow_up_questions"),
-        parse_status: "parsed",
-    };
-}
-
-function createFallbackPairOpinion(answer: string): PairOpinion {
-    return {
-        stance: "insufficient_info",
-        summary: "Pair agent did not return structured JSON. See raw_answer.",
-        agreements: [],
-        concerns: [],
-        recommendation: "",
-        follow_up_questions: [],
-        parse_status: "fallback",
-        raw_answer: answer,
-    };
-}
-
-function readStringProperty(value: Record<string, unknown>, key: string): string | undefined {
-    const propertyValue = value[key];
-    if (typeof propertyValue !== "string" || propertyValue.trim().length === 0) {
-        return undefined;
-    }
-    return propertyValue;
-}
-
-function readStringArrayProperty(value: Record<string, unknown>, key: string): string[] {
-    const propertyValue = value[key];
-    if (!Array.isArray(propertyValue)) {
-        return [];
-    }
-    return propertyValue.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-}
-
-function readStanceProperty(value: Record<string, unknown>, key: string): PairStance {
-    const propertyValue = value[key];
-    if (
-        propertyValue === "agree" ||
-        propertyValue === "disagree" ||
-        propertyValue === "partial" ||
-        propertyValue === "insufficient_info"
-    ) {
-        return propertyValue;
-    }
-    return "insufficient_info";
-}
-
 async function rememberPairSession(sessionId: string, agentId: string): Promise<void> {
     pairSessions.set(sessionId, { agentId, lastAccessedAt: Date.now() });
     await enforcePairSessionLimit();
@@ -648,54 +569,4 @@ function readOptionalStringArray(argumentsValue: Record<string, unknown>, key: s
     }
     const result = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
     return result.length > 0 ? result : undefined;
-}
-
-async function validateFilesWithinCwd(files: readonly string[] | undefined): Promise<string[] | undefined> {
-    if (files == null || files.length === 0) {
-        return undefined;
-    }
-
-    const cwdBoundary = await resolveBoundary(process.cwd());
-    const validatedFiles: string[] = [];
-
-    for (const rawFilePath of files) {
-        if (!isAbsolute(rawFilePath)) {
-            throw new Error(`File path must be absolute: ${rawFilePath}`);
-        }
-        const absoluteFilePath = resolve(rawFilePath);
-        const canonicalFilePath = await resolveBoundary(absoluteFilePath);
-        if (!isPathWithinBoundary(canonicalFilePath, cwdBoundary)) {
-            throw new Error(
-                `File path is outside the server cwd and was rejected: ${rawFilePath} (resolved=${canonicalFilePath}, cwd=${cwdBoundary})`,
-            );
-        }
-        validatedFiles.push(canonicalFilePath);
-    }
-
-    return validatedFiles;
-}
-
-async function resolveBoundary(absolutePath: string): Promise<string> {
-    try {
-        return await realpath(absolutePath);
-    } catch {
-        return resolve(absolutePath);
-    }
-}
-
-function isPathWithinBoundary(candidatePath: string, boundaryPath: string): boolean {
-    if (candidatePath === boundaryPath) {
-        return true;
-    }
-    const relativePath = relative(boundaryPath, candidatePath);
-    if (relativePath.length === 0) {
-        return true;
-    }
-    if (relativePath.startsWith("..")) {
-        return false;
-    }
-    if (isAbsolute(relativePath)) {
-        return false;
-    }
-    return !relativePath.split(sep).includes("..");
 }

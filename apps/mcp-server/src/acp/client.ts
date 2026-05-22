@@ -28,6 +28,7 @@ import {
     type PermissionProfile,
 } from "../config/defaults.js";
 import { parseJsonAnswer } from "../tools/json-extract.js";
+import { decidePermission } from "./permission-decision.js";
 
 export interface AcpAgentLaunchOptions {
     command: string;
@@ -372,15 +373,6 @@ class StdioAcpAgentSession implements AcpAgentSession {
     }
 }
 
-const PROFILE_RANK: Record<PermissionProfile, number> = {
-    "read-only": 0,
-    edit: 1,
-    full: 2,
-};
-
-const READ_ONLY_TOOL_KINDS: readonly ToolKind[] = ["read", "search", "fetch", "think"];
-const EDIT_TOOL_KINDS: readonly ToolKind[] = [...READ_ONLY_TOOL_KINDS, "edit", "move"];
-
 class AcpBridgeClient implements Client {
     private readonly answerBuffers = new Map<string, string[]>();
     private enforceProfile: PermissionProfile;
@@ -455,27 +447,6 @@ class AcpBridgeClient implements Client {
         const answer = (this.answerBuffers.get(sessionId) ?? []).join("").trim();
         this.answerBuffers.delete(sessionId);
         return answer;
-    }
-}
-
-function decidePermission(profile: PermissionProfile, toolKind: ToolKind | null | undefined): "allow" | "reject" {
-    if (toolKind == null) {
-        // Missing kind → treat as non-readonly (defensive). permission.md §9: annotation은 hint, hard default deny.
-        return profile === "full" ? "allow" : "reject";
-    }
-    if (toolKind === "switch_mode") {
-        // Engine's enforce profile is decoupled from agent's self mode; allow the agent to perform
-        // its own UX switch but enforcement remains unchanged.
-        return "allow";
-    }
-    switch (profile) {
-        case "read-only":
-            return READ_ONLY_TOOL_KINDS.includes(toolKind) ? "allow" : "reject";
-        case "edit":
-            return EDIT_TOOL_KINDS.includes(toolKind) ? "allow" : "reject";
-        case "full":
-            // Phase A: no Layer-0 hard block list yet. Phase B will tighten this.
-            return "allow";
     }
 }
 
@@ -612,6 +583,3 @@ function selectPermissionOption(
     }
     return { outcome: { outcome: "cancelled" } };
 }
-
-// Suppress unused-import warning until profile-rank-based comparison is wired in Phase B (downgrade-only setSessionMode).
-void PROFILE_RANK;
