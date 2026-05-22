@@ -1,18 +1,21 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { isCommandAvailable } from "../agents/common/binary-availability.js";
 import { isPairSessionClosedError, type PairTurnMeta, type PairTurnResult } from "../agents/common/types.js";
 import { agentRegistry } from "../agents/registry.js";
 import { validateFilesWithinCwd } from "./files-validation.js";
 import { type PairStance, parsePairOpinion } from "./pair-opinion.js";
+import { PairSessionStore } from "./pair-session-store.js";
 
-interface PairSessionRecord {
-    agentId: string;
-    lastAccessedAt: number;
-}
-
-const pairSessions = new Map<string, PairSessionRecord>();
 const PAIR_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_PAIR_SESSIONS = 20;
+const MAX_CONSULT_PANEL_AGENTS = 5;
+
+const pairSessionStore = new PairSessionStore({
+    idleTimeoutMs: PAIR_SESSION_IDLE_TIMEOUT_MS,
+    maxSessions: MAX_PAIR_SESSIONS,
+    resolveAgent: (agentId) => agentRegistry.get(agentId),
+});
 
 const ELICITATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ELICITATION_ENTRIES = 64;
@@ -125,8 +128,10 @@ export function registerTools(server: Server): void {
                             agent_ids: {
                                 type: "array",
                                 items: { type: "string" },
-                                description: "Two or more pair agent ids returned by list_agents.",
+                                description: `Two to ${MAX_CONSULT_PANEL_AGENTS} pair agent ids returned by list_agents. Each must be unique.`,
                                 minItems: 2,
+                                maxItems: MAX_CONSULT_PANEL_AGENTS,
+                                uniqueItems: true,
                             },
                             prompt: {
                                 type: "string",
@@ -174,20 +179,22 @@ export function registerTools(server: Server): void {
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (req) => {
-        await cleanupExpiredPairSessions();
+        await pairSessionStore.cleanupExpired();
         const argumentsValue = readArguments(req.params.arguments);
 
         if (req.params.name === "list_agents") {
             const userRequest = readRequiredString(argumentsValue, "user_request");
             await ensureUserConsent(server, userRequest);
-            return textResult({
-                agents: agentRegistry.list().map((agent) => ({
+            const agents = await Promise.all(
+                agentRegistry.list().map(async (agent) => ({
                     agent_id: agent.id,
                     label: agent.label,
                     description: agent.description,
                     model: agent.model,
+                    available: await isCommandAvailable(agent.command),
                 })),
-            });
+            );
+            return textResult({ agents });
         }
 
         if (req.params.name === "ask_pair") {
@@ -205,7 +212,7 @@ export function registerTools(server: Server): void {
                 context: buildPairContext(argumentsValue, mainAgentPosition),
                 files: await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files")),
             });
-            await rememberPairSession(pairTurnResult.sessionId, agent.id);
+            await pairSessionStore.remember(pairTurnResult.sessionId, agent.id);
 
             return textResult(createPairTurnResponse(pairTurnResult, agent.id, agent.model));
         }
@@ -215,7 +222,7 @@ export function registerTools(server: Server): void {
             await ensureUserConsent(server, userRequest);
             const mainAgentPosition = readMainAgentPosition(argumentsValue, false);
             const sessionId = readRequiredString(argumentsValue, "session_id");
-            const pairSession = pairSessions.get(sessionId);
+            const pairSession = pairSessionStore.get(sessionId);
             if (!pairSession) {
                 throw new Error(`Unknown session_id: ${sessionId}`);
             }
@@ -232,12 +239,12 @@ export function registerTools(server: Server): void {
                     context: buildPairContext(argumentsValue, mainAgentPosition),
                     files: await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files")),
                 });
-                touchPairSession(pairTurnResult.sessionId);
+                pairSessionStore.touch(pairTurnResult.sessionId);
 
                 return textResult(createPairTurnResponse(pairTurnResult, agent.id, agent.model));
             } catch (error) {
                 if (isPairSessionClosedError(error)) {
-                    pairSessions.delete(sessionId);
+                    pairSessionStore.delete(sessionId);
                 }
                 throw error;
             }
@@ -251,6 +258,15 @@ export function registerTools(server: Server): void {
             if (agentIds.length < 2) {
                 throw new Error("consult_panel requires at least two agent_ids.");
             }
+            if (agentIds.length > MAX_CONSULT_PANEL_AGENTS) {
+                throw new Error(
+                    `consult_panel accepts at most ${MAX_CONSULT_PANEL_AGENTS} agent_ids; got ${agentIds.length}.`,
+                );
+            }
+            const uniqueAgentIds = [...new Set(agentIds)];
+            if (uniqueAgentIds.length !== agentIds.length) {
+                throw new Error("consult_panel agent_ids must be unique.");
+            }
             const prompt = readRequiredString(argumentsValue, "prompt");
             const context = buildPairContext(argumentsValue, mainAgentPosition);
             const files = await validateFilesWithinCwd(readOptionalStringArray(argumentsValue, "files"));
@@ -262,7 +278,7 @@ export function registerTools(server: Server): void {
                         throw new Error(`Unknown agent_id: ${agentId}`);
                     }
                     const pairTurnResult = await agent.askPair({ prompt, context, files });
-                    await rememberPairSession(pairTurnResult.sessionId, agent.id);
+                    await pairSessionStore.remember(pairTurnResult.sessionId, agent.id);
                     return { agent, pairTurnResult };
                 }),
             );
@@ -298,7 +314,7 @@ export function registerTools(server: Server): void {
 
         if (req.params.name === "close_pair") {
             const sessionId = readRequiredString(argumentsValue, "session_id");
-            const wasClosed = await closePairSession(sessionId);
+            const wasClosed = await pairSessionStore.close(sessionId);
             if (!wasClosed) {
                 throw new Error(`Unknown session_id: ${sessionId}`);
             }
@@ -366,55 +382,6 @@ function readMainAgentPosition(argumentsValue: Record<string, unknown>, required
         return undefined;
     }
     return rawValue.trim();
-}
-
-async function rememberPairSession(sessionId: string, agentId: string): Promise<void> {
-    pairSessions.set(sessionId, { agentId, lastAccessedAt: Date.now() });
-    await enforcePairSessionLimit();
-}
-
-function touchPairSession(sessionId: string): void {
-    const pairSession = pairSessions.get(sessionId);
-    if (pairSession) {
-        pairSession.lastAccessedAt = Date.now();
-    }
-}
-
-async function cleanupExpiredPairSessions(): Promise<void> {
-    const now = Date.now();
-    const expiredSessionIds = [...pairSessions.entries()]
-        .filter(([, pairSession]) => now - pairSession.lastAccessedAt > PAIR_SESSION_IDLE_TIMEOUT_MS)
-        .map(([sessionId]) => sessionId);
-
-    await Promise.all(expiredSessionIds.map((sessionId) => closePairSession(sessionId)));
-}
-
-async function enforcePairSessionLimit(): Promise<void> {
-    const excessSessionCount = pairSessions.size - MAX_PAIR_SESSIONS;
-    if (excessSessionCount <= 0) {
-        return;
-    }
-
-    const oldestSessionIds = [...pairSessions.entries()]
-        .sort(([, leftSession], [, rightSession]) => leftSession.lastAccessedAt - rightSession.lastAccessedAt)
-        .slice(0, excessSessionCount)
-        .map(([sessionId]) => sessionId);
-
-    await Promise.all(oldestSessionIds.map((sessionId) => closePairSession(sessionId)));
-}
-
-async function closePairSession(sessionId: string): Promise<boolean> {
-    const pairSession = pairSessions.get(sessionId);
-    if (!pairSession) {
-        return false;
-    }
-
-    pairSessions.delete(sessionId);
-    const agent = agentRegistry.get(pairSession.agentId);
-    if (agent) {
-        await agent.closePair(sessionId);
-    }
-    return true;
 }
 
 async function ensureUserConsent(server: Server, userRequest: string): Promise<void> {

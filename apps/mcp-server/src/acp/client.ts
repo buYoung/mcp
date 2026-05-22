@@ -28,6 +28,7 @@ import {
     type PermissionProfile,
 } from "../config/defaults.js";
 import { parseJsonAnswer } from "../tools/json-extract.js";
+import { type LayerZeroHit, layerZeroCheckFromRawInput } from "./layer-zero.js";
 import { decidePermission } from "./permission-decision.js";
 
 export interface AcpAgentLaunchOptions {
@@ -382,6 +383,24 @@ class AcpBridgeClient implements Client {
     }
 
     async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
+        const layerZeroHit = layerZeroCheckFromRawInput(params.toolCall.rawInput, params.toolCall.locations);
+        if (layerZeroHit) {
+            auditLog({
+                event: "request_permission",
+                sessionId: params.sessionId,
+                enforceProfile: this.enforceProfile,
+                toolKind: params.toolCall.kind ?? null,
+                decision: "reject",
+                layer: "layer_0",
+                code: layerZeroHit.code,
+                category: layerZeroHit.category,
+                pattern: layerZeroHit.pattern,
+                matchedToken: layerZeroHit.matchedToken,
+                visibility: "partial",
+            });
+            return selectPermissionOption(params, ["reject_once", "reject_always"]);
+        }
+
         const decision = decidePermission(this.enforceProfile, params.toolCall.kind);
         auditLog({
             event: "request_permission",
@@ -389,6 +408,7 @@ class AcpBridgeClient implements Client {
             enforceProfile: this.enforceProfile,
             toolKind: params.toolCall.kind ?? null,
             decision,
+            layer: "mode_policy",
             visibility: "visible",
         });
         if (decision === "allow") {
@@ -458,6 +478,11 @@ interface AuditEntry {
     visibility: "visible" | "partial" | "external";
     toolKind?: ToolKind | null;
     requestedModeId?: string;
+    layer?: "layer_0" | "user_policy" | "mode_policy" | "confirm_gate";
+    code?: string;
+    category?: LayerZeroHit["category"];
+    pattern?: string;
+    matchedToken?: string;
 }
 
 function auditLog(entry: AuditEntry): void {

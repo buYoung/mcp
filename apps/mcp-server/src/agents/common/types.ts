@@ -43,6 +43,7 @@ export interface AgentAdapter {
     readonly label: string;
     readonly description?: string;
     readonly model?: string;
+    readonly command: string;
     askPair(input: PairAskInput): Promise<PairTurnResult>;
     continuePair(input: PairContinueInput): Promise<PairTurnResult>;
     closePair(sessionId: string): Promise<void>;

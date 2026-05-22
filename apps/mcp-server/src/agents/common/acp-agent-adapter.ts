@@ -23,6 +23,7 @@ export function createAcpAgentAdapter(options: AcpAgentAdapterOptions): AgentAda
         label: options.label,
         description: options.description,
         model: options.launchOptions.model,
+        command: options.launchOptions.command,
 
         async askPair(input: PairAskInput): Promise<PairTurnResult> {
             const session = await launchAcpAgent(options.launchOptions);
