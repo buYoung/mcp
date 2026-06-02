@@ -127,7 +127,7 @@ ctags는 영속 tags 파일을 만들지 않고 on-demand 스코프 실행한다
 ### 3.2 SymbolProvider (ctags)
 
 - 책임: Universal Ctags JSON 출력으로 심볼 정의 조회.
-- 영속 tags 파일 없음 — on-demand 스코프 실행(저렴, 벤치마크 노트 부합).
+- 영속 tags 파일은 만들지 않되, **on-demand는 "전체 트리 `ctags -R`"가 아니라 "소스 파일 목록 주입(`ctags -L`)"이어야 한다**(실측: `-R`은 node_modules·JSON까지 훑어 52s/1.2GB. `-L` 소스만이면 0.09~2.38s. `docs/briefs/lookup-symbol.md` §3). 반복 호출 비용은 **작업 트리 fingerprint 키 인메모리 캐시**로 제거한다(영속 파일은 선택) — 이 점이 초기 "순수 on-demand" 서술의 정정이다.
 - 바이너리: `ctags`. startup에서 **Universal Ctags 변형 검증** 필수(`ctags --version`에 `Universal Ctags` 포함) — 단순 PATH 확인만으론 BSD/Exuberant ctags가 통과해 `--output-format=json`에서 런타임 실패.
 
 ### 3.3 ReadProvider (Claude Code Read/Glob 모사)
