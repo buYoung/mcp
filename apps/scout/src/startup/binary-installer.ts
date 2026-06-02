@@ -147,7 +147,7 @@ async function downloadText(url: string): Promise<string> {
 }
 
 function httpDownloadError(status: number, asset: PlatformAsset): Error {
-    // 404는 이 플랫폼 자산이 아직 릴리스에 없음을 뜻할 수 있다(예: macOS Intel).
+    // 404는 이 플랫폼 자산이 아직 릴리스에 없음을 뜻할 수 있다(매핑에 없거나 미업로드된 플랫폼).
     const hint =
         status === 404
             ? ` 이 플랫폼(${asset.assetName})의 자산이 릴리스에 없을 수 있습니다 — 수동 설치가 필요합니다.`

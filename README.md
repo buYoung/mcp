@@ -2,11 +2,16 @@
 
 코딩 에이전트들 사이의 페어 프로그래밍 브리지.
 
-이 monorepo는 MCP(Model Context Protocol) 서버 하나를 제공하며, 그 서버는
-ACP(Zed Agent Client Protocol) client 역할을 한다. 즉, 호출하는 에이전트
+이 monorepo는 두 개의 독립 stdio MCP(Model Context Protocol) 서버를 제공한다.
+
+첫째는 ACP(Zed Agent Client Protocol) client 역할을 하는 페어 브리지
+(`@buyong-mcp/acp-bridge`)다. 즉, 호출하는 에이전트
 (예: Claude Code)는 MCP 도구처럼 다른 코딩 에이전트(Codex, Gemini CLI 등)를
 부를 수 있고, 내부적으로는 그 에이전트를 ACP 서버 프로세스로 띄워서 대화를
 중계한다.
+
+둘째는 zoekt + Universal Ctags 기반 코드 탐색 서버 `scout`(`@buyong-mcp/scout`)로,
+코드 검색·읽기 primitive를 코딩 에이전트에 노출한다(`apps/scout/DESIGN.md` 참조).
 
 ## 가설
 
@@ -18,7 +23,7 @@ ACP(Zed Agent Client Protocol) client 역할을 한다. 즉, 호출하는 에이
 
 ```
 apps/
-  mcp-server/                # MCP stdio 서버 (단일 앱)
+  mcp-server/                # ACP 페어 브리지 MCP 서버 (@buyong-mcp/acp-bridge)
     src/
       index.ts               # 엔트리
       tools/                 # MCP 도구 표면 (list_agents, ask_pair, continue_pair, consult_panel, close_pair)
@@ -28,6 +33,7 @@ apps/
         codex/               # Codex ACP 설정
         gemini-cli/          # Gemini CLI ACP 설정
       acp/                   # ACP client wrapper
+  scout/                     # zoekt + ctags 코드 탐색 MCP 서버 (@buyong-mcp/scout, search_text 출하 — DESIGN.md)
 packages/
   typescript-config/         # 공유 tsconfig (base, node)
 ```
