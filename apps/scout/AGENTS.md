@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`@buyong-mcp/code-nav` is an MCP stdio server that exposes a zoekt + Universal Ctags code-navigation pipeline as read-only search/read primitives for any coding agent. v1 ships `search_text` (zoekt); `lookup_symbol`, `read_file`, and `find_files` are designed but not yet implemented (see `DESIGN.md` §10).
+`@buyong-mcp/scout` is an MCP stdio server that exposes a zoekt + Universal Ctags scoutigation pipeline as read-only search/read primitives for any coding agent. v1 ships `search_text` (zoekt); `lookup_symbol`, `read_file`, and `find_files` are designed but not yet implemented (see `DESIGN.md` §10).
 
 ## 2. Folder Structure
 
@@ -11,8 +11,8 @@
 - `src/startup/`: pre-flight binary checks + managed binary acquisition.
     - `ensure-required-binaries.ts`: `resolveBinaries()` reports `ready`/`missing` **without exiting** (degraded boot, no silent fallback — `search_text` explicitly reports the miss); `prependManagedBinToPath()` puts the managed bin dir on child-process PATH (zoekt-index calls ctags internally); `buildInstallationGuidance()` is the shared Korean guidance (stderr, degraded `search_text`, install failures); ctags resolves under either `ctags` or `universal-ctags`.
     - `binary-availability.ts`: executable resolution over PATH plus Go install dirs (`$GOBIN`, `$GOPATH/bin`, `~/go/bin`) and the managed bin dir.
-    - `binary-release.ts`: maps `process.platform`/`arch` → release asset (`zoekt-ctags-<plat>.{tar.gz,zip}`). Includes `macos-amd64` for the future Intel build (graceful 404 fallback until uploaded).
-    - `managed-bin-storage.ts`: managed (downloaded) bin dir — always `<base>/code-nav/bin/<tag>`. `CODE_NAV_BIN_DIR` overrides only the **base** (never used verbatim) so the installer's `rm -rf` can only ever target a dir it owns; default base is `$XDG_CACHE_HOME` or `~/.cache`.
+    - `binary-release.ts`: maps `process.platform`/`arch` → release asset (`zoekt-ctags-<plat>.{tar.gz,zip}`). Covers all 6 platforms shipped since v0.0.3 (linux/macos/windows × amd64/arm64); unmapped combos fall back gracefully on a 404.
+    - `managed-bin-storage.ts`: managed (downloaded) bin dir — always `<base>/scout/bin/<tag>`. `SCOUT_BIN_DIR` overrides only the **base** (never used verbatim) so the installer's `rm -rf` can only ever target a dir it owns; default base is `$XDG_CACHE_HOME` or `~/.cache`.
     - `binary-installer.ts`: `installManagedBinaries()` — streams the pinned-tag asset to a **staging dir** (armed abort timeout across the body, size-capped, SHA-256 hashed incrementally), verifies against the downloaded `.sha256`, extracts via system `tar --strip-components=1` (Windows zip via absolute `System32\tar.exe`), renames `universal-ctags`→`ctags`, chmods, then **atomically swaps** staging into place. Reports an outcome object (never throws); failures leave the existing install untouched.
 - `src/tools/`: the MCP tool surface.
     - `index.ts`: `registerTools` — ListTools/CallTool handlers, maps `search_text` args to the provider, the `textResult` envelope.
@@ -22,7 +22,7 @@
     - `index-lifecycle.ts`: working-tree fingerprint, full re-index, build coalescing, no-change skip, stale-shard cleanup.
     - `zoekt-webserver-lifecycle.ts`: lazy child start on a loopback random port, health polling, restart-once on crash.
     - `zoekt-query-builder.ts` / `zoekt-search-client.ts` / `zoekt-result-renderer.ts`: arg→zoekt-query mapping, HTTP JSON query, Grep-style output rendering.
-    - `index-storage.ts`: per-repo cache directory (XDG / `~/.cache`, overridable via `CODE_NAV_INDEX_DIR`).
+    - `index-storage.ts`: per-repo cache directory (XDG / `~/.cache`, overridable via `SCOUT_INDEX_DIR`).
     - `http-get.ts`: minimal HTTP GET helper for webserver queries.
 - `src/security/path-guard.ts`: path normalization (`expandPath`) and repo-root containment (`resolveRelativePathWithinRoot`).
 - `src/config/defaults.ts`: server identity, binary names, excluded directories, timeouts/limits, and output modes — the single home for tunable constants.
@@ -51,4 +51,4 @@
 
 See root `/AGENTS.md` for common working agreements.
 
-Package-local verification: run `pnpm --filter @buyong-mcp/code-nav check-types` after changes in this package (this package has no test suite).
+Package-local verification: run `pnpm --filter @buyong-mcp/scout check-types` after changes in this package (this package has no test suite).

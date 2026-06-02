@@ -72,7 +72,7 @@ async function main(): Promise<void> {
         const outcome = await installManagedBinaries();
         if (outcome.status === "unsupported-platform") {
             return [
-                `[code-nav] 자동 설치를 지원하지 않는 플랫폼입니다: ${outcome.platform}/${outcome.architecture}.`,
+                `[scout] 자동 설치를 지원하지 않는 플랫폼입니다: ${outcome.platform}/${outcome.architecture}.`,
                 "사전 빌드 자산이 없어 수동 설치가 필요합니다.",
                 "",
                 buildInstallationGuidance([{ label: "zoekt + Universal Ctags", status: "자동 설치 미지원 플랫폼" }]),
@@ -80,7 +80,7 @@ async function main(): Promise<void> {
         }
         if (outcome.status === "failed") {
             return [
-                `[code-nav] 바이너리 설치에 실패했습니다: ${outcome.message}`,
+                `[scout] 바이너리 설치에 실패했습니다: ${outcome.message}`,
                 "",
                 "수동 설치로 진행할 수 있습니다:",
                 buildInstallationGuidance([{ label: "zoekt + Universal Ctags", status: "다운로드 실패" }]),
@@ -91,14 +91,14 @@ async function main(): Promise<void> {
         if (resolution.status === "ready") {
             buildProviderFrom(resolution.binaries);
             return [
-                `[code-nav] 바이너리 설치 완료 (릴리스 ${outcome.tag}).`,
+                `[scout] 바이너리 설치 완료 (릴리스 ${outcome.tag}).`,
                 `  위치: ${outcome.directory}`,
                 `  설치됨: ${outcome.binaries.join(", ")}`,
                 "이제 search_text 를 사용할 수 있습니다.",
             ].join("\n");
         }
         return [
-            `[code-nav] 바이너리를 내려받았으나(릴리스 ${outcome.tag}) 검증을 통과하지 못했습니다.`,
+            `[scout] 바이너리를 내려받았으나(릴리스 ${outcome.tag}) 검증을 통과하지 못했습니다.`,
             "",
             buildInstallationGuidance(resolution.missing),
         ].join("\n");
@@ -161,6 +161,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-    console.error("[code-nav] fatal:", error);
+    console.error("[scout] fatal:", error);
     process.exit(1);
 });

@@ -1,4 +1,4 @@
-export const SERVER_NAME = "code-nav";
+export const SERVER_NAME = "scout";
 
 export const SERVER_VERSION = "0.0.0";
 
@@ -23,17 +23,17 @@ export const CTAGS_RELEASE_BINARY = "universal-ctags";
  */
 export const BINARY_RELEASE_REPOSITORY = "buYoung/zoetk-ctags-release";
 
-export const BINARY_RELEASE_TAG = "v0.0.2";
+export const BINARY_RELEASE_TAG = "v0.0.3";
 
 export const BINARY_RELEASE_DOWNLOAD_BASE_URL = `https://github.com/${BINARY_RELEASE_REPOSITORY}/releases/download/${BINARY_RELEASE_TAG}`;
 
 /**
  * 관리형(다운로드된) 바이너리 캐시 베이스 디렉터리 오버라이드. 설치 경로는 이 값을
- * 그대로 쓰지 않고 항상 그 아래 `code-nav/bin/<tag>` 하위를 만든다 — 설치기가 시작 시
+ * 그대로 쓰지 않고 항상 그 아래 `scout/bin/<tag>` 하위를 만든다 — 설치기가 시작 시
  * 디렉터리를 통째로 비우므로(rm), 오버라이드 루트 자체를 지우지 않도록 설치기 전용
  * 하위 경로로 스코프한다. 미지정 시 `$XDG_CACHE_HOME`(없으면 `~/.cache`)가 베이스.
  */
-export const ENVIRONMENT_BIN_DIRECTORY = "CODE_NAV_BIN_DIR";
+export const ENVIRONMENT_BIN_DIRECTORY = "SCOUT_BIN_DIR";
 
 export const BINARY_DOWNLOAD_TIMEOUT_MS = 180_000;
 
@@ -82,7 +82,7 @@ export const DEFAULT_HEAD_LIMIT = 250;
 
 export const DEFAULT_CONTEXT_LINES = 0;
 
-export const ENVIRONMENT_INDEX_DIRECTORY = "CODE_NAV_INDEX_DIR";
+export const ENVIRONMENT_INDEX_DIRECTORY = "SCOUT_INDEX_DIR";
 
 export const STALENESS_CHECK_TTL_MS = 2_000;
 

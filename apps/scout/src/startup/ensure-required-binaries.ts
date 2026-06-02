@@ -115,7 +115,7 @@ function collectMissingBinaries(state: {
 export function buildInstallationGuidance(missingBinaries: MissingBinary[]): string {
     const missingLines = missingBinaries.map(({ label, status }) => `  - ${label}   상태: ${status}`).join("\n");
     return [
-        "[code-nav] 필수 외부 바이너리가 누락되었습니다. 이 MCP는 폴백 없이 zoekt와 Universal Ctags를 모두 요구합니다.",
+        "[scout] 필수 외부 바이너리가 누락되었습니다. 이 MCP는 폴백 없이 zoekt와 Universal Ctags를 모두 요구합니다.",
         "",
         "누락 항목:",
         missingLines,

@@ -77,7 +77,7 @@ export class WebserverLifecycle {
             windowsHide: true,
         });
         child.stderr?.on("data", (chunk: Buffer) => {
-            process.stderr.write(`[code-nav][zoekt-webserver] ${chunk.toString("utf8")}`);
+            process.stderr.write(`[scout][zoekt-webserver] ${chunk.toString("utf8")}`);
         });
         child.on("exit", () => {
             if (this.child === child) {

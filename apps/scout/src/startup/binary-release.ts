@@ -6,9 +6,9 @@
  * 아카이브 내부는 `<platform>/<binary>` 구조라 추출 시 선두 디렉터리 1단계를
  * strip 한다(`archiveLeadingDirectory`는 참고/로깅용).
  *
- * macOS Intel(`darwin`/`x64`)은 빌드가 존재하나 업로드 오류로 아직 릴리스에 없다.
- * 매핑에는 남겨 두어 자산이 올라오면 코드 변경 없이 동작하고, 그 전까지는 다운로드
- * 단계에서 자산 부재(404)로 graceful 폴백된다.
+ * 릴리스 v0.0.3부터 모든 OS × (x86_64/amd64, arm64) 6종이 모두 제공된다
+ * (linux/macos/windows × amd64/arm64). 자산이 없는 플랫폼은 다운로드 단계에서
+ * 자산 부재(404)로 graceful 폴백된다.
  */
 export interface PlatformAsset {
     /** 릴리스 자산 파일명 (예: `zoekt-ctags-macos-arm64.tar.gz`). */

@@ -17,7 +17,7 @@ export function resolveCacheRootDirectory(): string {
     const xdgCacheHome = process.env.XDG_CACHE_HOME;
     const baseDirectory =
         xdgCacheHome != null && xdgCacheHome.trim().length > 0 ? xdgCacheHome.trim() : join(homedir(), ".cache");
-    return join(baseDirectory, "code-nav", "zoekt");
+    return join(baseDirectory, "scout", "zoekt");
 }
 
 export function resolveIndexPaths(repositoryRoot: string): IndexPaths {
