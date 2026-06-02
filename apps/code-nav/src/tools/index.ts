@@ -11,14 +11,31 @@ import {
     readRequiredString,
 } from "./arguments.js";
 
+/** 바이너리가 갖춰졌으면 provider를, 아니면 누락 안내 텍스트를 한 번의 해석으로 돌려준다. */
+export type SearchProviderResolution =
+    | { kind: "ready"; provider: TextSearchProvider }
+    | { kind: "missing"; guidance: string };
+
 export interface ToolDependencies {
-    textSearchProvider: TextSearchProvider;
+    /** search_text 한 호출당 단 한 번 바이너리를 해석한다(저하 시 중복 ctags 점검 방지). */
+    resolveSearchProvider: () => Promise<SearchProviderResolution>;
+    /** 사전 빌드 바이너리를 내려받아 설치하고, 에이전트에게 보여줄 결과 텍스트를 반환. */
+    installBinaries: () => Promise<string>;
 }
 
 export function registerTools(server: Server, dependencies: ToolDependencies): void {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: [
+                {
+                    name: "install_binaries",
+                    description:
+                        "필수 외부 바이너리(zoekt-index, zoekt-webserver, Universal Ctags)를 사전 빌드 릴리스에서 내려받아 설치한다. 다운로드 손상 여부는 SHA-256 체크섬으로 확인한다(전송 무결성 확인이며, 서명/출처 인증은 아니다). 네트워크에서 실행 파일을 받으므로, 호출 전 사용자에게 다운로드 동의를 구하라. search_text가 '바이너리 미설치'를 보고할 때 사용한다. 이미 설치돼 있으면 재설치(덮어쓰기)한다.",
+                    inputSchema: {
+                        type: "object",
+                        properties: {},
+                    },
+                },
                 {
                     name: "search_text",
                     description:
@@ -86,9 +103,17 @@ export function registerTools(server: Server, dependencies: ToolDependencies): v
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        if (request.params.name === "install_binaries") {
+            return textResult(await dependencies.installBinaries());
+        }
+
         if (request.params.name === "search_text") {
+            const resolved = await dependencies.resolveSearchProvider();
+            if (resolved.kind === "missing") {
+                return textResult(resolved.guidance);
+            }
             const argumentsValue = readArguments(request.params.arguments);
-            const renderedText = await dependencies.textSearchProvider.search({
+            const renderedText = await resolved.provider.search({
                 pattern: readRequiredString(argumentsValue, "pattern"),
                 path: readOptionalString(argumentsValue, "path"),
                 glob: readOptionalString(argumentsValue, "glob"),

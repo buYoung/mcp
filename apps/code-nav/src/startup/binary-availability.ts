@@ -1,6 +1,7 @@
 import { access, constants } from "node:fs/promises";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join } from "node:path";
+import { resolveManagedBinDirectory } from "./managed-bin-storage.js";
 
 /**
  * Resolves an executable to an absolute path. Searches PATH and, in addition,
@@ -48,6 +49,12 @@ function collectSearchDirectories(): string[] {
         if (!directories.includes(fallbackDirectory)) {
             directories.push(fallbackDirectory);
         }
+    }
+    // 관리형(다운로드) 바이너리 디렉터리도 탐색 대상에 포함한다. `install_binaries`로
+    // 받은 zoekt/ctags가 PATH에 없어도 여기서 해석된다.
+    const managedBinDirectory = resolveManagedBinDirectory();
+    if (!directories.includes(managedBinDirectory)) {
+        directories.push(managedBinDirectory);
     }
     return directories;
 }

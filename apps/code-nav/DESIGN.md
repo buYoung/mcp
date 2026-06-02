@@ -189,36 +189,40 @@ ctags는 영속 tags 파일을 만들지 않고 on-demand 스코프 실행한다
 
 ---
 
-## 5. Startup 필수 바이너리 점검 + 설치 안내 (결정 3)
+## 5. Startup 필수 바이너리 점검 + 저하 모드 + 자동 설치 도구 (결정 3, 갱신)
 
-`main()` 진입 직후, transport 연결 전 점검(`ensureRequiredBinaries`). 누락 시 stderr에 안내 출력 후 `process.exit(1)`. **조용한 폴백 절대 금지.**
+`main()` 진입 직후, transport 연결 전 점검(`resolveBinaries`). **종료(`process.exit`)하지 않는다.** 누락이면 안내를 stderr에 출력하고 **저하 모드(degraded)로 부팅**한다 — 서버는 정상 기동하되 `search_text`는 검색 대신 설치 안내 텍스트를 반환한다. **조용한 폴백 금지**의 의미는 "프로세스를 죽인다"가 아니라 "누락을 명시적으로 보고하고 잘못된 결과를 내지 않는다"로 갱신한다.
+
+복구 경로(트리거 모델 = MCP 설치 도구):
+- stdio MCP는 런타임에 대화형 동의 프롬프트가 불가하므로, 에이전트가 사용자에게 다운로드 동의를 구한 뒤 **`install_binaries` 도구**를 호출한다. 시작 시 자동 다운로드는 하지 않는다.
+- `install_binaries` → `installManagedBinaries()`: 핀 고정 태그(`BINARY_RELEASE_TAG`)에서 현재 플랫폼 자산(`zoekt-ctags-<plat>.{tar.gz,zip}`)과 `<asset>.sha256`를 받아 **SHA-256 검증**(전송 무결성; 서명/출처 인증은 아님) 후 관리형 bin 디렉터리에 설치한다. 안정성 장치: ① 본문 스트리밍 + 다운로드 타임아웃을 본문 수신 내내 유지 + 최대 크기 제한, ② **스테이징 디렉터리에서 추출·정리 후 원자적 교체(swap)** — 실패해도 기존 설치를 건드리지 않고 실행 중 자식이 쓰는 파일을 도중에 지우지 않음, ③ 관리형 디렉터리는 항상 `<base>/code-nav/bin/<tag>`이며 `CODE_NAV_BIN_DIR`는 **베이스만** 오버라이드(루트 자체를 rm 하지 않도록), ④ 재설치 전 기존 provider/webserver를 먼저 종료하고 설치 중 search를 대기시킴. 추출은 `tar --strip-components=1`(Windows zip은 절대경로 `System32\tar.exe`), `universal-ctags`→`ctags` rename, Unix chmod. 성공 시 재해석 후 provider 지연 생성. (남은 한계: 동일 머신의 **여러 프로세스가 동시에** 설치하면 중복 다운로드 후 마지막 교체가 이기는 정도로 수렴 — 교차 프로세스 잠금은 개인 도구 범위상 도입하지 않음.)
+- 릴리스 저장소: `buYoung/zoetk-ctags-release`. 아카이브 1개에 zoekt(index/webserver/git-index) + Universal Ctags가 모두 번들된다. macOS Intel(`macos-amd64`)은 빌드 존재하나 업로드 전이라, 매핑엔 남기되 자산 부재 시 404 graceful 폴백(수동 설치 안내)한다.
+- 관리형 bin 디렉터리는 자식 PATH 앞에 prepend(`prependManagedBinToPath`)하여 `zoekt-index`가 색인 중 내부 호출하는 ctags도 찾게 한다.
+
+기존 수동 설치 점검 단계는 그대로 유지(누락 판정 기준):
 
 점검 단계:
 1. 색인기(필수): `isCommandAvailable("zoekt-index")` — 결정 8에 따라 **작업 트리(미커밋 포함)를 색인**하므로 일반 디렉터리 색인기 `zoekt-index`가 필수다. `zoekt-git-index`는 대형 리포 커밋-델타 보강 경로(§6.6)에서만 선택적으로 쓰이므로 필수 아님(있으면 활용).
 2. 서버: `isCommandAvailable("zoekt-webserver")` (결정 5 — 질의 모드가 webserver이므로 `zoekt` CLI 대신 webserver를 필수로 점검).
 3. `isCommandAvailable("ctags")` 존재 + **Universal 변형 검증**(`ctags --version`에 `Universal Ctags` 포함).
 
-`isCommandAvailable`은 형제 앱의 PATH + 실행 권한 프로브 헬퍼를 복사 재사용하되, **`~/go/bin` / `$(go env GOPATH)/bin` 폴백 탐색을 추가**한다. (실측: `go install`이 zoekt를 `~/go/bin`에 깔지만 이 경로가 PATH에 없는 환경이 흔하다 — PATH만 보면 설치돼 있어도 누락으로 오판한다.) 폴백에서 찾으면 그 절대 경로를 색인기·서버 실행에 사용하고, 그래도 없으면 안내 텍스트에 "PATH에 `~/go/bin` 추가" 항목을 포함한다.
+`resolveExecutablePath`은 형제 앱의 PATH + 실행 권한 프로브 헬퍼를 복사 재사용하되, **`~/go/bin` / `$(go env GOPATH)/bin` 폴백과 관리형 bin 디렉터리 탐색을 추가**한다. (실측: `go install`이 zoekt를 `~/go/bin`에 깔지만 이 경로가 PATH에 없는 환경이 흔하다 — PATH만 보면 설치돼 있어도 누락으로 오판한다.) 폴백에서 찾으면 그 절대 경로를 색인기·서버 실행에 사용하고, 그래도 없으면 안내 텍스트에 install_binaries 도구와 수동 설치 항목을 포함한다.
 
-에러 텍스트(stderr, 누락 항목만 동적 출력):
+안내 텍스트(`buildInstallationGuidance`; stderr·저하 `search_text`·설치 실패 응답 공용, 누락 항목만 동적 출력):
 
 ```
 [code-nav] 필수 외부 바이너리가 누락되었습니다. 이 MCP는 폴백 없이 zoekt와 Universal Ctags를 모두 요구합니다.
 
 누락 항목:
-  - zoekt-webserver / zoekt-index (텍스트 검색)   상태: 미설치
-  - ctags (Universal Ctags, 심볼)                 상태: 설치됨이나 Universal 변형 아님
+  - zoekt-webserver (텍스트 검색 질의 서버)   상태: 미설치
+  - ctags (Universal Ctags, 심볼 색인)        상태: 설치됨이나 Universal 변형 아님
 
-설치 안내:
-  zoekt:
-    go install github.com/sourcegraph/zoekt/cmd/...@latest
-    (설치 후 zoekt-index, zoekt-webserver 바이너리가 PATH(보통 $GOPATH/bin 또는 ~/go/bin)에 있어야 합니다.)
-  ctags (universal-ctags):
-    macOS:   brew install universal-ctags
-    Debian:  apt-get install universal-ctags
-    검증:    ctags --version  결과에 "Universal Ctags"가 포함되어야 합니다.
-
-설치 후 MCP 서버를 다시 시작하세요.
+해결 방법:
+  1) (권장) install_binaries 도구를 호출하면 사전 빌드된 바이너리를 자동으로 내려받습니다.
+     - 사용자에게 다운로드 동의를 먼저 구한 뒤 호출하세요. SHA-256으로 무결성을 검증합니다.
+  2) 수동 설치:
+     zoekt:  go install github.com/sourcegraph/zoekt/cmd/...@latest
+     ctags:  brew install universal-ctags  /  apt-get install universal-ctags
 ```
 
 ---
@@ -373,7 +377,7 @@ apps/code-nav/
 ### 구현 완료 + 실측 검증
 
 - **스캐폴딩**: `package.json`(`@buyong-mcp/code-nav`)·`tsconfig.json`·`src/index.ts`(엔트리+종료 훅). 전체 레포 `check-types` 통과.
-- **Startup 점검**(`startup/`): zoekt-index·zoekt-webserver·Universal Ctags 점검, `~/go/bin`/`$(go env GOPATH)/bin` 폴백 탐색, 누락 시 한국어 설치 안내 후 종료.
+- **Startup 점검 + 저하 모드 + 자동 설치**(`startup/`): zoekt-index·zoekt-webserver·Universal Ctags 점검, `~/go/bin`/`$(go env GOPATH)/bin`/관리형 bin 폴백 탐색. 누락 시 종료하지 않고 저하 모드 부팅 → `install_binaries` 도구가 핀 태그(`v0.0.2`) 릴리스에서 플랫폼 자산을 받아 **SHA-256 검증** 후 설치(`tar --strip-components=1`, `universal-ctags`→`ctags` rename). darwin/arm64에서 degraded→install→search E2E 실측 검증.
 - **TextSearchProvider**(`providers/text-search/`): 작업 트리 lazy 색인(+무변경 skip+빌드 lock) → zoekt-webserver 자식 lifecycle(임의 포트·헬스·종료·크래시 1회 재기동) → JSON 질의 → output_mode 3종 렌더.
 - **`search_text` 도구**: MCP `tools/list`/`tools/call` 등록. stdio 핸드셰이크로 노출 확인.
 - **E2E 스모크**: files_with_matches·content(줄번호·페이지네이션)·count·path/type 스코프·no-match 전부 동작.
