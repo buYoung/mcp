@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-A pnpm + Turborepo monorepo of standalone stdio MCP (Model Context Protocol) servers that extend coding agents: an ACP pair-review bridge to other coding agents, and a zoekt + Universal Ctags scoutigation toolset. Each app is independent; treat `apps/mcp-server` and `apps/scout` as sibling apps that are not modified together.
+A pnpm + Turborepo monorepo of standalone stdio MCP (Model Context Protocol) servers that extend coding agents: an ACP pair-review bridge to other coding agents, and a zoekt + Universal Ctags code-navigation toolset. Each app is independent; treat `apps/mcp-server` and `apps/scout` as sibling apps that are not modified together.
 
 ## 2. Folder Structure
 

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`@buyong-mcp/scout` is an MCP stdio server that exposes a zoekt + Universal Ctags scoutigation pipeline as read-only search/read primitives for any coding agent. v1 ships `search_text` (zoekt); `lookup_symbol`, `read_file`, and `find_files` are designed but not yet implemented (see `DESIGN.md` §10).
+`@buyong-mcp/scout` is an MCP stdio server that exposes a zoekt + Universal Ctags code-navigation pipeline as read-only search/read primitives for any coding agent. v1 ships `search_text` (zoekt); `lookup_symbol`, `read_file`, and `find_files` are designed but not yet implemented (see `DESIGN.md` §10).
 
 ## 2. Folder Structure
 
