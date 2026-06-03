@@ -1,19 +1,76 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SERVER_NAME, SERVER_VERSION } from "./config/defaults.js";
+import { CTAGS_BINARY, CTAGS_RELEASE_BINARY, SERVER_NAME, SERVER_VERSION } from "./config/defaults.js";
 import { readGitignoreDirectoryNames } from "./config/gitignore-excludes.js";
 import { loadScoutConfig, type ResolvedScoutConfig } from "./config/scout-config.js";
+import { FindFilesProvider } from "./providers/read/find-files.js";
+import { ReadFileProvider } from "./providers/read/read-file.js";
+import { type LookupSymbolInput, SymbolProvider } from "./providers/symbol/symbol-provider.js";
 import { TextSearchProvider } from "./providers/text-search/text-search-provider.js";
+import { resolveExecutablePath } from "./startup/binary-availability.js";
 import { installManagedBinaries } from "./startup/binary-installer.js";
 import {
     buildInstallationGuidance,
+    isUniversalCtags,
+    type MissingBinary,
     prependManagedBinToPath,
     type ResolvedBinaries,
     resolveBinaries,
 } from "./startup/ensure-required-binaries.js";
 import { registerScoutInGitExclude } from "./startup/git-exclude.js";
-import { registerTools, type SearchProviderResolution } from "./tools/index.js";
+import {
+    type LookupSymbolArguments,
+    registerTools,
+    type SearchProviderResolution,
+    type SymbolProviderResolution,
+} from "./tools/index.js";
+
+/**
+ * lookup_symbol용 ctags 경로 해석 결과.
+ * - `ready`: Universal 변형이 검증된 ctags 실행 경로.
+ * - `not-universal`: ctags는 찾았으나 Universal 변형이 아님(BSD/Exuberant). SymbolProvider를
+ *   만들면 `--output-format=json`에서 런타임 실패하므로 만들지 않고 안내로 전환한다.
+ * - `missing`: ctags 자체를 못 찾음.
+ */
+type CtagsResolution = { kind: "ready"; ctagsPath: string } | { kind: "not-universal" } | { kind: "missing" };
+
+/**
+ * lookup_symbol용 ctags 경로를 해석한다. 모든 바이너리가 갖춰졌으면 이미 Universal
+ * 변형이 검증된 resolveBinaries 결과의 ctagsPath를 우선 쓰고, zoekt만 빠진 경우엔
+ * ctags(`ctags` → `universal-ctags`)만 따로 PATH·go bin·관리형 bin에서 해석한다.
+ *
+ * 폴백으로 찾은 경로는 BSD/Exuberant ctags일 수 있으므로 반드시 Universal 변형을
+ * 검증한다(DESIGN §3.2). 비-Universal이면 SymbolProvider를 만들지 않고 안내로 전환한다.
+ */
+async function resolveCtagsResolution(): Promise<CtagsResolution> {
+    const resolution = await resolveBinaries();
+    if (resolution.status === "ready") {
+        // resolveBinaries는 ready일 때 이미 Universal 변형을 검증했다(추가 검증 불필요).
+        return { kind: "ready", ctagsPath: resolution.binaries.ctagsPath };
+    }
+    const ctagsPath =
+        (await resolveExecutablePath(CTAGS_BINARY)) ?? (await resolveExecutablePath(CTAGS_RELEASE_BINARY));
+    if (ctagsPath == null) {
+        return { kind: "missing" };
+    }
+    if (!(await isUniversalCtags(ctagsPath))) {
+        return { kind: "not-universal" };
+    }
+    return { kind: "ready", ctagsPath };
+}
+
+/** MCP snake_case 인자를 SymbolProvider가 받는 camelCase 입력으로 변환한다. */
+function toSymbolInput(args: LookupSymbolArguments): LookupSymbolInput {
+    return {
+        symbolName: args.symbol_name,
+        kind: args.kind,
+        path: args.path,
+        language: args.language,
+        isPrefixMatch: args.is_prefix_match,
+        headLimit: args.head_limit,
+    };
+}
 
 async function main(): Promise<void> {
     const repositoryRoot = process.cwd();
@@ -37,8 +94,18 @@ async function main(): Promise<void> {
         await registerScoutInGitExclude(repositoryRoot);
     }
 
+    // 읽기 계층(read_file·find_files)은 파일시스템 직접 접근이라 바이너리·색인에 독립적이다.
+    // 따라서 바이너리 해석과 무관하게 무조건 생성한다(색인 빌드 전·webserver 죽어 있어도 동작).
+    const readFileProvider = new ReadFileProvider({ repositoryRoot });
+    const findFilesProvider = new FindFilesProvider({ repositoryRoot });
+
     let textSearchProvider: TextSearchProvider | null = null;
     let installInFlight: Promise<string> | null = null;
+
+    // SymbolProvider는 인스턴스에 fingerprint 캐시(반복 호출 비용 제거, DESIGN §3.2)를
+    // 들고 있으므로, 매 호출마다 새로 만들면 캐시가 비어 죽은 코드가 된다. textSearchProvider처럼
+    // 장수(long-lived)로 보관하고, 해석된 ctags 경로가 바뀔 때만 재생성해 캐시를 호출 간 유지한다.
+    let symbolProvider: SymbolProvider | null = null;
 
     const buildProviderFrom = (binaries: ResolvedBinaries): void => {
         const previous = textSearchProvider;
@@ -85,6 +152,39 @@ async function main(): Promise<void> {
         return textSearchProvider != null
             ? { kind: "ready", provider: textSearchProvider }
             : { kind: "missing", guidance: buildInstallationGuidance([]) };
+    };
+
+    // lookup_symbol은 ctags만 있으면 동작한다(zoekt 색인·webserver 불필요). 매 호출 시
+    // ctags 경로를 지연 해석한다: 모든 바이너리가 갖춰졌으면 이미 Universal 검증된
+    // resolveBinaries 결과의 ctagsPath를 쓰고, zoekt가 빠져 있어도 ctags만 따로 해석해
+    // 심볼 조회는 살린다. 단 폴백으로 찾은 ctags는 Universal 변형인지 검증해, 비-Universal
+    // (BSD/Exuberant)이면 SymbolProvider를 만들지 않고 안내로 전환한다(런타임 실패 방지).
+    // ctags조차 없으면 search_text와 동일한 저하 안내를 돌려준다.
+    const resolveSymbolProvider = async (): Promise<SymbolProviderResolution> => {
+        if (installInFlight != null) {
+            await installInFlight.catch(() => undefined);
+        }
+        const ctagsResolution = await resolveCtagsResolution();
+        if (ctagsResolution.kind !== "ready") {
+            // 비-Universal이면 "설치됨이나 Universal 변형 아님"으로, 미설치면 "미설치"로 안내한다.
+            // 어느 쪽이든 SymbolProvider를 만들지 않아 --output-format=json 런타임 실패를 막는다.
+            const status = ctagsResolution.kind === "not-universal" ? "설치됨이나 Universal 변형 아님" : "미설치";
+            const missing: MissingBinary[] = [{ label: "ctags (Universal Ctags, 심볼 색인)", status }];
+            return { kind: "missing", guidance: buildInstallationGuidance(missing) };
+        }
+        const ctagsPath = ctagsResolution.ctagsPath;
+        // 이미 같은 ctags 경로로 만든 provider가 있으면 재사용한다 — 인스턴스의 fingerprint
+        // 캐시가 호출 간 살아남아 작업 트리 무변경 시 walk·ctags 재실행을 건너뛴다(DESIGN §3.2).
+        // ctags 경로가 (수동/자동 설치로) 바뀐 경우에만 새로 만들어 캐시를 폐기·교체한다.
+        if (symbolProvider == null || symbolProvider.ctagsPath !== ctagsPath) {
+            symbolProvider = new SymbolProvider({
+                ctagsPath,
+                repositoryRoot,
+                excludedDirectoryNames: config.index.excludedDirectories,
+            });
+        }
+        const provider = symbolProvider;
+        return { kind: "ready", lookup: (input) => provider.lookup(toSymbolInput(input)) };
     };
 
     const runInstall = async (): Promise<string> => {
@@ -164,7 +264,13 @@ async function main(): Promise<void> {
         version: SERVER_VERSION,
     });
 
-    registerTools(server, { resolveSearchProvider, installBinaries });
+    registerTools(server, {
+        resolveSearchProvider,
+        installBinaries,
+        readFile: (input) => readFileProvider.read(input),
+        findFiles: (input) => findFilesProvider.find(input),
+        resolveSymbolProvider,
+    });
 
     // A client that closes stdin (instead of signalling) must still shut the
     // webserver child down — otherwise the live child keeps the event loop alive

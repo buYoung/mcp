@@ -72,7 +72,13 @@ async function resolveCtagsExecutablePath(): Promise<string | undefined> {
     return (await resolveExecutablePath(CTAGS_BINARY)) ?? (await resolveExecutablePath(CTAGS_RELEASE_BINARY));
 }
 
-async function isUniversalCtags(ctagsPath: string): Promise<boolean> {
+/**
+ * 주어진 ctags 경로가 Universal Ctags 변형인지 검증한다(`ctags --version` 출력에
+ * "Universal Ctags" 포함). BSD/Exuberant ctags는 `--output-format=json`을 지원하지
+ * 않아 SymbolProvider에서 런타임 실패하므로, 폴백 탐색으로 찾은 경로도 이 함수로
+ * 게이트해야 한다(DESIGN §3.2). 부팅 점검과 lookup_symbol 폴백이 공유한다.
+ */
+export async function isUniversalCtags(ctagsPath: string): Promise<boolean> {
     try {
         const { stdout, stderr } = await execFileAsync(ctagsPath, ["--version"], {
             timeout: CTAGS_VERSION_TIMEOUT_MS,
