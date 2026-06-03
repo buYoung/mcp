@@ -2,7 +2,12 @@ import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { INDEX_BUILD_MAX_BUFFER_BYTES, INDEX_BUILD_TIMEOUT_MS, STALENESS_CHECK_TTL_MS } from "../../config/defaults.js";
+import {
+    INDEX_BUILD_MAX_BUFFER_BYTES,
+    INDEX_BUILD_TIMEOUT_MS,
+    SCOUT_DIRECTORY_NAME,
+    STALENESS_CHECK_TTL_MS,
+} from "../../config/defaults.js";
 import { resolveIndexPaths } from "./index-storage.js";
 
 const execFileAsync = promisify(execFile);
@@ -31,6 +36,7 @@ export class IndexLifecycle {
     private readonly excludedDirectoryNames: ReadonlySet<string>;
     private readonly ignoreDirectoriesArgument: string;
     private readonly stalenessCheckTtlMs: number;
+    private readonly indexBuildTimeoutMs: number;
 
     private buildGeneration = 0;
     private lastFingerprint: string | undefined;
@@ -41,11 +47,20 @@ export class IndexLifecycle {
         zoektIndexPath: string;
         excludedDirectoryNames: readonly string[];
         stalenessCheckTtlMs?: number;
+        indexBuildTimeoutMs?: number;
     }) {
         this.zoektIndexPath = options.zoektIndexPath;
-        this.excludedDirectoryNames = new Set(options.excludedDirectoryNames);
-        this.ignoreDirectoriesArgument = options.excludedDirectoryNames.join(",");
+        // 인덱스가 `<repo>/.scout/zoekt` 안에 생성되므로(DESIGN §6.2) `.scout`를 항상 강제
+        // 제외한다. 설정이 excluded_directories를 비우거나 교체해도 무조건 적용된다 — 빠지면
+        // zoekt-index가 자기 샤드를 인덱싱하고, fingerprint walk가 매 빌드 산출물의 mtime을
+        // 잡아 staleness TTL마다 무한 재인덱싱 루프에 빠진다. 같은 set이 zoekt `-ignore_dirs`와
+        // working-tree fingerprint walk 양쪽에 쓰이므로 여기서 한 번만 강제하면 둘 다 안전하다.
+        const excludedNames = new Set([SCOUT_DIRECTORY_NAME, ...options.excludedDirectoryNames]);
+        this.excludedDirectoryNames = excludedNames;
+        this.ignoreDirectoriesArgument = [...excludedNames].join(",");
         this.stalenessCheckTtlMs = options.stalenessCheckTtlMs ?? STALENESS_CHECK_TTL_MS;
+        // 설정에서 인덱스 빌드 타임아웃을 받되, 미지정 시 built-in 기본값으로 폴백한다.
+        this.indexBuildTimeoutMs = options.indexBuildTimeoutMs ?? INDEX_BUILD_TIMEOUT_MS;
     }
 
     async ensureFresh(repositoryRoot: string): Promise<EnsureFreshResult> {
@@ -106,7 +121,7 @@ export class IndexLifecycle {
         await execFileAsync(
             this.zoektIndexPath,
             ["-index", shardDirectory, "-ignore_dirs", this.ignoreDirectoriesArgument, repositoryRoot],
-            { timeout: INDEX_BUILD_TIMEOUT_MS, maxBuffer: INDEX_BUILD_MAX_BUFFER_BYTES },
+            { timeout: this.indexBuildTimeoutMs, maxBuffer: INDEX_BUILD_MAX_BUFFER_BYTES },
         );
         this.buildGeneration += 1;
         this.lastFingerprint = fingerprint;

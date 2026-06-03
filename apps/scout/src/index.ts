@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SERVER_NAME, SERVER_VERSION } from "./config/defaults.js";
+import { readGitignoreDirectoryNames } from "./config/gitignore-excludes.js";
+import { loadScoutConfig, type ResolvedScoutConfig } from "./config/scout-config.js";
 import { TextSearchProvider } from "./providers/text-search/text-search-provider.js";
 import { installManagedBinaries } from "./startup/binary-installer.js";
 import {
@@ -10,10 +12,31 @@ import {
     type ResolvedBinaries,
     resolveBinaries,
 } from "./startup/ensure-required-binaries.js";
+import { registerScoutInGitExclude } from "./startup/git-exclude.js";
 import { registerTools, type SearchProviderResolution } from "./tools/index.js";
 
 async function main(): Promise<void> {
     const repositoryRoot = process.cwd();
+
+    // 설정 로드 직후 gitignore 디렉터리-이름을 union 한다(replace 아님 — 별개 소스).
+    // provider/lifecycle를 동기·단순하게 유지하기 위해, gitignore union은 여기서 끝낸다.
+    const loadedConfig = await loadScoutConfig(repositoryRoot);
+    const gitignoreNames = loadedConfig.index.respectGitignore ? await readGitignoreDirectoryNames(repositoryRoot) : [];
+    const effectiveExcluded = [...new Set([...loadedConfig.index.excludedDirectories, ...gitignoreNames])];
+    // excludedDirectories를 effectiveExcluded로 치환한 불변 복사본을 만들어 provider에 넘긴다.
+    const config: ResolvedScoutConfig = {
+        ...loadedConfig,
+        index: {
+            ...loadedConfig.index,
+            excludedDirectories: effectiveExcluded,
+        },
+    };
+
+    // .scout/ 산출물을 .git/info/exclude에 등록해 숨긴다(전역 설정으로만 토글, default on).
+    if (config.index.registerGitExclude) {
+        await registerScoutInGitExclude(repositoryRoot);
+    }
+
     let textSearchProvider: TextSearchProvider | null = null;
     let installInFlight: Promise<string> | null = null;
 
@@ -26,6 +49,8 @@ async function main(): Promise<void> {
             zoektIndexPath: binaries.zoektIndexPath,
             zoektWebserverPath: binaries.zoektWebserverPath,
             repositoryRoot,
+            // config를 클로저로 캡처해 provider에 전달(effectiveExcluded 반영본).
+            config,
         });
         // 재구성 시 이전 provider의 webserver 자식을 반드시 정리한다(고아 프로세스 방지).
         previous?.shutdown();
@@ -133,17 +158,11 @@ async function main(): Promise<void> {
     process.on("SIGTERM", () => shutdownAndExit(0));
     process.on("exit", shutdown);
 
-    const server = new Server(
-        {
-            name: SERVER_NAME,
-            version: SERVER_VERSION,
-        },
-        {
-            capabilities: {
-                tools: {},
-            },
-        },
-    );
+    // 고수준 McpServer 사용: registerTool이 capabilities를 추론하므로 명시 불필요.
+    const server = new McpServer({
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+    });
 
     registerTools(server, { resolveSearchProvider, installBinaries });
 

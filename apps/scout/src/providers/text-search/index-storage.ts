@@ -1,7 +1,5 @@
-import { createHash } from "node:crypto";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { ENVIRONMENT_INDEX_DIRECTORY } from "../../config/defaults.js";
+import { SCOUT_DIRECTORY_NAME } from "../../config/defaults.js";
 
 export interface IndexPaths {
     repositoryDirectory: string;
@@ -9,21 +7,10 @@ export interface IndexPaths {
     metaFilePath: string;
 }
 
-export function resolveCacheRootDirectory(): string {
-    const override = process.env[ENVIRONMENT_INDEX_DIRECTORY];
-    if (override != null && override.trim().length > 0) {
-        return resolve(override.trim());
-    }
-    const xdgCacheHome = process.env.XDG_CACHE_HOME;
-    const baseDirectory =
-        xdgCacheHome != null && xdgCacheHome.trim().length > 0 ? xdgCacheHome.trim() : join(homedir(), ".cache");
-    return join(baseDirectory, "scout", "zoekt");
-}
-
 export function resolveIndexPaths(repositoryRoot: string): IndexPaths {
-    const normalizedRoot = resolve(repositoryRoot);
-    const repositoryHash = createHash("sha256").update(normalizedRoot).digest("hex").slice(0, 16);
-    const repositoryDirectory = join(resolveCacheRootDirectory(), repositoryHash);
+    // 인덱스는 전역 캐시가 아니라 레포 안 <repo>/.scout/zoekt 에 고정 배치한다.
+    // (전역 캐시 + repo-path 해시 디렉터리 방식은 폐기됨)
+    const repositoryDirectory = join(resolve(repositoryRoot), SCOUT_DIRECTORY_NAME, "zoekt");
     return {
         repositoryDirectory,
         shardDirectory: join(repositoryDirectory, "shards"),
