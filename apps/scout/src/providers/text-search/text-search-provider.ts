@@ -1,11 +1,5 @@
-import {
-    DEFAULT_CONTEXT_LINES,
-    DEFAULT_HEAD_LIMIT,
-    DEFAULT_OUTPUT_MODE,
-    EXCLUDED_DIRECTORY_NAMES,
-    type OutputMode,
-    SEARCH_REQUEST_TIMEOUT_MS,
-} from "../../config/defaults.js";
+import type { OutputMode } from "../../config/defaults.js";
+import type { ResolvedScoutConfig } from "../../config/scout-config.js";
 import { resolveRelativePathWithinRoot } from "../../security/path-guard.js";
 import { IndexLifecycle } from "./index-lifecycle.js";
 import { buildZoektQuery } from "./zoekt-query-builder.js";
@@ -33,14 +27,24 @@ export interface SearchTextInput {
  */
 export class TextSearchProvider {
     private readonly repositoryRoot: string;
+    private readonly config: ResolvedScoutConfig;
     private readonly indexLifecycle: IndexLifecycle;
     private readonly webserverLifecycle: WebserverLifecycle;
 
-    constructor(options: { zoektIndexPath: string; zoektWebserverPath: string; repositoryRoot: string }) {
+    constructor(options: {
+        zoektIndexPath: string;
+        zoektWebserverPath: string;
+        repositoryRoot: string;
+        config: ResolvedScoutConfig;
+    }) {
         this.repositoryRoot = options.repositoryRoot;
+        this.config = options.config;
+        // excludedDirectories는 index.ts에서 gitignore union을 이미 마친 최종 목록이 전달된다.
         this.indexLifecycle = new IndexLifecycle({
             zoektIndexPath: options.zoektIndexPath,
-            excludedDirectoryNames: EXCLUDED_DIRECTORY_NAMES,
+            excludedDirectoryNames: this.config.index.excludedDirectories,
+            stalenessCheckTtlMs: this.config.index.stalenessCheckMs,
+            indexBuildTimeoutMs: this.config.limits.indexBuildTimeoutMs,
         });
         this.webserverLifecycle = new WebserverLifecycle({
             zoektWebserverPath: options.zoektWebserverPath,
@@ -53,11 +57,11 @@ export class TextSearchProvider {
                 ? resolveRelativePathWithinRoot(input.path, this.repositoryRoot)
                 : undefined;
 
-        const outputMode = input.outputMode ?? DEFAULT_OUTPUT_MODE;
-        const headLimit = input.headLimit ?? DEFAULT_HEAD_LIMIT;
-        const contextLines = input.contextLines ?? DEFAULT_CONTEXT_LINES;
+        const outputMode = input.outputMode ?? this.config.output.mode;
+        const headLimit = input.headLimit ?? this.config.output.headLimit;
+        const contextLines = input.contextLines ?? this.config.output.contextLines;
         const offset = input.offset ?? 0;
-        const showLineNumbers = input.showLineNumbers ?? true;
+        const showLineNumbers = input.showLineNumbers ?? this.config.output.showLineNumbers;
         const maxHits = headLimit > 0 ? headLimit : 100_000;
 
         const query = buildZoektQuery({
@@ -87,7 +91,7 @@ export class TextSearchProvider {
         const { shardDirectory, buildGeneration } = await this.indexLifecycle.ensureFresh(this.repositoryRoot);
         let port = await this.webserverLifecycle.ensureRunning(shardDirectory, buildGeneration);
 
-        const searchOptions = { maxHits, contextLines, timeoutMs: SEARCH_REQUEST_TIMEOUT_MS };
+        const searchOptions = { maxHits, contextLines, timeoutMs: this.config.limits.searchRequestTimeoutMs };
         try {
             return await searchZoekt(port, query, searchOptions);
         } catch (error) {

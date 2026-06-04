@@ -140,6 +140,65 @@ ACP 도구 실행 권한은 항상 읽기 전용으로 동작한다. `read`, `se
 권한 요청만 허용하고 파일 수정, 삭제, 이동, 명령 실행, 모드 전환 요청은 거절한다.
 이전 호환을 위해 `ACP_BRIDGE_PERMISSION_POLICY` 값이 있어도 읽지만 동작에는 반영하지 않는다.
 
+## scout 설정
+
+scout는 검색 대상 레포지토리를 인덱싱할 때 해당 레포 안에 `<repo>/.scout/` 디렉터리를
+만들고 그 아래 `zoekt/`(인덱스 샤드와 메타데이터 등)를 둔다. 산출물이 레포 안에 생기긴
+하지만 git 워킹트리를 더럽히지 않도록, scout는 부팅 시 `<repo>/.scout/`를 그 레포의
+`.git/info/exclude`에 자동 등록한다(멱등 — 이미 등록돼 있으면 다시 추가하지 않는다). 이
+자동 등록은 git 저장소가 아니거나 git이 없으면 조용히 건너뛰며, 어떤 경우에도 프로세스를
+종료시키지 않는다. 자동 등록을 끄고 싶으면 아래 `register_git_exclude`를 `false`로 둔다
+(전역 설정에서만 적용).
+
+설정은 TOML 파일 두 곳에서 읽는다.
+
+- 전역: `~/.scout/config.toml`
+- repo별: `<repo>/.scout/config.toml`
+
+우선순위는 **키 단위로 repo > 전역 > 기본값**이다. 각 키마다 가장 높은 우선순위에
+존재하는 값을 통째로 채택하며(배열도 append가 아니라 replace), 어느 레이어도 주지 않은
+키만 built-in 기본값으로 채운다. 전역 `~/.scout/config.toml`은 없으면 모든 값이 주석
+처리된 템플릿으로 자동 생성되지만, repo별 `<repo>/.scout/config.toml`은 자동 생성하지
+않는다(opt-in, 직접 만들어야 함). 잘못되거나 깨진 설정은 stderr에 한국어 경고를 남기고 그
+값만 무시한 채 기본값으로 동작한다 — 절대 프로세스를 종료하지 않는다.
+
+주요 설정 키는 다음과 같다.
+
+| 테이블 | 키 | 타입 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `[output]` | `mode` | `"content"` \| `"files_with_matches"` \| `"count"` | `"files_with_matches"` | 검색 결과 출력 형식 |
+| `[output]` | `head_limit` | 정수 ≥ 0 | `250` | 결과 상한(0 = 무제한) |
+| `[output]` | `context_lines` | 정수 ≥ 0 | `0` | 매치 전후로 함께 보여줄 줄 수 |
+| `[output]` | `show_line_numbers` | bool | `true` | 줄 번호 표시 여부 |
+| `[index]` | `excluded_directories` | 문자열 배열 | built-in 목록(`.git`, `node_modules`, `dist` 등) | 인덱싱에서 제외할 디렉터리 이름(replace) |
+| `[index]` | `staleness_check_ms` | 정수 > 0 | `2000` | 인덱스 신선도 재검사 주기(ms) |
+| `[index]` | `respect_gitignore` | bool | `true` | repo `.gitignore`의 디렉터리 이름을 제외 집합에 union |
+| `[index]` | `register_git_exclude` | bool | `true` | `<repo>/.scout/`를 `.git/info/exclude`에 자동 등록. **전역 설정에서만 적용**(repo 레이어 값은 경고 후 무시) |
+| `[limits]` | `search_request_timeout_ms` | 정수 > 0 | `15000` | 단일 검색 요청 타임아웃(ms) |
+| `[limits]` | `index_build_timeout_ms` | 정수 > 0 | `600000` | 인덱스 빌드 타임아웃(ms) |
+
+```toml
+[output]
+mode = "files_with_matches"
+head_limit = 250
+context_lines = 0
+show_line_numbers = true
+
+[index]
+excluded_directories = [".git", "node_modules", "dist"]
+staleness_check_ms = 2000
+respect_gitignore = true
+register_git_exclude = true   # 전역 설정에서만 적용
+
+[limits]
+search_request_timeout_ms = 15000
+index_build_timeout_ms = 600000
+```
+
+인덱스 경로(`<repo>/.scout/zoekt/`)와 관리형 바이너리 위치(`~/.scout/bin/<tag>`,
+`os.homedir()` 기준 전역 공유)는 설정으로 바꿀 수 없는 고정 경로다. 바이너리 설치
+디렉터리만 전역에서 공유하고, 인덱스는 레포마다 분리해 둔다.
+
 ## Pre-commit
 
 `husky`와 `lint-staged`로 커밋 전 검사를 돌린다. 스테이징된 자바스크립트, 타입스크립트, JSON 파일에는 `biome check --write`를 실행하고 수정 결과를 다시 스테이징한다.
