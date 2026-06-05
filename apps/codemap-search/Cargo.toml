@@ -1,0 +1,46 @@
+[package]
+name = "codemap-search"
+version = "0.1.0"
+edition = "2021"
+authors = ["Buyong Lee"]
+description = "A code-agent MCP search tool written in Rust"
+
+[dependencies]
+# CLI Argument parsing
+clap = { version = "4.4", features = ["derive"] }
+
+# Tree-sitter AST extraction
+tree-sitter = "0.20"
+tree-sitter-rust = "0.20"
+tree-sitter-typescript = "0.20"
+tree-sitter-python = "0.20"
+
+# Tantivy search engine for BM25 text indexing
+tantivy = "0.22"
+
+# JSON-RPC / Serialization for MCP and state persistence
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async MCP server communication
+tokio = { version = "1.35", features = ["full"] }
+
+# Directory scanning and file path iteration
+walkdir = "2.4"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging / Diagnostics
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Regular expressions and text processing
+regex = "1.10"
+
+[dev-dependencies]
+assert_cmd = "2.0.12"
+predicates = "3.1.0"
+tempfile = "3.8.1"
+filetime = "0.2.23"
