@@ -44,7 +44,66 @@ pub struct DetailsCodemap<'a> {
     pub file_path: String,
     pub total_lines: usize,
     pub symbols: &'a [crate::parser::ExtractedSymbol],
-    pub literals: &'a [String],
+}
+
+/// Kinds whose body opens a function scope. A symbol strictly contained within
+/// one of these is function-local (a local variable, nested fn, or closure) and
+/// is dropped from significant views. The tree-sitter layer normalizes both free
+/// functions and methods to "fn"; "method"/"function" are listed for resilience
+/// if that normalization ever changes.
+const FUNCTION_SCOPE_KINDS: &[&str] = &["fn", "method", "function"];
+
+/// `outer` strictly contains `inner` when `inner`'s line span sits inside
+/// `outer`'s and the two spans are not identical — so a symbol never contains
+/// itself and two symbols sharing a range never drop each other.
+fn range_strictly_contains(
+    outer: &crate::parser::CodeRange,
+    inner: &crate::parser::CodeRange,
+) -> bool {
+    outer.start_line <= inner.start_line
+        && inner.end_line <= outer.end_line
+        && (outer.start_line < inner.start_line || inner.end_line < outer.end_line)
+}
+
+/// A symbol is "significant" when it is exported, or when it is not nested inside
+/// a function scope in the same file. Type members (class/struct/impl methods —
+/// contained by a type symbol, not a function) stay significant; function-local
+/// symbols are dropped. Operates on the flat per-file symbol list, since the
+/// extractor records no parent links.
+fn is_significant_symbol(
+    symbol: &crate::parser::ExtractedSymbol,
+    file_symbols: &[crate::parser::ExtractedSymbol],
+) -> bool {
+    if symbol.flags.is_exported {
+        return true;
+    }
+    !file_symbols.iter().any(|parent| {
+        FUNCTION_SCOPE_KINDS.contains(&parent.kind.as_str())
+            && range_strictly_contains(&parent.range, &symbol.range)
+    })
+}
+
+/// Build a per-file summary carrying only significant symbols, with their count.
+/// Shared by the root and folder views so both apply the same filter.
+fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFileSummary<'_> {
+    let symbols: Vec<ExtractedSymbolSummary<'_>> = file
+        .symbols
+        .iter()
+        .filter(|s| is_significant_symbol(s, &file.symbols))
+        .map(|s| ExtractedSymbolSummary {
+            name: &s.name,
+            kind: &s.kind,
+            is_exported: s.flags.is_exported,
+            start_line: s.range.start_line,
+            end_line: s.range.end_line,
+        })
+        .collect();
+    ExtractedFileSummary {
+        file_path: normalize_path(&file.file_path).into_owned(),
+        total_lines: file.total_lines,
+        symbol_count: symbols.len(),
+        symbols,
+    }
 }
 
 impl<'a> std::fmt::Display for RootCodemap<'a> {
@@ -69,14 +128,11 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         if !self.files.is_empty() {
             writeln!(f, "## Files")?;
             for file in &self.files {
-                writeln!(f, "- File: {} ({} lines)", file.file_path, file.total_lines)?;
-                for symbol in &file.symbols {
-                    writeln!(
-                        f,
-                        "  - {} ({}) [L{}-{}]",
-                        symbol.name, symbol.kind, symbol.start_line, symbol.end_line
-                    )?;
-                }
+                writeln!(
+                    f,
+                    "- File: {} ({} lines, {} symbols)",
+                    file.file_path, file.total_lines, file.symbol_count
+                )?;
             }
         }
         Ok(())
@@ -111,12 +167,11 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
             writeln!(f, "## Files")?;
             for file in &self.files {
                 writeln!(f, "- File: {} ({} lines)", file.file_path, file.total_lines)?;
+                // Significant symbols only, names/kinds without line ranges: the folder
+                // view orients within a known folder but is not a locator — exact
+                // positions come from search/grep (overview must not substitute for search).
                 for symbol in &file.symbols {
-                    writeln!(
-                        f,
-                        "  - {} ({}) [L{}-{}]",
-                        symbol.name, symbol.kind, symbol.start_line, symbol.end_line
-                    )?;
+                    writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
                 }
             }
         }
@@ -140,42 +195,17 @@ impl<'a> std::fmt::Display for DetailsCodemap<'a> {
         )?;
         writeln!(f)?;
 
-        writeln!(f, "## Extracted Symbols")?;
-        for symbol in self.symbols {
+        writeln!(f, "## Symbols")?;
+        for symbol in self
+            .symbols
+            .iter()
+            .filter(|s| is_significant_symbol(s, self.symbols))
+        {
             writeln!(
                 f,
-                "- **Name**: {}\n  Kind: {}\n  Range: {}:{} - {}:{}",
-                symbol.name,
-                symbol.kind,
-                symbol.range.start_line,
-                symbol.range.start_col,
-                symbol.range.end_line,
-                symbol.range.end_col
+                "- {} ({}) [L{}-{}]",
+                symbol.name, symbol.kind, symbol.range.start_line, symbol.range.end_line
             )?;
-            if let Some(ref doc) = symbol.docstring {
-                let mut lines = doc.lines();
-                if let Some(first) = lines.next() {
-                    writeln!(f, "  Docstring: {}", first)?;
-                    for line in lines {
-                        writeln!(f, "            {}", line)?;
-                    }
-                }
-            }
-            writeln!(
-                f,
-                "  Flags: hasTodo={}, hasFixme={}, isTest={}, isExported={}, isDeprecated={}",
-                symbol.flags.has_todo,
-                symbol.flags.has_fixme,
-                symbol.flags.is_test,
-                symbol.flags.is_exported,
-                symbol.flags.is_deprecated,
-            )?;
-        }
-
-        writeln!(f)?;
-        writeln!(f, "## Literals")?;
-        for lit in self.literals {
-            writeln!(f, "- {}", lit)?;
         }
 
         Ok(())
@@ -223,7 +253,6 @@ impl CodemapGenerator {
     /// Root level: Overview of files and top-level definitions
     pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
         let total_files = files.len();
-        let total_symbols = files.iter().map(|f| f.symbols.len()).sum();
 
         let mut dirs_set = BTreeSet::new();
         for file in files {
@@ -238,25 +267,11 @@ impl CodemapGenerator {
         }
         let directories: Vec<String> = dirs_set.into_iter().collect();
 
-        let files_summary: Vec<ExtractedFileSummary<'a>> = files
-            .iter()
-            .map(|file| ExtractedFileSummary {
-                file_path: normalize_path(&file.file_path).into_owned(),
-                total_lines: file.total_lines,
-                symbol_count: file.symbols.len(),
-                symbols: file
-                    .symbols
-                    .iter()
-                    .map(|s| ExtractedSymbolSummary {
-                        name: &s.name,
-                        kind: &s.kind,
-                        is_exported: s.flags.is_exported,
-                        start_line: s.range.start_line,
-                        end_line: s.range.end_line,
-                    })
-                    .collect(),
-            })
-            .collect();
+        let files_summary: Vec<ExtractedFileSummary<'a>> =
+            files.iter().map(summarize_file).collect();
+        // Root counts the significant symbols actually surfaced downstream, not
+        // the raw extracted total — so the headline matches the per-file sums.
+        let total_symbols = files_summary.iter().map(|f| f.symbol_count).sum();
 
         RootCodemap {
             total_files,
@@ -288,22 +303,7 @@ impl CodemapGenerator {
 
             if is_match {
                 if normalized_file == normalized_folder {
-                    files_summary.push(ExtractedFileSummary {
-                        file_path: normalize_path(&file.file_path).into_owned(),
-                        total_lines: file.total_lines,
-                        symbol_count: file.symbols.len(),
-                        symbols: file
-                            .symbols
-                            .iter()
-                            .map(|s| ExtractedSymbolSummary {
-                                name: &s.name,
-                                kind: &s.kind,
-                                is_exported: s.flags.is_exported,
-                                start_line: s.range.start_line,
-                                end_line: s.range.end_line,
-                            })
-                            .collect(),
-                    });
+                    files_summary.push(summarize_file(file));
                 } else {
                     let rel = if normalized_folder.is_empty() {
                         normalized_file.as_ref()
@@ -313,22 +313,7 @@ impl CodemapGenerator {
 
                     let parts: Vec<&str> = rel.split('/').collect();
                     if parts.len() == 1 {
-                        files_summary.push(ExtractedFileSummary {
-                            file_path: normalize_path(&file.file_path).into_owned(),
-                            total_lines: file.total_lines,
-                            symbol_count: file.symbols.len(),
-                            symbols: file
-                                .symbols
-                                .iter()
-                                .map(|s| ExtractedSymbolSummary {
-                                    name: &s.name,
-                                    kind: &s.kind,
-                                    is_exported: s.flags.is_exported,
-                                    start_line: s.range.start_line,
-                                    end_line: s.range.end_line,
-                                })
-                                .collect(),
-                        });
+                        files_summary.push(summarize_file(file));
                     } else if parts.len() > 1 {
                         let first_component = parts[0];
                         let sub_dir = if normalized_folder.is_empty() {
@@ -356,7 +341,6 @@ impl CodemapGenerator {
             file_path: file.file_path.clone(),
             total_lines: file.total_lines,
             symbols: &file.symbols,
-            literals: &file.literals,
         }
     }
 
@@ -444,10 +428,11 @@ mod tests {
         assert!(formatted.contains("## Directories"));
         assert!(formatted.contains("- src"));
         assert!(formatted.contains("## Files"));
-        assert!(formatted.contains("- File: src/main.rs"));
-        assert!(formatted.contains("  - main (fn)"));
-        assert!(formatted.contains("- File: src/lib.rs"));
-        assert!(formatted.contains("  - init (fn)"));
+        // Root lists files with line/significant-symbol counts only — no per-symbol bullets.
+        assert!(formatted.contains("- File: src/main.rs (0 lines, 1 symbols)"));
+        assert!(formatted.contains("- File: src/lib.rs (0 lines, 1 symbols)"));
+        assert!(!formatted.contains("  - main (fn)"));
+        assert!(!formatted.contains("[L"));
     }
 
     #[test]
@@ -535,15 +520,14 @@ mod tests {
         let details = CodemapGenerator::generate_detail_view(&file);
         let formatted = format!("{}", details);
         assert!(formatted.contains("# Detailed Codemap: src/lib.rs"));
-        assert!(formatted.contains("## Extracted Symbols"));
-        assert!(formatted.contains("- **Name**: check"));
-        assert!(formatted.contains("  Kind: fn"));
-        assert!(formatted.contains("  Range: 5:1 - 10:2"));
-        assert!(formatted.contains("  Docstring: A check function"));
-        assert!(formatted.contains("            with multiple lines"));
-        assert!(formatted.contains("  Flags: hasTodo=true, hasFixme=false, isTest=false, isExported=true, isDeprecated=true"));
-        assert!(formatted.contains("## Literals"));
-        assert!(formatted.contains("- magic_value"));
+        assert!(formatted.contains("## Symbols"));
+        // File view is a trimmed outline: name, kind, line range only.
+        assert!(formatted.contains("- check (fn) [L5-10]"));
+        // Verbose details (flags, docstrings, literals) belong to read/grep, not overview.
+        assert!(!formatted.contains("Docstring"));
+        assert!(!formatted.contains("Flags:"));
+        assert!(!formatted.contains("## Literals"));
+        assert!(!formatted.contains("magic_value"));
     }
 
     #[test]

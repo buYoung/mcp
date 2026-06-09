@@ -1,4 +1,5 @@
 use crate::e2e::helpers::{create_mock_repo, run_cli, McpClient};
+use predicates::prelude::*;
 use std::fs;
 
 #[tokio::test]
@@ -69,13 +70,13 @@ fn test_cross_extraction_codemaps() {
     )
     .unwrap();
 
-    // Verify dynamic codemap updates
+    // Verify dynamic codemap updates: the trimmed outline reflects the renamed
+    // symbol and drops the stale one (docstring/flag dumps are no longer emitted).
     let assert_2 = run_cli(&["codemap", "--path", "src/lib.rs"], temp.path());
     assert_2
         .success()
-        .stdout(predicates::str::contains("Updated doc"))
-        .stdout(predicates::str::contains("hasTodo"))
-        .stdout(predicates::str::contains("updated"));
+        .stdout(predicates::str::contains("updated"))
+        .stdout(predicates::str::contains("original").not());
 }
 
 #[tokio::test]

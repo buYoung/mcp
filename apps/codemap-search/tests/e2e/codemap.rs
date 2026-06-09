@@ -45,8 +45,9 @@ fn test_codemap_details_view() {
     let assert = run_cli(&["codemap", "--path", "src/lib.rs"], temp.path());
     assert
         .success()
-        .stdout(predicates::str::contains("Details view test"))
-        .stdout(predicates::str::contains("details"));
+        .stdout(predicates::str::contains("details"))
+        // File view is a trimmed outline now; docstrings are read/grep's job.
+        .stdout(predicates::str::contains("Details view test").not());
 }
 
 #[test]
@@ -74,8 +75,9 @@ fn test_codemap_hierarchical_navigation() {
     let assert_details = run_cli(&["codemap", "--path", "src/core/engine.rs"], temp.path());
     assert_details
         .success()
-        .stdout(predicates::str::contains("Engine"))
-        .stdout(predicates::str::contains("run"));
+        .stdout(predicates::str::contains("run"))
+        // Docstring is no longer rendered in the trimmed file outline.
+        .stdout(predicates::str::contains("Engine").not());
 }
 
 #[test]
