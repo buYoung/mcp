@@ -41,10 +41,10 @@ async fn test_mcp_list_tools() {
         .as_array()
         .expect("tools should be an array");
 
-    // Tools should contain 'search' and 'get_codemap'
+    // Tools should contain 'search' and 'overview'
     let tool_names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     assert!(tool_names.contains(&"search"));
-    assert!(tool_names.contains(&"get_codemap"));
+    assert!(tool_names.contains(&"overview"));
 }
 
 #[tokio::test]
@@ -171,7 +171,7 @@ async fn test_index_and_codemap_exclude_junk_dirs() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "" }
             }),
         )
@@ -336,7 +336,7 @@ async fn test_mcp_path_traversal() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": {
                     "path": "../../../etc/passwd"
                 }
@@ -409,7 +409,7 @@ async fn test_mcp_symlink_workspace_compatibility() {
                 .send_request(
                     "tools/call",
                     serde_json::json!({
-                        "name": "get_codemap",
+                        "name": "overview",
                         "arguments": {
                             "path": "src/lib.rs"
                         }

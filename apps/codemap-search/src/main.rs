@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let extractor = TreeSitterExtractor::new();
 
             // Shared walker: EXCLUDED_DIRS + .gitignore/.codemapignore (Child 04), so the
-            // CLI codemap matches the MCP get_codemap and never traverses node_modules/.git.
+            // CLI codemap matches the MCP overview and never traverses node_modules/.git.
             for entry in codemap_search::tools::build_walker(&cwd, false)
                 .build()
                 .filter_map(|e| e.ok())

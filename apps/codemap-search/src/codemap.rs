@@ -9,11 +9,14 @@ pub struct ExtractedSymbolSummary<'a> {
     pub name: &'a str,
     pub kind: &'a str,
     pub is_exported: bool,
+    pub start_line: usize,
+    pub end_line: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExtractedFileSummary<'a> {
     pub file_path: String,
+    pub total_lines: usize,
     pub symbol_count: usize,
     pub symbols: Vec<ExtractedSymbolSummary<'a>>,
 }
@@ -39,6 +42,7 @@ pub struct FolderCodemap<'a> {
 #[derive(Debug, Clone)]
 pub struct DetailsCodemap<'a> {
     pub file_path: String,
+    pub total_lines: usize,
     pub symbols: &'a [crate::parser::ExtractedSymbol],
     pub literals: &'a [String],
 }
@@ -65,9 +69,13 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         if !self.files.is_empty() {
             writeln!(f, "## Files")?;
             for file in &self.files {
-                writeln!(f, "- File: {}", file.file_path)?;
+                writeln!(f, "- File: {} ({} lines)", file.file_path, file.total_lines)?;
                 for symbol in &file.symbols {
-                    writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
+                    writeln!(
+                        f,
+                        "  - {} ({}) [L{}-{}]",
+                        symbol.name, symbol.kind, symbol.start_line, symbol.end_line
+                    )?;
                 }
             }
         }
@@ -102,9 +110,13 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
         if !self.files.is_empty() {
             writeln!(f, "## Files")?;
             for file in &self.files {
-                writeln!(f, "- File: {}", file.file_path)?;
+                writeln!(f, "- File: {} ({} lines)", file.file_path, file.total_lines)?;
                 for symbol in &file.symbols {
-                    writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
+                    writeln!(
+                        f,
+                        "  - {} ({}) [L{}-{}]",
+                        symbol.name, symbol.kind, symbol.start_line, symbol.end_line
+                    )?;
                 }
             }
         }
@@ -121,7 +133,11 @@ impl<'a> CodemapView for FolderCodemap<'a> {
 
 impl<'a> std::fmt::Display for DetailsCodemap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "# Detailed Codemap: {}", self.file_path)?;
+        writeln!(
+            f,
+            "# Detailed Codemap: {} ({} lines)",
+            self.file_path, self.total_lines
+        )?;
         writeln!(f)?;
 
         writeln!(f, "## Extracted Symbols")?;
@@ -226,6 +242,7 @@ impl CodemapGenerator {
             .iter()
             .map(|file| ExtractedFileSummary {
                 file_path: normalize_path(&file.file_path).into_owned(),
+                total_lines: file.total_lines,
                 symbol_count: file.symbols.len(),
                 symbols: file
                     .symbols
@@ -234,6 +251,8 @@ impl CodemapGenerator {
                         name: &s.name,
                         kind: &s.kind,
                         is_exported: s.flags.is_exported,
+                        start_line: s.range.start_line,
+                        end_line: s.range.end_line,
                     })
                     .collect(),
             })
@@ -271,6 +290,7 @@ impl CodemapGenerator {
                 if normalized_file == normalized_folder {
                     files_summary.push(ExtractedFileSummary {
                         file_path: normalize_path(&file.file_path).into_owned(),
+                        total_lines: file.total_lines,
                         symbol_count: file.symbols.len(),
                         symbols: file
                             .symbols
@@ -279,6 +299,8 @@ impl CodemapGenerator {
                                 name: &s.name,
                                 kind: &s.kind,
                                 is_exported: s.flags.is_exported,
+                                start_line: s.range.start_line,
+                                end_line: s.range.end_line,
                             })
                             .collect(),
                     });
@@ -293,6 +315,7 @@ impl CodemapGenerator {
                     if parts.len() == 1 {
                         files_summary.push(ExtractedFileSummary {
                             file_path: normalize_path(&file.file_path).into_owned(),
+                            total_lines: file.total_lines,
                             symbol_count: file.symbols.len(),
                             symbols: file
                                 .symbols
@@ -301,6 +324,8 @@ impl CodemapGenerator {
                                     name: &s.name,
                                     kind: &s.kind,
                                     is_exported: s.flags.is_exported,
+                                    start_line: s.range.start_line,
+                                    end_line: s.range.end_line,
                                 })
                                 .collect(),
                         });
@@ -329,6 +354,7 @@ impl CodemapGenerator {
     pub fn generate_detail_view<'a>(file: &'a crate::parser::ExtractedFile) -> DetailsCodemap<'a> {
         DetailsCodemap {
             file_path: file.file_path.clone(),
+            total_lines: file.total_lines,
             symbols: &file.symbols,
             literals: &file.literals,
         }
@@ -377,6 +403,7 @@ mod tests {
 
         ExtractedFile {
             file_path: path.to_string(),
+            total_lines: 0,
             symbols,
             literals: vec![],
             docstrings: vec![],
@@ -482,6 +509,7 @@ mod tests {
     fn test_details_codemap_formatting() {
         let file = ExtractedFile {
             file_path: "src/lib.rs".to_string(),
+            total_lines: 12,
             symbols: vec![ExtractedSymbol {
                 name: "check".to_string(),
                 kind: "fn".to_string(),

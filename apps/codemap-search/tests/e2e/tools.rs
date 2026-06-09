@@ -50,7 +50,7 @@ async fn test_tools_list_includes_read_find_grep() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    for expected in ["get_codemap", "search", "read", "find", "grep"] {
+    for expected in ["overview", "search", "read", "find", "grep"] {
         assert!(
             names.contains(&expected),
             "tools/list missing '{expected}': {names:?}"

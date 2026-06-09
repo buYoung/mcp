@@ -268,15 +268,16 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     "serverInfo": {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
-                    }
+                    },
+                    "instructions": "codemap-search exposes five code-navigation tools. Route by what you already know, not by a fixed order:\n\n- overview — hierarchical codemap of the repo (files with line counts, symbols with line ranges). Call with no path for the root, a folder path to narrow, or a file path for that file's symbols.\n- search — keyword lookup (BM25) over indexed symbols and docstrings; returns matched files and symbols with line ranges.\n- read — exact file contents with line numbers (supports offset/limit paging).\n- find — locate files by glob pattern (e.g. '**/*.rs').\n- grep — exact literal/regex match over files on disk, including comments and just-changed files the index misses.\n\nDecision tree:\n- Have a path or want to understand structure -> overview.\n- Only have a keyword and an unknown location -> search.\n- Need to read a file's exact content/lines -> read.\n- Need to locate files by name/glob -> find.\n- Need an exact literal or regex (incl. comments) -> grep.\n\nTypical flow: locate with overview or search, then confirm specifics with read/find/grep."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
             "tools/list" => Ok(serde_json::json!({
                 "tools": [
                     {
-                        "name": "get_codemap",
-                        "description": "STEP 1 — orient. Hierarchical aider-style codemap of the repo. Call with no path for the root overview, then a folder path to narrow, then a file path for that file's symbol details. Navigate root \u{2192} folder \u{2192} file, then use read/find/grep to confirm specifics. Start here before reading code.",
+                        "name": "overview",
+                        "description": "Hierarchical aider-style codemap of the repo. Reach for this when you already hold a path or want to grasp structure: call with no path for the repo root overview, a folder path to narrow, or a file path for that file's symbol details with line ranges. Returns files with their line counts and symbols with their line spans. Prefer this over search when you know roughly where to look; use search instead when you only have a keyword and no location.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -287,7 +288,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "search",
-                        "description": "STEP 2 — locate by keyword (BM25 over indexed symbols/docstrings). Returns a codemap overview when many files match, per-file details when few. Use to find where a term/symbol lives, then narrow with get_codemap and confirm with read/find/grep.",
+                        "description": "Locate code by keyword (BM25 over indexed symbols/docstrings) when you don't yet know where it lives. Returns a codemap overview when many files match, per-file details with line ranges when few. Reach for this when you only have a term/symbol and an unknown location; once you hold a path, switch to overview, and confirm exact content with read/find/grep.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -298,7 +299,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "read",
-                        "description": "STEP 3 — read one file's exact contents with line numbers, after the codemap/search has pinpointed it. Returns '   N\u{2192}content' lines. Use offset/limit to page large files.",
+                        "description": "Read one file's exact contents with line numbers to confirm what overview/search pinpointed. Returns '   N\u{2192}content' lines. Use offset/limit to page large files.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -311,7 +312,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "find",
-                        "description": "STEP 3 — locate files by glob (e.g. '**/*.rs') once the codemap has narrowed the area. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass.",
+                        "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -324,7 +325,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "grep",
-                        "description": "STEP 3 — confirm exact content (literal/regex) over files on disk; sees comments and just-changed files the index misses. Use after the codemap/search narrows the target. Parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "description": "Confirm exact content (literal/regex) over files on disk; sees comments and just-changed files the index misses. Parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -400,7 +401,10 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                                 results.len()
                             ));
                             for res in results.iter().take(SEARCH_OVERVIEW_FILE_LIMIT) {
-                                text.push_str(&format!("### {}\n", res.file_path));
+                                text.push_str(&format!(
+                                    "### {} ({} lines)\n",
+                                    res.file_path, res.total_lines
+                                ));
                                 for sym in &res.matched_symbols {
                                     let name_lower = sym.name.to_lowercase();
                                     let name_matches = query_terms.iter().any(|t| {
@@ -410,24 +414,36 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                                                 .any(|sub| sub.to_lowercase().contains(t.as_str()))
                                     });
                                     if name_matches {
-                                        text.push_str(&format!("- {} ({})\n", sym.name, sym.kind));
+                                        text.push_str(&format!(
+                                            "- {} ({}) [L{}-{}]\n",
+                                            sym.name,
+                                            sym.kind,
+                                            sym.range.start_line,
+                                            sym.range.end_line
+                                        ));
                                     }
                                 }
                             }
                             if results.len() > SEARCH_OVERVIEW_FILE_LIMIT {
                                 text.push_str(&format!(
-                                    "\n_… {} more files not shown; refine the query or use get_codemap/find to narrow._\n",
+                                    "\n_… {} more files not shown; refine the query or use overview/find to narrow._\n",
                                     results.len() - SEARCH_OVERVIEW_FILE_LIMIT
                                 ));
                             }
                         } else {
                             // Detail view: enclosing code scopes for the pinpointed files.
                             for res in &results {
-                                text.push_str(&format!("### File: {}\n", res.file_path));
+                                text.push_str(&format!(
+                                    "### File: {} ({} lines)\n",
+                                    res.file_path, res.total_lines
+                                ));
                                 for sym in &res.matched_symbols {
                                     text.push_str(&format!(
-                                        "- Symbol: {} ({})\n",
-                                        sym.name, sym.kind
+                                        "- Symbol: {} ({}) [L{}-{}]\n",
+                                        sym.name,
+                                        sym.kind,
+                                        sym.range.start_line,
+                                        sym.range.end_line
                                     ));
                                     let snippet = get_code_snippet(&res.file_path, &sym.range);
                                     if !snippet.is_empty() {
@@ -450,7 +466,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                             ]
                         }))
                     }
-                    "get_codemap" => {
+                    "overview" => {
                         // An empty or "." path means the repo root overview, not a folder
                         // named "" — normalize so it renders the root view (Child 03).
                         let path = arguments

@@ -164,7 +164,7 @@ async fn test_realworld_ai_agent_simulation() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "" }
             }),
         )
@@ -196,7 +196,7 @@ async fn test_realworld_ai_agent_simulation() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "src/core/mod.rs" }
             }),
         )

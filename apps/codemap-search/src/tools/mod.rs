@@ -133,7 +133,7 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
 /// [`MAX_INDEXED_FILE_BYTES`] size cap before reading. Returns `None` when the file is
 /// oversize, unreadable, or non-UTF8 (`read_to_string` rejects invalid UTF-8) — so
 /// minified/binary blobs are never parsed wholesale (Child 04). Shared by the
-/// `get_codemap` walk (`mcp.rs`) and the CLI `codemap` walk (`main.rs`).
+/// `overview` walk (`mcp.rs`) and the CLI `codemap` walk (`main.rs`).
 pub fn read_source_for_parse(path: &Path) -> Option<String> {
     let metadata = std::fs::metadata(path).ok()?;
     if metadata.len() > crate::config::get().max_file_size {

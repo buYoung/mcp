@@ -126,7 +126,7 @@ async fn test_cross_indexing_mcp_realtime() {
 
 #[tokio::test]
 async fn test_cross_mcp_codemap_reflects_modify() {
-    // Child 04: get_codemap caches extraction keyed by a (path, mtime) fingerprint. A
+    // Child 04: overview caches extraction keyed by a (path, mtime) fingerprint. A
     // same-second content edit must still move the nanosecond mtime, invalidating the
     // cache so the new symbol appears and the stale one is gone.
     let temp = create_mock_repo(&[("src/lib.rs", "pub fn before_symbol() {}")]).unwrap();
@@ -136,7 +136,7 @@ async fn test_cross_mcp_codemap_reflects_modify() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "src/lib.rs" }
             }),
         )
@@ -154,7 +154,7 @@ async fn test_cross_mcp_codemap_reflects_modify() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "src/lib.rs" }
             }),
         )
@@ -208,7 +208,7 @@ async fn test_cross_mcp_codemaps_dynamic() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "src/nested" }
             }),
         )
@@ -231,7 +231,7 @@ async fn test_cross_mcp_codemaps_dynamic() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "get_codemap",
+                "name": "overview",
                 "arguments": { "path": "src/nested" }
             }),
         )

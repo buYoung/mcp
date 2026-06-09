@@ -36,6 +36,8 @@ pub struct ExtractedSymbol {
 #[serde(rename_all = "camelCase")]
 pub struct ExtractedFile {
     pub file_path: String,
+    #[serde(default)]
+    pub total_lines: usize,
     pub symbols: Vec<ExtractedSymbol>,
     pub literals: Vec<String>,
     pub docstrings: Vec<String>,
@@ -520,6 +522,7 @@ impl CodeExtractor for TreeSitterExtractor {
             _ => {
                 return Ok(ExtractedFile {
                     file_path: file_path.to_string(),
+                    total_lines: file_content.lines().count(),
                     symbols: Vec::new(),
                     literals: Vec::new(),
                     docstrings: Vec::new(),
@@ -796,6 +799,7 @@ impl CodeExtractor for TreeSitterExtractor {
 
         Ok(ExtractedFile {
             file_path: file_path.to_string(),
+            total_lines: file_content.lines().count(),
             symbols,
             literals,
             docstrings,

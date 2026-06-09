@@ -7,7 +7,7 @@ all compiled in**. No system `rg`, no external runtime binaries.
 
 The intended flow is hierarchical narrowing:
 
-1. **`get_codemap`** — orient: repo root → folder → file symbol details.
+1. **`overview`** — orient: repo root → folder → file symbol details.
 2. **`search`** — locate by keyword; returns a codemap overview when many files match,
    per-file details when few.
 3. **`read` / `find` / `grep`** — confirm exact content once the target is pinpointed.
@@ -73,7 +73,7 @@ args = ["mcp"]
 
 | Tool | Purpose | Key arguments |
 |---|---|---|
-| `get_codemap` | Hierarchical codemap. Empty/omitted `path` → root overview; a folder path narrows; a file path shows that file's symbol details. | `path` (string), `format` (e.g. `"llms-txt"`) |
+| `overview` | Hierarchical codemap. Empty/omitted `path` → root overview; a folder path narrows; a file path shows that file's symbol details. | `path` (string), `format` (e.g. `"llms-txt"`) |
 | `search` | BM25 keyword search over symbols/docstrings/path tokens. ≤ threshold → file details; above → codemap overview. | `query` (string, required) |
 | `read` | Read a file with line numbers (`   N→content`). Pages large files. | `file_path` (required), `offset` (1-indexed), `limit` |
 | `find` | Locate files by glob (`**/*.rs`), mtime-sorted, capped. | `pattern` (required), `path`, `include_ignored` |
@@ -152,7 +152,7 @@ RUST_LOG=debug codemap-search mcp     # full diagnostics
 - Symbol extraction is bounded by the compiled-in tree-sitter grammars (the languages
   above); other extensions are searchable via `read`/`find`/`grep` but not symbol-indexed.
 - `max_file_size` (default 1 MiB) silently skips larger files from indexing/codemap.
-- String literals are details-layer only (shown in `get_codemap` file details) and are not
+- String literals are details-layer only (shown in `overview` file details) and are not
   in the BM25 index; use `grep` for exact string/literal search.
 - Single-client, sequential stdio server (no cross-process index locking).
 

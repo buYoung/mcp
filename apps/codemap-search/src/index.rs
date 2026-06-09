@@ -10,6 +10,7 @@ use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, 
 pub struct SearchResult {
     pub file_path: String,
     pub score: f32,
+    pub total_lines: usize,
     pub matched_symbols: Vec<ExtractedSymbol>,
     pub matched_literals: Vec<String>,
 }
@@ -452,6 +453,7 @@ impl SearchEngine for TantivySearchEngine {
             let extracted_file: ExtractedFile = serde_json::from_str(extracted_json)
                 .unwrap_or_else(|_| ExtractedFile {
                     file_path: file_path.clone(),
+                    total_lines: 0,
                     symbols: Vec::new(),
                     literals: Vec::new(),
                     docstrings: Vec::new(),
@@ -459,6 +461,9 @@ impl SearchEngine for TantivySearchEngine {
 
             let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
 
+            // Capture the file's total line count before the partial moves of
+            // `.symbols`/`.literals` below borrow `extracted_file` apart.
+            let total_lines = extracted_file.total_lines;
             let all_symbols = extracted_file.symbols;
             let mut matched_symbols: Vec<ExtractedSymbol> = all_symbols
                 .iter()
@@ -499,6 +504,7 @@ impl SearchEngine for TantivySearchEngine {
             results.push(SearchResult {
                 file_path,
                 score,
+                total_lines,
                 matched_symbols,
                 matched_literals,
             });
