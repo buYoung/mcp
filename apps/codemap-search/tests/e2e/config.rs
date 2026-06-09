@@ -99,15 +99,14 @@ fn make_git_repo_with_excludes(config_body: &str) -> Option<tempfile::TempDir> {
 }
 
 #[tokio::test]
-async fn test_respect_git_exclude_scopes_to_git_info_exclude_only() {
-    // The dedicated `respect_git_exclude` toggle governs ONLY `.git/info/exclude`:
+async fn test_use_git_exclude_scopes_to_git_info_exclude_only() {
+    // The dedicated `use_git_exclude` toggle governs ONLY `.git/info/exclude`:
     //  - default (true): a file hidden by `.git/info/exclude` stays out of the index.
     //  - false: that file becomes searchable, BUT `.gitignore` is still honored.
-    // `register_git_exclude = false` keeps the binary from touching `.git/info/exclude`.
 
-    // Default: `.git/info/exclude` respected → the locally-excluded file is absent.
-    let Some(default_repo) = make_git_repo_with_excludes("register_git_exclude = false\n") else {
-        eprintln!("git unavailable — skipping respect_git_exclude test");
+    // Default: `.git/info/exclude` honored → the locally-excluded file is absent.
+    let Some(default_repo) = make_git_repo_with_excludes("") else {
+        eprintln!("git unavailable — skipping use_git_exclude test");
         return;
     };
     let mut client = McpClient::spawn(default_repo.path()).await.unwrap();
@@ -125,9 +124,7 @@ async fn test_respect_git_exclude_scopes_to_git_info_exclude_only() {
     );
 
     // Override false: the `.git/info/exclude`-hidden file is now indexed...
-    let Some(override_repo) =
-        make_git_repo_with_excludes("respect_git_exclude = false\nregister_git_exclude = false\n")
-    else {
+    let Some(override_repo) = make_git_repo_with_excludes("use_git_exclude = false\n") else {
         return;
     };
     let mut client = McpClient::spawn(override_repo.path()).await.unwrap();
@@ -141,7 +138,7 @@ async fn test_respect_git_exclude_scopes_to_git_info_exclude_only() {
     let text = res["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains("locally_excluded_dir"),
-        "respect_git_exclude=false should index the .git/info/exclude-hidden file: {text:?}"
+        "use_git_exclude=false should index the .git/info/exclude-hidden file: {text:?}"
     );
 
     // ...while `.gitignore` is still honored (the toggle is scoped to git_exclude alone).
@@ -155,68 +152,7 @@ async fn test_respect_git_exclude_scopes_to_git_info_exclude_only() {
     let text = res["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         !text.contains("gitignored_dir"),
-        ".gitignore must stay honored under respect_git_exclude=false: {text:?}"
-    );
-}
-
-#[test]
-fn test_git_exclude_registration_is_idempotent() {
-    // AC#2 (Child 05): in a git repo, `.codemap/` is registered in `.git/info/exclude` so
-    // the index/config stay out of `git status`; re-running must not duplicate the entry.
-    let temp = create_mock_repo(&[("src/lib.rs", "pub fn x() {}")]).unwrap();
-    let init = std::process::Command::new("git")
-        .arg("-C")
-        .arg(temp.path())
-        .arg("init")
-        .output();
-    if init.map(|o| !o.status.success()).unwrap_or(true) {
-        eprintln!("git unavailable — skipping git-exclude registration test");
-        return;
-    }
-
-    run_cli(&["index"], temp.path()).success();
-    let exclude_path = temp.path().join(".git/info/exclude");
-    let first = std::fs::read_to_string(&exclude_path).unwrap();
-    assert!(
-        first.contains(".codemap/"),
-        ".git/info/exclude should register .codemap/: {first:?}"
-    );
-
-    // Idempotent: a second run leaves exactly one entry.
-    run_cli(&["index"], temp.path()).success();
-    let second = std::fs::read_to_string(&exclude_path).unwrap();
-    assert_eq!(
-        second.matches(".codemap/").count(),
-        1,
-        "git-exclude registration must be idempotent: {second:?}"
-    );
-}
-
-#[test]
-fn test_register_git_exclude_false_suppresses_write() {
-    // The override side of the AC: register_git_exclude = false must suppress the
-    // `.git/info/exclude` write entirely (the default-true path is covered above).
-    let temp = create_mock_repo(&[
-        (".codemap/config.toml", "register_git_exclude = false\n"),
-        ("src/lib.rs", "pub fn x() {}"),
-    ])
-    .unwrap();
-    let init = std::process::Command::new("git")
-        .arg("-C")
-        .arg(temp.path())
-        .arg("init")
-        .output();
-    if init.map(|o| !o.status.success()).unwrap_or(true) {
-        eprintln!("git unavailable — skipping register_git_exclude=false test");
-        return;
-    }
-
-    run_cli(&["index"], temp.path()).success();
-    let contents =
-        std::fs::read_to_string(temp.path().join(".git/info/exclude")).unwrap_or_default();
-    assert!(
-        !contents.contains(".codemap/"),
-        "register_git_exclude=false must suppress the .git/info/exclude write: {contents:?}"
+        ".gitignore must stay honored under use_git_exclude=false: {text:?}"
     );
 }
 

@@ -144,11 +144,9 @@ ACP 도구 실행 권한은 항상 읽기 전용으로 동작한다. `read`, `se
 
 scout는 검색 대상 레포지토리를 인덱싱할 때 해당 레포 안에 `<repo>/.scout/` 디렉터리를
 만들고 그 아래 `zoekt/`(인덱스 샤드와 메타데이터 등)를 둔다. 산출물이 레포 안에 생기긴
-하지만 git 워킹트리를 더럽히지 않도록, scout는 부팅 시 `<repo>/.scout/`를 그 레포의
-`.git/info/exclude`에 자동 등록한다(멱등 — 이미 등록돼 있으면 다시 추가하지 않는다). 이
-자동 등록은 git 저장소가 아니거나 git이 없으면 조용히 건너뛰며, 어떤 경우에도 프로세스를
-종료시키지 않는다. 자동 등록을 끄고 싶으면 아래 `register_git_exclude`를 `false`로 둔다
-(전역 설정에서만 적용).
+하지만 scout는 사용자의 git 파일을 수정하지 않는다 — `<repo>/.scout/`가 `git status`에
+새지 않게 하려면 레포의 `.gitignore`(또는 커밋하지 않는 로컬 한정이면 `.git/info/exclude`)에
+`.scout/`를 직접 추가한다.
 
 설정은 TOML 파일 두 곳에서 읽는다.
 
@@ -172,8 +170,7 @@ scout는 검색 대상 레포지토리를 인덱싱할 때 해당 레포 안에 
 | `[output]` | `show_line_numbers` | bool | `true` | 줄 번호 표시 여부 |
 | `[index]` | `excluded_directories` | 문자열 배열 | built-in 목록(`.git`, `node_modules`, `dist` 등) | 인덱싱에서 제외할 디렉터리 이름(replace) |
 | `[index]` | `staleness_check_ms` | 정수 > 0 | `2000` | 인덱스 신선도 재검사 주기(ms) |
-| `[index]` | `respect_gitignore` | bool | `true` | repo `.gitignore`의 디렉터리 이름을 제외 집합에 union |
-| `[index]` | `register_git_exclude` | bool | `true` | `<repo>/.scout/`를 `.git/info/exclude`에 자동 등록. **전역 설정에서만 적용**(repo 레이어 값은 경고 후 무시) |
+| `[index]` | `use_gitignore` | bool | `true` | repo `.gitignore`의 디렉터리 이름을 제외 집합에 union |
 | `[limits]` | `search_request_timeout_ms` | 정수 > 0 | `15000` | 단일 검색 요청 타임아웃(ms) |
 | `[limits]` | `index_build_timeout_ms` | 정수 > 0 | `600000` | 인덱스 빌드 타임아웃(ms) |
 
@@ -187,8 +184,7 @@ show_line_numbers = true
 [index]
 excluded_directories = [".git", "node_modules", "dist"]
 staleness_check_ms = 2000
-respect_gitignore = true
-register_git_exclude = true   # 전역 설정에서만 적용
+use_gitignore = true
 
 [limits]
 search_request_timeout_ms = 15000

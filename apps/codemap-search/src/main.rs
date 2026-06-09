@@ -88,18 +88,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     codemap_search::config::init(&cwd);
 
-    // For index-using commands, register `.codemap/` in `.git/info/exclude` (idempotent,
-    // gated by `register_git_exclude`, silent outside a git repo).
-    if matches!(
-        &cli.command,
-        Commands::Mcp
-            | Commands::Search { .. }
-            | Commands::Index { .. }
-            | Commands::Benchmark { .. }
-    ) {
-        codemap_search::config::register_git_exclude_if_enabled(&cwd);
-    }
-
     match &cli.command {
         Commands::Parse { file } => {
             let path = Path::new(&file);

@@ -8,15 +8,15 @@
 //!
 //! The global directory is injected (`CODEMAP_HOME`, else `~/.codemap`) so the loader is
 //! pure/unit-testable and tests stay hermetic (they never read the developer's real home).
-//! The binary is side-effect-free on the read path: it does NOT auto-create a template
-//! (the format is documented in the README); the only write is the opt-in
-//! `.git/info/exclude` registration.
+//! The binary is fully side-effect-free: it never writes the user's filesystem — it does
+//! NOT auto-create a template (the format is documented in the README) and does NOT touch
+//! any git file. Keeping `.codemap/` out of `git status` is the user's `.gitignore` choice.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-/// Repo-local / global config directory name. Also the entry registered in
-/// `.git/info/exclude`. Kept in [`crate::tools::EXCLUDED_DIRS`] so the tool never walks it.
+/// Repo-local / global config directory name. Kept in [`crate::tools::EXCLUDED_DIRS`] so
+/// the tool never walks (indexes) it.
 pub const CODEMAP_DIR_NAME: &str = ".codemap";
 /// Config file name, shared by the repo and global layers.
 const CONFIG_FILE_NAME: &str = "config.toml";
@@ -38,15 +38,13 @@ pub struct ResolvedConfig {
     /// Directory names never walked: the built-in junk dirs UNIONED with any configured
     /// names (augment, not replace — built-ins can't be un-excluded).
     pub excluded_directories: Vec<String>,
-    /// Whether to register `.codemap/` in `.git/info/exclude` at startup (default true).
-    pub register_git_exclude: bool,
     /// Whether the walkers honor **`.git/info/exclude`** specifically (default true). This
     /// is a dedicated toggle for that one source only — `.gitignore`, the global gitignore,
-    /// and `.codemapignore` are unaffected and stay respected. Set false to let
+    /// and `.codemapignore` are unaffected and stay honored. Set false to let
     /// index/codemap/find/grep see files hidden solely by `.git/info/exclude` (e.g. local
     /// personal excludes) while still honoring `.gitignore`. A per-call `include_ignored`
     /// on find/grep is a broader override that bypasses every ignore source.
-    pub respect_git_exclude: bool,
+    pub use_git_exclude: bool,
 }
 
 impl Default for ResolvedConfig {
@@ -59,8 +57,7 @@ impl Default for ResolvedConfig {
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
-            register_git_exclude: true,
-            respect_git_exclude: true,
+            use_git_exclude: true,
         }
     }
 }
@@ -74,8 +71,7 @@ struct ConfigLayer {
     result_threshold: Option<usize>,
     max_file_size: Option<u64>,
     excluded_directories: Option<Vec<String>>,
-    register_git_exclude: Option<bool>,
-    respect_git_exclude: Option<bool>,
+    use_git_exclude: Option<bool>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -133,8 +129,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "result_threshold" => layer.result_threshold = as_positive_usize(&v, &key, path),
             "max_file_size" => layer.max_file_size = as_positive_u64(&v, &key, path),
             "excluded_directories" => layer.excluded_directories = as_string_array(&v, &key, path),
-            "register_git_exclude" => layer.register_git_exclude = as_bool(&v, &key, path),
-            "respect_git_exclude" => layer.respect_git_exclude = as_bool(&v, &key, path),
+            "use_git_exclude" => layer.use_git_exclude = as_bool(&v, &key, path),
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -166,14 +161,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.max_file_size)
             .unwrap_or(defaults.max_file_size),
         excluded_directories,
-        register_git_exclude: repo
-            .register_git_exclude
-            .or(global.register_git_exclude)
-            .unwrap_or(defaults.register_git_exclude),
-        respect_git_exclude: repo
-            .respect_git_exclude
-            .or(global.respect_git_exclude)
-            .unwrap_or(defaults.respect_git_exclude),
+        use_git_exclude: repo
+            .use_git_exclude
+            .or(global.use_git_exclude)
+            .unwrap_or(defaults.use_git_exclude),
     }
 }
 
@@ -214,72 +205,6 @@ pub fn init(repo_root: &Path) {
 /// tests that exercise the walker directly without booting the server).
 pub fn get() -> &'static ResolvedConfig {
     CONFIG.get_or_init(ResolvedConfig::default)
-}
-
-// --- git-exclude registration ----------------------------------------------------------
-
-/// Register `<repo>/.codemap/` in the repo's `.git/info/exclude` so the tool's index +
-/// config never show up in `git status`. Idempotent and never-exit: silent when not a git
-/// repo or git is unavailable, warns-and-continues on fs errors. Gated by
-/// `register_git_exclude`. The exclude file path is resolved via
-/// `git rev-parse --git-path` so worktrees/submodules register the correct file.
-pub fn register_git_exclude_if_enabled(repo_root: &Path) {
-    if !get().register_git_exclude {
-        return;
-    }
-    let exclude_path = match resolve_git_exclude_path(repo_root) {
-        Some(p) => p,
-        None => return,
-    };
-    let entry = format!("{CODEMAP_DIR_NAME}/");
-    let existing = std::fs::read_to_string(&exclude_path).unwrap_or_default();
-    let normalize = |s: &str| {
-        s.trim()
-            .trim_start_matches('/')
-            .trim_end_matches('/')
-            .to_string()
-    };
-    let target = normalize(&entry);
-    if existing.lines().any(|line| normalize(line) == target) {
-        return;
-    }
-    let separator = if !existing.is_empty() && !existing.ends_with('\n') {
-        "\n"
-    } else {
-        ""
-    };
-    let block = format!("{separator}\n# codemap-search artifacts (auto-added)\n{entry}\n");
-    if let Err(e) = std::fs::write(&exclude_path, format!("{existing}{block}")) {
-        warn(&format!(
-            ".git/info/exclude registration failed: {}: {e} — ignored",
-            exclude_path.display()
-        ));
-    }
-}
-
-/// Ask git for the real `info/exclude` path (worktree/submodule-safe). `None` when the
-/// directory is not a git repo or git is unavailable.
-fn resolve_git_exclude_path(repo_root: &Path) -> Option<PathBuf> {
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(repo_root)
-        .args(["rev-parse", "--git-path", "info/exclude"])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let reported = String::from_utf8(output.stdout).ok()?;
-    let reported = reported.trim();
-    if reported.is_empty() {
-        return None;
-    }
-    let path = Path::new(reported);
-    Some(if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        repo_root.join(path)
-    })
 }
 
 // --- value validators (warn + drop on mismatch) ----------------------------------------
@@ -390,7 +315,7 @@ mod tests {
         assert_eq!(cfg.index_path, defaults.index_path);
         assert_eq!(cfg.result_threshold, 5);
         assert_eq!(cfg.max_file_size, crate::tools::MAX_INDEXED_FILE_BYTES);
-        assert!(cfg.register_git_exclude);
+        assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
     }
 
@@ -428,16 +353,16 @@ mod tests {
     }
 
     #[test]
-    fn test_respect_git_exclude_default_and_override() {
+    fn test_use_git_exclude_default_and_override() {
         let repo = tempdir().unwrap();
         let global = tempdir().unwrap();
         assert!(
-            load(repo.path(), global.path()).respect_git_exclude,
+            load(repo.path(), global.path()).use_git_exclude,
             "defaults to true"
         );
-        write_repo_config(repo.path(), "respect_git_exclude = false\n");
+        write_repo_config(repo.path(), "use_git_exclude = false\n");
         assert!(
-            !load(repo.path(), global.path()).respect_git_exclude,
+            !load(repo.path(), global.path()).use_git_exclude,
             "repo override to false"
         );
     }

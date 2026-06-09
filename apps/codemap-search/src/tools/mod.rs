@@ -95,17 +95,17 @@ pub(crate) fn resolve_within_cwd(rel: &str) -> Result<PathBuf, (i64, String)> {
 /// `.build()`.
 pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     // `include_ignored` (per-call, find/grep) bypasses EVERY ignore source. Distinct from
-    // that, `respect_git_exclude` is a dedicated config toggle for `.git/info/exclude`
+    // that, `use_git_exclude` is a dedicated config toggle for `.git/info/exclude`
     // alone — when false, that one source is ignored while `.gitignore`/global/
-    // `.codemapignore` stay respected (Child 05).
+    // `.codemapignore` stay honored (Child 05).
     let respect = !include_ignored;
-    let respect_git_exclude = respect && crate::config::get().respect_git_exclude;
+    let use_git_exclude = respect && crate::config::get().use_git_exclude;
     let mut builder = ignore::WalkBuilder::new(root);
     builder
         .hidden(false)
         .git_ignore(respect)
         .git_global(respect)
-        .git_exclude(respect_git_exclude)
+        .git_exclude(use_git_exclude)
         .ignore(respect)
         .parents(respect)
         // Honor `.gitignore` even outside an initialized git repo (no `.git` needed).

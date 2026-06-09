@@ -79,10 +79,10 @@ args = ["mcp"]
 | `find` | Locate files by glob (`**/*.rs`), mtime-sorted, capped. | `pattern` (required), `path`, `include_ignored` |
 | `grep` | Exact literal/regex over files on disk (sees comments + just-changed files). Mirrors Claude Code's Grep. | `pattern` (required), `path`, `glob`, `type`, `output_mode` (`content`/`files_with_matches`/`count`), `-i`, `-n`, `-A`/`-B`/`-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 
-`find` and `grep` respect `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
+`find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
 default; pass `include_ignored: true` to bypass **all** ignore sources for that call. To
 turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use
-`respect_git_exclude` below.
+`use_git_exclude` below.
 
 ## CLI
 
@@ -121,21 +121,19 @@ max_file_size = 1048576   # 1 MiB
 # vendor, .git, …). Built-ins can't be removed — this augments, it does not replace.
 excluded_directories = ["__pycache__", ".next", "coverage"]
 
-# Register `.codemap/` in `.git/info/exclude` at startup so the index/config stay out of
-# `git status`. Idempotent; silent outside a git repo.
-register_git_exclude = true
-
 # Dedicated toggle for `.git/info/exclude` ONLY. Set false to let index/codemap/find/grep
 # see files hidden solely by `.git/info/exclude` (e.g. local personal excludes) while
-# `.gitignore`, the global gitignore, and `.codemapignore` stay respected.
-respect_git_exclude = true
+# `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
+use_git_exclude = true
 ```
 
 ### The `.codemap/` directory and ignores
 
 - `.codemap/index/` (the index) and `.codemap/config.toml` live under one repo-local
-  `.codemap/` directory, auto-registered in `.git/info/exclude` (toggle with
-  `register_git_exclude`).
+  `.codemap/` directory. codemap-search never walks `.codemap/` (it is a built-in
+  exclude), so it is never indexed — but to keep it out of `git status`, add `.codemap/`
+  to your repo's `.gitignore` (or `.git/info/exclude` for a local-only, uncommitted
+  ignore). The tool does not write to your git files.
 - A repo-local `.codemapignore` uses **gitignore syntax** to hide paths from indexing,
   `find`, and `grep` — the codemap-search-specific complement to `.gitignore`.
 
