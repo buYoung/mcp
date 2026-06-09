@@ -235,10 +235,10 @@ fn strip_rust_raw_string(s: &str) -> Option<String> {
         let start_len = 1 + hash_count + 1;
         if s.len() >= start_len * 2 - 1 {
             let suffix_starts = s.len() - (1 + hash_count);
-            if chars[suffix_starts] == '"' {
+            if s.as_bytes()[suffix_starts] == b'"' {
                 let mut valid_end = true;
                 for i in 0..hash_count {
-                    if chars[suffix_starts + 1 + i] != '#' {
+                    if s.as_bytes()[suffix_starts + 1 + i] != b'#' {
                         valid_end = false;
                         break;
                     }
