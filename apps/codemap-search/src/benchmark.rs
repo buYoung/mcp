@@ -29,7 +29,8 @@ impl BenchmarkEngine {
         }
 
         let content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-        let queries: Vec<serde_json::Value> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+        let queries: Vec<serde_json::Value> =
+            serde_json::from_str(&content).map_err(|e| e.to_string())?;
 
         if queries.is_empty() {
             println!("No queries");
@@ -58,7 +59,7 @@ impl BenchmarkEngine {
             let p = entry.path();
             if p.is_file() {
                 if let Some(ext) = p.extension().and_then(|s| s.to_str()) {
-                    if matches!(ext, "rs" | "py" | "ts" | "tsx" | "js" | "jsx") {
+                    if crate::tools::is_source_extension(ext) {
                         source_files.push(p.to_path_buf());
                     }
                 }
@@ -69,7 +70,9 @@ impl BenchmarkEngine {
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let mut precomputed_source_files = Vec::new();
         for file_path in source_files {
-            let abs_path = file_path.canonicalize().unwrap_or_else(|_| file_path.clone());
+            let abs_path = file_path
+                .canonicalize()
+                .unwrap_or_else(|_| file_path.clone());
             let rel = abs_path.strip_prefix(&abs_cwd).unwrap_or(&file_path);
             let rel_path = normalize_path_str(&rel.to_string_lossy());
             precomputed_source_files.push((file_path, rel_path));
@@ -103,7 +106,10 @@ impl BenchmarkEngine {
                         }
                     }
                 } else {
-                    return Err("Malformed expected schema: 'expected' field must be an array of strings".to_string());
+                    return Err(
+                        "Malformed expected schema: 'expected' field must be an array of strings"
+                            .to_string(),
+                    );
                 }
             }
 
@@ -118,20 +124,29 @@ impl BenchmarkEngine {
                     if let Ok(extracted) = extractor.extract(&file_content, rel_path) {
                         let mut matched = false;
                         for sym in &extracted.symbols {
-                            if !query_terms.is_empty() && query_terms.iter().all(|&term| {
-                                sym.name.to_lowercase().contains(term) ||
-                                sym.docstring.as_ref().map_or(false, |d| d.to_lowercase().contains(term)) ||
-                                crate::parser::split_identifier(&sym.name).iter().any(|t| t.to_lowercase().contains(term))
-                            }) {
+                            if !query_terms.is_empty()
+                                && query_terms.iter().all(|&term| {
+                                    sym.name.to_lowercase().contains(term)
+                                        || sym
+                                            .docstring
+                                            .as_ref()
+                                            .is_some_and(|d| d.to_lowercase().contains(term))
+                                        || crate::parser::split_identifier(&sym.name)
+                                            .iter()
+                                            .any(|t| t.to_lowercase().contains(term))
+                                })
+                            {
                                 matched = true;
                                 break;
                             }
                         }
                         if !matched {
                             for lit in &extracted.literals {
-                                if !query_terms.is_empty() && query_terms.iter().all(|&term| {
-                                    lit.to_lowercase().contains(term)
-                                }) {
+                                if !query_terms.is_empty()
+                                    && query_terms
+                                        .iter()
+                                        .all(|&term| lit.to_lowercase().contains(term))
+                                {
                                     matched = true;
                                     break;
                                 }
@@ -144,12 +159,16 @@ impl BenchmarkEngine {
                 }
             }
             let baseline_latency = start_baseline.elapsed().as_secs_f64() * 1000.0;
-            let baseline_set: std::collections::HashSet<String> = baseline_matched.into_iter().collect();
+            let baseline_set: std::collections::HashSet<String> =
+                baseline_matched.into_iter().collect();
 
             let baseline_recall = if expected_normalized.is_empty() {
                 1.0
             } else {
-                let matched = expected_normalized.iter().filter(|p| baseline_set.contains(p.as_str())).count();
+                let matched = expected_normalized
+                    .iter()
+                    .filter(|p| baseline_set.contains(p.as_str()))
+                    .count();
                 matched as f64 / expected_normalized.len() as f64
             };
 
@@ -173,7 +192,10 @@ impl BenchmarkEngine {
             let index_recall = if expected_normalized.is_empty() {
                 1.0
             } else {
-                let matched = expected_normalized.iter().filter(|p| index_set.contains(p.as_str())).count();
+                let matched = expected_normalized
+                    .iter()
+                    .filter(|p| index_set.contains(p.as_str()))
+                    .count();
                 matched as f64 / expected_normalized.len() as f64
             };
 
@@ -200,7 +222,10 @@ impl BenchmarkEngine {
         let avg_index_recall = total_index_recall / valid_queries as f64;
 
         println!("| Metric | Baseline | Index |");
-        println!("| Latency | {:.2}ms | {:.2}ms |", avg_baseline_latency, avg_index_latency);
+        println!(
+            "| Latency | {:.2}ms | {:.2}ms |",
+            avg_baseline_latency, avg_index_latency
+        );
 
         let baseline_recall_pct = avg_baseline_recall * 100.0;
         let index_recall_pct = avg_index_recall * 100.0;
@@ -221,7 +246,10 @@ impl BenchmarkEngine {
             format!("{:.1}%", index_recall_pct)
         };
 
-        println!("| Recall | {} | {} |", baseline_recall_str, index_recall_str);
+        println!(
+            "| Recall | {} | {} |",
+            baseline_recall_str, index_recall_str
+        );
 
         if all_identical {
             println!("Results: Identical (0% diff)");

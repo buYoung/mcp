@@ -1,8 +1,10 @@
-mod helpers;
-mod parser;
-mod codemap;
-mod search;
-mod mcp;
 mod benchmark;
+mod codemap;
+mod config;
 mod cross_feature;
+mod helpers;
+mod mcp;
+mod parser;
 mod scenarios;
+mod search;
+mod tools;

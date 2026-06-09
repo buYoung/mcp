@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::path::Path;
-use serde::{Serialize, Deserialize};
-use tree_sitter::{Parser, Node, Query, QueryCursor};
 use std::sync::OnceLock;
+use tree_sitter::{Node, Parser, Query, QueryCursor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -46,6 +46,12 @@ pub trait CodeExtractor {
 }
 
 pub struct TreeSitterExtractor;
+
+impl Default for TreeSitterExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl TreeSitterExtractor {
     pub fn new() -> Self {
@@ -177,33 +183,38 @@ const TS_QUERY_STR: &str = r#"
 fn get_rust_query() -> &'static Query {
     static RUST_QUERY: OnceLock<Query> = OnceLock::new();
     RUST_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_rust::language(), RUST_QUERY_STR).expect("Failed to compile Rust query")
+        Query::new(tree_sitter_rust::language(), RUST_QUERY_STR)
+            .expect("Failed to compile Rust query")
     })
 }
 
 fn get_python_query() -> &'static Query {
     static PYTHON_QUERY: OnceLock<Query> = OnceLock::new();
     PYTHON_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_python::language(), PYTHON_QUERY_STR).expect("Failed to compile Python query")
+        Query::new(tree_sitter_python::language(), PYTHON_QUERY_STR)
+            .expect("Failed to compile Python query")
     })
 }
 
 fn get_ts_query() -> &'static Query {
     static TS_QUERY: OnceLock<Query> = OnceLock::new();
     TS_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_typescript::language_typescript(), TS_QUERY_STR).expect("Failed to compile TS query")
+        Query::new(tree_sitter_typescript::language_typescript(), TS_QUERY_STR)
+            .expect("Failed to compile TS query")
     })
 }
 
 fn get_tsx_query() -> &'static Query {
     static TSX_QUERY: OnceLock<Query> = OnceLock::new();
     TSX_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_typescript::language_tsx(), TS_QUERY_STR).expect("Failed to compile TSX query")
+        Query::new(tree_sitter_typescript::language_tsx(), TS_QUERY_STR)
+            .expect("Failed to compile TSX query")
     })
 }
 
 fn contains_case_insensitive(text: &str, pattern: &str) -> bool {
-    text.to_ascii_lowercase().contains(&pattern.to_ascii_lowercase())
+    text.to_ascii_lowercase()
+        .contains(&pattern.to_ascii_lowercase())
 }
 
 fn strip_rust_raw_string(s: &str) -> Option<String> {
@@ -265,16 +276,21 @@ fn strip_quotes(s: &str) -> String {
     } else {
         trimmed
     };
+    // The `"""` and `'''` branches strip 3 chars identically by design; merging them is
+    // extraction semantics frozen by the packaging brief (Child 03 owns this), so suppress
+    // rather than refactor.
+    #[allow(clippy::if_same_then_else)]
     if s_stripped.starts_with("\"\"\"") && s_stripped.ends_with("\"\"\"") && s_stripped.len() >= 6 {
-        s_stripped = &s_stripped[3..s_stripped.len()-3];
-    } else if s_stripped.starts_with("'''") && s_stripped.ends_with("'''") && s_stripped.len() >= 6 {
-        s_stripped = &s_stripped[3..s_stripped.len()-3];
-    } else if (s_stripped.starts_with('"') && s_stripped.ends_with('"')) || 
-              (s_stripped.starts_with('\'') && s_stripped.ends_with('\'')) || 
-              (s_stripped.starts_with('`') && s_stripped.ends_with('`')) {
-        if s_stripped.len() >= 2 {
-            s_stripped = &s_stripped[1..s_stripped.len()-1];
-        }
+        s_stripped = &s_stripped[3..s_stripped.len() - 3];
+    } else if s_stripped.starts_with("'''") && s_stripped.ends_with("'''") && s_stripped.len() >= 6
+    {
+        s_stripped = &s_stripped[3..s_stripped.len() - 3];
+    } else if ((s_stripped.starts_with('"') && s_stripped.ends_with('"'))
+        || (s_stripped.starts_with('\'') && s_stripped.ends_with('\''))
+        || (s_stripped.starts_with('`') && s_stripped.ends_with('`')))
+        && s_stripped.len() >= 2
+    {
+        s_stripped = &s_stripped[1..s_stripped.len() - 1];
     }
     s_stripped.to_string()
 }
@@ -311,40 +327,57 @@ fn clean_docstring(comments: &[String]) -> Option<String> {
     let mut cleaned_lines = Vec::new();
     let mut comments_ordered = comments.to_vec();
     comments_ordered.reverse();
-    
+
+    // Only doc-comments become docstrings. Plain `//` / `#` line comments and
+    // non-doc `/* */` blocks are NOT promoted (Child 03 — they leaked before).
+    // Python `"""` docstrings are handled separately by get_python_inline_docstring.
     for comment in comments_ordered {
         let trimmed = comment.trim();
         if trimmed.starts_with("///") {
             cleaned_lines.push(trimmed.trim_start_matches("///").trim().to_string());
         } else if trimmed.starts_with("//!") {
             cleaned_lines.push(trimmed.trim_start_matches("//!").trim().to_string());
-        } else if trimmed.starts_with("//") {
-            cleaned_lines.push(trimmed.trim_start_matches("//").trim().to_string());
-        } else if trimmed.starts_with('#') {
-            cleaned_lines.push(trimmed.trim_start_matches('#').trim().to_string());
-        } else if trimmed.starts_with("/*") {
+        } else if trimmed.starts_with("/**") {
+            // rustdoc / JSDoc block comment.
             let content = trimmed
                 .trim_start_matches("/**")
-                .trim_start_matches("/*")
-                .trim_end_matches("**/")
                 .trim_end_matches("*/")
                 .trim();
             for line in content.lines() {
-                let mut line_trimmed = line.trim().trim_start_matches('*').trim();
-                line_trimmed = line_trimmed.trim_end_matches('*').trim();
+                let line_trimmed = line
+                    .trim()
+                    .trim_start_matches('*')
+                    .trim()
+                    .trim_end_matches('*')
+                    .trim();
                 cleaned_lines.push(line_trimmed.to_string());
             }
-        } else {
-            cleaned_lines.push(trimmed.to_string());
         }
+        // Anything else (plain `//`, `#`, non-doc `/* */`) is intentionally skipped.
     }
-    
+
     let joined = cleaned_lines.join("\n").trim().to_string();
     if joined.is_empty() {
         None
     } else {
         Some(joined)
     }
+}
+
+/// Does the path indicate a test file, using segment/suffix boundaries rather than a
+/// raw `contains("test")` (which false-matches `attestation.rs`, `latest.rs`, `contest.rs`).
+fn path_indicates_test(file_path: &str) -> bool {
+    let path = file_path.to_lowercase();
+    let file_name = path.rsplit(['/', '\\']).next().unwrap_or(&path);
+    path.contains("/tests/")
+        || path.starts_with("tests/")
+        || path.contains("/test/")
+        || path.starts_with("test/")
+        || file_name.starts_with("test_")
+        || file_name.contains("_test.")
+        || file_name.contains(".test.")
+        || file_name.contains("_spec.")
+        || file_name.contains(".spec.")
 }
 
 fn has_rust_attribute_containing(node: Node, sub: &str, source: &[u8]) -> bool {
@@ -367,7 +400,10 @@ fn has_rust_attribute_containing(node: Node, sub: &str, source: &[u8]) -> bool {
                 }
             }
             curr = sibling.prev_sibling();
-        } else if sibling.kind() == "comment" || sibling.kind() == "line_comment" || sibling.kind() == "block_comment" {
+        } else if sibling.kind() == "comment"
+            || sibling.kind() == "line_comment"
+            || sibling.kind() == "block_comment"
+        {
             curr = sibling.prev_sibling();
         } else {
             break;
@@ -380,18 +416,6 @@ fn has_ancestor_fn(node: Node) -> bool {
     let mut curr = node.parent();
     while let Some(n) = curr {
         if n.kind() == "function_definition" {
-            return true;
-        }
-        curr = n.parent();
-    }
-    false
-}
-
-fn has_ancestor_class_or_fn(node: Node) -> bool {
-    let mut curr = node.parent();
-    while let Some(n) = curr {
-        let k = n.kind();
-        if k == "class_definition" || k == "function_definition" {
             return true;
         }
         curr = n.parent();
@@ -415,7 +439,11 @@ fn has_ancestor_export(node: Node) -> bool {
     false
 }
 
-fn collect_ts_exported_names(node: Node, source: &[u8], exported_names: &mut std::collections::HashSet<String>) {
+fn collect_ts_exported_names(
+    node: Node,
+    source: &[u8],
+    exported_names: &mut std::collections::HashSet<String>,
+) {
     let kind = node.kind();
     if kind == "export_specifier" {
         if let Some(name_node) = node.child_by_field_name("name") {
@@ -456,7 +484,10 @@ fn collect_ts_exported_names(node: Node, source: &[u8], exported_names: &mut std
 }
 
 fn find_name(node: Node, source: &[u8]) -> Option<String> {
-    if node.kind() == "identifier" || node.kind() == "type_identifier" || node.kind() == "field_identifier" {
+    if node.kind() == "identifier"
+        || node.kind() == "type_identifier"
+        || node.kind() == "field_identifier"
+    {
         return Some(node.utf8_text(source).unwrap_or("").to_string());
     }
     if let Some(name_node) = node.child_by_field_name("name") {
@@ -476,12 +507,15 @@ impl CodeExtractor for TreeSitterExtractor {
     fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
         let path = Path::new(file_path);
         let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-        
+
         let mut parser = Parser::new();
         let (lang, query) = match ext {
             "rs" => (tree_sitter_rust::language(), get_rust_query()),
             "py" => (tree_sitter_python::language(), get_python_query()),
-            "ts" | "js" => (tree_sitter_typescript::language_typescript(), get_ts_query()),
+            "ts" | "js" => (
+                tree_sitter_typescript::language_typescript(),
+                get_ts_query(),
+            ),
             "tsx" | "jsx" => (tree_sitter_typescript::language_tsx(), get_tsx_query()),
             _ => {
                 return Ok(ExtractedFile {
@@ -492,31 +526,37 @@ impl CodeExtractor for TreeSitterExtractor {
                 });
             }
         };
-        
+
         parser.set_language(lang).map_err(|e| e.to_string())?;
-        let tree = parser.parse(file_content, None).ok_or("Failed to parse file content")?;
-        
+        let tree = parser
+            .parse(file_content, None)
+            .ok_or("Failed to parse file content")?;
+
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
         let source = file_content.as_bytes();
-        
+
         let mut exported_names = std::collections::HashSet::new();
         if ext == "ts" || ext == "js" || ext == "tsx" || ext == "jsx" {
             collect_ts_exported_names(tree.root_node(), source, &mut exported_names);
         }
-        
+
         let mut query_cursor = QueryCursor::new();
         let matches = query_cursor.matches(query, tree.root_node(), source);
-        
+
         for mat in matches {
             let mut main_node: Option<(Node, &str)> = None;
             let mut symbol_name: Option<String> = None;
             let mut is_valid_test_call = true;
-            
+
             for capture in mat.captures {
                 let name_idx = capture.index as usize;
                 let name = &*query.capture_names()[name_idx];
-                
+
+                // `symbol.*` and `literal.*` both record `main_node`; the distinguishing
+                // capture name is carried in the tuple and branched on below. This is
+                // frozen Child 03 extraction routing — suppress, don't merge.
+                #[allow(clippy::if_same_then_else)]
                 if name.starts_with("symbol.") && name != "symbol.name" {
                     main_node = Some((capture.node, name));
                 } else if name.starts_with("literal.") {
@@ -534,7 +574,7 @@ impl CodeExtractor for TreeSitterExtractor {
                     }
                 }
             }
-            
+
             if let Some((node, capture_name)) = main_node {
                 if capture_name.starts_with("symbol.") {
                     if is_valid_test_call {
@@ -554,15 +594,14 @@ impl CodeExtractor for TreeSitterExtractor {
                             "symbol.test" => "test",
                             _ => "unknown",
                         };
-                        
-                        let mut name = symbol_name.unwrap_or_else(|| {
-                            find_name(node, source).unwrap_or_default()
-                        });
-                        
+
+                        let mut name = symbol_name
+                            .unwrap_or_else(|| find_name(node, source).unwrap_or_default());
+
                         if kind == "test" {
                             name = strip_quotes(&name);
                         }
-                        
+
                         if !name.is_empty() {
                             let start = node.start_position();
                             let end = node.end_position();
@@ -572,7 +611,7 @@ impl CodeExtractor for TreeSitterExtractor {
                                 end_line: end.row + 1,
                                 end_col: end.column + 1,
                             };
-                            
+
                             // Associated comments proximity search
                             let mut walk_start_node = node;
                             if ext == "py" {
@@ -588,14 +627,15 @@ impl CodeExtractor for TreeSitterExtractor {
                                     }
                                 }
                             }
-                            
+
                             let mut current_sibling = walk_start_node.prev_sibling();
                             let mut comments = Vec::new();
                             let mut last_row = walk_start_node.start_position().row;
-                            
+
                             while let Some(sibling) = current_sibling {
                                 let sk = sibling.kind();
-                                if sk == "comment" || sk == "line_comment" || sk == "block_comment" {
+                                if sk == "comment" || sk == "line_comment" || sk == "block_comment"
+                                {
                                     let end_row = sibling.end_position().row;
                                     if end_row >= last_row - 1 {
                                         if let Ok(text) = sibling.utf8_text(source) {
@@ -613,34 +653,34 @@ impl CodeExtractor for TreeSitterExtractor {
                                     break;
                                 }
                             }
-                            
+
                             let mut docstring = clean_docstring(&comments);
                             if ext == "py" && docstring.is_none() {
                                 docstring = get_python_inline_docstring(node, source);
                             }
-                            
+
                             let node_text = node.utf8_text(source).unwrap_or("");
-                            
-                            let has_todo = contains_case_insensitive(node_text, "todo") || 
-                                           contains_case_insensitive(node_text, "@todo") ||
-                                           docstring.as_ref().map_or(false, |d| {
-                                               contains_case_insensitive(d, "todo") || contains_case_insensitive(d, "@todo")
-                                           });
-                                           
-                            let has_fixme = contains_case_insensitive(node_text, "fixme") || 
-                                            contains_case_insensitive(node_text, "@fixme") ||
-                                            docstring.as_ref().map_or(false, |d| {
-                                                contains_case_insensitive(d, "fixme") || contains_case_insensitive(d, "@fixme")
-                                            });
-                            
+
+                            // Preceding comments are no longer promoted into docstrings,
+                            // so scan them directly for TODO/FIXME (covers `// TODO` above a
+                            // symbol); node_text covers in-body and python `"""` docstrings.
+                            let comments_text = comments.join("\n");
+                            let has_todo = contains_case_insensitive(node_text, "todo")
+                                || contains_case_insensitive(&comments_text, "todo");
+                            let has_fixme = contains_case_insensitive(node_text, "fixme")
+                                || contains_case_insensitive(&comments_text, "fixme");
+
                             let is_test = if ext == "rs" {
-                                let file_contains_test = file_path.contains("test");
-                                let name_contains_test = name.starts_with("test_") || name.ends_with("_test");
-                                let has_test_attr = has_rust_attribute_containing(node, "test", source);
-                                file_contains_test || name_contains_test || has_test_attr
+                                let name_contains_test =
+                                    name.starts_with("test_") || name.ends_with("_test");
+                                let has_test_attr =
+                                    has_rust_attribute_containing(node, "test", source);
+                                path_indicates_test(file_path)
+                                    || name_contains_test
+                                    || has_test_attr
                             } else if ext == "py" {
-                                let file_contains_test = file_path.contains("test");
-                                let name_starts_test_normalized = name.to_lowercase().starts_with("test");
+                                let name_starts_test_normalized =
+                                    name.to_lowercase().starts_with("test");
                                 let has_test_decorator = if let Some(parent) = node.parent() {
                                     if parent.kind() == "decorated_definition" {
                                         let mut found = false;
@@ -648,7 +688,9 @@ impl CodeExtractor for TreeSitterExtractor {
                                             let child = parent.child(i).unwrap();
                                             if child.kind() == "decorator" {
                                                 if let Ok(text) = child.utf8_text(source) {
-                                                    if text.contains("test") || text.contains("pytest") {
+                                                    if text.contains("test")
+                                                        || text.contains("pytest")
+                                                    {
                                                         found = true;
                                                         break;
                                                     }
@@ -662,19 +704,14 @@ impl CodeExtractor for TreeSitterExtractor {
                                 } else {
                                     false
                                 };
-                                file_contains_test || name_starts_test_normalized || has_test_decorator
+                                path_indicates_test(file_path)
+                                    || name_starts_test_normalized
+                                    || has_test_decorator
                             } else {
-                                let path_lower = file_path.to_lowercase();
-                                let file_contains_test = path_lower.contains(".test.") 
-                                    || path_lower.contains(".spec.")
-                                    || path_lower.contains("_test.")
-                                    || path_lower.contains("_spec.")
-                                    || path_lower.contains("/tests/")
-                                    || path_lower.starts_with("tests/");
                                 let is_test_call = kind == "test";
-                                file_contains_test || is_test_call
+                                path_indicates_test(file_path) || is_test_call
                             };
-                            
+
                             let is_exported = if ext == "rs" {
                                 let mut found = false;
                                 for i in 0..node.child_count() {
@@ -689,12 +726,13 @@ impl CodeExtractor for TreeSitterExtractor {
                             } else {
                                 has_ancestor_export(node) || exported_names.contains(&name)
                             };
-                            
+
                             let is_deprecated = if ext == "rs" {
-                                let has_deprecated_attr = has_rust_attribute_containing(node, "deprecated", source);
-                                let docstring_contains_deprecated = docstring.as_ref().map_or(false, |d| {
-                                    contains_case_insensitive(d, "deprecated")
-                                });
+                                let has_deprecated_attr =
+                                    has_rust_attribute_containing(node, "deprecated", source);
+                                let docstring_contains_deprecated = docstring
+                                    .as_ref()
+                                    .is_some_and(|d| contains_case_insensitive(d, "deprecated"));
                                 has_deprecated_attr || docstring_contains_deprecated
                             } else if ext == "py" {
                                 let has_deprecated_decorator = if let Some(parent) = node.parent() {
@@ -718,16 +756,16 @@ impl CodeExtractor for TreeSitterExtractor {
                                 } else {
                                     false
                                 };
-                                let docstring_contains_deprecated = docstring.as_ref().map_or(false, |d| {
-                                    contains_case_insensitive(d, "deprecated")
-                                });
+                                let docstring_contains_deprecated = docstring
+                                    .as_ref()
+                                    .is_some_and(|d| contains_case_insensitive(d, "deprecated"));
                                 has_deprecated_decorator || docstring_contains_deprecated
                             } else {
-                                docstring.as_ref().map_or(false, |d| {
-                                    d.contains("@deprecated")
-                                })
+                                docstring
+                                    .as_ref()
+                                    .is_some_and(|d| d.contains("@deprecated"))
                             };
-                            
+
                             symbols.push(ExtractedSymbol {
                                 name,
                                 kind: kind.to_string(),
@@ -743,7 +781,9 @@ impl CodeExtractor for TreeSitterExtractor {
                             });
                         }
                     }
-                } else if capture_name.starts_with("literal.") {
+                } else if capture_name.starts_with("literal.string") {
+                    // Only string literals carry search/detail value; numeric and boolean
+                    // literals are dropped (low value, index/detail bloat — Child 03).
                     if let Ok(text) = node.utf8_text(source) {
                         let stripped = strip_quotes(text);
                         literals.push(stripped);
@@ -751,11 +791,9 @@ impl CodeExtractor for TreeSitterExtractor {
                 }
             }
         }
-        
-        let docstrings = symbols.iter()
-            .filter_map(|s| s.docstring.clone())
-            .collect();
-            
+
+        let docstrings = symbols.iter().filter_map(|s| s.docstring.clone()).collect();
+
         Ok(ExtractedFile {
             file_path: file_path.to_string(),
             symbols,
@@ -770,10 +808,10 @@ pub fn split_identifier(ident: &str) -> Vec<String> {
     let mut current = String::new();
     let chars: Vec<char> = ident.chars().collect();
     let len = chars.len();
-    
+
     for i in 0..len {
         let c = chars[i];
-        
+
         if c == '_' || c == '-' {
             if !current.is_empty() {
                 tokens.push(current.to_lowercase());
@@ -781,38 +819,46 @@ pub fn split_identifier(ident: &str) -> Vec<String> {
             }
             continue;
         }
-        
-        let prev_is_lowercase = i > 0 && chars[i-1].is_lowercase();
-        let prev_is_digit = i > 0 && chars[i-1].is_ascii_digit();
-        let prev_is_uppercase = i > 0 && chars[i-1].is_uppercase();
-        
+
+        let prev_is_lowercase = i > 0 && chars[i - 1].is_lowercase();
+        let prev_is_digit = i > 0 && chars[i - 1].is_ascii_digit();
+        let prev_is_uppercase = i > 0 && chars[i - 1].is_uppercase();
+
         let current_is_uppercase = c.is_uppercase();
-        
-        let next_is_lowercase = i + 1 < len && chars[i+1].is_lowercase();
-        
+
+        let next_is_lowercase = i + 1 < len && chars[i + 1].is_lowercase();
+
         let is_camel_boundary = (prev_is_lowercase || prev_is_digit) && current_is_uppercase;
         let is_acronym_boundary = prev_is_uppercase && current_is_uppercase && next_is_lowercase;
         let is_digit_boundary = prev_is_digit && c.is_alphabetic();
-        
-        let prev_is_uncased = i > 0 && chars[i-1].is_alphabetic() && !chars[i-1].is_lowercase() && !chars[i-1].is_uppercase();
+
+        let prev_is_uncased = i > 0
+            && chars[i - 1].is_alphabetic()
+            && !chars[i - 1].is_lowercase()
+            && !chars[i - 1].is_uppercase();
         let current_is_uncased = c.is_alphabetic() && !c.is_lowercase() && !c.is_uppercase();
-        let is_uncased_boundary = i > 0 && (
-            (prev_is_uncased && !current_is_uncased && (c.is_alphabetic() || c.is_ascii_digit())) ||
-            (!prev_is_uncased && (chars[i-1].is_alphabetic() || chars[i-1].is_ascii_digit()) && current_is_uncased)
-        );
-        
-        if (is_camel_boundary || is_acronym_boundary || is_digit_boundary || is_uncased_boundary) && !current.is_empty() {
+        let is_uncased_boundary = i > 0
+            && ((prev_is_uncased
+                && !current_is_uncased
+                && (c.is_alphabetic() || c.is_ascii_digit()))
+                || (!prev_is_uncased
+                    && (chars[i - 1].is_alphabetic() || chars[i - 1].is_ascii_digit())
+                    && current_is_uncased));
+
+        if (is_camel_boundary || is_acronym_boundary || is_digit_boundary || is_uncased_boundary)
+            && !current.is_empty()
+        {
             tokens.push(current.to_lowercase());
             current.clear();
         }
-        
+
         current.push(c);
     }
-    
+
     if !current.is_empty() {
         tokens.push(current.to_lowercase());
     }
-    
+
     tokens
 }
 
@@ -823,13 +869,28 @@ mod tests {
     // --- Sub-tokenization Tests ---
     #[test]
     fn test_split_identifier_cases() {
-        assert_eq!(split_identifier("handleLoginError"), vec!["handle", "login", "error"]);
-        assert_eq!(split_identifier("handle_login_error"), vec!["handle", "login", "error"]);
-        assert_eq!(split_identifier("handle-login-error"), vec!["handle", "login", "error"]);
+        assert_eq!(
+            split_identifier("handleLoginError"),
+            vec!["handle", "login", "error"]
+        );
+        assert_eq!(
+            split_identifier("handle_login_error"),
+            vec!["handle", "login", "error"]
+        );
+        assert_eq!(
+            split_identifier("handle-login-error"),
+            vec!["handle", "login", "error"]
+        );
         assert_eq!(split_identifier("HTTPClient"), vec!["http", "client"]);
         assert_eq!(split_identifier("v2Engine"), vec!["v2", "engine"]);
-        assert_eq!(split_identifier("API2026version"), vec!["api2026", "version"]);
-        assert_eq!(split_identifier("XMLHttpRequest"), vec!["xml", "http", "request"]);
+        assert_eq!(
+            split_identifier("API2026version"),
+            vec!["api2026", "version"]
+        );
+        assert_eq!(
+            split_identifier("XMLHttpRequest"),
+            vec!["xml", "http", "request"]
+        );
         assert_eq!(split_identifier("HTMLElement"), vec!["html", "element"]);
         assert_eq!(split_identifier(""), Vec::<String>::new());
         assert_eq!(split_identifier("a"), vec!["a"]);
@@ -846,13 +907,16 @@ mod tests {
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "src/config.rs").unwrap();
-        
+
         // Assert struct symbol
         let struct_sym = file.symbols.iter().find(|s| s.name == "Config").unwrap();
         assert_eq!(struct_sym.kind, "struct");
         assert!(struct_sym.flags.is_exported);
-        assert_eq!(struct_sym.docstring.as_deref(), Some("Config struct description"));
-        
+        assert_eq!(
+            struct_sym.docstring.as_deref(),
+            Some("Config struct description")
+        );
+
         // Assert field variable symbol (verifies e2e target "port")
         let field_sym = file.symbols.iter().find(|s| s.name == "port").unwrap();
         assert_eq!(field_sym.kind, "field");
@@ -868,8 +932,12 @@ mod tests {
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "src/lib.rs").unwrap();
-        let sym = file.symbols.iter().find(|s| s.name == "deprecated_function").unwrap();
-        
+        let sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "deprecated_function")
+            .unwrap();
+
         assert!(sym.flags.has_todo);
         assert!(sym.flags.is_deprecated);
         assert!(!sym.flags.is_test);
@@ -883,8 +951,12 @@ mod tests {
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "src/tests.rs").unwrap();
-        let sym = file.symbols.iter().find(|s| s.name == "my_test_case").unwrap();
-        
+        let sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "my_test_case")
+            .unwrap();
+
         assert!(sym.flags.is_test);
     }
 
@@ -904,12 +976,15 @@ class Database:
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "db.py").unwrap();
-        
+
         let class_sym = file.symbols.iter().find(|s| s.name == "Database").unwrap();
         assert_eq!(class_sym.kind, "class");
-        assert_eq!(class_sym.docstring.as_deref(), Some("Manages db connection."));
+        assert_eq!(
+            class_sym.docstring.as_deref(),
+            Some("Manages db connection.")
+        );
         assert!(class_sym.flags.is_exported); // No leading underscore
-        
+
         let method_sym = file.symbols.iter().find(|s| s.name == "query").unwrap();
         assert_eq!(method_sym.kind, "fn");
         assert!(method_sym.flags.has_fixme);
@@ -924,8 +999,12 @@ def _private_func():
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "utils.py").unwrap();
-        let sym = file.symbols.iter().find(|s| s.name == "_private_func").unwrap();
-        
+        let sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "_private_func")
+            .unwrap();
+
         assert!(!sym.flags.is_exported); // Starts with underscore
         assert!(sym.flags.is_deprecated);
     }
@@ -943,7 +1022,7 @@ def _private_func():
         let extractor = TreeSitterExtractor::new();
         // TS extension: parsed using typescript grammar
         let file = extractor.extract(content, "types.ts").unwrap();
-        
+
         let sym = file.symbols.iter().find(|s| s.name == "User").unwrap();
         assert_eq!(sym.kind, "interface");
         assert!(sym.flags.is_exported);
@@ -976,12 +1055,20 @@ def _private_func():
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "auth.test.js").unwrap();
-        
-        let describe_sym = file.symbols.iter().find(|s| s.name == "auth service").unwrap();
+
+        let describe_sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "auth service")
+            .unwrap();
         assert_eq!(describe_sym.kind, "test");
         assert!(describe_sym.flags.is_test);
-        
-        let it_sym = file.symbols.iter().find(|s| s.name == "should validate credentials").unwrap();
+
+        let it_sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "should validate credentials")
+            .unwrap();
         assert_eq!(it_sym.kind, "test");
         assert!(it_sym.flags.is_test);
         assert!(it_sym.flags.has_todo);
@@ -1027,11 +1114,15 @@ class Calculator:
         "#;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "calc.py").unwrap();
-        
+
         let add_sym = file.symbols.iter().find(|s| s.name == "add").unwrap();
         assert!(add_sym.flags.is_exported);
-        
-        let helper_sym = file.symbols.iter().find(|s| s.name == "_private_helper").unwrap();
+
+        let helper_sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "_private_helper")
+            .unwrap();
         assert!(!helper_sym.flags.is_exported);
     }
 

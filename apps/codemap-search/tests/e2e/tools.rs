@@ -1,0 +1,403 @@
+//! E2E coverage for the read / find / grep MCP tools (Child 02). Exercised through
+//! the real stdio JSON-RPC server so the tool registration, argument parsing, path
+//! containment, ignore semantics, and output contracts are all verified end to end.
+
+use crate::e2e::helpers::{create_mock_repo, McpClient};
+use serde_json::Value;
+
+fn call(client_id_name: &str, args: Value) -> Value {
+    serde_json::json!({ "name": client_id_name, "arguments": args })
+}
+
+fn text(resp: &Value) -> String {
+    resp["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or("")
+        .to_string()
+}
+
+fn is_error(resp: &Value) -> bool {
+    resp.get("error").is_some()
+}
+
+fn sample_repo() -> tempfile::TempDir {
+    create_mock_repo(&[
+        (
+            "src/core.rs",
+            "pub fn run_engine() {\n    let cmd = \"rm -rf tmp\";\n}\n",
+        ),
+        ("src/util.rs", "pub fn helper() {}\n// TODO: cleanup\n"),
+        ("README.md", "# readme\nTODO in docs\n"),
+        (".gitignore", "ignored/\n"),
+        ("ignored/secret.rs", "pub fn ignored_fn() {}\n"),
+        ("node_modules/dep.rs", "pub fn dep_fn() {}\n"),
+        ("empty.rs", ""),
+    ])
+    .unwrap()
+}
+
+#[tokio::test]
+async fn test_tools_list_includes_read_find_grep() {
+    let temp = create_mock_repo(&[]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request("tools/list", serde_json::json!({}))
+        .await
+        .unwrap();
+    let names: Vec<&str> = resp["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect();
+    for expected in ["get_codemap", "search", "read", "find", "grep"] {
+        assert!(
+            names.contains(&expected),
+            "tools/list missing '{expected}': {names:?}"
+        );
+    }
+}
+
+// ---- read ----------------------------------------------------------------
+
+#[tokio::test]
+async fn test_read_basic_arrow_format() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "src/core.rs" })),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(
+        out.contains('\u{2192}'),
+        "expected arrow line numbers: {out:?}"
+    );
+    assert!(out.contains("run_engine"), "expected file content: {out:?}");
+    assert!(
+        out.lines().next().unwrap().contains("1\u{2192}"),
+        "first line should be '1\u{2192}…': {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_read_offset_and_limit() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({ "file_path": "src/core.rs", "offset": 2, "limit": 1 }),
+            ),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert_eq!(
+        out.matches('\u{2192}').count(),
+        1,
+        "exactly one line expected: {out:?}"
+    );
+    assert!(
+        out.contains("2\u{2192}"),
+        "line number should be 2: {out:?}"
+    );
+    assert!(
+        out.contains("rm -rf"),
+        "should be the second line content: {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_read_directory_is_rejected() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "src" })),
+        )
+        .await
+        .unwrap();
+    assert!(is_error(&resp), "reading a directory must error");
+}
+
+#[tokio::test]
+async fn test_read_empty_file_warns() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "empty.rs" })),
+        )
+        .await
+        .unwrap();
+    assert!(!is_error(&resp));
+    assert!(
+        text(&resp).contains("empty"),
+        "empty file should warn: {:?}",
+        text(&resp)
+    );
+}
+
+#[tokio::test]
+async fn test_read_path_traversal_is_rejected() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({ "file_path": "../../../etc/passwd" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(is_error(&resp), "path escaping the workspace must error");
+}
+
+#[tokio::test]
+async fn test_read_binary_content_is_rejected() {
+    // Unknown extension so the content (NUL byte) path is exercised, not the ext blocklist.
+    let temp = create_mock_repo(&[("data.qqq", "text\u{0}binary")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "data.qqq" })),
+        )
+        .await
+        .unwrap();
+    assert!(is_error(&resp), "binary content must error");
+}
+
+// ---- find ----------------------------------------------------------------
+
+#[tokio::test]
+async fn test_find_respects_gitignore_and_excludes_node_modules() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("find", serde_json::json!({ "pattern": "**/*.rs" })),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(out.contains("src/core.rs"), "{out:?}");
+    assert!(out.contains("src/util.rs"), "{out:?}");
+    assert!(
+        !out.contains("ignored/secret.rs"),
+        "gitignore should be respected: {out:?}"
+    );
+    assert!(
+        !out.contains("node_modules"),
+        "node_modules should be excluded: {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_find_include_ignored_bypass() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "find",
+                serde_json::json!({ "pattern": "**/*.rs", "include_ignored": true }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        text(&resp).contains("ignored/secret.rs"),
+        "include_ignored should reveal ignored files"
+    );
+}
+
+#[tokio::test]
+async fn test_find_path_param_escape_is_rejected() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "find",
+                serde_json::json!({ "pattern": "*.rs", "path": "../.." }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        is_error(&resp),
+        "a path param escaping the workspace must error"
+    );
+}
+
+// ---- grep ----------------------------------------------------------------
+
+#[tokio::test]
+async fn test_grep_files_with_matches_default() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("grep", serde_json::json!({ "pattern": "TODO" })),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(
+        out.starts_with("Found "),
+        "files_with_matches header expected: {out:?}"
+    );
+    assert!(out.contains("src/util.rs"), "{out:?}");
+    assert!(
+        !out.contains("ignored/secret.rs"),
+        "ignored files must not be searched: {out:?}"
+    );
+    assert!(
+        !out.contains("node_modules"),
+        "node_modules must not be searched: {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_grep_content_mode_line_format() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "run_engine", "output_mode": "content" }),
+            ),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    // Expect `path:line:text`
+    assert!(
+        out.lines()
+            .any(|l| l.starts_with("src/core.rs:") && l.contains("run_engine")),
+        "content line format `file:line:text` expected: {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_grep_count_mode() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "TODO", "output_mode": "count" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        text(&resp).contains("total occurrence"),
+        "{:?}",
+        text(&resp)
+    );
+}
+
+#[tokio::test]
+async fn test_grep_case_insensitive() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "todo", "-i": true, "output_mode": "count" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        text(&resp).contains("total occurrence"),
+        "case-insensitive should match TODO: {:?}",
+        text(&resp)
+    );
+}
+
+#[tokio::test]
+async fn test_grep_type_filter() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    // 'TODO' appears in README.md and src/util.rs; type=rust restricts to .rs only.
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "TODO", "type": "rust" }),
+            ),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(out.contains("src/util.rs"), "{out:?}");
+    assert!(
+        !out.contains("README.md"),
+        "type=rust must exclude markdown: {out:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_grep_pattern_starting_with_dash_is_literal() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "-rf", "output_mode": "content" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        text(&resp).contains("rm -rf"),
+        "a `-`-leading pattern must be searched literally: {:?}",
+        text(&resp)
+    );
+}
+
+#[tokio::test]
+async fn test_grep_path_param_escape_is_rejected() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "x", "path": "../../.." }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(
+        is_error(&resp),
+        "a path param escaping the workspace must error"
+    );
+}

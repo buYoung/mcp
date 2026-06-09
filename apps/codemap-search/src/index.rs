@@ -1,10 +1,10 @@
-use crate::parser::{ExtractedSymbol, ExtractedFile, CodeExtractor};
-use std::path::{Path, PathBuf};
+use crate::parser::{CodeExtractor, ExtractedFile, ExtractedSymbol};
 use std::collections::HashMap;
-use tantivy::schema::*;
-use tantivy::{Index, IndexReader, ReloadPolicy, Term, TantivyDocument, IndexSettings};
-use tantivy::query::{AllQuery, QueryParser};
+use std::path::{Path, PathBuf};
 use tantivy::collector::TopDocs;
+use tantivy::query::{AllQuery, QueryParser};
+use tantivy::schema::*;
+use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
 
 #[derive(Debug, Clone)]
 pub struct SearchResult {
@@ -24,15 +24,20 @@ pub struct TantivySearchEngine {
     pub schema: Schema,
     pub index: Index,
     pub reader: IndexReader,
-    
+
     // Schema field references
     pub file_path_field: Field,
     pub file_path_parts_field: Field,
     pub symbol_field: Field,
     pub docstring_field: Field,
-    pub literal_field: Field,
     pub extracted_json_field: Field,
     pub mtime_field: Field,
+
+    // In-memory snapshot of the on-disk path→mtime map. Lazily populated once from the
+    // index (one `AllQuery`) and then maintained incrementally, so a long-lived engine
+    // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
+    // (Child 04). Reflects only what is actually committed to the index.
+    indexed_mtimes_cache: Option<HashMap<String, u64>>,
 }
 
 impl TantivySearchEngine {
@@ -42,7 +47,8 @@ impl TantivySearchEngine {
         let file_path_parts_field = schema_builder.add_text_field("file_path_parts", TEXT);
         let symbol_field = schema_builder.add_text_field("symbol", TEXT | STORED);
         let docstring_field = schema_builder.add_text_field("docstring", TEXT | STORED);
-        let literal_field = schema_builder.add_text_field("literal", TEXT | STORED);
+        // Literals are details-layer only (Child 03): not indexed for BM25 search.
+        // Exact/literal string search is delegated to the rg-backed `grep` tool.
         let extracted_json_field = schema_builder.add_text_field("extracted_json", STORED);
         let mtime_field = schema_builder.add_u64_field("mtime", STORED);
         let schema = schema_builder.build();
@@ -61,8 +67,10 @@ impl TantivySearchEngine {
             Err(_) => {
                 let _ = std::fs::remove_dir_all(path);
                 std::fs::create_dir_all(path).map_err(|e| e.to_string())?;
-                let directory = tantivy::directory::MmapDirectory::open(path).map_err(|e| e.to_string())?;
-                Index::create(directory, schema.clone(), IndexSettings::default()).map_err(|e| e.to_string())?
+                let directory =
+                    tantivy::directory::MmapDirectory::open(path).map_err(|e| e.to_string())?;
+                Index::create(directory, schema.clone(), IndexSettings::default())
+                    .map_err(|e| e.to_string())?
             }
         };
 
@@ -81,16 +89,16 @@ impl TantivySearchEngine {
             file_path_parts_field,
             symbol_field,
             docstring_field,
-            literal_field,
             extracted_json_field,
             mtime_field,
+            indexed_mtimes_cache: None,
         })
     }
 
     fn get_indexed_mtimes(&self) -> HashMap<String, u64> {
         let searcher = self.reader.searcher();
         let mut map = HashMap::new();
-        
+
         if let Ok(top_docs) = searcher.search(&AllQuery, &TopDocs::with_limit(100_000)) {
             for (_score, doc_address) in top_docs {
                 if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
@@ -117,7 +125,7 @@ impl TantivySearchEngine {
 
 fn tokenize_path(file_path: &str) -> String {
     let mut tokens = Vec::new();
-    for part in file_path.split(|c| c == '/' || c == '\\') {
+    for part in file_path.split(['/', '\\']) {
         if part.is_empty() {
             continue;
         }
@@ -146,71 +154,86 @@ fn normalize_relative_path(path: &Path) -> String {
     trimmed.to_string()
 }
 
+/// Compute the stored index key for `entry_path`: the path relative to the
+/// (canonicalized) current working directory, normalized to forward slashes. Falls
+/// back to the leading-slash-stripped absolute path when the file is outside the cwd
+/// (e.g. an absolute walk root in tests) — byte-identical to the pre-Child-04 logic,
+/// so incremental delete-detection (which keys on this string) is preserved.
+fn relative_index_path(entry_path: &Path, abs_cwd: &Path) -> String {
+    let abs_path = entry_path
+        .canonicalize()
+        .unwrap_or_else(|_| entry_path.to_path_buf());
+    let rel = abs_path.strip_prefix(abs_cwd).unwrap_or(entry_path);
+    normalize_relative_path(rel)
+}
+
+/// Gather the index entry for a single file: enforce the source-extension allowlist
+/// and the [`crate::tools::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
+/// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
+/// same-second edit still reindexes. Returns `None` when the file is not to be indexed.
+fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, PathBuf, u64)> {
+    let ext = entry_path.extension().and_then(|s| s.to_str())?;
+    if !crate::tools::is_source_extension(ext) {
+        return None;
+    }
+    let metadata = std::fs::metadata(entry_path).ok()?;
+    if metadata.len() > crate::config::get().max_file_size {
+        return None;
+    }
+    let duration = metadata
+        .modified()
+        .ok()?
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .ok()?;
+    let rel_path = relative_index_path(entry_path, abs_cwd);
+    Some((
+        rel_path,
+        entry_path.to_path_buf(),
+        duration.as_nanos() as u64,
+    ))
+}
+
 impl SearchEngine for TantivySearchEngine {
     fn index_files(&mut self, paths: &[&str]) -> Result<(), String> {
         let mut files_to_process = Vec::new();
-        
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
+
         for path_str in paths {
             let path = Path::new(path_str);
             if path.is_file() {
-                if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-                    if matches!(ext, "rs" | "py" | "ts" | "tsx" | "js" | "jsx") {
-                        if let Ok(metadata) = std::fs::metadata(path) {
-                            if let Ok(modified) = metadata.modified() {
-                                if let Ok(duration) = modified.duration_since(std::time::SystemTime::UNIX_EPOCH) {
-                                    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-                                    let abs_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-                                    let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
-                                    let rel = abs_path.strip_prefix(&abs_cwd).unwrap_or(path);
-                                    let rel_path = normalize_relative_path(rel);
-                                    files_to_process.push((rel_path, path.to_path_buf(), duration.as_secs()));
-                                }
-                            }
-                        }
-                    }
+                if let Some(entry) = collect_index_entry(path, &abs_cwd) {
+                    files_to_process.push(entry);
                 }
             } else if path.is_dir() {
-                for entry in walkdir::WalkDir::new(path)
-                    .into_iter()
-                    .filter_entry(|e| {
-                        if e.depth() == 0 {
-                            true
-                        } else {
-                            let name = e.file_name().to_string_lossy();
-                            if e.file_type().is_dir() {
-                                !name.starts_with('.')
-                            } else {
-                                true
-                            }
-                        }
-                    })
+                // Shared walker: honors EXCLUDED_DIRS + .gitignore/.codemapignore so
+                // node_modules/target/… never enter the BM25 index (Child 04), matching
+                // find/grep. include_ignored=false keeps ignored paths out of the index.
+                for entry in crate::tools::build_walker(path, false)
+                    .build()
                     .filter_map(|e| e.ok())
                 {
                     let entry_path = entry.path();
                     if entry_path.is_file() {
-                        if let Some(ext) = entry_path.extension().and_then(|s| s.to_str()) {
-                            if matches!(ext, "rs" | "py" | "ts" | "tsx" | "js" | "jsx") {
-                                if let Ok(metadata) = std::fs::metadata(entry_path) {
-                                    if let Ok(modified) = metadata.modified() {
-                                        if let Ok(duration) = modified.duration_since(std::time::SystemTime::UNIX_EPOCH) {
-                                            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-                                            let abs_path = entry_path.canonicalize().unwrap_or_else(|_| entry_path.to_path_buf());
-                                            let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
-                                            let rel = abs_path.strip_prefix(&abs_cwd).unwrap_or(entry_path);
-                                            let rel_path = normalize_relative_path(rel);
-                                            files_to_process.push((rel_path, entry_path.to_path_buf(), duration.as_secs()));
-                                        }
-                                    }
-                                }
-                            }
+                        if let Some(collected) = collect_index_entry(entry_path, &abs_cwd) {
+                            files_to_process.push(collected);
                         }
                     }
                 }
             }
         }
 
-        let indexed_mtimes = self.get_indexed_mtimes();
-        let disk_file_paths: std::collections::HashSet<String> = files_to_process.iter()
+        // Lazily snapshot the on-disk mtime map once, then read from the maintained
+        // cache — avoids an `AllQuery` over the whole index on every call, which in MCP
+        // mode runs before every search (Child 04).
+        if self.indexed_mtimes_cache.is_none() {
+            let snapshot = self.get_indexed_mtimes();
+            self.indexed_mtimes_cache = Some(snapshot);
+        }
+        let indexed_mtimes = self.indexed_mtimes_cache.as_ref().unwrap();
+
+        let disk_file_paths: std::collections::HashSet<String> = files_to_process
+            .iter()
             .map(|(rel_path, _, _)| rel_path.clone())
             .collect();
 
@@ -234,7 +257,12 @@ impl SearchEngine for TantivySearchEngine {
             }
         }
 
-        println!("DEBUG index_files: files_to_process={}, to_index={}, to_delete={}", files_to_process_len, to_index.len(), to_delete.len());
+        tracing::debug!(
+            "index_files: files_to_process={}, to_index={}, to_delete={}",
+            files_to_process_len,
+            to_index.len(),
+            to_delete.len()
+        );
 
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
@@ -245,29 +273,40 @@ impl SearchEngine for TantivySearchEngine {
         let mut writer = match self.index.writer(50_000_000) {
             Ok(w) => w,
             Err(tantivy::TantivyError::LockFailure(e, _)) => {
-                println!("DEBUG index_files LockFailure: {:?}", e);
+                tracing::warn!("index_files LockFailure: {:?}", e);
                 return Ok(());
             }
             Err(e) => return Err(e.to_string()),
         };
 
-        for rel_path in to_delete {
-            let term = Term::from_field_text(self.file_path_field, &rel_path);
+        for rel_path in &to_delete {
+            let term = Term::from_field_text(self.file_path_field, rel_path);
             writer.delete_term(term);
         }
 
+        // Track only the docs that actually get added so the cache mirrors the index:
+        // a file that fails to read/parse stays out of the cache and is retried next call.
+        let mut committed_updates: Vec<(String, u64)> = Vec::new();
         for (rel_path, disk_path, mtime) in to_index {
             let content = match std::fs::read_to_string(&disk_path) {
                 Ok(c) => c,
                 Err(e) => {
-                    eprintln!("Warning: Failed to read file {}: {}", disk_path.display(), e);
+                    eprintln!(
+                        "Warning: Failed to read file {}: {}",
+                        disk_path.display(),
+                        e
+                    );
                     continue;
                 }
             };
             let extracted = match extractor.extract(&content, &rel_path) {
                 Ok(ext) => ext,
                 Err(e) => {
-                    eprintln!("Warning: Failed to parse file {}: {}", disk_path.display(), e);
+                    eprintln!(
+                        "Warning: Failed to parse file {}: {}",
+                        disk_path.display(),
+                        e
+                    );
                     continue;
                 }
             };
@@ -277,14 +316,18 @@ impl SearchEngine for TantivySearchEngine {
 
             let mut doc = TantivyDocument::default();
             doc.add_text(self.file_path_field, &rel_path);
-            
+
             let path_parts = tokenize_path(&rel_path);
             doc.add_text(self.file_path_parts_field, &path_parts);
 
             let json_str = match serde_json::to_string(&extracted) {
                 Ok(js) => js,
                 Err(e) => {
-                    eprintln!("Warning: Failed to serialize extracted symbols for {}: {}", disk_path.display(), e);
+                    eprintln!(
+                        "Warning: Failed to serialize extracted symbols for {}: {}",
+                        disk_path.display(),
+                        e
+                    );
                     continue;
                 }
             };
@@ -302,18 +345,36 @@ impl SearchEngine for TantivySearchEngine {
                 }
             }
 
-            for lit in &extracted.literals {
-                doc.add_text(self.literal_field, lit);
-            }
+            // Literals are intentionally not indexed (Child 03) — details-layer only.
 
-            if let Err(e) = writer.add_document(doc) {
-                eprintln!("Warning: Failed to add document to index for {}: {}", disk_path.display(), e);
-                continue;
+            match writer.add_document(doc) {
+                Ok(_) => committed_updates.push((rel_path, mtime)),
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to add document to index for {}: {}",
+                        disk_path.display(),
+                        e
+                    );
+                    continue;
+                }
             }
         }
 
         writer.commit().map_err(|e| e.to_string())?;
         self.reader.reload().map_err(|e| e.to_string())?;
+
+        // Reconcile the cache only after the commit landed (Child 04): drop the deleted
+        // paths and record the freshly-indexed mtimes. On any earlier return (LockFailure,
+        // commit/reload error) the cache is left untouched, so it never claims a file is
+        // indexed when it is not.
+        if let Some(cache) = self.indexed_mtimes_cache.as_mut() {
+            for path in &to_delete {
+                cache.remove(path);
+            }
+            for (rel_path, mtime) in committed_updates {
+                cache.insert(rel_path, mtime);
+            }
+        }
 
         Ok(())
     }
@@ -323,20 +384,18 @@ impl SearchEngine for TantivySearchEngine {
             return Err("Query too long".to_string());
         }
         let searcher = self.reader.searcher();
-        
+
         let mut query_parser = QueryParser::for_index(
             &self.index,
             vec![
                 self.symbol_field,
                 self.docstring_field,
-                self.literal_field,
                 self.file_path_parts_field,
-            ]
+            ],
         );
-        
+
         query_parser.set_field_boost(self.symbol_field, 4.0);
         query_parser.set_field_boost(self.docstring_field, 2.0);
-        query_parser.set_field_boost(self.literal_field, 1.0);
         query_parser.set_field_boost(self.file_path_parts_field, 1.0);
 
         if query_str.trim().is_empty() {
@@ -367,21 +426,26 @@ impl SearchEngine for TantivySearchEngine {
             }
         };
 
-        let top_docs = searcher.search(&query, &TopDocs::with_limit(limit))
+        let top_docs = searcher
+            .search(&query, &TopDocs::with_limit(limit))
             .map_err(|e| e.to_string())?;
 
         let mut results = Vec::new();
         let query_lower = query_str.to_lowercase();
 
         for (score, doc_address) in top_docs {
-            let doc = searcher.doc::<TantivyDocument>(doc_address).map_err(|e| e.to_string())?;
-            
-            let file_path = doc.get_first(self.file_path_field)
+            let doc = searcher
+                .doc::<TantivyDocument>(doc_address)
+                .map_err(|e| e.to_string())?;
+
+            let file_path = doc
+                .get_first(self.file_path_field)
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
 
-            let extracted_json = doc.get_first(self.extracted_json_field)
+            let extracted_json = doc
+                .get_first(self.extracted_json_field)
                 .and_then(|v| v.as_str())
                 .unwrap_or("{}");
 
@@ -395,27 +459,46 @@ impl SearchEngine for TantivySearchEngine {
 
             let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
 
-            let matched_symbols: Vec<ExtractedSymbol> = extracted_file.symbols
-                .into_iter()
+            let all_symbols = extracted_file.symbols;
+            let mut matched_symbols: Vec<ExtractedSymbol> = all_symbols
+                .iter()
                 .filter(|sym| {
-                    !query_terms.is_empty() && query_terms.iter().all(|&term| {
-                        sym.name.to_lowercase().contains(term) ||
-                        sym.docstring.as_ref().map_or(false, |d| d.to_lowercase().contains(term)) ||
-                        crate::parser::split_identifier(&sym.name).iter().any(|t| t.to_lowercase().contains(term))
-                    })
+                    !query_terms.is_empty()
+                        && query_terms.iter().all(|&term| {
+                            sym.name.to_lowercase().contains(term)
+                                || sym
+                                    .docstring
+                                    .as_ref()
+                                    .is_some_and(|d| d.to_lowercase().contains(term))
+                                || crate::parser::split_identifier(&sym.name)
+                                    .iter()
+                                    .any(|t| t.to_lowercase().contains(term))
+                        })
                 })
+                .cloned()
                 .collect();
+            // The doc ranked in via some field (symbol/docstring/path). If the symbol
+            // substring filter is empty (e.g. matched via docstring or path tokens), fall
+            // back to the file's own symbols so the detail view never renders an empty
+            // file header (Child 03 — OR/AND render consistency).
+            if matched_symbols.is_empty() {
+                matched_symbols = all_symbols;
+            }
 
-            let matched_literals: Vec<String> = extracted_file.literals
+            let matched_literals: Vec<String> = extracted_file
+                .literals
                 .into_iter()
                 .filter(|lit| {
-                    !query_terms.is_empty() && query_terms.iter().all(|&term| lit.to_lowercase().contains(term))
+                    !query_terms.is_empty()
+                        && query_terms
+                            .iter()
+                            .all(|&term| lit.to_lowercase().contains(term))
                 })
                 .collect();
 
             results.push(SearchResult {
                 file_path,
-                score: score as f32,
+                score,
                 matched_symbols,
                 matched_literals,
             });
@@ -428,8 +511,8 @@ impl SearchEngine for TantivySearchEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[test]
     fn test_tokenize_path_helper() {
@@ -440,8 +523,14 @@ mod tests {
 
     #[test]
     fn test_normalize_relative_path_helper() {
-        assert_eq!(normalize_relative_path(Path::new("./src/lib.rs")), "src/lib.rs");
-        assert_eq!(normalize_relative_path(Path::new("src\\lib.rs")), "src/lib.rs");
+        assert_eq!(
+            normalize_relative_path(Path::new("./src/lib.rs")),
+            "src/lib.rs"
+        );
+        assert_eq!(
+            normalize_relative_path(Path::new("src\\lib.rs")),
+            "src/lib.rs"
+        );
     }
 
     #[test]
@@ -455,7 +544,7 @@ mod tests {
         fs::write(&file1, "pub fn calculate_prime_numbers() {}").unwrap();
 
         let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
-        
+
         // Initially search should be empty
         let res = engine.search("calculate_prime_numbers", 10).unwrap();
         assert_eq!(res.len(), 0);
@@ -470,7 +559,10 @@ mod tests {
         println!("basic search results len: {}", res.len());
         if res.is_empty() {
             // Let's print out what files were registered or if indexing was skipped
-            println!("Indexed files mtimes map: {:?}", engine.get_indexed_mtimes());
+            println!(
+                "Indexed files mtimes map: {:?}",
+                engine.get_indexed_mtimes()
+            );
         }
         assert_eq!(res.len(), 1);
         assert!(res[0].file_path.contains("lib.rs"));
@@ -484,9 +576,10 @@ mod tests {
         let src_dir = temp.path().join("src");
         fs::create_dir_all(&src_dir).unwrap();
 
-        // File A: QueryTerm in literal (weight = 1.0)
+        // File A: QueryTerm only in a string literal — literals are NOT indexed
+        // (Child 03, details-layer only), so file_a must not be returned by search.
         let file_a = src_dir.join("file_a.rs");
-        fs::write(&file_a, "pub fn test() { let x = \"QueryTerm\"; }").unwrap();
+        fs::write(&file_a, "pub fn alpha() { let x = \"QueryTerm\"; }").unwrap();
 
         // File B: QueryTerm in symbol name (weight = 4.0)
         let file_b = src_dir.join("file_b.rs");
@@ -497,17 +590,36 @@ mod tests {
         fs::write(&file_c, "/// QueryTerm\npub fn hello() {}").unwrap();
 
         let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
-        engine.index_files(&[&temp.path().to_string_lossy()]).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
 
         let res = engine.search("QueryTerm", 10).unwrap();
-        assert_eq!(res.len(), 3);
-
+        // Only the symbol- and docstring-matched files rank; the literal-only file is gone.
+        assert_eq!(
+            res.len(),
+            2,
+            "literal-only file must not be searchable, got: {:?}",
+            res
+        );
         // Best match should be File B (symbol, weight 4)
-        assert!(res[0].file_path.contains("file_b.rs"), "Expected file_b.rs first, got: {:?}", res);
-        // Second best should be File C (docstring, weight 2)
-        assert!(res[1].file_path.contains("file_c.rs"), "Expected file_c.rs second, got: {:?}", res);
-        // Third should be File A (literal, weight 1)
-        assert!(res[2].file_path.contains("file_a.rs"), "Expected file_a.rs third, got: {:?}", res);
+        assert!(
+            res[0].file_path.contains("file_b.rs"),
+            "Expected file_b.rs first, got: {:?}",
+            res
+        );
+        // Second should be File C (docstring, weight 2)
+        assert!(
+            res[1].file_path.contains("file_c.rs"),
+            "Expected file_c.rs second, got: {:?}",
+            res
+        );
+        // File A (literal only) must be absent.
+        assert!(
+            !res.iter().any(|r| r.file_path.contains("file_a.rs")),
+            "literal-only file_a must not appear, got: {:?}",
+            res
+        );
     }
 
     #[test]
@@ -521,14 +633,18 @@ mod tests {
         fs::write(&file1, "pub fn first_func() {}").unwrap();
 
         let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
-        engine.index_files(&[&temp.path().to_string_lossy()]).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
 
         // Read initial modification time of index directory
         let initial_mtime = fs::metadata(&index_dir).unwrap().modified().unwrap();
 
         // Index again immediately with no changes
         std::thread::sleep(std::time::Duration::from_millis(50));
-        engine.index_files(&[&temp.path().to_string_lossy()]).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
 
         let final_mtime = fs::metadata(&index_dir).unwrap().modified().unwrap();
         assert_eq!(initial_mtime, final_mtime);
@@ -537,10 +653,14 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(50));
         fs::write(&file1, "pub fn first_func_modified() {}").unwrap();
         // Force update the mtime of the file
-        let new_mtime = filetime::FileTime::from_system_time(std::time::SystemTime::now() + std::time::Duration::from_secs(10));
+        let new_mtime = filetime::FileTime::from_system_time(
+            std::time::SystemTime::now() + std::time::Duration::from_secs(10),
+        );
         filetime::set_file_mtime(&file1, new_mtime).unwrap();
 
-        engine.index_files(&[&temp.path().to_string_lossy()]).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
         let after_modify_mtime = fs::metadata(&index_dir).unwrap().modified().unwrap();
         assert_ne!(initial_mtime, after_modify_mtime);
 
@@ -567,9 +687,9 @@ mod tests {
     fn test_query_error_handling() {
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
-        
+
         let engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
-        
+
         // Search with query containing syntax errors / special characters should not panic
         let res = engine.search("AND OR NOT * : ()", 10);
         if let Err(ref e) = res {

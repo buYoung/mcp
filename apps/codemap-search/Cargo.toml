@@ -3,7 +3,13 @@ name = "codemap-search"
 version = "0.1.0"
 edition = "2021"
 authors = ["Buyong Lee"]
-description = "A code-agent MCP search tool written in Rust"
+description = "A self-contained MCP stdio server for coding agents: BM25 code search, an aider-style codemap, and embedded read/find/grep (ripgrep as a library)."
+license = "MIT"
+repository = "https://github.com/buYoung/mcp"
+readme = "README.md"
+keywords = ["mcp", "code-search", "tree-sitter", "tantivy", "ripgrep"]
+categories = ["command-line-utilities", "development-tools"]
+exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures"]
 
 [dependencies]
 # CLI Argument parsing
@@ -32,12 +38,26 @@ walkdir = "2.4"
 anyhow = "1.0"
 thiserror = "1.0"
 
-# Logging / Diagnostics
+# Logging / Diagnostics. `env-filter` powers the default quiet filter (deps at warn,
+# this crate at info) so dependency INFO noise (tantivy commit/GC per search) stays off
+# stderr unless RUST_LOG raises it.
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Regular expressions and text processing
 regex = "1.10"
+
+# TOML config parsing (Child 05). Lenient `toml::Value` parse so unknown keys/types
+# degrade to a stderr warning + default rather than failing the load (never-exit).
+toml = "0.8"
+
+# Embedded ripgrep engine (library crates, NOT a bundled `rg` binary) powering the
+# read/find/grep tools. `grep` re-exports grep-matcher/grep-regex/grep-searcher.
+# `ignore` gives gitignore + `.codemapignore` parity and the parallel/typed walk;
+# `globset` provides glob matching. Pinned for reproducible public-release builds.
+grep = "0.4"
+ignore = "0.4"
+globset = "0.4"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"

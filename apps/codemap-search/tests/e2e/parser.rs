@@ -1,11 +1,11 @@
-use std::fs;
 use crate::e2e::helpers::{create_mock_repo, run_cli};
 use predicates::prelude::*;
 
 #[test]
 fn test_tree_sitter_rust_extraction() {
-    let temp = create_mock_repo(&[
-        ("src/main.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/main.rs",
+        r#"
             pub struct Config {
                 pub port: u16,
             }
@@ -14,11 +14,13 @@ fn test_tree_sitter_rust_extraction() {
                     Config { port: 8080 }
                 }
             }
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/main.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("Config"))
         .stdout(predicates::str::contains("port"))
         .stdout(predicates::str::contains("load"));
@@ -26,47 +28,56 @@ fn test_tree_sitter_rust_extraction() {
 
 #[test]
 fn test_tree_sitter_docstring_association() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        r#"
             /// This is a docstring for initialize.
             /// It has multiple lines.
             pub fn initialize() {}
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/lib.rs"], temp.path());
-    assert.success()
-        .stdout(predicates::str::contains("This is a docstring for initialize"));
+    assert.success().stdout(predicates::str::contains(
+        "This is a docstring for initialize",
+    ));
 }
 
 #[test]
 fn test_tree_sitter_flags_todo_fixme() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        r#"
             // TODO: implement this
             // FIXME: critical bug here
             fn stub() {}
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/lib.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("hasTodo"))
         .stdout(predicates::str::contains("hasFixme"));
 }
 
 #[test]
 fn test_tree_sitter_flags_attributes() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        r#"
             #[deprecated(since = "1.0.0")]
             #[test]
             pub fn test_deprecated_feature() {}
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/lib.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("isTest"))
         .stdout(predicates::str::contains("isExported"))
         .stdout(predicates::str::contains("isDeprecated"));
@@ -76,7 +87,8 @@ fn test_tree_sitter_flags_attributes() {
 fn test_tree_sitter_sub_tokenization() {
     let temp = create_mock_repo(&[]).unwrap();
     let assert = run_cli(&["tokenize", "handleLoginError"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("handle"))
         .stdout(predicates::str::contains("login"))
         .stdout(predicates::str::contains("error"));
@@ -84,12 +96,11 @@ fn test_tree_sitter_sub_tokenization() {
 
 #[test]
 fn test_tree_sitter_empty_file() {
-    let temp = create_mock_repo(&[
-        ("src/empty.rs", "   \n\n  ")
-    ]).unwrap();
+    let temp = create_mock_repo(&[("src/empty.rs", "   \n\n  ")]).unwrap();
 
     let assert = run_cli(&["parse", "src/empty.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("\"symbols\": []"))
         .stdout(predicates::str::contains("Config").not());
 }
@@ -97,29 +108,32 @@ fn test_tree_sitter_empty_file() {
 #[test]
 fn test_tree_sitter_invalid_syntax() {
     let temp = create_mock_repo(&[
-        ("src/bad.rs", "fn main() { struct Bad { }") // Missing closing braces
-    ]).unwrap();
+        ("src/bad.rs", "fn main() { struct Bad { }"), // Missing closing braces
+    ])
+    .unwrap();
 
     // Invalid syntax should be parsed gracefully without panic
     let assert = run_cli(&["parse", "src/bad.rs"], temp.path());
-    assert.success()
-        .stdout(predicates::str::contains("Bad")); // Still extracts partial content
+    assert.success().stdout(predicates::str::contains("Bad")); // Still extracts partial content
 }
 
 #[test]
 fn test_tree_sitter_deeply_nested() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        r#"
             mod outer {
                 mod inner {
                     pub struct Target {}
                 }
             }
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/lib.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("outer"))
         .stdout(predicates::str::contains("inner"))
         .stdout(predicates::str::contains("Target"));
@@ -140,15 +154,18 @@ fn test_tree_sitter_large_file() {
 
 #[test]
 fn test_tree_sitter_special_chars() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", r#"
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        r#"
             /// 🚀 This is a special docstring!
             pub fn handle_日本語() {}
-        "#)
-    ]).unwrap();
+        "#,
+    )])
+    .unwrap();
 
     let assert = run_cli(&["parse", "src/lib.rs"], temp.path());
-    assert.success()
+    assert
+        .success()
         .stdout(predicates::str::contains("🚀"))
         .stdout(predicates::str::contains("日本語"));
 }

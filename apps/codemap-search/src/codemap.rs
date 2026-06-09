@@ -180,11 +180,11 @@ fn normalize_path(path: &str) -> std::borrow::Cow<'_, str> {
         || path.contains("..")
         || path == "."
         || path.is_empty();
-        
+
     if !needs_normalization {
         return std::borrow::Cow::Borrowed(path);
     }
-    
+
     let replaced = path.replace('\\', "/");
     let mut parts = Vec::new();
     for part in replaced.split('/') {
@@ -208,7 +208,7 @@ impl CodemapGenerator {
     pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
         let total_files = files.len();
         let total_symbols = files.iter().map(|f| f.symbols.len()).sum();
-        
+
         let mut dirs_set = BTreeSet::new();
         for file in files {
             let normalized_file = normalize_path(&file.file_path);
@@ -222,19 +222,22 @@ impl CodemapGenerator {
         }
         let directories: Vec<String> = dirs_set.into_iter().collect();
 
-        let files_summary: Vec<ExtractedFileSummary<'a>> = files.iter().map(|file| {
-            ExtractedFileSummary {
+        let files_summary: Vec<ExtractedFileSummary<'a>> = files
+            .iter()
+            .map(|file| ExtractedFileSummary {
                 file_path: normalize_path(&file.file_path).into_owned(),
                 symbol_count: file.symbols.len(),
-                symbols: file.symbols.iter().map(|s| {
-                    ExtractedSymbolSummary {
+                symbols: file
+                    .symbols
+                    .iter()
+                    .map(|s| ExtractedSymbolSummary {
                         name: &s.name,
                         kind: &s.kind,
                         is_exported: s.flags.is_exported,
-                    }
-                }).collect(),
-            }
-        }).collect();
+                    })
+                    .collect(),
+            })
+            .collect();
 
         RootCodemap {
             total_files,
@@ -246,7 +249,10 @@ impl CodemapGenerator {
     }
 
     /// Folder level: Sub-directory specific view synthesized on the fly
-    pub fn generate_folder_view<'a>(files: &'a [crate::parser::ExtractedFile], folder_path: &str) -> FolderCodemap<'a> {
+    pub fn generate_folder_view<'a>(
+        files: &'a [crate::parser::ExtractedFile],
+        folder_path: &str,
+    ) -> FolderCodemap<'a> {
         let normalized_folder = normalize_path(folder_path);
         let mut sub_dirs = BTreeSet::new();
         let mut files_summary = Vec::new();
@@ -266,11 +272,15 @@ impl CodemapGenerator {
                     files_summary.push(ExtractedFileSummary {
                         file_path: normalize_path(&file.file_path).into_owned(),
                         symbol_count: file.symbols.len(),
-                        symbols: file.symbols.iter().map(|s| ExtractedSymbolSummary {
-                            name: &s.name,
-                            kind: &s.kind,
-                            is_exported: s.flags.is_exported,
-                        }).collect(),
+                        symbols: file
+                            .symbols
+                            .iter()
+                            .map(|s| ExtractedSymbolSummary {
+                                name: &s.name,
+                                kind: &s.kind,
+                                is_exported: s.flags.is_exported,
+                            })
+                            .collect(),
                     });
                 } else {
                     let rel = if normalized_folder.is_empty() {
@@ -278,17 +288,21 @@ impl CodemapGenerator {
                     } else {
                         &normalized_file[normalized_folder.len() + 1..]
                     };
- 
+
                     let parts: Vec<&str> = rel.split('/').collect();
                     if parts.len() == 1 {
                         files_summary.push(ExtractedFileSummary {
                             file_path: normalize_path(&file.file_path).into_owned(),
                             symbol_count: file.symbols.len(),
-                            symbols: file.symbols.iter().map(|s| ExtractedSymbolSummary {
-                                name: &s.name,
-                                kind: &s.kind,
-                                is_exported: s.flags.is_exported,
-                            }).collect(),
+                            symbols: file
+                                .symbols
+                                .iter()
+                                .map(|s| ExtractedSymbolSummary {
+                                    name: &s.name,
+                                    kind: &s.kind,
+                                    is_exported: s.flags.is_exported,
+                                })
+                                .collect(),
                         });
                     } else if parts.len() > 1 {
                         let first_component = parts[0];
@@ -336,11 +350,12 @@ impl CodemapGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::{CodeRange, SymbolFlags, ExtractedSymbol, ExtractedFile};
+    use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol, SymbolFlags};
 
     fn make_mock_file(path: &str, symbol_names: &[(&str, &str)]) -> ExtractedFile {
-        let symbols = symbol_names.iter().map(|(name, kind)| {
-            ExtractedSymbol {
+        let symbols = symbol_names
+            .iter()
+            .map(|(name, kind)| ExtractedSymbol {
                 name: name.to_string(),
                 kind: kind.to_string(),
                 range: CodeRange {
@@ -357,8 +372,8 @@ mod tests {
                     is_exported: true,
                     is_deprecated: false,
                 },
-            }
-        }).collect();
+            })
+            .collect();
 
         ExtractedFile {
             file_path: path.to_string(),
@@ -423,24 +438,36 @@ mod tests {
         let root_folder = CodemapGenerator::generate_folder_view(&files, "");
         assert_eq!(root_folder.files.len(), 1);
         assert_eq!(root_folder.files[0].file_path, "Cargo.toml");
-        assert_eq!(root_folder.subdirectories, vec!["src".to_string(), "src_helper".to_string()]);
+        assert_eq!(
+            root_folder.subdirectories,
+            vec!["src".to_string(), "src_helper".to_string()]
+        );
 
         // "src" folder view synthesis
         let src_folder = CodemapGenerator::generate_folder_view(&files, "src");
         assert_eq!(src_folder.files.len(), 1);
         assert_eq!(src_folder.files[0].file_path, "src/main.rs");
-        assert_eq!(src_folder.subdirectories, vec!["src/core".to_string(), "src/utils".to_string()]);
+        assert_eq!(
+            src_folder.subdirectories,
+            vec!["src/core".to_string(), "src/utils".to_string()]
+        );
 
         // Trailing slash path normalization
         let src_folder_slash = CodemapGenerator::generate_folder_view(&files, "src/");
         assert_eq!(src_folder_slash.files.len(), 1);
         assert_eq!(src_folder_slash.files[0].file_path, "src/main.rs");
-        assert_eq!(src_folder_slash.subdirectories, vec!["src/core".to_string(), "src/utils".to_string()]);
+        assert_eq!(
+            src_folder_slash.subdirectories,
+            vec!["src/core".to_string(), "src/utils".to_string()]
+        );
 
         // Windows path backslash normalization
         let src_folder_win = CodemapGenerator::generate_folder_view(&files, "src\\");
         assert_eq!(src_folder_win.files.len(), 1);
-        assert_eq!(src_folder_win.subdirectories, vec!["src/core".to_string(), "src/utils".to_string()]);
+        assert_eq!(
+            src_folder_win.subdirectories,
+            vec!["src/core".to_string(), "src/utils".to_string()]
+        );
     }
 
     #[test]
@@ -498,7 +525,7 @@ mod tests {
             make_mock_file("src/core/../utils/math.rs", &[("add", "fn")]),
         ];
         let root = CodemapGenerator::generate_root_view(&files);
-        
+
         assert!(!root.directories.contains(&"src/..".to_string()));
         assert!(root.directories.contains(&"src/utils".to_string()));
         assert_eq!(root.files[0].file_path, "lib.rs");

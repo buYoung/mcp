@@ -1,9 +1,9 @@
 use clap::{Parser, Subcommand};
-use std::path::Path;
-use codemap_search::parser::{TreeSitterExtractor, CodeExtractor};
 use codemap_search::codemap::CodemapGenerator;
-use codemap_search::{parser, index, mcp, benchmark};
 use codemap_search::index::SearchEngine;
+use codemap_search::parser::{CodeExtractor, TreeSitterExtractor};
+use codemap_search::{benchmark, index, mcp, parser};
+use std::path::Path;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -16,30 +16,30 @@ struct Cli {
 enum Commands {
     /// Start the MCP JSON-RPC Server
     Mcp,
-    
+
     /// Parse a source file and print extracted symbols
     Parse {
         /// File path to parse
         file: String,
     },
-    
+
     /// Tokenize an identifier into sub-tokens
     Tokenize {
         /// Identifier to tokenize
         identifier: String,
     },
-    
+
     /// Generate codemap views
     Codemap {
         /// Optional path (file or directory) to view
         #[arg(long)]
         path: Option<String>,
-        
+
         /// Optional format (e.g. "llms-txt")
         #[arg(long)]
         format: Option<String>,
     },
-    
+
     /// Perform a single query search using Tantivy index
     Search {
         /// The search query
@@ -47,14 +47,14 @@ enum Commands {
         #[arg(short, long, default_value = "10")]
         limit: usize,
     },
-    
+
     /// Index files in a directory
     Index {
         /// Directory to index
         #[arg(default_value = ".")]
         dir: String,
     },
-    
+
     /// Run comparison benchmark between Baseline and BM25 index
     Benchmark {
         #[arg(short, long, default_value = ".")]
@@ -64,14 +64,42 @@ enum Commands {
     },
 }
 
-#[tokio::main]
+// The MCP server is a sequential, single-client stdio loop (read line → handle → write,
+// one at a time) and nothing is `tokio::spawn`ed, so there is no concurrent task that
+// blocking I/O could starve. A single-threaded runtime right-sizes it — no worker
+// threadpool — which is why the brief's "move blocking I/O off the async path" is N/A
+// here (Child 04).
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Quiet by default: dependency INFO noise (tantivy commit/GC/`save metas` on every
+    // search) stays off stderr. `RUST_LOG` overrides — e.g. `RUST_LOG=debug` restores full
+    // diagnostics. Diagnostics always go to stderr; stdout is the MCP JSON-RPC stream.
+    let log_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn,codemap_search=info"));
     tracing_subscriber::fmt()
+        .with_env_filter(log_filter)
         .with_writer(std::io::stderr)
         .init();
-    
+
     let cli = Cli::parse();
-    
+
+    // Resolve config once (repo `.codemap/config.toml` + global, repo>global>default)
+    // before any command runs, so the CLI and `mcp` mode read the same resolved values.
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    codemap_search::config::init(&cwd);
+
+    // For index-using commands, register `.codemap/` in `.git/info/exclude` (idempotent,
+    // gated by `register_git_exclude`, silent outside a git repo).
+    if matches!(
+        &cli.command,
+        Commands::Mcp
+            | Commands::Search { .. }
+            | Commands::Index { .. }
+            | Commands::Benchmark { .. }
+    ) {
+        codemap_search::config::register_git_exclude_if_enabled(&cwd);
+    }
+
     match &cli.command {
         Commands::Parse { file } => {
             let path = Path::new(&file);
@@ -81,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let content = std::fs::read_to_string(path)?;
             let extractor = TreeSitterExtractor::new();
-            let extracted = extractor.extract(&content, &file)?;
+            let extracted = extractor.extract(&content, file)?;
             let json = serde_json::to_string_pretty(&extracted)?;
             println!("{}", json);
         }
@@ -93,7 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Codemap { path, format } => {
             let cwd = std::env::current_dir()?;
-            
+
             if let Some(ref p) = path {
                 let target_path = cwd.join(p);
                 if !target_path.exists() {
@@ -101,22 +129,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             }
-            
+
             let mut extracted_files = Vec::new();
             let extractor = TreeSitterExtractor::new();
-            
-            for entry in walkdir::WalkDir::new(&cwd)
-                .into_iter()
+
+            // Shared walker: EXCLUDED_DIRS + .gitignore/.codemapignore (Child 04), so the
+            // CLI codemap matches the MCP get_codemap and never traverses node_modules/.git.
+            for entry in codemap_search::tools::build_walker(&cwd, false)
+                .build()
                 .filter_map(|e| e.ok())
             {
                 let file_path = entry.path();
                 if file_path.is_file() {
                     if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
-                        if matches!(ext, "rs" | "py" | "ts" | "tsx" | "js" | "jsx") {
+                        if codemap_search::tools::is_source_extension(ext) {
                             if let Ok(rel_path) = file_path.strip_prefix(&cwd) {
                                 let rel_path_str = rel_path.to_string_lossy().to_string();
-                                if let Ok(content) = std::fs::read_to_string(file_path) {
-                                    if let Ok(extracted) = extractor.extract(&content, &rel_path_str) {
+                                if let Some(content) =
+                                    codemap_search::tools::read_source_for_parse(file_path)
+                                {
+                                    if let Ok(extracted) =
+                                        extractor.extract(&content, &rel_path_str)
+                                    {
                                         extracted_files.push(extracted);
                                     }
                                 }
@@ -125,13 +159,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
-            
+
             if let Some(ref p) = path {
                 let target_path = cwd.join(p);
                 if target_path.is_file() {
                     if let Ok(rel_path) = target_path.strip_prefix(&cwd) {
                         let rel_path_str = rel_path.to_string_lossy().to_string();
-                        if let Some(file) = extracted_files.iter().find(|f| f.file_path == rel_path_str) {
+                        if let Some(file) =
+                            extracted_files.iter().find(|f| f.file_path == rel_path_str)
+                        {
                             let view = CodemapGenerator::generate_detail_view(file);
                             println!("{}", view);
                             return Ok(());
@@ -154,29 +190,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Mcp => {
-            let engine = index::TantivySearchEngine::new(".codemap-index")?;
+            let engine =
+                index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             let extractor = TreeSitterExtractor::new();
             let mut server = mcp::McpServer::new(engine, extractor);
             server.run().await?;
         }
         Commands::Search { query, limit } => {
-            let engine = index::TantivySearchEngine::new(".codemap-index")?;
+            let engine =
+                index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             let results = engine.search(query, *limit)?;
             for result in results {
                 println!("{}", result.file_path);
             }
         }
         Commands::Index { dir } => {
-            let mut engine = index::TantivySearchEngine::new(".codemap-index")?;
+            let mut engine =
+                index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             engine.index_files(&[dir])?;
             println!("Indexed directory {}", dir);
         }
         Commands::Benchmark { dir, queries } => {
             let extractor = TreeSitterExtractor::new();
-            let mut engine = index::TantivySearchEngine::new(".codemap-index")?;
+            let mut engine =
+                index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             benchmark::BenchmarkEngine::run_benchmark(queries, &extractor, &mut engine, dir)?;
         }
     }
-    
+
     Ok(())
 }

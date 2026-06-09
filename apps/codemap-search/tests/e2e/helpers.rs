@@ -1,9 +1,9 @@
-use std::path::{Path, PathBuf};
+use serde_json::Value;
+use std::path::Path;
 use std::process::Stdio;
 use tempfile::TempDir;
-use tokio::process::{Command, Child, ChildStdin};
-use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
-use serde_json::Value;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::{Child, ChildStdin, Command};
 
 /// Helper to dynamically build a mock directory with specific files
 pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Error> {
@@ -23,7 +23,12 @@ pub fn run_cli(args: &[&str], cwd: &Path) -> assert_cmd::assert::Assert {
     use assert_cmd::prelude::*;
     let mut cmd = std::process::Command::cargo_bin("codemap-search")
         .expect("Failed to find codemap-search binary");
-    cmd.current_dir(cwd).args(args).assert()
+    // Isolate the global config home to the test's own dir so the suite never reads the
+    // developer's real ~/.codemap (Child 05 hermeticity); absent file → defaults.
+    cmd.current_dir(cwd)
+        .env("CODEMAP_HOME", cwd)
+        .args(args)
+        .assert()
 }
 
 /// Async MCP Client for interacting with the JSON-RPC server over stdio
@@ -39,21 +44,25 @@ impl McpClient {
     pub async fn spawn(cwd: &Path) -> Result<Self, std::io::Error> {
         // Obtains path to the cargo-built binary
         let binary_path = assert_cmd::cargo::cargo_bin("codemap-search");
-        
+
         let mut child = Command::new(binary_path)
             .arg("mcp") // Launches MCP server mode
             .current_dir(cwd)
+            // Hermetic global config home — never read the developer's real ~/.codemap.
+            .env("CODEMAP_HOME", cwd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs
             .spawn()?;
 
-        let stdin = child.stdin.take().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::Other, "Failed to open child stdin")
-        })?;
-        let stdout = child.stdout.take().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::Other, "Failed to open child stdout")
-        })?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| std::io::Error::other("Failed to open child stdin"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| std::io::Error::other("Failed to open child stdout"))?;
         let stdout_reader = BufReader::new(stdout);
 
         Ok(Self {
@@ -81,13 +90,19 @@ impl McpClient {
         payload.push('\n');
 
         // Write to server's stdin
-        self.stdin.write_all(payload.as_bytes()).await.map_err(|e| e.to_string())?;
+        self.stdin
+            .write_all(payload.as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
         self.stdin.flush().await.map_err(|e| e.to_string())?;
 
         // Read single line response from server's stdout
         let mut line = String::new();
-        self.stdout_reader.read_line(&mut line).await.map_err(|e| e.to_string())?;
-        
+        self.stdout_reader
+            .read_line(&mut line)
+            .await
+            .map_err(|e| e.to_string())?;
+
         // Parse and return JSON response
         let response: Value = serde_json::from_str(&line).map_err(|e| e.to_string())?;
         Ok(response)
