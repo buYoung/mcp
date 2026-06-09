@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 pub trait CodemapView {
     fn to_markdown(&self) -> String;
 }
@@ -53,7 +51,13 @@ const ROOT_DIRECTORY_LIMIT: usize = 400;
 #[derive(Debug, Clone)]
 pub struct FolderCodemap<'a> {
     pub folder_path: String,
-    pub subdirectories: Vec<String>,
+    /// Recursive file/symbol counts for the whole tree (repo-wide). The folder view
+    /// renders only the part reachable from `folder_path`, but counts are repo-wide so a
+    /// directory reads identically here and in the root view.
+    pub directories: Vec<DirectorySummary>,
+    /// Recursive totals for `folder_path` itself (its scope header).
+    pub total_files: usize,
+    pub total_symbols: usize,
     pub files: Vec<ExtractedFileSummary<'a>>,
     pub original_files: &'a [crate::parser::ExtractedFile],
 }
@@ -125,37 +129,119 @@ fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFileSummary<'
     }
 }
 
-/// Render the root directory section with Rust-`use`-style leaf folding: a directory
-/// whose immediate subdirectories are ALL leaves (none holds a further subdirectory) is
-/// emitted on a single line with those children inlined —
-/// `parent (N files, M symbols): childA (..), childB (..)` — instead of one row each.
-/// This collapses the repeated parent-path prefix (the dominant redundancy on a deep
-/// tree) while keeping every directory's file/symbol counts. A directory with any
-/// non-leaf child renders normally and its subtree folds deeper. Output is bounded by
-/// `limit` emitted rows so a pathologically wide tree still can't blow the budget.
-fn write_root_directories(
-    f: &mut std::fmt::Formatter<'_>,
-    directories: &[DirectorySummary],
-    limit: usize,
-) -> std::fmt::Result {
-    use std::collections::{HashMap, HashSet};
-
-    // A directory is a non-leaf exactly when it is a strict path-prefix of another
-    // directory — collect every such prefix so an O(1) membership test gives "has a
-    // child directory".
-    let mut has_child_dir: HashSet<&str> = HashSet::new();
-    for dir in directories {
-        let path = dir.path.as_str();
-        let mut end = path.len();
-        while let Some(slash) = path[..end].rfind('/') {
-            has_child_dir.insert(&path[..slash]);
-            end = slash;
+/// Aggregate every ancestor directory's recursive file + significant-symbol counts in
+/// one pass over the file summaries: each prefix of a file's path is an ancestor, so a
+/// file in `src/a/b.ts` credits both `src` and `src/a`. Shared by the root and folder
+/// views so a directory's counts are identical regardless of where you view it from. The
+/// BTreeMap keeps the result path-sorted.
+fn build_directory_summaries(files: &[ExtractedFileSummary]) -> Vec<DirectorySummary> {
+    let mut dir_counts: std::collections::BTreeMap<String, (usize, usize)> =
+        std::collections::BTreeMap::new();
+    for file in files {
+        let parts: Vec<&str> = file.file_path.split('/').collect();
+        for i in 1..parts.len() {
+            let dir_path = parts[0..i].join("/");
+            if dir_path.is_empty() {
+                continue;
+            }
+            let entry = dir_counts.entry(dir_path).or_insert((0, 0));
+            entry.0 += 1;
+            entry.1 += file.symbol_count;
         }
     }
+    dir_counts
+        .into_iter()
+        .map(|(path, (file_count, symbol_count))| DirectorySummary {
+            path,
+            file_count,
+            symbol_count,
+        })
+        .collect()
+}
+
+type ChildMap<'a> = std::collections::HashMap<&'a str, Vec<&'a DirectorySummary>>;
+
+fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
+/// A directory is a leaf when it has no subdirectories.
+fn dir_is_leaf(children: &ChildMap, path: &str) -> bool {
+    children.get(path).map_or(true, |kids| kids.is_empty())
+}
+
+/// "Deep" = has at least one non-leaf subdirectory (its subtree is ≥2 levels).
+fn dir_is_deep(children: &ChildMap, path: &str) -> bool {
+    children
+        .get(path)
+        .is_some_and(|kids| kids.iter().any(|c| !dir_is_leaf(children, &c.path)))
+}
+
+/// True when at least one immediate subdirectory is itself a leaf.
+fn dir_has_leaf_child(children: &ChildMap, path: &str) -> bool {
+    children
+        .get(path)
+        .is_some_and(|kids| kids.iter().any(|c| dir_is_leaf(children, &c.path)))
+}
+
+/// How a child renders *inline* on its parent's line:
+/// - leaf → `name (counts)`
+/// - terminal-group (all of its children are leaves) → `name (counts): leafA (counts), …`
+/// - deep (has a non-leaf child) → `name (counts)` (bare; its subtree continues on its
+///   own anchor line(s))
+fn render_inline_child(children: &ChildMap, child: &DirectorySummary) -> String {
+    let base = basename(&child.path);
+    let head = format!(
+        "{} ({} files, {} symbols)",
+        base, child.file_count, child.symbol_count
+    );
+    if dir_is_leaf(children, &child.path) || dir_is_deep(children, &child.path) {
+        head
+    } else {
+        // terminal-group: inline its leaf children one level deep, wrapped in braces so
+        // the nested group is unambiguous against the parent's own sibling list
+        // (`auth: {a, b}, common` — `common` is clearly the parent's child, not auth's).
+        let leaves = children[child.path.as_str()]
+            .iter()
+            .map(|g| {
+                format!(
+                    "{} ({} files, {} symbols)",
+                    basename(&g.path),
+                    g.file_count,
+                    g.symbol_count
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{}: {{{}}}", head, leaves)
+    }
+}
+
+/// Render a directory tree with Rust-`use`-style inlining. Each *anchor* directory
+/// occupies one line that inlines all its immediate children (see [`render_inline_child`]);
+/// the repeated parent-path prefix — the dominant redundancy on a deep tree — is written
+/// once. Which directories get their own line:
+/// - every immediate child of `scope` is an anchor (`scope` is `""` for the repo root, or
+///   a folder path like `src/modules` for a folder view);
+/// - a `deep` child of an anchor that *has a leaf child of its own* becomes an anchor
+///   (it has direct files/leaf-dirs worth breaking out, e.g. `src/common`);
+/// - a `deep` child with *no* leaf child (a pure junction, e.g. `src/common/modules`)
+///   gets no line — it is only bare-mentioned on its parent, and its subdirectories are
+///   promoted to anchors instead.
+/// The full repo `directories` slice is passed regardless of scope; only directories
+/// reachable from `scope` are seeded, so the rest never render. Output is bounded by
+/// `limit` emitted anchor lines so a pathologically wide tree can't blow the budget.
+fn write_directory_tree(
+    f: &mut std::fmt::Formatter<'_>,
+    directories: &[DirectorySummary],
+    scope: &str,
+    limit: usize,
+) -> std::fmt::Result {
+    use std::collections::{BTreeSet, HashMap};
 
     // Immediate children keyed by parent path (top-level directories sit under "").
     // `directories` is path-sorted, so each child list stays alphabetical.
-    let mut children: HashMap<&str, Vec<&DirectorySummary>> = HashMap::new();
+    let mut children: ChildMap = HashMap::new();
     for dir in directories {
         let parent = match dir.path.rfind('/') {
             Some(slash) => &dir.path[..slash],
@@ -164,63 +250,77 @@ fn write_root_directories(
         children.entry(parent).or_default().push(dir);
     }
 
-    writeln!(
-        f,
-        "## Directories (recursive file/symbol counts; sibling leaf folders grouped as `parent: childA, childB`; drill in with `overview <dir>`)"
-    )?;
-
-    let mut consumed: HashSet<&str> = HashSet::new();
-    let mut emitted = 0usize;
-    let mut accounted = 0usize;
-    for dir in directories {
-        // Children already inlined into a folded parent: count them as represented but
-        // emit nothing. Done before the limit check so a fold's tail never gets
-        // miscounted as "not shown".
-        if consumed.contains(dir.path.as_str()) {
-            accounted += 1;
-            continue;
+    // Decide the anchor set (directories that get their own line). A small worklist
+    // walks down from `scope`'s immediate children: an anchor exposes its deep children,
+    // and a deep child either becomes an anchor (it has a leaf child) or is skipped so its
+    // own children are considered in turn.
+    enum Task<'a> {
+        Anchor(&'a str),
+        Consider(&'a str),
+    }
+    let mut anchors: BTreeSet<&str> = BTreeSet::new();
+    let mut stack: Vec<Task> = Vec::new();
+    if let Some(tops) = children.get(scope) {
+        for dir in tops {
+            stack.push(Task::Anchor(dir.path.as_str()));
         }
-        if emitted >= limit {
-            break;
-        }
-        let kids = children.get(dir.path.as_str());
-        let foldable = kids.is_some_and(|k| {
-            !k.is_empty() && k.iter().all(|c| !has_child_dir.contains(c.path.as_str()))
-        });
-        if foldable {
-            write!(
-                f,
-                "- {} ({} files, {} symbols): ",
-                dir.path, dir.file_count, dir.symbol_count
-            )?;
-            for (i, child) in kids.unwrap().iter().enumerate() {
-                if i > 0 {
-                    write!(f, ", ")?;
+    }
+    while let Some(task) = stack.pop() {
+        match task {
+            Task::Anchor(path) => {
+                if !anchors.insert(path) {
+                    continue;
                 }
-                let base = child.path.rsplit('/').next().unwrap_or(&child.path);
-                write!(
-                    f,
-                    "{} ({} files, {} symbols)",
-                    base, child.file_count, child.symbol_count
-                )?;
-                consumed.insert(child.path.as_str());
+                if let Some(kids) = children.get(path) {
+                    for child in kids {
+                        if dir_is_deep(&children, &child.path) {
+                            stack.push(Task::Consider(child.path.as_str()));
+                        }
+                    }
+                }
             }
-            writeln!(f)?;
-        } else {
-            writeln!(
+            Task::Consider(path) => {
+                if dir_has_leaf_child(&children, path) {
+                    stack.push(Task::Anchor(path));
+                } else if let Some(kids) = children.get(path) {
+                    for child in kids {
+                        stack.push(Task::Consider(child.path.as_str()));
+                    }
+                }
+            }
+        }
+    }
+
+    let by_path: HashMap<&str, &DirectorySummary> =
+        directories.iter().map(|d| (d.path.as_str(), d)).collect();
+    let total = anchors.len();
+    for path in anchors.iter().take(limit) {
+        let dir = by_path[path];
+        match children.get(path) {
+            Some(kids) if !kids.is_empty() => {
+                let inlined = kids
+                    .iter()
+                    .map(|c| render_inline_child(&children, c))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                writeln!(
+                    f,
+                    "- {} ({} files, {} symbols): {}",
+                    dir.path, dir.file_count, dir.symbol_count, inlined
+                )?;
+            }
+            _ => writeln!(
                 f,
                 "- {} ({} files, {} symbols)",
                 dir.path, dir.file_count, dir.symbol_count
-            )?;
+            )?,
         }
-        accounted += 1;
-        emitted += 1;
     }
-    if accounted < directories.len() {
+    if total > limit {
         writeln!(
             f,
-            "_… {} more directories not shown; narrow with `overview <dir>`._",
-            directories.len() - accounted
+            "_… {} more directory groups not shown; narrow with `overview <dir>`._",
+            total - limit
         )?;
     }
     Ok(())
@@ -238,7 +338,11 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         writeln!(f)?;
 
         if !self.directories.is_empty() {
-            write_root_directories(f, &self.directories, ROOT_DIRECTORY_LIMIT)?;
+            writeln!(
+                f,
+                "## Directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+            )?;
+            write_directory_tree(f, &self.directories, "", ROOT_DIRECTORY_LIMIT)?;
             writeln!(f)?;
         }
 
@@ -278,26 +382,44 @@ impl<'a> CodemapView for RootCodemap<'a> {
 
 impl<'a> std::fmt::Display for FolderCodemap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "# Folder Codemap: {}", self.folder_path)?;
+        writeln!(f, "# Codemap: {}", self.folder_path)?;
+        writeln!(f)?;
+        writeln!(f, "- **Total Files**: {}", self.total_files)?;
+        writeln!(f, "- **Total Symbols**: {}", self.total_symbols)?;
         writeln!(f)?;
 
-        if self.subdirectories.is_empty() && self.files.is_empty() {
+        // Does any directory sit directly under this folder? (Drives the Sub-directories
+        // section, which reuses the root view's folded, counted renderer scoped here.)
+        let has_subdirs = self.directories.iter().any(|dir| {
+            let parent = match dir.path.rfind('/') {
+                Some(slash) => &dir.path[..slash],
+                None => "",
+            };
+            parent == self.folder_path
+        });
+
+        if !has_subdirs && self.files.is_empty() {
             writeln!(f, "No files in this folder.")?;
             return Ok(());
         }
 
-        if !self.subdirectories.is_empty() {
-            writeln!(f, "## Sub-directories")?;
-            for dir in &self.subdirectories {
-                writeln!(f, "- {}", dir)?;
-            }
+        if has_subdirs {
+            writeln!(
+                f,
+                "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+            )?;
+            write_directory_tree(f, &self.directories, &self.folder_path, ROOT_DIRECTORY_LIMIT)?;
             writeln!(f)?;
         }
 
         if !self.files.is_empty() {
             writeln!(f, "## Files")?;
             for file in &self.files {
-                writeln!(f, "- File: {} ({} lines)", file.file_path, file.total_lines)?;
+                writeln!(
+                    f,
+                    "- File: {} ({} lines, {} symbols)",
+                    file.file_path, file.total_lines, file.symbol_count
+                )?;
                 // Significant symbols only, names/kinds without line ranges: the folder
                 // view orients within a known folder but is not a locator — exact
                 // positions come from search/grep (overview must not substitute for search).
@@ -391,34 +513,7 @@ impl CodemapGenerator {
         // the raw extracted total — so the headline matches the per-file sums.
         let total_symbols = files_summary.iter().map(|f| f.symbol_count).sum();
 
-        // Aggregate each ancestor directory's recursive file + significant-symbol
-        // counts in one pass over the summaries. Every prefix of a file's path is an
-        // ancestor, so a file in `src/a/b.ts` credits `src` and `src/a`. The counts
-        // let the agent pick the relevant subtree from the root view without the
-        // per-file dump (BTreeMap keeps the output path-sorted, matching the prior
-        // directory ordering).
-        let mut dir_counts: std::collections::BTreeMap<String, (usize, usize)> =
-            std::collections::BTreeMap::new();
-        for file in &files_summary {
-            let parts: Vec<&str> = file.file_path.split('/').collect();
-            for i in 1..parts.len() {
-                let dir_path = parts[0..i].join("/");
-                if dir_path.is_empty() {
-                    continue;
-                }
-                let entry = dir_counts.entry(dir_path).or_insert((0, 0));
-                entry.0 += 1;
-                entry.1 += file.symbol_count;
-            }
-        }
-        let directories: Vec<DirectorySummary> = dir_counts
-            .into_iter()
-            .map(|(path, (file_count, symbol_count))| DirectorySummary {
-                path,
-                file_count,
-                symbol_count,
-            })
-            .collect();
+        let directories = build_directory_summaries(&files_summary);
 
         RootCodemap {
             total_files,
@@ -429,55 +524,52 @@ impl CodemapGenerator {
         }
     }
 
-    /// Folder level: Sub-directory specific view synthesized on the fly
+    /// Folder level: the same folded directory tree as the root view, scoped to
+    /// `folder_path`, plus the files that live directly in that folder (with their
+    /// symbols) — the files-with-symbols payload is what this view adds over the root.
     pub fn generate_folder_view<'a>(
         files: &'a [crate::parser::ExtractedFile],
         folder_path: &str,
     ) -> FolderCodemap<'a> {
-        let normalized_folder = normalize_path(folder_path);
-        let mut sub_dirs = BTreeSet::new();
-        let mut files_summary = Vec::new();
+        let normalized_folder = normalize_path(folder_path).into_owned();
 
+        // Repo-wide summaries → repo-wide directory counts (so a directory reads the same
+        // here as in the root view); the renderer scopes the output to this folder.
+        let all_summaries: Vec<ExtractedFileSummary<'a>> =
+            files.iter().map(summarize_file).collect();
+        let directories = build_directory_summaries(&all_summaries);
+
+        // Walk the summaries once: accumulate this folder's recursive totals and collect
+        // the files that sit directly in it (parent directory == the folder).
         let prefix = format!("{}/", normalized_folder);
+        let mut total_files = 0usize;
+        let mut total_symbols = 0usize;
+        let mut files_in_folder = Vec::new();
+        for summary in &all_summaries {
+            let under_folder = normalized_folder.is_empty()
+                || summary.file_path == normalized_folder
+                || summary.file_path.starts_with(&prefix);
+            if !under_folder {
+                continue;
+            }
+            total_files += 1;
+            total_symbols += summary.symbol_count;
 
-        for file in files {
-            let normalized_file = normalize_path(&file.file_path);
-            let is_match = if normalized_folder.is_empty() {
-                true
-            } else {
-                normalized_file == normalized_folder || normalized_file.starts_with(&prefix)
+            let parent = match summary.file_path.rfind('/') {
+                Some(slash) => &summary.file_path[..slash],
+                None => "",
             };
-
-            if is_match {
-                if normalized_file == normalized_folder {
-                    files_summary.push(summarize_file(file));
-                } else {
-                    let rel = if normalized_folder.is_empty() {
-                        normalized_file.as_ref()
-                    } else {
-                        &normalized_file[normalized_folder.len() + 1..]
-                    };
-
-                    let parts: Vec<&str> = rel.split('/').collect();
-                    if parts.len() == 1 {
-                        files_summary.push(summarize_file(file));
-                    } else if parts.len() > 1 {
-                        let first_component = parts[0];
-                        let sub_dir = if normalized_folder.is_empty() {
-                            first_component.to_string()
-                        } else {
-                            format!("{}/{}", normalized_folder, first_component)
-                        };
-                        sub_dirs.insert(sub_dir);
-                    }
-                }
+            if parent == normalized_folder {
+                files_in_folder.push(summary.clone());
             }
         }
 
         FolderCodemap {
-            folder_path: folder_path.to_string(),
-            subdirectories: sub_dirs.into_iter().collect(),
-            files: files_summary,
+            folder_path: normalized_folder,
+            directories,
+            total_files,
+            total_symbols,
+            files: files_in_folder,
             original_files: files,
         }
     }
@@ -583,6 +675,53 @@ mod tests {
         assert!(!formatted.contains("[L"));
     }
 
+    /// Pins the recursive directory inlining of the root view across all three child
+    /// shapes on one tree:
+    ///  - `leafA`        — a leaf directory → inlined bare on its parent's line.
+    ///  - `group`        — a terminal-group (all children leaves) → inlined with its
+    ///                     children in braces: `group (..): {leaf1 (..), leaf2 (..)}`.
+    ///  - `junction`     — deep with NO leaf child of its own → gets no line; it is only
+    ///                     bare-mentioned on `top`, and its grandchild `sub` (which has a
+    ///                     leaf child) is promoted to its own anchor line.
+    #[test]
+    fn test_root_codemap_recursive_inlining() {
+        let files = vec![
+            make_mock_file("top/leafA/a.rs", &[("a", "fn")]),
+            make_mock_file("top/group/leaf1/b.rs", &[("b", "fn")]),
+            make_mock_file("top/group/leaf2/c.rs", &[("c", "fn")]),
+            make_mock_file("top/junction/sub/leafX/d.rs", &[("d", "fn")]),
+        ];
+        let formatted = format!("{}", CodemapGenerator::generate_root_view(&files));
+
+        // `top` is the only top-level anchor; it inlines all three children in path
+        // (alphabetical) order — group, junction, leafA — with the terminal-group `group`
+        // brace-wrapped so its members can't be confused with `top`'s own siblings.
+        assert!(
+            formatted.contains(
+                "- top (4 files, 4 symbols): \
+                 group (2 files, 2 symbols): {leaf1 (1 files, 1 symbols), leaf2 (1 files, 1 symbols)}, \
+                 junction (1 files, 1 symbols), \
+                 leafA (1 files, 1 symbols)"
+            ),
+            "top line did not inline children as expected:\n{formatted}"
+        );
+        // `junction` has no leaf child → it gets no anchor line of its own...
+        assert!(
+            !formatted.contains("- top/junction ("),
+            "deep junction with no leaf child must not get its own line:\n{formatted}"
+        );
+        // ...its grandchild `sub` is promoted instead.
+        assert!(
+            formatted.contains("- top/junction/sub (1 files, 1 symbols): leafX (1 files, 1 symbols)"),
+            "sub should be promoted to an anchor line:\n{formatted}"
+        );
+        // The terminal-group `group` is inlined into `top`, never a standalone anchor.
+        assert!(
+            !formatted.contains("- top/group ("),
+            "terminal-group child must be inlined, not anchored:\n{formatted}"
+        );
+    }
+
     #[test]
     fn test_folder_codemap_synthesis() {
         let files = vec![
@@ -594,12 +733,30 @@ mod tests {
             make_mock_file("src_helper/lib.rs", &[("helper", "fn")]),
         ];
 
+        // Immediate subdirectories of `scope`, derived from the repo-wide directory list
+        // the folder view now carries (the old `subdirectories` field is gone).
+        fn immediate_children(dirs: &[DirectorySummary], scope: &str) -> Vec<String> {
+            let mut v: Vec<String> = dirs
+                .iter()
+                .filter(|d| {
+                    let parent = match d.path.rfind('/') {
+                        Some(slash) => &d.path[..slash],
+                        None => "",
+                    };
+                    parent == scope
+                })
+                .map(|d| d.path.clone())
+                .collect();
+            v.sort();
+            v
+        }
+
         // Root folder view synthesis
         let root_folder = CodemapGenerator::generate_folder_view(&files, "");
         assert_eq!(root_folder.files.len(), 1);
         assert_eq!(root_folder.files[0].file_path, "Cargo.toml");
         assert_eq!(
-            root_folder.subdirectories,
+            immediate_children(&root_folder.directories, ""),
             vec!["src".to_string(), "src_helper".to_string()]
         );
 
@@ -608,26 +765,78 @@ mod tests {
         assert_eq!(src_folder.files.len(), 1);
         assert_eq!(src_folder.files[0].file_path, "src/main.rs");
         assert_eq!(
-            src_folder.subdirectories,
+            immediate_children(&src_folder.directories, "src"),
             vec!["src/core".to_string(), "src/utils".to_string()]
         );
 
-        // Trailing slash path normalization
+        // Trailing slash path normalization (folder_path is stored normalized).
         let src_folder_slash = CodemapGenerator::generate_folder_view(&files, "src/");
+        assert_eq!(src_folder_slash.folder_path, "src");
         assert_eq!(src_folder_slash.files.len(), 1);
         assert_eq!(src_folder_slash.files[0].file_path, "src/main.rs");
         assert_eq!(
-            src_folder_slash.subdirectories,
+            immediate_children(&src_folder_slash.directories, "src"),
             vec!["src/core".to_string(), "src/utils".to_string()]
         );
 
         // Windows path backslash normalization
         let src_folder_win = CodemapGenerator::generate_folder_view(&files, "src\\");
+        assert_eq!(src_folder_win.folder_path, "src");
         assert_eq!(src_folder_win.files.len(), 1);
         assert_eq!(
-            src_folder_win.subdirectories,
+            immediate_children(&src_folder_win.directories, "src"),
             vec!["src/core".to_string(), "src/utils".to_string()]
         );
+    }
+
+    /// The folder view reuses the root view's folded, counted directory renderer scoped
+    /// to the folder, and adds a Files section for files directly in it. Pins: the
+    /// scope+totals header, the same leaf / terminal-group(braces) / deep-no-leaf-promotion
+    /// rendering as the root, and the file line carrying its symbol count + bullets.
+    #[test]
+    fn test_folder_codemap_recursive_inlining() {
+        let files = vec![
+            make_mock_file("mod/direct.rs", &[("direct", "fn")]),
+            make_mock_file("mod/leafA/a.rs", &[("a", "fn")]),
+            make_mock_file("mod/group/leaf1/b.rs", &[("b", "fn")]),
+            make_mock_file("mod/group/leaf2/c.rs", &[("c", "fn")]),
+            make_mock_file("mod/junction/sub/leafX/d.rs", &[("d", "fn")]),
+        ];
+        let folder = CodemapGenerator::generate_folder_view(&files, "mod");
+        let formatted = format!("{}", folder);
+
+        // Scope header + recursive totals (5 files / 5 symbols under `mod`).
+        assert!(formatted.contains("# Codemap: mod"), "{formatted}");
+        assert!(formatted.contains("- **Total Files**: 5"), "{formatted}");
+        assert!(formatted.contains("- **Total Symbols**: 5"), "{formatted}");
+
+        // Sub-directories: same folding as root, scoped under `mod`. Immediate children of
+        // the scope are always anchors (like top-level dirs in the root view), so each of
+        // group / junction / leafA gets its own line; a *nested* terminal-group (`sub`
+        // under `junction`) is the one that gets brace-wrapped.
+        assert!(
+            formatted
+                .contains("- mod/group (2 files, 2 symbols): leaf1 (1 files, 1 symbols), leaf2 (1 files, 1 symbols)"),
+            "scope-immediate anchor lists its children directly:\n{formatted}"
+        );
+        assert!(
+            formatted.contains(
+                "- mod/junction (1 files, 1 symbols): sub (1 files, 1 symbols): {leafX (1 files, 1 symbols)}"
+            ),
+            "a nested terminal-group should fold with braces:\n{formatted}"
+        );
+        assert!(formatted.contains("- mod/leafA (1 files, 1 symbols)"), "{formatted}");
+
+        // Files section: files directly in the folder, with symbol count + symbol bullets
+        // (no line ranges — that stays search/grep's job).
+        assert!(
+            formatted.contains("## Files")
+                && formatted.contains("- File: mod/direct.rs (0 lines, 1 symbols)")
+                && formatted.contains("  - direct (fn)"),
+            "files section missing or mis-formatted:\n{formatted}"
+        );
+        // A file deep in a subdir is NOT relisted in this folder's Files section.
+        assert!(!formatted.contains("- File: mod/leafA/a.rs"), "{formatted}");
     }
 
     #[test]
