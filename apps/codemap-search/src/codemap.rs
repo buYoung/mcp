@@ -125,6 +125,107 @@ fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFileSummary<'
     }
 }
 
+/// Render the root directory section with Rust-`use`-style leaf folding: a directory
+/// whose immediate subdirectories are ALL leaves (none holds a further subdirectory) is
+/// emitted on a single line with those children inlined —
+/// `parent (N files, M symbols): childA (..), childB (..)` — instead of one row each.
+/// This collapses the repeated parent-path prefix (the dominant redundancy on a deep
+/// tree) while keeping every directory's file/symbol counts. A directory with any
+/// non-leaf child renders normally and its subtree folds deeper. Output is bounded by
+/// `limit` emitted rows so a pathologically wide tree still can't blow the budget.
+fn write_root_directories(
+    f: &mut std::fmt::Formatter<'_>,
+    directories: &[DirectorySummary],
+    limit: usize,
+) -> std::fmt::Result {
+    use std::collections::{HashMap, HashSet};
+
+    // A directory is a non-leaf exactly when it is a strict path-prefix of another
+    // directory — collect every such prefix so an O(1) membership test gives "has a
+    // child directory".
+    let mut has_child_dir: HashSet<&str> = HashSet::new();
+    for dir in directories {
+        let path = dir.path.as_str();
+        let mut end = path.len();
+        while let Some(slash) = path[..end].rfind('/') {
+            has_child_dir.insert(&path[..slash]);
+            end = slash;
+        }
+    }
+
+    // Immediate children keyed by parent path (top-level directories sit under "").
+    // `directories` is path-sorted, so each child list stays alphabetical.
+    let mut children: HashMap<&str, Vec<&DirectorySummary>> = HashMap::new();
+    for dir in directories {
+        let parent = match dir.path.rfind('/') {
+            Some(slash) => &dir.path[..slash],
+            None => "",
+        };
+        children.entry(parent).or_default().push(dir);
+    }
+
+    writeln!(
+        f,
+        "## Directories (recursive file/symbol counts; sibling leaf folders grouped as `parent: childA, childB`; drill in with `overview <dir>`)"
+    )?;
+
+    let mut consumed: HashSet<&str> = HashSet::new();
+    let mut emitted = 0usize;
+    let mut accounted = 0usize;
+    for dir in directories {
+        // Children already inlined into a folded parent: count them as represented but
+        // emit nothing. Done before the limit check so a fold's tail never gets
+        // miscounted as "not shown".
+        if consumed.contains(dir.path.as_str()) {
+            accounted += 1;
+            continue;
+        }
+        if emitted >= limit {
+            break;
+        }
+        let kids = children.get(dir.path.as_str());
+        let foldable = kids.is_some_and(|k| {
+            !k.is_empty() && k.iter().all(|c| !has_child_dir.contains(c.path.as_str()))
+        });
+        if foldable {
+            write!(
+                f,
+                "- {} ({} files, {} symbols): ",
+                dir.path, dir.file_count, dir.symbol_count
+            )?;
+            for (i, child) in kids.unwrap().iter().enumerate() {
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
+                let base = child.path.rsplit('/').next().unwrap_or(&child.path);
+                write!(
+                    f,
+                    "{} ({} files, {} symbols)",
+                    base, child.file_count, child.symbol_count
+                )?;
+                consumed.insert(child.path.as_str());
+            }
+            writeln!(f)?;
+        } else {
+            writeln!(
+                f,
+                "- {} ({} files, {} symbols)",
+                dir.path, dir.file_count, dir.symbol_count
+            )?;
+        }
+        accounted += 1;
+        emitted += 1;
+    }
+    if accounted < directories.len() {
+        writeln!(
+            f,
+            "_… {} more directories not shown; narrow with `overview <dir>`._",
+            directories.len() - accounted
+        )?;
+    }
+    Ok(())
+}
+
 impl<'a> std::fmt::Display for RootCodemap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.files.is_empty() && self.directories.is_empty() {
@@ -137,24 +238,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         writeln!(f)?;
 
         if !self.directories.is_empty() {
-            writeln!(
-                f,
-                "## Directories (files / symbols beneath each — drill in with `overview <dir>`)"
-            )?;
-            for dir in self.directories.iter().take(ROOT_DIRECTORY_LIMIT) {
-                writeln!(
-                    f,
-                    "- {} ({} files, {} symbols)",
-                    dir.path, dir.file_count, dir.symbol_count
-                )?;
-            }
-            if self.directories.len() > ROOT_DIRECTORY_LIMIT {
-                writeln!(
-                    f,
-                    "_… {} more directories not shown; narrow with `overview <dir>`._",
-                    self.directories.len() - ROOT_DIRECTORY_LIMIT
-                )?;
-            }
+            write_root_directories(f, &self.directories, ROOT_DIRECTORY_LIMIT)?;
             writeln!(f)?;
         }
 

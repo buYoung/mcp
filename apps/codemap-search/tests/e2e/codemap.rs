@@ -61,11 +61,12 @@ fn test_codemap_hierarchical_navigation() {
     ])
     .unwrap();
 
-    // 1. Root view
+    // 1. Root view — `src`'s only child `core` is a leaf directory, so it folds onto
+    // the `src` line (Rust-`use`-style): `- src (..): core (..)`.
     let assert_root = run_cli(&["codemap"], temp.path());
     assert_root
         .success()
-        .stdout(predicates::str::contains("src/core"));
+        .stdout(predicates::str::contains("core ("));
 
     // 2. Folder view
     let assert_folder = run_cli(&["codemap", "--path", "src/core"], temp.path());
