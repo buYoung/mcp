@@ -181,8 +181,8 @@ async fn test_index_and_codemap_exclude_junk_dirs() {
         .as_str()
         .unwrap();
     assert!(
-        codemap_text.contains("src/foo.rs"),
-        "codemap should list the in-tree file: {codemap_text:?}"
+        codemap_text.contains("- src ("),
+        "codemap should surface the in-tree src directory: {codemap_text:?}"
     );
     assert!(
         !codemap_text.contains("node_modules"),

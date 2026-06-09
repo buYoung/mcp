@@ -175,6 +175,6 @@ fn test_default_index_materializes_under_codemap_dir() {
     // The index dir must not leak into the codemap output.
     run_cli(&["codemap"], temp.path())
         .success()
-        .stdout(predicates::str::contains("src/lib.rs"))
+        .stdout(predicates::str::contains("- src ("))
         .stdout(predicates::str::contains(".codemap").not());
 }

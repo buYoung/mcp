@@ -126,7 +126,7 @@ fn test_realworld_multilang_workspace() {
     let assert_codemap = run_cli(&["codemap"], temp.path());
     assert_codemap
         .success()
-        .stdout(predicates::str::contains("src/lib.rs"))
+        .stdout(predicates::str::contains("- src ("))
         .stdout(predicates::str::contains("package.json").not())
         .stdout(predicates::str::contains("README.md").not());
 }
@@ -173,7 +173,7 @@ async fn test_realworld_ai_agent_simulation() {
     assert!(root_res["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
-        .contains("src/main.rs"));
+        .contains("- src ("));
 
     // 3. Search for a symbol
     let search_res = client

@@ -9,11 +9,13 @@ fn test_codemap_root_view() {
     ])
     .unwrap();
 
+    // Root view is a directory skeleton (Design B): the `src` directory rolls up its
+    // files instead of listing each nested file — drill into the folder for the files.
     let assert = run_cli(&["codemap"], temp.path());
     assert
         .success()
-        .stdout(predicates::str::contains("src/main.rs"))
-        .stdout(predicates::str::contains("src/lib.rs"));
+        .stdout(predicates::str::contains("- src ("))
+        .stdout(predicates::str::contains("src/main.rs").not());
 }
 
 #[test]
@@ -140,10 +142,12 @@ fn test_codemap_non_source_files() {
     ])
     .unwrap();
 
+    // The `src` directory surfaces (it holds a parseable source file); the binary
+    // assets never do. Root view rolls files up by directory rather than listing each.
     let assert = run_cli(&["codemap"], temp.path());
     assert
         .success()
-        .stdout(predicates::str::contains("src/lib.rs"))
-        .stdout(predicates::str::contains("src/image.png").not())
-        .stdout(predicates::str::contains("src/archive.zip").not());
+        .stdout(predicates::str::contains("- src ("))
+        .stdout(predicates::str::contains("image.png").not())
+        .stdout(predicates::str::contains("archive.zip").not());
 }

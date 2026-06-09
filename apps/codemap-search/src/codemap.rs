@@ -21,15 +21,34 @@ pub struct ExtractedFileSummary<'a> {
     pub symbols: Vec<ExtractedSymbolSummary<'a>>,
 }
 
+/// One directory node in the root overview: its path plus the number of source
+/// files and significant symbols anywhere beneath it (recursive aggregate). The
+/// root view shows this skeleton instead of a per-file dump so a large repo stays
+/// cheap to orient in — the agent reads the tree, spots the relevant subtree by
+/// its counts, then drills with `overview <dir>`.
+#[derive(Debug, Clone)]
+pub struct DirectorySummary {
+    pub path: String,
+    pub file_count: usize,
+    pub symbol_count: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct RootCodemap<'a> {
     pub total_files: usize,
     pub total_symbols: usize,
-    pub directories: Vec<String>,
+    pub directories: Vec<DirectorySummary>,
     pub files: Vec<ExtractedFileSummary<'a>>,
     // Store reference to original files if needed, or define with references
     pub original_files: &'a [crate::parser::ExtractedFile],
 }
+
+/// Max directory rows the root view emits before truncating with a footer. The
+/// per-file dump is already gone (Design B); this only bounds pathologically wide
+/// monorepos so a tree with thousands of directories can't reintroduce the bloat.
+/// Set high enough that an ordinary large repo (hundreds of directories) renders in
+/// full — at ~50 bytes/row even 400 rows is ~5 KB, an order below the old per-file dump.
+const ROOT_DIRECTORY_LIMIT: usize = 400;
 
 #[derive(Debug, Clone)]
 pub struct FolderCodemap<'a> {
@@ -118,23 +137,51 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         writeln!(f)?;
 
         if !self.directories.is_empty() {
-            writeln!(f, "## Directories")?;
-            for dir in &self.directories {
-                writeln!(f, "- {}", dir)?;
+            writeln!(
+                f,
+                "## Directories (files / symbols beneath each — drill in with `overview <dir>`)"
+            )?;
+            for dir in self.directories.iter().take(ROOT_DIRECTORY_LIMIT) {
+                writeln!(
+                    f,
+                    "- {} ({} files, {} symbols)",
+                    dir.path, dir.file_count, dir.symbol_count
+                )?;
+            }
+            if self.directories.len() > ROOT_DIRECTORY_LIMIT {
+                writeln!(
+                    f,
+                    "_… {} more directories not shown; narrow with `overview <dir>`._",
+                    self.directories.len() - ROOT_DIRECTORY_LIMIT
+                )?;
             }
             writeln!(f)?;
         }
 
-        if !self.files.is_empty() {
-            writeln!(f, "## Files")?;
-            for file in &self.files {
+        // Only repo-root-level files (no parent directory) are listed individually —
+        // every nested file is reachable by drilling its directory. This is what keeps
+        // the root view bounded on a large tree (the per-file dump was the bulk).
+        let root_level_files: Vec<&ExtractedFileSummary<'a>> = self
+            .files
+            .iter()
+            .filter(|file| !file.file_path.contains('/'))
+            .collect();
+        if !root_level_files.is_empty() {
+            writeln!(f, "## Files (repo root)")?;
+            for file in root_level_files {
                 writeln!(
                     f,
                     "- File: {} ({} lines, {} symbols)",
                     file.file_path, file.total_lines, file.symbol_count
                 )?;
             }
+            writeln!(f)?;
         }
+
+        writeln!(
+            f,
+            "_Tip: `overview <dir>` lists a folder's files; `search <keyword>` jumps straight to code by name._"
+        )?;
         Ok(())
     }
 }
@@ -254,24 +301,40 @@ impl CodemapGenerator {
     pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
         let total_files = files.len();
 
-        let mut dirs_set = BTreeSet::new();
-        for file in files {
-            let normalized_file = normalize_path(&file.file_path);
-            let parts: Vec<&str> = normalized_file.split('/').collect();
-            for i in 1..parts.len() {
-                let dir_path = parts[0..i].join("/");
-                if !dir_path.is_empty() {
-                    dirs_set.insert(dir_path);
-                }
-            }
-        }
-        let directories: Vec<String> = dirs_set.into_iter().collect();
-
         let files_summary: Vec<ExtractedFileSummary<'a>> =
             files.iter().map(summarize_file).collect();
         // Root counts the significant symbols actually surfaced downstream, not
         // the raw extracted total — so the headline matches the per-file sums.
         let total_symbols = files_summary.iter().map(|f| f.symbol_count).sum();
+
+        // Aggregate each ancestor directory's recursive file + significant-symbol
+        // counts in one pass over the summaries. Every prefix of a file's path is an
+        // ancestor, so a file in `src/a/b.ts` credits `src` and `src/a`. The counts
+        // let the agent pick the relevant subtree from the root view without the
+        // per-file dump (BTreeMap keeps the output path-sorted, matching the prior
+        // directory ordering).
+        let mut dir_counts: std::collections::BTreeMap<String, (usize, usize)> =
+            std::collections::BTreeMap::new();
+        for file in &files_summary {
+            let parts: Vec<&str> = file.file_path.split('/').collect();
+            for i in 1..parts.len() {
+                let dir_path = parts[0..i].join("/");
+                if dir_path.is_empty() {
+                    continue;
+                }
+                let entry = dir_counts.entry(dir_path).or_insert((0, 0));
+                entry.0 += 1;
+                entry.1 += file.symbol_count;
+            }
+        }
+        let directories: Vec<DirectorySummary> = dir_counts
+            .into_iter()
+            .map(|(path, (file_count, symbol_count))| DirectorySummary {
+                path,
+                file_count,
+                symbol_count,
+            })
+            .collect();
 
         RootCodemap {
             total_files,
@@ -426,11 +489,12 @@ mod tests {
         assert!(formatted.contains("- **Total Files**: 2"));
         assert!(formatted.contains("- **Total Symbols**: 2"));
         assert!(formatted.contains("## Directories"));
-        assert!(formatted.contains("- src"));
-        assert!(formatted.contains("## Files"));
-        // Root lists files with line/significant-symbol counts only — no per-symbol bullets.
-        assert!(formatted.contains("- File: src/main.rs (0 lines, 1 symbols)"));
-        assert!(formatted.contains("- File: src/lib.rs (0 lines, 1 symbols)"));
+        // Root view is a directory skeleton with recursive counts, not a per-file dump:
+        // both files live under `src`, so it rolls up to one directory row.
+        assert!(formatted.contains("- src (2 files, 2 symbols)"));
+        // Nested files are reachable by drilling their directory — they are not listed
+        // individually at root (that per-file dump was the bloat we removed).
+        assert!(!formatted.contains("- File: src/main.rs"));
         assert!(!formatted.contains("  - main (fn)"));
         assert!(!formatted.contains("[L"));
     }
@@ -538,8 +602,8 @@ mod tests {
         ];
         let root = CodemapGenerator::generate_root_view(&files);
 
-        assert!(!root.directories.contains(&"src/..".to_string()));
-        assert!(root.directories.contains(&"src/utils".to_string()));
+        assert!(!root.directories.iter().any(|d| d.path == "src/.."));
+        assert!(root.directories.iter().any(|d| d.path == "src/utils"));
         assert_eq!(root.files[0].file_path, "lib.rs");
     }
 }
