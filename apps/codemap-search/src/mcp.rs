@@ -278,7 +278,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
                     },
-                    "instructions": "codemap-search exposes five complementary code-navigation tools. Pick by what you already know — there is no fixed order.\n\n- grep — exact literal/regex over files on disk. The right first move when you already know the exact identifier, string, or error message: enumerating call sites, tracing a known symbol, verifying just-edited files. Always current (no index lag); sees comments and non-code files.\n- search — BM25 keyword lookup over indexed symbols and docstrings. The right first move when you only know the concept, not the name ('where is the auth token refreshed?'), when you can't write a reliable grep pattern, or when grep returned zero hits or too much noise.\n- overview — hierarchical codemap (directories with file/symbol counts; a file path shows that file's symbols with line ranges). Use it to orient in unfamiliar code, and to scope reads: before reading a large file, overview it to get the exact line range.\n- read — exact file contents with line numbers (supports offset/limit paging).\n- find — locate files by glob pattern (e.g. '**/*.rs').\n\nTypical patterns:\n- Know the exact name -> grep, then read the relevant range (overview a large file first to find that range).\n- Know only the concept -> search to discover names and locations, then grep/read to confirm and trace.\n- Unfamiliar area or structural question -> overview (root -> folder -> file), then read.\n- grep found nothing or flooded you -> switch to search; once search names the exact symbol, grep is the fastest way to enumerate its uses.\n\nIterating grep -> read is a normal, effective loop. Reach for search when you lack a precise name, and for overview when a cheap symbol map would save you full-file reads."
+                    "instructions": "Five code-navigation tools; pick by what you already know — no fixed order.\n- grep: first move when you know the exact identifier, string, or error message (not a last resort). Always current; sees comments and non-code files.\n- search: first move when you only know the concept, can't write a reliable pattern, or grep returned zero hits or noise. Once it names the symbol, grep its uses.\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nIterating grep -> read is a normal, effective loop."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
@@ -286,7 +286,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                 "tools": [
                     {
                         "name": "overview",
-                        "description": "Hierarchical aider-style codemap. Call with no path for a repo-root map (directories with file/symbol counts — drill into a folder from there), a folder path to narrow, or a file path for that file's symbols with line ranges. Best for orienting in unfamiliar code, and for scoping reads: before reading a large file, overview it to find the exact line range, then read just that slice.",
+                        "description": "Hierarchical codemap. No path: repo-root map with file/symbol counts; folder path: narrows; file path: that file's symbols with line ranges.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -297,7 +297,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "search",
-                        "description": "BM25 keyword search over indexed symbols and docstrings. Best when you know the concept but not the exact identifier ('token refresh', 'retry backoff'), when a grep pattern would be unreliable or noisy, or when grep came back empty — identifier splitting and ranking recover what exact matching misses. Returns a codemap overview when many files match, per-file symbol details with line ranges when few. Once it names the exact symbol, `grep` is usually the fastest way to enumerate its call sites.",
+                        "description": "BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Returns a codemap when many files match, per-file symbols with line ranges when few.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -308,7 +308,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "read",
-                        "description": "Read one file's exact contents with line numbers. Returns '   N\u{2192}content' lines. Use offset/limit to page large files; on a large file, overview can first give you a symbol's line range so you read only the relevant slice.",
+                        "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -334,7 +334,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "grep",
-                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. The right first move when you already know the exact identifier, string, or error message — enumerating call sites, tracing a known symbol, verifying just-edited files. Always current (no index lag); sees comments, strings, and non-code files. If you get zero hits (wrong name guess) or too many (generic term), switch to `search` for ranked, symbol-aware lookup. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
