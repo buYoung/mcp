@@ -20,6 +20,12 @@ tree-sitter = "0.26"
 tree-sitter-rust = "0.24"
 tree-sitter-typescript = "0.23"
 tree-sitter-python = "0.25"
+tree-sitter-go = "0.25"
+tree-sitter-java = "0.23"
+# Kotlin: the actively-maintained rewrite (`-ng`) exposes the `LANGUAGE: LanguageFn`
+# constant and links against tree-sitter 0.26's ABI; the older `tree-sitter-kotlin`
+# (0.3.x, fwcd) still ships the legacy `language()` fn and is not compatible here.
+tree-sitter-kotlin-ng = "1.1"
 
 # Tantivy search engine for BM25 text indexing
 tantivy = "0.26"

@@ -183,6 +183,95 @@ const TS_QUERY_STR: &str = r#"
 (undefined) @literal.undefined
 "#;
 
+// Go: all named types are `type_spec`; struct vs interface vs alias is resolved in
+// code from the `type:` child (see the `symbol.gotype` arm) to avoid referencing
+// type-expression node kinds the grammar may or may not expose (an unknown kind makes
+// `Query::new` return Err -> the `.expect()` panics on first use).
+const GO_QUERY_STR: &str = r#"
+;; Functions and methods
+(function_declaration
+  name: (identifier) @symbol.name) @symbol.fn
+(method_declaration
+  name: (field_identifier) @symbol.name) @symbol.fn
+
+;; Named types (struct / interface / alias resolved in code)
+(type_spec
+  name: (type_identifier) @symbol.name) @symbol.gotype
+(type_alias
+  name: (type_identifier) @symbol.name) @symbol.type
+
+;; Struct fields
+(field_declaration
+  name: (field_identifier) @symbol.name) @symbol.field
+
+;; Interface methods
+(method_elem
+  name: (field_identifier) @symbol.name) @symbol.fn
+
+;; Package-level constants and variables
+(const_spec
+  name: (identifier) @symbol.name) @symbol.const
+(var_spec
+  name: (identifier) @symbol.name) @symbol.variable
+
+;; Literals (only strings are kept downstream)
+(interpreted_string_literal) @literal.string
+(raw_string_literal) @literal.string
+"#;
+
+const JAVA_QUERY_STR: &str = r#"
+;; Type declarations
+(class_declaration
+  name: (identifier) @symbol.name) @symbol.class
+(interface_declaration
+  name: (identifier) @symbol.name) @symbol.interface
+(enum_declaration
+  name: (identifier) @symbol.name) @symbol.enum
+(record_declaration
+  name: (identifier) @symbol.name) @symbol.record
+
+;; Methods and constructors
+(method_declaration
+  name: (identifier) @symbol.name) @symbol.method
+(constructor_declaration
+  name: (identifier) @symbol.name) @symbol.method
+
+;; Fields
+(field_declaration
+  declarator: (variable_declarator
+    name: (identifier) @symbol.name)) @symbol.field
+
+;; Literals
+(string_literal) @literal.string
+"#;
+
+// Kotlin: `class` and `interface` share the `class_declaration` node; the concrete
+// kind is resolved in code from the presence of an `interface` keyword child (see the
+// `symbol.ktclass` arm).
+const KOTLIN_QUERY_STR: &str = r#"
+;; Classes / interfaces (disambiguated in code) and objects
+(class_declaration
+  name: (identifier) @symbol.name) @symbol.ktclass
+(object_declaration
+  name: (identifier) @symbol.name) @symbol.object
+
+;; Functions
+(function_declaration
+  name: (identifier) @symbol.name) @symbol.fn
+
+;; Properties
+(property_declaration
+  (variable_declaration
+    (identifier) @symbol.name)) @symbol.property
+
+;; Type aliases
+(type_alias
+  (identifier) @symbol.name) @symbol.type
+
+;; Literals
+(string_literal) @literal.string
+"#;
+
 fn get_rust_query() -> &'static Query {
     static RUST_QUERY: OnceLock<Query> = OnceLock::new();
     RUST_QUERY.get_or_init(|| {
@@ -215,6 +304,30 @@ fn get_tsx_query() -> &'static Query {
     TSX_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_typescript::LANGUAGE_TSX.into(), TS_QUERY_STR)
             .expect("Failed to compile TSX query")
+    })
+}
+
+fn get_go_query() -> &'static Query {
+    static GO_QUERY: OnceLock<Query> = OnceLock::new();
+    GO_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_go::LANGUAGE.into(), GO_QUERY_STR)
+            .expect("Failed to compile Go query")
+    })
+}
+
+fn get_java_query() -> &'static Query {
+    static JAVA_QUERY: OnceLock<Query> = OnceLock::new();
+    JAVA_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_java::LANGUAGE.into(), JAVA_QUERY_STR)
+            .expect("Failed to compile Java query")
+    })
+}
+
+fn get_kotlin_query() -> &'static Query {
+    static KOTLIN_QUERY: OnceLock<Query> = OnceLock::new();
+    KOTLIN_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_kotlin_ng::LANGUAGE.into(), KOTLIN_QUERY_STR)
+            .expect("Failed to compile Kotlin query")
     })
 }
 
@@ -429,6 +542,22 @@ fn has_ancestor_fn(node: Node) -> bool {
     false
 }
 
+/// True if `node` is lexically inside one of `fn_kinds` (a function/method/closure body),
+/// i.e. a function-local declaration — never public API regardless of name or default
+/// visibility. The Go uppercase-name and Kotlin default-public export rules must defer to
+/// this so a local `val`/`var` isn't reported as exported. Unknown kinds in `fn_kinds`
+/// simply never match, so over-listing is safe.
+fn is_inside_function(node: Node, fn_kinds: &[&str]) -> bool {
+    let mut ancestor = node.parent();
+    while let Some(current) = ancestor {
+        if fn_kinds.contains(&current.kind()) {
+            return true;
+        }
+        ancestor = current.parent();
+    }
+    false
+}
+
 fn has_ancestor_export(node: Node) -> bool {
     let mut curr = node.parent();
     for _ in 0..3 {
@@ -509,6 +638,181 @@ fn find_name(node: Node, source: &[u8]) -> Option<String> {
     None
 }
 
+/// Go: an identifier is exported iff its first letter is uppercase (Go spec — "Exported
+/// identifiers"). Applies uniformly to functions, types, fields, consts and vars.
+fn go_is_exported(name: &str) -> bool {
+    name.chars().next().is_some_and(|c| c.is_uppercase())
+}
+
+/// Go test entry points: a `Test` / `Benchmark` / `Example` / `Fuzz` prefix followed by
+/// end-of-name or a non-lowercase rune, so `Testify` / `Examples` are not flagged.
+fn go_is_test_name(name: &str) -> bool {
+    const PREFIXES: [&str; 4] = ["Test", "Benchmark", "Example", "Fuzz"];
+    PREFIXES.iter().any(|prefix| {
+        name.strip_prefix(prefix)
+            .is_some_and(|rest| rest.chars().next().is_none_or(|c| !c.is_lowercase()))
+    })
+}
+
+/// Go doc comments are plain `//` (or `/* */`) lines directly above a declaration — Go
+/// has no `///`-style marker — so [`clean_docstring`] (which only promotes `///`/`//!`/`/**`)
+/// drops them. Promote the contiguous run here, for Go only.
+fn clean_go_doc_comments(comments: &[String]) -> Option<String> {
+    if comments.is_empty() {
+        return None;
+    }
+    // `comments` is collected nearest-first; restore source order.
+    let mut ordered = comments.to_vec();
+    ordered.reverse();
+    let mut lines = Vec::new();
+    for comment in ordered {
+        let trimmed = comment.trim();
+        if let Some(rest) = trimmed.strip_prefix("//") {
+            lines.push(rest.trim().to_string());
+        } else if trimmed.starts_with("/*") {
+            let inner = trimmed.trim_start_matches("/*").trim_end_matches("*/").trim();
+            for line in inner.lines() {
+                lines.push(line.trim().trim_start_matches('*').trim().to_string());
+            }
+        }
+    }
+    let joined = lines.join("\n").trim().to_string();
+    if joined.is_empty() {
+        None
+    } else {
+        Some(joined)
+    }
+}
+
+/// Recursively: does `node`'s subtree contain a `marker_annotation` / `annotation` whose
+/// simple name equals `target`? Compares the simple name so `@org.junit.Test` matches and
+/// `@TestFactory` does not.
+fn annotation_subtree_contains(node: Node, target: &str, source: &[u8]) -> bool {
+    let kind = node.kind();
+    if kind == "marker_annotation" || kind == "annotation" {
+        if let Ok(text) = node.utf8_text(source) {
+            let body = text.trim_start_matches('@').trim();
+            let head = body.split('(').next().unwrap_or(body).trim();
+            let simple = head.rsplit('.').next().unwrap_or(head).trim();
+            if simple == target {
+                return true;
+            }
+        }
+    }
+    for i in 0..node.child_count() {
+        if annotation_subtree_contains(node.child(i as u32).unwrap(), target, source) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Java/Kotlin: does the declaration's `modifiers` carry an annotation named `target`?
+fn has_annotation(node: Node, target: &str, source: &[u8]) -> bool {
+    for i in 0..node.child_count() {
+        let child = node.child(i as u32).unwrap();
+        if child.kind() == "modifiers" && annotation_subtree_contains(child, target, source) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Kotlin annotation lookup. Like [`has_annotation`], but also recovers tree-sitter-kotlin-ng's
+/// quirk where a *top-level* annotation carrying arguments (`@Deprecated("msg")`) parses as a
+/// detached `annotated_expression` sibling instead of the following declaration's modifier.
+fn kotlin_has_annotation(node: Node, target: &str, source: &[u8]) -> bool {
+    if has_annotation(node, target, source) {
+        return true;
+    }
+    let mut sibling = node.prev_sibling();
+    while let Some(current) = sibling {
+        match current.kind() {
+            "annotated_expression" | "annotation" => {
+                if annotation_subtree_contains(current, target, source) {
+                    return true;
+                }
+                sibling = current.prev_sibling();
+            }
+            "comment" | "line_comment" | "block_comment" => sibling = current.prev_sibling(),
+            _ => break,
+        }
+    }
+    false
+}
+
+/// Java: a declaration is part of the public API iff its `modifiers` include `public`.
+/// (Java defaults to package-private, so visibility must be explicit.)
+fn java_is_public(node: Node) -> bool {
+    for i in 0..node.child_count() {
+        let child = node.child(i as u32).unwrap();
+        if child.kind() == "modifiers" {
+            for j in 0..child.child_count() {
+                if child.child(j as u32).unwrap().kind() == "public" {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Java test detection: a `@Test` annotation, or a conventional test-class filename
+/// (`*Test.java` / `*Tests.java` / `*IT.java`). The `src/test/...` directory is already
+/// caught by [`path_indicates_test`].
+fn java_is_test(node: Node, file_path: &str, source: &[u8]) -> bool {
+    if has_annotation(node, "Test", source) {
+        return true;
+    }
+    let file = file_path.rsplit(['/', '\\']).next().unwrap_or(file_path);
+    file.ends_with("Test.java") || file.ends_with("Tests.java") || file.ends_with("IT.java")
+}
+
+/// Kotlin: members are public by default, so a declaration is exported unless it carries
+/// a `private` / `internal` / `protected` visibility modifier — or is a function-local
+/// declaration (local `val`/`var`/`fun`), which is never public API.
+fn kotlin_is_exported(node: Node, source: &[u8]) -> bool {
+    if is_inside_function(node, &["function_declaration", "anonymous_function"]) {
+        return false;
+    }
+    for i in 0..node.child_count() {
+        let child = node.child(i as u32).unwrap();
+        if child.kind() == "modifiers" {
+            for j in 0..child.child_count() {
+                let modifier = child.child(j as u32).unwrap();
+                if modifier.kind() == "visibility_modifier" {
+                    if let Ok(text) = modifier.utf8_text(source) {
+                        return text.trim() == "public";
+                    }
+                }
+            }
+        }
+    }
+    true
+}
+
+/// Kotlin: `class` and `interface` are both `class_declaration`; disambiguate via the
+/// presence of an `interface` keyword child token.
+fn kotlin_class_kind(node: Node) -> &'static str {
+    for i in 0..node.child_count() {
+        if node.child(i as u32).unwrap().kind() == "interface" {
+            return "interface";
+        }
+    }
+    "class"
+}
+
+/// Go: one query capture (`symbol.gotype`) covers every `type_spec`; the concrete kind
+/// is the `type:` child — `struct_type` / `interface_type` / everything-else (defined
+/// types like `type UserID int`).
+fn go_type_kind(node: Node) -> &'static str {
+    match node.child_by_field_name("type").map(|t| t.kind()) {
+        Some("struct_type") => "struct",
+        Some("interface_type") => "interface",
+        _ => "type",
+    }
+}
+
 impl CodeExtractor for TreeSitterExtractor {
     fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
         let path = Path::new(file_path);
@@ -526,6 +830,9 @@ impl CodeExtractor for TreeSitterExtractor {
                 tree_sitter_typescript::LANGUAGE_TSX.into(),
                 get_tsx_query(),
             ),
+            "go" => (tree_sitter_go::LANGUAGE.into(), get_go_query()),
+            "java" => (tree_sitter_java::LANGUAGE.into(), get_java_query()),
+            "kt" | "kts" => (tree_sitter_kotlin_ng::LANGUAGE.into(), get_kotlin_query()),
             _ => {
                 return Ok(ExtractedFile {
                     file_path: file_path.to_string(),
@@ -602,6 +909,13 @@ impl CodeExtractor for TreeSitterExtractor {
                             "symbol.variable" => "variable",
                             "symbol.interface" => "interface",
                             "symbol.test" => "test",
+                            "symbol.record" => "record",
+                            "symbol.object" => "object",
+                            "symbol.property" => "property",
+                            // Go `type_spec` and Kotlin `class_declaration` carry a single
+                            // capture; the concrete kind comes from the node itself.
+                            "symbol.gotype" => go_type_kind(node),
+                            "symbol.ktclass" => kotlin_class_kind(node),
                             _ => "unknown",
                         };
 
@@ -636,6 +950,18 @@ impl CodeExtractor for TreeSitterExtractor {
                                         walk_start_node = parent;
                                     }
                                 }
+                            } else if ext == "go" {
+                                // Go doc comments sit above the outer declaration, not the
+                                // inner `*_spec` the symbol is captured on.
+                                if let Some(parent) = node.parent() {
+                                    let pk = parent.kind();
+                                    if pk == "type_declaration"
+                                        || pk == "const_declaration"
+                                        || pk == "var_declaration"
+                                    {
+                                        walk_start_node = parent;
+                                    }
+                                }
                             }
 
                             let mut current_sibling = walk_start_node.prev_sibling();
@@ -667,6 +993,9 @@ impl CodeExtractor for TreeSitterExtractor {
                             let mut docstring = clean_docstring(&comments);
                             if ext == "py" && docstring.is_none() {
                                 docstring = get_python_inline_docstring(node, source);
+                            }
+                            if ext == "go" && docstring.is_none() {
+                                docstring = clean_go_doc_comments(&comments);
                             }
 
                             let node_text = node.utf8_text(source).unwrap_or("");
@@ -717,6 +1046,14 @@ impl CodeExtractor for TreeSitterExtractor {
                                 path_indicates_test(file_path)
                                     || name_starts_test_normalized
                                     || has_test_decorator
+                            } else if ext == "go" {
+                                path_indicates_test(file_path) || go_is_test_name(&name)
+                            } else if ext == "java" {
+                                path_indicates_test(file_path)
+                                    || java_is_test(node, file_path, source)
+                            } else if ext == "kt" || ext == "kts" {
+                                path_indicates_test(file_path)
+                                    || kotlin_has_annotation(node, "Test", source)
                             } else {
                                 let is_test_call = kind == "test";
                                 path_indicates_test(file_path) || is_test_call
@@ -733,6 +1070,16 @@ impl CodeExtractor for TreeSitterExtractor {
                                 found
                             } else if ext == "py" {
                                 !name.starts_with('_') && !has_ancestor_fn(node)
+                            } else if ext == "go" {
+                                go_is_exported(&name)
+                                    && !is_inside_function(
+                                        node,
+                                        &["function_declaration", "method_declaration", "func_literal"],
+                                    )
+                            } else if ext == "java" {
+                                java_is_public(node)
+                            } else if ext == "kt" || ext == "kts" {
+                                kotlin_is_exported(node, source)
                             } else {
                                 has_ancestor_export(node) || exported_names.contains(&name)
                             };
@@ -770,6 +1117,18 @@ impl CodeExtractor for TreeSitterExtractor {
                                     .as_ref()
                                     .is_some_and(|d| contains_case_insensitive(d, "deprecated"));
                                 has_deprecated_decorator || docstring_contains_deprecated
+                            } else if ext == "go" {
+                                // Go marks deprecation with a `// Deprecated:` paragraph in
+                                // the doc comment (gopls/staticcheck convention).
+                                contains_case_insensitive(&comments_text, "deprecated:")
+                                    || docstring.as_ref().is_some_and(|d| {
+                                        contains_case_insensitive(d, "deprecated:")
+                                    })
+                            } else if ext == "java" {
+                                has_annotation(node, "Deprecated", source)
+                                    || docstring.as_ref().is_some_and(|d| d.contains("@deprecated"))
+                            } else if ext == "kt" || ext == "kts" {
+                                kotlin_has_annotation(node, "Deprecated", source)
                             } else {
                                 docstring
                                     .as_ref()

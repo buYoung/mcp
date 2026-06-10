@@ -18,8 +18,14 @@ The intended flow is hierarchical narrowing:
 ## Supported languages
 
 Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),
-**TypeScript/TSX** (`.ts`, `.tsx`), **JavaScript/JSX** (`.js`, `.jsx`). `read`/`find`/`grep`
-work on any text file.
+**TypeScript/TSX** (`.ts`, `.tsx`), **JavaScript/JSX** (`.js`, `.jsx`), **Go** (`.go`),
+**Java** (`.java`), **Kotlin** (`.kt`, `.kts`). `read`/`find`/`grep` work on any text file.
+
+Per-language flag conventions: Go uses initial-uppercase for exported symbols, `*_test.go`
+plus `Test`/`Benchmark`/`Example`/`Fuzz` for tests, and `// Deprecated:` doc paragraphs;
+Java uses the `public` modifier, `@Test` / `*Test.java`, and `@Deprecated` / javadoc
+`@deprecated`; Kotlin treats symbols as exported unless `private`/`internal`/`protected`,
+and reads `@Test` / `@Deprecated` annotations.
 
 ## Install
 

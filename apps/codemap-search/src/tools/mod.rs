@@ -21,7 +21,8 @@ pub const CODEMAP_IGNORE_FILENAME: &str = ".codemapignore";
 /// The source-file extensions codemap-search understands. Single source of truth —
 /// Child 03 collapses the previously-duplicated literal lists (`main.rs`, `mcp.rs`,
 /// `index.rs`, `benchmark.rs`) onto this constant.
-pub const SOURCE_EXTENSIONS: &[&str] = &["rs", "py", "ts", "tsx", "js", "jsx"];
+pub const SOURCE_EXTENSIONS: &[&str] =
+    &["rs", "py", "ts", "tsx", "js", "jsx", "go", "java", "kt", "kts"];
 
 /// Files larger than this are skipped before parsing/indexing (Child 04). Hand-written
 /// source virtually never exceeds 1 MiB; this guards against minified bundles and
