@@ -7,8 +7,9 @@ use super::{arg_bool, arg_required_str, build_walker, resolve_within_cwd};
 use serde_json::Value;
 use std::time::SystemTime;
 
-/// Max files returned; on overflow keep the oldest [`FIND_FILES_RESULT_LIMIT`] by
-/// mtime (matches scout / Glob `--sort=modified`, intended behavior).
+/// Max files returned; on overflow keep the NEWEST [`FIND_FILES_RESULT_LIMIT`] by
+/// mtime, so the files most likely just created/edited are never the ones dropped.
+/// Matches Claude Code's Glob `--sort=modified`, which surfaces newest first.
 const FIND_FILES_RESULT_LIMIT: usize = 100;
 const FIND_FILES_TRUNCATION_MESSAGE: &str =
     "(Results are truncated. Consider using a more specific path or pattern.)";
@@ -78,7 +79,7 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         return Ok("No files found".to_string());
     }
 
-    hits.sort_by(|a, b| a.1.cmp(&b.1)); // oldest first
+    hits.sort_by(|a, b| b.1.cmp(&a.1)); // newest first, so truncation drops the oldest
     let truncated = hits.len() > FIND_FILES_RESULT_LIMIT;
     hits.truncate(FIND_FILES_RESULT_LIMIT);
 

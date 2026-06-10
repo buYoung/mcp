@@ -43,6 +43,15 @@ pub const EXCLUDED_DIRS: &[&str] = &[
     ".codemap-index",
 ];
 
+/// VCS internals and our own index directory: skipped by EVERY walk, even when
+/// `include_ignored` is set. Walking `.git`/`.codemap` only yields churn and noise,
+/// never the source a user wants. The rest of [`EXCLUDED_DIRS`] (`node_modules`,
+/// `build`, `vendor`, …) stays bypassable via `include_ignored`, because those names
+/// can legitimately hold real source in some repos (Go vendoring, hand-written
+/// `build/` scripts) and silently hiding them reads as "search is broken".
+pub const ALWAYS_EXCLUDED_DIRS: &[&str] =
+    &[".git", ".svn", ".hg", ".codemap", ".codemap-index"];
+
 /// Whether `ext` is a source extension codemap-search understands. Single predicate
 /// over [`SOURCE_EXTENSIONS`] — replaces the `matches!(ext, "rs" | "py" | …)` literals
 /// that were duplicated across `main.rs`, `mcp.rs`, `index.rs`, and `benchmark.rs`.
@@ -88,11 +97,12 @@ pub(crate) fn resolve_within_cwd(rel: &str) -> Result<PathBuf, (i64, String)> {
 
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects
 /// `.gitignore` (and global/exclude), the repo-local `.codemapignore`, and parent
-/// ignore files, and always skips [`EXCLUDED_DIRS`]. When `include_ignored` is true
-/// the ignore files are bypassed (the explicit override from the brief) while the
-/// junk-dir excludes still apply. Hidden files are included for Claude Code `--hidden`
-/// parity. The returned builder can be further configured (e.g. `.types(...)`) before
-/// `.build()`.
+/// ignore files, and skips [`EXCLUDED_DIRS`]. When `include_ignored` is true the ignore
+/// files AND the configurable junk-dir excludes are bypassed — only [`ALWAYS_EXCLUDED_DIRS`]
+/// (VCS internals + our own index dir) stays skipped, so `node_modules`/`build`/`vendor`
+/// become reachable in repos where those names hold real source. Hidden files are
+/// included for Claude Code `--hidden` parity. The returned builder can be further
+/// configured (e.g. `.types(...)`) before `.build()`.
 pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     // `include_ignored` (per-call, find/grep) bypasses EVERY ignore source. Distinct from
     // that, `use_git_exclude` is a dedicated config toggle for `.git/info/exclude`
@@ -113,15 +123,22 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     if respect {
         builder.add_custom_ignore_filename(CODEMAP_IGNORE_FILENAME);
     }
-    builder.filter_entry(|entry| {
+    builder.filter_entry(move |entry| {
         if entry.file_type().is_some_and(|ft| ft.is_dir()) {
             if let Some(name) = entry.file_name().to_str() {
-                // The resolved exclude set is the built-in junk dirs unioned with any
-                // configured ones (Child 05); defaults to EXCLUDED_DIRS when no config.
-                return !crate::config::get()
-                    .excluded_directories
-                    .iter()
-                    .any(|d| d == name);
+                // VCS/index dirs are skipped unconditionally — even with include_ignored.
+                if ALWAYS_EXCLUDED_DIRS.contains(&name) {
+                    return false;
+                }
+                // The configurable junk-dir set (built-ins unioned with config, Child 05)
+                // applies only while ignore rules are respected; include_ignored bypasses
+                // it so those names stay reachable when they hold real source.
+                if respect {
+                    return !crate::config::get()
+                        .excluded_directories
+                        .iter()
+                        .any(|d| d == name);
+                }
             }
         }
         true

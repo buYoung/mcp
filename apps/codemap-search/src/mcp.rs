@@ -3,6 +3,7 @@ use crate::parser::CodeExtractor;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -32,6 +33,12 @@ pub struct McpServer<S: SearchEngine, E: CodeExtractor> {
     // source file's path + mtime). Lets repeated root→folder→file navigation over an
     // unchanged tree re-parse once instead of on every call (Child 04).
     codemap_cache: Option<(u64, Vec<crate::parser::ExtractedFile>)>,
+    // Instant of the last `search` index refresh and the last `overview` working-tree
+    // walk. Within `config::index_staleness_ms` we skip the full-tree walk+stat so a
+    // burst of calls re-scans once, not on every call. Tracked separately because the
+    // two paths refresh independent state (the BM25 index vs. `codemap_cache`).
+    last_index_refresh: Option<Instant>,
+    last_codemap_walk: Option<Instant>,
 }
 
 pub(crate) fn canonicalize_path_lenient(path: &std::path::Path) -> PathBuf {
@@ -110,6 +117,8 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
             search_engine,
             extractor,
             codemap_cache: None,
+            last_index_refresh: None,
+            last_codemap_walk: None,
         }
     }
 }
@@ -269,7 +278,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
                     },
-                    "instructions": "codemap-search exposes five code-navigation tools for this repo. START HERE for any code-navigation task — do NOT open with a raw grep. To find where something lives, your FIRST call should be `search` (you have a keyword, unknown location) or `overview` (you already know the area). `grep` is a confirmation tool for an exact literal/regex once you roughly know where to look — never the opening move for discovery.\n\n- search — keyword lookup (BM25) over indexed symbols and docstrings. The default first step when you don't know where code lives.\n- overview — hierarchical codemap of the repo (directories with file/symbol counts; a file path shows that file's symbols with line ranges). The first step when you already hold a path or want structure. Call with no path for a lightweight root map, then drill into a folder.\n- read — exact file contents with line numbers (supports offset/limit paging).\n- find — locate files by glob pattern (e.g. '**/*.rs').\n- grep — exact literal/regex match over files on disk (sees comments and just-changed files the index misses). Use only to confirm a string you already expect at a roughly-known location, not to discover where code is.\n\nDecision tree (pick by what you already know):\n- Unknown location, have a keyword -> search (start here).\n- Have a path or want structure -> overview.\n- Need a file's exact content/lines -> read.\n- Locate files by name/glob -> find.\n- Confirm an exact literal/regex you already expect -> grep (last resort, not first).\n\nDefault flow: locate with search/overview, then confirm with read/grep. Reach for grep last, not first."
+                    "instructions": "codemap-search exposes five complementary code-navigation tools. Pick by what you already know — there is no fixed order.\n\n- grep — exact literal/regex over files on disk. The right first move when you already know the exact identifier, string, or error message: enumerating call sites, tracing a known symbol, verifying just-edited files. Always current (no index lag); sees comments and non-code files.\n- search — BM25 keyword lookup over indexed symbols and docstrings. The right first move when you only know the concept, not the name ('where is the auth token refreshed?'), when you can't write a reliable grep pattern, or when grep returned zero hits or too much noise.\n- overview — hierarchical codemap (directories with file/symbol counts; a file path shows that file's symbols with line ranges). Use it to orient in unfamiliar code, and to scope reads: before reading a large file, overview it to get the exact line range.\n- read — exact file contents with line numbers (supports offset/limit paging).\n- find — locate files by glob pattern (e.g. '**/*.rs').\n\nTypical patterns:\n- Know the exact name -> grep, then read the relevant range (overview a large file first to find that range).\n- Know only the concept -> search to discover names and locations, then grep/read to confirm and trace.\n- Unfamiliar area or structural question -> overview (root -> folder -> file), then read.\n- grep found nothing or flooded you -> switch to search; once search names the exact symbol, grep is the fastest way to enumerate its uses.\n\nIterating grep -> read is a normal, effective loop. Reach for search when you lack a precise name, and for overview when a cheap symbol map would save you full-file reads."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
@@ -277,7 +286,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                 "tools": [
                     {
                         "name": "overview",
-                        "description": "Hierarchical aider-style codemap of the repo. Reach for this when you already hold a path or want to grasp structure: call with no path for a lightweight repo-root map (directories with file/symbol counts — drill into a folder from there), a folder path to narrow, or a file path for that file's symbol details with line ranges. Prefer this over search when you know roughly where to look; use search instead when you only have a keyword and no location. Either overview or search should be your first call — not grep.",
+                        "description": "Hierarchical aider-style codemap. Call with no path for a repo-root map (directories with file/symbol counts — drill into a folder from there), a folder path to narrow, or a file path for that file's symbols with line ranges. Best for orienting in unfamiliar code, and for scoping reads: before reading a large file, overview it to find the exact line range, then read just that slice.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -288,7 +297,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "search",
-                        "description": "START HERE to locate code by keyword (BM25 over indexed symbols/docstrings) when you don't yet know where it lives — this is the default first step for a discovery task, not grep. Returns a codemap overview when many files match, per-file details with line ranges when few. Reach for this whenever you only have a term/symbol and an unknown location; once you hold a path, switch to overview, and confirm exact content with read/grep.",
+                        "description": "BM25 keyword search over indexed symbols and docstrings. Best when you know the concept but not the exact identifier ('token refresh', 'retry backoff'), when a grep pattern would be unreliable or noisy, or when grep came back empty — identifier splitting and ranking recover what exact matching misses. Returns a codemap overview when many files match, per-file symbol details with line ranges when few. Once it names the exact symbol, `grep` is usually the fastest way to enumerate its call sites.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -299,7 +308,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "read",
-                        "description": "Read one file's exact contents with line numbers to confirm what overview/search pinpointed. Returns '   N\u{2192}content' lines. Use offset/limit to page large files.",
+                        "description": "Read one file's exact contents with line numbers. Returns '   N\u{2192}content' lines. Use offset/limit to page large files; on a large file, overview can first give you a symbol's line range so you read only the relevant slice.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -325,7 +334,7 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                     },
                     {
                         "name": "grep",
-                        "description": "Confirmation tool, not a discovery tool — use it to verify an exact literal/regex once search/overview have pointed you at a rough location, NOT as your first move to find where code lives. Sees comments and just-changed files the index misses. Parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. The right first move when you already know the exact identifier, string, or error message — enumerating call sites, tracing a known symbol, verifying just-edited files. Always current (no index lag); sees comments, strings, and non-code files. If you get zero hits (wrong name guess) or too many (generic term), switch to `search` for ranked, symbol-aware lookup. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -365,9 +374,21 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
-                        // Run indexing dynamically prior to searching to ensure real-time updates
-                        if let Err(e) = self.search_engine.index_files(&["."]) {
-                            return Err((-32603, format!("Indexing error: {}", e)));
+                        // Refresh the index before searching, but skip the full-tree
+                        // walk+stat while the last refresh is still within the staleness
+                        // window — a burst of searches then re-indexes once, not on every
+                        // call. read/find/grep stay live on disk, so any brief search
+                        // staleness is corrected by the follow-up read/grep.
+                        let staleness =
+                            Duration::from_millis(crate::config::get().index_staleness_ms);
+                        let index_is_fresh = self
+                            .last_index_refresh
+                            .is_some_and(|t| t.elapsed() < staleness);
+                        if !index_is_fresh {
+                            if let Err(e) = self.search_engine.index_files(&["."]) {
+                                return Err((-32603, format!("Indexing error: {}", e)));
+                            }
+                            self.last_index_refresh = Some(Instant::now());
                         }
 
                         let results = self
@@ -484,72 +505,89 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                         let cwd = std::env::current_dir()
                             .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
-                        // One cheap walk to fingerprint the working tree (each source
-                        // file's path + mtime, no read/parse). EXCLUDED_DIRS +
-                        // .gitignore/.codemapignore are honored so node_modules/target/…
-                        // never appear (Child 04), matching search/find/grep, and
-                        // oversize/binary files are skipped before parse.
-                        let mut entries: Vec<(String, PathBuf, u64)> = Vec::new();
-                        for entry in crate::tools::build_walker(&cwd, false)
-                            .build()
-                            .filter_map(|e| e.ok())
-                        {
-                            let file_path = entry.path();
-                            if !file_path.is_file() {
-                                continue;
-                            }
-                            let is_source = file_path
-                                .extension()
-                                .and_then(|s| s.to_str())
-                                .is_some_and(crate::tools::is_source_extension);
-                            if !is_source {
-                                continue;
-                            }
-                            let rel_path = match file_path.strip_prefix(&cwd) {
-                                Ok(r) => r.to_string_lossy().to_string(),
-                                Err(_) => continue,
-                            };
-                            let metadata = match std::fs::metadata(file_path) {
-                                Ok(m) => m,
-                                Err(_) => continue,
-                            };
-                            if metadata.len() > crate::config::get().max_file_size {
-                                continue;
-                            }
-                            let mtime = match metadata.modified().ok().and_then(|m| {
-                                m.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()
-                            }) {
-                                Some(d) => d.as_nanos() as u64,
-                                None => continue,
-                            };
-                            entries.push((rel_path, file_path.to_path_buf(), mtime));
-                        }
-                        // Stable order so both the fingerprint and the codemap output are
-                        // deterministic regardless of filesystem walk order.
-                        entries.sort_by(|a, b| a.0.cmp(&b.0));
-                        let fingerprint = {
-                            use std::hash::{Hash, Hasher};
-                            let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                            for (rel_path, _disk, mtime) in &entries {
-                                rel_path.hash(&mut hasher);
-                                mtime.hash(&mut hasher);
-                            }
-                            hasher.finish()
-                        };
+                        // Skip the full-tree walk+fingerprint while the last walk is still
+                        // within the staleness window and a parsed codemap is in hand — a
+                        // burst of overview calls then re-walks once, not on every call. The
+                        // fingerprint check still guards re-parse correctness once the window
+                        // lapses. read/find/grep stay live on disk regardless.
+                        let staleness =
+                            Duration::from_millis(crate::config::get().index_staleness_ms);
+                        let cache_is_fresh = self
+                            .last_codemap_walk
+                            .is_some_and(|t| t.elapsed() < staleness)
+                            && self.codemap_cache.is_some();
 
-                        // Re-parse only when the fingerprint moved; otherwise reuse the cache.
-                        if self.codemap_cache.as_ref().map(|(fp, _)| *fp) != Some(fingerprint) {
-                            let mut extracted = Vec::with_capacity(entries.len());
-                            for (rel_path, disk_path, _mtime) in &entries {
-                                if let Some(content) =
-                                    crate::tools::read_source_for_parse(disk_path)
-                                {
-                                    if let Ok(file) = self.extractor.extract(&content, rel_path) {
-                                        extracted.push(file);
+                        if !cache_is_fresh {
+                            // One cheap walk to fingerprint the working tree (each source
+                            // file's path + mtime, no read/parse). EXCLUDED_DIRS +
+                            // .gitignore/.codemapignore are honored so node_modules/target/…
+                            // never appear (Child 04), matching search/find/grep, and
+                            // oversize/binary files are skipped before parse.
+                            let mut entries: Vec<(String, PathBuf, u64)> = Vec::new();
+                            for entry in crate::tools::build_walker(&cwd, false)
+                                .build()
+                                .filter_map(|e| e.ok())
+                            {
+                                let file_path = entry.path();
+                                if !file_path.is_file() {
+                                    continue;
+                                }
+                                let is_source = file_path
+                                    .extension()
+                                    .and_then(|s| s.to_str())
+                                    .is_some_and(crate::tools::is_source_extension);
+                                if !is_source {
+                                    continue;
+                                }
+                                let rel_path = match file_path.strip_prefix(&cwd) {
+                                    Ok(r) => r.to_string_lossy().to_string(),
+                                    Err(_) => continue,
+                                };
+                                let metadata = match std::fs::metadata(file_path) {
+                                    Ok(m) => m,
+                                    Err(_) => continue,
+                                };
+                                if metadata.len() > crate::config::get().max_file_size {
+                                    continue;
+                                }
+                                let mtime = match metadata.modified().ok().and_then(|m| {
+                                    m.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()
+                                }) {
+                                    Some(d) => d.as_nanos() as u64,
+                                    None => continue,
+                                };
+                                entries.push((rel_path, file_path.to_path_buf(), mtime));
+                            }
+                            // Stable order so both the fingerprint and the codemap output are
+                            // deterministic regardless of filesystem walk order.
+                            entries.sort_by(|a, b| a.0.cmp(&b.0));
+                            let fingerprint = {
+                                use std::hash::{Hash, Hasher};
+                                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                                for (rel_path, _disk, mtime) in &entries {
+                                    rel_path.hash(&mut hasher);
+                                    mtime.hash(&mut hasher);
+                                }
+                                hasher.finish()
+                            };
+
+                            // Re-parse only when the fingerprint moved; otherwise reuse the cache.
+                            if self.codemap_cache.as_ref().map(|(fp, _)| *fp) != Some(fingerprint) {
+                                let mut extracted = Vec::with_capacity(entries.len());
+                                for (rel_path, disk_path, _mtime) in &entries {
+                                    if let Some(content) =
+                                        crate::tools::read_source_for_parse(disk_path)
+                                    {
+                                        if let Ok(file) =
+                                            self.extractor.extract(&content, rel_path)
+                                        {
+                                            extracted.push(file);
+                                        }
                                     }
                                 }
+                                self.codemap_cache = Some((fingerprint, extracted));
                             }
-                            self.codemap_cache = Some((fingerprint, extracted));
+                            self.last_codemap_walk = Some(Instant::now());
                         }
                         let extracted_files: &[crate::parser::ExtractedFile] =
                             &self.codemap_cache.as_ref().unwrap().1;

@@ -54,6 +54,13 @@ const CONFIG_TEMPLATE: &str = "\
 # see files hidden solely by `.git/info/exclude` (e.g. local personal excludes) while
 # `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
 # use_git_exclude = true
+
+# How long (milliseconds) a `search` index refresh / `overview` tree walk stays \"fresh\":
+# within this window the full working-tree walk+stat is skipped and the prior result is
+# reused, so a burst of calls re-scans once instead of every call. read/find/grep always
+# read live disk, so a few seconds of search staleness is corrected by the follow-up read.
+# Lower it toward 1 for near-always-fresh search; raise it on huge repos. (default 5000)
+# index_staleness_ms = 5000
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -77,6 +84,12 @@ pub struct ResolvedConfig {
     /// personal excludes) while still honoring `.gitignore`. A per-call `include_ignored`
     /// on find/grep is a broader override that bypasses every ignore source.
     pub use_git_exclude: bool,
+    /// Staleness window (milliseconds) for the `search` index refresh and the `overview`
+    /// working-tree walk (default 5000). Within this window the full-tree walk+stat is
+    /// skipped and the prior result reused, so a burst of calls re-scans once instead of
+    /// on every call. `read`/`find`/`grep` always read live disk, so any brief `search`
+    /// staleness is corrected by the follow-up read/grep.
+    pub index_staleness_ms: u64,
 }
 
 impl Default for ResolvedConfig {
@@ -90,6 +103,7 @@ impl Default for ResolvedConfig {
                 .map(|s| s.to_string())
                 .collect(),
             use_git_exclude: true,
+            index_staleness_ms: 5_000,
         }
     }
 }
@@ -104,6 +118,7 @@ struct ConfigLayer {
     max_file_size: Option<u64>,
     excluded_directories: Option<Vec<String>>,
     use_git_exclude: Option<bool>,
+    index_staleness_ms: Option<u64>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -162,6 +177,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "max_file_size" => layer.max_file_size = as_positive_u64(&v, &key, path),
             "excluded_directories" => layer.excluded_directories = as_string_array(&v, &key, path),
             "use_git_exclude" => layer.use_git_exclude = as_bool(&v, &key, path),
+            "index_staleness_ms" => layer.index_staleness_ms = as_positive_u64(&v, &key, path),
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -197,6 +213,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .use_git_exclude
             .or(global.use_git_exclude)
             .unwrap_or(defaults.use_git_exclude),
+        index_staleness_ms: repo
+            .index_staleness_ms
+            .or(global.index_staleness_ms)
+            .unwrap_or(defaults.index_staleness_ms),
     }
 }
 

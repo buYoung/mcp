@@ -117,11 +117,6 @@ impl TantivySearchEngine {
         }
         map
     }
-
-    #[allow(dead_code)]
-    fn check_mtime(&self, _file_path: &str) -> bool {
-        true
-    }
 }
 
 fn tokenize_path(file_path: &str) -> String {
