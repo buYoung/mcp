@@ -65,10 +65,10 @@ enum Commands {
 }
 
 // The MCP server is a sequential, single-client stdio loop (read line → handle → write,
-// one at a time) and nothing is `tokio::spawn`ed, so there is no concurrent task that
-// blocking I/O could starve. A single-threaded runtime right-sizes it — no worker
-// threadpool — which is why the brief's "move blocking I/O off the async path" is N/A
-// here (Child 04).
+// one at a time) and nothing is `tokio::spawn`ed, so a single-threaded runtime right-sizes
+// it — no worker threadpool. Indexing is the one heavy blocking job, and it runs on a
+// dedicated OS thread (`codemap-indexer`, see `indexer.rs`) that is independent of the tokio
+// runtime, so the async request path never blocks on it and `current_thread` stays correct.
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Quiet by default: dependency INFO noise (tantivy commit/GC/`save metas` on every
@@ -184,9 +184,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             codemap_search::config::ensure_repo_template(&cwd);
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
-            let extractor = TreeSitterExtractor::new();
-            let mut server = mcp::McpServer::new(engine, extractor);
+            // Read-only search handle for the request loop; the engine (the single tantivy
+            // writer) moves into the background indexer, which starts the initial index pass
+            // immediately so the first request need not block on it.
+            let searcher = engine.searcher_handle();
+            let indexer = codemap_search::indexer::spawn_indexer(engine);
+            let mut server = mcp::McpServer::new(searcher, indexer);
             server.run().await?;
+            // server drop → IndexerHandle drop → channel closed → indexer thread joined.
         }
         Commands::Search { query, limit } => {
             let engine =

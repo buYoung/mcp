@@ -55,12 +55,15 @@ const CONFIG_TEMPLATE: &str = "\
 # `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
 # use_git_exclude = true
 
-# How long (milliseconds) a `search` index refresh / `overview` tree walk stays \"fresh\":
-# within this window the full working-tree walk+stat is skipped and the prior result is
-# reused, so a burst of calls re-scans once instead of every call. read/find/grep always
-# read live disk, so a few seconds of search staleness is corrected by the follow-up read.
-# Lower it toward 1 for near-always-fresh search; raise it on huge repos. (default 5000)
+# Debounce window (milliseconds) for background index/codemap refreshes triggered by
+# search/overview: within this window repeated calls enqueue at most one background refresh,
+# and each call answers immediately from the committed snapshot. read/find/grep always read
+# live disk, so brief search staleness is corrected by the follow-up read. (default 5000)
 # index_staleness_ms = 5000
+
+# Max file headers `search` emits in its codemap-overview branch (when matches exceed
+# result_threshold). Caps the context a broad query can spend. (default 50)
+# search_overview_file_limit = 50
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -84,12 +87,16 @@ pub struct ResolvedConfig {
     /// personal excludes) while still honoring `.gitignore`. A per-call `include_ignored`
     /// on find/grep is a broader override that bypasses every ignore source.
     pub use_git_exclude: bool,
-    /// Staleness window (milliseconds) for the `search` index refresh and the `overview`
-    /// working-tree walk (default 5000). Within this window the full-tree walk+stat is
-    /// skipped and the prior result reused, so a burst of calls re-scans once instead of
-    /// on every call. `read`/`find`/`grep` always read live disk, so any brief `search`
-    /// staleness is corrected by the follow-up read/grep.
+    /// Debounce window (milliseconds) for background index/codemap refreshes triggered by
+    /// `search`/`overview` (default 5000). Within this window repeated calls enqueue at most
+    /// one background refresh; each call still answers immediately from the committed
+    /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
+    /// is corrected by the follow-up read/grep.
     pub index_staleness_ms: u64,
+    /// Max file headers `search` emits in its codemap-overview branch (default 50). Caps the
+    /// context a broad query can spend; pairs with `result_threshold`, which picks the
+    /// overview-vs-detail branch. Output-size only — safe to tune.
+    pub search_overview_file_limit: usize,
 }
 
 impl Default for ResolvedConfig {
@@ -104,6 +111,7 @@ impl Default for ResolvedConfig {
                 .collect(),
             use_git_exclude: true,
             index_staleness_ms: 5_000,
+            search_overview_file_limit: 50,
         }
     }
 }
@@ -119,6 +127,7 @@ struct ConfigLayer {
     excluded_directories: Option<Vec<String>>,
     use_git_exclude: Option<bool>,
     index_staleness_ms: Option<u64>,
+    search_overview_file_limit: Option<usize>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -178,6 +187,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "excluded_directories" => layer.excluded_directories = as_string_array(&v, &key, path),
             "use_git_exclude" => layer.use_git_exclude = as_bool(&v, &key, path),
             "index_staleness_ms" => layer.index_staleness_ms = as_positive_u64(&v, &key, path),
+            "search_overview_file_limit" => {
+                layer.search_overview_file_limit = as_positive_usize(&v, &key, path)
+            }
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -217,6 +229,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .index_staleness_ms
             .or(global.index_staleness_ms)
             .unwrap_or(defaults.index_staleness_ms),
+        search_overview_file_limit: repo
+            .search_overview_file_limit
+            .or(global.search_overview_file_limit)
+            .unwrap_or(defaults.search_overview_file_limit),
     }
 }
 

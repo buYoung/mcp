@@ -1,9 +1,11 @@
 use serde_json::Value;
 use std::path::Path;
 use std::process::Stdio;
+use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
+use tokio::time::sleep;
 
 /// Helper to dynamically build a mock directory with specific files
 pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Error> {
@@ -73,8 +75,27 @@ impl McpClient {
         })
     }
 
-    /// Send a JSON-RPC request to the MCP server and wait for the response
+    /// Send a JSON-RPC request and wait for the response. For `tools/call`, transparently
+    /// poll through the initial background-index warm-up: the server answers immediately
+    /// while indexing, tagging search/overview output as "warming up", and tests want the
+    /// post-index result. Other methods return on the first response.
     pub async fn send_request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        let start = Instant::now();
+        loop {
+            let response = self.send_request_once(method, params.clone()).await?;
+            if method == "tools/call"
+                && response_is_warming(&response)
+                && start.elapsed() < Duration::from_secs(10)
+            {
+                sleep(Duration::from_millis(50)).await;
+                continue;
+            }
+            return Ok(response);
+        }
+    }
+
+    /// One JSON-RPC round trip over stdio.
+    async fn send_request_once(&mut self, method: &str, params: Value) -> Result<Value, String> {
         let id = self.request_id;
         self.request_id += 1;
 
@@ -108,10 +129,50 @@ impl McpClient {
         Ok(response)
     }
 
+    /// Call a tool repeatedly until `predicate` passes on its result text, or 15s elapse;
+    /// returns the final response. For tests that mutate the repo and then expect a
+    /// background refresh to reflect the change — the trigger is debounced and indexing is
+    /// async, so the updated result appears on a subsequent poll, not the first call.
+    pub async fn send_tool_until<F>(
+        &mut self,
+        name: &str,
+        arguments: Value,
+        predicate: F,
+    ) -> Result<Value, String>
+    where
+        F: Fn(&str) -> bool,
+    {
+        let params = serde_json::json!({ "name": name, "arguments": arguments });
+        let start = Instant::now();
+        loop {
+            let response = self.send_request_once("tools/call", params.clone()).await?;
+            let text = response["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap_or("");
+            if predicate(text) || start.elapsed() >= Duration::from_secs(15) {
+                return Ok(response);
+            }
+            sleep(Duration::from_millis(50)).await;
+        }
+    }
+
     /// Abruptly kill the server to verify clean exit behavior
     pub async fn kill(mut self) -> Result<(), std::io::Error> {
         self.child.kill().await?;
         let _ = self.child.wait().await?;
         Ok(())
     }
+}
+
+/// True when a `tools/call` response carries the search/overview warm-up notice, i.e. the
+/// initial background index is still building.
+fn response_is_warming(response: &Value) -> bool {
+    response
+        .get("result")
+        .and_then(|r| r.get("content"))
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|item| item.get("text"))
+        .and_then(|t| t.as_str())
+        .is_some_and(|text| text.contains("warming up"))
 }

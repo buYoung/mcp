@@ -12,6 +12,8 @@ async fn test_cross_bm25_mcp_branching() {
         ("src/d.rs", "fn query_func() {}"),
         ("src/e.rs", "fn query_func() {}"),
         ("src/f.rs", "fn query_func() {}"),
+        // Near-zero debounce so a post-edit refresh is triggered on the next poll.
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
     ])
     .unwrap();
 
@@ -37,15 +39,12 @@ async fn test_cross_bm25_mcp_branching() {
     fs::remove_file(temp.path().join("src/e.rs")).unwrap();
     fs::remove_file(temp.path().join("src/f.rs")).unwrap();
 
-    // 4. Call search again via MCP (< 5 matches -> scope view)
+    // 4. Call search again via MCP (< 5 matches -> scope view). Poll until the deletions
+    //    are reflected by a background refresh (scope view emits the source `fn query_func`).
     let res_small = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "search",
-                "arguments": { "query": "query_func" }
-            }),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "query_func" }), |t| {
+            t.contains("fn query_func")
+        })
         .await
         .unwrap();
 
@@ -81,7 +80,11 @@ fn test_cross_extraction_codemaps() {
 
 #[tokio::test]
 async fn test_cross_indexing_mcp_realtime() {
-    let temp = create_mock_repo(&[("src/lib.rs", "pub fn find_me() {}")]).unwrap();
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", "pub fn find_me() {}"),
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+    ])
+    .unwrap();
 
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
@@ -108,14 +111,12 @@ async fn test_cross_indexing_mcp_realtime() {
     )
     .unwrap();
 
-    // Search new query, should index/reflect modifications immediately
+    // Search the new query; poll until the background refresh reflects the edit.
     let res_2 = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "search",
-                "arguments": { "query": "find_something_else" }
-            }),
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "find_something_else" }),
+            |t| t.contains("lib.rs"),
         )
         .await
         .unwrap();
@@ -127,10 +128,14 @@ async fn test_cross_indexing_mcp_realtime() {
 
 #[tokio::test]
 async fn test_cross_mcp_codemap_reflects_modify() {
-    // Child 04: overview caches extraction keyed by a (path, mtime) fingerprint. A
-    // same-second content edit must still move the nanosecond mtime, invalidating the
-    // cache so the new symbol appears and the stale one is gone.
-    let temp = create_mock_repo(&[("src/lib.rs", "pub fn before_symbol() {}")]).unwrap();
+    // A content edit must be reflected by the background indexer: the modified file is
+    // re-parsed and the published codemap snapshot shows the new symbol while the stale one
+    // is gone. (Sub-second mtime resolution ensures a same-second edit still reindexes.)
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", "pub fn before_symbol() {}"),
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+    ])
+    .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let res_1 = client
@@ -152,23 +157,21 @@ async fn test_cross_mcp_codemap_reflects_modify() {
     fs::write(temp.path().join("src/lib.rs"), "pub fn after_symbol() {}").unwrap();
 
     let res_2 = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/lib.rs" }
-            }),
+        .send_tool_until(
+            "overview",
+            serde_json::json!({ "path": "src/lib.rs" }),
+            |t| t.contains("after_symbol") && !t.contains("before_symbol"),
         )
         .await
         .unwrap();
     let text = res_2["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains("after_symbol"),
-        "codemap cache must invalidate on modify: {text:?}"
+        "codemap must reflect modify: {text:?}"
     );
     assert!(
         !text.contains("before_symbol"),
-        "stale symbol leaked from codemap cache: {text:?}"
+        "stale symbol leaked from codemap: {text:?}"
     );
 }
 
@@ -200,7 +203,11 @@ fn test_cross_benchmark_indexing() {
 
 #[tokio::test]
 async fn test_cross_mcp_codemaps_dynamic() {
-    let temp = create_mock_repo(&[("src/nested/file.rs", "pub fn old_symbol() {}")]).unwrap();
+    let temp = create_mock_repo(&[
+        ("src/nested/file.rs", "pub fn old_symbol() {}"),
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+    ])
+    .unwrap();
 
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
@@ -227,14 +234,12 @@ async fn test_cross_mcp_codemaps_dynamic() {
     )
     .unwrap();
 
-    // 3. Get folder level codemap again, verify dynamic update
+    // 3. Get folder level codemap again; poll until the added file is reflected.
     let res_2 = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/nested" }
-            }),
+        .send_tool_until(
+            "overview",
+            serde_json::json!({ "path": "src/nested" }),
+            |t| t.contains("other.rs"),
         )
         .await
         .unwrap();

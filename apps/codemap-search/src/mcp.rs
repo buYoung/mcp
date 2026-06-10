@@ -1,5 +1,5 @@
-use crate::index::SearchEngine;
-use crate::parser::CodeExtractor;
+use crate::index::SearcherHandle;
+use crate::indexer::IndexerHandle;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -26,19 +26,18 @@ pub struct JsonRpcResponse {
     pub id: Option<serde_json::Value>,
 }
 
-pub struct McpServer<S: SearchEngine, E: CodeExtractor> {
-    pub search_engine: S,
-    pub extractor: E,
-    // Cached codemap extraction, keyed by a working-tree fingerprint (hash of every
-    // source file's path + mtime). Lets repeated root→folder→file navigation over an
-    // unchanged tree re-parse once instead of on every call (Child 04).
-    codemap_cache: Option<(u64, Vec<crate::parser::ExtractedFile>)>,
-    // Instant of the last `search` index refresh and the last `overview` working-tree
-    // walk. Within `config::index_staleness_ms` we skip the full-tree walk+stat so a
-    // burst of calls re-scans once, not on every call. Tracked separately because the
-    // two paths refresh independent state (the BM25 index vs. `codemap_cache`).
-    last_index_refresh: Option<Instant>,
-    last_codemap_walk: Option<Instant>,
+pub struct McpServer {
+    // Read-only search handle over the committed index (cloned Arc-backed reader). Indexing
+    // happens off-thread, so the request loop never blocks on it.
+    searcher: SearcherHandle,
+    // Background indexer: fire-and-forget refresh trigger, warming/error status, and the
+    // current codemap snapshot consumed by `overview`.
+    indexer: IndexerHandle,
+    // Instant of the last refresh trigger. Within `config::index_staleness_ms` we skip
+    // re-triggering so a burst of search/overview calls enqueues at most one refresh; the
+    // indexer's own mtime diff keeps each pass incremental. A single field now suffices
+    // because search and overview share one background refresh.
+    last_refresh_trigger: Option<Instant>,
 }
 
 pub(crate) fn canonicalize_path_lenient(path: &std::path::Path) -> PathBuf {
@@ -111,14 +110,12 @@ fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String
     String::new()
 }
 
-impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
-    pub fn new(search_engine: S, extractor: E) -> Self {
+impl McpServer {
+    pub fn new(searcher: SearcherHandle, indexer: IndexerHandle) -> Self {
         Self {
-            search_engine,
-            extractor,
-            codemap_cache: None,
-            last_index_refresh: None,
-            last_codemap_walk: None,
+            searcher,
+            indexer,
+            last_refresh_trigger: None,
         }
     }
 }
@@ -186,7 +183,21 @@ impl<R: tokio::io::AsyncRead + Unpin> LimitedLineReader<R> {
     }
 }
 
-impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
+impl McpServer {
+    /// Enqueue a background index refresh unless one was already triggered within the
+    /// staleness window. Fire-and-forget — never blocks the request on indexing. Shared by
+    /// search and overview, which both serve the indexer's published snapshot.
+    fn maybe_trigger_refresh(&mut self) {
+        let staleness = Duration::from_millis(crate::config::get().index_staleness_ms);
+        let is_fresh = self
+            .last_refresh_trigger
+            .is_some_and(|t| t.elapsed() < staleness);
+        if !is_fresh {
+            self.indexer.trigger_refresh();
+            self.last_refresh_trigger = Some(Instant::now());
+        }
+    }
+
     pub async fn run(&mut self) -> Result<(), String> {
         let stdin = tokio::io::stdin();
         let mut reader = LimitedLineReader::new(stdin, 10 * 1024 * 1024 + 100 * 1024);
@@ -374,25 +385,14 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
-                        // Refresh the index before searching, but skip the full-tree
-                        // walk+stat while the last refresh is still within the staleness
-                        // window — a burst of searches then re-indexes once, not on every
-                        // call. read/find/grep stay live on disk, so any brief search
-                        // staleness is corrected by the follow-up read/grep.
-                        let staleness =
-                            Duration::from_millis(crate::config::get().index_staleness_ms);
-                        let index_is_fresh = self
-                            .last_index_refresh
-                            .is_some_and(|t| t.elapsed() < staleness);
-                        if !index_is_fresh {
-                            if let Err(e) = self.search_engine.index_files(&["."]) {
-                                return Err((-32603, format!("Indexing error: {}", e)));
-                            }
-                            self.last_index_refresh = Some(Instant::now());
-                        }
+                        // Trigger a background refresh (debounced by the staleness window),
+                        // then search the current committed snapshot immediately — the
+                        // response never blocks on indexing. A queued trigger coalesces
+                        // bursts; the indexer's mtime diff keeps each pass incremental.
+                        self.maybe_trigger_refresh();
 
                         let results = self
-                            .search_engine
+                            .searcher
                             .search(query, 100)
                             .map_err(|e| (-32603, format!("Search error: {}", e)))?;
 
@@ -402,6 +402,21 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                         let result_branch_threshold = crate::config::get().result_threshold;
 
                         let mut text = String::new();
+                        // While the initial background index builds, results can be empty or
+                        // partial — say so, and point at the always-live tools meanwhile.
+                        if self.indexer.is_dead() {
+                            text.push_str(
+                                "_Background indexer stopped — search results are frozen at the last index and may be stale; restart the server to recover. read/find/grep stay live._\n\n",
+                            );
+                        } else if self.indexer.is_warming() {
+                            text.push_str(
+                                "_Index is warming up (initial background indexing) — results may be empty or partial; retry shortly, or use grep/find for live results._\n\n",
+                            );
+                        } else if let Some(err) = self.indexer.last_error() {
+                            text.push_str(&format!(
+                                "_Last background index refresh failed: {err} — results may be stale._\n\n"
+                            ));
+                        }
                         if results.len() > result_branch_threshold {
                             // Codemap overview: matched files + the symbols that match the
                             // query by name (name + kind, no source). The details-branch
@@ -415,13 +430,14 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                                 .collect();
                             // Cap the overview file headers so a broad query (a directory
                             // name, a common token) can't emit ~100 headers and blow the
-                            // agent's context budget (Child 04). Configurable in Child 05.
-                            const SEARCH_OVERVIEW_FILE_LIMIT: usize = 50;
+                            // agent's context budget. Config-driven (default 50).
+                            let search_overview_file_limit =
+                                crate::config::get().search_overview_file_limit;
                             text.push_str(&format!(
                                 "## Codemap overview — {} matches\n",
                                 results.len()
                             ));
-                            for res in results.iter().take(SEARCH_OVERVIEW_FILE_LIMIT) {
+                            for res in results.iter().take(search_overview_file_limit) {
                                 text.push_str(&format!(
                                     "### {} ({} lines)\n",
                                     res.file_path, res.total_lines
@@ -445,10 +461,10 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                                     }
                                 }
                             }
-                            if results.len() > SEARCH_OVERVIEW_FILE_LIMIT {
+                            if results.len() > search_overview_file_limit {
                                 text.push_str(&format!(
                                     "\n_… {} more files not shown; refine the query or use overview/find to narrow._\n",
-                                    results.len() - SEARCH_OVERVIEW_FILE_LIMIT
+                                    results.len() - search_overview_file_limit
                                 ));
                             }
                         } else {
@@ -505,92 +521,29 @@ impl<S: SearchEngine, E: CodeExtractor> McpServer<S, E> {
                         let cwd = std::env::current_dir()
                             .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
-                        // Skip the full-tree walk+fingerprint while the last walk is still
-                        // within the staleness window and a parsed codemap is in hand — a
-                        // burst of overview calls then re-walks once, not on every call. The
-                        // fingerprint check still guards re-parse correctness once the window
-                        // lapses. read/find/grep stay live on disk regardless.
-                        let staleness =
-                            Duration::from_millis(crate::config::get().index_staleness_ms);
-                        let cache_is_fresh = self
-                            .last_codemap_walk
-                            .is_some_and(|t| t.elapsed() < staleness)
-                            && self.codemap_cache.is_some();
+                        // Trigger a background refresh (debounced), then read the codemap
+                        // snapshot the indexer publishes — no per-call tree walk or parse.
+                        // The indexer parses the working tree once for the index and reuses
+                        // it here, so the former overview-only walk+parse is gone.
+                        self.maybe_trigger_refresh();
+                        let snapshot = self.indexer.codemap_snapshot();
+                        let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
 
-                        if !cache_is_fresh {
-                            // One cheap walk to fingerprint the working tree (each source
-                            // file's path + mtime, no read/parse). EXCLUDED_DIRS +
-                            // .gitignore/.codemapignore are honored so node_modules/target/…
-                            // never appear (Child 04), matching search/find/grep, and
-                            // oversize/binary files are skipped before parse.
-                            let mut entries: Vec<(String, PathBuf, u64)> = Vec::new();
-                            for entry in crate::tools::build_walker(&cwd, false)
-                                .build()
-                                .filter_map(|e| e.ok())
-                            {
-                                let file_path = entry.path();
-                                if !file_path.is_file() {
-                                    continue;
-                                }
-                                let is_source = file_path
-                                    .extension()
-                                    .and_then(|s| s.to_str())
-                                    .is_some_and(crate::tools::is_source_extension);
-                                if !is_source {
-                                    continue;
-                                }
-                                let rel_path = match file_path.strip_prefix(&cwd) {
-                                    Ok(r) => r.to_string_lossy().to_string(),
-                                    Err(_) => continue,
-                                };
-                                let metadata = match std::fs::metadata(file_path) {
-                                    Ok(m) => m,
-                                    Err(_) => continue,
-                                };
-                                if metadata.len() > crate::config::get().max_file_size {
-                                    continue;
-                                }
-                                let mtime = match metadata.modified().ok().and_then(|m| {
-                                    m.duration_since(std::time::SystemTime::UNIX_EPOCH).ok()
-                                }) {
-                                    Some(d) => d.as_nanos() as u64,
-                                    None => continue,
-                                };
-                                entries.push((rel_path, file_path.to_path_buf(), mtime));
-                            }
-                            // Stable order so both the fingerprint and the codemap output are
-                            // deterministic regardless of filesystem walk order.
-                            entries.sort_by(|a, b| a.0.cmp(&b.0));
-                            let fingerprint = {
-                                use std::hash::{Hash, Hasher};
-                                let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                                for (rel_path, _disk, mtime) in &entries {
-                                    rel_path.hash(&mut hasher);
-                                    mtime.hash(&mut hasher);
-                                }
-                                hasher.finish()
+                        // Nothing to show yet because the initial index is still building (or
+                        // the indexer thread died before it finished): say so rather than
+                        // render an empty codemap.
+                        if extracted_files.is_empty()
+                            && (self.indexer.is_warming() || self.indexer.is_dead())
+                        {
+                            let text = if self.indexer.is_dead() {
+                                "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
+                            } else {
+                                "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
                             };
-
-                            // Re-parse only when the fingerprint moved; otherwise reuse the cache.
-                            if self.codemap_cache.as_ref().map(|(fp, _)| *fp) != Some(fingerprint) {
-                                let mut extracted = Vec::with_capacity(entries.len());
-                                for (rel_path, disk_path, _mtime) in &entries {
-                                    if let Some(content) =
-                                        crate::tools::read_source_for_parse(disk_path)
-                                    {
-                                        if let Ok(file) =
-                                            self.extractor.extract(&content, rel_path)
-                                        {
-                                            extracted.push(file);
-                                        }
-                                    }
-                                }
-                                self.codemap_cache = Some((fingerprint, extracted));
-                            }
-                            self.last_codemap_walk = Some(Instant::now());
+                            return Ok(serde_json::json!({
+                                "content": [{ "type": "text", "text": text }]
+                            }));
                         }
-                        let extracted_files: &[crate::parser::ExtractedFile] =
-                            &self.codemap_cache.as_ref().unwrap().1;
 
                         use crate::codemap::CodemapView;
                         let codemap_text = if let Some(p) = path {

@@ -1,7 +1,7 @@
 use crate::parser::{CodeExtractor, ExtractedFile, ExtractedSymbol};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use tantivy::collector::TopDocs;
+use tantivy::collector::{DocSetCollector, TopDocs};
 use tantivy::query::{AllQuery, QueryParser};
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
@@ -18,6 +18,21 @@ pub struct SearchResult {
 pub trait SearchEngine {
     fn index_files(&mut self, paths: &[&str]) -> Result<(), String>;
     fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>, String>;
+}
+
+/// Cheap, cloneable read-side handle over a committed tantivy index. The MCP server holds
+/// one of these for searching while the indexer thread owns the writer — tantivy's `Index`
+/// and `IndexReader` are Arc-backed, so clones share the same committed snapshot with no
+/// lock. Commits made by the writer become visible here via the reader's reload policy.
+#[derive(Clone)]
+pub struct SearcherHandle {
+    index: Index,
+    reader: IndexReader,
+    file_path_field: Field,
+    file_path_parts_field: Field,
+    symbol_field: Field,
+    docstring_field: Field,
+    extracted_json_field: Field,
 }
 
 pub struct TantivySearchEngine {
@@ -100,8 +115,10 @@ impl TantivySearchEngine {
         let searcher = self.reader.searcher();
         let mut map = HashMap::new();
 
-        if let Ok(top_docs) = searcher.search(&AllQuery, &TopDocs::with_limit(100_000)) {
-            for (_score, doc_address) in top_docs {
+        // DocSetCollector enumerates every matching doc with no limit, so the mtime map is
+        // never silently truncated on large repos (which would corrupt delete detection).
+        if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
+            for doc_address in doc_addresses {
                 if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
                     let path_val = doc.get_first(self.file_path_field);
                     let mtime_val = doc.get_first(self.mtime_field);
@@ -189,8 +206,11 @@ fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, Pat
     ))
 }
 
-impl SearchEngine for TantivySearchEngine {
-    fn index_files(&mut self, paths: &[&str]) -> Result<(), String> {
+impl TantivySearchEngine {
+    /// Incremental index refresh. Returns `true` only when a commit actually landed (adds
+    /// or deletes), so callers (the indexer thread) can skip rebuilding derived snapshots
+    /// on no-op passes. The `SearchEngine::index_files` trait method delegates here.
+    pub fn index_files_changed(&mut self, paths: &[&str]) -> Result<bool, String> {
         let mut files_to_process = Vec::new();
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
@@ -262,7 +282,7 @@ impl SearchEngine for TantivySearchEngine {
 
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
-            return Ok(());
+            return Ok(false);
         }
 
         let extractor = crate::parser::TreeSitterExtractor::new();
@@ -270,7 +290,7 @@ impl SearchEngine for TantivySearchEngine {
             Ok(w) => w,
             Err(tantivy::TantivyError::LockFailure(e, _)) => {
                 tracing::warn!("index_files LockFailure: {:?}", e);
-                return Ok(());
+                return Ok(false);
             }
             Err(e) => return Err(e.to_string()),
         };
@@ -372,10 +392,54 @@ impl SearchEngine for TantivySearchEngine {
             }
         }
 
-        Ok(())
+        Ok(true)
     }
 
-    fn search(&self, query_str: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
+    /// Cheap read-side handle: clones the Arc-backed index/reader so search runs off the
+    /// live committed snapshot without touching the indexing path.
+    pub fn searcher_handle(&self) -> SearcherHandle {
+        SearcherHandle {
+            index: self.index.clone(),
+            reader: self.reader.clone(),
+            file_path_field: self.file_path_field,
+            file_path_parts_field: self.file_path_parts_field,
+            symbol_field: self.symbol_field,
+            docstring_field: self.docstring_field,
+            extracted_json_field: self.extracted_json_field,
+        }
+    }
+
+    /// Rebuild the codemap snapshot from the stored `extracted_json` docs (one AllQuery,
+    /// same shape as get_indexed_mtimes). The indexer publishes this for `overview`, so the
+    /// working tree is parsed once for the index instead of separately on every overview.
+    pub fn load_extracted_files(&self) -> Vec<ExtractedFile> {
+        let searcher = self.reader.searcher();
+        let mut files = Vec::new();
+        // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
+        // complete on large repos.
+        if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
+            for doc_address in doc_addresses {
+                if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
+                    if let Some(json) = doc
+                        .get_first(self.extracted_json_field)
+                        .and_then(|v| v.as_str())
+                    {
+                        if let Ok(file) = serde_json::from_str::<ExtractedFile>(json) {
+                            files.push(file);
+                        }
+                    }
+                }
+            }
+        }
+        files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+        files
+    }
+}
+
+impl SearcherHandle {
+    /// BM25 search over the committed index snapshot. Reads index/reader/field handles
+    /// only — moved verbatim from the former `TantivySearchEngine::search`.
+    pub fn search(&self, query_str: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
         if query_str.len() > 10000 {
             return Err("Query too long".to_string());
         }
@@ -506,6 +570,16 @@ impl SearchEngine for TantivySearchEngine {
         }
 
         Ok(results)
+    }
+}
+
+impl SearchEngine for TantivySearchEngine {
+    fn index_files(&mut self, paths: &[&str]) -> Result<(), String> {
+        self.index_files_changed(paths).map(|_| ())
+    }
+
+    fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
+        self.searcher_handle().search(query, limit)
     }
 }
 
