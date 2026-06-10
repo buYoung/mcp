@@ -6,3 +6,4 @@ pub mod indexer;
 pub mod mcp;
 pub mod parser;
 pub mod tools;
+pub mod watcher;

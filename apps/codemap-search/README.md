@@ -117,8 +117,8 @@ server:
 
 `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
 default; pass `include_ignored: true` to bypass **all** ignore sources for that call. To
-turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use
-`use_git_exclude` below.
+turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use the
+`use_git_exclude` config key (see [docs/configuration.md](./docs/configuration.md)).
 
 ## CLI
 
@@ -129,52 +129,14 @@ turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use
 ## Configuration
 
 Configuration is **optional** — with no config file, defaults reproduce the built-in
-behavior. TOML config is read from two layers, merged **per key** as
-`repo > global > default`:
+behavior. TOML config is read from a repo layer (`<repo>/.codemap/config.toml`) and a
+global layer (`$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`), merged per key
+as `repo > global > default`. On `mcp` startup, if the repo config is absent, a
+commented, no-op template is auto-created for discoverability — every key documented
+inline at its default.
 
-- **Repo:** `<repo>/.codemap/config.toml`
-- **Global:** `$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`
-
-The loader is **never-exit**: a missing file, parse error, unknown key, or wrong-typed
-value warns to stderr and falls back to the default for that key — it never crashes the
-server. On `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op
-template (every key commented out at its default, so it reproduces the built-in behavior) is
-auto-created for discoverability — an existing file is never overwritten. Uncomment a key to
-override it; the example below shows the same keys with illustrative values.
-
-### Example `config.toml`
-
-```toml
-# Every key is optional; omitted keys use the default shown.
-
-# Where the tantivy index lives (relative to the repo root).
-index_path = ".codemap/index"
-
-# `search` returns file details at or below this many matches, a codemap overview above.
-result_threshold = 5
-
-# Files larger than this many bytes are skipped before parse/index (minified/generated blobs).
-max_file_size = 1048576   # 1 MiB
-
-# Directory names to exclude, ADDED to the built-ins (node_modules, target, dist, build,
-# vendor, .git, …). Built-ins can't be removed — this augments, it does not replace.
-excluded_directories = ["__pycache__", ".next", "coverage"]
-
-# Dedicated toggle for `.git/info/exclude` ONLY. Set false to let index/codemap/find/grep
-# see files hidden solely by `.git/info/exclude` (e.g. local personal excludes) while
-# `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
-use_git_exclude = true
-```
-
-### The `.codemap/` directory and ignores
-
-- `.codemap/index/` (the index) and `.codemap/config.toml` live under one repo-local
-  `.codemap/` directory. codemap-search never walks `.codemap/` (it is a built-in
-  exclude), so it is never indexed — but to keep it out of `git status`, add `.codemap/`
-  to your repo's `.gitignore` (or `.git/info/exclude` for a local-only, uncommitted
-  ignore). The tool does not write to your git files.
-- A repo-local `.codemapignore` uses **gitignore syntax** to hide paths from indexing,
-  `find`, and `grep` — the codemap-search-specific complement to `.gitignore`.
+All keys, defaults, and the `.codemap/` directory layout are documented in
+[docs/configuration.md](./docs/configuration.md).
 
 ## Logging
 

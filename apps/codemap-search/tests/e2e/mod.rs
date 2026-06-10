@@ -8,3 +8,4 @@ mod parser;
 mod scenarios;
 mod search;
 mod tools;
+mod watcher;

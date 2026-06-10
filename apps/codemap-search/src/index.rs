@@ -180,6 +180,58 @@ fn relative_index_path(entry_path: &Path, abs_cwd: &Path) -> String {
     normalize_relative_path(rel)
 }
 
+/// The stored index key for a path that may no longer exist on disk (a watcher remove
+/// event): lenient canonicalization resolves the deepest existing ancestor (so a deleted
+/// file under a symlinked root — e.g. macOS `/var` → `/private/var` — still strips the
+/// canonical cwd prefix), yielding the same key [`relative_index_path`] stored when the
+/// file existed.
+fn stored_index_key(path: &Path, abs_cwd: &Path) -> String {
+    let abs_path = crate::mcp::canonicalize_path_lenient(path);
+    let rel = abs_path.strip_prefix(abs_cwd).unwrap_or(path);
+    normalize_relative_path(rel)
+}
+
+/// Whether an event path would be reached by the shared ignore-aware walk
+/// ([`crate::tools::build_walker`]) descending from the workspace root. The full walk
+/// honors directory-only ignore rules (e.g. a `.gitignore` line `generated/`) by never
+/// descending into the ignored directory, so a single depth-1 check of the immediate
+/// parent is NOT enough — it would be rooted *inside* the ignored subtree and the
+/// ancestor rule would never apply. Instead, verify every step of the ancestor chain
+/// from the root: each component must be yielded by an ignore-aware depth-1 walk of its
+/// parent, exactly as the full walk would descend. Cost is one `readdir` per path depth.
+fn is_path_visible_to_walk(path: &Path) -> bool {
+    let target = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let root = match std::env::current_dir() {
+        Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
+        Err(_) => return true,
+    };
+    let rel = match target.strip_prefix(&root) {
+        Ok(rel) => rel.to_path_buf(),
+        Err(_) => return false,
+    };
+    let mut current = root;
+    for component in rel.components() {
+        let next = current.join(component);
+        let is_visible = crate::tools::build_walker(&current, false)
+            .max_depth(Some(1))
+            .build()
+            .filter_map(|e| e.ok())
+            .any(|entry| {
+                entry.path() == next
+                    || entry
+                        .path()
+                        .canonicalize()
+                        .map(|p| p == next)
+                        .unwrap_or(false)
+            });
+        if !is_visible {
+            return false;
+        }
+        current = next;
+    }
+    true
+}
+
 /// Gather the index entry for a single file: enforce the source-extension allowlist
 /// and the [`crate::tools::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
 /// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
@@ -280,6 +332,19 @@ impl TantivySearchEngine {
             to_delete.len()
         );
 
+        self.apply_index_updates(to_index, to_delete)
+    }
+
+    /// Apply a computed set of reindex/delete updates to the index: delete the stale docs,
+    /// read+parse+add the changed files, commit, reload the reader, and reconcile the mtime
+    /// cache. Shared by the full-walk refresh ([`Self::index_files_changed`]) and the
+    /// path-scoped watcher refresh ([`Self::refresh_paths`]). Returns `true` only when a
+    /// commit actually landed.
+    fn apply_index_updates(
+        &mut self,
+        to_index: Vec<(String, PathBuf, u64)>,
+        to_delete: Vec<String>,
+    ) -> Result<bool, String> {
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
             return Ok(false);
@@ -393,6 +458,135 @@ impl TantivySearchEngine {
         }
 
         Ok(true)
+    }
+
+    /// Path-scoped incremental refresh driven by watcher events. Disk state after the
+    /// debounce window is the source of truth, which is what makes rename / atomic-save
+    /// event sequences safe: a path that exists on disk is (re)indexed regardless of any
+    /// transient remove event, and only paths absent on disk are deleted. Deletes are
+    /// derived from the event paths themselves — never from a set difference against the
+    /// whole index (that logic assumes a full walk and would treat every not-passed file
+    /// as deleted). Returns `true` only when a commit actually landed.
+    pub fn refresh_paths(&mut self, paths: &[PathBuf]) -> Result<bool, String> {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
+
+        if self.indexed_mtimes_cache.is_none() {
+            let snapshot = self.get_indexed_mtimes();
+            self.indexed_mtimes_cache = Some(snapshot);
+        }
+        let indexed_mtimes = self.indexed_mtimes_cache.as_ref().unwrap();
+
+        let mut to_index: Vec<(String, PathBuf, u64)> = Vec::new();
+        let mut to_delete: Vec<String> = Vec::new();
+
+        for path in paths {
+            if path.is_file() {
+                let canonical_key = stored_index_key(path, &abs_cwd);
+                // Case-only renames on case-insensitive filesystems (macOS APFS default):
+                // the event may arrive under the OLD spelling, which canonicalizes to the
+                // new on-disk spelling — the old spelling's doc would otherwise go stale
+                // forever, since no later event names it and the watcher-healthy path
+                // never runs the full-walk set-difference cleanup.
+                if let Ok(raw_rel) = path.strip_prefix(&abs_cwd) {
+                    let raw_key = normalize_relative_path(raw_rel);
+                    if raw_key != canonical_key && indexed_mtimes.contains_key(&raw_key) {
+                        to_delete.push(raw_key);
+                    }
+                }
+                // The full walk honors .gitignore/.codemapignore via build_walker; a single
+                // event path bypasses the walk, so check visibility explicitly — otherwise
+                // the watcher would index ignored files the next full walk then deletes
+                // (flip-flopping index contents).
+                if !is_path_visible_to_walk(path) {
+                    if indexed_mtimes.contains_key(&canonical_key) {
+                        to_delete.push(canonical_key);
+                    }
+                    continue;
+                }
+                match collect_index_entry(path, &abs_cwd) {
+                    Some((rel_path, disk_path, mtime)) => {
+                        match indexed_mtimes.get(&rel_path) {
+                            Some(&indexed_mtime) if indexed_mtime == mtime => {}
+                            _ => to_index.push((rel_path, disk_path, mtime)),
+                        }
+                    }
+                    None => {
+                        // Not indexable (extension/size): if a former source file now
+                        // exceeds the cap, drop its stale doc.
+                        if indexed_mtimes.contains_key(&canonical_key) {
+                            to_delete.push(canonical_key);
+                        }
+                    }
+                }
+            } else if path.is_dir() {
+                // An ignored directory's subtree must never enter the index through an
+                // event (same flip-flop hazard as the file branch); anything indexed
+                // under it is stale by the full walk's standards — drop it.
+                if !is_path_visible_to_walk(path) {
+                    let prefix = format!("{}/", stored_index_key(path, &abs_cwd));
+                    for indexed_path in indexed_mtimes.keys() {
+                        if indexed_path.starts_with(&prefix) {
+                            to_delete.push(indexed_path.clone());
+                        }
+                    }
+                    continue;
+                }
+                // A directory event (created/renamed-in dir): walk just that subtree. The
+                // set difference here is scoped to the subtree the walk fully covered, so
+                // it is NOT the full-walk-only delete logic the doc comment above forbids.
+                let mut subtree_disk_paths = std::collections::HashSet::new();
+                for entry in crate::tools::build_walker(path, false)
+                    .build()
+                    .filter_map(|e| e.ok())
+                {
+                    let entry_path = entry.path();
+                    if entry_path.is_file() {
+                        if let Some((rel_path, disk_path, mtime)) =
+                            collect_index_entry(entry_path, &abs_cwd)
+                        {
+                            subtree_disk_paths.insert(rel_path.clone());
+                            match indexed_mtimes.get(&rel_path) {
+                                Some(&indexed_mtime) if indexed_mtime == mtime => {}
+                                _ => to_index.push((rel_path, disk_path, mtime)),
+                            }
+                        }
+                    }
+                }
+                let prefix = format!("{}/", stored_index_key(path, &abs_cwd));
+                for indexed_path in indexed_mtimes.keys() {
+                    if indexed_path.starts_with(&prefix)
+                        && !subtree_disk_paths.contains(indexed_path)
+                    {
+                        to_delete.push(indexed_path.clone());
+                    }
+                }
+            } else {
+                // Absent on disk: delete the exact path, and any indexed files under it in
+                // case the removed path was a directory.
+                let rel_path = stored_index_key(path, &abs_cwd);
+                let prefix = format!("{rel_path}/");
+                for indexed_path in indexed_mtimes.keys() {
+                    if indexed_path == &rel_path || indexed_path.starts_with(&prefix) {
+                        to_delete.push(indexed_path.clone());
+                    }
+                }
+            }
+        }
+
+        to_index.sort_by(|a, b| a.0.cmp(&b.0));
+        to_index.dedup_by(|a, b| a.0 == b.0);
+        to_delete.sort();
+        to_delete.dedup();
+
+        tracing::debug!(
+            "refresh_paths: event_paths={}, to_index={}, to_delete={}",
+            paths.len(),
+            to_index.len(),
+            to_delete.len()
+        );
+
+        self.apply_index_updates(to_index, to_delete)
     }
 
     /// Cheap read-side handle: clones the Arc-backed index/reader so search runs off the

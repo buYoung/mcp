@@ -30,8 +30,8 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// Commented, no-op scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_template`]). Every key is commented out at its compiled-in default, so the
 /// file parses to an empty layer — zero keys, zero warnings — and reproduces the built-in
-/// behavior exactly until the user uncomments a line. Mirrors the README "Configuration"
-/// section; keep the two aligned when adding or renaming a key.
+/// behavior exactly until the user uncomments a line. Mirrors the key reference in
+/// `docs/configuration.md`; keep the two aligned when adding or renaming a key.
 const CONFIG_TEMPLATE: &str = "\
 # codemap-search repo-local config. Optional: with every key commented out (the state
 # below), this file reproduces the built-in behavior exactly. Uncomment and edit a line to
@@ -64,6 +64,21 @@ const CONFIG_TEMPLATE: &str = "\
 # Max file headers `search` emits in its codemap-overview branch (when matches exceed
 # result_threshold). Caps the context a broad query can spend. (default 50)
 # search_overview_file_limit = 50
+
+# Filesystem watcher: when true (the default), file changes refresh the index in the
+# background on their own and search/overview never trigger a tree walk. Set false to
+# fall back to the request-triggered lazy refresh (debounced by index_staleness_ms).
+# watch = true
+
+# Debounce window (milliseconds) for watcher events: changes arriving within this window
+# are batched into one incremental refresh. (default 500)
+# watch_debounce_ms = 500
+
+# Automatic recovery when the background indexer thread dies: the next search/overview
+# rebuilds the index engine, respawns the indexer, and re-attaches the watcher (capped
+# per server run so a deterministic crash cannot respawn-loop). Set false to serve
+# results frozen at the last commit until the server is restarted instead.
+# indexer_auto_restart = true
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -97,6 +112,21 @@ pub struct ResolvedConfig {
     /// context a broad query can spend; pairs with `result_threshold`, which picks the
     /// overview-vs-detail branch. Output-size only — safe to tune.
     pub search_overview_file_limit: usize,
+    /// Filesystem watcher toggle (default true). When the watcher runs and is healthy,
+    /// changes refresh the index autonomously and `search`/`overview` never trigger a
+    /// tree walk; when false (or the watcher fails), the request-triggered lazy refresh
+    /// (`index_staleness_ms`) is the fallback.
+    pub watch: bool,
+    /// Debounce window (milliseconds) for watcher events (default 500): events arriving
+    /// within the window are batched into one incremental refresh, and a git HEAD change
+    /// joins the same window so a half-written tree mid-checkout is not walked twice.
+    pub watch_debounce_ms: u64,
+    /// Automatic indexer recovery (default true). When the background indexer thread
+    /// dies, the next `search`/`overview` rebuilds the engine, respawns the indexer, and
+    /// re-attaches the watcher — bounded by a per-process attempt cap (see
+    /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
+    /// Set false to keep the frozen-results behavior until the server restarts.
+    pub indexer_auto_restart: bool,
 }
 
 impl Default for ResolvedConfig {
@@ -112,6 +142,9 @@ impl Default for ResolvedConfig {
             use_git_exclude: true,
             index_staleness_ms: 5_000,
             search_overview_file_limit: 50,
+            watch: true,
+            watch_debounce_ms: 500,
+            indexer_auto_restart: true,
         }
     }
 }
@@ -128,6 +161,9 @@ struct ConfigLayer {
     use_git_exclude: Option<bool>,
     index_staleness_ms: Option<u64>,
     search_overview_file_limit: Option<usize>,
+    watch: Option<bool>,
+    watch_debounce_ms: Option<u64>,
+    indexer_auto_restart: Option<bool>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -190,6 +226,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "search_overview_file_limit" => {
                 layer.search_overview_file_limit = as_positive_usize(&v, &key, path)
             }
+            "watch" => layer.watch = as_bool(&v, &key, path),
+            "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(&v, &key, path),
+            "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(&v, &key, path),
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -233,6 +272,15 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .search_overview_file_limit
             .or(global.search_overview_file_limit)
             .unwrap_or(defaults.search_overview_file_limit),
+        watch: repo.watch.or(global.watch).unwrap_or(defaults.watch),
+        watch_debounce_ms: repo
+            .watch_debounce_ms
+            .or(global.watch_debounce_ms)
+            .unwrap_or(defaults.watch_debounce_ms),
+        indexer_auto_restart: repo
+            .indexer_auto_restart
+            .or(global.indexer_auto_restart)
+            .unwrap_or(defaults.indexer_auto_restart),
     }
 }
 

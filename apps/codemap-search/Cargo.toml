@@ -59,6 +59,11 @@ grep = "0.4"
 ignore = "0.4"
 globset = "0.4"
 
+# Filesystem watcher (inotify/FSEvents/ReadDirectoryChanges) driving autonomous
+# incremental index refresh (`watcher.rs`). The debounce loop is hand-written —
+# no `notify-debouncer-*` crate.
+notify = "8.2.0"
+
 [dev-dependencies]
 assert_cmd = "2.0.12"
 predicates = "3.1.0"

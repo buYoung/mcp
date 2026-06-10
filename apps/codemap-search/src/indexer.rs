@@ -19,10 +19,16 @@ use std::thread::JoinHandle;
 use crate::index::TantivySearchEngine;
 use crate::parser::ExtractedFile;
 
-/// Message to the indexer thread. A single variant today; kept as an enum so future
-/// triggers (e.g. a targeted path refresh) slot in without changing the channel type.
+/// Message to the indexer thread.
 pub enum IndexCommand {
+    /// Full working-tree walk + mtime diff (set-difference delete detection included).
+    /// Sent by the request fallback and by the watcher on bulk events (git HEAD change,
+    /// event overflow, rescan).
     Refresh,
+    /// Path-scoped incremental refresh: reindex the event paths that exist on disk,
+    /// delete the ones that don't. Sent by the watcher for ordinary edits so the common
+    /// case never pays the O(repo) walk.
+    RefreshPaths(Vec<std::path::PathBuf>),
 }
 
 /// Shared, lock-light status the server reads to annotate responses.
@@ -80,14 +86,32 @@ impl IndexerHandle {
     }
 
     /// True if the background indexer thread has stopped (panicked or exited). Results are
-    /// then frozen at the last commit until the server restarts.
+    /// then frozen at the last commit until the server restarts. Checks the join handle
+    /// directly — not just the `thread_died` flag, which is only set when a send observes
+    /// `Disconnected` — so death is visible even while a healthy watcher suppresses the
+    /// request-triggered sends that would otherwise be the first to notice.
     pub fn is_dead(&self) -> bool {
         self.status.thread_died.load(Ordering::Acquire)
+            || self
+                .join_handle
+                .as_ref()
+                .is_some_and(|handle| handle.is_finished())
     }
 
     /// The last background refresh error, if any.
     pub fn last_error(&self) -> Option<String> {
         self.status.last_error.lock().unwrap().clone()
+    }
+
+    /// Clone of the command channel sender for the filesystem watcher. The watcher thread
+    /// holds this clone, so it MUST be dropped (watcher shut down) before this handle is
+    /// dropped — the indexer's `recv()` loop ends only when ALL senders are gone
+    /// (guaranteed by `McpServer`'s field declaration order: `watcher` before `indexer`).
+    pub fn command_sender(&self) -> SyncSender<IndexCommand> {
+        self.sender
+            .as_ref()
+            .expect("command_sender called after IndexerHandle drop began")
+            .clone()
     }
 }
 
@@ -121,9 +145,18 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
             thread_status
                 .initial_index_done
                 .store(true, Ordering::Release);
-            // Then serve refresh requests until the channel is closed (server shutdown).
-            while receiver.recv().is_ok() {
-                run_refresh_pass(&mut engine, &thread_status, &thread_snapshot, false);
+            // Then serve refresh requests until the channel is closed (server shutdown —
+            // the recv loop ends only once ALL senders, including the watcher's clone,
+            // have dropped).
+            while let Ok(command) = receiver.recv() {
+                match command {
+                    IndexCommand::Refresh => {
+                        run_refresh_pass(&mut engine, &thread_status, &thread_snapshot, false);
+                    }
+                    IndexCommand::RefreshPaths(paths) => {
+                        run_paths_pass(&mut engine, &thread_status, &thread_snapshot, &paths);
+                    }
+                }
             }
         })
         .expect("failed to spawn codemap-indexer thread");
@@ -144,10 +177,35 @@ fn run_refresh_pass(
     snapshot: &Mutex<CodemapSnapshot>,
     is_initial_pass: bool,
 ) {
-    match engine.index_files_changed(&["."]) {
+    let result = engine.index_files_changed(&["."]);
+    publish_pass_result(engine, status, snapshot, result, is_initial_pass);
+}
+
+/// One path-scoped pass: incremental reindex/delete of just the watcher event paths,
+/// then republish the codemap snapshot when the index changed.
+fn run_paths_pass(
+    engine: &mut TantivySearchEngine,
+    status: &IndexerStatus,
+    snapshot: &Mutex<CodemapSnapshot>,
+    paths: &[std::path::PathBuf],
+) {
+    let result = engine.refresh_paths(paths);
+    publish_pass_result(engine, status, snapshot, result, false);
+}
+
+/// Record a pass result on the shared status and republish the codemap snapshot when the
+/// index changed (or on the initial pass, to hydrate from a warm on-disk index).
+fn publish_pass_result(
+    engine: &TantivySearchEngine,
+    status: &IndexerStatus,
+    snapshot: &Mutex<CodemapSnapshot>,
+    result: Result<bool, String>,
+    force_publish: bool,
+) {
+    match result {
         Ok(changed) => {
             *status.last_error.lock().unwrap() = None;
-            if changed || is_initial_pass {
+            if changed || force_publish {
                 let files = engine.load_extracted_files();
                 *snapshot.lock().unwrap() = Arc::new(files);
             }
