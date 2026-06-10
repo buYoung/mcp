@@ -1,6 +1,6 @@
 # codemap-search
 
-A **self-contained MCP stdio server** for coding agents (Claude Code, Codex, …). One
+A **self-contained MCP stdio server** for coding agents (Claude Code, Codex, opencode, …). One
 binary gives an agent a hierarchical *codemap*, BM25 keyword search over extracted
 symbols, and exact `read` / `find` / `grep` — with **ripgrep, tree-sitter, and tantivy
 all compiled in**. No system `rg`, no external runtime binaries.
@@ -41,15 +41,26 @@ on your `PATH`.
 ## Register with an MCP client
 
 Run the server with the `mcp` subcommand from the repository you want indexed (the server
-operates on its current working directory).
+operates on its current working directory). A **global** (per-user) registration works the
+same way: the client spawns `codemap-search mcp` with the active project as its working
+directory, so one global install covers every repo — make sure `codemap-search` is on your
+`PATH`.
 
 ### Claude Code
+
+Project scope (default — only the current repo):
 
 ```sh
 claude mcp add codemap-search -- codemap-search mcp
 ```
 
-or in `.mcp.json` / your MCP settings:
+Global scope (user — available in every project):
+
+```sh
+claude mcp add -s user codemap-search -- codemap-search mcp
+```
+
+or edit the config directly — `.mcp.json` for project scope, `~/.claude.json` for user scope:
 
 ```json
 {
@@ -61,12 +72,37 @@ or in `.mcp.json` / your MCP settings:
 
 ### Codex
 
-In `~/.codex/config.toml`:
+`~/.codex/config.toml` is Codex's global config, so this entry applies to every project:
 
 ```toml
 [mcp_servers.codemap-search]
 command = "codemap-search"
 args = ["mcp"]
+```
+
+or add it via the CLI, which writes the same global config:
+
+```sh
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+### opencode
+
+Global config lives at `~/.config/opencode/opencode.json` (use a per-project `opencode.json`
+at the repo root to scope it to one repo). Register it under the `mcp` key as a `local`
+server:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "codemap-search": {
+      "type": "local",
+      "command": ["codemap-search", "mcp"],
+      "enabled": true
+    }
+  }
+}
 ```
 
 ## Tools
@@ -101,7 +137,10 @@ behavior. TOML config is read from two layers, merged **per key** as
 
 The loader is **never-exit**: a missing file, parse error, unknown key, or wrong-typed
 value warns to stderr and falls back to the default for that key — it never crashes the
-server. No template file is auto-created; copy the example below.
+server. On `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op
+template (every key commented out at its default, so it reproduces the built-in behavior) is
+auto-created for discoverability — an existing file is never overwritten. Uncomment a key to
+override it; the example below shows the same keys with illustrative values.
 
 ### Example `config.toml`
 

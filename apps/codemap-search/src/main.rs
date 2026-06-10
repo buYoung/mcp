@@ -178,6 +178,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Mcp => {
+            // Scaffold a commented, no-op `.codemap/config.toml` for discoverability when
+            // absent — `mcp` only, never on parse/search/etc. Never-exit: a write failure
+            // warns and the server still boots.
+            codemap_search::config::ensure_repo_template(&cwd);
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             let extractor = TreeSitterExtractor::new();

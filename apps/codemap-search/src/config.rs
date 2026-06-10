@@ -8,9 +8,12 @@
 //!
 //! The global directory is injected (`CODEMAP_HOME`, else `~/.codemap`) so the loader is
 //! pure/unit-testable and tests stay hermetic (they never read the developer's real home).
-//! The binary is fully side-effect-free: it never writes the user's filesystem — it does
-//! NOT auto-create a template (the format is documented in the README) and does NOT touch
-//! any git file. Keeping `.codemap/` out of `git status` is the user's `.gitignore` choice.
+//! The loader ([`load`]) is itself pure and side-effect-free — it only reads. Separately,
+//! the `mcp` command calls [`ensure_repo_template`] once at startup to scaffold a commented,
+//! behavior-preserving `<repo>/.codemap/config.toml` when none exists (for discoverability).
+//! That writer never overwrites an existing file, never touches any git file, and warns
+//! rather than crashing on failure. Keeping `.codemap/` out of `git status` is the user's
+//! `.gitignore` choice.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -23,6 +26,35 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 /// Env var overriding the global config home (default `~/.codemap`). Tests set it for
 /// hermetic isolation; users may set it to relocate global config.
 const HOME_ENV: &str = "CODEMAP_HOME";
+
+/// Commented, no-op scaffold written to a fresh repo on `mcp` start (see
+/// [`ensure_repo_template`]). Every key is commented out at its compiled-in default, so the
+/// file parses to an empty layer — zero keys, zero warnings — and reproduces the built-in
+/// behavior exactly until the user uncomments a line. Mirrors the README "Configuration"
+/// section; keep the two aligned when adding or renaming a key.
+const CONFIG_TEMPLATE: &str = "\
+# codemap-search repo-local config. Optional: with every key commented out (the state
+# below), this file reproduces the built-in behavior exactly. Uncomment and edit a line to
+# override its default. Resolution precedence is per key: repo > global > built-in default.
+
+# Where the tantivy index lives (relative to the repo root).
+# index_path = \".codemap/index\"
+
+# `search` returns file details at or below this many matches, a codemap overview above.
+# result_threshold = 5
+
+# Files larger than this many bytes are skipped before parse/index (minified/generated blobs).
+# max_file_size = 1048576   # 1 MiB
+
+# Directory names to exclude, ADDED to the built-ins (node_modules, target, dist, build,
+# vendor, .git, …). Built-ins can't be removed — this augments, it does not replace.
+# excluded_directories = [\"__pycache__\", \".next\", \"coverage\"]
+
+# Dedicated toggle for `.git/info/exclude` ONLY. Set false to let index/codemap/find/grep
+# see files hidden solely by `.git/info/exclude` (e.g. local personal excludes) while
+# `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
+# use_git_exclude = true
+";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
@@ -205,6 +237,35 @@ pub fn init(repo_root: &Path) {
 /// tests that exercise the walker directly without booting the server).
 pub fn get() -> &'static ResolvedConfig {
     CONFIG.get_or_init(ResolvedConfig::default)
+}
+
+/// Scaffold a commented, no-op `<repo_root>/.codemap/config.toml` from [`CONFIG_TEMPLATE`]
+/// when none exists, so a fresh repo gets a discoverable, self-documenting config on `mcp`
+/// start. Never-exit: an existing file is left untouched (protects user edits), and a
+/// directory-create or write failure warns to stderr and returns rather than crashing the
+/// server. The path matches exactly what [`load`] reads, so an uncommented key takes effect
+/// on the next run.
+pub fn ensure_repo_template(repo_root: &Path) {
+    let dir = repo_root.join(CODEMAP_DIR_NAME);
+    let path = dir.join(CONFIG_FILE_NAME);
+    if path.exists() {
+        return;
+    }
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        warn(&format!(
+            "config template skipped: create {}: {e}",
+            dir.display()
+        ));
+        return;
+    }
+    if let Err(e) = std::fs::write(&path, CONFIG_TEMPLATE) {
+        warn(&format!(
+            "config template skipped: write {}: {e}",
+            path.display()
+        ));
+        return;
+    }
+    warn(&format!("created default config: {}", path.display()));
 }
 
 // --- value validators (warn + drop on mismatch) ----------------------------------------
