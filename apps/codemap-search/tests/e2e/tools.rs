@@ -164,8 +164,26 @@ async fn test_read_path_traversal_is_rejected() {
 }
 
 #[tokio::test]
-async fn test_read_binary_content_is_rejected() {
-    // Unknown extension so the content (NUL byte) path is exercised, not the ext blocklist.
+async fn test_read_binary_by_extension_is_rejected() {
+    // Binary is gated by EXTENSION only (Claude Code parity): a known-binary extension is
+    // rejected outright regardless of content.
+    let temp = create_mock_repo(&[("blob.bin", "anything")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "blob.bin" })),
+        )
+        .await
+        .unwrap();
+    assert!(is_error(&resp), "a known-binary extension must error");
+}
+
+#[tokio::test]
+async fn test_read_non_utf8_content_decodes_lossily() {
+    // Unknown extension with non-UTF-8 / NUL bytes: NO content-based hard reject anymore
+    // (Claude Code parity). The file is read with lossy decoding instead of erroring; the
+    // NUL hard-reject and the invalid-UTF-8 hard-reject were removed by design.
     let temp = create_mock_repo(&[("data.qqq", "text\u{0}binary")]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
@@ -175,7 +193,9 @@ async fn test_read_binary_content_is_rejected() {
         )
         .await
         .unwrap();
-    assert!(is_error(&resp), "binary content must error");
+    assert!(!is_error(&resp), "non-UTF-8 content must decode lossily, not error");
+    let out = text(&resp);
+    assert!(out.contains("text") && out.contains("binary"), "content surfaced: {out}");
 }
 
 // ---- find ----------------------------------------------------------------

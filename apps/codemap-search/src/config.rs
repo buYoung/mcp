@@ -79,6 +79,33 @@ const CONFIG_TEMPLATE: &str = "\
 # per server run so a deterministic crash cannot respawn-loop). Set false to serve
 # results frozen at the last commit until the server is restarted instead.
 # indexer_auto_restart = true
+
+# Allow `find` absolute-path patterns whose static prefix resolves OUTSIDE the workspace
+# root (Claude Code's Glob accepts any absolute base). Default false keeps the sandbox:
+# absolute/`..` patterns escaping the root are rejected. Set true only to opt into
+# searching arbitrary on-disk locations via `find`.
+# allow_absolute_path_outside_root = false
+
+# `grep` content-mode column cap: a matched line longer than this many columns is replaced
+# with `[Omitted long matching line]` instead of being dumped in full (Claude Code passes
+# `--max-columns 500`). 0 disables the cap. (default 500)
+# grep_max_columns = 500
+
+# `read` always-applied output ceiling (bytes): even with `offset`/`limit` set, a `read`
+# whose rendered output would exceed this throws rather than emitting an unbounded blob
+# (approximates Claude Code's ~25,000-token cap). Measured on the RENDERED output including
+# the `     N→` line-number prefixes (~7 bytes/line). Separate from the 256 KiB whole-file
+# cap that applies only when `limit` is omitted. (default 102400 ≈ 100 KiB)
+# read_output_byte_cap = 102400
+
+# `search` detail-view caps (the ≤ result_threshold branch that emits code snippets). These
+# bound the detail response so a query matching a few large files can't dump tens of
+# thousands of lines. Output-size only.
+# search_detail_snippet_max_lines = 80   # per-symbol snippet line cap; over-long bodies elide
+# search_detail_symbol_limit = 20        # max symbols rendered per file; rest summarized
+# search_detail_byte_cap = 32768         # total detail-view byte budget (32 KiB) before cutoff
+# search_literal_max_len = 200           # matched-literal truncation length (chars)
+# search_literal_limit = 10              # max matched literals rendered per file
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -127,6 +154,36 @@ pub struct ResolvedConfig {
     /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
     /// Set false to keep the frozen-results behavior until the server restarts.
     pub indexer_auto_restart: bool,
+    /// Allow `find` absolute-path patterns whose static prefix resolves outside the
+    /// workspace root (default false). When false, absolute/`..` patterns escaping the
+    /// root are rejected as today; when true, `find` bypasses the within-root assertion
+    /// so a Claude Code-style absolute glob can search anywhere on disk. The default
+    /// preserves the sandbox; this is the opt-in escape hatch.
+    pub allow_absolute_path_outside_root: bool,
+    /// `grep` content-mode column cap (default 500, matching Claude Code's `--max-columns
+    /// 500`). A matched line wider than this is replaced with `[Omitted long matching
+    /// line]`; `0` disables the cap. Output-size only.
+    pub grep_max_columns: usize,
+    /// `read` always-applied output ceiling in bytes (default 102400 ≈ 100 KiB). Even with
+    /// `offset`/`limit` set, a `read` whose rendered output exceeds this throws instead of
+    /// emitting an unbounded blob (approximates Claude Code's ~25,000-token cap). Distinct
+    /// from the 256 KiB whole-file cap that applies only when `limit` is omitted.
+    pub read_output_byte_cap: usize,
+    /// `search` detail-view per-symbol snippet line cap (default 80). A symbol body longer
+    /// than this is truncated with an elision marker. Output-size only.
+    pub search_detail_snippet_max_lines: usize,
+    /// `search` detail-view per-file symbol cap (default 20). Beyond it, a "more symbols
+    /// not shown" note replaces the remaining symbols. Output-size only.
+    pub search_detail_symbol_limit: usize,
+    /// `search` detail-view total output byte budget (default 32768 ≈ 32 KiB). Once the
+    /// rendered detail view reaches this, emission stops with a truncation note. Output-size
+    /// only.
+    pub search_detail_byte_cap: usize,
+    /// `search` matched-literal truncation length in characters (default 200). A longer
+    /// literal is cut with an ellipsis. Output-size only.
+    pub search_literal_max_len: usize,
+    /// `search` per-file matched-literal count cap (default 10). Output-size only.
+    pub search_literal_limit: usize,
 }
 
 impl Default for ResolvedConfig {
@@ -145,6 +202,14 @@ impl Default for ResolvedConfig {
             watch: true,
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
+            allow_absolute_path_outside_root: false,
+            grep_max_columns: 500,
+            read_output_byte_cap: 102_400,
+            search_detail_snippet_max_lines: 80,
+            search_detail_symbol_limit: 20,
+            search_detail_byte_cap: 32_768,
+            search_literal_max_len: 200,
+            search_literal_limit: 10,
         }
     }
 }
@@ -164,6 +229,14 @@ struct ConfigLayer {
     watch: Option<bool>,
     watch_debounce_ms: Option<u64>,
     indexer_auto_restart: Option<bool>,
+    allow_absolute_path_outside_root: Option<bool>,
+    grep_max_columns: Option<usize>,
+    read_output_byte_cap: Option<usize>,
+    search_detail_snippet_max_lines: Option<usize>,
+    search_detail_symbol_limit: Option<usize>,
+    search_detail_byte_cap: Option<usize>,
+    search_literal_max_len: Option<usize>,
+    search_literal_limit: Option<usize>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -229,6 +302,26 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "watch" => layer.watch = as_bool(&v, &key, path),
             "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(&v, &key, path),
             "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(&v, &key, path),
+            "allow_absolute_path_outside_root" => {
+                layer.allow_absolute_path_outside_root = as_bool(&v, &key, path)
+            }
+            "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(&v, &key, path),
+            "read_output_byte_cap" => layer.read_output_byte_cap = as_positive_usize(&v, &key, path),
+            "search_detail_snippet_max_lines" => {
+                layer.search_detail_snippet_max_lines = as_positive_usize(&v, &key, path)
+            }
+            "search_detail_symbol_limit" => {
+                layer.search_detail_symbol_limit = as_positive_usize(&v, &key, path)
+            }
+            "search_detail_byte_cap" => {
+                layer.search_detail_byte_cap = as_positive_usize(&v, &key, path)
+            }
+            "search_literal_max_len" => {
+                layer.search_literal_max_len = as_positive_usize(&v, &key, path)
+            }
+            "search_literal_limit" => {
+                layer.search_literal_limit = as_positive_usize(&v, &key, path)
+            }
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -281,6 +374,38 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .indexer_auto_restart
             .or(global.indexer_auto_restart)
             .unwrap_or(defaults.indexer_auto_restart),
+        allow_absolute_path_outside_root: repo
+            .allow_absolute_path_outside_root
+            .or(global.allow_absolute_path_outside_root)
+            .unwrap_or(defaults.allow_absolute_path_outside_root),
+        grep_max_columns: repo
+            .grep_max_columns
+            .or(global.grep_max_columns)
+            .unwrap_or(defaults.grep_max_columns),
+        read_output_byte_cap: repo
+            .read_output_byte_cap
+            .or(global.read_output_byte_cap)
+            .unwrap_or(defaults.read_output_byte_cap),
+        search_detail_snippet_max_lines: repo
+            .search_detail_snippet_max_lines
+            .or(global.search_detail_snippet_max_lines)
+            .unwrap_or(defaults.search_detail_snippet_max_lines),
+        search_detail_symbol_limit: repo
+            .search_detail_symbol_limit
+            .or(global.search_detail_symbol_limit)
+            .unwrap_or(defaults.search_detail_symbol_limit),
+        search_detail_byte_cap: repo
+            .search_detail_byte_cap
+            .or(global.search_detail_byte_cap)
+            .unwrap_or(defaults.search_detail_byte_cap),
+        search_literal_max_len: repo
+            .search_literal_max_len
+            .or(global.search_literal_max_len)
+            .unwrap_or(defaults.search_literal_max_len),
+        search_literal_limit: repo
+            .search_literal_limit
+            .or(global.search_literal_limit)
+            .unwrap_or(defaults.search_literal_limit),
     }
 }
 
@@ -373,6 +498,19 @@ fn as_positive_usize(value: &toml::Value, key: &str, path: &Path) -> Option<usiz
         _ => {
             warn(&format!(
                 "config '{key}' must be a positive integer: {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
+fn as_nonneg_usize(value: &toml::Value, key: &str, path: &Path) -> Option<usize> {
+    match value.as_integer() {
+        Some(n) if n >= 0 => Some(n as usize),
+        _ => {
+            warn(&format!(
+                "config '{key}' must be a non-negative integer: {} — ignored",
                 path.display()
             ));
             None

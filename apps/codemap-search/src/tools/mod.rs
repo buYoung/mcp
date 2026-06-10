@@ -40,6 +40,9 @@ pub const EXCLUDED_DIRS: &[&str] = &[
     ".git",
     ".svn",
     ".hg",
+    ".bzr",
+    ".jj",
+    ".sl",
     ".codemap",
     ".codemap-index",
 ];
@@ -50,8 +53,16 @@ pub const EXCLUDED_DIRS: &[&str] = &[
 /// `build`, `vendor`, …) stays bypassable via `include_ignored`, because those names
 /// can legitimately hold real source in some repos (Go vendoring, hand-written
 /// `build/` scripts) and silently hiding them reads as "search is broken".
-pub const ALWAYS_EXCLUDED_DIRS: &[&str] =
-    &[".git", ".svn", ".hg", ".codemap", ".codemap-index"];
+pub const ALWAYS_EXCLUDED_DIRS: &[&str] = &[
+    ".git",
+    ".svn",
+    ".hg",
+    ".bzr",
+    ".jj",
+    ".sl",
+    ".codemap",
+    ".codemap-index",
+];
 
 /// Whether `ext` is a source extension codemap-search understands. Single predicate
 /// over [`SOURCE_EXTENSIONS`] — replaces the `matches!(ext, "rs" | "py" | …)` literals
@@ -145,6 +156,97 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
         true
     });
     builder
+}
+
+// --- Shared gitignore-style glob matching (find + grep) --------------------------------
+
+/// Strip a leading `./` (repeated) from a glob so `./src/*.rs` behaves as `src/*.rs`.
+/// A leading `!` (gitignore negation) is preserved and the `./` after it is stripped too,
+/// so `!./src/*.rs` normalizes to `!src/*.rs` (without this the negation would silently
+/// fail to anchor and disable itself). ripgrep does not normalize `./`; codemap does as an
+/// intentional ergonomic improvement.
+pub(crate) fn normalize_glob_prefix(pattern: &str) -> String {
+    let (bang, rest) = match pattern.strip_prefix('!') {
+        Some(rest) => ("!", rest),
+        None => ("", pattern),
+    };
+    let mut body = rest;
+    while let Some(stripped) = body.strip_prefix("./") {
+        body = stripped;
+    }
+    format!("{bang}{body}")
+}
+
+/// Split a Grep-style `glob` argument into individual gitignore patterns: whitespace
+/// first, then split each brace-free whitespace token on commas (so `*.ts,*.tsx` →
+/// two globs). Mirrors Claude Code Grep's `--glob` expansion. A token containing `{` is
+/// kept intact so brace alternations survive. `find` does NOT use this — it passes its
+/// single pattern verbatim, matching Claude Code Glob.
+pub(crate) fn split_grep_globs(glob: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for whitespace_token in glob.split_whitespace() {
+        // Keep a token intact only when it carries a complete brace alternation `{…}`
+        // (Claude Code requires both `{` and `}`); otherwise comma-split it.
+        if whitespace_token.contains('{') && whitespace_token.contains('}') {
+            out.push(whitespace_token.to_string());
+        } else {
+            for comma_token in whitespace_token.split(',') {
+                if !comma_token.is_empty() {
+                    out.push(comma_token.to_string());
+                }
+            }
+        }
+    }
+    out
+}
+
+/// A compiled gitignore-style glob matcher equivalent to `rg --glob <pattern>`: a
+/// slash-less pattern matches the basename at **any depth**, `**` crosses directories,
+/// `*`/`?` do not cross `/` within a segment, `{a,b}` brace-expands, and a leading `!`
+/// negates (gitignore semantics, via `ignore::overrides`). When every supplied glob is a
+/// negation, unmatched files are *included* (ripgrep treats `--glob '!x'` as "all but x");
+/// when any positive glob exists, only matches pass. Shared by `find` and `grep` so both
+/// observe identical semantics instead of re-deriving them.
+pub struct GlobMatcher {
+    overrides: ignore::overrides::Override,
+    has_whitelist: bool,
+}
+
+impl GlobMatcher {
+    /// Whether `rel_path` (relative to the matcher's base directory) matches the glob set.
+    pub fn is_match(&self, rel_path: &Path) -> bool {
+        match self.overrides.matched(rel_path, false) {
+            ignore::Match::Ignore(_) => false,
+            ignore::Match::Whitelist(_) => true,
+            // No glob touched this path: included only when there is no positive glob to
+            // satisfy (negation-only sets are "everything except"), excluded otherwise.
+            ignore::Match::None => !self.has_whitelist,
+        }
+    }
+}
+
+/// Build a [`GlobMatcher`] from one or more patterns rooted at `base`. `./` prefixes are
+/// normalized away first. `find` passes its single pattern; `grep` passes the
+/// whitespace/comma-split set from [`split_grep_globs`]. Errors map to JSON-RPC -32602.
+pub fn build_glob_matcher(base: &Path, patterns: &[String]) -> Result<GlobMatcher, (i64, String)> {
+    let mut builder = ignore::overrides::OverrideBuilder::new(base);
+    for pattern in patterns {
+        let normalized = normalize_glob_prefix(pattern);
+        if normalized.is_empty() || normalized == "!" {
+            continue;
+        }
+        builder
+            .add(&normalized)
+            .map_err(|e| (-32602, format!("Invalid glob pattern '{pattern}': {e}")))?;
+    }
+    let overrides = builder
+        .build()
+        .map_err(|e| (-32602, format!("Invalid glob pattern set: {e}")))?;
+    let has_whitelist = overrides.num_whitelists() > 0;
+    Ok(GlobMatcher {
+        overrides,
+        has_whitelist,
+    })
 }
 
 /// Read a source file's contents for codemap parsing, enforcing the

@@ -81,17 +81,12 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     let bytes = std::fs::read(&resolved)
         .map_err(|e| (-32603, format!("Failed to read '{file_path}': {e}")))?;
 
-    // Reject binary content (NUL byte or invalid UTF-8) even without a known extension.
-    if bytes.contains(&0) {
-        return Err((
-            -32602,
-            format!("'{file_path}' appears to be a binary file."),
-        ));
-    }
-    let content = match std::str::from_utf8(&bytes) {
-        Ok(s) => s,
-        Err(_) => return Err((-32602, format!("'{file_path}' is not valid UTF-8 text."))),
-    };
+    // Decode lossily (invalid bytes → U+FFFD), matching Claude Code's Node `utf8` decode.
+    // Binary files are gated by extension above, not by a NUL/UTF-8 hard reject — so a
+    // file with stray non-UTF-8 bytes still reads with replacement characters.
+    let decoded = String::from_utf8_lossy(&bytes);
+    // Strip a leading UTF-8 BOM so it never appears inside line 1.
+    let content = decoded.strip_prefix('\u{feff}').unwrap_or(decoded.as_ref());
 
     if content.is_empty() {
         return Ok(
@@ -100,7 +95,13 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
         );
     }
 
-    let all_lines: Vec<&str> = content.lines().collect();
+    // Split on '\n' (stripping a trailing '\r' per line for CRLF) and KEEP the trailing
+    // empty segment, so a newline-terminated file counts its final empty line like Claude
+    // Code ("a\nb\n" → 3 lines). `str::lines()` drops that segment and is off-by-one here.
+    let all_lines: Vec<&str> = content
+        .split('\n')
+        .map(|line| line.strip_suffix('\r').unwrap_or(line))
+        .collect();
     let total = all_lines.len();
     // offset is 1-indexed; 0 is treated as 1.
     let start_line = offset.unwrap_or(1).max(1);
@@ -120,5 +121,19 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
         None => all_lines[start_line - 1..].to_vec(),
     };
 
-    Ok(add_line_numbers(&window, start_line))
+    let rendered = add_line_numbers(&window, start_line);
+    // Always-applied output ceiling: even with `offset`/`limit` set, never emit an
+    // unbounded blob (e.g. a multi-MB single line read with `limit: 1`). Throws rather than
+    // truncating, matching Claude Code's token-cap behavior.
+    let output_cap = crate::config::get().read_output_byte_cap;
+    if rendered.len() > output_cap {
+        return Err((
+            -32602,
+            format!(
+                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Use a narrower offset/limit window.",
+                rendered.len()
+            ),
+        ));
+    }
+    Ok(rendered)
 }

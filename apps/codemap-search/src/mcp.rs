@@ -110,6 +110,40 @@ fn is_safe_path(p: &str) -> bool {
     resolved_canonical.starts_with(&cwd_canonical)
 }
 
+/// Cap a code snippet at `max_lines` AND `max_bytes`, appending an elision marker when
+/// truncated, so the `search` detail view never emits a 1,000-line symbol body — nor a
+/// single multi-hundred-KB minified line (the line cap alone leaves byte size unbounded).
+fn cap_snippet(snippet: &str, max_lines: usize, max_bytes: usize) -> String {
+    let lines: Vec<&str> = snippet.lines().collect();
+    let mut out = if lines.len() > max_lines {
+        let shown = lines[..max_lines].join("\n");
+        format!("{shown}\n… ({} more lines)", lines.len() - max_lines)
+    } else {
+        snippet.to_string()
+    };
+    if max_bytes > 0 && out.len() > max_bytes {
+        // Truncate at a UTF-8 char boundary, then mark the cut.
+        let mut end = max_bytes.min(out.len());
+        while end > 0 && !out.is_char_boundary(end) {
+            end -= 1;
+        }
+        out.truncate(end);
+        out.push_str("\n… (truncated)");
+    }
+    out
+}
+
+/// Truncate a matched literal to `max_len` characters with an ellipsis, so a long
+/// SQL/template literal can't bloat the `search` detail view.
+fn truncate_literal(literal: &str, max_len: usize) -> String {
+    if literal.chars().count() > max_len {
+        let truncated: String = literal.chars().take(max_len).collect();
+        format!("{truncated}…")
+    } else {
+        literal.to_string()
+    }
+}
+
 fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String {
     if let Ok(content) = std::fs::read_to_string(file_path) {
         let lines: Vec<&str> = content.lines().collect();
@@ -535,8 +569,15 @@ impl McpServer {
                                 ));
                                 for sym in &res.matched_symbols {
                                     let name_lower = sym.name.to_lowercase();
-                                    let name_matches = query_terms.iter().any(|t| {
+                                    // Use the SAME criterion as the index symbol filter and
+                                    // the detail-view fallback (all query terms, over name ∪
+                                    // split-identifier ∪ docstring) so the overview and detail
+                                    // branches agree on which symbols count as matched.
+                                    let name_matches = query_terms.iter().all(|t| {
                                         name_lower.contains(t.as_str())
+                                            || sym.docstring.as_ref().is_some_and(|d| {
+                                                d.to_lowercase().contains(t.as_str())
+                                            })
                                             || crate::parser::split_identifier(&sym.name)
                                                 .iter()
                                                 .any(|sub| sub.to_lowercase().contains(t.as_str()))
@@ -559,29 +600,136 @@ impl McpServer {
                                 ));
                             }
                         } else {
-                            // Detail view: enclosing code scopes for the pinpointed files.
-                            for res in &results {
+                            // Detail view: enclosing code scopes for the pinpointed files,
+                            // bounded by config caps so a few large or fallback-matched files
+                            // can't dump the whole tree into the agent's context.
+                            let cfg = crate::config::get();
+                            let snippet_max_lines = cfg.search_detail_snippet_max_lines;
+                            let symbol_limit = cfg.search_detail_symbol_limit;
+                            let byte_cap = cfg.search_detail_byte_cap;
+                            let literal_max_len = cfg.search_literal_max_len;
+                            let literal_limit = cfg.search_literal_limit;
+
+                            let mut budget_hit = false;
+                            'files: for res in &results {
+                                if text.len() >= byte_cap {
+                                    budget_hit = true;
+                                    break;
+                                }
                                 text.push_str(&format!(
                                     "### File: {} ({} lines)\n",
                                     res.file_path, res.total_lines
                                 ));
-                                for sym in &res.matched_symbols {
-                                    text.push_str(&format!(
-                                        "- Symbol: {} ({}) [L{}-{}]\n",
-                                        sym.name,
-                                        sym.kind,
-                                        sym.range.start_line,
-                                        sym.range.end_line
-                                    ));
-                                    let snippet = get_code_snippet(&res.file_path, &sym.range);
-                                    if !snippet.is_empty() {
-                                        text.push_str(&format!("```\n{}\n```\n", snippet));
+
+                                if res.symbol_fallback {
+                                    // Matched via docstring/path, not a symbol name — render
+                                    // symbol names + ranges ONLY (no snippets) so we never
+                                    // `cat` the file. Still count-capped.
+                                    for sym in res.matched_symbols.iter().take(symbol_limit) {
+                                        text.push_str(&format!(
+                                            "- Symbol: {} ({}) [L{}-{}]\n",
+                                            sym.name,
+                                            sym.kind,
+                                            sym.range.start_line,
+                                            sym.range.end_line
+                                        ));
+                                    }
+                                    if res.matched_symbols.len() > symbol_limit {
+                                        text.push_str(&format!(
+                                            "- _… {} more symbols not shown; use overview/read to inspect._\n",
+                                            res.matched_symbols.len() - symbol_limit
+                                        ));
+                                    }
+                                } else {
+                                    // Name-matched file: emit capped snippets, deduping
+                                    // nested ranges so a container and its members don't
+                                    // double-print the same source lines.
+                                    let mut symbols: Vec<&crate::parser::ExtractedSymbol> =
+                                        res.matched_symbols.iter().collect();
+                                    // Outermost-first (smaller start, then larger end) so an
+                                    // enclosing container is emitted before/over its members.
+                                    symbols.sort_by(|a, b| {
+                                        a.range
+                                            .start_line
+                                            .cmp(&b.range.start_line)
+                                            .then(b.range.end_line.cmp(&a.range.end_line))
+                                    });
+                                    let mut emitted_ranges: Vec<(usize, usize)> = Vec::new();
+                                    let mut shown = 0usize;
+                                    let mut skipped_for_cap = 0usize;
+                                    for sym in symbols {
+                                        let (start, end) =
+                                            (sym.range.start_line, sym.range.end_line);
+                                        // Skip a symbol fully contained in an already-emitted
+                                        // range — its lines were shown inside that snippet.
+                                        if emitted_ranges
+                                            .iter()
+                                            .any(|(es, ee)| *es <= start && end <= *ee)
+                                        {
+                                            continue;
+                                        }
+                                        if shown >= symbol_limit {
+                                            skipped_for_cap += 1;
+                                            continue;
+                                        }
+                                        if text.len() >= byte_cap {
+                                            budget_hit = true;
+                                            break 'files;
+                                        }
+                                        text.push_str(&format!(
+                                            "- Symbol: {} ({}) [L{}-{}]\n",
+                                            sym.name,
+                                            sym.kind,
+                                            sym.range.start_line,
+                                            sym.range.end_line
+                                        ));
+                                        let snippet =
+                                            get_code_snippet(&res.file_path, &sym.range);
+                                        // The range actually shown is bounded by the per-snippet
+                                        // line cap. Record the DISPLAYED end (not the full range
+                                        // end) so a matched member that falls BELOW a truncated
+                                        // container's shown lines is still emitted as its own
+                                        // snippet rather than wrongly skipped as "already shown".
+                                        let snippet_lines = snippet.lines().count();
+                                        let displayed_lines = snippet_lines.min(snippet_max_lines);
+                                        let displayed_end =
+                                            start + displayed_lines.saturating_sub(1);
+                                        if !snippet.is_empty() {
+                                            let capped = cap_snippet(
+                                                &snippet,
+                                                snippet_max_lines,
+                                                byte_cap,
+                                            );
+                                            text.push_str(&format!("```\n{}\n```\n", capped));
+                                        }
+                                        emitted_ranges.push((start, displayed_end));
+                                        shown += 1;
+                                    }
+                                    if skipped_for_cap > 0 {
+                                        text.push_str(&format!(
+                                            "- _… {skipped_for_cap} more symbols not shown; use overview/read to inspect._\n"
+                                        ));
                                     }
                                 }
-                                // Literals are details-layer only — surface matched ones here.
-                                for lit in &res.matched_literals {
-                                    text.push_str(&format!("- Literal: {:?}\n", lit));
+
+                                // Literals: length-truncated and count-capped.
+                                for lit in res.matched_literals.iter().take(literal_limit) {
+                                    text.push_str(&format!(
+                                        "- Literal: {:?}\n",
+                                        truncate_literal(lit, literal_max_len)
+                                    ));
                                 }
+                                if res.matched_literals.len() > literal_limit {
+                                    text.push_str(&format!(
+                                        "- _… {} more literals not shown._\n",
+                                        res.matched_literals.len() - literal_limit
+                                    ));
+                                }
+                            }
+                            if budget_hit {
+                                text.push_str(
+                                    "\n_Detail view truncated at the output budget; refine the query or use overview/read to inspect specific files._\n",
+                                );
                             }
                         }
 
