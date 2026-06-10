@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::OnceLock;
+use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Parser, Query, QueryCursor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -185,7 +186,7 @@ const TS_QUERY_STR: &str = r#"
 fn get_rust_query() -> &'static Query {
     static RUST_QUERY: OnceLock<Query> = OnceLock::new();
     RUST_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_rust::language(), RUST_QUERY_STR)
+        Query::new(&tree_sitter_rust::LANGUAGE.into(), RUST_QUERY_STR)
             .expect("Failed to compile Rust query")
     })
 }
@@ -193,7 +194,7 @@ fn get_rust_query() -> &'static Query {
 fn get_python_query() -> &'static Query {
     static PYTHON_QUERY: OnceLock<Query> = OnceLock::new();
     PYTHON_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_python::language(), PYTHON_QUERY_STR)
+        Query::new(&tree_sitter_python::LANGUAGE.into(), PYTHON_QUERY_STR)
             .expect("Failed to compile Python query")
     })
 }
@@ -201,15 +202,18 @@ fn get_python_query() -> &'static Query {
 fn get_ts_query() -> &'static Query {
     static TS_QUERY: OnceLock<Query> = OnceLock::new();
     TS_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_typescript::language_typescript(), TS_QUERY_STR)
-            .expect("Failed to compile TS query")
+        Query::new(
+            &tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            TS_QUERY_STR,
+        )
+        .expect("Failed to compile TS query")
     })
 }
 
 fn get_tsx_query() -> &'static Query {
     static TSX_QUERY: OnceLock<Query> = OnceLock::new();
     TSX_QUERY.get_or_init(|| {
-        Query::new(tree_sitter_typescript::language_tsx(), TS_QUERY_STR)
+        Query::new(&tree_sitter_typescript::LANGUAGE_TSX.into(), TS_QUERY_STR)
             .expect("Failed to compile TSX query")
     })
 }
@@ -384,7 +388,7 @@ fn path_indicates_test(file_path: &str) -> bool {
 
 fn has_rust_attribute_containing(node: Node, sub: &str, source: &[u8]) -> bool {
     for i in 0..node.child_count() {
-        let child = node.child(i).unwrap();
+        let child = node.child(i as u32).unwrap();
         if child.kind() == "attribute_item" {
             if let Ok(text) = child.utf8_text(source) {
                 if text.contains(sub) {
@@ -454,7 +458,7 @@ fn collect_ts_exported_names(
             }
         } else {
             for i in 0..node.child_count() {
-                let child = node.child(i).unwrap();
+                let child = node.child(i as u32).unwrap();
                 if child.kind() == "identifier" {
                     if let Ok(name_str) = child.utf8_text(source) {
                         exported_names.insert(name_str.to_string());
@@ -466,7 +470,7 @@ fn collect_ts_exported_names(
     } else if kind == "export_statement" {
         let mut has_default = false;
         for i in 0..node.child_count() {
-            let child = node.child(i).unwrap();
+            let child = node.child(i as u32).unwrap();
             if child.kind() == "default" {
                 has_default = true;
             } else if has_default && child.kind() == "identifier" {
@@ -476,11 +480,11 @@ fn collect_ts_exported_names(
             }
         }
         for i in 0..node.child_count() {
-            collect_ts_exported_names(node.child(i).unwrap(), source, exported_names);
+            collect_ts_exported_names(node.child(i as u32).unwrap(), source, exported_names);
         }
     } else {
         for i in 0..node.child_count() {
-            collect_ts_exported_names(node.child(i).unwrap(), source, exported_names);
+            collect_ts_exported_names(node.child(i as u32).unwrap(), source, exported_names);
         }
     }
 }
@@ -496,7 +500,7 @@ fn find_name(node: Node, source: &[u8]) -> Option<String> {
         return Some(name_node.utf8_text(source).unwrap_or("").to_string());
     }
     for i in 0..node.child_count() {
-        let child = node.child(i).unwrap();
+        let child = node.child(i as u32).unwrap();
         let k = child.kind();
         if k == "identifier" || k == "type_identifier" || k == "field_identifier" {
             return Some(child.utf8_text(source).unwrap_or("").to_string());
@@ -512,13 +516,16 @@ impl CodeExtractor for TreeSitterExtractor {
 
         let mut parser = Parser::new();
         let (lang, query) = match ext {
-            "rs" => (tree_sitter_rust::language(), get_rust_query()),
-            "py" => (tree_sitter_python::language(), get_python_query()),
+            "rs" => (tree_sitter_rust::LANGUAGE.into(), get_rust_query()),
+            "py" => (tree_sitter_python::LANGUAGE.into(), get_python_query()),
             "ts" | "js" => (
-                tree_sitter_typescript::language_typescript(),
+                tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
                 get_ts_query(),
             ),
-            "tsx" | "jsx" => (tree_sitter_typescript::language_tsx(), get_tsx_query()),
+            "tsx" | "jsx" => (
+                tree_sitter_typescript::LANGUAGE_TSX.into(),
+                get_tsx_query(),
+            ),
             _ => {
                 return Ok(ExtractedFile {
                     file_path: file_path.to_string(),
@@ -530,7 +537,7 @@ impl CodeExtractor for TreeSitterExtractor {
             }
         };
 
-        parser.set_language(lang).map_err(|e| e.to_string())?;
+        parser.set_language(&lang).map_err(|e| e.to_string())?;
         let tree = parser
             .parse(file_content, None)
             .ok_or("Failed to parse file content")?;
@@ -545,9 +552,9 @@ impl CodeExtractor for TreeSitterExtractor {
         }
 
         let mut query_cursor = QueryCursor::new();
-        let matches = query_cursor.matches(query, tree.root_node(), source);
+        let mut matches = query_cursor.matches(query, tree.root_node(), source);
 
-        for mat in matches {
+        while let Some(mat) = matches.next() {
             let mut main_node: Option<(Node, &str)> = None;
             let mut symbol_name: Option<String> = None;
             let mut is_valid_test_call = true;
@@ -688,7 +695,7 @@ impl CodeExtractor for TreeSitterExtractor {
                                     if parent.kind() == "decorated_definition" {
                                         let mut found = false;
                                         for i in 0..parent.child_count() {
-                                            let child = parent.child(i).unwrap();
+                                            let child = parent.child(i as u32).unwrap();
                                             if child.kind() == "decorator" {
                                                 if let Ok(text) = child.utf8_text(source) {
                                                     if text.contains("test")
@@ -718,7 +725,7 @@ impl CodeExtractor for TreeSitterExtractor {
                             let is_exported = if ext == "rs" {
                                 let mut found = false;
                                 for i in 0..node.child_count() {
-                                    if node.child(i).unwrap().kind() == "visibility_modifier" {
+                                    if node.child(i as u32).unwrap().kind() == "visibility_modifier" {
                                         found = true;
                                         break;
                                     }
@@ -742,7 +749,7 @@ impl CodeExtractor for TreeSitterExtractor {
                                     if parent.kind() == "decorated_definition" {
                                         let mut found = false;
                                         for i in 0..parent.child_count() {
-                                            let child = parent.child(i).unwrap();
+                                            let child = parent.child(i as u32).unwrap();
                                             if child.kind() == "decorator" {
                                                 if let Ok(text) = child.utf8_text(source) {
                                                     if text.contains("deprecated") {

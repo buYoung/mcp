@@ -6,6 +6,24 @@ use tantivy::query::{AllQuery, QueryParser};
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
 
+/// Runs a query-parse attempt and converts a panic into `None`. tantivy 0.26's
+/// query grammar `panic!`s instead of returning `Err` on some adversarial inputs
+/// — e.g. a bare `*` hits `expect("Exist query without a field isn't allowed")`.
+/// A malformed search query must degrade gracefully (never-exit contract), not
+/// abort the server, so callers treat `None` like a parse failure and fall back.
+///
+/// We deliberately do NOT swap the process-global panic hook to mute the message:
+/// this is a stdio MCP server whose diagnostics go to stderr, a channel separate
+/// from the JSON-RPC stdout, so a rare caught-panic line on stderr is harmless to
+/// the protocol. Muting the hook globally — even briefly — would swallow panic
+/// diagnostics from the indexer/watcher threads if they panic during this window,
+/// which is a worse trade than one stray stderr line.
+fn parse_query_catching_panic(
+    run_parse: impl FnOnce() -> Result<Box<dyn tantivy::query::Query>, tantivy::query::QueryParserError>,
+) -> Option<Result<Box<dyn tantivy::query::Query>, tantivy::query::QueryParserError>> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(run_parse)).ok()
+}
+
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub file_path: String,
@@ -656,9 +674,11 @@ impl SearcherHandle {
             return Ok(Vec::new());
         }
 
-        let query = match query_parser.parse_query(query_str) {
-            Ok(q) => q,
-            Err(_) => {
+        let query = match parse_query_catching_panic(|| query_parser.parse_query(query_str)) {
+            Some(Ok(q)) => q,
+            // Primary parse failed or panicked (e.g. a bare `*` in tantivy 0.26):
+            // strip special characters to spaces and retry as a plain term query.
+            _ => {
                 let escaped: String = query_str
                     .to_lowercase()
                     .chars()
@@ -673,15 +693,16 @@ impl SearcherHandle {
                 if escaped.trim().is_empty() {
                     return Ok(Vec::new());
                 }
-                match query_parser.parse_query(&escaped) {
-                    Ok(q) => q,
-                    Err(e) => return Err(e.to_string()),
+                match parse_query_catching_panic(|| query_parser.parse_query(&escaped)) {
+                    Some(Ok(q)) => q,
+                    Some(Err(e)) => return Err(e.to_string()),
+                    None => return Ok(Vec::new()),
                 }
             }
         };
 
         let top_docs = searcher
-            .search(&query, &TopDocs::with_limit(limit))
+            .search(&query, &TopDocs::with_limit(limit).order_by_score())
             .map_err(|e| e.to_string())?;
 
         let mut results = Vec::new();

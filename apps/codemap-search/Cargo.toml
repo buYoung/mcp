@@ -13,30 +13,29 @@ exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures"]
 
 [dependencies]
 # CLI Argument parsing
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # Tree-sitter AST extraction
-tree-sitter = "0.20"
-tree-sitter-rust = "0.20"
-tree-sitter-typescript = "0.20"
-tree-sitter-python = "0.20"
+tree-sitter = "0.26"
+tree-sitter-rust = "0.24"
+tree-sitter-typescript = "0.23"
+tree-sitter-python = "0.25"
 
 # Tantivy search engine for BM25 text indexing
-tantivy = "0.22"
+tantivy = "0.26"
 
 # JSON-RPC / Serialization for MCP and state persistence
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Async MCP server communication
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 
 # Directory scanning and file path iteration
-walkdir = "2.4"
+walkdir = "2.5"
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
 
 # Logging / Diagnostics. `env-filter` powers the default quiet filter (deps at warn,
 # this crate at info) so dependency INFO noise (tantivy commit/GC per search) stays off
@@ -45,11 +44,11 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Regular expressions and text processing
-regex = "1.10"
+regex = "1.12"
 
 # TOML config parsing (Child 05). Lenient `toml::Value` parse so unknown keys/types
 # degrade to a stderr warning + default rather than failing the load (never-exit).
-toml = "0.8"
+toml = "1.1"
 
 # Embedded ripgrep engine (library crates, NOT a bundled `rg` binary) powering the
 # read/find/grep tools. `grep` re-exports grep-matcher/grep-regex/grep-searcher.
@@ -64,8 +63,13 @@ globset = "0.4"
 # no `notify-debouncer-*` crate.
 notify = "8.2.0"
 
+# tree-sitter 0.22+ yields query matches as a `StreamingIterator` (not std
+# `Iterator`), driving the `while let Some(mat) = matches.next()` loop in
+# `parser.rs`. Tracks the same 0.1.x line `tree-sitter` itself depends on.
+streaming-iterator = "0.1.9"
+
 [dev-dependencies]
-assert_cmd = "2.0.12"
-predicates = "3.1.0"
-tempfile = "3.8.1"
-filetime = "0.2.23"
+assert_cmd = "2.2"
+predicates = "3.1"
+tempfile = "3.27"
+filetime = "0.2"
