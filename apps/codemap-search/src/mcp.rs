@@ -458,7 +458,7 @@ impl McpServer {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "pattern": { "type": "string", "description": "Glob pattern; '**' crosses directories, '*'/'?' do not." },
+                                "pattern": { "type": "string", "description": "Glob pattern, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.')." },
                                 "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
                             },
@@ -473,7 +473,7 @@ impl McpServer {
                             "properties": {
                                 "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.')." },
-                                "glob": { "type": "string", "description": "Filter files by glob (e.g. '*.rs')." },
+                                "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands." },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
                                 "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'files_with_matches'." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },

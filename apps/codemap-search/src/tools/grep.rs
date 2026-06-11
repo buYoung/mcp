@@ -13,7 +13,6 @@ use super::{
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
-use std::path::Path;
 use std::time::SystemTime;
 
 const DEFAULT_HEAD_LIMIT: usize = 250;
@@ -207,15 +206,11 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
         }
         let p = entry.path();
         if let Some(ref gm) = glob_matcher {
-            let stripped = p.strip_prefix(&base).unwrap_or(p);
-            // When `path` is a single file, the stripped path is empty — match the glob
-            // against the file name so `path:<file>, glob:<pat>` still filters correctly.
-            let rel: &Path = if stripped.as_os_str().is_empty() {
-                Path::new(p.file_name().unwrap_or(p.as_os_str()))
-            } else {
-                stripped
-            };
-            if !gm.is_match(rel) {
+            let rel = p.strip_prefix(&base).unwrap_or(p);
+            // 명시적으로 지정된 단일 파일 `path`는 strip 결과가 빈 문자열이다. ripgrep은
+            // 명시적으로 지정된 파일을 `-g`와 무관하게 항상 검색하고 글롭은 디렉터리 순회
+            // 중에만 적용하므로, 이 경우 글롭 필터를 건너뛴다.
+            if !rel.as_os_str().is_empty() && !gm.is_match(rel) {
                 continue;
             }
         }
