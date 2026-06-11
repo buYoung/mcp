@@ -42,6 +42,14 @@ key from the global file (if set there) or the default — layers are not all-or
 | `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
+| `allow_absolute_path_outside_root` | bool | `false` | Allow `find` absolute-path patterns whose resolved prefix falls outside the workspace root |
+| `grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
+| `read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
+| `search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
+| `search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
+| `search_detail_byte_cap` | integer (bytes) | `32768` | Total byte budget for the `search` detail view; emission stops with a truncation note once reached |
+| `search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
+| `search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
 | `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
 | `scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
 | `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
@@ -69,6 +77,35 @@ key from the global file (if set there) or the default — layers are not all-or
 - **`search_overview_file_limit`** — caps how many file headers `search` emits in its
   codemap-overview branch (the branch taken when matches exceed `result_threshold`).
   Output-size only — safe to tune.
+- **`search_detail_snippet_max_lines`** — per-symbol snippet line cap in the detail view
+  (the ≤ `result_threshold` branch). A function body longer than this is truncated with an
+  elision marker. Output-size only — safe to tune (default 80).
+- **`search_detail_symbol_limit`** — max symbols rendered per file in the detail view.
+  Symbols beyond the cap are replaced by a "N more not shown" note. Output-size only
+  (default 20).
+- **`search_detail_byte_cap`** — total byte budget for one `search` detail response.
+  Once the rendered output reaches this limit, emission stops with a truncation note.
+  Output-size only (default 32768 ≈ 32 KiB).
+- **`search_literal_max_len`** — matched-literal truncation length in characters. A literal
+  value longer than this is cut with an ellipsis in the detail view. Output-size only
+  (default 200).
+- **`search_literal_limit`** — max matched literals rendered per file in the detail view.
+  Output-size only (default 10).
+
+### Tool output limits
+
+- **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with
+  `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes)
+  would exceed this throws rather than emitting an unbounded blob. This approximates Claude
+  Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies
+  only when `limit` is omitted (default 102400 ≈ 100 KiB).
+- **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider
+  than this many characters is replaced with `[Omitted long matching line]`, matching
+  Claude Code's `--max-columns 500` default. Set `0` to disable the cap (default 500).
+- **`allow_absolute_path_outside_root`** — when `false` (the default), `find` rejects
+  absolute-path patterns whose resolved prefix falls outside the workspace root,
+  preserving the sandbox. Set `true` to let `find` search arbitrary on-disk locations via
+  absolute globs (e.g. paths Claude Code's Glob tool passes with an absolute base).
 
 ### Caller/callee context
 
@@ -133,6 +170,14 @@ search_overview_file_limit = 50
 watch = true
 watch_debounce_ms = 500
 indexer_auto_restart = true
+allow_absolute_path_outside_root = false
+grep_max_columns = 500
+read_output_byte_cap = 102400             # 100 KiB
+search_detail_snippet_max_lines = 80
+search_detail_symbol_limit = 20
+search_detail_byte_cap = 32768            # 32 KiB
+search_literal_max_len = 200
+search_literal_limit = 10
 ```
 
 ## The `.codemap/` directory and ignore files

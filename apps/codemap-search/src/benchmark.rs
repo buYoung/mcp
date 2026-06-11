@@ -145,7 +145,7 @@ impl BenchmarkEngine {
                                 if !query_terms.is_empty()
                                     && query_terms
                                         .iter()
-                                        .all(|&term| lit.to_lowercase().contains(term))
+                                        .all(|&term| lit.text.to_lowercase().contains(term))
                                 {
                                     matched = true;
                                     break;

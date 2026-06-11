@@ -470,7 +470,7 @@ impl McpServer {
                     },
                     {
                         "name": "find",
-                        "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass.",
+                        "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without a slash (e.g. '*rpc*') matches only the filename, never a directory segment — to match a path component use '**/*rpc*' or '**/rpc/**'.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -761,8 +761,9 @@ impl McpServer {
                                 // Literals: length-truncated and count-capped.
                                 for lit in res.matched_literals.iter().take(literal_limit) {
                                     text.push_str(&format!(
-                                        "- Literal: {:?}\n",
-                                        truncate_literal(lit, literal_max_len)
+                                        "- Literal: {:?} [L{}]\n",
+                                        truncate_literal(&lit.text, literal_max_len),
+                                        lit.line
                                     ));
                                 }
                                 if res.matched_literals.len() > literal_limit {

@@ -1,4 +1,4 @@
-use crate::parser::{CodeExtractor, ExtractedFile, ExtractedSymbol};
+use crate::parser::{CodeExtractor, ExtractedFile, ExtractedLiteral, ExtractedSymbol};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tantivy::collector::{DocSetCollector, TopDocs};
@@ -30,7 +30,7 @@ pub struct SearchResult {
     pub score: f32,
     pub total_lines: usize,
     pub matched_symbols: Vec<ExtractedSymbol>,
-    pub matched_literals: Vec<String>,
+    pub matched_literals: Vec<ExtractedLiteral>,
     /// True when `matched_symbols` is the all-symbols fallback (the file ranked in via a
     /// docstring/path token, not a symbol-name match). The detail view renders these
     /// names-only (no snippets) so a path/docstring match never dumps full file source.
@@ -95,8 +95,11 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// still deserialize), but a one-time reindex is needed so every stored symbol actually
 /// carries `owner`. `v3` adds Rust enum-variant symbols and BM25-indexed string literals —
 /// both require re-extraction (and the new `literal` schema field forces an index rebuild
-/// on its own; the version bump keeps the trigger explicit). Each bump rebuilds exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v3-variant-literal";
+/// on its own; the version bump keeps the trigger explicit). `v4` adds line numbers to
+/// `ExtractedLiteral` (literals: Vec<String> → Vec<ExtractedLiteral>) and Java/Kotlin
+/// enum-constant extraction as kind `variant` — both require re-extraction. Each bump
+/// rebuilds exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v4-literal-line";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
@@ -514,12 +517,12 @@ impl TantivySearchEngine {
             }
 
             for literal in &extracted.literals {
-                if literal.chars().count() > INDEXED_LITERAL_MAX_CHARS {
+                if literal.text.chars().count() > INDEXED_LITERAL_MAX_CHARS {
                     let capped: String =
-                        literal.chars().take(INDEXED_LITERAL_MAX_CHARS).collect();
+                        literal.text.chars().take(INDEXED_LITERAL_MAX_CHARS).collect();
                     doc.add_text(self.literal_field, &capped);
                 } else {
-                    doc.add_text(self.literal_field, literal);
+                    doc.add_text(self.literal_field, &literal.text);
                 }
             }
 
@@ -950,15 +953,16 @@ impl SearcherHandle {
             // Matched-literal selection mirrors the symbol promotions: all-terms baseline,
             // plus an exact-value hit (a term that IS the whole literal, e.g. "8000") and
             // half-coverage for 3+ term queries (an error-message literal shouldn't be
-            // vetoed by one glue word).
-            let matched_literals: Vec<String> = extracted_file
+            // vetoed by one glue word). Match decisions use `text`; `line` is carried
+            // through for the detail view to render `[L<n>]`.
+            let matched_literals: Vec<ExtractedLiteral> = extracted_file
                 .literals
                 .into_iter()
                 .filter(|lit| {
                     if query_terms.is_empty() {
                         return false;
                     }
-                    let lit_lower = lit.to_lowercase();
+                    let lit_lower = lit.text.to_lowercase();
                     let term_match_count = query_terms
                         .iter()
                         .filter(|&&term| lit_lower.contains(term))
@@ -1109,7 +1113,8 @@ mod tests {
             res
         );
         assert!(res[2].symbol_fallback);
-        assert_eq!(res[2].matched_literals, vec!["QueryTerm".to_string()]);
+        assert_eq!(res[2].matched_literals.len(), 1);
+        assert_eq!(res[2].matched_literals[0].text, "QueryTerm");
     }
 
     #[test]

@@ -43,12 +43,20 @@ pub struct ExtractedSymbol {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ExtractedLiteral {
+    pub text: String,
+    /// 1-based source line where the literal starts (matches `read` line numbers).
+    pub line: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedFile {
     pub file_path: String,
     #[serde(default)]
     pub total_lines: usize,
     pub symbols: Vec<ExtractedSymbol>,
-    pub literals: Vec<String>,
+    pub literals: Vec<ExtractedLiteral>,
     pub docstrings: Vec<String>,
 }
 
@@ -243,6 +251,10 @@ const JAVA_QUERY_STR: &str = r#"
 (record_declaration
   name: (identifier) @symbol.name) @symbol.record
 
+;; Enum constants
+(enum_constant
+  name: (identifier) @symbol.name) @symbol.variant
+
 ;; Methods and constructors
 (method_declaration
   name: (identifier) @symbol.name) @symbol.method
@@ -267,6 +279,10 @@ const KOTLIN_QUERY_STR: &str = r#"
   name: (identifier) @symbol.name) @symbol.ktclass
 (object_declaration
   name: (identifier) @symbol.name) @symbol.object
+
+;; Enum entries
+(enum_entry
+  (identifier) @symbol.name) @symbol.variant
 
 ;; Functions
 (function_declaration
@@ -1407,7 +1423,8 @@ impl CodeExtractor for TreeSitterExtractor {
                     // literals are dropped (low value, index/detail bloat — Child 03).
                     if let Ok(text) = node.utf8_text(source) {
                         let stripped = strip_quotes(text);
-                        literals.push(stripped);
+                        let line = node.start_position().row + 1;
+                        literals.push(ExtractedLiteral { text: stripped, line });
                     }
                 }
             }
@@ -1710,7 +1727,9 @@ def _private_func():
         "##;
         let extractor = TreeSitterExtractor::new();
         let file = extractor.extract(content, "src/lib.rs").unwrap();
-        assert_eq!(file.literals, vec!["magic_value"]);
+        assert_eq!(file.literals.len(), 1);
+        assert_eq!(file.literals[0].text, "magic_value");
+        assert_eq!(file.literals[0].line, 2);
     }
 
     #[test]

@@ -872,7 +872,7 @@ mod tests {
                 },
                 owner: None,
             }],
-            literals: vec!["magic_value".to_string()],
+            literals: vec![crate::parser::ExtractedLiteral { text: "magic_value".to_string(), line: 1 }],
             docstrings: vec!["A check function\nwith multiple lines".to_string()],
         };
 
