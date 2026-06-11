@@ -31,14 +31,14 @@ fn test_bm25_field_weighting() {
 
     let _ = run_cli(&["index"], temp.path());
 
-    // Search for QueryTerm: symbol (file_b) and docstring (file_a) match; the literal-only
-    // file_c is NOT searchable (Child 03 — literals are details-layer only, delegated to grep).
+    // Search for QueryTerm: all three tiers rank in (v3 indexes string literals at the
+    // lowest boost), with the symbol match (file_b) first.
     let assert_search = run_cli(&["search", "QueryTerm"], temp.path());
     assert_search
         .success()
-        .stdout(predicates::str::contains("src/file_b.rs"))
+        .stdout(predicates::str::starts_with("src/file_b.rs"))
         .stdout(predicates::str::contains("src/file_a.rs"))
-        .stdout(predicates::str::contains("src/file_c.rs").not());
+        .stdout(predicates::str::contains("src/file_c.rs"));
 }
 
 #[test]

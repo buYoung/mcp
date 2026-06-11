@@ -144,6 +144,9 @@ fn truncate_literal(literal: &str, max_len: usize) -> String {
     }
 }
 
+/// Extract a symbol's source range with `read`-style line numbers (`␠␠␠␠␠1→content`).
+/// Numbered so the agent can cite exact lines straight from the detail view instead of
+/// re-reading the file to confirm them (the dominant post-discovery turn cost observed).
 fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String {
     if let Ok(content) = std::fs::read_to_string(file_path) {
         let lines: Vec<&str> = content.lines().collect();
@@ -151,7 +154,12 @@ fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String
             let start = range.start_line - 1;
             let end = std::cmp::min(range.end_line, lines.len());
             if start < end {
-                return lines[start..end].join("\n");
+                return lines[start..end]
+                    .iter()
+                    .enumerate()
+                    .map(|(i, line)| format!("{:>6}\u{2192}{}", start + 1 + i, line))
+                    .collect::<Vec<_>>()
+                    .join("\n");
             }
         }
     }
@@ -411,7 +419,7 @@ impl McpServer {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
                     },
-                    "instructions": "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, and concepts ('where is the auth token refreshed?'). BM25 over indexed symbols/docstrings — identifier splitting and ranking find what an exact pattern misses. Top-ranked files render in full detail — snippets plus each matched function's depth-1 callers and callees (on by default; caller_context=false to disable) — so one call answers both 'where is it' and 'who calls it'; further matches follow as a ranked one-line list.\n- grep: first move for exact strings — error messages, log lines, comments, config keys, non-code files — and for enumerating every occurrence of a name you already confirmed. Always current (no index lag).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
+                    "instructions": "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, concepts, and quoted strings ('where is the auth token refreshed?', an error message, a config default). BM25 over indexed symbols/docstrings/string literals — identifier splitting and ranking find what an exact pattern misses. Top-ranked files render in full detail — line-numbered snippets plus each matched function's depth-1 callers and callees (on by default; caller_context=false to disable) — so one call answers both 'where is it' and 'who calls it'; further matches follow as a ranked one-line list. Snippet line numbers and caller file:line positions are exact — cite them directly instead of re-reading to confirm (only caller→definition attribution is name-match approximate).\n- grep: first move for exact-pattern enumeration — every occurrence of a name you already confirmed, regex matches, comments, non-code files, just-edited files (no index lag).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
@@ -435,7 +443,7 @@ impl McpServer {
                     },
                     {
                         "name": "search",
-                        "description": "Symbol, definition, and concept lookup: BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — symbols with line ranges and snippets, each matched function annotated with its depth-1 callers and callees (on by default; approximate, name-match only) — and remaining matches follow as a ranked one-line list.",
+                        "description": "Symbol, definition, concept, and quoted-string lookup: BM25 keyword search over indexed symbols, docstrings, and string literals (error messages, config defaults); identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — symbols with line ranges and line-numbered snippets, each matched function annotated with its depth-1 callers and callees (on by default; positions exact, attribution name-match approximate) — and remaining matches follow as a ranked one-line list. Cite line numbers directly from the response.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -654,9 +662,17 @@ impl McpServer {
                                 } else {
                                     // Name-matched file: emit capped snippets, deduping
                                     // nested ranges so a container and its members don't
-                                    // double-print the same source lines.
+                                    // double-print the same source lines. The symbol cap is
+                                    // applied on the SELECTION order (strongest matches
+                                    // first — exact-name hits lead) before the range sort,
+                                    // so a promoted symbol deep in a large file is never
+                                    // cut in favor of earlier-but-weaker matches.
+                                    let skipped_for_cap = res
+                                        .matched_symbols
+                                        .len()
+                                        .saturating_sub(symbol_limit);
                                     let mut symbols: Vec<&crate::parser::ExtractedSymbol> =
-                                        res.matched_symbols.iter().collect();
+                                        res.matched_symbols.iter().take(symbol_limit).collect();
                                     // Outermost-first (smaller start, then larger end) so an
                                     // enclosing container is emitted before/over its members.
                                     symbols.sort_by(|a, b| {
@@ -666,8 +682,6 @@ impl McpServer {
                                             .then(b.range.end_line.cmp(&a.range.end_line))
                                     });
                                     let mut emitted_ranges: Vec<(usize, usize)> = Vec::new();
-                                    let mut shown = 0usize;
-                                    let mut skipped_for_cap = 0usize;
                                     for sym in symbols {
                                         let (start, end) =
                                             (sym.range.start_line, sym.range.end_line);
@@ -677,10 +691,6 @@ impl McpServer {
                                             .iter()
                                             .any(|(es, ee)| *es <= start && end <= *ee)
                                         {
-                                            continue;
-                                        }
-                                        if shown >= symbol_limit {
-                                            skipped_for_cap += 1;
                                             continue;
                                         }
                                         if text.len() >= byte_cap {
@@ -740,7 +750,6 @@ impl McpServer {
                                             }
                                         }
                                         emitted_ranges.push((start, displayed_end));
-                                        shown += 1;
                                     }
                                     if skipped_for_cap > 0 {
                                         text.push_str(&format!(
@@ -771,19 +780,16 @@ impl McpServer {
                         }
 
                         // Ranked tail: one line per remaining match, strongest first, with
-                        // up to 3 name-matched symbols inline (same all-terms criterion as
-                        // the index symbol filter, so a path/docstring-only match shows a
-                        // bare header instead of leaking unrelated symbols). Count-capped by
-                        // `search_overview_file_limit` and byte-capped like the detail view.
+                        // up to 3 matched symbols inline. The index's matched-symbol
+                        // selection (exact-name/partial promotions included, strongest
+                        // first) is reused as-is; a fallback entry (path/docstring-only
+                        // match) shows a bare header instead of leaking unrelated symbols.
+                        // Count-capped by `search_overview_file_limit` and byte-capped like
+                        // the detail view.
                         if !remaining_results.is_empty() {
                             let tail_cfg = crate::config::get();
                             let tail_file_limit = tail_cfg.search_overview_file_limit;
                             let tail_byte_cap = tail_cfg.search_detail_byte_cap;
-                            let query_terms: Vec<String> = query
-                                .to_lowercase()
-                                .split_whitespace()
-                                .map(|s| s.to_string())
-                                .collect();
                             text.push_str(&format!(
                                 "\n## Other matches — {} more files, ranked by relevance\n",
                                 remaining_results.len()
@@ -793,28 +799,22 @@ impl McpServer {
                                 if text.len() >= tail_byte_cap {
                                     break;
                                 }
-                                let mut symbol_notes: Vec<String> = Vec::new();
-                                for sym in &res.matched_symbols {
-                                    if symbol_notes.len() >= 3 {
-                                        break;
-                                    }
-                                    let name_lower = sym.name.to_lowercase();
-                                    let name_matches = query_terms.iter().all(|t| {
-                                        name_lower.contains(t.as_str())
-                                            || sym.docstring.as_ref().is_some_and(|d| {
-                                                d.to_lowercase().contains(t.as_str())
-                                            })
-                                            || crate::parser::split_identifier(&sym.name)
-                                                .iter()
-                                                .any(|sub| sub.to_lowercase().contains(t.as_str()))
-                                    });
-                                    if name_matches {
-                                        symbol_notes.push(format!(
-                                            "{} [L{}-{}]",
-                                            sym.name, sym.range.start_line, sym.range.end_line
-                                        ));
-                                    }
-                                }
+                                let symbol_notes: Vec<String> = if res.symbol_fallback {
+                                    Vec::new()
+                                } else {
+                                    res.matched_symbols
+                                        .iter()
+                                        .take(3)
+                                        .map(|sym| {
+                                            format!(
+                                                "{} [L{}-{}]",
+                                                sym.name,
+                                                sym.range.start_line,
+                                                sym.range.end_line
+                                            )
+                                        })
+                                        .collect()
+                                };
                                 if symbol_notes.is_empty() {
                                     text.push_str(&format!(
                                         "- {} ({} lines)\n",

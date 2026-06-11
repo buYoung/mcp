@@ -79,6 +79,11 @@ const RUST_QUERY_STR: &str = r#"
 (enum_item
   name: (type_identifier) @symbol.name) @symbol.enum
 
+;; Enum Variants — error/state variants ("TxReadonly") are the names agents search
+;; for; without them an error enum's file is unreachable via symbol search.
+(enum_variant
+  name: (identifier) @symbol.name) @symbol.variant
+
 ;; Traits
 (trait_item
   name: (type_identifier) @symbol.name) @symbol.trait
@@ -895,7 +900,7 @@ fn owner_type_container_kinds(ext: &str) -> &'static [&'static str] {
 /// attributes them); Kotlin `companion_object` resolves to its enclosing class.
 fn owner_passthrough_kinds(ext: &str) -> &'static [&'static str] {
     match ext {
-        "rs" => &["mod_item", "declaration_list"],
+        "rs" => &["mod_item", "declaration_list", "enum_variant_list"],
         "ts" | "js" | "tsx" | "jsx" => &[
             "class_body",
             "statement_block",
@@ -1008,13 +1013,15 @@ fn find_owner_name(node: Node, ext: &str, source: &[u8]) -> Option<String> {
         }
 
         // Rust: a method lives in an `impl_item` (read its `type`; for `impl Trait for Type`
-        // the `type` field is the implementing `Type`) or a `trait_item` default method.
+        // the `type` field is the implementing `Type`) or a `trait_item` default method; an
+        // enum variant is owned by its `enum_item` (reached via the `enum_variant_list`
+        // passthrough).
         if ext == "rs" {
             if kind == "impl_item" {
                 let type_node = current.child_by_field_name("type")?;
                 return rust_base_type_name(type_node, source);
             }
-            if kind == "trait_item" {
+            if kind == "trait_item" || kind == "enum_item" {
                 let name = current.child_by_field_name("name")?;
                 return name.utf8_text(source).ok().map(|t| t.to_string());
             }
@@ -1130,6 +1137,7 @@ impl CodeExtractor for TreeSitterExtractor {
                         let kind = match capture_name {
                             "symbol.struct" => "struct",
                             "symbol.enum" => "enum",
+                            "symbol.variant" => "variant",
                             "symbol.trait" => "trait",
                             "symbol.mod" => "mod",
                             "symbol.fn" | "symbol.method" => "fn",
@@ -1367,11 +1375,12 @@ impl CodeExtractor for TreeSitterExtractor {
                                     .is_some_and(|d| d.contains("@deprecated"))
                             };
 
-                            // Owner (enclosing type) is computed only for callables — the
-                            // sole consumer (the v1 search annotation) qualifies `fn`/method
-                            // names. Non-callable members are deferred (see the brief's Open
-                            // Questions). Best-effort: any unexpected shape yields `None`.
-                            let owner = if kind == "fn" {
+                            // Owner (enclosing type) is computed for callables — the search
+                            // annotation qualifies `fn`/method names — and for enum variants
+                            // (the owning enum names which type the variant belongs to).
+                            // Other members are deferred (see the brief's Open Questions).
+                            // Best-effort: any unexpected shape yields `None`.
+                            let owner = if kind == "fn" || kind == "variant" {
                                 find_owner_name(node, ext, source)
                             } else {
                                 None

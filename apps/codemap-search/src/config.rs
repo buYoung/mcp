@@ -115,7 +115,7 @@ const CONFIG_TEMPLATE: &str = "\
 # caller_context_default = true
 
 # Caps for the caller/callee annotation (all output-size / cost bounds, tunable).
-# scan_cap = 500               # max call sites collected across the single combined-regex walk
+# scan_cap = 500               # hit budget for the combined-regex walk, split across scanned names (floor 25/name)
 # caller_list_cap = 5          # max callers (or non-call references) rendered per symbol
 # callee_list_cap = 5          # max callees rendered per symbol
 # annotation_sub_budget = 8192 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)

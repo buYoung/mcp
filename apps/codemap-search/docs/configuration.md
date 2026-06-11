@@ -43,7 +43,7 @@ key from the global file (if set there) or the default — layers are not all-or
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
 | `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
-| `scan_cap` | integer | `500` | Max call sites collected per caller-annotation scan |
+| `scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
 | `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
 | `callee_list_cap` | integer | `5` | Max callees rendered per symbol |
 | `annotation_sub_budget` | integer (bytes) | `8192` | Annotation byte budget within `search_detail_byte_cap` |
@@ -76,8 +76,10 @@ key from the global file (if set there) or the default — layers are not all-or
   function with its depth-1 callers and callees (approximate, name-match only) when the
   per-call `caller_context` parameter is omitted. Default `true`; an explicit per-call
   parameter always wins over this key.
-- **`scan_cap`** — global cap on call sites collected by the single combined-regex
-  workspace scan behind one annotation pass; reaching it marks caller lists as truncated.
+- **`scan_cap`** — overall hit-collection budget for the single combined-regex workspace
+  scan behind one annotation pass, distributed across the scanned names (per-name cap =
+  `scan_cap / names`, floored at 25) so one hot name cannot starve the others; a name
+  exhausting its share marks its own caller list as truncated.
 - **`caller_list_cap` / `callee_list_cap`** — per-symbol render caps; overflow becomes a
   "… N more not shown" note. Output-size only — safe to tune.
 - **`annotation_sub_budget`** — byte budget for all annotations in one response, counted

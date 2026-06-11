@@ -54,6 +54,7 @@ pub struct SearcherHandle {
     file_path_parts_field: Field,
     symbol_field: Field,
     docstring_field: Field,
+    literal_field: Field,
     extracted_json_field: Field,
 }
 
@@ -68,6 +69,7 @@ pub struct TantivySearchEngine {
     pub file_path_parts_field: Field,
     pub symbol_field: Field,
     pub docstring_field: Field,
+    pub literal_field: Field,
     pub extracted_json_field: Field,
     pub mtime_field: Field,
 
@@ -82,12 +84,19 @@ pub struct TantivySearchEngine {
 /// `extracted_json` documents. Lives alongside tantivy's own files in the index dir.
 const EXTRACTION_FORMAT_FILE: &str = "codemap.format";
 
+/// Per-literal cap on INDEXED characters (the full value stays in `extracted_json` for
+/// the detail view): a long SQL/template/fixture string would bloat the term dictionary
+/// without adding lookup value beyond its leading words.
+const INDEXED_LITERAL_MAX_CHARS: usize = 256;
+
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
 /// `v2` introduced `ExtractedSymbol.owner`: the field is serde-default-compatible (old docs
 /// still deserialize), but a one-time reindex is needed so every stored symbol actually
-/// carries `owner`. The version bump forces that rebuild exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v2-owner";
+/// carries `owner`. `v3` adds Rust enum-variant symbols and BM25-indexed string literals —
+/// both require re-extraction (and the new `literal` schema field forces an index rebuild
+/// on its own; the version bump keeps the trigger explicit). Each bump rebuilds exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v3-variant-literal";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
@@ -96,8 +105,11 @@ impl TantivySearchEngine {
         let file_path_parts_field = schema_builder.add_text_field("file_path_parts", TEXT);
         let symbol_field = schema_builder.add_text_field("symbol", TEXT | STORED);
         let docstring_field = schema_builder.add_text_field("docstring", TEXT | STORED);
-        // Literals are details-layer only (Child 03): not indexed for BM25 search.
-        // Exact/literal string search is delegated to the rg-backed `grep` tool.
+        // String literals ARE indexed (low boost): config defaults ("8000") and error
+        // messages live only in literals, and agents search those words. The full values
+        // stay in `extracted_json` for the detail view; `grep` remains the exact-match
+        // tool (no index lag, regex).
+        let literal_field = schema_builder.add_text_field("literal", TEXT);
         let extracted_json_field = schema_builder.add_text_field("extracted_json", STORED);
         let mtime_field = schema_builder.add_u64_field("mtime", STORED);
         let schema = schema_builder.build();
@@ -117,19 +129,32 @@ impl TantivySearchEngine {
         let stored_version = std::fs::read_to_string(&version_path)
             .ok()
             .map(|s| s.trim().to_string());
-        let format_outdated = stored_version.as_deref() != Some(EXTRACTION_FORMAT_VERSION);
+        let version_mismatch = stored_version.as_deref() != Some(EXTRACTION_FORMAT_VERSION);
+        // Wipe only an index that actually HAS content under an outdated format. A fresh
+        // or empty index dir (no tantivy meta.json — e.g. a never-indexed repo) is created
+        // in place: two server processes spawning concurrently on the same repo would
+        // otherwise BOTH take the wipe path and delete each other's just-created files.
+        let needs_wipe = version_mismatch && path.join("meta.json").exists();
 
         // Try to open or create the index directory. Rebuild from scratch if metadata is
-        // corrupted OR the extraction-format version is outdated — both take the same
-        // `remove_dir_all` + recreate path so the index is rebuilt exactly once.
-        let opened = if format_outdated {
-            Err("extraction format outdated".to_string())
-        } else {
+        // corrupted OR a populated index has an outdated extraction format — both take the
+        // same `remove_dir_all` + recreate path so the index is rebuilt exactly once. The
+        // pre-wipe retry absorbs a concurrent sibling's transient create: destructive
+        // recovery must be the last resort, not the loser's reflex in a startup race.
+        let open_index = || {
             tantivy::directory::MmapDirectory::open(path)
                 .map_err(|e| e.to_string())
                 .and_then(|dir| {
                     Index::open_or_create(dir, schema.clone()).map_err(|e| e.to_string())
                 })
+        };
+        let opened = if needs_wipe {
+            Err("extraction format outdated".to_string())
+        } else {
+            open_index().or_else(|_| {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                open_index()
+            })
         };
         let index = match opened {
             Ok(idx) => idx,
@@ -151,9 +176,9 @@ impl TantivySearchEngine {
 
         // Stamp the current format version only after the reader is built (a failed reader
         // build must not leave a stale-but-current version that would skip the next rebuild).
-        // Written once: after this run the sidecar matches, so `format_outdated` is false on
-        // every subsequent run and neither the rebuild nor this write fires again.
-        if format_outdated {
+        // Written once: after this run the sidecar matches, so `version_mismatch` is false
+        // on every subsequent run and neither the rebuild nor this write fires again.
+        if version_mismatch {
             let _ = std::fs::write(&version_path, EXTRACTION_FORMAT_VERSION);
         }
 
@@ -166,6 +191,7 @@ impl TantivySearchEngine {
             file_path_parts_field,
             symbol_field,
             docstring_field,
+            literal_field,
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
@@ -487,7 +513,15 @@ impl TantivySearchEngine {
                 }
             }
 
-            // Literals are intentionally not indexed (Child 03) — details-layer only.
+            for literal in &extracted.literals {
+                if literal.chars().count() > INDEXED_LITERAL_MAX_CHARS {
+                    let capped: String =
+                        literal.chars().take(INDEXED_LITERAL_MAX_CHARS).collect();
+                    doc.add_text(self.literal_field, &capped);
+                } else {
+                    doc.add_text(self.literal_field, literal);
+                }
+            }
 
             match writer.add_document(doc) {
                 Ok(_) => committed_updates.push((rel_path, mtime)),
@@ -660,6 +694,7 @@ impl TantivySearchEngine {
             file_path_parts_field: self.file_path_parts_field,
             symbol_field: self.symbol_field,
             docstring_field: self.docstring_field,
+            literal_field: self.literal_field,
             extracted_json_field: self.extracted_json_field,
         }
     }
@@ -710,6 +745,35 @@ fn is_discriminative_name(name: &str) -> bool {
     name.len() >= 8 || crate::parser::split_identifier(name).len() >= 2
 }
 
+/// One query term hits a symbol's NAME when it appears in the raw name or any split
+/// sub-token of it. Name evidence is what gates the partial-coverage promotion: a
+/// docstring-only partial match must not unlock snippet rendering (observed: one file
+/// whose fn docstrings each grazed 3 of 5 query words rendered 11 snippets — 32KB —
+/// and starved the rest of the detail view).
+fn term_hits_symbol_name(sym: &ExtractedSymbol, term: &str) -> bool {
+    sym.name.to_lowercase().contains(term)
+        || crate::parser::split_identifier(&sym.name)
+            .iter()
+            .any(|t| t.contains(term))
+}
+
+/// One query term hits one symbol when it appears in the name, the docstring, or any
+/// split sub-token of the name. The match-count criterion behind matched-symbol selection.
+fn symbol_matches_term(sym: &ExtractedSymbol, term: &str) -> bool {
+    term_hits_symbol_name(sym, term)
+        || sym
+            .docstring
+            .as_ref()
+            .is_some_and(|d| d.to_lowercase().contains(term))
+}
+
+/// Minimum matched-term count for the partial-coverage promotion: half the query terms,
+/// rounded up. Only consulted for 3+ term queries — at 1–2 terms it equals "all terms",
+/// so the strict baseline already covers it.
+fn partial_match_threshold(term_count: usize) -> usize {
+    term_count.div_ceil(2)
+}
+
 /// True for paths that look like test/bench scaffolding rather than implementation.
 fn is_test_like_path(path: &str) -> bool {
     let lower = path.to_lowercase();
@@ -740,12 +804,16 @@ impl SearcherHandle {
                 self.symbol_field,
                 self.docstring_field,
                 self.file_path_parts_field,
+                self.literal_field,
             ],
         );
 
         query_parser.set_field_boost(self.symbol_field, 4.0);
         query_parser.set_field_boost(self.docstring_field, 2.0);
         query_parser.set_field_boost(self.file_path_parts_field, 1.0);
+        // Lowest tier: a literal hit ranks a file in, but never outvotes a symbol or
+        // docstring match for the same terms.
+        query_parser.set_field_boost(self.literal_field, 1.0);
 
         if query_str.trim().is_empty() {
             return Ok(Vec::new());
@@ -817,13 +885,48 @@ impl SearcherHandle {
             let total_lines = extracted_file.total_lines;
             let all_symbols = extracted_file.symbols;
 
+            // Matched-symbol selection. All-terms is the precision baseline, but agent
+            // queries carry glue words ("definition", "handler") no symbol can match,
+            // which used to classify nearly every multi-word query as fallback — killing
+            // snippets and caller/callee annotations. Two promotions relax it:
+            //  - exact name: a query term that IS a discriminative symbol name (the same
+            //    signal as EXACT_NAME_SCORE_BOOST) marks that symbol matched outright;
+            //  - partial coverage: in a 3+ term query, a symbol matching at least half
+            //    the terms is matched (glue words no longer veto everything).
+            // Selection is ordered exact-first then by matched-term count, so the
+            // renderer's symbol cap keeps the strongest evidence instead of line order.
+            let mut scored_symbols: Vec<(bool, usize, &ExtractedSymbol)> = all_symbols
+                .iter()
+                .filter_map(|sym| {
+                    if query_terms.is_empty() {
+                        return None;
+                    }
+                    let term_match_count = query_terms
+                        .iter()
+                        .filter(|&&term| symbol_matches_term(sym, term))
+                        .count();
+                    let exact_hit = is_discriminative_name(&sym.name)
+                        && query_terms.iter().any(|&t| t == sym.name.to_lowercase());
+                    let all_terms_hit = term_match_count == query_terms.len();
+                    // Partial coverage additionally requires NAME evidence (at least one
+                    // term hitting the symbol name itself) — see `term_hits_symbol_name`.
+                    let partial_hit = query_terms.len() >= 3
+                        && term_match_count >= partial_match_threshold(query_terms.len())
+                        && query_terms.iter().any(|&t| term_hits_symbol_name(sym, t));
+                    (exact_hit || all_terms_hit || partial_hit)
+                        .then_some((exact_hit, term_match_count, sym))
+                })
+                .collect();
+            scored_symbols.sort_by(|a, b| {
+                b.0.cmp(&a.0)
+                    .then(b.1.cmp(&a.1))
+                    .then(a.2.range.start_line.cmp(&b.2.range.start_line))
+            });
+
             // Post-rank adjustment (see the constants above): an exact discriminative
             // symbol-name hit boosts the file, a test/bench-looking path demotes it. Both
             // re-rank only within the BM25 top `limit` — the candidate set is unchanged.
-            let exact_name_hit = all_symbols.iter().any(|sym| {
-                is_discriminative_name(&sym.name)
-                    && query_terms.iter().any(|&t| t == sym.name.to_lowercase())
-            });
+            let exact_name_hit = scored_symbols.iter().any(|(exact, _, _)| *exact);
             let mut adjusted_score = score;
             if exact_name_hit {
                 adjusted_score *= EXACT_NAME_SCORE_BOOST;
@@ -831,25 +934,12 @@ impl SearcherHandle {
             if is_test_like_path(&file_path) {
                 adjusted_score *= TEST_PATH_SCORE_WEIGHT;
             }
-            let mut matched_symbols: Vec<ExtractedSymbol> = all_symbols
-                .iter()
-                .filter(|sym| {
-                    !query_terms.is_empty()
-                        && query_terms.iter().all(|&term| {
-                            sym.name.to_lowercase().contains(term)
-                                || sym
-                                    .docstring
-                                    .as_ref()
-                                    .is_some_and(|d| d.to_lowercase().contains(term))
-                                || crate::parser::split_identifier(&sym.name)
-                                    .iter()
-                                    .any(|t| t.to_lowercase().contains(term))
-                        })
-                })
-                .cloned()
+            let mut matched_symbols: Vec<ExtractedSymbol> = scored_symbols
+                .into_iter()
+                .map(|(_, _, sym)| sym.clone())
                 .collect();
             // The doc ranked in via some field (symbol/docstring/path). If the symbol
-            // substring filter is empty (e.g. matched via docstring or path tokens), fall
+            // selection is empty (e.g. matched via docstring or path tokens), fall
             // back to the file's own symbols so the detail view never renders an empty
             // file header (Child 03 — OR/AND render consistency).
             let symbol_fallback = matched_symbols.is_empty();
@@ -857,14 +947,26 @@ impl SearcherHandle {
                 matched_symbols = all_symbols;
             }
 
+            // Matched-literal selection mirrors the symbol promotions: all-terms baseline,
+            // plus an exact-value hit (a term that IS the whole literal, e.g. "8000") and
+            // half-coverage for 3+ term queries (an error-message literal shouldn't be
+            // vetoed by one glue word).
             let matched_literals: Vec<String> = extracted_file
                 .literals
                 .into_iter()
                 .filter(|lit| {
-                    !query_terms.is_empty()
-                        && query_terms
-                            .iter()
-                            .all(|&term| lit.to_lowercase().contains(term))
+                    if query_terms.is_empty() {
+                        return false;
+                    }
+                    let lit_lower = lit.to_lowercase();
+                    let term_match_count = query_terms
+                        .iter()
+                        .filter(|&&term| lit_lower.contains(term))
+                        .count();
+                    term_match_count == query_terms.len()
+                        || query_terms.iter().any(|&t| t == lit_lower)
+                        || (query_terms.len() >= 3
+                            && term_match_count >= partial_match_threshold(query_terms.len()))
                 })
                 .collect();
 
@@ -967,8 +1069,8 @@ mod tests {
         let src_dir = temp.path().join("src");
         fs::create_dir_all(&src_dir).unwrap();
 
-        // File A: QueryTerm only in a string literal — literals are NOT indexed
-        // (Child 03, details-layer only), so file_a must not be returned by search.
+        // File A: QueryTerm only in a string literal — indexed at the lowest boost, so the
+        // file ranks in (v3) but never above a symbol or docstring match.
         let file_a = src_dir.join("file_a.rs");
         fs::write(&file_a, "pub fn alpha() { let x = \"QueryTerm\"; }").unwrap();
 
@@ -986,13 +1088,7 @@ mod tests {
             .unwrap();
 
         let res = engine.search("QueryTerm", 10).unwrap();
-        // Only the symbol- and docstring-matched files rank; the literal-only file is gone.
-        assert_eq!(
-            res.len(),
-            2,
-            "literal-only file must not be searchable, got: {:?}",
-            res
-        );
+        assert_eq!(res.len(), 3, "all three tiers rank in, got: {:?}", res);
         // Best match should be File B (symbol, weight 4)
         assert!(
             res[0].file_path.contains("file_b.rs"),
@@ -1005,12 +1101,15 @@ mod tests {
             "Expected file_c.rs second, got: {:?}",
             res
         );
-        // File A (literal only) must be absent.
+        // File A (literal only, weight 1) ranks last, and the matched literal surfaces
+        // as an exact-value hit while the symbol list stays fallback.
         assert!(
-            !res.iter().any(|r| r.file_path.contains("file_a.rs")),
-            "literal-only file_a must not appear, got: {:?}",
+            res[2].file_path.contains("file_a.rs"),
+            "Expected literal-only file_a last, got: {:?}",
             res
         );
+        assert!(res[2].symbol_fallback);
+        assert_eq!(res[2].matched_literals, vec!["QueryTerm".to_string()]);
     }
 
     #[test]

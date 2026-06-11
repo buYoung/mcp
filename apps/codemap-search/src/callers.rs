@@ -30,8 +30,10 @@ use std::path::Path;
 /// them; defaults: scan_cap 500, list caps 5, sub-budget 8192, common threshold 2.
 #[derive(Debug, Clone, Copy)]
 pub struct CallerConfig {
-    /// Global cap on total call sites collected across the combined regex (shared by all
-    /// names in the scan — a hot name can exhaust it, so truncation is signalled).
+    /// Overall hit-collection budget for one combined-regex scan, distributed across the
+    /// scanned names (per-name cap = `scan_cap / names`, floored at
+    /// [`MIN_PER_NAME_SCAN_HITS`]) so a hot name cannot starve the others. Per-name
+    /// truncation is signalled in the rendered list.
     pub scan_cap: usize,
     /// Per-symbol caller-list cap.
     pub caller_list_cap: usize,
@@ -65,14 +67,20 @@ struct ScanHit {
 
 /// Sink that records, per matched line, every name-occurrence and whether it is a call
 /// site (`name(`) or a non-call reference. One sink per file (the `grep.rs` pattern).
+///
+/// Budgets are PER NAME (parallel to `names`): a hot name exhausting its own budget can
+/// no longer starve every other name of the walk's remaining files — which used to leave
+/// a later-in-walk symbol with zero collected hits and a misleading "no direct caller
+/// observed" despite real call sites.
 struct ClassifySink<'a> {
     names: &'a [String],
     file_path: String,
-    /// Global remaining budget shared across files (the scan cap). Decremented on push.
-    remaining: usize,
+    /// Remaining hit budget per name (same index as `names`). Decremented on push.
+    budgets: &'a mut [usize],
     hits: Vec<ScanHit>,
-    /// Set true the moment a hit was dropped because the scan cap was already exhausted.
-    truncated: bool,
+    /// Per-name flag (same index as `names`): set the moment a hit for that name is
+    /// dropped because its budget was already exhausted.
+    truncated: &'a mut [bool],
 }
 
 impl<'a> Sink for ClassifySink<'a> {
@@ -93,7 +101,7 @@ impl<'a> Sink for ClassifySink<'a> {
             // by the first non-whitespace char after it. The combined regex guarantees at
             // least one name is present; we re-locate to read the trailing char and to
             // attribute the hit to a specific name.
-            for name in self.names {
+            for (name_idx, name) in self.names.iter().enumerate() {
                 let mut from = 0usize;
                 while let Some(rel) = line[from..].find(name.as_str()) {
                     let at = from + rel;
@@ -111,11 +119,11 @@ impl<'a> Sink for ClassifySink<'a> {
                     // First non-whitespace char after the name decides call vs reference.
                     let trailing = line[after_idx..].trim_start().chars().next();
                     let is_call = trailing == Some('(');
-                    if self.remaining == 0 {
-                        self.truncated = true;
-                        return Ok(true);
+                    if self.budgets[name_idx] == 0 {
+                        self.truncated[name_idx] = true;
+                        continue;
                     }
-                    self.remaining -= 1;
+                    self.budgets[name_idx] -= 1;
                     self.hits.push(ScanHit {
                         name: name.clone(),
                         file_path: self.file_path.clone(),
@@ -134,11 +142,18 @@ fn is_ident_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_' || c == '$'
 }
 
-/// Outcome of the single workspace scan: every classified hit plus a truncation flag.
+/// Outcome of the single workspace scan: every classified hit plus the names whose
+/// per-name hit budget was exhausted (their lists may be incomplete).
 struct ScanResult {
     hits: Vec<ScanHit>,
-    truncated: bool,
+    truncated_names: HashSet<String>,
 }
+
+/// Floor of the per-name scan budget. `scan_cap` divided across many names could leave
+/// a name too few hits to survive downstream filtering (definition headers and
+/// recursion hits are collected, then excluded from caller lists), so each name is
+/// guaranteed at least this many.
+const MIN_PER_NAME_SCAN_HITS: usize = 25;
 
 /// Regex-escape one identifier so a name carrying regex metacharacters (JS/TS `$`, or a
 /// stray `.`) is matched literally inside the combined alternation.
@@ -160,7 +175,7 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
     if names.is_empty() {
         return Some(ScanResult {
             hits: Vec::new(),
-            truncated: false,
+            truncated_names: HashSet::new(),
         });
     }
     let alternation = names
@@ -188,8 +203,15 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
     let raw_root = root.to_path_buf();
 
     let mut all_hits: Vec<ScanHit> = Vec::new();
-    let mut remaining = cfg.scan_cap;
-    let mut truncated = false;
+    // `scan_cap` is distributed across the scanned names (with a floor) so one hot name
+    // cannot consume the whole budget during the early walk and starve every other name
+    // of its later-in-walk call sites.
+    let per_name_cap = cfg
+        .scan_cap
+        .div_ceil(names.len())
+        .max(MIN_PER_NAME_SCAN_HITS);
+    let mut budgets = vec![per_name_cap; names.len()];
+    let mut truncated = vec![false; names.len()];
 
     for result in crate::tools::build_walker(root, false).build() {
         let entry = match result {
@@ -222,28 +244,32 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
         let mut sink = ClassifySink {
             names,
             file_path: display,
-            remaining,
+            budgets: &mut budgets,
             hits: Vec::new(),
-            truncated: false,
+            truncated: &mut truncated,
         };
         // A per-file searcher error is isolated: skip the file, keep scanning.
         if searcher.search_path(&matcher, path, &mut sink).is_err() {
             continue;
         }
-        remaining = sink.remaining;
-        if sink.truncated {
-            truncated = true;
-        }
         all_hits.append(&mut sink.hits);
-        if remaining == 0 {
-            truncated = true;
+        // Every name's budget exhausted → nothing further can be collected. Unscanned
+        // files may still hold hits, so every name is conservatively marked truncated.
+        if budgets.iter().all(|&b| b == 0) {
+            truncated.iter_mut().for_each(|t| *t = true);
             break;
         }
     }
 
+    let truncated_names: HashSet<String> = names
+        .iter()
+        .zip(&truncated)
+        .filter(|(_, &t)| t)
+        .map(|(n, _)| n.clone())
+        .collect();
     Some(ScanResult {
         hits: all_hits,
-        truncated,
+        truncated_names,
     })
 }
 
@@ -553,6 +579,7 @@ fn render_symbol_annotation(
             caller_entries.push(entry);
         }
     }
+    let scan_truncated = scan.truncated_names.contains(&sym.name);
     if caller_entries.is_empty() {
         // No direct callers: surface non-call references (the dead-code antidote), then
         // always the observation-scope caveat — never a bare "0 callers".
@@ -590,17 +617,25 @@ fn render_symbol_annotation(
                 out.push_str(&format!("    - {r}\n"));
             }
         }
+        // A truncated scan must never read as a confident zero.
+        if scan_truncated {
+            out.push_str(
+                "    - _(caller scan hit its per-name hit cap — sites may have been missed)_\n",
+            );
+        }
     } else {
         let shown = caller_entries.len().min(cfg.caller_list_cap);
         if is_common {
             // Common matched name: a name-match scan cannot tell which definition each
             // site targets — render the list anyway, labeled, instead of suppressing it.
             out.push_str(&format!(
-                "  - _callers (approximate, name-match only; `{}` has {} definitions — call sites may target any of them):_\n",
+                "  - _callers (file:line positions exact; name-match attribution approximate — `{}` has {} definitions, call sites may target any of them):_\n",
                 sym.name, own_def_count
             ));
         } else {
-            out.push_str("  - _callers (approximate, name-match only):_\n");
+            out.push_str(
+                "  - _callers (file:line positions exact; name-match attribution approximate):_\n",
+            );
         }
         for entry in caller_entries.iter().take(shown) {
             out.push_str(&format!("    - {entry}\n"));
@@ -611,11 +646,10 @@ fn render_symbol_annotation(
                 caller_entries.len() - shown
             ));
         }
-        if scan.truncated {
-            out.push_str(&format!(
-                "    - _(caller scan truncated at {} sites — list may be incomplete)_\n",
-                cfg.scan_cap
-            ));
+        if scan_truncated {
+            out.push_str(
+                "    - _(caller scan hit its per-name hit cap — list may be incomplete)_\n",
+            );
         }
     }
 
