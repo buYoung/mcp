@@ -106,6 +106,19 @@ const CONFIG_TEMPLATE: &str = "\
 # search_detail_byte_cap = 32768         # total detail-view byte budget (32 KiB) before cutoff
 # search_literal_max_len = 200           # matched-literal truncation length (chars)
 # search_literal_limit = 10              # max matched literals rendered per file
+
+# Opt-in caller/callee context for the `search` detail view. When the `caller_context`
+# request parameter is omitted, this key decides the default; an explicit parameter always
+# wins. The feature annotates each matched `fn` symbol's snippet with its depth-1 callers
+# and callees (name-match only, approximate). Default off.
+# caller_context_default = false
+
+# Caps for the caller/callee annotation (all output-size / cost bounds, tunable).
+# scan_cap = 500               # max call sites collected across the single combined-regex walk
+# caller_list_cap = 5          # max callers (or non-call references) rendered per symbol
+# callee_list_cap = 5          # max callees rendered per symbol
+# annotation_sub_budget = 4096 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)
+# common_name_threshold = 2    # a name with ≥ this many fn defs is suppressed (callers) / labeled ambiguous (callees)
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -184,6 +197,25 @@ pub struct ResolvedConfig {
     pub search_literal_max_len: usize,
     /// `search` per-file matched-literal count cap (default 10). Output-size only.
     pub search_literal_limit: usize,
+    /// Repo-level default for the opt-in caller/callee context (default false). The
+    /// per-call `caller_context` parameter, when supplied, always overrides this; the key
+    /// only decides the default when the parameter is omitted.
+    pub caller_context_default: bool,
+    /// Max call sites collected across the single combined-regex caller scan (default 500).
+    /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
+    pub scan_cap: usize,
+    /// Per-symbol caller-list (or non-call-reference) cap (default 5). Output-size only.
+    pub caller_list_cap: usize,
+    /// Per-symbol callee-list cap (default 5). Output-size only.
+    pub callee_list_cap: usize,
+    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 4096). A
+    /// sub-limit, not an allowance added on top — snippets keep priority; annotations stop
+    /// when either this or the remaining overall cap is exhausted.
+    pub annotation_sub_budget: usize,
+    /// Common-name threshold (default 2): a name with this many `fn` definitions in the
+    /// snapshot has its callers suppressed (grep-deferral hint) and its callee occurrences
+    /// labeled target-ambiguous.
+    pub common_name_threshold: usize,
 }
 
 impl Default for ResolvedConfig {
@@ -210,6 +242,12 @@ impl Default for ResolvedConfig {
             search_detail_byte_cap: 32_768,
             search_literal_max_len: 200,
             search_literal_limit: 10,
+            caller_context_default: false,
+            scan_cap: 500,
+            caller_list_cap: 5,
+            callee_list_cap: 5,
+            annotation_sub_budget: 4096,
+            common_name_threshold: 2,
         }
     }
 }
@@ -237,6 +275,12 @@ struct ConfigLayer {
     search_detail_byte_cap: Option<usize>,
     search_literal_max_len: Option<usize>,
     search_literal_limit: Option<usize>,
+    caller_context_default: Option<bool>,
+    scan_cap: Option<usize>,
+    caller_list_cap: Option<usize>,
+    callee_list_cap: Option<usize>,
+    annotation_sub_budget: Option<usize>,
+    common_name_threshold: Option<usize>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -322,6 +366,18 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "search_literal_limit" => {
                 layer.search_literal_limit = as_positive_usize(&v, &key, path)
             }
+            "caller_context_default" => {
+                layer.caller_context_default = as_bool(&v, &key, path)
+            }
+            "scan_cap" => layer.scan_cap = as_positive_usize(&v, &key, path),
+            "caller_list_cap" => layer.caller_list_cap = as_positive_usize(&v, &key, path),
+            "callee_list_cap" => layer.callee_list_cap = as_positive_usize(&v, &key, path),
+            "annotation_sub_budget" => {
+                layer.annotation_sub_budget = as_positive_usize(&v, &key, path)
+            }
+            "common_name_threshold" => {
+                layer.common_name_threshold = as_positive_usize(&v, &key, path)
+            }
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
                 path.display()
@@ -406,6 +462,27 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .search_literal_limit
             .or(global.search_literal_limit)
             .unwrap_or(defaults.search_literal_limit),
+        caller_context_default: repo
+            .caller_context_default
+            .or(global.caller_context_default)
+            .unwrap_or(defaults.caller_context_default),
+        scan_cap: repo.scan_cap.or(global.scan_cap).unwrap_or(defaults.scan_cap),
+        caller_list_cap: repo
+            .caller_list_cap
+            .or(global.caller_list_cap)
+            .unwrap_or(defaults.caller_list_cap),
+        callee_list_cap: repo
+            .callee_list_cap
+            .or(global.callee_list_cap)
+            .unwrap_or(defaults.callee_list_cap),
+        annotation_sub_budget: repo
+            .annotation_sub_budget
+            .or(global.annotation_sub_budget)
+            .unwrap_or(defaults.annotation_sub_budget),
+        common_name_threshold: repo
+            .common_name_threshold
+            .or(global.common_name_threshold)
+            .unwrap_or(defaults.common_name_threshold),
     }
 }
 
@@ -600,6 +677,30 @@ mod tests {
         assert_eq!(cfg.max_file_size, crate::tools::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
+        // Caller/callee context keys default to the brief's starting values.
+        assert!(!cfg.caller_context_default);
+        assert_eq!(cfg.scan_cap, 500);
+        assert_eq!(cfg.caller_list_cap, 5);
+        assert_eq!(cfg.callee_list_cap, 5);
+        assert_eq!(cfg.annotation_sub_budget, 4096);
+        assert_eq!(cfg.common_name_threshold, 2);
+    }
+
+    #[test]
+    fn test_caller_context_keys_override() {
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        write_repo_config(
+            repo.path(),
+            "caller_context_default = true\nscan_cap = 100\ncommon_name_threshold = 3\n",
+        );
+        let cfg = load(repo.path(), global.path());
+        assert!(cfg.caller_context_default, "repo enables the default");
+        assert_eq!(cfg.scan_cap, 100);
+        assert_eq!(cfg.common_name_threshold, 3);
+        // Untouched keys keep their defaults.
+        assert_eq!(cfg.caller_list_cap, 5);
+        assert_eq!(cfg.annotation_sub_budget, 4096);
     }
 
     #[test]

@@ -79,7 +79,7 @@ const FUNCTION_SCOPE_KINDS: &[&str] = &["fn", "method", "function"];
 /// `outer` strictly contains `inner` when `inner`'s line span sits inside
 /// `outer`'s and the two spans are not identical — so a symbol never contains
 /// itself and two symbols sharing a range never drop each other.
-fn range_strictly_contains(
+pub(crate) fn range_strictly_contains(
     outer: &crate::parser::CodeRange,
     inner: &crate::parser::CodeRange,
 ) -> bool {
@@ -621,6 +621,7 @@ mod tests {
                     is_exported: true,
                     is_deprecated: false,
                 },
+                owner: None,
             })
             .collect();
 
@@ -869,6 +870,7 @@ mod tests {
                     is_exported: true,
                     is_deprecated: true,
                 },
+                owner: None,
             }],
             literals: vec!["magic_value".to_string()],
             docstrings: vec!["A check function\nwith multiple lines".to_string()],

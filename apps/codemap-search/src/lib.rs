@@ -1,4 +1,5 @@
 pub mod benchmark;
+pub mod callers;
 pub mod codemap;
 pub mod config;
 pub mod index;

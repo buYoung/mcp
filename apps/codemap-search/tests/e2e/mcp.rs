@@ -428,3 +428,257 @@ async fn test_mcp_symlink_workspace_compatibility() {
         }
     }
 }
+
+// --- Opt-in caller/callee context (v1) e2e ---------------------------------------------
+
+/// The `search` inputSchema advertises the optional `caller_context` boolean and does not
+/// require it.
+#[tokio::test]
+async fn test_caller_context_schema_is_optional() {
+    let temp = create_mock_repo(&[("src/a.rs", "pub fn x() {}")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response = client
+        .send_request("tools/list", serde_json::json!({}))
+        .await
+        .unwrap();
+    let tools = response["result"]["tools"].as_array().unwrap();
+    let search = tools
+        .iter()
+        .find(|t| t["name"] == "search")
+        .expect("search tool present");
+    let props = &search["inputSchema"]["properties"];
+    assert!(
+        props.get("caller_context").is_some(),
+        "caller_context advertised: {props:?}"
+    );
+    let required = search["inputSchema"]["required"].as_array().unwrap();
+    assert!(
+        required.iter().all(|r| r != "caller_context"),
+        "caller_context must be optional"
+    );
+}
+
+/// With the flag off (omitted, repo default off) vs explicitly false, the detail output is
+/// byte-identical — and neither carries any caller annotation.
+#[tokio::test]
+async fn test_caller_context_off_is_byte_identical() {
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        "pub fn callee() {}\npub fn target() {\n    callee();\n}\n",
+    )])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let omitted = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target" }),
+            |t| t.contains("target") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let explicit_false = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target", "caller_context": false }),
+            |t| t.contains("target") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+
+    let omitted_text = omitted["result"]["content"][0]["text"].as_str().unwrap();
+    let false_text = explicit_false["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        omitted_text, false_text,
+        "omitted and explicit-false must be byte-identical"
+    );
+    assert!(
+        !omitted_text.contains("approximate"),
+        "no annotation when off: {omitted_text:?}"
+    );
+}
+
+/// Flag on: a `fn` with an in-repo caller renders the enclosing caller symbol + file:line,
+/// marked approximate; its callee (depth 1) is rendered; the qualified owner name appears
+/// for a Rust impl method.
+#[tokio::test]
+async fn test_caller_context_on_renders_callers_callees_qualified() {
+    let temp = create_mock_repo(&[(
+        "src/lib.rs",
+        // free `helper`; `Engine::run` calls it; `run` also calls free `helper`.
+        "pub fn helper() {}\nstruct Engine;\nimpl Engine {\n    pub fn run(&self) {\n        helper();\n    }\n}\n",
+    )])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "helper", "caller_context": true }),
+            |t| t.contains("Engine::run") || t.contains("approximate"),
+        )
+        .await
+        .unwrap();
+    let text = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("approximate"), "approximate label: {text}");
+    assert!(
+        text.contains("Engine::run"),
+        "caller rendered with owner-qualified name + the call site: {text}"
+    );
+    assert!(text.contains("src/lib.rs:5"), "caller file:line: {text}");
+}
+
+/// Flag on but the result lands in the codemap-overview branch (many matches): a single
+/// one-line notice appears, never per-symbol annotations.
+#[tokio::test]
+async fn test_caller_context_overview_branch_notice() {
+    // 6 files share the path token "widgets" → overview branch (> result_threshold default 5).
+    let temp = create_mock_repo(&[
+        ("widgets/w1.rs", "pub fn a1() {}"),
+        ("widgets/w2.rs", "pub fn a2() {}"),
+        ("widgets/w3.rs", "pub fn a3() {}"),
+        ("widgets/w4.rs", "pub fn a4() {}"),
+        ("widgets/w5.rs", "pub fn a5() {}"),
+        ("widgets/w6.rs", "pub fn a6() {}"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "widgets", "caller_context": true }),
+            |t| t.contains("Codemap overview"),
+        )
+        .await
+        .unwrap();
+    let text = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("Codemap overview"),
+        "lands in overview branch: {text}"
+    );
+    assert!(
+        text.contains("only in the detail view"),
+        "one-line overview notice present: {text}"
+    );
+}
+
+/// With the repo-level default key ON, an explicit `caller_context=false` overrides it and
+/// is byte-identical to the pre-change build (no annotation). The repo-on default only
+/// applies when the parameter is omitted (then annotations appear — not a byte-identical
+/// case by design).
+#[tokio::test]
+async fn test_caller_context_explicit_false_overrides_repo_default_on() {
+    let temp = create_mock_repo(&[
+        (
+            "src/lib.rs",
+            "pub fn callee() {}\npub fn target() {\n    callee();\n}\n",
+        ),
+        // Repo config flips the default ON.
+        (".codemap/config.toml", "caller_context_default = true\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    // Omitted → repo default ON → annotated.
+    let omitted = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target" }),
+            |t| t.contains("approximate") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let omitted_text = omitted["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        omitted_text.contains("approximate"),
+        "repo-on default annotates when the parameter is omitted: {omitted_text:?}"
+    );
+
+    // Explicit false → overrides repo-on → no annotation.
+    let explicit_false = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target", "caller_context": false }),
+            |t| t.contains("target") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let false_text = explicit_false["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap();
+    assert!(
+        !false_text.contains("approximate"),
+        "explicit false overrides repo-on default — no annotation: {false_text:?}"
+    );
+}
+
+/// Flag on, a `fn` with no discoverable callers: the observation-scope caveat appears,
+/// never a bare "0 callers".
+#[tokio::test]
+async fn test_caller_context_zero_callers_caveat() {
+    let temp = create_mock_repo(&[("src/lib.rs", "pub fn lonely_fn() {}\n")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "lonely_fn", "caller_context": true }),
+            |t| t.contains("no direct caller observed"),
+        )
+        .await
+        .unwrap();
+    let text = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("no direct caller observed"),
+        "observation-scope caveat: {text}"
+    );
+    assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+}
+
+/// Flag on with a small `search_detail_byte_cap`: a `fn` with many callers yields a large
+/// annotation. The matched snippet alone fits under the cap, but snippet + annotation would
+/// overflow it. The annotation must be dropped rather than pushed past the cap, so the detail
+/// text stays within `search_detail_byte_cap` — the brief's hard "never exceeds the cap" /
+/// "truncated, not over-budget" criterion. Regression guard: the annotation sub-budget is
+/// reserved up front against the pre-snippet cap headroom, so without a live re-check at the
+/// note-attach point the note overflowed the cap by up to the sub-budget.
+#[tokio::test]
+async fn test_caller_context_annotation_respects_byte_cap() {
+    const CAP: usize = 200;
+    let temp = create_mock_repo(&[
+        (
+            "src/lib.rs",
+            "pub fn target() {}\n\
+             pub fn user_a() { target(); }\n\
+             pub fn user_b() { target(); }\n\
+             pub fn user_c() { target(); }\n\
+             pub fn user_d() { target(); }\n\
+             pub fn user_e() { target(); }\n",
+        ),
+        // Small total detail budget: snippet fits, snippet + caller annotation would not.
+        (".codemap/config.toml", "search_detail_byte_cap = 200\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target", "caller_context": true }),
+            |t| t.contains("target") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let text = response["result"]["content"][0]["text"].as_str().unwrap();
+
+    // The matched `target` snippet renders (it fits under the cap)...
+    assert!(text.contains("target"), "snippet rendered: {text}");
+    // ...but the full detail output never exceeds the configured cap — the large caller
+    // annotation is dropped rather than overflowing it.
+    assert!(
+        text.len() <= CAP,
+        "detail text ({} bytes) must stay within search_detail_byte_cap ({CAP}): {text:?}",
+        text.len()
+    );
+}

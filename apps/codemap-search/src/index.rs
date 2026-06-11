@@ -78,6 +78,17 @@ pub struct TantivySearchEngine {
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
 }
 
+/// Filename of the sidecar that stamps the extraction-format version of the stored
+/// `extracted_json` documents. Lives alongside tantivy's own files in the index dir.
+const EXTRACTION_FORMAT_FILE: &str = "codemap.format";
+
+/// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
+/// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
+/// `v2` introduced `ExtractedSymbol.owner`: the field is serde-default-compatible (old docs
+/// still deserialize), but a one-time reindex is needed so every stored symbol actually
+/// carries `owner`. The version bump forces that rebuild exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v2-owner";
+
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
         let mut schema_builder = Schema::builder();
@@ -96,11 +107,31 @@ impl TantivySearchEngine {
             std::fs::create_dir_all(path).map_err(|e| e.to_string())?;
         }
 
-        // Try to open or create index directory. Auto-rebuild if metadata is corrupted.
-        let index = match tantivy::directory::MmapDirectory::open(path)
-            .map_err(|e| e.to_string())
-            .and_then(|dir| Index::open_or_create(dir, schema.clone()).map_err(|e| e.to_string()))
-        {
+        // Adding `owner` to `extracted_json` does NOT change the tantivy schema (it is one
+        // STORED text field holding JSON), so `Index::open_or_create` would succeed against a
+        // pre-upgrade index and the open-failure auto-rebuild below would never self-trigger.
+        // An explicit sidecar version check forces a one-time reindex: read the stamped
+        // version BEFORE any `remove_dir_all` (which would delete the sidecar), and treat a
+        // mismatch exactly like the corrupt-recovery path so the rebuild logic stays unified.
+        let version_path = path.join(EXTRACTION_FORMAT_FILE);
+        let stored_version = std::fs::read_to_string(&version_path)
+            .ok()
+            .map(|s| s.trim().to_string());
+        let format_outdated = stored_version.as_deref() != Some(EXTRACTION_FORMAT_VERSION);
+
+        // Try to open or create the index directory. Rebuild from scratch if metadata is
+        // corrupted OR the extraction-format version is outdated — both take the same
+        // `remove_dir_all` + recreate path so the index is rebuilt exactly once.
+        let opened = if format_outdated {
+            Err("extraction format outdated".to_string())
+        } else {
+            tantivy::directory::MmapDirectory::open(path)
+                .map_err(|e| e.to_string())
+                .and_then(|dir| {
+                    Index::open_or_create(dir, schema.clone()).map_err(|e| e.to_string())
+                })
+        };
+        let index = match opened {
             Ok(idx) => idx,
             Err(_) => {
                 let _ = std::fs::remove_dir_all(path);
@@ -117,6 +148,14 @@ impl TantivySearchEngine {
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
             .map_err(|e| e.to_string())?;
+
+        // Stamp the current format version only after the reader is built (a failed reader
+        // build must not leave a stale-but-current version that would skip the next rebuild).
+        // Written once: after this run the sidecar matches, so `format_outdated` is false on
+        // every subsequent run and neither the rebuild nor this write fires again.
+        if format_outdated {
+            let _ = std::fs::write(&version_path, EXTRACTION_FORMAT_VERSION);
+        }
 
         Ok(Self {
             index_path: index_path.to_string(),
@@ -977,6 +1016,89 @@ mod tests {
         // Instantiating the engine should auto-recover
         let engine = TantivySearchEngine::new(&index_dir.to_string_lossy());
         assert!(engine.is_ok());
+    }
+
+    #[test]
+    fn test_format_version_sidecar_written_and_stable() {
+        let temp = tempdir().unwrap();
+        let index_dir = temp.path().join("index");
+        let src_dir = temp.path().join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+        let file1 = src_dir.join("lib.rs");
+        fs::write(&file1, "pub fn alpha_symbol() {}").unwrap();
+
+        // First instantiation: writes the sidecar and indexes content.
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        let version_path = index_dir.join(EXTRACTION_FORMAT_FILE);
+        assert_eq!(
+            fs::read_to_string(&version_path).unwrap().trim(),
+            EXTRACTION_FORMAT_VERSION
+        );
+        assert_eq!(engine.search("alpha_symbol", 10).unwrap().len(), 1);
+        drop(engine);
+
+        // Second instantiation with a matching sidecar must NOT rebuild: the previously
+        // indexed content survives (a rebuild would wipe it).
+        let engine2 = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        assert_eq!(engine2.search("alpha_symbol", 10).unwrap().len(), 1);
+        assert_eq!(
+            fs::read_to_string(&version_path).unwrap().trim(),
+            EXTRACTION_FORMAT_VERSION
+        );
+    }
+
+    #[test]
+    fn test_format_version_mismatch_rebuilds_exactly_once() {
+        let temp = tempdir().unwrap();
+        let index_dir = temp.path().join("index");
+        let src_dir = temp.path().join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+        let file1 = src_dir.join("lib.rs");
+        fs::write(&file1, "pub fn beta_symbol() {}").unwrap();
+
+        // Seed an index with content under the current format.
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        assert_eq!(engine.search("beta_symbol", 10).unwrap().len(), 1);
+        drop(engine);
+
+        // Simulate a pre-upgrade index: stamp an outdated version.
+        let version_path = index_dir.join(EXTRACTION_FORMAT_FILE);
+        fs::write(&version_path, "v1-legacy").unwrap();
+
+        // Instantiation with a stale sidecar rebuilds once: the stored docs are wiped (so the
+        // search is empty until re-indexed) and the sidecar is restamped to the current
+        // version.
+        let mut engine2 = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        assert_eq!(
+            engine2.search("beta_symbol", 10).unwrap().len(),
+            0,
+            "outdated format should have triggered a wipe"
+        );
+        assert_eq!(
+            fs::read_to_string(&version_path).unwrap().trim(),
+            EXTRACTION_FORMAT_VERSION
+        );
+
+        // Re-index after the rebuild, then a subsequent instantiation must be stable — no
+        // second rebuild (content survives), proving the reindex fires exactly once.
+        engine2
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        assert_eq!(engine2.search("beta_symbol", 10).unwrap().len(), 1);
+        drop(engine2);
+
+        let engine3 = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        assert_eq!(
+            engine3.search("beta_symbol", 10).unwrap().len(),
+            1,
+            "matching sidecar must not rebuild a second time"
+        );
     }
 
     #[test]

@@ -26,3 +26,6 @@ A pnpm + Turborepo monorepo of standalone stdio MCP (Model Context Protocol) ser
 - In monorepos, put package-only test/verification guidance in the package-level `AGENTS.md`, not this root document.
 - New functions: single-purpose, colocated with related code.
 - External dependencies: only when necessary, and explain why.
+
+## User custom rules
+- codemap-search 를 적극 활용하세요. Read, Grep, Find 대체가능

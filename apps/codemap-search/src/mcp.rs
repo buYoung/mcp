@@ -411,7 +411,7 @@ impl McpServer {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
                     },
-                    "instructions": "Five code-navigation tools; pick by what you already know — no fixed order.\n- grep: first move when you know the exact identifier, string, or error message (not a last resort). Always current; sees comments and non-code files.\n- search: first move when you only know the concept, can't write a reliable pattern, or grep returned zero hits or noise. Once it names the symbol, grep its uses.\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nIterating grep -> read is a normal, effective loop."
+                    "instructions": "Five code-navigation tools; pick by what you already know — no fixed order.\n- grep: first move when you know the exact identifier, string, or error message (not a last resort). Always current; sees comments and non-code files.\n- search: first move when you only know the concept, can't write a reliable pattern, or grep returned zero hits or noise. Once it names the symbol, grep its uses. Pass caller_context=true to annotate each matched function's detail snippet with its depth-1 callers and callees (approximate, name-match only) — folds the usual search→grep round-trip into one call; appears only in the detail view (narrow the query if it lands in the codemap overview).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nIterating grep -> read is a normal, effective loop."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
@@ -430,11 +430,12 @@ impl McpServer {
                     },
                     {
                         "name": "search",
-                        "description": "BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Returns a codemap when many files match, per-file symbols with line ranges when few.",
+                        "description": "BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Returns a codemap when many files match, per-file symbols with line ranges when few. Set caller_context=true to annotate each matched function (detail view only) with its depth-1 callers and callees, approximate and name-match only.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "query": { "type": "string" }
+                                "query": { "type": "string" },
+                                "caller_context": { "type": "boolean", "description": "Opt-in: annotate each matched function's detail snippet with its depth-1 callers/callees (approximate, name-match only). Detail view only; default off." }
                             },
                             "required": ["query"]
                         }
@@ -507,6 +508,15 @@ impl McpServer {
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
+                        // Opt-in caller/callee context. Precedence: the per-call parameter,
+                        // when present, always wins (an explicit `false` overrides a repo-on
+                        // default); the repo-level config key only decides the default when
+                        // the parameter is omitted.
+                        let caller_context_enabled = arguments
+                            .get("caller_context")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or_else(|| crate::config::get().caller_context_default);
+
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately
@@ -562,6 +572,14 @@ impl McpServer {
                                 "## Codemap overview — {} matches\n",
                                 results.len()
                             ));
+                            // The flag is on but the result landed in the overview branch
+                            // (token economy — never per-symbol annotated here). Emit a single
+                            // one-line notice so a broad query is never silently un-annotated.
+                            if caller_context_enabled {
+                                text.push_str(
+                                    "_Caller/callee context appears only in the detail view — narrow the query (≤ result_threshold matches) to see call annotations._\n",
+                                );
+                            }
                             for res in results.iter().take(search_overview_file_limit) {
                                 text.push_str(&format!(
                                     "### {} ({} lines)\n",
@@ -609,6 +627,44 @@ impl McpServer {
                             let byte_cap = cfg.search_detail_byte_cap;
                             let literal_max_len = cfg.search_literal_max_len;
                             let literal_limit = cfg.search_literal_limit;
+
+                            // Opt-in caller/callee context: one workspace scan across every
+                            // matched `fn` in the detail view, attributed off the codemap
+                            // snapshot + the Phase-A owner field. Any failure → `None` → the
+                            // detail view renders exactly as today (failure isolation). The
+                            // annotation byte budget is what is still free under `byte_cap`
+                            // at this point (snippets keep priority, two-counter inside).
+                            let caller_annotations = if caller_context_enabled {
+                                let snapshot = self.indexer.codemap_snapshot();
+                                let requests: Vec<crate::callers::AnnotationRequest<'_>> = results
+                                    .iter()
+                                    .map(|res| crate::callers::AnnotationRequest {
+                                        file_path: &res.file_path,
+                                        symbols: &res.matched_symbols,
+                                        is_fallback: res.symbol_fallback,
+                                    })
+                                    .collect();
+                                let caller_cfg = crate::callers::CallerConfig {
+                                    scan_cap: cfg.scan_cap,
+                                    caller_list_cap: cfg.caller_list_cap,
+                                    callee_list_cap: cfg.callee_list_cap,
+                                    annotation_sub_budget: cfg.annotation_sub_budget,
+                                    common_name_threshold: cfg.common_name_threshold,
+                                    max_file_size: cfg.max_file_size,
+                                };
+                                let available = byte_cap.saturating_sub(text.len());
+                                let root = std::env::current_dir()
+                                    .unwrap_or_else(|_| std::path::PathBuf::from("."));
+                                crate::callers::annotate_results(
+                                    &requests,
+                                    &snapshot,
+                                    &caller_cfg,
+                                    available,
+                                    &root,
+                                )
+                            } else {
+                                None
+                            };
 
                             let mut budget_hit = false;
                             'files: for res in &results {
@@ -701,6 +757,23 @@ impl McpServer {
                                                 byte_cap,
                                             );
                                             text.push_str(&format!("```\n{}\n```\n", capped));
+                                        }
+                                        // Caller/callee annotation (opt-in): emitted AFTER the
+                                        // snippet (snippets keep priority) and only for matched
+                                        // `fn` symbols whose snippet we actually rendered. The
+                                        // annotation sub-budget was reserved up front against the
+                                        // cap headroom BEFORE snippets were rendered, so re-check
+                                        // the LIVE remaining cap here and drop (never overflow) the
+                                        // note if snippets have since consumed that headroom — keeps
+                                        // snippets+annotations within `byte_cap`.
+                                        if let Some(annotations) = &caller_annotations {
+                                            if let Some(note) =
+                                                annotations.get(&res.file_path, start)
+                                            {
+                                                if text.len() + note.len() <= byte_cap {
+                                                    text.push_str(note);
+                                                }
+                                            }
                                         }
                                         emitted_ranges.push((start, displayed_end));
                                         shown += 1;

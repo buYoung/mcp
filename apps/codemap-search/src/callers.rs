@@ -1,0 +1,1147 @@
+//! `callers` — opt-in caller/callee context for the `search` detail view.
+//!
+//! Given the matched `fn` symbols of one file, this module performs a single
+//! combined-regex workspace scan (reusing [`crate::tools::build_walker`] + the
+//! `grep.rs` searcher pattern), classifies each hit post-hoc (trailing `(` → call
+//! site, else → non-call reference), attributes call sites to their innermost
+//! enclosing definition symbol from the codemap snapshot, discovers depth-1 callees
+//! by intersecting the matched symbol's own body with the snapshot's global `fn`-name
+//! set, and renders the result as a markdown annotation block.
+//!
+//! Everything here is **approximate by construction** — a name-match scan with no type
+//! resolution. Every rendered line says so. Qualified names (`Type::method` /
+//! `Class.method`) are read DIRECTLY off the Phase-A `ExtractedSymbol::owner` field; no
+//! on-demand owner source scan is performed. The decorator/attribute entry-point label
+//! is the one remaining on-demand source re-read (the lines above a symbol's range fall
+//! outside its recorded span).
+//!
+//! Failure isolation: any IO/regex/scan error makes the whole annotation degrade to
+//! `None`, so the caller emits the un-annotated search result. The feature never fails
+//! the response (mirrors `index.rs::parse_query_catching_panic`).
+
+use crate::parser::{ExtractedFile, ExtractedSymbol};
+use grep::regex::RegexMatcherBuilder;
+use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
+
+/// Tunable caps for one annotation pass. Sourced from `config.rs` so a repo can retune
+/// them; defaults match the brief (scan_cap 500, list caps 5, sub-budget 4096, common
+/// threshold 2).
+#[derive(Debug, Clone, Copy)]
+pub struct CallerConfig {
+    /// Global cap on total call sites collected across the combined regex (shared by all
+    /// names in the scan — a hot name can exhaust it, so truncation is signalled).
+    pub scan_cap: usize,
+    /// Per-symbol caller-list cap.
+    pub caller_list_cap: usize,
+    /// Per-symbol callee-list cap.
+    pub callee_list_cap: usize,
+    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (the two-counter limit).
+    pub annotation_sub_budget: usize,
+    /// A name defined in ≥ this many snapshot symbols is "common": callers are suppressed
+    /// to a grep-deferral hint, callees are labeled target-ambiguous.
+    pub common_name_threshold: usize,
+    /// Files larger than this (bytes) are skipped by the scan, matching the indexer's
+    /// `collect_index_entry` size filter (config `max_file_size`).
+    pub max_file_size: u64,
+}
+
+/// A single call-site / reference hit produced by the combined-regex scan.
+#[derive(Debug, Clone)]
+struct ScanHit {
+    /// The matched symbol name this hit belongs to.
+    name: String,
+    /// Workspace-relative (display) path of the file the hit was found in.
+    file_path: String,
+    /// 1-based line number of the hit.
+    line_number: usize,
+    /// True when the first non-whitespace char after the name was `(` (a call site);
+    /// false marks a non-call reference (callback / handler registration / passing).
+    is_call: bool,
+    /// The raw matched line text (for non-call-reference rendering).
+    line_text: String,
+}
+
+/// Sink that records, per matched line, every name-occurrence and whether it is a call
+/// site (`name(`) or a non-call reference. One sink per file (the `grep.rs` pattern).
+struct ClassifySink<'a> {
+    names: &'a [String],
+    file_path: String,
+    /// Global remaining budget shared across files (the scan cap). Decremented on push.
+    remaining: usize,
+    hits: Vec<ScanHit>,
+    /// Set true the moment a hit was dropped because the scan cap was already exhausted.
+    truncated: bool,
+}
+
+impl<'a> Sink for ClassifySink<'a> {
+    type Error = std::io::Error;
+
+    fn matched(
+        &mut self,
+        _searcher: &Searcher,
+        mat: &SinkMatch<'_>,
+    ) -> Result<bool, std::io::Error> {
+        let start = mat.line_number().unwrap_or(0) as usize;
+        let cow = String::from_utf8_lossy(mat.bytes());
+        let block: &str = cow.as_ref();
+        for (offset, raw) in block.split('\n').enumerate() {
+            let line = raw.strip_suffix('\r').unwrap_or(raw);
+            let line_number = start + offset;
+            // Find every occurrence of every scanned name on this line, classifying each
+            // by the first non-whitespace char after it. The combined regex guarantees at
+            // least one name is present; we re-locate to read the trailing char and to
+            // attribute the hit to a specific name.
+            for name in self.names {
+                let mut from = 0usize;
+                while let Some(rel) = line[from..].find(name.as_str()) {
+                    let at = from + rel;
+                    from = at + name.len();
+                    // Word-boundary guard: the char immediately before/after the match must
+                    // not be an identifier char, so `new` does not match inside `renew`.
+                    let before_ok = at == 0
+                        || !is_ident_char(line[..at].chars().next_back().unwrap_or(' '));
+                    let after_idx = at + name.len();
+                    let after_char = line[after_idx..].chars().next();
+                    let after_ok = after_char.map(|c| !is_ident_char(c)).unwrap_or(true);
+                    if !before_ok || !after_ok {
+                        continue;
+                    }
+                    // First non-whitespace char after the name decides call vs reference.
+                    let trailing = line[after_idx..].trim_start().chars().next();
+                    let is_call = trailing == Some('(');
+                    if self.remaining == 0 {
+                        self.truncated = true;
+                        return Ok(true);
+                    }
+                    self.remaining -= 1;
+                    self.hits.push(ScanHit {
+                        name: name.clone(),
+                        file_path: self.file_path.clone(),
+                        line_number,
+                        is_call,
+                        line_text: line.to_string(),
+                    });
+                }
+            }
+        }
+        Ok(true)
+    }
+}
+
+fn is_ident_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_' || c == '$'
+}
+
+/// Outcome of the single workspace scan: every classified hit plus a truncation flag.
+struct ScanResult {
+    hits: Vec<ScanHit>,
+    truncated: bool,
+}
+
+/// Regex-escape one identifier so a name carrying regex metacharacters (JS/TS `$`, or a
+/// stray `.`) is matched literally inside the combined alternation.
+fn escape_name(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.chars() {
+        if "\\.+*?()|[]{}^$#&-~".contains(c) {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, classifying every hit.
+/// Returns `None` on any setup failure (failure isolation). The walk reuses
+/// `build_walker` + the source-extension + size filters so coverage matches the indexer.
+fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<ScanResult> {
+    if names.is_empty() {
+        return Some(ScanResult {
+            hits: Vec::new(),
+            truncated: false,
+        });
+    }
+    let alternation = names
+        .iter()
+        .map(|n| escape_name(n))
+        .collect::<Vec<_>>()
+        .join("|");
+    let pattern = format!(r"\b(?:{alternation})\b");
+
+    let mut matcher_builder = RegexMatcherBuilder::new();
+    matcher_builder.line_terminator(Some(b'\n'));
+    let matcher = matcher_builder.build(&pattern).ok()?;
+
+    let mut searcher = SearcherBuilder::new()
+        .line_number(true)
+        .binary_detection(BinaryDetection::quit(0))
+        .build();
+
+    // Produce workspace-relative display paths that match the codemap snapshot's
+    // `file_path` keys. The indexer keys each file by `canonicalize().strip_prefix(canon
+    // cwd)` (index.rs::relative_index_path), so mirror that: strip the canonical root from
+    // the canonical entry; fall back to stripping the raw root (the walker yields entries
+    // rooted at `root` as passed) so the keys line up whether or not the cwd is a symlink.
+    let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    let raw_root = root.to_path_buf();
+
+    let mut all_hits: Vec<ScanHit> = Vec::new();
+    let mut remaining = cfg.scan_cap;
+    let mut truncated = false;
+
+    for result in crate::tools::build_walker(root, false).build() {
+        let entry = match result {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+            continue;
+        }
+        let path = entry.path();
+        // Same coverage as the indexer: source extensions only, under the size filter.
+        let ext = match path.extension().and_then(|s| s.to_str()) {
+            Some(e) => e,
+            None => continue,
+        };
+        if !crate::tools::is_source_extension(ext) {
+            continue;
+        }
+        match std::fs::metadata(path) {
+            Ok(meta) if meta.len() > cfg.max_file_size => continue,
+            Ok(_) => {}
+            Err(_) => continue,
+        }
+        let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let relative = canonical_path
+            .strip_prefix(&canonical_root)
+            .or_else(|_| path.strip_prefix(&raw_root))
+            .unwrap_or(path);
+        let display = relative.to_string_lossy().replace('\\', "/");
+        let mut sink = ClassifySink {
+            names,
+            file_path: display,
+            remaining,
+            hits: Vec::new(),
+            truncated: false,
+        };
+        // A per-file searcher error is isolated: skip the file, keep scanning.
+        if searcher.search_path(&matcher, path, &mut sink).is_err() {
+            continue;
+        }
+        remaining = sink.remaining;
+        if sink.truncated {
+            truncated = true;
+        }
+        all_hits.append(&mut sink.hits);
+        if remaining == 0 {
+            truncated = true;
+            break;
+        }
+    }
+
+    Some(ScanResult {
+        hits: all_hits,
+        truncated,
+    })
+}
+
+/// The innermost `fn`-scope symbol whose inclusive line range contains `line` in `file`.
+/// Smallest span wins (innermost nesting), tie-broken by `range_strictly_contains`. The
+/// inclusive test (`start <= line <= end`) keeps single-line callables attributable.
+fn enclosing_fn<'a>(file: &'a ExtractedFile, line: usize) -> Option<&'a ExtractedSymbol> {
+    let mut best: Option<&ExtractedSymbol> = None;
+    for sym in &file.symbols {
+        if sym.kind != "fn" {
+            continue;
+        }
+        let (start, end) = (sym.range.start_line, sym.range.end_line);
+        if start <= line && line <= end {
+            best = match best {
+                None => Some(sym),
+                Some(current) => {
+                    // Prefer the strictly-inner one; on equal spans keep the first found.
+                    if crate::codemap::range_strictly_contains(&current.range, &sym.range) {
+                        Some(sym)
+                    } else {
+                        Some(current)
+                    }
+                }
+            };
+        }
+    }
+    best
+}
+
+/// Render a symbol's display name, prefixed by its `owner` when present:
+/// Rust/Go → `Owner::name`, class-nested languages → `Owner.name`. The separator is
+/// chosen by extension so the rendered form matches each language's convention.
+fn qualified_name(sym: &ExtractedSymbol, file_path: &str) -> String {
+    match &sym.owner {
+        Some(owner) => {
+            let sep = match extension_of(file_path) {
+                "rs" => "::",
+                _ => ".",
+            };
+            format!("{owner}{sep}{}", sym.name)
+        }
+        None => sym.name.clone(),
+    }
+}
+
+fn extension_of(path: &str) -> &str {
+    Path::new(path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+}
+
+/// Whether `line` (already trimmed) is an import/use statement in the language of `ext`,
+/// so a name appearing there is excluded from non-call-reference reporting. Conservative:
+/// an unclassifiable line stays in (degrades to the hedged "possible callback" wording).
+fn is_import_line(line: &str, ext: &str) -> bool {
+    let trimmed = line.trim_start();
+    match ext {
+        "rs" => trimmed.starts_with("use "),
+        "py" => trimmed.starts_with("import ") || trimmed.starts_with("from "),
+        "ts" | "tsx" | "js" | "jsx" => {
+            trimmed.starts_with("import ") || trimmed.starts_with("require(")
+                || trimmed.contains("require(")
+        }
+        "go" => trimmed.starts_with("import ") || trimmed.starts_with("import("),
+        "java" | "kt" | "kts" => trimmed.starts_with("import "),
+        _ => false,
+    }
+}
+
+/// Read a workspace-relative file's contents, resolving it against `root`. Falls back to
+/// the path as-given (covers absolute paths and a cwd that already equals the root).
+/// Returns `None` on any IO error (failure isolation — the annotation degrades, never fails).
+fn read_workspace_file(file_path: &str, root: &Path) -> Option<String> {
+    let joined = root.join(file_path);
+    std::fs::read_to_string(&joined)
+        .or_else(|_| std::fs::read_to_string(file_path))
+        .ok()
+}
+
+/// Read the contiguous decorator/attribute lines directly above `start_line` (1-based) of
+/// `file_path`, returning them top-to-bottom. Scans upward across `@…` (Python/TS/Java/
+/// Kotlin) and `#[…]` (Rust) lines plus blank lines, stopping at the first line that is
+/// neither. Returns an empty vec on any IO error (failure isolation).
+fn decorator_lines_above(file_path: &str, start_line: usize, root: &Path) -> Vec<String> {
+    let content = match read_workspace_file(file_path, root) {
+        Some(c) => c,
+        None => return Vec::new(),
+    };
+    let lines: Vec<&str> = content.lines().collect();
+    if start_line == 0 || start_line > lines.len() {
+        return Vec::new();
+    }
+    let mut collected: Vec<String> = Vec::new();
+    // `start_line` is 1-based; the line directly above is index `start_line - 2`.
+    let mut idx = start_line as isize - 2;
+    while idx >= 0 {
+        let raw = lines[idx as usize];
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            idx -= 1;
+            continue;
+        }
+        if trimmed.starts_with('@') || trimmed.starts_with("#[") {
+            collected.push(trimmed.to_string());
+            idx -= 1;
+            continue;
+        }
+        break;
+    }
+    collected.reverse();
+    collected
+}
+
+/// Discover depth-1 callees of `sym`: names invoked as `identifier(` inside the symbol's
+/// full source range that are in the snapshot's global `fn`-name set, excluding the
+/// symbol's own name. Reads the symbol's full range from disk (not the display snippet).
+fn discover_callees(
+    sym: &ExtractedSymbol,
+    file_path: &str,
+    fn_names: &HashSet<String>,
+    root: &Path,
+) -> Vec<String> {
+    let content = match read_workspace_file(file_path, root) {
+        Some(c) => c,
+        None => return Vec::new(),
+    };
+    let lines: Vec<&str> = content.lines().collect();
+    let start = sym.range.start_line.saturating_sub(1);
+    let end = sym.range.end_line.min(lines.len());
+    if start >= end {
+        return Vec::new();
+    }
+    let body = lines[start..end].join("\n");
+    let mut found: Vec<String> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    let bytes: Vec<char> = body.chars().collect();
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if is_ident_start(bytes[i]) {
+            let begin = i;
+            while i < bytes.len() && is_ident_char(bytes[i]) {
+                i += 1;
+            }
+            let ident: String = bytes[begin..i].iter().collect();
+            // Skip whitespace, then require `(` for a call.
+            let mut j = i;
+            while j < bytes.len() && (bytes[j] == ' ' || bytes[j] == '\t') {
+                j += 1;
+            }
+            let is_call = j < bytes.len() && bytes[j] == '(';
+            if is_call
+                && ident != sym.name
+                && fn_names.contains(&ident)
+                && seen.insert(ident.clone())
+            {
+                found.push(ident);
+            }
+        } else {
+            i += 1;
+        }
+    }
+    found
+}
+
+fn is_ident_start(c: char) -> bool {
+    c.is_alphabetic() || c == '_' || c == '$'
+}
+
+/// A per-symbol view of where every snapshot symbol of a given name lives, used to
+/// resolve a bare callee name to its qualified form and to count definitions.
+struct SymbolIndex<'a> {
+    /// name → all snapshot symbols (any kind) carrying that name.
+    by_name: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
+    /// Global set of `fn` names (callee intersection target).
+    fn_names: HashSet<String>,
+    /// name → count of `fn` definitions (common-name threshold input).
+    fn_def_counts: HashMap<String, usize>,
+}
+
+fn build_symbol_index(snapshot: &[ExtractedFile]) -> SymbolIndex<'_> {
+    let mut by_name: HashMap<&str, Vec<(&ExtractedFile, &ExtractedSymbol)>> = HashMap::new();
+    let mut fn_names: HashSet<String> = HashSet::new();
+    let mut fn_def_counts: HashMap<String, usize> = HashMap::new();
+    for file in snapshot {
+        for sym in &file.symbols {
+            by_name.entry(sym.name.as_str()).or_default().push((file, sym));
+            if sym.kind == "fn" {
+                fn_names.insert(sym.name.clone());
+                *fn_def_counts.entry(sym.name.clone()).or_insert(0) += 1;
+            }
+        }
+    }
+    SymbolIndex {
+        by_name,
+        fn_names,
+        fn_def_counts,
+    }
+}
+
+/// Render the qualified form of a callee name when exactly one `fn` of that name exists in
+/// the snapshot (unambiguous owner); otherwise the bare name.
+fn callee_display(name: &str, index: &SymbolIndex<'_>) -> String {
+    let defs: Vec<_> = index
+        .by_name
+        .get(name)
+        .map(|v| v.iter().filter(|(_, s)| s.kind == "fn").collect::<Vec<_>>())
+        .unwrap_or_default();
+    if defs.len() == 1 {
+        let (file, sym) = defs[0];
+        qualified_name(sym, &file.file_path)
+    } else {
+        name.to_string()
+    }
+}
+
+/// The observation-scope caveat appended whenever a `fn` shows no discoverable callers —
+/// so a zero is never read as "dead code".
+const OBSERVATION_SCOPE_CAVEAT: &str =
+    "_(no direct caller observed — scope: indexed source only (rs/py/ts/tsx/js/jsx/go/java/kt/kts), \
+direct `name(` calls; callbacks, higher-order/method-reference passing, macro-wrapped, and \
+event/dispatch calls are not counted; approximate)_";
+
+/// Build the full annotation block for ONE matched `fn` symbol. Returns `None` to omit the
+/// annotation entirely (e.g. byte budget already exhausted) — never an error.
+///
+/// `byte_budget` is the bytes still available for THIS symbol's annotation: the lesser of
+/// the remaining `annotation_sub_budget` and the remaining `search_detail_byte_cap` space,
+/// computed by the caller (the two-counter). The returned string never exceeds it.
+#[allow(clippy::too_many_arguments)]
+fn render_symbol_annotation(
+    sym: &ExtractedSymbol,
+    file_path: &str,
+    scan: &ScanResult,
+    snapshot: &[ExtractedFile],
+    index: &SymbolIndex<'_>,
+    cfg: &CallerConfig,
+    byte_budget: usize,
+    root: &Path,
+) -> Option<String> {
+    if byte_budget == 0 {
+        return None;
+    }
+    let mut out = String::new();
+
+    // --- Decorator / attribute entry-point label (on-demand source re-read). ---
+    let decorators = decorator_lines_above(file_path, sym.range.start_line, root);
+    if !decorators.is_empty() {
+        out.push_str(&format!(
+            "  - _framework entry-point candidate (verbatim, approximate):_ `{}`\n",
+            decorators.join(" ")
+        ));
+    }
+
+    // --- Callers. ---
+    let own_def_count = *index.fn_def_counts.get(&sym.name).unwrap_or(&0);
+    let is_common = own_def_count >= cfg.common_name_threshold;
+    if is_common {
+        // Common matched name: caller sites could belong to any same-named def — defer.
+        out.push_str(&format!(
+            "  - _callers: `{}` has {} definitions — too ambiguous to attribute; grep `{}(` to inspect call sites (approximate)._\n",
+            sym.name, own_def_count, sym.name
+        ));
+    } else {
+        // Map this name's call-site hits to their enclosing fn.
+        let mut caller_entries: Vec<String> = Vec::new();
+        let mut seen_callers: HashSet<String> = HashSet::new();
+        for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
+            // Exclude the symbol's own definition line and self-recursion within its body.
+            if hit.file_path == file_path
+                && hit.line_number >= sym.range.start_line
+                && hit.line_number <= sym.range.end_line
+            {
+                continue;
+            }
+            let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
+            let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
+                Some(encl) => {
+                    // Skip self-recursion attributed to the same symbol+location.
+                    let qn = qualified_name(encl, &file.unwrap().file_path);
+                    format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
+                }
+                None => {
+                    // File absent from snapshot, or line in no symbol range → never drop.
+                    format!(
+                        "{}:{} (top-level/unindexed)",
+                        hit.file_path, hit.line_number
+                    )
+                }
+            };
+            if seen_callers.insert(entry.clone()) {
+                caller_entries.push(entry);
+            }
+        }
+        if caller_entries.is_empty() {
+            // No direct callers: surface non-call references (the dead-code antidote), then
+            // always the observation-scope caveat — never a bare "0 callers".
+            let mut refs: Vec<String> = Vec::new();
+            let mut seen_refs: HashSet<String> = HashSet::new();
+            for hit in scan.hits.iter().filter(|h| h.name == sym.name && !h.is_call) {
+                // Exclude the symbol's own definition range and import/use lines.
+                if hit.file_path == file_path
+                    && hit.line_number >= sym.range.start_line
+                    && hit.line_number <= sym.range.end_line
+                {
+                    continue;
+                }
+                let hit_ext = extension_of(&hit.file_path);
+                if is_import_line(&hit.line_text, hit_ext) {
+                    continue;
+                }
+                let entry = format!(
+                    "{}:{}: `{}`",
+                    hit.file_path,
+                    hit.line_number,
+                    hit.line_text.trim()
+                );
+                if seen_refs.insert(entry.clone()) {
+                    refs.push(entry);
+                }
+                if refs.len() >= cfg.caller_list_cap {
+                    break;
+                }
+            }
+            if refs.is_empty() {
+                out.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
+            } else {
+                out.push_str(
+                    "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
+                );
+                for r in refs {
+                    out.push_str(&format!("    - {r}\n"));
+                }
+            }
+        } else {
+            let shown = caller_entries.len().min(cfg.caller_list_cap);
+            out.push_str("  - _callers (approximate, name-match only):_\n");
+            for entry in caller_entries.iter().take(shown) {
+                out.push_str(&format!("    - {entry}\n"));
+            }
+            if caller_entries.len() > shown {
+                out.push_str(&format!(
+                    "    - _… {} more not shown._\n",
+                    caller_entries.len() - shown
+                ));
+            }
+            if scan.truncated {
+                out.push_str(&format!(
+                    "    - _(caller scan truncated at {} sites — list may be incomplete)_\n",
+                    cfg.scan_cap
+                ));
+            }
+        }
+    }
+
+    // --- Callees (always shown; labeled target-ambiguous at ≥ threshold defs). ---
+    let callees = discover_callees(sym, file_path, &index.fn_names, root);
+    if !callees.is_empty() {
+        out.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
+        let shown = callees.len().min(cfg.callee_list_cap);
+        for name in callees.iter().take(shown) {
+            let def_count = *index.fn_def_counts.get(name).unwrap_or(&0);
+            if def_count >= cfg.common_name_threshold {
+                out.push_str(&format!(
+                    "    - {name} ({def_count} defs, target ambiguous)\n"
+                ));
+            } else {
+                out.push_str(&format!("    - {}\n", callee_display(name, index)));
+            }
+        }
+        if callees.len() > shown {
+            out.push_str(&format!(
+                "    - _… {} more not shown._\n",
+                callees.len() - shown
+            ));
+        }
+    }
+
+    if out.len() > byte_budget {
+        // Annotation would overflow the remaining budget — drop it (snippets keep priority)
+        // and let the caller fall back to nothing rather than emit a partial line.
+        return None;
+    }
+    Some(out)
+}
+
+/// One matched-file's identity for annotation lookup: its workspace-relative path plus the
+/// list of its non-fallback matched `fn` symbols.
+pub struct AnnotationRequest<'a> {
+    pub file_path: &'a str,
+    pub symbols: &'a [ExtractedSymbol],
+    /// `symbol_fallback` results are not annotated (ranked in via path/docstring).
+    pub is_fallback: bool,
+}
+
+/// The opt-in scan/annotation result for a whole detail view. `annotations` maps
+/// `(file_path, symbol_start_line)` to its rendered annotation text. Performs EXACTLY ONE
+/// workspace walk across all matched `fn` names of all detail files. Returns `None` on any
+/// failure (the caller then renders the un-annotated detail view).
+pub struct DetailAnnotations {
+    annotations: HashMap<(String, usize), String>,
+}
+
+impl DetailAnnotations {
+    /// Look up the annotation for a specific symbol, if any.
+    pub fn get(&self, file_path: &str, start_line: usize) -> Option<&str> {
+        self.annotations
+            .get(&(file_path.to_string(), start_line))
+            .map(|s| s.as_str())
+    }
+}
+
+/// Build annotations for every matched `fn` symbol across ALL detail-view result files in a
+/// single workspace scan. `available_bytes` is the bytes still free under
+/// `search_detail_byte_cap` when annotation begins; this enforces both that overall cap AND
+/// the `annotation_sub_budget` (the two-counter, whichever binds first). Snippets keep
+/// priority — an annotation that would overflow is dropped, never truncated mid-line.
+///
+/// Returns `None` on any setup/scan failure so the caller degrades to the un-annotated view.
+pub fn annotate_results(
+    requests: &[AnnotationRequest<'_>],
+    snapshot: &[ExtractedFile],
+    cfg: &CallerConfig,
+    available_bytes: usize,
+    root: &Path,
+) -> Option<DetailAnnotations> {
+    let index = build_symbol_index(snapshot);
+
+    // Union of every non-fallback matched `fn` name across all detail files → one scan.
+    let mut names: Vec<String> = Vec::new();
+    for req in requests {
+        if req.is_fallback {
+            continue;
+        }
+        for sym in req.symbols.iter().filter(|s| s.kind == "fn") {
+            names.push(sym.name.clone());
+        }
+    }
+    names.sort();
+    names.dedup();
+    let scan = scan_workspace(&names, cfg, root)?;
+
+    let mut annotations: HashMap<(String, usize), String> = HashMap::new();
+    // Two-counter: the annotation budget is the smaller of the sub-budget and the
+    // remaining overall-cap space; both deplete as annotations are emitted.
+    let mut sub_remaining = cfg.annotation_sub_budget;
+    let mut overall_remaining = available_bytes;
+    for req in requests {
+        if req.is_fallback {
+            continue;
+        }
+        for sym in req.symbols.iter().filter(|s| s.kind == "fn") {
+            let budget = sub_remaining.min(overall_remaining);
+            if budget == 0 {
+                break;
+            }
+            if let Some(text) = render_symbol_annotation(
+                sym,
+                req.file_path,
+                &scan,
+                snapshot,
+                &index,
+                cfg,
+                budget,
+                root,
+            ) {
+                sub_remaining = sub_remaining.saturating_sub(text.len());
+                overall_remaining = overall_remaining.saturating_sub(text.len());
+                annotations.insert((req.file_path.to_string(), sym.range.start_line), text);
+            }
+        }
+    }
+    Some(DetailAnnotations { annotations })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{CodeRange, SymbolFlags};
+
+    fn flags() -> SymbolFlags {
+        SymbolFlags {
+            has_todo: false,
+            has_fixme: false,
+            is_test: false,
+            is_exported: true,
+            is_deprecated: false,
+        }
+    }
+
+    fn sym(name: &str, kind: &str, start: usize, end: usize, owner: Option<&str>) -> ExtractedSymbol {
+        ExtractedSymbol {
+            name: name.to_string(),
+            kind: kind.to_string(),
+            range: CodeRange {
+                start_line: start,
+                start_col: 0,
+                end_line: end,
+                end_col: 0,
+            },
+            docstring: None,
+            flags: flags(),
+            owner: owner.map(|o| o.to_string()),
+        }
+    }
+
+    fn file(path: &str, symbols: Vec<ExtractedSymbol>) -> ExtractedFile {
+        ExtractedFile {
+            file_path: path.to_string(),
+            total_lines: 100,
+            symbols,
+            literals: vec![],
+            docstrings: vec![],
+        }
+    }
+
+    fn cfg() -> CallerConfig {
+        CallerConfig {
+            scan_cap: 500,
+            caller_list_cap: 5,
+            callee_list_cap: 5,
+            annotation_sub_budget: 4096,
+            common_name_threshold: 2,
+            max_file_size: 1_048_576,
+        }
+    }
+
+    #[test]
+    fn test_escape_name_handles_dollar_and_dot() {
+        assert_eq!(escape_name("$watch"), r"\$watch");
+        assert_eq!(escape_name("a.b"), r"a\.b");
+        assert_eq!(escape_name("plain"), "plain");
+    }
+
+    #[test]
+    fn test_enclosing_fn_inclusive_single_line() {
+        // A one-line arrow function: start == end. The inclusive test must attribute a call
+        // on that exact line to it (the strict-contains test would drop it).
+        let f = file(
+            "a.ts",
+            vec![sym("handler", "fn", 10, 10, None), sym("outer", "fn", 1, 50, None)],
+        );
+        let encl = enclosing_fn(&f, 10).unwrap();
+        // The innermost (smallest span) wins: handler (10-10), not outer (1-50).
+        assert_eq!(encl.name, "handler");
+    }
+
+    #[test]
+    fn test_enclosing_fn_innermost_wins() {
+        let f = file(
+            "a.rs",
+            vec![sym("outer", "fn", 1, 100, None), sym("inner", "fn", 40, 60, None)],
+        );
+        assert_eq!(enclosing_fn(&f, 50).unwrap().name, "inner");
+        assert_eq!(enclosing_fn(&f, 5).unwrap().name, "outer");
+        assert!(enclosing_fn(&f, 200).is_none());
+    }
+
+    #[test]
+    fn test_qualified_name_from_owner_rust_uses_colons() {
+        let s = sym("new", "fn", 5, 8, Some("TantivySearchEngine"));
+        assert_eq!(qualified_name(&s, "src/index.rs"), "TantivySearchEngine::new");
+    }
+
+    #[test]
+    fn test_qualified_name_from_owner_class_uses_dot() {
+        let s = sym("render", "fn", 5, 8, Some("Widget"));
+        assert_eq!(qualified_name(&s, "src/widget.ts"), "Widget.render");
+        let s2 = sym("draw", "fn", 5, 8, Some("Shape"));
+        assert_eq!(qualified_name(&s2, "src/shape.py"), "Shape.draw");
+    }
+
+    #[test]
+    fn test_qualified_name_bare_when_owner_none() {
+        let s = sym("free_fn", "fn", 5, 8, None);
+        assert_eq!(qualified_name(&s, "src/lib.rs"), "free_fn");
+    }
+
+    #[test]
+    fn test_is_import_line_per_language() {
+        assert!(is_import_line("use crate::foo;", "rs"));
+        assert!(is_import_line("import os", "py"));
+        assert!(is_import_line("from x import y", "py"));
+        assert!(is_import_line("import { a } from 'b'", "ts"));
+        assert!(is_import_line("import \"fmt\"", "go"));
+        assert!(is_import_line("import java.util.List;", "java"));
+        assert!(!is_import_line("handler(x)", "rs"));
+        assert!(!is_import_line("let x = useState();", "ts"));
+    }
+
+    #[test]
+    fn test_callee_display_unambiguous_qualifies_ambiguous_bare() {
+        let snapshot = vec![
+            file("a.rs", vec![sym("alpha", "fn", 1, 3, Some("Engine"))]),
+            file("b.rs", vec![sym("beta", "fn", 1, 3, None), sym("beta", "fn", 5, 7, None)]),
+        ];
+        let index = build_symbol_index(&snapshot);
+        // alpha: exactly one fn def → qualified via owner.
+        assert_eq!(callee_display("alpha", &index), "Engine::alpha");
+        // beta: two defs → bare.
+        assert_eq!(callee_display("beta", &index), "beta");
+    }
+
+    // --- Fixture-based pipeline tests (real on-disk scan, no stubs). ---
+
+    use std::fs;
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    /// Write fixture files into a temp dir and return its handle + path.
+    fn write_repo(files: &[(&str, &str)]) -> (TempDir, PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        for (rel, content) in files {
+            let path = dir.path().join(rel);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            fs::write(path, content).unwrap();
+        }
+        let root = dir.path().to_path_buf();
+        (dir, root)
+    }
+
+    /// Look up one symbol's annotation from a `DetailAnnotations`.
+    fn note<'a>(ann: &'a DetailAnnotations, file_path: &str, start: usize) -> &'a str {
+        ann.get(file_path, start).unwrap_or("")
+    }
+
+    #[test]
+    fn test_caller_line_shows_enclosing_symbol_and_file_line() {
+        // `target_fn` is defined in def.rs and called from inside `caller_fn` in use.rs.
+        let (_dir, root) = write_repo(&[
+            ("def.rs", "pub fn target_fn() {\n    let x = 1;\n}\n"),
+            (
+                "use.rs",
+                "pub fn caller_fn() {\n    target_fn();\n}\n",
+            ),
+        ]);
+        let snapshot = vec![
+            file("def.rs", vec![sym("target_fn", "fn", 1, 3, None)]),
+            file("use.rs", vec![sym("caller_fn", "fn", 1, 3, None)]),
+        ];
+        let requests = vec![AnnotationRequest {
+            file_path: "def.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "def.rs", 1);
+        assert!(text.contains("callers"), "should have a callers section: {text}");
+        assert!(text.contains("caller_fn"), "enclosing symbol name: {text}");
+        assert!(text.contains("use.rs:2"), "file:line of the call site: {text}");
+        assert!(text.contains("approximate"), "approximate label: {text}");
+    }
+
+    #[test]
+    fn test_callee_depth_one_d_calls_c() {
+        // The requester's example: `d` calls `c`. Annotating `d` must list `c` at depth 1.
+        let (_dir, root) = write_repo(&[(
+            "chain.rs",
+            "pub fn c() {}\npub fn d() {\n    c();\n}\n",
+        )]);
+        let snapshot = vec![file(
+            "chain.rs",
+            vec![sym("c", "fn", 1, 1, None), sym("d", "fn", 2, 4, None)],
+        )];
+        let requests = vec![AnnotationRequest {
+            file_path: "chain.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "chain.rs", 2);
+        assert!(text.contains("calls (depth 1"), "callee section: {text}");
+        assert!(text.contains("- c"), "callee c listed: {text}");
+        assert!(text.contains("approximate"), "approximate label: {text}");
+    }
+
+    #[test]
+    fn test_qualified_caller_method_from_owner() {
+        // The caller is a Rust method `Engine::run` calling free `helper`. The owner field
+        // (Phase A) must render the caller as `Engine::run`, exercising the owner path.
+        let (_dir, root) = write_repo(&[(
+            "engine.rs",
+            "pub fn helper() {}\nimpl Engine {\n    pub fn run(&self) {\n        helper();\n    }\n}\n",
+        )]);
+        let snapshot = vec![file(
+            "engine.rs",
+            vec![
+                sym("helper", "fn", 1, 1, None),
+                sym("run", "fn", 3, 5, Some("Engine")),
+            ],
+        )];
+        let requests = vec![AnnotationRequest {
+            file_path: "engine.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "engine.rs", 1); // helper's annotation lists its callers.
+        assert!(
+            text.contains("Engine::run"),
+            "caller rendered with owner-qualified name: {text}"
+        );
+    }
+
+    #[test]
+    fn test_callee_ambiguity_label_vs_caller_suppression() {
+        // `make` has two fn defs → as a callee it is labeled target-ambiguous (still shown);
+        // as a MATCHED name its callers are suppressed to a grep-deferral hint.
+        let (_dir, root) = write_repo(&[(
+            "amb.rs",
+            "pub fn make() {}\npub fn make() {}\npub fn user() {\n    make();\n}\n",
+        )]);
+        let snapshot = vec![file(
+            "amb.rs",
+            vec![
+                sym("make", "fn", 1, 1, None),
+                sym("make", "fn", 2, 2, None),
+                sym("user", "fn", 3, 5, None),
+            ],
+        )];
+        // Callee side: annotate `user`, which calls `make` (2 defs).
+        let req_user = vec![AnnotationRequest {
+            file_path: "amb.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&req_user, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let user_text = note(&ann, "amb.rs", 3);
+        assert!(
+            user_text.contains("make (2 defs, target ambiguous)"),
+            "callee target-ambiguity label: {user_text}"
+        );
+        // Caller side: annotating `make` itself → suppressed to a grep-deferral hint.
+        let make_text = note(&ann, "amb.rs", 1);
+        assert!(
+            make_text.contains("definitions") && make_text.contains("grep"),
+            "common matched name → grep-deferral hint: {make_text}"
+        );
+    }
+
+    #[test]
+    fn test_non_call_reference_label_for_zero_caller_fn() {
+        // `handler` is never called as `handler(`, only registered via a callback pass.
+        let (_dir, root) = write_repo(&[
+            ("h.rs", "pub fn handler() {}\n"),
+            (
+                "reg.rs",
+                "pub fn setup() {\n    register(\"x\", handler);\n}\n",
+            ),
+        ]);
+        let snapshot = vec![
+            file("h.rs", vec![sym("handler", "fn", 1, 1, None)]),
+            file("reg.rs", vec![sym("setup", "fn", 1, 3, None)]),
+        ];
+        let requests = vec![AnnotationRequest {
+            file_path: "h.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "h.rs", 1);
+        assert!(
+            text.contains("non-call position"),
+            "non-call reference label instead of bare 0 callers: {text}"
+        );
+        assert!(text.contains("reg.rs:2"), "the raw reference line:line: {text}");
+        assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+    }
+
+    #[test]
+    fn test_decorator_entry_point_label() {
+        // A Python `@app.route(...)` decorator directly above the matched fn is surfaced
+        // verbatim as a framework entry-point candidate.
+        let (_dir, root) = write_repo(&[(
+            "app.py",
+            "@app.route(\"/health\")\ndef health():\n    return ok\n",
+        )]);
+        let snapshot = vec![file("app.py", vec![sym("health", "fn", 2, 3, None)])];
+        let requests = vec![AnnotationRequest {
+            file_path: "app.py",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "app.py", 2);
+        assert!(
+            text.contains("framework entry-point candidate"),
+            "entry-point label: {text}"
+        );
+        assert!(
+            text.contains("@app.route(\"/health\")"),
+            "verbatim decorator text: {text}"
+        );
+    }
+
+    #[test]
+    fn test_zero_caller_shows_observation_scope_caveat_never_bare_zero() {
+        // `lonely` has no callers and no references anywhere → observation-scope caveat.
+        let (_dir, root) = write_repo(&[("lone.rs", "pub fn lonely() {}\n")]);
+        let snapshot = vec![file("lone.rs", vec![sym("lonely", "fn", 1, 1, None)])];
+        let requests = vec![AnnotationRequest {
+            file_path: "lone.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "lone.rs", 1);
+        assert!(
+            text.contains("no direct caller observed"),
+            "observation-scope caveat: {text}"
+        );
+        assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+    }
+
+    #[test]
+    fn test_annotation_respects_byte_budget() {
+        // With a tiny available budget, no annotation should be emitted (snippets keep
+        // priority; an over-budget annotation is dropped, not truncated mid-line).
+        let (_dir, root) = write_repo(&[
+            ("def.rs", "pub fn target_fn() {}\n"),
+            ("use.rs", "pub fn caller_fn() {\n    target_fn();\n}\n"),
+        ]);
+        let snapshot = vec![
+            file("def.rs", vec![sym("target_fn", "fn", 1, 1, None)]),
+            file("use.rs", vec![sym("caller_fn", "fn", 1, 3, None)]),
+        ];
+        let requests = vec![AnnotationRequest {
+            file_path: "def.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        // available_bytes = 10 → far below any annotation length → dropped entirely.
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 10, &root).unwrap();
+        assert!(
+            ann.get("def.rs", 1).is_none(),
+            "annotation dropped when over budget"
+        );
+    }
+
+    #[test]
+    fn test_scan_failure_isolation_returns_none() {
+        // A non-existent root makes the walk yield nothing; the scan itself still succeeds
+        // (degrades to empty), so annotation is produced from snapshot-only data with the
+        // observation-scope caveat — never a panic, never an error. This proves the
+        // never-exit contract: the pipeline degrades rather than failing the response.
+        let bogus = PathBuf::from("/nonexistent/path/for/codemap/test");
+        let snapshot = vec![file("x.rs", vec![sym("foo", "fn", 1, 1, None)])];
+        let requests = vec![AnnotationRequest {
+            file_path: "x.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &bogus);
+        // Did not panic / error out; produced a degraded annotation.
+        let ann = ann.unwrap();
+        let text = note(&ann, "x.rs", 1);
+        assert!(
+            text.contains("no direct caller observed"),
+            "degraded to observation-scope caveat: {text}"
+        );
+    }
+
+    #[test]
+    fn test_fallback_results_not_annotated() {
+        // A `symbol_fallback` result (ranked via path/docstring) is never annotated.
+        let (_dir, root) = write_repo(&[("def.rs", "pub fn target_fn() {}\n")]);
+        let snapshot = vec![file("def.rs", vec![sym("target_fn", "fn", 1, 1, None)])];
+        let requests = vec![AnnotationRequest {
+            file_path: "def.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: true, // fallback → skip
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        assert!(ann.get("def.rs", 1).is_none(), "fallback not annotated");
+    }
+
+    #[test]
+    fn test_self_recursion_not_counted_as_caller() {
+        // A fn calling itself: the call inside its own body must not be reported as a caller.
+        let (_dir, root) = write_repo(&[(
+            "rec.rs",
+            "pub fn recurse(n: u32) {\n    if n > 0 { recurse(n - 1); }\n}\n",
+        )]);
+        let snapshot = vec![file("rec.rs", vec![sym("recurse", "fn", 1, 3, None)])];
+        let requests = vec![AnnotationRequest {
+            file_path: "rec.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let text = note(&ann, "rec.rs", 1);
+        // The only `recurse(` call is on its own definition line range → excluded → caveat.
+        assert!(
+            text.contains("no direct caller observed"),
+            "self-recursion excluded from callers: {text}"
+        );
+    }
+}

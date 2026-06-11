@@ -31,6 +31,14 @@ pub struct ExtractedSymbol {
     pub range: CodeRange,
     pub docstring: Option<String>,
     pub flags: SymbolFlags,
+    /// The enclosing *type* of a member (the class for class-nested languages, the `impl`
+    /// type for Rust, the receiver type for Go). `None` for free functions, top-level
+    /// symbols, and functions nested only inside a module/namespace or a function/closure/
+    /// lambda scope. Additive and best-effort: a wrong owner is worse than `None`, so any
+    /// unexpected parse shape yields `None`. `#[serde(default)]` keeps pre-upgrade docs
+    /// (which lack this field) deserializable during the one-time reindex transition.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -813,6 +821,230 @@ fn go_type_kind(node: Node) -> &'static str {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Owner (enclosing type) resolution.
+//
+// All node/field kinds below were confirmed against the resolved grammar versions
+// (tree-sitter-rust 0.24.2, -go 0.25.0, -typescript 0.23.2, -java 0.23.5, -python 0.25.0,
+// -kotlin-ng 1.1.0) — via each grammar's `node-types.json` and an empirical ancestor-chain
+// dump over fixture snippets. Every field/child access falls back to `None` on an
+// unexpected shape: a wrong owner is worse than none.
+// ---------------------------------------------------------------------------
+
+/// Tree-sitter node kinds that terminate the owner ancestor-walk with `None`: another
+/// function/closure/lambda scope (the symbol is then a local function, not a member) or an
+/// anonymous-type / object-value body (no named type to attribute). Verified per grammar
+/// against `node-types.json` and an empirical ancestor dump. Over-listing is safe — an
+/// absent kind simply never matches.
+fn owner_stop_kinds(ext: &str) -> &'static [&'static str] {
+    match ext {
+        "rs" => &["function_item", "closure_expression"],
+        "py" => &["function_definition", "lambda"],
+        "ts" | "js" | "tsx" | "jsx" => &[
+            // function/closure/lambda scopes
+            "function_declaration",
+            "function_expression",
+            "arrow_function",
+            "method_definition",
+            "generator_function",
+            "generator_function_declaration",
+            "class_static_block",
+            // anonymous-type / object-value bodies (a value, not a named type)
+            "class", // class expression: `const X = class { ... }`
+            "object", // object literal: `{ handler() {} }`
+        ],
+        "go" => &["function_declaration", "method_declaration", "func_literal"],
+        "java" => &[
+            "method_declaration",
+            "constructor_declaration",
+            "lambda_expression",
+            // anonymous class body: `new Runnable() { ... }`
+            "object_creation_expression",
+        ],
+        "kt" | "kts" => &[
+            "function_declaration",
+            "anonymous_function",
+            "lambda_literal",
+            // anonymous object expression: `object { ... }`
+            "object_literal",
+        ],
+        _ => &[],
+    }
+}
+
+/// Named type-container node kinds whose `name` is the owner of a member declared inside
+/// them. Verified per grammar. (Rust/Go are handled specially below and are not listed.)
+fn owner_type_container_kinds(ext: &str) -> &'static [&'static str] {
+    match ext {
+        "py" => &["class_definition"],
+        "ts" | "js" | "tsx" | "jsx" => &["class_declaration", "abstract_class_declaration"],
+        "java" => &[
+            "class_declaration",
+            "interface_declaration",
+            "enum_declaration",
+            "record_declaration",
+        ],
+        "kt" | "kts" => &["class_declaration", "object_declaration"],
+        _ => &[],
+    }
+}
+
+/// Container node kinds that are transparent to ownership: a member inside them belongs to
+/// the next enclosing named type, not the container itself. Rust `mod_item` / TS
+/// `namespace` are modules (their members are free, so the walk continues but never
+/// attributes them); Kotlin `companion_object` resolves to its enclosing class.
+fn owner_passthrough_kinds(ext: &str) -> &'static [&'static str] {
+    match ext {
+        "rs" => &["mod_item", "declaration_list"],
+        "ts" | "js" | "tsx" | "jsx" => &[
+            "class_body",
+            "statement_block",
+            "internal_module",
+            "module",
+            "namespace",
+        ],
+        "py" => &["block"],
+        "java" => &[
+            "class_body",
+            "interface_body",
+            "enum_body",
+            "enum_body_declarations",
+            "block",
+        ],
+        "kt" | "kts" => &["class_body", "companion_object", "enum_class_body"],
+        "go" => &["interface_type", "type_declaration"],
+        _ => &[],
+    }
+}
+
+/// Rust: reduce a type node from `impl_item`'s `type` field to its base identifier —
+/// peel `&`/`mut` (`reference_type`), generic args (`generic_type`), and module paths
+/// (`scoped_type_identifier` → rightmost `name`). Returns `None` on any unexpected shape.
+fn rust_base_type_name(node: Node, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "type_identifier" => node.utf8_text(source).ok().map(|t| t.to_string()),
+        "reference_type" => {
+            // `&T` / `&mut T` — the inner type is the `type` field.
+            rust_base_type_name(node.child_by_field_name("type")?, source)
+        }
+        "generic_type" => {
+            // `Foo<T>` — the base is the `type` field.
+            rust_base_type_name(node.child_by_field_name("type")?, source)
+        }
+        "scoped_type_identifier" => {
+            // `a::b::Foo` — the rightmost segment is the `name` field.
+            let name = node.child_by_field_name("name")?;
+            name.utf8_text(source).ok().map(|t| t.to_string())
+        }
+        _ => None,
+    }
+}
+
+/// Go: reduce a receiver `type` node to its base identifier — peel `*` (`pointer_type`),
+/// generic args (`generic_type`, e.g. `Box[T]` → `Box`), and package qualification
+/// (`qualified_type` → `name`). Returns `None` on any unexpected shape.
+fn go_base_type_name(node: Node, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "type_identifier" => node.utf8_text(source).ok().map(|t| t.to_string()),
+        "pointer_type" => {
+            // `*T` — the inner type is the single named child.
+            for i in 0..node.child_count() {
+                let child = node.child(i as u32).unwrap();
+                if child.is_named() {
+                    return go_base_type_name(child, source);
+                }
+            }
+            None
+        }
+        "generic_type" => {
+            // `Box[T]` — the base is the `type` field.
+            go_base_type_name(node.child_by_field_name("type")?, source)
+        }
+        "qualified_type" => {
+            // `pkg.Type` — the local name is the `name` field.
+            let name = node.child_by_field_name("name")?;
+            name.utf8_text(source).ok().map(|t| t.to_string())
+        }
+        _ => None,
+    }
+}
+
+/// Go: read the receiver base type from a `method_declaration` node directly (the receiver
+/// lives on the node itself, not an ancestor). `func (s *Server) Start()` → `Server`.
+fn go_receiver_owner(method_node: Node, source: &[u8]) -> Option<String> {
+    let receiver = method_node.child_by_field_name("receiver")?; // parameter_list
+    for i in 0..receiver.child_count() {
+        let child = receiver.child(i as u32).unwrap();
+        if child.kind() == "parameter_declaration" {
+            let type_node = child.child_by_field_name("type")?;
+            return go_base_type_name(type_node, source);
+        }
+    }
+    None
+}
+
+/// Resolve the enclosing *type* (owner) of the symbol at `node`, or `None` when the symbol
+/// is a free function, a top-level symbol, a function/closure/lambda-local definition, or a
+/// member of an anonymous type. Only meaningful for `fn`/method symbols (the only callers).
+fn find_owner_name(node: Node, ext: &str, source: &[u8]) -> Option<String> {
+    // Go methods carry their receiver type on the symbol node itself — read it directly;
+    // an ancestor walk alone would miss it (and `method_declaration` is itself a stop node).
+    if ext == "go" && node.kind() == "method_declaration" {
+        return go_receiver_owner(node, source);
+    }
+
+    let stop_kinds = owner_stop_kinds(ext);
+    let type_container_kinds = owner_type_container_kinds(ext);
+    let passthrough_kinds = owner_passthrough_kinds(ext);
+
+    let mut ancestor = node.parent();
+    while let Some(current) = ancestor {
+        let kind = current.kind();
+
+        // Crossed a function/closure/lambda scope or an anonymous-type body before reaching
+        // a named type container → the symbol is local, not a member: yield None.
+        if stop_kinds.contains(&kind) {
+            return None;
+        }
+
+        // Rust: a method lives in an `impl_item` (read its `type`; for `impl Trait for Type`
+        // the `type` field is the implementing `Type`) or a `trait_item` default method.
+        if ext == "rs" {
+            if kind == "impl_item" {
+                let type_node = current.child_by_field_name("type")?;
+                return rust_base_type_name(type_node, source);
+            }
+            if kind == "trait_item" {
+                let name = current.child_by_field_name("name")?;
+                return name.utf8_text(source).ok().map(|t| t.to_string());
+            }
+        }
+
+        // Go: an interface method (`method_elem`) is owned by its enclosing `type_spec`.
+        if ext == "go" && kind == "type_spec" {
+            let name = current.child_by_field_name("name")?;
+            return name.utf8_text(source).ok().map(|t| t.to_string());
+        }
+
+        // Generic named type containers (class/interface/enum/record/object).
+        if type_container_kinds.contains(&kind) {
+            let name = current.child_by_field_name("name")?;
+            return name.utf8_text(source).ok().map(|t| t.to_string());
+        }
+
+        // Module/namespace/companion-object/body containers are transparent — keep walking.
+        if passthrough_kinds.contains(&kind) {
+            ancestor = current.parent();
+            continue;
+        }
+
+        // An unrecognized container before any type container: stop conservatively (None)
+        // rather than risk attributing a wrong owner across an unmodeled scope.
+        return None;
+    }
+    None
+}
+
 impl CodeExtractor for TreeSitterExtractor {
     fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
         let path = Path::new(file_path);
@@ -1135,6 +1367,16 @@ impl CodeExtractor for TreeSitterExtractor {
                                     .is_some_and(|d| d.contains("@deprecated"))
                             };
 
+                            // Owner (enclosing type) is computed only for callables — the
+                            // sole consumer (the v1 search annotation) qualifies `fn`/method
+                            // names. Non-callable members are deferred (see the brief's Open
+                            // Questions). Best-effort: any unexpected shape yields `None`.
+                            let owner = if kind == "fn" {
+                                find_owner_name(node, ext, source)
+                            } else {
+                                None
+                            };
+
                             symbols.push(ExtractedSymbol {
                                 name,
                                 kind: kind.to_string(),
@@ -1147,6 +1389,7 @@ impl CodeExtractor for TreeSitterExtractor {
                                     is_exported,
                                     is_deprecated,
                                 },
+                                owner,
                             });
                         }
                     }
@@ -1517,5 +1760,319 @@ class Calculator:
         let file = extractor.extract(content, "tests/parser_test.ts").unwrap();
         let sym = file.symbols.iter().find(|s| s.name == "helper").unwrap();
         assert!(sym.flags.is_test);
+    }
+
+    // --- Owner (enclosing type) Tests (Phase A) ---
+
+    /// Helper: extract `content` as `path` and return the `owner` of the first symbol named
+    /// `name`. Panics if no such symbol exists, so a missing extraction fails loudly.
+    fn owner_of(content: &str, path: &str, name: &str) -> Option<String> {
+        let extractor = TreeSitterExtractor::new();
+        let file = extractor.extract(content, path).unwrap();
+        file.symbols
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("symbol `{name}` not extracted from {path}"))
+            .owner
+            .clone()
+    }
+
+    #[test]
+    fn test_owner_rust_impl_method() {
+        let content = "impl Server { pub fn start(&self) {} }";
+        assert_eq!(
+            owner_of(content, "src/lib.rs", "start"),
+            Some("Server".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_rust_impl_trait_for_type_uses_type() {
+        // `impl Trait for Type` → the implementing Type, not the trait.
+        let content = "impl Display for Widget { fn fmt(&self) {} }";
+        assert_eq!(
+            owner_of(content, "src/lib.rs", "fmt"),
+            Some("Widget".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_rust_generic_and_scoped_impl_normalized() {
+        // Generic args stripped: `impl Cache<K, V>` → `Cache`.
+        assert_eq!(
+            owner_of(
+                "impl<K, V> Cache<K, V> { fn get(&self) {} }",
+                "src/lib.rs",
+                "get"
+            ),
+            Some("Cache".to_string())
+        );
+        // Module path reduced to the rightmost segment: `impl a::b::Store` → `Store`.
+        assert_eq!(
+            owner_of(
+                "impl crate::store::Store { fn put(&self) {} }",
+                "src/lib.rs",
+                "put"
+            ),
+            Some("Store".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_rust_trait_default_method() {
+        let content = "trait Greeter { fn greet(&self) { println!(\"hi\"); } }";
+        assert_eq!(
+            owner_of(content, "src/lib.rs", "greet"),
+            Some("Greeter".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_rust_free_fn_is_none() {
+        assert_eq!(owner_of("pub fn run() {}", "src/lib.rs", "run"), None);
+    }
+
+    #[test]
+    fn test_owner_rust_fn_in_module_is_none() {
+        // A function nested only inside a module (not a type) has no owner.
+        assert_eq!(
+            owner_of("mod util { pub fn helper() {} }", "src/lib.rs", "helper"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_owner_rust_local_fn_in_method_is_none() {
+        let content = "impl Server { fn run(&self) { fn helper() {} } }";
+        assert_eq!(owner_of(content, "src/lib.rs", "helper"), None);
+    }
+
+    #[test]
+    fn test_owner_rust_fn_in_closure_in_method_is_none() {
+        let content = "impl Server { fn run(&self) { let c = || { fn inner() {} }; } }";
+        assert_eq!(owner_of(content, "src/lib.rs", "inner"), None);
+    }
+
+    #[test]
+    fn test_owner_go_method_receiver_base_type() {
+        // Pointer receiver `*Server` → `Server`.
+        assert_eq!(
+            owner_of(
+                "package p\nfunc (s *Server) Start() {}\n",
+                "main.go",
+                "Start"
+            ),
+            Some("Server".to_string())
+        );
+        // Value receiver `Server` → `Server`.
+        assert_eq!(
+            owner_of("package p\nfunc (s Server) Stop() {}\n", "main.go", "Stop"),
+            Some("Server".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_go_generic_receiver_normalized() {
+        // `*Box[T]` → `Box` (square-bracketed generic args stripped).
+        assert_eq!(
+            owner_of(
+                "package p\nfunc (b *Box[T]) Get() {}\n",
+                "main.go",
+                "Get"
+            ),
+            Some("Box".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_go_interface_method_elem() {
+        let content = "package p\ntype Reader interface {\n Read() error\n}\n";
+        assert_eq!(
+            owner_of(content, "main.go", "Read"),
+            Some("Reader".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_go_free_fn_is_none() {
+        assert_eq!(
+            owner_of("package p\nfunc Run() {}\n", "main.go", "Run"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_owner_go_local_fn_in_method_is_none() {
+        let content = "package p\nfunc (s *Server) Run() {\n inner := func() {}\n _ = inner\n}\n";
+        // A `func_literal` is anonymous (no name symbol) — assert the method itself instead:
+        // the receiver method resolves, and no spurious owner leaks to nested closures.
+        assert_eq!(
+            owner_of(content, "main.go", "Run"),
+            Some("Server".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_python_class_method() {
+        let content = "class Foo:\n    def bar(self):\n        pass\n";
+        assert_eq!(owner_of(content, "x.py", "bar"), Some("Foo".to_string()));
+    }
+
+    #[test]
+    fn test_owner_python_free_fn_is_none() {
+        assert_eq!(owner_of("def run():\n    pass\n", "x.py", "run"), None);
+    }
+
+    #[test]
+    fn test_owner_python_local_fn_in_method_is_none() {
+        let content = "class Foo:\n    def bar(self):\n        def helper():\n            pass\n";
+        assert_eq!(owner_of(content, "x.py", "helper"), None);
+    }
+
+    #[test]
+    fn test_owner_ts_class_method() {
+        let content = "class Service { handle() {} }";
+        assert_eq!(
+            owner_of(content, "x.ts", "handle"),
+            Some("Service".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_ts_free_fn_is_none() {
+        assert_eq!(owner_of("function run() {}", "x.ts", "run"), None);
+    }
+
+    #[test]
+    fn test_owner_ts_local_fn_in_method_is_none() {
+        let content = "class A { method() { function localFn() { return 1; } } }";
+        assert_eq!(owner_of(content, "x.ts", "localFn"), None);
+    }
+
+    #[test]
+    fn test_owner_ts_object_literal_method_is_none() {
+        // A `method_definition` inside an object-literal value, not a named type.
+        let content = "class A { config = { handler() {} }; }";
+        assert_eq!(owner_of(content, "x.ts", "handler"), None);
+    }
+
+    #[test]
+    fn test_owner_ts_class_expression_method_is_none() {
+        // A class *expression* (a value) is anonymous — no owner.
+        let content = "const X = class { doThing() {} };";
+        assert_eq!(owner_of(content, "x.ts", "doThing"), None);
+    }
+
+    #[test]
+    fn test_owner_js_class_method() {
+        let content = "class Widget { render() {} }";
+        assert_eq!(
+            owner_of(content, "x.js", "render"),
+            Some("Widget".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_ts_abstract_class_method() {
+        // `abstract_class_declaration` is a named type container (verified against the
+        // grammar's node-types.json: `name` field is a `type_identifier`).
+        let content = "abstract class Base { run() {} }";
+        assert_eq!(owner_of(content, "x.ts", "run"), Some("Base".to_string()));
+    }
+
+    #[test]
+    fn test_owner_java_class_method() {
+        let content = "class A { void m() {} }";
+        assert_eq!(owner_of(content, "A.java", "m"), Some("A".to_string()));
+    }
+
+    #[test]
+    fn test_owner_java_interface_enum_record_methods() {
+        assert_eq!(
+            owner_of("interface I { void doI(); }", "I.java", "doI"),
+            Some("I".to_string())
+        );
+        assert_eq!(
+            owner_of("enum E { A; void doE() {} }", "E.java", "doE"),
+            Some("E".to_string())
+        );
+        assert_eq!(
+            owner_of("record R(int x) { void doR() {} }", "R.java", "doR"),
+            Some("R".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_java_anonymous_class_method_is_none() {
+        let content =
+            "class A { void m() { Runnable r = new Runnable() { public void run() {} }; } }";
+        assert_eq!(owner_of(content, "A.java", "run"), None);
+    }
+
+    #[test]
+    fn test_owner_kotlin_class_method() {
+        let content = "class Service {\n  fun handle() {}\n}\n";
+        assert_eq!(
+            owner_of(content, "x.kt", "handle"),
+            Some("Service".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_kotlin_object_method() {
+        let content = "object Singleton {\n  fun go() {}\n}\n";
+        assert_eq!(
+            owner_of(content, "x.kt", "go"),
+            Some("Singleton".to_string())
+        );
+    }
+
+    #[test]
+    fn test_owner_kotlin_object_literal_method_is_none() {
+        let content = "fun build() {\n  val x = object {\n    fun anon() {}\n  }\n}\n";
+        assert_eq!(owner_of(content, "x.kt", "anon"), None);
+    }
+
+    #[test]
+    fn test_owner_kotlin_free_fn_is_none() {
+        assert_eq!(owner_of("fun run() {}\n", "x.kt", "run"), None);
+    }
+
+    #[test]
+    fn test_owner_kotlin_companion_object_resolves_enclosing_class() {
+        // Kotlin `companion object` members resolve to the enclosing class name. Note:
+        // tree-sitter-kotlin-ng 1.1.0 is shape-sensitive here — a multi-line body nests the
+        // member under the class so `companion_object` (passthrough) is traversed to
+        // `class_declaration`; a single-line body can instead collapse the companion into an
+        // `ERROR` node, in which case the walk yields `None` (best-effort, never wrong). This
+        // test pins the common multi-line shape resolving to the enclosing class.
+        let extractor = TreeSitterExtractor::new();
+        let content = "class A {\n  companion object {\n    fun create() {}\n  }\n}\n";
+        let file = extractor.extract(content, "x.kt").unwrap();
+        let sym = file
+            .symbols
+            .iter()
+            .find(|s| s.name == "create")
+            .expect("companion member should be extracted");
+        assert_eq!(sym.owner, Some("A".to_string()));
+    }
+
+    /// Owner is best-effort and never panics: feed each grammar a method-in-type fixture and
+    /// confirm the call returns without crashing (a wrong owner is worse than `None`).
+    #[test]
+    fn test_owner_no_panic_across_grammars() {
+        let cases = [
+            ("impl T { fn a(&self) {} }", "x.rs"),
+            ("package p\nfunc (s *T) A() {}\n", "x.go"),
+            ("class T:\n    def a(self): pass\n", "x.py"),
+            ("class T { a() {} }", "x.ts"),
+            ("class T { void a() {} }", "T.java"),
+            ("class T {\n  fun a() {}\n}\n", "x.kt"),
+        ];
+        for (content, path) in cases {
+            let extractor = TreeSitterExtractor::new();
+            // Must not panic; owner correctness is asserted in the per-language tests above.
+            let _ = extractor.extract(content, path).unwrap();
+        }
     }
 }
