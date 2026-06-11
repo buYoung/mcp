@@ -26,6 +26,16 @@ tree-sitter-java = "0.23"
 # constant and links against tree-sitter 0.26's ABI; the older `tree-sitter-kotlin`
 # (0.3.x, fwcd) still ships the legacy `language()` fn and is not compatible here.
 tree-sitter-kotlin-ng = "1.1"
+# C/C++: both 0.24.x/0.23.x generations expose `LANGUAGE: LanguageFn` and link
+# against tree-sitter-language 0.1.x (the 0.26 ABI shim). `.h` files are parsed
+# with the C++ grammar because most real-world headers lean C++ and the grammar
+# accepts plain C tolerantly.
+tree-sitter-c = "0.24"
+tree-sitter-cpp = "0.23"
+# Assembly (GAS-style): tree-sitter-asm 0.24.0 is published on crates.io, exposes
+# `LANGUAGE: LanguageFn`, and links against the same 0.26 ABI. Covers AT&T syntax
+# (`.s`/`.S`) and Intel syntax (`.asm`). Labels are the primary symbol kind.
+tree-sitter-asm = "0.24"
 
 # Tantivy search engine for BM25 text indexing
 tantivy = "0.26"

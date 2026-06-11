@@ -97,9 +97,12 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// both require re-extraction (and the new `literal` schema field forces an index rebuild
 /// on its own; the version bump keeps the trigger explicit). `v4` adds line numbers to
 /// `ExtractedLiteral` (literals: Vec<String> → Vec<ExtractedLiteral>) and Java/Kotlin
-/// enum-constant extraction as kind `variant` — both require re-extraction. Each bump
+/// enum-constant extraction as kind `variant` — both require re-extraction. `v5` adds C,
+/// C++, and Assembly extraction: new extensions (`.c`, `.h`, `.cpp`, `.cc`, `.cxx`,
+/// `.hpp`, `.hh`, `.hxx`, `.s`, `.S`, `.asm`) now enter the filesystem walk and produce
+/// symbols; without the bump these files would remain unindexed from a v4 index. Each bump
 /// rebuilds exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v4-literal-line";
+const EXTRACTION_FORMAT_VERSION: &str = "v5-c-cpp-asm";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {

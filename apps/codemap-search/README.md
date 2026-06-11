@@ -19,13 +19,19 @@ The intended flow is hierarchical narrowing:
 
 Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),
 **TypeScript/TSX** (`.ts`, `.tsx`), **JavaScript/JSX** (`.js`, `.jsx`), **Go** (`.go`),
-**Java** (`.java`), **Kotlin** (`.kt`, `.kts`). `read`/`find`/`grep` work on any text file.
+**Java** (`.java`), **Kotlin** (`.kt`, `.kts`), **C** (`.c`), **C++** (`.h`, `.cpp`,
+`.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`), **Assembly/GAS** (`.s`, `.S`, `.asm`).
+`read`/`find`/`grep` work on any text file.
 
 Per-language flag conventions: Go uses initial-uppercase for exported symbols, `*_test.go`
 plus `Test`/`Benchmark`/`Example`/`Fuzz` for tests, and `// Deprecated:` doc paragraphs;
 Java uses the `public` modifier, `@Test` / `*Test.java`, and `@Deprecated` / javadoc
 `@deprecated`; Kotlin treats symbols as exported unless `private`/`internal`/`protected`,
-and reads `@Test` / `@Deprecated` annotations.
+and reads `@Test` / `@Deprecated` annotations; C/C++ treats a declaration as file-local when
+it carries `static` storage class (otherwise exported), and uses C++ access specifiers
+(`public`/`private`/`protected`) for class members (struct members default to public, class
+members default to private); Assembly exports symbols that appear in a `.globl`/`.global`
+directive.
 
 ## Install
 

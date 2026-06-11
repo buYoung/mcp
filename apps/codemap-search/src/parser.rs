@@ -301,6 +301,160 @@ const KOTLIN_QUERY_STR: &str = r#"
 (string_literal) @literal.string
 "#;
 
+// C: node kinds verified against tree-sitter-c 0.24.2 node-types.json and an empirical
+// parse-tree dump. Key shapes confirmed:
+//   - function_definition → declarator field is function_declarator (identifier child) OR
+//     pointer_declarator → function_declarator (identifier child).
+//   - declaration with function_declarator child → function prototype in a header.
+//   - struct_specifier / union_specifier / enum_specifier carry a `name` field (type_identifier).
+//   - enumerator carries a `name` field (identifier).
+//   - type_definition carries a `declarator` field (type_identifier for simple typedef).
+//   - preproc_def / preproc_function_def carry a `name` field (identifier).
+//   - storage_class_specifier is a direct child of function_definition / declaration with text "static".
+//   - preceding comment nodes have kind "comment" (covers both `//` and `/* */`).
+const C_QUERY_STR: &str = r#"
+;; Function definitions — name is the innermost identifier inside the declarator chain.
+;; The `@symbol.cfn` capture signals the C-specific extract arm to do the name walk.
+(function_definition) @symbol.cfn
+
+;; Function prototypes in headers: `declaration` whose declarator contains a
+;; function_declarator. Same `@symbol.cfn` arm handles the name extraction.
+(declaration
+  declarator: (function_declarator)) @symbol.cfn
+
+;; Structs, unions, enums with a name (skip anonymous: no `name` field).
+(struct_specifier
+  name: (type_identifier) @symbol.name) @symbol.struct
+
+(union_specifier
+  name: (type_identifier) @symbol.name) @symbol.struct
+
+(enum_specifier
+  name: (type_identifier) @symbol.name) @symbol.enum
+
+;; Enum constants (enumerators).
+(enumerator
+  name: (identifier) @symbol.name) @symbol.variant
+
+;; typedef — simple alias: `typedef struct {...} Point` has type_identifier as declarator.
+(type_definition
+  declarator: (type_identifier) @symbol.name) @symbol.type
+
+;; typedef function-pointer: `typedef int (*cb)(void)` has function_declarator as declarator.
+;; The @symbol.cfn arm walks the declarator chain to dig out the type_identifier name.
+(type_definition
+  declarator: (function_declarator)) @symbol.cfn
+
+;; Object-like macros (#define NAME value) → const.
+(preproc_def
+  name: (identifier) @symbol.name) @symbol.const
+
+;; Function-like macros (#define NAME(args) body) → fn.
+(preproc_function_def
+  name: (identifier) @symbol.name) @symbol.fn
+
+;; String literals for BM25 index.
+(string_literal) @literal.string
+"#;
+
+// C++: superset of C, node kinds verified against tree-sitter-cpp 0.23.4 node-types.json.
+// Additional shapes confirmed:
+//   - class_specifier carries `name` field (type_identifier for simple classes;
+//     qualified_identifier / template_type for specializations — skip those).
+//   - field_declaration with function_declarator inside a class body = method declaration.
+//   - function_definition whose declarator → function_declarator → qualified_identifier
+//     = out-of-line member definition (void Foo::bar() {}).
+//   - template_declaration wraps function_definition or class_specifier — the inner node
+//     is captured directly via inner pattern alternatives.
+//   - alias_declaration carries a `name` field (type_identifier).
+//   - namespace_definition is passthrough (members are free), no symbol emitted.
+//   - access_specifier is a sibling inside field_declaration_list (used in export detection).
+//   - lambda_expression is a stop kind for owner and export (inside-function detection).
+const CPP_QUERY_STR: &str = r#"
+;; Function definitions (free and out-of-line methods). `@symbol.cfn` triggers the same
+;; C-style name-walk arm that also handles C++ qualified_identifier scopes.
+(function_definition) @symbol.cfn
+
+;; Function prototypes / method declarations inside class bodies.
+(field_declaration
+  declarator: (function_declarator)) @symbol.cfn
+
+(declaration
+  declarator: (function_declarator)) @symbol.cfn
+
+;; Class specifier with a simple type_identifier name (skip template specializations).
+(class_specifier
+  name: (type_identifier) @symbol.name) @symbol.class
+
+;; Struct and union (same grammar nodes as C).
+(struct_specifier
+  name: (type_identifier) @symbol.name) @symbol.struct
+
+(union_specifier
+  name: (type_identifier) @symbol.name) @symbol.struct
+
+;; Enums and enumerators.
+(enum_specifier
+  name: (type_identifier) @symbol.name) @symbol.enum
+
+(enumerator
+  name: (identifier) @symbol.name) @symbol.variant
+
+;; typedef simple alias: `typedef struct {...} Point` has type_identifier as declarator.
+(type_definition
+  declarator: (type_identifier) @symbol.name) @symbol.type
+
+;; typedef function-pointer: `typedef int (*cb)(void)` has function_declarator as declarator.
+;; The @symbol.cfn arm walks the declarator chain to dig out the type_identifier name.
+(type_definition
+  declarator: (function_declarator)) @symbol.cfn
+
+;; using X = Y type alias.
+(alias_declaration
+  name: (type_identifier) @symbol.name) @symbol.type
+
+;; Object-like macros → const; function-like macros → fn.
+(preproc_def
+  name: (identifier) @symbol.name) @symbol.const
+
+(preproc_function_def
+  name: (identifier) @symbol.name) @symbol.fn
+
+;; String literals (including C++ raw string literals).
+(string_literal) @literal.string
+(raw_string_literal) @literal.string
+"#;
+
+// Assembly (GAS / AT&T and Intel syntax): node kinds verified against tree-sitter-asm 0.24.0
+// node-types.json and an empirical parse-tree dump. Key shapes:
+//   - label: has a `name` field (word) for named labels, or an `ident` child for local labels.
+//     Labels are the primary symbol kind — they define functions and branch targets.
+//   - meta: has `kind` field (meta_ident). `.globl` / `.global` directives export a symbol.
+//     `.macro` defines a macro (emitted as fn). `.equ` and `=` constants produce ERROR nodes
+//     in the parser — skip them (the grammar does not model them reliably).
+//   - `const` node: models `name = value` assignment — emitted as kind const.
+//   - `string` node (child of `meta`): `.asciz`/`.ascii`/`.string` data directives produce a
+//     `string` child confirmed in node-types.json. Captured as `@literal.string` for BM25.
+// Export detection: a label is exported iff its name appears in a preceding `.globl`/`.global`
+// meta directive anywhere in the file (pre-pass via `collect_asm_globl_names`).
+const ASM_QUERY_STR: &str = r#"
+;; Labels: branch targets and function entry points.
+(label) @symbol.asmfn
+
+;; Macro definitions: `.macro name`.
+(meta
+  kind: (meta_ident) @meta_kind) @symbol.asmfn
+
+;; Const assignments: `NAME = VALUE` (tree-sitter-asm `const` node).
+(const
+  name: (word) @symbol.name) @symbol.const
+
+;; String data directives: `.asciz "hello"` / `.ascii "..."` / `.string "..."` —
+;; the `string` node is a direct child of the `meta` node (node-types.json confirmed).
+(meta
+  (string) @literal.string)
+"#;
+
 fn get_rust_query() -> &'static Query {
     static RUST_QUERY: OnceLock<Query> = OnceLock::new();
     RUST_QUERY.get_or_init(|| {
@@ -357,6 +511,29 @@ fn get_kotlin_query() -> &'static Query {
     KOTLIN_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_kotlin_ng::LANGUAGE.into(), KOTLIN_QUERY_STR)
             .expect("Failed to compile Kotlin query")
+    })
+}
+
+fn get_c_query() -> &'static Query {
+    static C_QUERY: OnceLock<Query> = OnceLock::new();
+    C_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_c::LANGUAGE.into(), C_QUERY_STR).expect("Failed to compile C query")
+    })
+}
+
+fn get_cpp_query() -> &'static Query {
+    static CPP_QUERY: OnceLock<Query> = OnceLock::new();
+    CPP_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_cpp::LANGUAGE.into(), CPP_QUERY_STR)
+            .expect("Failed to compile C++ query")
+    })
+}
+
+fn get_asm_query() -> &'static Query {
+    static ASM_QUERY: OnceLock<Query> = OnceLock::new();
+    ASM_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_asm::LANGUAGE.into(), ASM_QUERY_STR)
+            .expect("Failed to compile ASM query")
     })
 }
 
@@ -889,6 +1066,12 @@ fn owner_stop_kinds(ext: &str) -> &'static [&'static str] {
             // anonymous object expression: `object { ... }`
             "object_literal",
         ],
+        // C: function_definition is the only lexical scope that nests declarations.
+        "c" => &["function_definition"],
+        // C++: function_definition and lambda_expression both introduce new lexical scopes.
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => {
+            &["function_definition", "lambda_expression"]
+        }
         _ => &[],
     }
 }
@@ -906,6 +1089,15 @@ fn owner_type_container_kinds(ext: &str) -> &'static [&'static str] {
             "record_declaration",
         ],
         "kt" | "kts" => &["class_declaration", "object_declaration"],
+        // C: struct/union/enum specifiers are the only named type containers.
+        "c" => &["struct_specifier", "union_specifier", "enum_specifier"],
+        // C++: additionally class_specifier. template_declaration is passthrough.
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => &[
+            "struct_specifier",
+            "union_specifier",
+            "enum_specifier",
+            "class_specifier",
+        ],
         _ => &[],
     }
 }
@@ -934,6 +1126,18 @@ fn owner_passthrough_kinds(ext: &str) -> &'static [&'static str] {
         ],
         "kt" | "kts" => &["class_body", "companion_object", "enum_class_body"],
         "go" => &["interface_type", "type_declaration"],
+        // C: field_declaration_list is the body of struct/union (transparent to ownership);
+        // enumerator_list is the body of an enum (transparent — enumerators owned by enum).
+        "c" => &["field_declaration_list", "enumerator_list"],
+        // C++: additionally declaration_list (namespace body — members are free, walk
+        // continues but never attributes to the namespace itself) and template_declaration
+        // (wraps the real class/function; the inner node carries the name).
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => &[
+            "field_declaration_list",
+            "enumerator_list",
+            "declaration_list", // namespace body — transparent, never owned by namespace
+            "template_declaration",
+        ],
         _ => &[],
     }
 }
@@ -1004,6 +1208,260 @@ fn go_receiver_owner(method_node: Node, source: &[u8]) -> Option<String> {
     None
 }
 
+/// C/C++: walk a declarator chain to extract the leaf function name. The declarator field
+/// of a `function_definition` or `declaration` (with function_declarator) can be:
+///   - `function_declarator` → `identifier`  (plain function)
+///   - `pointer_declarator` → `function_declarator` → `identifier`  (pointer-returning fn)
+///   - `function_declarator` → `qualified_identifier`  (C++ out-of-line member: `Foo::bar`)
+///   - `function_declarator` → `operator_name`  (C++ operator overload: `operator<`)
+///   - `function_declarator` → `destructor_name`  (C++ destructor: `~Ops`)
+///   - `function_declarator` → `parenthesized_declarator` → ... (typedef fn-ptr: `(*cb)(...)`)
+/// Returns the innermost name string, or `None`.
+fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "identifier" | "field_identifier" | "type_identifier" => {
+            node.utf8_text(source).ok().map(|t| t.to_string())
+        }
+        "function_declarator" => {
+            // The declarator field is the name node or another declarator layer.
+            let inner = node.child_by_field_name("declarator")?;
+            c_declarator_name(inner, source)
+        }
+        "pointer_declarator" | "reference_declarator" | "abstract_function_declarator" => {
+            // Peel one pointer/ref layer, then recurse.
+            let inner = node.child_by_field_name("declarator")?;
+            c_declarator_name(inner, source)
+        }
+        "parenthesized_declarator" => {
+            // `parenthesized_declarator` has no `declarator` field (node-types.json confirmed);
+            // the inner declarator is a positional child. Walk named children to find it.
+            for i in 0..node.child_count() {
+                let child = node.child(i as u32).unwrap();
+                if child.is_named() {
+                    if let Some(name) = c_declarator_name(child, source) {
+                        return Some(name);
+                    }
+                }
+            }
+            None
+        }
+        "operator_name" => {
+            // C++ operator overload: `operator<`, `operator[]`, etc.
+            // Use the full source text of the node (e.g. "operator<").
+            node.utf8_text(source).ok().map(|t| t.trim().to_string())
+        }
+        "destructor_name" => {
+            // C++ destructor: `~Ops`. Use the full source text (e.g. "~Ops").
+            node.utf8_text(source).ok().map(|t| t.trim().to_string())
+        }
+        "qualified_identifier" => {
+            // C++ out-of-line member: `Foo::bar` — the `name` field is the member part.
+            // `scope` field gives the owning class; extract it for owner resolution.
+            let name = node.child_by_field_name("name")?;
+            c_declarator_name(name, source)
+        }
+        "template_function" | "template_method" => {
+            // Template specialization name: `foo<T>` — extract the base `name` child.
+            for i in 0..node.child_count() {
+                let child = node.child(i as u32).unwrap();
+                if child.kind() == "identifier" || child.kind() == "field_identifier" {
+                    return child.utf8_text(source).ok().map(|t| t.to_string());
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// C++ out-of-line member: extract the class/struct scope from the `qualified_identifier`
+/// inside a `function_declarator` child of a `function_definition`. For `void Foo::bar()`,
+/// the declarator chain is `function_declarator → qualified_identifier { scope, name }`; we
+/// need the innermost class scope, not the outermost. For `void ns::Cls::method()`, the
+/// structure nests: `qualified_identifier { scope: ns, name: qualified_identifier { scope:
+/// Cls, name: method } }`. We must follow the `name` chain until the innermost
+/// `qualified_identifier` whose `name` field is a simple identifier (the member name);
+/// its `scope` is the class that owns the member.
+/// Returns `None` if the declarator is not a qualified identifier (i.e. a free function).
+fn cpp_outofline_owner(function_def_node: Node, source: &[u8]) -> Option<String> {
+    let declarator = function_def_node.child_by_field_name("declarator")?;
+    // Peel pointer/reference layers to reach function_declarator.
+    let fn_decl = find_function_declarator(declarator)?;
+    let inner = fn_decl.child_by_field_name("declarator")?;
+    if inner.kind() != "qualified_identifier" {
+        return None;
+    }
+    // Walk the name chain to the innermost qualified_identifier whose name is not itself
+    // a qualified_identifier — that's the one where scope is the owning class.
+    let mut qi = inner;
+    loop {
+        let name_child = qi.child_by_field_name("name")?;
+        if name_child.kind() == "qualified_identifier" {
+            // One more level of nesting; descend.
+            qi = name_child;
+        } else {
+            // `name_child` is the function name (identifier); `scope` is the class.
+            let scope = qi.child_by_field_name("scope")?;
+            return cpp_scope_to_name(scope, source);
+        }
+    }
+}
+
+/// Reduce a C++ `qualified_identifier` scope to the rightmost simple name, stripping
+/// template args. `Foo::Bar` → `Bar`, `std::vector` → `vector`, `Foo<T>` → `Foo`.
+fn cpp_scope_to_name(scope_node: Node, source: &[u8]) -> Option<String> {
+    match scope_node.kind() {
+        "namespace_identifier" | "type_identifier" | "identifier" => {
+            scope_node.utf8_text(source).ok().map(|t| t.to_string())
+        }
+        "template_type" => {
+            // `Foo<T>` — the base is the first `type_identifier` child.
+            for i in 0..scope_node.child_count() {
+                let child = scope_node.child(i as u32).unwrap();
+                if child.kind() == "type_identifier" || child.kind() == "identifier" {
+                    return child.utf8_text(source).ok().map(|t| t.to_string());
+                }
+            }
+            None
+        }
+        "nested_namespace_specifier" | "qualified_identifier" => {
+            // Nested: take the rightmost identifier portion.
+            for i in (0..scope_node.child_count()).rev() {
+                let child = scope_node.child(i as u32).unwrap();
+                if let Some(name) = cpp_scope_to_name(child, source) {
+                    return Some(name);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// Walk a declarator to find the first `function_declarator` node (peeling pointer/
+/// reference/parenthesized layers). Returns `None` if none found.
+fn find_function_declarator(node: Node) -> Option<Node> {
+    if node.kind() == "function_declarator" {
+        return Some(node);
+    }
+    // Peel pointer_declarator / parenthesized_declarator / reference_declarator.
+    if let Some(inner) = node.child_by_field_name("declarator") {
+        return find_function_declarator(inner);
+    }
+    None
+}
+
+/// C/C++: a `function_definition` or `declaration` (function prototype) is file-local
+/// (not exported) iff it has a `storage_class_specifier` direct child with text "static".
+fn c_has_static_storage(node: Node, source: &[u8]) -> bool {
+    for i in 0..node.child_count() {
+        let child = node.child(i as u32).unwrap();
+        if child.kind() == "storage_class_specifier" {
+            if let Ok(text) = child.utf8_text(source) {
+                if text.trim() == "static" {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// C++ class member access: walk backward through previous siblings in a
+/// `field_declaration_list` to find the nearest `access_specifier`. The default
+/// visibility depends on the container kind: `class_specifier` defaults to `private`
+/// (returns false when no specifier found), `struct_specifier` defaults to `public`
+/// (returns true when none found). This function only returns the found specifier text;
+/// the caller decides the default.
+fn cpp_nearest_access_specifier<'a>(member_node: Node<'a>, source: &[u8]) -> Option<String> {
+    let mut sibling = member_node.prev_sibling();
+    while let Some(curr) = sibling {
+        if curr.kind() == "access_specifier" {
+            if let Ok(text) = curr.utf8_text(source) {
+                // Text is e.g. "public:" or "private:" — grab the keyword.
+                return Some(text.trim().trim_end_matches(':').trim().to_string());
+            }
+        }
+        sibling = curr.prev_sibling();
+    }
+    None
+}
+
+/// C++ member export rule: `public` access (or struct default public) → exported;
+/// `private`/`protected` (or class default private) → not exported. `member_node` is
+/// the `field_declaration` inside a `field_declaration_list`; `container_kind` is the
+/// parent `class_specifier` or `struct_specifier` kind.
+fn cpp_member_is_exported(member_node: Node, container_kind: &str, source: &[u8]) -> bool {
+    match cpp_nearest_access_specifier(member_node, source) {
+        Some(ref spec) if spec == "public" => true,
+        Some(_) => false, // private or protected
+        None => container_kind == "struct_specifier", // struct defaults public, class private
+    }
+}
+
+/// ASM pre-pass: collect all symbol names that appear as arguments to `.globl` / `.global`
+/// directives (case-insensitive match on the meta_ident kind text). These are the exported
+/// symbols. The grammar models `.globl name` as `meta { kind: meta_ident, ident child }`.
+fn collect_asm_globl_names(root: Node, source: &[u8], out: &mut std::collections::HashSet<String>) {
+    let mut cursor = root.walk();
+    let mut to_visit: Vec<Node> = vec![root];
+    while let Some(node) = to_visit.pop() {
+        if node.kind() == "meta" {
+            if let Some(kind_node) = node.child_by_field_name("kind") {
+                if let Ok(kind_text) = kind_node.utf8_text(source) {
+                    let lower = kind_text.to_ascii_lowercase();
+                    if lower == ".globl" || lower == ".global" {
+                        // The argument is an ident child (confirmed via parse-tree dump).
+                        for i in 0..node.child_count() {
+                            let child = node.child(i as u32).unwrap();
+                            if child.kind() == "ident" {
+                                // The ident may contain a reg child (reg { word }) —
+                                // walk to the innermost word to get the plain name text.
+                                out.insert(asm_ident_to_name(child, source));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Push all children; no need to recurse into subtrees more than 1 level since
+        // the grammar's root `program` has all directives and labels as direct children.
+        for i in (0..node.child_count()).rev() {
+            to_visit.push(node.child(i as u32).unwrap());
+        }
+        // Avoid infinite loop warning — cursor is used for WalkBuilder compatibility.
+        let _ = &mut cursor;
+    }
+}
+
+/// ASM: flatten an `ident` node to its text string. An `ident` may wrap a `reg` which
+/// wraps a `word`; we just take the text of the whole subtree's first word-like leaf.
+fn asm_ident_to_name(ident_node: Node, source: &[u8]) -> String {
+    // Try the full text of the ident node first (most compact).
+    if let Ok(text) = ident_node.utf8_text(source) {
+        return text.trim().to_string();
+    }
+    String::new()
+}
+
+/// ASM: extract the name from a `label` node. A named label has a `name` field (word);
+/// a local label (e.g. `.L1:`) has an `ident` child. Returns `None` on unexpected shape.
+fn asm_label_name(label_node: Node, source: &[u8]) -> Option<String> {
+    // First try the `name` field (simple word labels).
+    if let Some(name) = label_node.child_by_field_name("name") {
+        return name.utf8_text(source).ok().map(|t| t.trim().to_string());
+    }
+    // Fall back to the first `ident` child (local labels).
+    for i in 0..label_node.child_count() {
+        let child = label_node.child(i as u32).unwrap();
+        if child.kind() == "ident" {
+            return child.utf8_text(source).ok().map(|t| t.trim().to_string());
+        }
+    }
+    None
+}
+
 /// Resolve the enclosing *type* (owner) of the symbol at `node`, or `None` when the symbol
 /// is a free function, a top-level symbol, a function/closure/lambda-local definition, or a
 /// member of an anonymous type. Only meaningful for `fn`/method symbols (the only callers).
@@ -1012,6 +1470,17 @@ fn find_owner_name(node: Node, ext: &str, source: &[u8]) -> Option<String> {
     // an ancestor walk alone would miss it (and `method_declaration` is itself a stop node).
     if ext == "go" && node.kind() == "method_declaration" {
         return go_receiver_owner(node, source);
+    }
+
+    // C++ out-of-line member definition `void Foo::bar() {}`: the scope is encoded in the
+    // qualified_identifier inside the function_declarator on the function_definition node
+    // itself — read it directly before the ancestor walk (which would just see global scope).
+    if matches!(ext, "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx") {
+        if node.kind() == "function_definition" {
+            if let Some(owner) = cpp_outofline_owner(node, source) {
+                return Some(owner);
+            }
+        }
     }
 
     let stop_kinds = owner_stop_kinds(ext);
@@ -1088,6 +1557,14 @@ impl CodeExtractor for TreeSitterExtractor {
             "go" => (tree_sitter_go::LANGUAGE.into(), get_go_query()),
             "java" => (tree_sitter_java::LANGUAGE.into(), get_java_query()),
             "kt" | "kts" => (tree_sitter_kotlin_ng::LANGUAGE.into(), get_kotlin_query()),
+            // `.c` files use the C grammar; `.h` and all C++ extensions use the C++ grammar
+            // (the C++ grammar parses C headers tolerantly, and most real `.h` files lean C++).
+            "c" => (tree_sitter_c::LANGUAGE.into(), get_c_query()),
+            "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => {
+                (tree_sitter_cpp::LANGUAGE.into(), get_cpp_query())
+            }
+            // GAS AT&T syntax (`.s`/`.S`) and Intel syntax (`.asm`) all use the asm grammar.
+            "s" | "S" | "asm" => (tree_sitter_asm::LANGUAGE.into(), get_asm_query()),
             _ => {
                 return Ok(ExtractedFile {
                     file_path: file_path.to_string(),
@@ -1112,6 +1589,11 @@ impl CodeExtractor for TreeSitterExtractor {
         if ext == "ts" || ext == "js" || ext == "tsx" || ext == "jsx" {
             collect_ts_exported_names(tree.root_node(), source, &mut exported_names);
         }
+        // ASM: pre-pass to collect all `.globl`/`.global` exported symbol names so the
+        // per-label export check is a simple set lookup (O(1)) during the match loop.
+        if ext == "s" || ext == "S" || ext == "asm" {
+            collect_asm_globl_names(tree.root_node(), source, &mut exported_names);
+        }
 
         let mut query_cursor = QueryCursor::new();
         let mut matches = query_cursor.matches(query, tree.root_node(), source);
@@ -1120,6 +1602,9 @@ impl CodeExtractor for TreeSitterExtractor {
             let mut main_node: Option<(Node, &str)> = None;
             let mut symbol_name: Option<String> = None;
             let mut is_valid_test_call = true;
+            // ASM query: tracks the `.macro` directive kind so we know whether a `meta`
+            // node should be emitted (only `.macro` definitions are captured as symbols).
+            let mut asm_meta_kind_text: Option<String> = None;
 
             for capture in mat.captures {
                 let name_idx = capture.index as usize;
@@ -1143,6 +1628,11 @@ impl CodeExtractor for TreeSitterExtractor {
                         if t != "describe" && t != "it" && t != "test" {
                             is_valid_test_call = false;
                         }
+                    }
+                } else if name == "meta_kind" {
+                    // ASM query: capture the kind text so we can filter to `.macro` only.
+                    if let Ok(text) = capture.node.utf8_text(source) {
+                        asm_meta_kind_text = Some(text.trim().to_ascii_lowercase());
                     }
                 }
             }
@@ -1172,11 +1662,82 @@ impl CodeExtractor for TreeSitterExtractor {
                             // capture; the concrete kind comes from the node itself.
                             "symbol.gotype" => go_type_kind(node),
                             "symbol.ktclass" => kotlin_class_kind(node),
+                            // C/C++: function_definition and function prototype declarations are
+                            // both captured as `symbol.cfn`; always emitted as kind "fn".
+                            "symbol.cfn" => "fn",
+                            // ASM: labels and `.macro` definitions captured as `symbol.asmfn`.
+                            // `.macro` nodes are filtered below using asm_meta_kind_text.
+                            "symbol.asmfn" => "fn",
                             _ => "unknown",
                         };
 
-                        let mut name = symbol_name
-                            .unwrap_or_else(|| find_name(node, source).unwrap_or_default());
+                        // ASM: only emit `symbol.asmfn` matches where the meta kind is
+                        // `.macro`; skip all other `meta` node matches (`.globl`, etc.).
+                        if capture_name == "symbol.asmfn" && node.kind() == "meta" {
+                            match &asm_meta_kind_text {
+                                Some(k) if k == ".macro" => {} // keep: emit this macro
+                                _ => continue,                 // discard: not a .macro
+                            }
+                        }
+
+                        // C/C++: struct_specifier / union_specifier / enum_specifier appear
+                        // not only at declaration scope but also as type references inside
+                        // function parameter lists and bodies (`void f(struct Foo *x)`).
+                        // These are type references, not type declarations — skip them to
+                        // avoid polluting the symbol index with duplicate/noise entries.
+                        if matches!(ext, "c" | "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx")
+                            && matches!(kind, "struct" | "enum" | "union" | "variant")
+                            && is_inside_function(node, &["function_definition", "lambda_expression"])
+                        {
+                            continue;
+                        }
+
+                        // C/C++: extract the function name from the declarator chain. The
+                        // `symbol.name` capture does not fire for `symbol.cfn` nodes because the
+                        // name is nested (not a direct field named `name`).
+                        let mut name = if capture_name == "symbol.cfn" {
+                            // Walk the declarator field to find the innermost identifier.
+                            let decl_name = node
+                                .child_by_field_name("declarator")
+                                .and_then(|d| c_declarator_name(d, source));
+                            match decl_name {
+                                Some(n) => n,
+                                None => continue, // no usable name: skip this match
+                            }
+                        } else if capture_name == "symbol.asmfn" && node.kind() == "label" {
+                            // ASM label: name is the `name` field or first `ident` child.
+                            match asm_label_name(node, source) {
+                                Some(n) => {
+                                    // Skip assembler-local labels — they are never public API:
+                                    //   `.L`-prefixed labels are compiler-generated locals (GAS convention).
+                                    //   Purely numeric labels (e.g. `1:`) are temporary branch targets.
+                                    if n.starts_with(".L") || n.chars().all(|c| c.is_ascii_digit()) {
+                                        continue;
+                                    }
+                                    n
+                                }
+                                None => continue,
+                            }
+                        } else if capture_name == "symbol.asmfn" && node.kind() == "meta" {
+                            // `.macro name` — the first `ident` child is the macro name.
+                            let mut macro_name = None;
+                            for i in 0..node.child_count() {
+                                let child = node.child(i as u32).unwrap();
+                                if child.kind() == "ident" {
+                                    if let Ok(text) = child.utf8_text(source) {
+                                        macro_name = Some(text.trim().to_string());
+                                        break;
+                                    }
+                                }
+                            }
+                            match macro_name {
+                                Some(n) if !n.is_empty() => n,
+                                _ => continue,
+                            }
+                        } else {
+                            symbol_name
+                                .unwrap_or_else(|| find_name(node, source).unwrap_or_default())
+                        };
 
                         if kind == "test" {
                             name = strip_quotes(&name);
@@ -1310,6 +1871,14 @@ impl CodeExtractor for TreeSitterExtractor {
                             } else if ext == "kt" || ext == "kts" {
                                 path_indicates_test(file_path)
                                     || kotlin_has_annotation(node, "Test", source)
+                            } else if matches!(
+                                ext,
+                                "c" | "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx"
+                                    | "s" | "S" | "asm"
+                            ) {
+                                // C/C++/ASM: use path-only test detection (no framework-specific
+                                // attribute parsing — gtest macro detection is out of scope).
+                                path_indicates_test(file_path)
                             } else {
                                 let is_test_call = kind == "test";
                                 path_indicates_test(file_path) || is_test_call
@@ -1336,6 +1905,57 @@ impl CodeExtractor for TreeSitterExtractor {
                                 java_is_public(node)
                             } else if ext == "kt" || ext == "kts" {
                                 kotlin_is_exported(node, source)
+                            } else if ext == "c" {
+                                // C: a function/declaration carrying `static` is file-local.
+                                // Macros (#define) are always exported (no static equivalent).
+                                // Everything else at file scope is exported by default.
+                                if kind == "fn"
+                                    && !is_inside_function(node, &["function_definition"])
+                                {
+                                    !c_has_static_storage(node, source)
+                                } else {
+                                    !is_inside_function(node, &["function_definition"])
+                                }
+                            } else if matches!(
+                                ext,
+                                "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx"
+                            ) {
+                                // C++: function/declaration with `static` → file-local.
+                                // Class members: check access specifier. `field_declaration`
+                                // nodes are inside `field_declaration_list` whose parent is
+                                // `class_specifier` or `struct_specifier`.
+                                if node.kind() == "field_declaration" {
+                                    // In-class method declaration or data member.
+                                    let exported = node
+                                        .parent() // field_declaration_list
+                                        .filter(|fdl| fdl.kind() == "field_declaration_list")
+                                        .and_then(|fdl| fdl.parent()) // class/struct_specifier
+                                        .filter(|c| {
+                                            matches!(
+                                                c.kind(),
+                                                "class_specifier" | "struct_specifier"
+                                            )
+                                        })
+                                        .map(|c| cpp_member_is_exported(node, c.kind(), source))
+                                        .unwrap_or(false); // unexpected shape: not-exported
+                                    exported
+                                } else if kind == "fn"
+                                    && !is_inside_function(
+                                        node,
+                                        &["function_definition", "lambda_expression"],
+                                    )
+                                {
+                                    !c_has_static_storage(node, source)
+                                } else {
+                                    !is_inside_function(
+                                        node,
+                                        &["function_definition", "lambda_expression"],
+                                    )
+                                }
+                            } else if matches!(ext, "s" | "S" | "asm") {
+                                // ASM: a label is exported iff its name appears in a `.globl`
+                                // directive collected in the pre-pass.
+                                exported_names.contains(&name)
                             } else {
                                 has_ancestor_export(node) || exported_names.contains(&name)
                             };
@@ -1386,6 +2006,8 @@ impl CodeExtractor for TreeSitterExtractor {
                             } else if ext == "kt" || ext == "kts" {
                                 kotlin_has_annotation(node, "Deprecated", source)
                             } else {
+                                // C/C++/ASM and all other languages: fall back to the docstring
+                                // `@deprecated` marker (no attribute parsing for these languages).
                                 docstring
                                     .as_ref()
                                     .is_some_and(|d| d.contains("@deprecated"))
@@ -1396,6 +2018,8 @@ impl CodeExtractor for TreeSitterExtractor {
                             // (the owning enum names which type the variant belongs to).
                             // Other members are deferred (see the brief's Open Questions).
                             // Best-effort: any unexpected shape yields `None`.
+                            // Note: `symbol.method` maps to kind "fn" (see match arm above),
+                            // so "method" is never a possible kind value here.
                             let owner = if kind == "fn" || kind == "variant" {
                                 find_owner_name(node, ext, source)
                             } else {
@@ -2096,6 +2720,13 @@ class Calculator:
             ("class T { a() {} }", "x.ts"),
             ("class T { void a() {} }", "T.java"),
             ("class T {\n  fun a() {}\n}\n", "x.kt"),
+            // C: struct with a nested function pointer field (no method ownership in C,
+            // but exercises the owner walk without panicking).
+            ("struct S { int x; };\nint add(int a, int b) { return a + b; }", "x.c"),
+            // C++: class with an in-class method declaration and an out-of-line definition.
+            ("class Widget { public: void draw(); };\nvoid Widget::draw() {}", "x.cpp"),
+            // ASM: a globl label and a non-globl label.
+            (".globl _main\n_main:\n  ret\n_local:\n  ret\n", "x.s"),
         ];
         for (content, path) in cases {
             let extractor = TreeSitterExtractor::new();

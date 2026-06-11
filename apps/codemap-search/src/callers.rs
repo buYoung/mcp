@@ -353,6 +353,12 @@ fn is_import_line(line: &str, ext: &str) -> bool {
         }
         "go" => trimmed.starts_with("import ") || trimmed.starts_with("import("),
         "java" | "kt" | "kts" => trimmed.starts_with("import "),
+        // C/C++: `#include` is the only import-equivalent construct.
+        "c" | "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => {
+            trimmed.starts_with("#include")
+        }
+        // Assembly: `.include` embeds another assembly file.
+        "s" | "S" | "asm" => trimmed.starts_with(".include"),
         _ => false,
     }
 }
@@ -890,6 +896,13 @@ mod tests {
         assert!(is_import_line("import java.util.List;", "java"));
         assert!(!is_import_line("handler(x)", "rs"));
         assert!(!is_import_line("let x = useState();", "ts"));
+        // C/C++ include directives.
+        assert!(is_import_line("#include <stdio.h>", "c"));
+        assert!(is_import_line("#include \"myheader.h\"", "cpp"));
+        assert!(!is_import_line("int foo();", "h"));
+        // Assembly include directive.
+        assert!(is_import_line(".include \"defs.s\"", "s"));
+        assert!(!is_import_line("movq %rsp, %rbp", "S"));
     }
 
     #[test]
