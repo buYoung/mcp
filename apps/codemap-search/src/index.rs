@@ -31,6 +31,10 @@ pub struct SearchResult {
     pub total_lines: usize,
     pub matched_symbols: Vec<ExtractedSymbol>,
     pub matched_literals: Vec<String>,
+    /// True when `matched_symbols` is the all-symbols fallback (the file ranked in via a
+    /// docstring/path token, not a symbol-name match). The detail view renders these
+    /// names-only (no snippets) so a path/docstring match never dumps full file source.
+    pub symbol_fallback: bool,
 }
 
 pub trait SearchEngine {
@@ -760,7 +764,8 @@ impl SearcherHandle {
             // substring filter is empty (e.g. matched via docstring or path tokens), fall
             // back to the file's own symbols so the detail view never renders an empty
             // file header (Child 03 — OR/AND render consistency).
-            if matched_symbols.is_empty() {
+            let symbol_fallback = matched_symbols.is_empty();
+            if symbol_fallback {
                 matched_symbols = all_symbols;
             }
 
@@ -781,6 +786,7 @@ impl SearcherHandle {
                 total_lines,
                 matched_symbols,
                 matched_literals,
+                symbol_fallback,
             });
         }
 

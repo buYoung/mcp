@@ -6,10 +6,15 @@
 //! override. Reads disk directly, so it sees comments and just-changed files the
 //! BM25 index can miss — this realizes the spec's "rg 역할" alongside `search`.
 
-use super::{arg_bool, arg_required_str, arg_usize, build_walker, current_dir, resolve_within_cwd};
+use super::{
+    arg_bool, arg_required_str, arg_usize, build_glob_matcher, build_walker, current_dir,
+    resolve_within_cwd, split_grep_globs, GlobMatcher,
+};
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
+use std::path::Path;
+use std::time::SystemTime;
 
 const DEFAULT_HEAD_LIMIT: usize = 250;
 
@@ -76,6 +81,23 @@ struct FileResult {
     path: String,
     hits: Vec<LineHit>,
     occurrences: usize,
+    /// Modification time, used only to sort `files_with_matches` output (newest first).
+    mtime: SystemTime,
+}
+
+/// Cap a line at the column limit, replacing an over-long line with ripgrep's omission
+/// marker (`--max-columns` parity). Matched lines and context lines get distinct markers.
+/// `max_columns == 0` disables the cap. Width is measured in bytes, matching ripgrep.
+fn cap_line(text: &str, max_columns: usize, is_match: bool) -> String {
+    if max_columns > 0 && text.len() > max_columns {
+        if is_match {
+            "[Omitted long matching line]".to_string()
+        } else {
+            "[Omitted long context line]".to_string()
+        }
+    } else {
+        text.to_string()
+    }
 }
 
 /// Slice `items` to one page and produce a pagination footer when truncated.
@@ -130,9 +152,20 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
     let cwd = current_dir()?;
     let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
 
-    let matcher = RegexMatcherBuilder::new()
+    // `dot_matches_new_line(multiline)` makes `.` cross lines under multiline search —
+    // the only place dotall lives in the grep API (equivalent to `rg -U --multiline-dotall`).
+    // Without multiline, set the line terminator to `\n` so a `\n`-containing pattern errors
+    // with rg's guidance (and the searcher keeps its fast line-by-line path) instead of
+    // silently returning no matches — matching ripgrep's non-`-U` behavior.
+    let mut matcher_builder = RegexMatcherBuilder::new();
+    matcher_builder
         .case_insensitive(case_insensitive)
         .multi_line(multiline)
+        .dot_matches_new_line(multiline);
+    if !multiline {
+        matcher_builder.line_terminator(Some(b'\n'));
+    }
+    let matcher = matcher_builder
         .build(pattern)
         .map_err(|e| (-32602, format!("Invalid regex pattern '{pattern}': {e}")))?;
 
@@ -144,14 +177,11 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
         .binary_detection(BinaryDetection::quit(0))
         .build();
 
-    let glob_matcher = match glob_opt {
-        Some(g) => Some(
-            globset::GlobBuilder::new(g)
-                .literal_separator(true)
-                .build()
-                .map_err(|e| (-32602, format!("Invalid glob '{g}': {e}")))?
-                .compile_matcher(),
-        ),
+    // Shared gitignore-style glob (child 01's helper): a slash-less glob matches the
+    // basename at any depth, identical to `rg --glob`. The glob arg is split on whitespace,
+    // then brace-free tokens on commas, yielding multiple patterns (Claude Code behavior).
+    let glob_matcher: Option<GlobMatcher> = match glob_opt {
+        Some(g) => Some(build_glob_matcher(&base, &split_grep_globs(g))?),
         None => None,
     };
 
@@ -177,7 +207,14 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
         }
         let p = entry.path();
         if let Some(ref gm) = glob_matcher {
-            let rel = p.strip_prefix(&base).unwrap_or(p);
+            let stripped = p.strip_prefix(&base).unwrap_or(p);
+            // When `path` is a single file, the stripped path is empty — match the glob
+            // against the file name so `path:<file>, glob:<pat>` still filters correctly.
+            let rel: &Path = if stripped.as_os_str().is_empty() {
+                Path::new(p.file_name().unwrap_or(p.as_os_str()))
+            } else {
+                stripped
+            };
             if !gm.is_match(rel) {
                 continue;
             }
@@ -195,37 +232,59 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
                 .unwrap_or(p)
                 .to_string_lossy()
                 .replace('\\', "/");
+            let mtime = entry
+                .metadata()
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .unwrap_or(SystemTime::UNIX_EPOCH);
             files.push(FileResult {
                 path: display,
                 hits: sink.hits,
                 occurrences: sink.occurrences,
+                mtime,
             });
         }
     }
 
+    let max_columns = crate::config::get().grep_max_columns;
+
     match output_mode {
         "count" => {
-            let total_occ: usize = files.iter().map(|f| f.occurrences).sum();
-            if total_occ == 0 {
-                return Ok("No matches found".to_string());
+            // Per-file `path:count` rows (ripgrep's count output) + summary, paginated.
+            // `content`/`count` keep ripgrep's native (walk) order — only
+            // `files_with_matches` is mtime-sorted.
+            if files.is_empty() {
+                return Ok("Found 0 total occurrence(s) across 0 file(s).".to_string());
             }
-            Ok(format!(
+            let rows: Vec<(String, usize)> =
+                files.iter().map(|f| (f.path.clone(), f.occurrences)).collect();
+            let (page, footer) = paginate(&rows, offset, head_limit);
+            // Summary counts the post-head_limit rows (Claude Code sums the truncated slice).
+            let total_occ: usize = page.iter().map(|(_, c)| c).sum();
+            let mut out = String::new();
+            for (p, c) in &page {
+                out.push_str(&format!("{p}:{c}\n"));
+            }
+            out.push_str(&format!(
                 "Found {total_occ} total occurrence(s) across {} file(s).",
-                files.len()
-            ))
+                page.len()
+            ));
+            if let Some(f) = footer {
+                out.push('\n');
+                out.push_str(&f);
+            }
+            Ok(out)
         }
         "content" => {
             let mut lines: Vec<String> = Vec::new();
             for f in &files {
                 for hit in &f.hits {
                     let sep = if hit.is_match { ':' } else { '-' };
+                    let text = cap_line(&hit.text, max_columns, hit.is_match);
                     if show_line_numbers {
-                        lines.push(format!(
-                            "{}{sep}{}{sep}{}",
-                            f.path, hit.line_number, hit.text
-                        ));
+                        lines.push(format!("{}{sep}{}{sep}{}", f.path, hit.line_number, text));
                     } else {
-                        lines.push(format!("{}{sep}{}", f.path, hit.text));
+                        lines.push(format!("{}{sep}{}", f.path, text));
                     }
                 }
             }
@@ -245,8 +304,12 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             if files.is_empty() {
                 return Ok("No matches found".to_string());
             }
-            let total = files.len();
-            let paths: Vec<String> = files.iter().map(|f| f.path.clone()).collect();
+            // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
+            // Code parity). `content`/`count` above stay in ripgrep's native order.
+            let mut sorted: Vec<&FileResult> = files.iter().collect();
+            sorted.sort_by(|a, b| b.mtime.cmp(&a.mtime).then_with(|| a.path.cmp(&b.path)));
+            let total = sorted.len();
+            let paths: Vec<String> = sorted.iter().map(|f| f.path.clone()).collect();
             let (page, footer) = paginate(&paths, offset, head_limit);
             let mut out = format!("Found {total} file(s)\n");
             out.push_str(&page.join("\n"));
