@@ -42,6 +42,12 @@ key from the global file (if set there) or the default — layers are not all-or
 | `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
+| `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
+| `scan_cap` | integer | `500` | Max call sites collected per caller-annotation scan |
+| `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
+| `callee_list_cap` | integer | `5` | Max callees rendered per symbol |
+| `annotation_sub_budget` | integer (bytes) | `8192` | Annotation byte budget within `search_detail_byte_cap` |
+| `common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
 
 ### Indexing
 
@@ -63,6 +69,24 @@ key from the global file (if set there) or the default — layers are not all-or
 - **`search_overview_file_limit`** — caps how many file headers `search` emits in its
   codemap-overview branch (the branch taken when matches exceed `result_threshold`).
   Output-size only — safe to tune.
+
+### Caller/callee context
+
+- **`caller_context_default`** — whether `search`'s detail view annotates each matched
+  function with its depth-1 callers and callees (approximate, name-match only) when the
+  per-call `caller_context` parameter is omitted. Default `true`; an explicit per-call
+  parameter always wins over this key.
+- **`scan_cap`** — global cap on call sites collected by the single combined-regex
+  workspace scan behind one annotation pass; reaching it marks caller lists as truncated.
+- **`caller_list_cap` / `callee_list_cap`** — per-symbol render caps; overflow becomes a
+  "… N more not shown" note. Output-size only — safe to tune.
+- **`annotation_sub_budget`** — byte budget for all annotations in one response, counted
+  WITHIN `search_detail_byte_cap` (snippets keep priority). An annotation that cannot fit
+  degrades to a one-line omission marker rather than disappearing silently.
+- **`common_name_threshold`** — a function name with at least this many definitions in
+  the index gets its caller list and callee entries labeled attribution-ambiguous (a
+  name-match scan cannot tell which definition a site targets); the lists are still
+  rendered, never suppressed.
 
 ### Ignore handling
 

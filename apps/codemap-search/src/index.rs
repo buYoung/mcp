@@ -691,6 +691,40 @@ impl TantivySearchEngine {
     }
 }
 
+/// Post-rank multiplier for files whose path looks like test/bench scaffolding. Tests and
+/// benches repeat domain terms heavily, so raw BM25 term frequency lets them crowd the
+/// defining sources out of the top ranks; implementations should surface first (the test
+/// files stay in the results, just lower).
+const TEST_PATH_SCORE_WEIGHT: f32 = 0.3;
+
+/// Post-rank multiplier when a query term exactly equals a discriminative symbol name
+/// defined in the file. An exact identifier in the query ("TransactionReadonly", "put_tb")
+/// is the strongest signal the user wants its definition, yet under plain BM25 generic
+/// co-terms ("error", "enum") can outvote it via term frequency in unrelated files.
+const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
+
+/// A name specific enough that exact equality with a query term means intent: multi-token
+/// identifiers (snake/camel compounds) or long single tokens. Short single-word names
+/// ("new", "write", "Error") are too generic to treat as a definition request.
+fn is_discriminative_name(name: &str) -> bool {
+    name.len() >= 8 || crate::parser::split_identifier(name).len() >= 2
+}
+
+/// True for paths that look like test/bench scaffolding rather than implementation.
+fn is_test_like_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    let in_test_dir = ["tests/", "test/", "benches/", "bench/", "__tests__/"]
+        .iter()
+        .any(|dir| lower.starts_with(dir) || lower.contains(&format!("/{dir}")));
+    let file_name = lower.rsplit('/').next().unwrap_or(&lower);
+    let stem = file_name.split('.').next().unwrap_or(file_name);
+    in_test_dir
+        || stem.starts_with("test_")
+        || stem.ends_with("_test")
+        || file_name.contains(".test.")
+        || file_name.contains(".spec.")
+}
+
 impl SearcherHandle {
     /// BM25 search over the committed index snapshot. Reads index/reader/field handles
     /// only — moved verbatim from the former `TantivySearchEngine::search`.
@@ -782,6 +816,21 @@ impl SearcherHandle {
             // `.symbols`/`.literals` below borrow `extracted_file` apart.
             let total_lines = extracted_file.total_lines;
             let all_symbols = extracted_file.symbols;
+
+            // Post-rank adjustment (see the constants above): an exact discriminative
+            // symbol-name hit boosts the file, a test/bench-looking path demotes it. Both
+            // re-rank only within the BM25 top `limit` — the candidate set is unchanged.
+            let exact_name_hit = all_symbols.iter().any(|sym| {
+                is_discriminative_name(&sym.name)
+                    && query_terms.iter().any(|&t| t == sym.name.to_lowercase())
+            });
+            let mut adjusted_score = score;
+            if exact_name_hit {
+                adjusted_score *= EXACT_NAME_SCORE_BOOST;
+            }
+            if is_test_like_path(&file_path) {
+                adjusted_score *= TEST_PATH_SCORE_WEIGHT;
+            }
             let mut matched_symbols: Vec<ExtractedSymbol> = all_symbols
                 .iter()
                 .filter(|sym| {
@@ -821,13 +870,20 @@ impl SearcherHandle {
 
             results.push(SearchResult {
                 file_path,
-                score,
+                score: adjusted_score,
                 total_lines,
                 matched_symbols,
                 matched_literals,
                 symbol_fallback,
             });
         }
+
+        // Re-sort by the adjusted scores (BM25 order only holds for the raw scores).
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(results)
     }

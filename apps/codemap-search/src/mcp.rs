@@ -411,7 +411,7 @@ impl McpServer {
                         "name": "codemap-search-server",
                         "version": "0.1.0"
                     },
-                    "instructions": "Five code-navigation tools; pick by what you already know — no fixed order.\n- grep: first move when you know the exact identifier, string, or error message (not a last resort). Always current; sees comments and non-code files.\n- search: first move when you only know the concept, can't write a reliable pattern, or grep returned zero hits or noise. Once it names the symbol, grep its uses. Pass caller_context=true to annotate each matched function's detail snippet with its depth-1 callers and callees (approximate, name-match only) — folds the usual search→grep round-trip into one call; appears only in the detail view (narrow the query if it lands in the codemap overview).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nIterating grep -> read is a normal, effective loop."
+                    "instructions": "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, and concepts ('where is the auth token refreshed?'). BM25 over indexed symbols/docstrings — identifier splitting and ranking find what an exact pattern misses. Top-ranked files render in full detail — snippets plus each matched function's depth-1 callers and callees (on by default; caller_context=false to disable) — so one call answers both 'where is it' and 'who calls it'; further matches follow as a ranked one-line list.\n- grep: first move for exact strings — error messages, log lines, comments, config keys, non-code files — and for enumerating every occurrence of a name you already confirmed. Always current (no index lag).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
@@ -420,6 +420,11 @@ impl McpServer {
                     {
                         "name": "overview",
                         "description": "Hierarchical codemap. No path: repo-root map with file/symbol counts; folder path: narrows; file path: that file's symbols with line ranges.",
+                        // All five tools are read-only over the local workspace. Declaring it
+                        // matters: clients gate approval on these hints (Codex auto-cancels
+                        // un-annotated tools in non-interactive runs, and prompts per call in
+                        // interactive ones).
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -430,12 +435,13 @@ impl McpServer {
                     },
                     {
                         "name": "search",
-                        "description": "BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Returns a codemap when many files match, per-file symbols with line ranges when few. Set caller_context=true to annotate each matched function (detail view only) with its depth-1 callers and callees, approximate and name-match only.",
+                        "description": "Symbol, definition, and concept lookup: BM25 keyword search over indexed symbols and docstrings; identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — symbols with line ranges and snippets, each matched function annotated with its depth-1 callers and callees (on by default; approximate, name-match only) — and remaining matches follow as a ranked one-line list.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string" },
-                                "caller_context": { "type": "boolean", "description": "Opt-in: annotate each matched function's detail snippet with its depth-1 callers/callees (approximate, name-match only). Detail view only; default off." }
+                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees (approximate, name-match only). Detail view only; on by default (config caller_context_default) — pass false to disable." }
                             },
                             "required": ["query"]
                         }
@@ -443,6 +449,7 @@ impl McpServer {
                     {
                         "name": "read",
                         "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -456,6 +463,7 @@ impl McpServer {
                     {
                         "name": "find",
                         "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -469,6 +477,7 @@ impl McpServer {
                     {
                         "name": "grep",
                         "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -508,10 +517,10 @@ impl McpServer {
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
-                        // Opt-in caller/callee context. Precedence: the per-call parameter,
-                        // when present, always wins (an explicit `false` overrides a repo-on
-                        // default); the repo-level config key only decides the default when
-                        // the parameter is omitted.
+                        // Caller/callee context (default on). Precedence: the per-call
+                        // parameter, when present, always wins (an explicit `false`
+                        // overrides the default); the repo-level config key only decides
+                        // the default when the parameter is omitted.
                         let caller_context_enabled = arguments
                             .get("caller_context")
                             .and_then(|v| v.as_bool())
@@ -552,72 +561,17 @@ impl McpServer {
                                 "_Last background index refresh failed: {err} — results may be stale._\n\n"
                             ));
                         }
-                        if results.len() > result_branch_threshold {
-                            // Codemap overview: matched files + the symbols that match the
-                            // query by name (name + kind, no source). The details-branch
-                            // fallback (all-symbols when the strict filter is empty) must NOT
-                            // leak here — otherwise a path/docstring match would dump every
-                            // symbol and defeat the overview's context-efficiency purpose.
-                            let query_terms: Vec<String> = query
-                                .to_lowercase()
-                                .split_whitespace()
-                                .map(|s| s.to_string())
-                                .collect();
-                            // Cap the overview file headers so a broad query (a directory
-                            // name, a common token) can't emit ~100 headers and blow the
-                            // agent's context budget. Config-driven (default 50).
-                            let search_overview_file_limit =
-                                crate::config::get().search_overview_file_limit;
-                            text.push_str(&format!(
-                                "## Codemap overview — {} matches\n",
-                                results.len()
-                            ));
-                            // The flag is on but the result landed in the overview branch
-                            // (token economy — never per-symbol annotated here). Emit a single
-                            // one-line notice so a broad query is never silently un-annotated.
-                            if caller_context_enabled {
-                                text.push_str(
-                                    "_Caller/callee context appears only in the detail view — narrow the query (≤ result_threshold matches) to see call annotations._\n",
-                                );
-                            }
-                            for res in results.iter().take(search_overview_file_limit) {
-                                text.push_str(&format!(
-                                    "### {} ({} lines)\n",
-                                    res.file_path, res.total_lines
-                                ));
-                                for sym in &res.matched_symbols {
-                                    let name_lower = sym.name.to_lowercase();
-                                    // Use the SAME criterion as the index symbol filter and
-                                    // the detail-view fallback (all query terms, over name ∪
-                                    // split-identifier ∪ docstring) so the overview and detail
-                                    // branches agree on which symbols count as matched.
-                                    let name_matches = query_terms.iter().all(|t| {
-                                        name_lower.contains(t.as_str())
-                                            || sym.docstring.as_ref().is_some_and(|d| {
-                                                d.to_lowercase().contains(t.as_str())
-                                            })
-                                            || crate::parser::split_identifier(&sym.name)
-                                                .iter()
-                                                .any(|sub| sub.to_lowercase().contains(t.as_str()))
-                                    });
-                                    if name_matches {
-                                        text.push_str(&format!(
-                                            "- {} ({}) [L{}-{}]\n",
-                                            sym.name,
-                                            sym.kind,
-                                            sym.range.start_line,
-                                            sym.range.end_line
-                                        ));
-                                    }
-                                }
-                            }
-                            if results.len() > search_overview_file_limit {
-                                text.push_str(&format!(
-                                    "\n_… {} more files not shown; refine the query or use overview/find to narrow._\n",
-                                    results.len() - search_overview_file_limit
-                                ));
-                            }
-                        } else {
+                        // Hybrid rendering: the top-ranked files (BM25 order) always get the
+                        // full detail view — snippets plus call context — and every match
+                        // beyond the threshold is appended as a compact, ranked one-line
+                        // list. A broad multi-word query thus still answers with usable
+                        // detail for its strongest hits instead of a wall of file headers
+                        // that forces a follow-up grep (the dominant agent-observed failure
+                        // mode of the old overview-only branch).
+                        let detail_results =
+                            &results[..results.len().min(result_branch_threshold)];
+                        let remaining_results = &results[detail_results.len()..];
+                        {
                             // Detail view: enclosing code scopes for the pinpointed files,
                             // bounded by config caps so a few large or fallback-matched files
                             // can't dump the whole tree into the agent's context.
@@ -628,22 +582,23 @@ impl McpServer {
                             let literal_max_len = cfg.search_literal_max_len;
                             let literal_limit = cfg.search_literal_limit;
 
-                            // Opt-in caller/callee context: one workspace scan across every
-                            // matched `fn` in the detail view, attributed off the codemap
+                            // Caller/callee context (default on): one workspace scan across
+                            // every matched `fn` in the detail view, attributed off the codemap
                             // snapshot + the Phase-A owner field. Any failure → `None` → the
                             // detail view renders exactly as today (failure isolation). The
                             // annotation byte budget is what is still free under `byte_cap`
                             // at this point (snippets keep priority, two-counter inside).
                             let caller_annotations = if caller_context_enabled {
                                 let snapshot = self.indexer.codemap_snapshot();
-                                let requests: Vec<crate::callers::AnnotationRequest<'_>> = results
-                                    .iter()
-                                    .map(|res| crate::callers::AnnotationRequest {
-                                        file_path: &res.file_path,
-                                        symbols: &res.matched_symbols,
-                                        is_fallback: res.symbol_fallback,
-                                    })
-                                    .collect();
+                                let requests: Vec<crate::callers::AnnotationRequest<'_>> =
+                                    detail_results
+                                        .iter()
+                                        .map(|res| crate::callers::AnnotationRequest {
+                                            file_path: &res.file_path,
+                                            symbols: &res.matched_symbols,
+                                            is_fallback: res.symbol_fallback,
+                                        })
+                                        .collect();
                                 let caller_cfg = crate::callers::CallerConfig {
                                     scan_cap: cfg.scan_cap,
                                     caller_list_cap: cfg.caller_list_cap,
@@ -667,7 +622,7 @@ impl McpServer {
                             };
 
                             let mut budget_hit = false;
-                            'files: for res in &results {
+                            'files: for res in detail_results {
                                 if text.len() >= byte_cap {
                                     budget_hit = true;
                                     break;
@@ -758,20 +713,29 @@ impl McpServer {
                                             );
                                             text.push_str(&format!("```\n{}\n```\n", capped));
                                         }
-                                        // Caller/callee annotation (opt-in): emitted AFTER the
-                                        // snippet (snippets keep priority) and only for matched
-                                        // `fn` symbols whose snippet we actually rendered. The
+                                        // Caller/callee annotation: emitted AFTER the snippet
+                                        // (snippets keep priority) and only for matched `fn`
+                                        // symbols whose snippet we actually rendered. The
                                         // annotation sub-budget was reserved up front against the
                                         // cap headroom BEFORE snippets were rendered, so re-check
-                                        // the LIVE remaining cap here and drop (never overflow) the
-                                        // note if snippets have since consumed that headroom — keeps
-                                        // snippets+annotations within `byte_cap`.
+                                        // the LIVE remaining cap here and degrade (never overflow)
+                                        // the note if snippets have since consumed that headroom —
+                                        // a one-line omission marker when it fits, nothing when
+                                        // even that would breach `byte_cap`.
                                         if let Some(annotations) = &caller_annotations {
                                             if let Some(note) =
                                                 annotations.get(&res.file_path, start)
                                             {
                                                 if text.len() + note.len() <= byte_cap {
                                                     text.push_str(note);
+                                                } else if text.len()
+                                                    + crate::callers::ANNOTATION_OMITTED_MARKER
+                                                        .len()
+                                                    <= byte_cap
+                                                {
+                                                    text.push_str(
+                                                        crate::callers::ANNOTATION_OMITTED_MARKER,
+                                                    );
                                                 }
                                             }
                                         }
@@ -803,6 +767,74 @@ impl McpServer {
                                 text.push_str(
                                     "\n_Detail view truncated at the output budget; refine the query or use overview/read to inspect specific files._\n",
                                 );
+                            }
+                        }
+
+                        // Ranked tail: one line per remaining match, strongest first, with
+                        // up to 3 name-matched symbols inline (same all-terms criterion as
+                        // the index symbol filter, so a path/docstring-only match shows a
+                        // bare header instead of leaking unrelated symbols). Count-capped by
+                        // `search_overview_file_limit` and byte-capped like the detail view.
+                        if !remaining_results.is_empty() {
+                            let tail_cfg = crate::config::get();
+                            let tail_file_limit = tail_cfg.search_overview_file_limit;
+                            let tail_byte_cap = tail_cfg.search_detail_byte_cap;
+                            let query_terms: Vec<String> = query
+                                .to_lowercase()
+                                .split_whitespace()
+                                .map(|s| s.to_string())
+                                .collect();
+                            text.push_str(&format!(
+                                "\n## Other matches — {} more files, ranked by relevance\n",
+                                remaining_results.len()
+                            ));
+                            let mut shown_tail = 0usize;
+                            for res in remaining_results.iter().take(tail_file_limit) {
+                                if text.len() >= tail_byte_cap {
+                                    break;
+                                }
+                                let mut symbol_notes: Vec<String> = Vec::new();
+                                for sym in &res.matched_symbols {
+                                    if symbol_notes.len() >= 3 {
+                                        break;
+                                    }
+                                    let name_lower = sym.name.to_lowercase();
+                                    let name_matches = query_terms.iter().all(|t| {
+                                        name_lower.contains(t.as_str())
+                                            || sym.docstring.as_ref().is_some_and(|d| {
+                                                d.to_lowercase().contains(t.as_str())
+                                            })
+                                            || crate::parser::split_identifier(&sym.name)
+                                                .iter()
+                                                .any(|sub| sub.to_lowercase().contains(t.as_str()))
+                                    });
+                                    if name_matches {
+                                        symbol_notes.push(format!(
+                                            "{} [L{}-{}]",
+                                            sym.name, sym.range.start_line, sym.range.end_line
+                                        ));
+                                    }
+                                }
+                                if symbol_notes.is_empty() {
+                                    text.push_str(&format!(
+                                        "- {} ({} lines)\n",
+                                        res.file_path, res.total_lines
+                                    ));
+                                } else {
+                                    text.push_str(&format!(
+                                        "- {} ({} lines) — {}\n",
+                                        res.file_path,
+                                        res.total_lines,
+                                        symbol_notes.join(", ")
+                                    ));
+                                }
+                                shown_tail += 1;
+                            }
+                            if remaining_results.len() > shown_tail {
+                                text.push_str(&format!(
+                                    "- _… {} more files not shown; refine the query to narrow._\n",
+                                    remaining_results.len() - shown_tail
+                                ));
                             }
                         }
 

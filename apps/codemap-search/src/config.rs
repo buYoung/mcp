@@ -107,18 +107,19 @@ const CONFIG_TEMPLATE: &str = "\
 # search_literal_max_len = 200           # matched-literal truncation length (chars)
 # search_literal_limit = 10              # max matched literals rendered per file
 
-# Opt-in caller/callee context for the `search` detail view. When the `caller_context`
-# request parameter is omitted, this key decides the default; an explicit parameter always
-# wins. The feature annotates each matched `fn` symbol's snippet with its depth-1 callers
-# and callees (name-match only, approximate). Default off.
-# caller_context_default = false
+# Caller/callee context for the `search` detail view. When the `caller_context` request
+# parameter is omitted, this key decides the default; an explicit parameter always wins.
+# The feature annotates each matched `fn` symbol's snippet with its depth-1 callers and
+# callees (name-match only, approximate). Default on; set false (or pass
+# caller_context=false per call) to disable.
+# caller_context_default = true
 
 # Caps for the caller/callee annotation (all output-size / cost bounds, tunable).
 # scan_cap = 500               # max call sites collected across the single combined-regex walk
 # caller_list_cap = 5          # max callers (or non-call references) rendered per symbol
 # callee_list_cap = 5          # max callees rendered per symbol
-# annotation_sub_budget = 4096 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)
-# common_name_threshold = 2    # a name with ≥ this many fn defs is suppressed (callers) / labeled ambiguous (callees)
+# annotation_sub_budget = 8192 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)
+# common_name_threshold = 2    # a name with ≥ this many fn defs gets its callers/callees labeled ambiguous
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -197,9 +198,9 @@ pub struct ResolvedConfig {
     pub search_literal_max_len: usize,
     /// `search` per-file matched-literal count cap (default 10). Output-size only.
     pub search_literal_limit: usize,
-    /// Repo-level default for the opt-in caller/callee context (default false). The
-    /// per-call `caller_context` parameter, when supplied, always overrides this; the key
-    /// only decides the default when the parameter is omitted.
+    /// Repo-level default for the caller/callee context (default true). The per-call
+    /// `caller_context` parameter, when supplied, always overrides this; the key only
+    /// decides the default when the parameter is omitted.
     pub caller_context_default: bool,
     /// Max call sites collected across the single combined-regex caller scan (default 500).
     /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
@@ -208,13 +209,13 @@ pub struct ResolvedConfig {
     pub caller_list_cap: usize,
     /// Per-symbol callee-list cap (default 5). Output-size only.
     pub callee_list_cap: usize,
-    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 4096). A
+    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 8192). A
     /// sub-limit, not an allowance added on top — snippets keep priority; annotations stop
     /// when either this or the remaining overall cap is exhausted.
     pub annotation_sub_budget: usize,
     /// Common-name threshold (default 2): a name with this many `fn` definitions in the
-    /// snapshot has its callers suppressed (grep-deferral hint) and its callee occurrences
-    /// labeled target-ambiguous.
+    /// snapshot has its caller list and callee occurrences labeled attribution-ambiguous
+    /// (still rendered, never suppressed).
     pub common_name_threshold: usize,
 }
 
@@ -242,11 +243,11 @@ impl Default for ResolvedConfig {
             search_detail_byte_cap: 32_768,
             search_literal_max_len: 200,
             search_literal_limit: 10,
-            caller_context_default: false,
+            caller_context_default: true,
             scan_cap: 500,
             caller_list_cap: 5,
             callee_list_cap: 5,
-            annotation_sub_budget: 4096,
+            annotation_sub_budget: 8192,
             common_name_threshold: 2,
         }
     }
@@ -677,12 +678,12 @@ mod tests {
         assert_eq!(cfg.max_file_size, crate::tools::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
-        // Caller/callee context keys default to the brief's starting values.
-        assert!(!cfg.caller_context_default);
+        // Caller/callee context: annotation on by default, caps at their tuned values.
+        assert!(cfg.caller_context_default);
         assert_eq!(cfg.scan_cap, 500);
         assert_eq!(cfg.caller_list_cap, 5);
         assert_eq!(cfg.callee_list_cap, 5);
-        assert_eq!(cfg.annotation_sub_budget, 4096);
+        assert_eq!(cfg.annotation_sub_budget, 8192);
         assert_eq!(cfg.common_name_threshold, 2);
     }
 
@@ -692,15 +693,18 @@ mod tests {
         let global = tempdir().unwrap();
         write_repo_config(
             repo.path(),
-            "caller_context_default = true\nscan_cap = 100\ncommon_name_threshold = 3\n",
+            "caller_context_default = false\nscan_cap = 100\ncommon_name_threshold = 3\n",
         );
         let cfg = load(repo.path(), global.path());
-        assert!(cfg.caller_context_default, "repo enables the default");
+        assert!(
+            !cfg.caller_context_default,
+            "repo disables the on-by-default annotation"
+        );
         assert_eq!(cfg.scan_cap, 100);
         assert_eq!(cfg.common_name_threshold, 3);
         // Untouched keys keep their defaults.
         assert_eq!(cfg.caller_list_cap, 5);
-        assert_eq!(cfg.annotation_sub_budget, 4096);
+        assert_eq!(cfg.annotation_sub_budget, 8192);
     }
 
     #[test]

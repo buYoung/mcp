@@ -48,8 +48,9 @@ async fn test_mcp_list_tools() {
 }
 
 #[tokio::test]
-async fn test_mcp_branching_list_view() {
-    // 6 matches (> threshold 5) => returns the codemap overview (no source spans)
+async fn test_mcp_branching_hybrid_view() {
+    // 6 matches (> threshold 5) => hybrid: the top 5 files render full detail (with source
+    // snippets), the 6th lands in the ranked tail as a one-liner without source.
     let temp = create_mock_repo(&[
         ("src/a.rs", "fn match_func() {}"),
         ("src/b.rs", "fn match_func() {}"),
@@ -75,18 +76,31 @@ async fn test_mcp_branching_list_view() {
         .unwrap();
 
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
-    // Codemap overview: lists matched files + symbol names, but no raw source spans.
-    assert!(text.contains("a.rs"));
-    assert!(text.contains("f.rs"));
-    assert!(text.contains("match_func")); // symbol name appears
-    assert!(!text.contains("fn match_func")); // but not the raw source line
+    assert_eq!(
+        text.matches("### File:").count(),
+        5,
+        "top-threshold files get the detail view: {text:?}"
+    );
+    assert!(
+        text.contains("fn match_func"),
+        "detail sections include source snippets: {text:?}"
+    );
+    assert!(
+        text.contains("Other matches — 1 more files"),
+        "the overflow match lands in the ranked tail: {text:?}"
+    );
+    assert!(
+        text.contains("match_func [L1-1]"),
+        "tail line carries the matched symbol with its range: {text:?}"
+    );
 }
 
 #[tokio::test]
-async fn test_mcp_overview_excludes_fallback_symbols() {
+async fn test_mcp_fallback_match_no_snippets_and_clean_tail() {
     // 6 files match the query via their shared path segment ("widgets"), NOT by symbol
-    // name. The detail-branch all-symbols fallback must not leak into the overview, so
-    // the overview lists the files but none of their (unrelated) symbol names.
+    // name. Hybrid view: the top 5 render as fallback detail — symbol names + ranges but
+    // never source snippets — and the ranked-tail line must stay bare (no unrelated
+    // symbols leaked, same all-terms criterion as the index symbol filter).
     let temp = create_mock_repo(&[
         ("widgets/w1.rs", "pub fn alpha() {}"),
         ("widgets/w2.rs", "pub fn beta() {}"),
@@ -112,13 +126,20 @@ async fn test_mcp_overview_excludes_fallback_symbols() {
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains("widgets/w1.rs"),
-        "overview should list matched files: {text:?}"
+        "matched files listed: {text:?}"
     );
-    // None of the unrelated symbol names should be dumped into the overview.
+    assert!(
+        !text.contains("pub fn"),
+        "fallback detail must not include source snippets: {text:?}"
+    );
+    let tail = text
+        .split("## Other matches")
+        .nth(1)
+        .expect("ranked tail present for the overflow match");
     for sym in ["alpha", "beta", "gamma", "delta", "epsilon", "zeta"] {
         assert!(
-            !text.contains(sym),
-            "overview leaked fallback symbol '{sym}': {text:?}"
+            !tail.contains(sym),
+            "ranked tail leaked fallback symbol '{sym}': {tail:?}"
         );
     }
 }
@@ -458,14 +479,44 @@ async fn test_caller_context_schema_is_optional() {
     );
 }
 
-/// With the flag off (omitted, repo default off) vs explicitly false, the detail output is
-/// byte-identical — and neither carries any caller annotation.
+/// The built-in default is ON: an omitted `caller_context` parameter annotates the detail
+/// view without any repo config.
 #[tokio::test]
-async fn test_caller_context_off_is_byte_identical() {
+async fn test_caller_context_default_on_annotates_when_omitted() {
     let temp = create_mock_repo(&[(
         "src/lib.rs",
         "pub fn callee() {}\npub fn target() {\n    callee();\n}\n",
     )])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target" }),
+            |t| t.contains("approximate") && !t.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let text = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("approximate"),
+        "default-on annotates with the parameter omitted: {text:?}"
+    );
+}
+
+/// With the repo config flipping the default OFF: omitted vs explicitly false detail output
+/// is byte-identical — and neither carries any caller annotation.
+#[tokio::test]
+async fn test_caller_context_repo_off_is_byte_identical() {
+    let temp = create_mock_repo(&[
+        (
+            "src/lib.rs",
+            "pub fn callee() {}\npub fn target() {\n    callee();\n}\n",
+        ),
+        // Repo config flips the default OFF (built-in default is on).
+        (".codemap/config.toml", "caller_context_default = false\n"),
+    ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
@@ -492,7 +543,7 @@ async fn test_caller_context_off_is_byte_identical() {
         .unwrap();
     assert_eq!(
         omitted_text, false_text,
-        "omitted and explicit-false must be byte-identical"
+        "omitted and explicit-false must be byte-identical under repo-off"
     );
     assert!(
         !omitted_text.contains("approximate"),
@@ -530,11 +581,12 @@ async fn test_caller_context_on_renders_callers_callees_qualified() {
     assert!(text.contains("src/lib.rs:5"), "caller file:line: {text}");
 }
 
-/// Flag on but the result lands in the codemap-overview branch (many matches): a single
-/// one-line notice appears, never per-symbol annotations.
+/// Flag on with a broad match (> threshold): the hybrid view renders the top files in
+/// detail and the rest as a ranked tail; fallback (path-matched) files are never annotated,
+/// so no caller annotation appears anywhere in this all-fallback result.
 #[tokio::test]
-async fn test_caller_context_overview_branch_notice() {
-    // 6 files share the path token "widgets" → overview branch (> result_threshold default 5).
+async fn test_caller_context_broad_match_hybrid_tail() {
+    // 6 files share the path token "widgets" (> result_threshold default 5).
     let temp = create_mock_repo(&[
         ("widgets/w1.rs", "pub fn a1() {}"),
         ("widgets/w2.rs", "pub fn a2() {}"),
@@ -549,18 +601,23 @@ async fn test_caller_context_overview_branch_notice() {
         .send_tool_until(
             "search",
             serde_json::json!({ "query": "widgets", "caller_context": true }),
-            |t| t.contains("Codemap overview"),
+            |t| t.contains("Other matches"),
         )
         .await
         .unwrap();
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(
-        text.contains("Codemap overview"),
-        "lands in overview branch: {text}"
+    assert_eq!(
+        text.matches("### File:").count(),
+        5,
+        "top-threshold files render detail sections: {text}"
     );
     assert!(
-        text.contains("only in the detail view"),
-        "one-line overview notice present: {text}"
+        text.contains("Other matches — 1 more files"),
+        "overflow match lands in the ranked tail: {text}"
+    );
+    assert!(
+        !text.contains("approximate"),
+        "fallback (path-matched) files are never call-annotated: {text}"
     );
 }
 

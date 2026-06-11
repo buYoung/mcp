@@ -3,8 +3,9 @@ use predicates::prelude::*;
 
 #[tokio::test]
 async fn test_config_threshold_override_changes_branching() {
-    // result_threshold = 1 means 2 matches (> 1) must return the codemap overview, where
-    // the default threshold of 5 would return file details. Proves config drives branching.
+    // result_threshold = 1 means 2 matches render hybrid: detail for the single top file,
+    // the other as a ranked-tail line — where the default threshold of 5 would render both
+    // in full detail. Proves config drives the detail/tail split.
     let temp = create_mock_repo(&[
         (".codemap/config.toml", "result_threshold = 1\n"),
         ("src/a.rs", "fn shared_branch_fn() {}"),
@@ -22,12 +23,13 @@ async fn test_config_threshold_override_changes_branching() {
         .unwrap();
     let text = res["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        text.contains("Codemap overview"),
-        "threshold=1 + 2 matches should branch to the overview: {text:?}"
+        text.contains("Other matches — 1 more files"),
+        "threshold=1 + 2 matches should push one match into the ranked tail: {text:?}"
     );
-    assert!(
-        !text.contains("fn shared_branch_fn"),
-        "overview must not include raw source: {text:?}"
+    assert_eq!(
+        text.matches("### File:").count(),
+        1,
+        "exactly one file gets the detail view at threshold=1: {text:?}"
     );
 }
 

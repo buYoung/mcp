@@ -1,4 +1,5 @@
-//! `callers` — opt-in caller/callee context for the `search` detail view.
+//! `callers` — caller/callee context for the `search` detail view (on by default,
+//! per-call `caller_context=false` or config `caller_context_default` to disable).
 //!
 //! Given the matched `fn` symbols of one file, this module performs a single
 //! combined-regex workspace scan (reusing [`crate::tools::build_walker`] + the
@@ -26,8 +27,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 /// Tunable caps for one annotation pass. Sourced from `config.rs` so a repo can retune
-/// them; defaults match the brief (scan_cap 500, list caps 5, sub-budget 4096, common
-/// threshold 2).
+/// them; defaults: scan_cap 500, list caps 5, sub-budget 8192, common threshold 2.
 #[derive(Debug, Clone, Copy)]
 pub struct CallerConfig {
     /// Global cap on total call sites collected across the combined regex (shared by all
@@ -39,8 +39,8 @@ pub struct CallerConfig {
     pub callee_list_cap: usize,
     /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (the two-counter limit).
     pub annotation_sub_budget: usize,
-    /// A name defined in ≥ this many snapshot symbols is "common": callers are suppressed
-    /// to a grep-deferral hint, callees are labeled target-ambiguous.
+    /// A name defined in ≥ this many snapshot symbols is "common": its caller list and
+    /// callee occurrences are labeled attribution-ambiguous (rendered, never suppressed).
     pub common_name_threshold: usize,
     /// Files larger than this (bytes) are skipped by the scan, matching the indexer's
     /// `collect_index_entry` size filter (config `max_file_size`).
@@ -244,6 +244,22 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
     Some(ScanResult {
         hits: all_hits,
         truncated,
+    })
+}
+
+/// Whether a hit falls inside the line range of ANY `fn` definition carrying `name` in the
+/// hit's own file. A definition header (`fn name(`) classifies as a call site, and a call
+/// inside a same-named body is (self-)recursion — both must be filtered from caller lists.
+/// For a unique name this is exactly the old own-range exclusion; for a common name it also
+/// covers the sibling definitions.
+fn is_within_same_named_fn(hit: &ScanHit, name: &str, index: &SymbolIndex<'_>) -> bool {
+    index.by_name.get(name).is_some_and(|defs| {
+        defs.iter().any(|(file, def)| {
+            def.kind == "fn"
+                && file.file_path == hit.file_path
+                && def.range.start_line <= hit.line_number
+                && hit.line_number <= def.range.end_line
+        })
     })
 }
 
@@ -461,6 +477,12 @@ fn callee_display(name: &str, index: &SymbolIndex<'_>) -> String {
     }
 }
 
+/// One-line stand-in emitted when a symbol's full annotation would overflow the remaining
+/// byte budget, so an omission is visible instead of silent. Also used by `mcp.rs` at the
+/// note-attach point when snippets have since consumed the overall-cap headroom.
+pub const ANNOTATION_OMITTED_MARKER: &str =
+    "  - _call-context annotation omitted (byte budget exhausted)_\n";
+
 /// The observation-scope caveat appended whenever a `fn` shows no discoverable callers —
 /// so a zero is never read as "dead code".
 const OBSERVATION_SCOPE_CAVEAT: &str =
@@ -502,101 +524,98 @@ fn render_symbol_annotation(
     // --- Callers. ---
     let own_def_count = *index.fn_def_counts.get(&sym.name).unwrap_or(&0);
     let is_common = own_def_count >= cfg.common_name_threshold;
-    if is_common {
-        // Common matched name: caller sites could belong to any same-named def — defer.
-        out.push_str(&format!(
-            "  - _callers: `{}` has {} definitions — too ambiguous to attribute; grep `{}(` to inspect call sites (approximate)._\n",
-            sym.name, own_def_count, sym.name
-        ));
-    } else {
-        // Map this name's call-site hits to their enclosing fn.
-        let mut caller_entries: Vec<String> = Vec::new();
-        let mut seen_callers: HashSet<String> = HashSet::new();
-        for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
-            // Exclude the symbol's own definition line and self-recursion within its body.
-            if hit.file_path == file_path
-                && hit.line_number >= sym.range.start_line
-                && hit.line_number <= sym.range.end_line
-            {
+    // Map this name's call-site hits to their enclosing fn.
+    let mut caller_entries: Vec<String> = Vec::new();
+    let mut seen_callers: HashSet<String> = HashSet::new();
+    for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
+        // Exclude hits inside ANY same-named `fn` definition's range: a definition header
+        // (`fn name(`) classifies as a call, and a call within a same-named body is
+        // (self-)recursion — neither is a caller. Covers the symbol's own range and, for
+        // common names, every sibling definition.
+        if is_within_same_named_fn(hit, &sym.name, index) {
+            continue;
+        }
+        let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
+        let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
+            Some(encl) => {
+                let qn = qualified_name(encl, &file.unwrap().file_path);
+                format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
+            }
+            None => {
+                // File absent from snapshot, or line in no symbol range → never drop.
+                format!(
+                    "{}:{} (top-level/unindexed)",
+                    hit.file_path, hit.line_number
+                )
+            }
+        };
+        if seen_callers.insert(entry.clone()) {
+            caller_entries.push(entry);
+        }
+    }
+    if caller_entries.is_empty() {
+        // No direct callers: surface non-call references (the dead-code antidote), then
+        // always the observation-scope caveat — never a bare "0 callers".
+        let mut refs: Vec<String> = Vec::new();
+        let mut seen_refs: HashSet<String> = HashSet::new();
+        for hit in scan.hits.iter().filter(|h| h.name == sym.name && !h.is_call) {
+            // Exclude references inside same-named definition ranges and import/use lines.
+            if is_within_same_named_fn(hit, &sym.name, index) {
                 continue;
             }
-            let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
-            let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
-                Some(encl) => {
-                    // Skip self-recursion attributed to the same symbol+location.
-                    let qn = qualified_name(encl, &file.unwrap().file_path);
-                    format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
-                }
-                None => {
-                    // File absent from snapshot, or line in no symbol range → never drop.
-                    format!(
-                        "{}:{} (top-level/unindexed)",
-                        hit.file_path, hit.line_number
-                    )
-                }
-            };
-            if seen_callers.insert(entry.clone()) {
-                caller_entries.push(entry);
+            let hit_ext = extension_of(&hit.file_path);
+            if is_import_line(&hit.line_text, hit_ext) {
+                continue;
+            }
+            let entry = format!(
+                "{}:{}: `{}`",
+                hit.file_path,
+                hit.line_number,
+                hit.line_text.trim()
+            );
+            if seen_refs.insert(entry.clone()) {
+                refs.push(entry);
+            }
+            if refs.len() >= cfg.caller_list_cap {
+                break;
             }
         }
-        if caller_entries.is_empty() {
-            // No direct callers: surface non-call references (the dead-code antidote), then
-            // always the observation-scope caveat — never a bare "0 callers".
-            let mut refs: Vec<String> = Vec::new();
-            let mut seen_refs: HashSet<String> = HashSet::new();
-            for hit in scan.hits.iter().filter(|h| h.name == sym.name && !h.is_call) {
-                // Exclude the symbol's own definition range and import/use lines.
-                if hit.file_path == file_path
-                    && hit.line_number >= sym.range.start_line
-                    && hit.line_number <= sym.range.end_line
-                {
-                    continue;
-                }
-                let hit_ext = extension_of(&hit.file_path);
-                if is_import_line(&hit.line_text, hit_ext) {
-                    continue;
-                }
-                let entry = format!(
-                    "{}:{}: `{}`",
-                    hit.file_path,
-                    hit.line_number,
-                    hit.line_text.trim()
-                );
-                if seen_refs.insert(entry.clone()) {
-                    refs.push(entry);
-                }
-                if refs.len() >= cfg.caller_list_cap {
-                    break;
-                }
-            }
-            if refs.is_empty() {
-                out.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
-            } else {
-                out.push_str(
-                    "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
-                );
-                for r in refs {
-                    out.push_str(&format!("    - {r}\n"));
-                }
-            }
+        if refs.is_empty() {
+            out.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
         } else {
-            let shown = caller_entries.len().min(cfg.caller_list_cap);
+            out.push_str(
+                "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
+            );
+            for r in refs {
+                out.push_str(&format!("    - {r}\n"));
+            }
+        }
+    } else {
+        let shown = caller_entries.len().min(cfg.caller_list_cap);
+        if is_common {
+            // Common matched name: a name-match scan cannot tell which definition each
+            // site targets — render the list anyway, labeled, instead of suppressing it.
+            out.push_str(&format!(
+                "  - _callers (approximate, name-match only; `{}` has {} definitions — call sites may target any of them):_\n",
+                sym.name, own_def_count
+            ));
+        } else {
             out.push_str("  - _callers (approximate, name-match only):_\n");
-            for entry in caller_entries.iter().take(shown) {
-                out.push_str(&format!("    - {entry}\n"));
-            }
-            if caller_entries.len() > shown {
-                out.push_str(&format!(
-                    "    - _… {} more not shown._\n",
-                    caller_entries.len() - shown
-                ));
-            }
-            if scan.truncated {
-                out.push_str(&format!(
-                    "    - _(caller scan truncated at {} sites — list may be incomplete)_\n",
-                    cfg.scan_cap
-                ));
-            }
+        }
+        for entry in caller_entries.iter().take(shown) {
+            out.push_str(&format!("    - {entry}\n"));
+        }
+        if caller_entries.len() > shown {
+            out.push_str(&format!(
+                "    - _… {} more not shown._\n",
+                caller_entries.len() - shown
+            ));
+        }
+        if scan.truncated {
+            out.push_str(&format!(
+                "    - _(caller scan truncated at {} sites — list may be incomplete)_\n",
+                cfg.scan_cap
+            ));
         }
     }
 
@@ -624,8 +643,12 @@ fn render_symbol_annotation(
     }
 
     if out.len() > byte_budget {
-        // Annotation would overflow the remaining budget — drop it (snippets keep priority)
-        // and let the caller fall back to nothing rather than emit a partial line.
+        // Annotation would overflow the remaining budget — degrade to a one-line marker
+        // when even that fits (a visible omission, never a silent one), else drop entirely.
+        // Snippets keep priority either way; never emit a partial line.
+        if ANNOTATION_OMITTED_MARKER.len() <= byte_budget {
+            return Some(ANNOTATION_OMITTED_MARKER.to_string());
+        }
         return None;
     }
     Some(out)
@@ -952,9 +975,11 @@ mod tests {
     }
 
     #[test]
-    fn test_callee_ambiguity_label_vs_caller_suppression() {
+    fn test_callee_and_caller_ambiguity_labels_for_common_name() {
         // `make` has two fn defs → as a callee it is labeled target-ambiguous (still shown);
-        // as a MATCHED name its callers are suppressed to a grep-deferral hint.
+        // as a MATCHED name its callers are rendered with an attribution-ambiguity label —
+        // never suppressed. The sibling definition's own header line must not appear as a
+        // caller (it classifies as `make(` but sits inside a same-named def range).
         let (_dir, root) = write_repo(&[(
             "amb.rs",
             "pub fn make() {}\npub fn make() {}\npub fn user() {\n    make();\n}\n",
@@ -979,11 +1004,19 @@ mod tests {
             user_text.contains("make (2 defs, target ambiguous)"),
             "callee target-ambiguity label: {user_text}"
         );
-        // Caller side: annotating `make` itself → suppressed to a grep-deferral hint.
+        // Caller side: annotating `make` itself → callers listed with an ambiguity label.
         let make_text = note(&ann, "amb.rs", 1);
         assert!(
-            make_text.contains("definitions") && make_text.contains("grep"),
-            "common matched name → grep-deferral hint: {make_text}"
+            make_text.contains("has 2 definitions"),
+            "common matched name → attribution-ambiguity label: {make_text}"
+        );
+        assert!(
+            make_text.contains("user (amb.rs:4)"),
+            "the real call site is still listed: {make_text}"
+        );
+        assert!(
+            !make_text.contains("amb.rs:2"),
+            "sibling definition header must not be listed as a caller: {make_text}"
         );
     }
 

@@ -19,37 +19,36 @@ async fn test_cross_bm25_mcp_branching() {
 
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
-    // 2. Call search via MCP (>= 5 matches -> list view)
+    // 2. Call search via MCP (6 matches > threshold 5 -> hybrid: 5 detail + 1 ranked tail).
+    //    Poll until the initial index covers all 6 files (the tail line appears).
     let res_large = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "search",
-                "arguments": { "query": "query_func" }
-            }),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "query_func" }), |t| {
+            t.contains("Other matches — 1 more files")
+        })
         .await
         .unwrap();
 
     let text_large = res_large["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text_large.contains("a.rs"));
-    assert!(!text_large.contains("fn query_func"));
+    assert_eq!(text_large.matches("### File:").count(), 5);
+    assert!(text_large.contains("fn query_func")); // detail sections carry source
 
     // 3. Remove files to make < 5 matches
     fs::remove_file(temp.path().join("src/e.rs")).unwrap();
     fs::remove_file(temp.path().join("src/f.rs")).unwrap();
 
-    // 4. Call search again via MCP (< 5 matches -> scope view). Poll until the deletions
-    //    are reflected by a background refresh (scope view emits the source `fn query_func`).
+    // 4. Call search again via MCP (4 matches ≤ threshold -> all-detail, no tail). Poll
+    //    until the deletions are reflected by a background refresh (the tail disappears).
     let res_small = client
         .send_tool_until("search", serde_json::json!({ "query": "query_func" }), |t| {
-            t.contains("fn query_func")
+            !t.contains("Other matches") && t.contains("fn query_func")
         })
         .await
         .unwrap();
 
     let text_small = res_small["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text_small.contains("fn query_func"));
+    assert_eq!(text_small.matches("### File:").count(), 4);
 }
 
 #[test]
