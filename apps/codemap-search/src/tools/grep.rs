@@ -125,12 +125,21 @@ fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>,
 pub fn grep(args: &Value) -> Result<String, (i64, String)> {
     let pattern = arg_required_str(args, "pattern")?;
     let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-    let glob_opt = args.get("glob").and_then(|v| v.as_str());
+    // Accept `include`/`file_pattern` as aliases for `glob`: agents were observed sending both,
+    // and a wrong key was silently ignored → an unintended whole-repo search. Canonical wins;
+    // earlier aliases win over later ones.
+    let glob_opt = ["glob", "include", "file_pattern"]
+        .iter()
+        .find_map(|key| args.get(*key).and_then(|v| v.as_str()));
     let type_opt = args.get("type").and_then(|v| v.as_str());
+    // Default to `content` so a grep returns `file:line:text` with line numbers up front:
+    // agents overwhelmingly want the exact match location, and a file-list-only default
+    // sent them re-querying in loops to recover line numbers. `files_with_matches` stays
+    // available for cheap enumeration when only the set of matching files is needed.
     let output_mode = args
         .get("output_mode")
         .and_then(|v| v.as_str())
-        .unwrap_or("files_with_matches");
+        .unwrap_or("content");
     let case_insensitive = arg_bool(args, "-i", false);
     let multiline = arg_bool(args, "multiline", false);
     let show_line_numbers = arg_bool(args, "-n", true);

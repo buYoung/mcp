@@ -436,7 +436,7 @@ impl McpServer {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "path": { "type": "string", "description": "Empty/omitted = repo root overview; a folder path narrows; a file path shows that file's symbol details." },
+                                "path": { "type": "string", "description": "Empty/omitted = repo root overview; a folder path narrows; a file path shows that file's symbol details. Aliases 'file_path'/'file'/'query' are also accepted." },
                                 "format": { "type": "string", "description": "Optional output format (e.g. 'llms-txt')." }
                             }
                         }
@@ -461,9 +461,9 @@ impl McpServer {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "file_path": { "type": "string", "description": "Workspace-relative path to the file." },
-                                "offset": { "type": "integer", "description": "1-indexed start line (default 1)." },
-                                "limit": { "type": "integer", "description": "Max lines to read from offset." }
+                                "file_path": { "type": "string", "description": "Workspace-relative path to the file. Aliases 'path'/'file'/'query' are also accepted." },
+                                "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
+                                "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
                             },
                             "required": ["file_path"]
                         }
@@ -491,9 +491,9 @@ impl McpServer {
                             "properties": {
                                 "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.')." },
-                                "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands." },
+                                "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'files_with_matches'." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'content' — matching lines as 'file:line:text' with line numbers (via -n). Use 'files_with_matches' for a cheap file-list enumeration, or 'count' for per-file match counts." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
                                 "-A": { "type": "integer", "description": "Lines of context after each match." },
@@ -849,11 +849,14 @@ impl McpServer {
                         }))
                     }
                     "overview" => {
+                        // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
+                        // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
+                        // back to the ROOT overview, wasting agent turns. Earlier aliases win.
                         // An empty or "." path means the repo root overview, not a folder
                         // named "" — normalize so it renders the root view (Child 03).
-                        let path = arguments
-                            .get("path")
-                            .and_then(|v| v.as_str())
+                        let path = ["path", "file_path", "file", "query"]
+                            .iter()
+                            .find_map(|key| arguments.get(*key).and_then(|v| v.as_str()))
                             .filter(|p| !p.is_empty() && *p != ".");
                         let format = arguments.get("format").and_then(|v| v.as_str());
 

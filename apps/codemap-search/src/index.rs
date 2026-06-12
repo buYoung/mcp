@@ -100,9 +100,21 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// enum-constant extraction as kind `variant` — both require re-extraction. `v5` adds C,
 /// C++, and Assembly extraction: new extensions (`.c`, `.h`, `.cpp`, `.cc`, `.cxx`,
 /// `.hpp`, `.hh`, `.hxx`, `.s`, `.S`, `.asm`) now enter the filesystem walk and produce
-/// symbols; without the bump these files would remain unindexed from a v4 index. Each bump
-/// rebuilds exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v5-c-cpp-asm";
+/// symbols; without the bump these files would remain unindexed from a v4 index. `v6`
+/// corrects C++ extraction: reference-returning functions/methods (`T& f()`, `T& operator=`,
+/// `auto&& g()`) now extract a symbol (previously dropped); function-local vexing-parse
+/// declarations (`std::lock_guard lock(m);`) no longer leak as `fn` symbols; and inline
+/// in-class method definitions now honor the access specifier for the `exported` flag
+/// (private/protected inline methods are no longer reported as exported). All three change
+/// the extracted symbol set, so a re-extraction is required. `v7` makes an owned member's
+/// owner (enclosing-type) name searchable: the owner name and its split sub-tokens are now
+/// written into the symbol field alongside the member's own tokens, so an owner-qualified
+/// query (e.g. "StorageFactory get") retrieves and selects the owned member instead of only
+/// surfacing the class declaration or a same-named member of another type. This is an
+/// indexed-content change with NO new tantivy schema field — `Index::open_or_create` would
+/// happily reuse a v6 index without re-emitting the owner tokens — so the bump is what forces
+/// the one-time reindex that populates them. Each bump rebuilds exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v7-owner-tokens-indexed";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
@@ -514,6 +526,20 @@ impl TantivySearchEngine {
                 for token in sub_tokens {
                     doc.add_text(self.symbol_field, &token);
                 }
+                // Index the owner (enclosing type) name and its split sub-tokens into the
+                // SAME symbol field so a query carrying owner + member terms (e.g.
+                // "StorageFactory get") retrieves and selects this symbol. Short/common
+                // member names (`get`, `add`) have low IDF on their own; the owner tokens
+                // give the document the discriminating evidence it was missing. These are
+                // ordinary symbol-field terms, so they never outrank an exact name hit on
+                // another document — they only lift owner-qualified queries onto the owned
+                // symbol. (Matched-symbol selection mirrors this via `term_hits_symbol_name`.)
+                if let Some(ref owner) = sym.owner {
+                    doc.add_text(self.symbol_field, owner);
+                    for token in crate::parser::split_identifier(owner) {
+                        doc.add_text(self.symbol_field, &token);
+                    }
+                }
                 if let Some(ref docstring) = sym.docstring {
                     doc.add_text(self.docstring_field, docstring);
                 }
@@ -751,16 +777,25 @@ fn is_discriminative_name(name: &str) -> bool {
     name.len() >= 8 || crate::parser::split_identifier(name).len() >= 2
 }
 
-/// One query term hits a symbol's NAME when it appears in the raw name or any split
-/// sub-token of it. Name evidence is what gates the partial-coverage promotion: a
-/// docstring-only partial match must not unlock snippet rendering (observed: one file
-/// whose fn docstrings each grazed 3 of 5 query words rendered 11 snippets — 32KB —
-/// and starved the rest of the detail view).
+/// One query term hits a symbol's NAME when it appears in the raw name, any split sub-token
+/// of it, or — for owned members — the owner (enclosing-type) name or its sub-tokens. Name
+/// evidence is what gates the partial-coverage promotion: a docstring-only partial match must
+/// not unlock snippet rendering (observed: one file whose fn docstrings each grazed 3 of 5
+/// query words rendered 11 snippets — 32KB — and starved the rest of the detail view).
+/// Owner is folded in here (not just at index time) so an owner-qualified query like
+/// "StorageFactory get" actually SELECTS the owned `get` symbol for the detail snippet,
+/// matching the index-side owner tokens added to the symbol field.
 fn term_hits_symbol_name(sym: &ExtractedSymbol, term: &str) -> bool {
     sym.name.to_lowercase().contains(term)
         || crate::parser::split_identifier(&sym.name)
             .iter()
             .any(|t| t.contains(term))
+        || sym.owner.as_ref().is_some_and(|owner| {
+            owner.to_lowercase().contains(term)
+                || crate::parser::split_identifier(owner)
+                    .iter()
+                    .any(|t| t.contains(term))
+        })
 }
 
 /// One query term hits one symbol when it appears in the name, the docstring, or any

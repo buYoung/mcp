@@ -273,11 +273,26 @@ pub(crate) fn arg_bool(args: &serde_json::Value, key: &str, default: bool) -> bo
     args.get(key).and_then(|v| v.as_bool()).unwrap_or(default)
 }
 
-/// Read an unsigned-integer argument with a default.
+/// Coerce a JSON value to `usize`, accepting both a real `Value::Number` (`as_u64`) and a
+/// string-typed numeric like `"228"` (trim, then `parse::<u64>()`). Agents routinely send
+/// numerics as JSON strings — observed live in benchmark transcripts, where a string-typed
+/// `start_line`/`offset` was silently dropped and the whole file rendered. Anything that is
+/// neither a number nor a parseable numeric string yields `None`.
+pub(crate) fn lenient_usize(value: &serde_json::Value) -> Option<usize> {
+    if let Some(n) = value.as_u64() {
+        return Some(n as usize);
+    }
+    value
+        .as_str()
+        .and_then(|s| s.trim().parse::<u64>().ok())
+        .map(|n| n as usize)
+}
+
+/// Read an unsigned-integer argument with a default. Uses [`lenient_usize`] so a string-typed
+/// numeric (e.g. grep's `head_limit: "10"`) coerces instead of falling back to the default.
 pub(crate) fn arg_usize(args: &serde_json::Value, key: &str, default: usize) -> usize {
     args.get(key)
-        .and_then(|v| v.as_u64())
-        .map(|n| n as usize)
+        .and_then(lenient_usize)
         .unwrap_or(default)
 }
 

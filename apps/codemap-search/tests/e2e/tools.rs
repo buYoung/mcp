@@ -111,6 +111,59 @@ async fn test_read_offset_and_limit() {
         out.contains("rm -rf"),
         "should be the second line content: {out:?}"
     );
+
+    // The 1-based inclusive start_line/end_line aliases must produce the same window
+    // (offset = start_line, limit = end_line - start_line + 1).
+    let aliased = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({ "path": "src/core.rs", "start_line": 2, "end_line": 2 }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        text(&aliased),
+        out,
+        "start_line/end_line + path aliases should match offset/limit + file_path output"
+    );
+
+    // Agents idiomatically send numerics as JSON strings; string-typed start_line/end_line
+    // must coerce (not silently drop and render the whole file).
+    let string_typed = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({ "file_path": "src/core.rs", "start_line": "2", "end_line": "2" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        text(&string_typed),
+        out,
+        "string-typed start_line/end_line must coerce to the same window"
+    );
+
+    // The shorter 'start'/'end' aliases (also string-typed) resolve identically.
+    let start_end = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({ "file_path": "src/core.rs", "start": "2", "end": "2" }),
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        text(&start_end),
+        out,
+        "string-typed start/end aliases must coerce to the same window"
+    );
 }
 
 #[tokio::test]
@@ -267,7 +320,7 @@ async fn test_find_path_param_escape_is_rejected() {
 // ---- grep ----------------------------------------------------------------
 
 #[tokio::test]
-async fn test_grep_files_with_matches_default() {
+async fn test_grep_content_is_default_mode() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
@@ -278,11 +331,11 @@ async fn test_grep_files_with_matches_default() {
         .await
         .unwrap();
     let out = text(&resp);
+    // Default is now content mode: lines render as `file:line:text` with line numbers.
     assert!(
-        out.starts_with("Found "),
-        "files_with_matches header expected: {out:?}"
+        out.lines().any(|l| l.starts_with("src/util.rs:") && l.contains("TODO")),
+        "content line format `file:line:text` expected by default: {out:?}"
     );
-    assert!(out.contains("src/util.rs"), "{out:?}");
     assert!(
         !out.contains("ignored/secret.rs"),
         "ignored files must not be searched: {out:?}"
@@ -363,21 +416,46 @@ async fn test_grep_type_filter() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     // 'TODO' appears in README.md and src/util.rs; type=rust restricts to .rs only.
+    // Use files_with_matches here so the cheap enumeration mode stays covered after the
+    // default flipped to content.
     let resp = client
         .send_request(
             "tools/call",
             call(
                 "grep",
-                serde_json::json!({ "pattern": "TODO", "type": "rust" }),
+                serde_json::json!({ "pattern": "TODO", "type": "rust", "output_mode": "files_with_matches" }),
             ),
         )
         .await
         .unwrap();
     let out = text(&resp);
+    assert!(
+        out.starts_with("Found "),
+        "files_with_matches header expected: {out:?}"
+    );
     assert!(out.contains("src/util.rs"), "{out:?}");
     assert!(
         !out.contains("README.md"),
         "type=rust must exclude markdown: {out:?}"
+    );
+
+    // `include` is an alias for `glob` (agents send both); a `*.rs` filter must restrict the
+    // same way `type=rust` did, never silently degrading to a whole-repo search.
+    let via_include = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({ "pattern": "TODO", "include": "*.rs", "output_mode": "files_with_matches" }),
+            ),
+        )
+        .await
+        .unwrap();
+    let include_out = text(&via_include);
+    assert!(include_out.contains("src/util.rs"), "{include_out:?}");
+    assert!(
+        !include_out.contains("README.md"),
+        "include='*.rs' must exclude markdown: {include_out:?}"
     );
 }
 

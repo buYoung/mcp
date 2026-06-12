@@ -382,6 +382,17 @@ const CPP_QUERY_STR: &str = r#"
 (declaration
   declarator: (function_declarator)) @symbol.cfn
 
+;; Reference-returning prototypes / method declarations: `T& f();`, `T&& g();`. The
+;; `declarator` field is a `reference_declarator` wrapping the `function_declarator`
+;; (tree-sitter-cpp 0.23.4). The definition form is already covered by `(function_definition)`;
+;; only the prototype/declaration forms need these explicit patterns. The `@symbol.cfn` arm
+;; peels the reference layer via `c_declarator_name`.
+(field_declaration
+  declarator: (reference_declarator (function_declarator))) @symbol.cfn
+
+(declaration
+  declarator: (reference_declarator (function_declarator))) @symbol.cfn
+
 ;; Class specifier with a simple type_identifier name (skip template specializations).
 (class_specifier
   name: (type_identifier) @symbol.name) @symbol.class
@@ -1212,6 +1223,9 @@ fn go_receiver_owner(method_node: Node, source: &[u8]) -> Option<String> {
 /// of a `function_definition` or `declaration` (with function_declarator) can be:
 ///   - `function_declarator` → `identifier`  (plain function)
 ///   - `pointer_declarator` → `function_declarator` → `identifier`  (pointer-returning fn)
+///   - `reference_declarator` → `function_declarator` → `identifier`  (reference-returning fn:
+///     `int& getref()`, `T& operator=(...)`, `auto&& fwd_ret()`). Unlike `pointer_declarator`,
+///     `reference_declarator` has NO `declarator` field; its inner declarator is a positional child.
 ///   - `function_declarator` → `qualified_identifier`  (C++ out-of-line member: `Foo::bar`)
 ///   - `function_declarator` → `operator_name`  (C++ operator overload: `operator<`)
 ///   - `function_declarator` → `destructor_name`  (C++ destructor: `~Ops`)
@@ -1227,14 +1241,15 @@ fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
             let inner = node.child_by_field_name("declarator")?;
             c_declarator_name(inner, source)
         }
-        "pointer_declarator" | "reference_declarator" | "abstract_function_declarator" => {
-            // Peel one pointer/ref layer, then recurse.
+        "pointer_declarator" | "abstract_function_declarator" => {
+            // Peel one pointer layer, then recurse. Both carry a `declarator` field.
             let inner = node.child_by_field_name("declarator")?;
             c_declarator_name(inner, source)
         }
-        "parenthesized_declarator" => {
-            // `parenthesized_declarator` has no `declarator` field (node-types.json confirmed);
-            // the inner declarator is a positional child. Walk named children to find it.
+        "reference_declarator" | "parenthesized_declarator" => {
+            // Neither node has a `declarator` field (tree-sitter-cpp 0.23.4 node-types.json
+            // confirmed: `reference_declarator` fields {}, `parenthesized_declarator` fields {}).
+            // The inner declarator is a positional named child. Walk named children to find it.
             for i in 0..node.child_count() {
                 let child = node.child(i as u32).unwrap();
                 if child.is_named() {
@@ -1344,9 +1359,31 @@ fn find_function_declarator(node: Node) -> Option<Node> {
     if node.kind() == "function_declarator" {
         return Some(node);
     }
-    // Peel pointer_declarator / parenthesized_declarator / reference_declarator.
+    // `pointer_declarator` / `abstract_function_declarator` carry a `declarator` field.
     if let Some(inner) = node.child_by_field_name("declarator") {
         return find_function_declarator(inner);
+    }
+    // `reference_declarator` and `parenthesized_declarator` have NO `declarator` field
+    // (tree-sitter-cpp 0.23.4 node-types.json confirmed); their inner declarator is a
+    // positional named child. Recurse over named children, but only into declarator-wrapper
+    // kinds — never `parameter_list` — so the walk cannot pick up a parameter's name.
+    if matches!(node.kind(), "reference_declarator" | "parenthesized_declarator") {
+        for i in 0..node.child_count() {
+            let child = node.child(i as u32).unwrap();
+            if matches!(
+                child.kind(),
+                "function_declarator"
+                    | "pointer_declarator"
+                    | "reference_declarator"
+                    | "parenthesized_declarator"
+                    | "array_declarator"
+                    | "attributed_declarator"
+            ) {
+                if let Some(found) = find_function_declarator(child) {
+                    return Some(found);
+                }
+            }
+        }
     }
     None
 }
@@ -1692,6 +1729,19 @@ impl CodeExtractor for TreeSitterExtractor {
                             continue;
                         }
 
+                        // C/C++: a function-local prototype-shaped `declaration` is a
+                        // vexing-parse local variable, not a function — e.g.
+                        // `std::lock_guard lock(spawn_mutex);` parses as a `declaration` whose
+                        // declarator is a `function_declarator`. These have no navigation value
+                        // and pollute the index (the captured "name" is the local variable).
+                        // Real `function_definition` nodes are a different kind and unaffected.
+                        if capture_name == "symbol.cfn"
+                            && node.kind() == "declaration"
+                            && is_inside_function(node, &["function_definition", "lambda_expression"])
+                        {
+                            continue;
+                        }
+
                         // C/C++: extract the function name from the declarator chain. The
                         // `symbol.name` capture does not fire for `symbol.cfn` nodes because the
                         // name is nested (not a direct field named `name`).
@@ -1921,14 +1971,22 @@ impl CodeExtractor for TreeSitterExtractor {
                                 "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx"
                             ) {
                                 // C++: function/declaration with `static` → file-local.
-                                // Class members: check access specifier. `field_declaration`
-                                // nodes are inside `field_declaration_list` whose parent is
-                                // `class_specifier` or `struct_specifier`.
-                                if node.kind() == "field_declaration" {
-                                    // In-class method declaration or data member.
+                                // Class members: check access specifier. In-class members are
+                                // inside a `field_declaration_list` whose parent is a
+                                // `class_specifier` or `struct_specifier`. They appear as
+                                // `field_declaration` (method prototype or data member) OR as
+                                // `function_definition` (inline method body). Both honor the
+                                // access specifier; the prev-sibling walk in
+                                // `cpp_member_is_exported` is position-based and works for either.
+                                let is_in_class_member = matches!(
+                                    node.kind(),
+                                    "field_declaration" | "function_definition"
+                                ) && node
+                                    .parent()
+                                    .is_some_and(|p| p.kind() == "field_declaration_list");
+                                if is_in_class_member {
                                     let exported = node
                                         .parent() // field_declaration_list
-                                        .filter(|fdl| fdl.kind() == "field_declaration_list")
                                         .and_then(|fdl| fdl.parent()) // class/struct_specifier
                                         .filter(|c| {
                                             matches!(
