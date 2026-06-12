@@ -214,6 +214,17 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             continue;
         }
         let p = entry.path();
+        // Default noise filter: skip minified web bundles (*.min.js/.css/.cjs/.mjs) — the
+        // file-level analogue of the junk-dir excludes, same bypass semantics. `include_ignored`
+        // reaches them; an explicit `glob` whitelist still has to match (a user globbing
+        // `*.min.js` is not asking for the noise filter to hide their target).
+        if !include_ignored && glob_matcher.is_none() {
+            if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                if super::is_minified_bundle(name) {
+                    continue;
+                }
+            }
+        }
         if let Some(ref gm) = glob_matcher {
             let rel = p.strip_prefix(&base).unwrap_or(p);
             // 명시적으로 지정된 단일 파일 `path`는 strip 결과가 빈 문자열이다. ripgrep은

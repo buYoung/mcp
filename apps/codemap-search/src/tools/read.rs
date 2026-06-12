@@ -2,7 +2,7 @@
 //! Code's Read tool so an agent can swap its built-in without surprises. Direct
 //! filesystem I/O, no index/engine dependency.
 
-use super::{lenient_usize, resolve_within_cwd};
+use super::{get_arg, lenient_usize, resolve_within_cwd};
 use serde_json::Value;
 
 /// When `limit` is omitted, refuse to read files larger than this so a single call
@@ -37,11 +37,13 @@ fn add_line_numbers(lines: &[&str], start_line: usize) -> String {
 
 /// Read the file path, accepting the idiomatic aliases `path`, `file`, and `query` when the
 /// canonical `file_path` is absent. Canonical wins when both are present; earlier aliases win
-/// over later ones. The error message names every accepted spelling so a wrong-param call
-/// self-corrects.
+/// over later ones. Each lookup is alias-tolerant ([`get_arg`]) so a camel/kebab/Pascal variant
+/// (`filePath`, `file-path`) resolves to its canonical parameter instead of being dropped — an
+/// exact spelling still wins over a normalized variant. The error message names every accepted
+/// spelling so a wrong-param call self-corrects.
 fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
     for key in ["file_path", "path", "file", "query"] {
-        if let Some(value) = args.get(key).and_then(|v| v.as_str()) {
+        if let Some(value) = get_arg(args, key).and_then(|v| v.as_str()) {
             return Ok(value);
         }
     }
@@ -62,9 +64,12 @@ fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
 /// alone sets offset only (no limit). A nonsensical `end < start` is clamped to a single line
 /// (`limit = 1`) rather than dropped, so the agent gets exactly the line it anchored on instead
 /// of an unbounded read. All values are coerced via [`lenient_usize`] so string-typed numerics
-/// (e.g. `"2"`) are honored rather than silently dropped (observed live in benchmark transcripts).
+/// (e.g. `"2"`) are honored rather than silently dropped, and each key is resolved through
+/// [`get_arg`] so camel/kebab/Pascal spellings (`startLine`, `end-line`) map to their canonical
+/// snake_case window parameter rather than being silently ignored (observed live in benchmark
+/// transcripts, where a camel `startLine` fell through and the whole file rendered).
 fn resolve_window_args(args: &Value) -> (Option<usize>, Option<usize>) {
-    let as_usize = |key: &str| args.get(key).and_then(lenient_usize);
+    let as_usize = |key: &str| get_arg(args, key).and_then(lenient_usize);
 
     let explicit_offset = as_usize("offset");
     let explicit_limit = as_usize("limit");

@@ -61,9 +61,9 @@ const CONFIG_TEMPLATE: &str = "\
 # live disk, so brief search staleness is corrected by the follow-up read. (default 5000)
 # index_staleness_ms = 5000
 
-# Max file headers `search` emits in its codemap-overview branch (when matches exceed
-# result_threshold). Caps the context a broad query can spend. (default 50)
-# search_overview_file_limit = 50
+# Max file headers `search` emits in its ranked-tail / codemap-overview branch (when
+# matches exceed result_threshold). Caps the context a broad query can spend. (default 12)
+# search_overview_file_limit = 12
 
 # Filesystem watcher: when true (the default), file changes refresh the index in the
 # background on their own and search/overview never trigger a tree walk. Set false to
@@ -106,6 +106,8 @@ const CONFIG_TEMPLATE: &str = "\
 # search_detail_byte_cap = 32768         # total detail-view byte budget (32 KiB) before cutoff
 # search_literal_max_len = 200           # matched-literal truncation length (chars)
 # search_literal_limit = 10              # max matched literals rendered per file
+# search_anchor_snippet_limit = 3        # max anchor symbols given a FULL snippet per file; further
+                                          # anchors (ranked lower) degrade to a ≤3-line signature
 
 # Caller/callee context for the `search` detail view. When the `caller_context` request
 # parameter is omitted, this key decides the default; an explicit parameter always wins.
@@ -120,6 +122,7 @@ const CONFIG_TEMPLATE: &str = "\
 # callee_list_cap = 5          # max callees rendered per symbol
 # annotation_sub_budget = 8192 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)
 # common_name_threshold = 2    # a name with ≥ this many fn defs gets its callers/callees labeled ambiguous
+# caller_omit_def_threshold = 5 # a matched fn name with ≥ this many defs omits its caller list (attribution unresolvable; grep pointer emitted instead)
 ";
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
@@ -149,9 +152,9 @@ pub struct ResolvedConfig {
     /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
     /// is corrected by the follow-up read/grep.
     pub index_staleness_ms: u64,
-    /// Max file headers `search` emits in its codemap-overview branch (default 50). Caps the
-    /// context a broad query can spend; pairs with `result_threshold`, which picks the
-    /// overview-vs-detail branch. Output-size only — safe to tune.
+    /// Max file headers `search` emits in its ranked-tail / codemap-overview branch
+    /// (default 12). Caps the context a broad query can spend; pairs with `result_threshold`,
+    /// which picks the overview-vs-detail branch. Output-size only — safe to tune.
     pub search_overview_file_limit: usize,
     /// Filesystem watcher toggle (default true). When the watcher runs and is healthy,
     /// changes refresh the index autonomously and `search`/`overview` never trigger a
@@ -198,6 +201,12 @@ pub struct ResolvedConfig {
     pub search_literal_max_len: usize,
     /// `search` per-file matched-literal count cap (default 10). Output-size only.
     pub search_literal_limit: usize,
+    /// `search` detail-view per-file anchor full-snippet cap (default 3). At most this many
+    /// anchor symbols in one detail file render a FULL snippet; anchors ranked beyond the cap
+    /// degrade to a ≤3-line signature (the Tier-2 abbreviation), not a one-line stub. A file
+    /// whose anchor count is at or below the cap is unaffected. Output-size only — it bounds
+    /// the snippet flood a broad query with a common name (`save`/`send`) can trigger.
+    pub search_anchor_snippet_limit: usize,
     /// Repo-level default for the caller/callee context (default true). The per-call
     /// `caller_context` parameter, when supplied, always overrides this; the key only
     /// decides the default when the parameter is omitted.
@@ -217,6 +226,12 @@ pub struct ResolvedConfig {
     /// snapshot has its caller list and callee occurrences labeled attribution-ambiguous
     /// (still rendered, never suppressed).
     pub common_name_threshold: usize,
+    /// Caller-omission threshold (default 5): a matched `fn` name with this many `fn`
+    /// definitions in the snapshot has its caller list replaced by a one-line omission note
+    /// (attribution is unresolvable by a name-match scan; a `grep "name("` pointer is given
+    /// instead). Stricter than `common_name_threshold`, which only labels the list — this
+    /// suppresses it. Callees are unaffected. Output-size / signal-quality only.
+    pub caller_omit_def_threshold: usize,
 }
 
 impl Default for ResolvedConfig {
@@ -231,7 +246,7 @@ impl Default for ResolvedConfig {
                 .collect(),
             use_git_exclude: true,
             index_staleness_ms: 5_000,
-            search_overview_file_limit: 50,
+            search_overview_file_limit: 12,
             watch: true,
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
@@ -243,12 +258,14 @@ impl Default for ResolvedConfig {
             search_detail_byte_cap: 32_768,
             search_literal_max_len: 200,
             search_literal_limit: 10,
+            search_anchor_snippet_limit: 3,
             caller_context_default: true,
             scan_cap: 500,
             caller_list_cap: 5,
             callee_list_cap: 5,
             annotation_sub_budget: 8192,
             common_name_threshold: 2,
+            caller_omit_def_threshold: 5,
         }
     }
 }
@@ -276,12 +293,14 @@ struct ConfigLayer {
     search_detail_byte_cap: Option<usize>,
     search_literal_max_len: Option<usize>,
     search_literal_limit: Option<usize>,
+    search_anchor_snippet_limit: Option<usize>,
     caller_context_default: Option<bool>,
     scan_cap: Option<usize>,
     caller_list_cap: Option<usize>,
     callee_list_cap: Option<usize>,
     annotation_sub_budget: Option<usize>,
     common_name_threshold: Option<usize>,
+    caller_omit_def_threshold: Option<usize>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -367,6 +386,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "search_literal_limit" => {
                 layer.search_literal_limit = as_positive_usize(&v, &key, path)
             }
+            "search_anchor_snippet_limit" => {
+                layer.search_anchor_snippet_limit = as_positive_usize(&v, &key, path)
+            }
             "caller_context_default" => {
                 layer.caller_context_default = as_bool(&v, &key, path)
             }
@@ -378,6 +400,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             }
             "common_name_threshold" => {
                 layer.common_name_threshold = as_positive_usize(&v, &key, path)
+            }
+            "caller_omit_def_threshold" => {
+                layer.caller_omit_def_threshold = as_positive_usize(&v, &key, path)
             }
             other => warn(&format!(
                 "unknown config key '{other}': {} — ignored",
@@ -463,6 +488,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .search_literal_limit
             .or(global.search_literal_limit)
             .unwrap_or(defaults.search_literal_limit),
+        search_anchor_snippet_limit: repo
+            .search_anchor_snippet_limit
+            .or(global.search_anchor_snippet_limit)
+            .unwrap_or(defaults.search_anchor_snippet_limit),
         caller_context_default: repo
             .caller_context_default
             .or(global.caller_context_default)
@@ -484,6 +513,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .common_name_threshold
             .or(global.common_name_threshold)
             .unwrap_or(defaults.common_name_threshold),
+        caller_omit_def_threshold: repo
+            .caller_omit_def_threshold
+            .or(global.caller_omit_def_threshold)
+            .unwrap_or(defaults.caller_omit_def_threshold),
     }
 }
 
@@ -678,6 +711,7 @@ mod tests {
         assert_eq!(cfg.max_file_size, crate::tools::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
+        assert_eq!(cfg.search_anchor_snippet_limit, 3);
         // Caller/callee context: annotation on by default, caps at their tuned values.
         assert!(cfg.caller_context_default);
         assert_eq!(cfg.scan_cap, 500);

@@ -44,6 +44,12 @@ pub struct CallerConfig {
     /// A name defined in ≥ this many snapshot symbols is "common": its caller list and
     /// callee occurrences are labeled attribution-ambiguous (rendered, never suppressed).
     pub common_name_threshold: usize,
+    /// A matched `fn` name defined in ≥ this many snapshot `fn`s has its caller list
+    /// SUPPRESSED (not merely labeled): a name-match scan cannot attribute call sites among
+    /// that many same-named definitions, so a labeled-but-confident list is noise. The
+    /// render emits a one-line omission note with the def count and a `grep` pointer instead.
+    /// Callees are unaffected. Stricter than `common_name_threshold`.
+    pub caller_omit_def_threshold: usize,
     /// Files larger than this (bytes) are skipped by the scan, matching the indexer's
     /// `collect_index_entry` size filter (config `max_file_size`).
     pub max_file_size: u64,
@@ -522,13 +528,81 @@ const OBSERVATION_SCOPE_CAVEAT: &str =
 direct `name(` calls; callbacks, higher-order/method-reference passing, macro-wrapped, and \
 event/dispatch calls are not counted; approximate)_";
 
+/// One matched `fn` symbol's annotation, kept in THREE separable parts so the P2 caller-block
+/// dedup can be applied at the actual emission point in render order (not here, in scan order).
+///
+/// Rendering layout is always `prefix` + (caller block) + `suffix`. The caller block is held
+/// apart from the fixed parts because only it is deduped: a later same-named symbol whose
+/// `caller_block` is byte-identical to one ALREADY EMITTED collapses to a "same as `name`
+/// above" back-reference. `prefix` (decorator/entry-point label) and `suffix` (callees) are
+/// never deduped. Holding the parts separate is what guarantees a "same as above" line is
+/// only ever emitted AFTER its referenced original block was actually printed — the original
+/// is chosen in render order at emission time, so a scan-order original that the renderer
+/// later drops (summary container, symbol cap, byte budget) can no longer leave a dangling
+/// back-reference (the live A/B "dangling `same as __iter__ above`" defect).
+#[derive(Debug, Clone)]
+struct SymbolAnnotation {
+    /// The matched symbol's name (dedup key for the caller block, per file).
+    name: String,
+    /// Decorator/entry-point label rendered before the caller block (may be empty).
+    prefix: String,
+    /// The caller list / omission note / observation caveat block. The only deduped part.
+    caller_block: String,
+    /// The depth-1 callee block rendered after the caller block (may be empty).
+    suffix: String,
+}
+
+impl SymbolAnnotation {
+    /// Total rendered length (the three parts emitted back-to-back). Used for the byte-budget
+    /// accounting in `annotate_results`, which reserves against the FULL (un-deduped) length —
+    /// the render-order dedup only ever emits this or LESS, so the reserved cap never overflows.
+    fn full_len(&self) -> usize {
+        self.prefix.len() + self.caller_block.len() + self.suffix.len()
+    }
+
+    /// Render in render order, deduping the caller block against `seen_caller_blocks` (a
+    /// per-file `name → already-emitted caller block` map owned by the renderer). When this
+    /// symbol's caller block byte-matches one already emitted for the same name, the caller
+    /// block collapses to a one-line back-reference; otherwise it renders in full. The fixed
+    /// `prefix` / `suffix` always render verbatim.
+    ///
+    /// The map is NOT mutated here: a full caller block is recorded as the back-reference
+    /// target only once the renderer confirms it actually emitted the text (the renderer may
+    /// still drop it for byte budget). The second tuple element is that record intent — the
+    /// `(name, caller block)` to insert on successful emission, or `None` when this render is
+    /// already a back-reference / has no caller block to record.
+    fn render(&self, seen_caller_blocks: &HashMap<String, String>) -> (String, Option<(String, String)>) {
+        let mut out = String::with_capacity(self.full_len());
+        out.push_str(&self.prefix);
+        let record = match seen_caller_blocks.get(&self.name) {
+            Some(prev) if *prev == self.caller_block && !self.caller_block.is_empty() => {
+                out.push_str(&format!("  - _callers: same as `{}` above_\n", self.name));
+                None
+            }
+            _ => {
+                out.push_str(&self.caller_block);
+                if self.caller_block.is_empty() {
+                    None
+                } else {
+                    Some((self.name.clone(), self.caller_block.clone()))
+                }
+            }
+        };
+        out.push_str(&self.suffix);
+        (out, record)
+    }
+}
+
 /// Build the full annotation block for ONE matched `fn` symbol. Returns `None` to omit the
 /// annotation entirely (e.g. byte budget already exhausted) — never an error.
 ///
 /// `byte_budget` is the bytes still available for THIS symbol's annotation: the lesser of
 /// the remaining `annotation_sub_budget` and the remaining `search_detail_byte_cap` space,
-/// computed by the caller (the two-counter). The returned string never exceeds it.
-#[allow(clippy::too_many_arguments)]
+/// computed by the caller (the two-counter). The full rendered length never exceeds it.
+///
+/// The caller block is returned UN-deduped (separated from the fixed prefix/suffix). The P2
+/// "same as above" collapse is deferred to [`SymbolAnnotation::render`] so it runs in the
+/// renderer's emission order over only the symbols actually emitted — see the type doc.
 fn render_symbol_annotation(
     sym: &ExtractedSymbol,
     file_path: &str,
@@ -538,23 +612,35 @@ fn render_symbol_annotation(
     cfg: &CallerConfig,
     byte_budget: usize,
     root: &Path,
-) -> Option<String> {
+) -> Option<SymbolAnnotation> {
     if byte_budget == 0 {
         return None;
     }
-    let mut out = String::new();
+    let mut prefix = String::new();
 
     // --- Decorator / attribute entry-point label (on-demand source re-read). ---
     let decorators = decorator_lines_above(file_path, sym.range.start_line, root);
     if !decorators.is_empty() {
-        out.push_str(&format!(
+        prefix.push_str(&format!(
             "  - _framework entry-point candidate (verbatim, approximate):_ `{}`\n",
             decorators.join(" ")
         ));
     }
 
-    // --- Callers. ---
+    // --- Callers (built into its own block so identical repeats can be deduped per file). ---
     let own_def_count = *index.fn_def_counts.get(&sym.name).unwrap_or(&0);
+    let mut caller_block = String::new();
+    // Too-many-definitions short-circuit: with this many same-named `fn`s, a name-match
+    // scan cannot attribute any call site to THIS definition, so even a labeled list would
+    // mislead. Suppress the caller list and point at `grep` for the real enumeration — never
+    // a false "no callers" (guard ④): the note states the omission, the cause, and the
+    // alternative. The callee section below still renders; the scan itself ran unchanged.
+    if own_def_count >= cfg.caller_omit_def_threshold {
+        caller_block.push_str(&format!(
+            "  - _callers omitted: `{}` has {} definitions — attribution ambiguous; use grep \"{}(\" to enumerate call sites_\n",
+            sym.name, own_def_count, sym.name
+        ));
+    } else {
     let is_common = own_def_count >= cfg.common_name_threshold;
     // Map this name's call-site hits to their enclosing fn.
     let mut caller_entries: Vec<String> = Vec::new();
@@ -614,18 +700,18 @@ fn render_symbol_annotation(
             }
         }
         if refs.is_empty() {
-            out.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
+            caller_block.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
         } else {
-            out.push_str(
+            caller_block.push_str(
                 "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
             );
             for r in refs {
-                out.push_str(&format!("    - {r}\n"));
+                caller_block.push_str(&format!("    - {r}\n"));
             }
         }
         // A truncated scan must never read as a confident zero.
         if scan_truncated {
-            out.push_str(
+            caller_block.push_str(
                 "    - _(caller scan hit its per-name hit cap — sites may have been missed)_\n",
             );
         }
@@ -634,64 +720,81 @@ fn render_symbol_annotation(
         if is_common {
             // Common matched name: a name-match scan cannot tell which definition each
             // site targets — render the list anyway, labeled, instead of suppressing it.
-            out.push_str(&format!(
+            caller_block.push_str(&format!(
                 "  - _callers (file:line positions exact; name-match attribution approximate — `{}` has {} definitions, call sites may target any of them):_\n",
                 sym.name, own_def_count
             ));
         } else {
-            out.push_str(
+            caller_block.push_str(
                 "  - _callers (file:line positions exact; name-match attribution approximate):_\n",
             );
         }
         for entry in caller_entries.iter().take(shown) {
-            out.push_str(&format!("    - {entry}\n"));
+            caller_block.push_str(&format!("    - {entry}\n"));
         }
         if caller_entries.len() > shown {
-            out.push_str(&format!(
+            caller_block.push_str(&format!(
                 "    - _… {} more not shown._\n",
                 caller_entries.len() - shown
             ));
         }
         if scan_truncated {
-            out.push_str(
+            caller_block.push_str(
                 "    - _(caller scan hit its per-name hit cap — list may be incomplete)_\n",
             );
         }
     }
+    } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
-    // --- Callees (always shown; labeled target-ambiguous at ≥ threshold defs). ---
+    // --- Callees (always shown; labeled target-ambiguous at ≥ threshold defs). Held in the
+    // fixed `suffix` part — never deduped, always rendered after the (possibly back-referenced)
+    // caller block. ---
+    let mut suffix = String::new();
     let callees = discover_callees(sym, file_path, &index.fn_names, root);
     if !callees.is_empty() {
-        out.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
+        suffix.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
         let shown = callees.len().min(cfg.callee_list_cap);
         for name in callees.iter().take(shown) {
             let def_count = *index.fn_def_counts.get(name).unwrap_or(&0);
             if def_count >= cfg.common_name_threshold {
-                out.push_str(&format!(
+                suffix.push_str(&format!(
                     "    - {name} ({def_count} defs, target ambiguous)\n"
                 ));
             } else {
-                out.push_str(&format!("    - {}\n", callee_display(name, index)));
+                suffix.push_str(&format!("    - {}\n", callee_display(name, index)));
             }
         }
         if callees.len() > shown {
-            out.push_str(&format!(
+            suffix.push_str(&format!(
                 "    - _… {} more not shown._\n",
                 callees.len() - shown
             ));
         }
     }
 
-    if out.len() > byte_budget {
-        // Annotation would overflow the remaining budget — degrade to a one-line marker
-        // when even that fits (a visible omission, never a silent one), else drop entirely.
-        // Snippets keep priority either way; never emit a partial line.
+    let annotation = SymbolAnnotation {
+        name: sym.name.clone(),
+        prefix,
+        caller_block,
+        suffix,
+    };
+    // Budget check against the FULL (un-deduped) length: the render-order dedup only ever
+    // emits this length or LESS, so reserving the full length keeps the cap safe. Over budget
+    // → degrade to the one-line marker when even that fits (a visible omission, never silent),
+    // else drop entirely. Snippets keep priority; never a partial line. The marker is carried
+    // as a self-contained `prefix` (no caller block, so it is never deduped or back-referenced).
+    if annotation.full_len() > byte_budget {
         if ANNOTATION_OMITTED_MARKER.len() <= byte_budget {
-            return Some(ANNOTATION_OMITTED_MARKER.to_string());
+            return Some(SymbolAnnotation {
+                name: sym.name.clone(),
+                prefix: ANNOTATION_OMITTED_MARKER.to_string(),
+                caller_block: String::new(),
+                suffix: String::new(),
+            });
         }
         return None;
     }
-    Some(out)
+    Some(annotation)
 }
 
 /// One matched-file's identity for annotation lookup: its workspace-relative path plus the
@@ -704,19 +807,71 @@ pub struct AnnotationRequest<'a> {
 }
 
 /// The opt-in scan/annotation result for a whole detail view. `annotations` maps
-/// `(file_path, symbol_start_line)` to its rendered annotation text. Performs EXACTLY ONE
-/// workspace walk across all matched `fn` names of all detail files. Returns `None` on any
+/// `(file_path, symbol_start_line)` to its (un-deduped) [`SymbolAnnotation`]. Performs EXACTLY
+/// ONE workspace walk across all matched `fn` names of all detail files. Returns `None` on any
 /// failure (the caller then renders the un-annotated detail view).
+///
+/// The P2 caller-block dedup is NOT applied here — it is applied by [`Self::render`] at the
+/// renderer's emission point, in render order, over only the symbols actually emitted (the
+/// renderer skips summary containers / cap overflow). This is what prevents a "same as `name`
+/// above" back-reference whose original block was never emitted (the live A/B dangling defect).
 pub struct DetailAnnotations {
-    annotations: HashMap<(String, usize), String>,
+    annotations: HashMap<(String, usize), SymbolAnnotation>,
+}
+
+/// Per-file caller-block dedup state owned by the renderer across one file's emitted symbols:
+/// `name → already-emitted caller block`. Construct one per detail file (the "same as above"
+/// back-reference only points within the same file), thread it through every
+/// [`DetailAnnotations::render`] / [`PreparedAnnotation::commit`] call for that file in
+/// emission order, then drop it.
+pub type CallerBlockDedup = HashMap<String, String>;
+
+/// A rendered-but-not-yet-committed annotation: the text to emit plus the dedup record intent.
+/// The renderer emits [`Self::text`] only if it fits the byte cap, then calls [`Self::commit`]
+/// to record the back-reference target — so a full caller block becomes a back-reference target
+/// for later same-named symbols ONLY when it was actually emitted (never when the renderer drops
+/// it for budget). This is what keeps every "same as `name` above" pointing at a printed block.
+pub struct PreparedAnnotation {
+    text: String,
+    record: Option<(String, String)>,
+}
+
+impl PreparedAnnotation {
+    /// The rendered annotation text (full caller block, or a back-reference, plus prefix/suffix).
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    /// Commit this annotation's caller block as the back-reference target for later same-named
+    /// symbols in the same file. Call ONLY after the text was actually emitted. A no-op when the
+    /// render was itself a back-reference or carried no caller block.
+    pub fn commit(self, seen: &mut CallerBlockDedup) {
+        if let Some((name, block)) = self.record {
+            seen.insert(name, block);
+        }
+    }
 }
 
 impl DetailAnnotations {
-    /// Look up the annotation for a specific symbol, if any.
-    pub fn get(&self, file_path: &str, start_line: usize) -> Option<&str> {
+    /// Prepare the annotation for a specific symbol AT ITS EMISSION POINT, deduping its caller
+    /// block against the symbols already emitted for this file (`seen`). Returns the prepared
+    /// text + record intent, or `None` when the symbol has no annotation. Callers MUST invoke
+    /// this exactly once per emitted symbol, in emission order, threading the SAME per-file
+    /// `seen` map and calling [`PreparedAnnotation::commit`] after emitting — so the first
+    /// EMITTED symbol of a name prints the full caller block and later same-named ones collapse
+    /// to a back-reference that always has a real original above it.
+    pub fn render(
+        &self,
+        file_path: &str,
+        start_line: usize,
+        seen: &CallerBlockDedup,
+    ) -> Option<PreparedAnnotation> {
         self.annotations
             .get(&(file_path.to_string(), start_line))
-            .map(|s| s.as_str())
+            .map(|ann| {
+                let (text, record) = ann.render(seen);
+                PreparedAnnotation { text, record }
+            })
     }
 }
 
@@ -750,9 +905,11 @@ pub fn annotate_results(
     names.dedup();
     let scan = scan_workspace(&names, cfg, root)?;
 
-    let mut annotations: HashMap<(String, usize), String> = HashMap::new();
+    let mut annotations: HashMap<(String, usize), SymbolAnnotation> = HashMap::new();
     // Two-counter: the annotation budget is the smaller of the sub-budget and the
-    // remaining overall-cap space; both deplete as annotations are emitted.
+    // remaining overall-cap space; both deplete as annotations are reserved. Reservation is
+    // against the FULL (un-deduped) length — the render-order dedup only ever emits that or
+    // less, so the reserved cap is never exceeded at emission time.
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
     for req in requests {
@@ -764,7 +921,7 @@ pub fn annotate_results(
             if budget == 0 {
                 break;
             }
-            if let Some(text) = render_symbol_annotation(
+            if let Some(annotation) = render_symbol_annotation(
                 sym,
                 req.file_path,
                 &scan,
@@ -774,9 +931,10 @@ pub fn annotate_results(
                 budget,
                 root,
             ) {
-                sub_remaining = sub_remaining.saturating_sub(text.len());
-                overall_remaining = overall_remaining.saturating_sub(text.len());
-                annotations.insert((req.file_path.to_string(), sym.range.start_line), text);
+                let reserved = annotation.full_len();
+                sub_remaining = sub_remaining.saturating_sub(reserved);
+                overall_remaining = overall_remaining.saturating_sub(reserved);
+                annotations.insert((req.file_path.to_string(), sym.range.start_line), annotation);
             }
         }
     }
@@ -831,6 +989,7 @@ mod tests {
             callee_list_cap: 5,
             annotation_sub_budget: 4096,
             common_name_threshold: 2,
+            caller_omit_def_threshold: 5,
             max_file_size: 1_048_576,
         }
     }
@@ -938,9 +1097,23 @@ mod tests {
         (dir, root)
     }
 
-    /// Look up one symbol's annotation from a `DetailAnnotations`.
-    fn note<'a>(ann: &'a DetailAnnotations, file_path: &str, start: usize) -> &'a str {
-        ann.get(file_path, start).unwrap_or("")
+    /// Render one symbol's annotation from a `DetailAnnotations` with a FRESH per-file dedup
+    /// map (so a single-symbol lookup always yields the full block, never a back-reference).
+    fn note(ann: &DetailAnnotations, file_path: &str, start: usize) -> String {
+        let mut seen = CallerBlockDedup::new();
+        ann.render(file_path, start, &seen)
+            .map(|prepared| {
+                let text = prepared.text().to_string();
+                prepared.commit(&mut seen);
+                text
+            })
+            .unwrap_or_default()
+    }
+
+    /// Whether a symbol has an annotation at all (the render-time analog of the old `get`).
+    fn has_note(ann: &DetailAnnotations, file_path: &str, start: usize) -> bool {
+        let seen = CallerBlockDedup::new();
+        ann.render(file_path, start, &seen).is_some()
     }
 
     #[test]
@@ -1161,7 +1334,7 @@ mod tests {
         // available_bytes = 10 → far below any annotation length → dropped entirely.
         let ann = annotate_results(&requests, &snapshot, &cfg(), 10, &root).unwrap();
         assert!(
-            ann.get("def.rs", 1).is_none(),
+            !has_note(&ann, "def.rs", 1),
             "annotation dropped when over budget"
         );
     }
@@ -1200,7 +1373,7 @@ mod tests {
             is_fallback: true, // fallback → skip
         }];
         let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
-        assert!(ann.get("def.rs", 1).is_none(), "fallback not annotated");
+        assert!(!has_note(&ann, "def.rs", 1), "fallback not annotated");
     }
 
     #[test]
@@ -1222,6 +1395,163 @@ mod tests {
         assert!(
             text.contains("no direct caller observed"),
             "self-recursion excluded from callers: {text}"
+        );
+    }
+
+    /// Render a sequence of `(file_path, start_line)` symbols through the SAME per-file dedup
+    /// map, in the given order — the exact emission contract the renderer (`mcp.rs`) follows:
+    /// `render` to get the prepared text, emit it, then `commit`. Returns the emitted text per
+    /// symbol (empty string when a symbol has no annotation). This is the test harness for the
+    /// P2 render-order dedup: it lets a test choose the emission order (and skip symbols that
+    /// the renderer would suppress) and assert the back-reference integrity.
+    fn render_in_order(
+        ann: &DetailAnnotations,
+        file_path: &str,
+        starts: &[usize],
+    ) -> Vec<String> {
+        let mut seen = CallerBlockDedup::new();
+        let mut out = Vec::new();
+        for &start in starts {
+            match ann.render(file_path, start, &seen) {
+                Some(prepared) => {
+                    let text = prepared.text().to_string();
+                    prepared.commit(&mut seen);
+                    out.push(text);
+                }
+                None => out.push(String::new()),
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn test_p2_dedup_full_block_before_back_reference_in_render_order() {
+        // Three same-named (< omit-threshold, so the list renders) `tick` fns sharing one caller
+        // `driver`. The FIRST emitted in render order must carry the full caller block; the next
+        // two collapse to "same as `tick` above". A back-reference must never appear before its
+        // original — the live A/B dangling defect.
+        let (_dir, root) = write_repo(&[(
+            "t.rs",
+            "pub fn tick() {}\npub fn tick() {}\npub fn tick() {}\npub fn driver() {\n    tick();\n}\n",
+        )]);
+        let snapshot = vec![file(
+            "t.rs",
+            vec![
+                sym("tick", "fn", 1, 1, None),
+                sym("tick", "fn", 2, 2, None),
+                sym("tick", "fn", 3, 3, None),
+                sym("driver", "fn", 4, 6, None),
+            ],
+        )];
+        let requests = vec![AnnotationRequest {
+            file_path: "t.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        // Emit in line order 1,2,3 (the renderer's outermost-first order).
+        let rendered = render_in_order(&ann, "t.rs", &[1, 2, 3]);
+        assert!(
+            rendered[0].contains("driver (t.rs:5)") && !rendered[0].contains("same as"),
+            "first emitted carries the full caller block: {:?}",
+            rendered[0]
+        );
+        assert!(
+            rendered[1].contains("same as `tick` above")
+                && rendered[2].contains("same as `tick` above"),
+            "later same-named symbols collapse to a back-reference: {rendered:?}"
+        );
+        // Integrity: no "same as above" is emitted before the full block (defect 1).
+        let first_back_ref = rendered.iter().position(|t| t.contains("same as"));
+        let first_full = rendered
+            .iter()
+            .position(|t| t.contains("driver (t.rs:5)") && !t.contains("same as"));
+        assert!(
+            first_full.is_some() && first_full < first_back_ref,
+            "the original full block precedes every back-reference: {rendered:?}"
+        );
+    }
+
+    #[test]
+    fn test_p2_dedup_promotes_full_block_when_first_symbol_is_skipped() {
+        // The renderer suppresses some symbols (summary containers, cap overflow). When the
+        // FIRST same-named symbol in line order is skipped, the next EMITTED one must render the
+        // full block — never a dangling back-reference (defects 1 & 3). Emulated by simply not
+        // emitting the L1 symbol: render only L2 then L3.
+        let (_dir, root) = write_repo(&[(
+            "t.rs",
+            "pub fn tick() {}\npub fn tick() {}\npub fn tick() {}\npub fn driver() {\n    tick();\n}\n",
+        )]);
+        let snapshot = vec![file(
+            "t.rs",
+            vec![
+                sym("tick", "fn", 1, 1, None),
+                sym("tick", "fn", 2, 2, None),
+                sym("tick", "fn", 3, 3, None),
+                sym("driver", "fn", 4, 6, None),
+            ],
+        )];
+        let requests = vec![AnnotationRequest {
+            file_path: "t.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        // L1 is "skipped" by the renderer (e.g. a summary container) → emit only L2, L3.
+        let rendered = render_in_order(&ann, "t.rs", &[2, 3]);
+        assert!(
+            rendered[0].contains("driver (t.rs:5)") && !rendered[0].contains("same as"),
+            "first EMITTED symbol (L2) carries the full block, not a dangling back-ref: {:?}",
+            rendered[0]
+        );
+        // And the common-name label is restored on that promoted full block (defect 3): with 3
+        // defs (≥ common_name_threshold 2) the label must carry the def count.
+        assert!(
+            rendered[0].contains("has 3 definitions"),
+            "common-name label present on the promoted full block: {:?}",
+            rendered[0]
+        );
+        assert!(
+            rendered[1].contains("same as `tick` above"),
+            "the later one back-references the now-emitted original: {rendered:?}"
+        );
+    }
+
+    #[test]
+    fn test_p3_omit_line_renders_in_render_order() {
+        // A name with ≥ caller_omit_def_threshold (5) defs: every symbol's caller block is the
+        // omission note. The FIRST emitted must show the full omit line (defect 2); the rest
+        // back-reference it (they are byte-identical). Even if the renderer skips the first
+        // line-order symbol, the omit line must still appear on the first EMITTED one.
+        let body = (0..6)
+            .map(|_| "pub fn poll() {}\n")
+            .collect::<String>();
+        let (_dir, root) = write_repo(&[("p.rs", &body)]);
+        let symbols: Vec<_> = (0..6)
+            .map(|i| sym("poll", "fn", i + 1, i + 1, None))
+            .collect();
+        let snapshot = vec![file("p.rs", symbols)];
+        let requests = vec![AnnotationRequest {
+            file_path: "p.rs",
+            symbols: &snapshot[0].symbols,
+            is_fallback: false,
+        }];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        // Skip the L1 symbol (renderer suppressed it); first emitted is L2.
+        let rendered = render_in_order(&ann, "p.rs", &[2, 3, 4]);
+        assert!(
+            rendered[0].contains("callers omitted: `poll` has 6 definitions"),
+            "P3 omit line on the first emitted symbol even when L1 is skipped: {:?}",
+            rendered[0]
+        );
+        assert!(
+            rendered[0].contains("use grep \"poll(\""),
+            "omit line keeps the grep pointer form: {:?}",
+            rendered[0]
+        );
+        assert!(
+            rendered[1].contains("same as `poll` above"),
+            "subsequent omit blocks (byte-identical) collapse to a back-reference: {rendered:?}"
         );
     }
 }

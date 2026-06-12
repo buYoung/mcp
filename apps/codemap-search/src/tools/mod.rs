@@ -39,6 +39,10 @@ pub const MAX_INDEXED_FILE_BYTES: u64 = 1_048_576;
 /// ignore file. Child 04 centralizes this and Child 05 makes it configurable.
 pub const EXCLUDED_DIRS: &[&str] = &[
     "node_modules",
+    // Yarn Berry's PnP cache/release dir: holds zipped dependency archives and the
+    // generated `.yarn/releases` bundle — the same dependency-blob class as
+    // `node_modules`, never hand-written source. Bypassable via `include_ignored`.
+    ".yarn",
     "target",
     "dist",
     "build",
@@ -75,6 +79,22 @@ pub const ALWAYS_EXCLUDED_DIRS: &[&str] = &[
 /// that were duplicated across `main.rs`, `mcp.rs`, `index.rs`, and `benchmark.rs`.
 pub fn is_source_extension(ext: &str) -> bool {
     SOURCE_EXTENSIONS.contains(&ext)
+}
+
+/// Minified web bundle filename suffixes excluded as default `grep` noise (the
+/// file-level analogue of the [`EXCLUDED_DIRS`] junk-dir set). A generated `*.min.js` /
+/// `*.min.css` bundle is single-line and machine-produced — its matches are noise, never
+/// the hand-written source a `grep` is after. Same bypass semantics as the junk dirs: this
+/// applies only while ignore rules are respected, so `include_ignored` reaches the file.
+const MINIFIED_BUNDLE_SUFFIXES: &[&str] = &[".min.js", ".min.css", ".min.cjs", ".min.mjs"];
+
+/// Whether `file_name` is a minified web bundle (see [`MINIFIED_BUNDLE_SUFFIXES`]). The
+/// match is on the literal basename suffix (case-sensitive, matching the source-extension
+/// comparison), so `app.min.js` is a bundle but `app.js` is not.
+pub fn is_minified_bundle(file_name: &str) -> bool {
+    MINIFIED_BUNDLE_SUFFIXES
+        .iter()
+        .any(|suffix| file_name.ends_with(suffix))
 }
 
 /// Resolve the current working directory, mapping failure to a JSON-RPC error.
@@ -268,9 +288,40 @@ pub fn read_source_for_parse(path: &Path) -> Option<String> {
     std::fs::read_to_string(path).ok()
 }
 
-/// Read a boolean argument with a default.
+/// Normalize an argument key for tolerant alias matching: lowercase, then drop every `_`
+/// and `-`. So `startLine`, `StartLine`, `start-line`, and `start_line` all collapse to
+/// `startline`, and `filePath`/`file_path` to `filepath`. This is the comparison form used
+/// by [`get_arg`] when an exact key spelling is absent — it lets a camel/kebab/Pascal variant
+/// resolve to its canonical snake_case parameter instead of being silently dropped (the live
+/// benchmark defect where a camel `startLine` was ignored and the whole file rendered).
+fn normalize_arg_key(key: &str) -> String {
+    key.chars()
+        .filter(|c| *c != '_' && *c != '-')
+        .flat_map(|c| c.to_lowercase())
+        .collect()
+}
+
+/// Look up an argument by `key`, tolerating case/`_`/`-` spelling variants. **An exact key
+/// match always wins** (the canonical-name rule): only when no key equals `key` verbatim does
+/// it fall back to the first arg whose [`normalize_arg_key`] form matches `key`'s. So when both
+/// `start_line` (canonical) and a normalized-equal variant are present, the canonical wins; an
+/// unambiguous lone variant (`startLine`) still resolves. Among multiple normalized matches the
+/// object's first key wins — deterministic, though such a collision is not expected in practice.
+pub(crate) fn get_arg<'a>(args: &'a serde_json::Value, key: &str) -> Option<&'a serde_json::Value> {
+    if let Some(value) = args.get(key) {
+        return Some(value);
+    }
+    let table = args.as_object()?;
+    let target = normalize_arg_key(key);
+    table
+        .iter()
+        .find(|(k, _)| normalize_arg_key(k) == target)
+        .map(|(_, v)| v)
+}
+
+/// Read a boolean argument with a default, tolerating alias spellings via [`get_arg`].
 pub(crate) fn arg_bool(args: &serde_json::Value, key: &str, default: bool) -> bool {
-    args.get(key).and_then(|v| v.as_bool()).unwrap_or(default)
+    get_arg(args, key).and_then(|v| v.as_bool()).unwrap_or(default)
 }
 
 /// Coerce a JSON value to `usize`, accepting both a real `Value::Number` (`as_u64`) and a
@@ -288,20 +339,22 @@ pub(crate) fn lenient_usize(value: &serde_json::Value) -> Option<usize> {
         .map(|n| n as usize)
 }
 
-/// Read an unsigned-integer argument with a default. Uses [`lenient_usize`] so a string-typed
-/// numeric (e.g. grep's `head_limit: "10"`) coerces instead of falling back to the default.
+/// Read an unsigned-integer argument with a default. Uses [`get_arg`] (alias-tolerant) and
+/// [`lenient_usize`] so a string-typed numeric (e.g. grep's `head_limit: "10"`) or a camel/
+/// kebab alias coerces instead of falling back to the default.
 pub(crate) fn arg_usize(args: &serde_json::Value, key: &str, default: usize) -> usize {
-    args.get(key)
+    get_arg(args, key)
         .and_then(lenient_usize)
         .unwrap_or(default)
 }
 
-/// Read a required string argument, erroring with -32602 when absent/non-string.
+/// Read a required string argument, erroring with -32602 when absent/non-string. Alias-tolerant
+/// via [`get_arg`] so a camel/kebab spelling resolves to its canonical parameter.
 pub(crate) fn arg_required_str<'a>(
     args: &'a serde_json::Value,
     key: &str,
 ) -> Result<&'a str, (i64, String)> {
-    args.get(key)
+    get_arg(args, key)
         .and_then(|v| v.as_str())
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }

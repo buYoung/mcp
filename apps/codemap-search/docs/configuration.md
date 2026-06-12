@@ -38,7 +38,7 @@ key from the global file (if set there) or the default — layers are not all-or
 | `excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
 | `use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
 | `index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
-| `search_overview_file_limit` | integer | `50` | Max file headers in `search`'s codemap-overview branch |
+| `search_overview_file_limit` | integer | `12` | Max file headers in `search`'s ranked-tail / codemap-overview branch |
 | `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
@@ -50,12 +50,14 @@ key from the global file (if set there) or the default — layers are not all-or
 | `search_detail_byte_cap` | integer (bytes) | `32768` | Total byte budget for the `search` detail view; emission stops with a truncation note once reached |
 | `search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
 | `search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
+| `search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
 | `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
 | `scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
 | `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
 | `callee_list_cap` | integer | `5` | Max callees rendered per symbol |
 | `annotation_sub_budget` | integer (bytes) | `8192` | Annotation byte budget within `search_detail_byte_cap` |
 | `common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
+| `caller_omit_def_threshold` | integer | `5` | Defs-per-name count at which a matched function's caller list is omitted (attribution unresolvable; a `grep` pointer is emitted instead). Callees unaffected |
 
 ### Indexing
 
@@ -91,6 +93,12 @@ key from the global file (if set there) or the default — layers are not all-or
   (default 200).
 - **`search_literal_limit`** — max matched literals rendered per file in the detail view.
   Output-size only (default 10).
+- **`search_anchor_snippet_limit`** — per-file cap on how many anchor symbols (exact-name
+  Tier-1 hits, or the Tier-2 fallback when a file has no Tier-1) receive a full snippet in the
+  detail view. Anchors ranked beyond the cap are demoted to a ≤3-line signature with a
+  `… (N more lines)` marker rather than a one-line stub, so a broad query on a common name
+  (`save`, `send`) can't flood the response with many full snippets. A file whose anchor count
+  is at or below the cap is unaffected. Output-size only (default 3).
 
 ### Tool output limits
 
@@ -126,6 +134,11 @@ key from the global file (if set there) or the default — layers are not all-or
   the index gets its caller list and callee entries labeled attribution-ambiguous (a
   name-match scan cannot tell which definition a site targets); the lists are still
   rendered, never suppressed.
+- **`caller_omit_def_threshold`** — stricter than `common_name_threshold`: a matched
+  function name with at least this many definitions has its caller list *suppressed*, not
+  just labeled — a name-match scan cannot attribute call sites among that many same-named
+  definitions, so a one-line omission note (with the def count and a `grep "name("`
+  pointer) replaces it. Callees are unaffected; the scan itself is unchanged.
 
 ### Ignore handling
 
@@ -166,7 +179,7 @@ max_file_size = 1048576   # 1 MiB
 excluded_directories = ["__pycache__", ".next", "coverage"]
 use_git_exclude = true
 index_staleness_ms = 5000
-search_overview_file_limit = 50
+search_overview_file_limit = 12
 watch = true
 watch_debounce_ms = 500
 indexer_auto_restart = true
@@ -178,6 +191,7 @@ search_detail_symbol_limit = 20
 search_detail_byte_cap = 32768            # 32 KiB
 search_literal_max_len = 200
 search_literal_limit = 10
+search_anchor_snippet_limit = 3
 ```
 
 ## The `.codemap/` directory and ignore files
