@@ -2,30 +2,31 @@
 
 ## 1. Overview
 
-A pnpm + Turborepo monorepo of standalone stdio MCP (Model Context Protocol) servers that extend coding agents: an ACP pair-review bridge to other coding agents, and a zoekt + Universal Ctags code-navigation toolset. Each app is independent; treat `apps/mcp-server` and `apps/scout` as sibling apps that are not modified together.
+A monorepo of standalone local MCP servers and shared TypeScript configuration for coding-agent workflows. The apps are independent products: `acp-bridge` pairs agents over ACP, `scout` exposes zoekt/ctags navigation primitives, and `codemap-search` ships a self-contained Rust code-navigation server.
 
 ## 2. Folder Structure
 
-- `apps/`: deployable stdio MCP servers. Each is its own workspace package with a `bin` entry, ESM output to `dist/`, and a `src/index.ts` entry that wires an MCP `Server` to a `StdioServerTransport`.
-    - `mcp-server` (`@buyong-mcp/acp-bridge`): MCP server that spawns other coding agents (Claude Code, Codex, Gemini CLI) as ACP child processes for read-only pair review. See its `AGENTS.md`.
-    - `scout` (`@buyong-mcp/scout`): MCP server exposing zoekt + ctags search/read primitives. `DESIGN.md` is its authoritative design doc; see its `AGENTS.md`.
+- `apps/`: deployable stdio MCP servers; each app owns its runtime, docs, and package-local `AGENTS.md`.
+    - `mcp-server` (`@buyong-mcp/acp-bridge`): TypeScript MCP server that spawns Claude Code, Codex, and Gemini CLI as read-only ACP pair-review child processes.
+    - `scout` (`@buyong-mcp/scout`): TypeScript MCP server that exposes `search_text`, `lookup_symbol`, `read_file`, `find_files`, and managed zoekt/Universal Ctags installation.
+    - `codemap-search`: Rust MCP/CLI binary with embedded tree-sitter parsing, Tantivy BM25 search, caller/callee annotations, and read/find/grep tools.
 - `packages/`: shared, non-deployable workspace packages.
-    - `typescript-config` (`@repo/typescript-config`): shared `tsconfig` bases (`base.json`, `node.json`) that apps `extends`. No source code.
-- `docs/briefs/`: dated, Conventional-Commit-typed task briefs that drive feature work; align changes with the relevant brief.
-- Root tooling: `turbo.json` (task graph for `build`/`dev`/`check-types`/`test`), `biome.json` (lint + format), `pnpm-workspace.yaml` (workspace globs), `lint-staged.config.mjs` + `.husky/` (pre-commit). New apps go under `apps/*`, shared libraries under `packages/*`.
+    - `typescript-config` (`@repo/typescript-config`): shared `tsconfig` bases (`base.json`, `node.json`) consumed by TypeScript apps.
+- `docs/briefs/`: dated task briefs; align feature work with the relevant brief when one exists.
+- Root tooling: `pnpm-workspace.yaml` declares `apps/*` and `packages/*`; `turbo.json` wires pnpm workspace tasks; `biome.json`, `lint-staged.config.mjs`, and `.husky/` define repository-wide formatting and pre-commit behavior.
 
 ## 3. Working Agreements
 
-- Respond in the user's preferred language; if unspecified, infer from the codebase (Korean here — comments, docs, and `description` strings are Korean). Keep technical terms in English and never translate code blocks.
+- Respond in the user's preferred language; if unspecified, infer from the codebase (Korean appears in README/design docs, comments, and MCP `description` strings; never translate fenced code blocks).
 - Ask the user before introducing tests, lint, or formatter setups; add them only on explicit request.
 - Build context by reviewing related usages, flows, patterns, and likely impact before editing.
 - Fix the underlying cause, not only the visible symptom; inspect affected flows and apply the narrowest complete change that resolves the root issue.
-- Check side effects across callers, shared abstractions, and behavior/API boundaries; report relevant impact and compatibility risks. The two apps are independent — do not let a change to one modify the other (e.g. `scout` copies, rather than imports, helpers from `mcp-server`).
+- Check side effects across callers, shared abstractions, and behavior/API boundaries; report relevant impact and compatibility risks. Treat the apps as independent unless the task explicitly spans them.
 - Ask actively when user decisions are needed for scope, behavior, or tradeoffs.
-- Run type-check after code changes: `pnpm check-types` (Turborepo runs `tsc -p tsconfig.json --noEmit` per package).
-- In monorepos, put package-only test/verification guidance in the package-level `AGENTS.md`, not this root document.
+- Run type-check after TypeScript code changes: `pnpm check-types`. Package-level `AGENTS.md` files may add package-local verification for non-pnpm code.
+- In monorepos, put package-only tests/type-check/verification guidance in the package-level `AGENTS.md`, not this root document.
 - New functions: single-purpose, colocated with related code.
-- External dependencies: only when necessary, and explain why.
+- External dependencies: only when necessary, explain why.
 
 ## User custom rules
 - codemap-search 를 적극 활용하세요. Read, Grep, Find 대체가능

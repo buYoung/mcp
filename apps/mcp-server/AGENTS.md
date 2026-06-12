@@ -2,55 +2,49 @@
 
 ## 1. Overview
 
-`@buyong-mcp/acp-bridge` is an MCP stdio server that acts as an ACP client: the calling coding agent uses its tools to consult other coding agents (Claude Code, Codex, Gemini CLI) as read-only pair reviewers, each spawned as a child process and relayed over ACP.
+`@buyong-mcp/acp-bridge` is a stdio MCP server that lets a calling coding agent consult other coding agents as read-only ACP pair reviewers.
 
 ## 2. Folder Structure
 
-- `src/index.ts`: composition root — builds the MCP `Server`, ensures the `.acp_bridge/config.toml` config, resolves limits, registers agents and tools, then connects the stdio transport.
-- `src/tools/`: the MCP tool surface and request handling.
-    - `index.ts`: `registerTools` — ListTools/CallTool handlers, the five tools (`list_agents`, `ask_pair`, `continue_pair`, `consult_panel`, `close_pair`), argument readers, the `textResult` envelope, and the user-consent elicitation gate.
-    - `pair-opinion.ts`: parses a pair agent's reply into a `structured_opinion`, with a `fallback` shape on parse failure.
-    - `pair-session-store.ts`: in-memory `session_id` → agent registry with idle expiry and max-session eviction.
-    - `files-validation.ts`: realpath-based cwd-containment check for caller-supplied file paths.
-    - `json-extract.ts`: tolerant JSON extraction from agent prose.
-- `src/agents/`: agent adapters and the registry.
-    - `registry.ts`: the `agentRegistry` singleton mapping `agent_id` → `AgentAdapter`.
-    - `register.ts`: registers the three default agents from config + limits.
-    - `claude-code/`, `codex/`, `gemini-cli/`: per-agent adapter factories (id/label/description + ACP launch options only).
-    - `common/`: shared `AgentAdapter` type and errors (`types.ts`), the ACP adapter factory (`acp-agent-adapter.ts`), PATH/binary probing (`binary-availability.ts`), env-var reading (`environment.ts`), and `node_modules/.bin` resolution (`local-binary.ts`).
-- `src/acp/`: the ACP client layer.
-    - `client.ts`: `launchAcpAgent` + `StdioAcpAgentSession` (initialize/newSession/prompt lifecycle, timeouts, process teardown) and the permission-enforcing `Client`.
-    - `permission-decision.ts`: maps ACP tool kinds → allow/reject per permission profile.
-    - `layer-zero.ts`: hard-block screen on raw tool input, run before the profile check.
-    - `stderr-ring-buffer.ts`, `tool-call-extraction.ts`: bounded child-stderr capture and tool-call introspection.
-- `src/config/`: config TOML read/scaffold (`acp-bridge-config.ts`), built-in constants and permission profiles (`defaults.ts`), and TOML+env limit resolution (`limits-resolver.ts`).
-- `tests/`: vitest unit tests; add a `<module>.test.ts` mirroring the `src` module under test.
-- `docs/permission.md`: the permission-model spec; keep aligned with `src/acp/`.
+- `src/index.ts`: composition root; creates the MCP `Server`, ensures `.acp_bridge/config.toml`, resolves limits, registers default agents/tools, then connects `StdioServerTransport`.
+- `src/tools/`: MCP tool surface and request handling.
+    - `index.ts`: registers `list_agents`, `ask_pair`, `continue_pair`, `consult_panel`, and `close_pair`; validates raw MCP arguments; enforces user-consent elicitation; returns the shared text envelope.
+    - `pair-opinion.ts`, `json-extract.ts`: parse pair responses into a structured opinion and provide tolerant JSON extraction.
+    - `pair-session-store.ts`: in-memory `session_id` registry with idle expiry and max-session eviction.
+    - `files-validation.ts`: realpath-based cwd containment for caller-supplied files.
+- `src/agents/`: adapter registry and per-agent factories.
+    - `register.ts`, `registry.ts`, `types.ts`: supported agent registration and the `AgentAdapter` boundary.
+    - `claude-code/`, `codex/`, `gemini-cli/`: agent-specific ids, labels, descriptions, command/config option wiring.
+    - `common/`: ACP adapter factory, binary discovery, environment helpers, and shared adapter error/types.
+- `src/acp/`: ACP client layer; owns child process launch, ACP session lifecycle, permission handling, stderr capture, and tool-call inspection.
+- `src/config/`: TOML config scaffold/parser, defaults, permission profiles, and env/TOML limit resolution.
+- `docs/permission.md`: permission model reference for `src/acp/`; keep permission behavior and docs aligned.
+- `tests/`: vitest coverage for module behavior; mirror the source module name when tests are explicitly requested.
 
 ## 3. Core Behaviors & Patterns
 
-- **Composition root + dependency passing**: `index.ts` wires config → limits → registry → tools once at startup. Modules receive their dependencies (`limits`, `pairSessionStore`, adapters) as parameters; the only module-level singleton is `agentRegistry`.
-- **Agent adapter pattern**: every agent is an `AgentAdapter` (`askPair`/`continuePair`/`closePair`) produced by `createAcpAgentAdapter`. Per-agent files declare only `id`, `label`, `description`, and `launchOptions`. Add an agent by extending `SUPPORTED_AGENT_IDS`, adding a `create*Agent` factory, and registering it in `register.ts`.
-- **Cold child-process lifecycle & resilience**: each `ask_pair`/`consult_panel` spawns a fresh ACP child (no pooling); `continue_pair` reuses the session's child. Every ACP operation races against a `processFailure` promise and a timeout (`Promise.race`). Teardown escalates SIGTERM → SIGKILL with grace periods. A prompt timeout cancels the turn, closes the session, and throws `PairSessionClosedError` so callers evict the dead session.
-- **Read-only enforcement (defense in depth)**: `AcpBridgeClient.requestPermission` first runs a layer-0 hard block on raw input, then `decidePermission` by profile (default `read-only` allows only `read`/`search`/`fetch`/`think`). Agent-initiated mode changes are acknowledged but never mutate the enforced profile. Every decision is audit-logged to stderr as a JSON line.
-- **Structured-output contract with recovery**: the system prompt instructs the pair to return one JSON object; `prompt()` retries once when the answer isn't parseable JSON; `parsePairOpinion` degrades to a `fallback` opinion (empty `recommendation`) rather than passing prose off as a recommendation.
-- **Per-session serialization**: operations on a given `session_id` are serialized through `runSessionExclusive` (a per-session promise queue) so follow-ups and closes never interleave.
-- **Bounded in-memory state**: both `PairSessionStore` and the elicitation-confirmation map enforce TTL expiry plus oldest-first eviction at a size cap.
-- **Error context**: ACP failures are rethrown via `withStderrContext`, appending the captured child stderr tail to the message.
+- **Composition root with dependency passing**: `index.ts` wires config -> limits -> registry -> tools once. Runtime modules receive dependencies (`limits`, adapters, `PairSessionStore`) instead of reaching across layers; `agentRegistry` is the only shared registry singleton.
+- **Agent adapter boundary**: each agent implements `AgentAdapter` through `createAcpAgentAdapter`. Per-agent files only declare metadata and ACP launch options; shared ask/continue/close lifecycle lives in `agents/common/acp-agent-adapter.ts`.
+- **Cold ACP child lifecycle**: `ask_pair` and each `consult_panel` member spawn a fresh ACP child; `continue_pair` reuses the stored session child. ACP initialize/newSession/prompt calls race process failure and timeouts, and close escalates `SIGTERM` to `SIGKILL`.
+- **Read-only enforcement in layers**: `AcpBridgeClient.requestPermission` runs `layerZeroCheckFromRawInput` before profile decisions. Agent-initiated mode changes are acknowledged but never change the enforced profile, and every decision is emitted to stderr as JSON.
+- **Consultation guardrails**: pair tools require `user_request`; `ask_pair` and `consult_panel` require non-empty `main_agent_position` so the caller states a tentative view before asking another agent.
+- **Structured-output recovery**: pair prompts require one JSON object. Non-JSON replies trigger one re-emit request; `parsePairOpinion` still degrades to a `fallback` shape instead of treating prose as an actionable recommendation.
+- **Bounded in-memory state**: `PairSessionStore` and the elicitation confirmation map use TTL expiry plus oldest-first capacity eviction. Session operations are serialized per `session_id` through the adapter queue.
+- **Failure context**: ACP errors are wrapped with the child stderr tail via `withStderrContext`; prompt timeouts cancel the ACP turn, close the process, and surface `PairSessionClosedError` so callers evict stale sessions.
 
 ## 4. Conventions
 
-- **Naming**: `camelCase` variables/functions, `PascalCase` types/classes, `UPPER_SNAKE_CASE` module constants. MCP tool names and their JSON-schema property keys are `snake_case` (`agent_id`, `main_agent_position`, `user_request`); internal TypeScript uses `camelCase`, with handlers mapping between the two.
-- **Files & modules**: kebab-case `.ts` filenames; each agent adapter lives in its own directory with an `index.ts` factory. ESM throughout — relative imports carry the `.js` extension (NodeNext resolution).
-- **Argument reading**: tool handlers never trust raw input. They go through `readRequiredString` / `readOptionalString` / `readOptional*Array` helpers that validate type and non-emptiness and throw `Expected ...: <key>` errors.
-- **Adapter factory shape**: `create*Agent(configuration, limits)` returns `createAcpAgentAdapter({ id, label, description, launchOptions })`. `configOptionOrder` lists ACP config-option ids in apply order; an empty-string config value means "use the adapter default".
-- **Config & boundary validation**: external config (`config.toml`, env vars, limits) is parsed against allow-lists (`SUPPORTED_AGENT_KEYS`, `SUPPORTED_LIMIT_KEYS`) and rejects unknown keys with a path-qualified error. `prompt_timeout_ms` is required (no built-in default). `permission` config is still parsed for back-compat but does not change read-only behavior.
-- **Result envelope**: every tool returns `textResult(value)` = `{ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] }`.
-- **Errors**: throw plain `Error` with a descriptive message for caller-facing failures; use named error classes (`PairSessionClosedError`, `AcpPromptTimeoutError`) that carry the `sessionId` and are detected via `is*` type guards (`isPairSessionClosedError`).
-- **Comments**: sparse, English, explaining non-obvious "why" (e.g. why agent mode changes are ignored for enforcement); reference `docs/permission.md` sections where relevant.
+- **Naming**: TypeScript code uses `camelCase` values/functions, `PascalCase` types/classes, and `UPPER_SNAKE_CASE` module constants. MCP tool names and JSON-schema keys use `snake_case`; handlers map them to internal `camelCase`.
+- **Files and imports**: `.ts` files are kebab-case and ESM. Relative imports include `.js` for NodeNext output. Agent factories live in per-agent directories with `index.ts`.
+- **Argument validation**: raw tool arguments go through `readRequiredString`, `readOptionalString`, and array readers before use; errors name the expected key, e.g. `Expected non-empty string argument: agent_id`.
+- **Adapter factory shape**: `create*Agent(configuration, limits)` returns `createAcpAgentAdapter({ id, label, description, launchOptions })`. `configOptionOrder` controls ACP config application order, and empty config strings mean adapter defaults.
+- **Config boundaries**: `.acp_bridge/config.toml` is scaffolded with `wx`, parsed with allow-lists, and rejects unknown agent/limit keys. `prompt_timeout_ms` is required via TOML or `ACP_BRIDGE_PROMPT_TIMEOUT_MS`.
+- **Result envelope**: tool responses use `{ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] }`; do not return raw objects directly from handlers.
+- **Errors**: use plain `Error` for caller-facing validation and named errors with guards (`PairSessionClosedError`, `isPairSessionClosedError`) when control flow depends on the type.
+- **Comments**: keep comments sparse and explanatory; permission comments should point back to `docs/permission.md` when behavior is policy-driven.
 
 ## 5. Working Agreements
 
 See root `/AGENTS.md` for common working agreements.
 
-Package-local verification: run `pnpm --filter @buyong-mcp/acp-bridge check-types` and `pnpm --filter @buyong-mcp/acp-bridge test` (vitest) after changes in this package.
+Package-local verification: run `pnpm --filter @buyong-mcp/acp-bridge check-types` after TypeScript changes in this package.
