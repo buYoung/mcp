@@ -211,8 +211,23 @@ impl SearcherHandle {
                         .iter()
                         .filter(|&&term| symbol_matches_term(sym, term))
                         .count();
+                    // Exact-name intent fires two ways: a query term equals the whole
+                    // symbol name, OR the query spells a multi-token name's sub-tokens as
+                    // separate terms ("default port" / "inspect default port" → DEFAULT_PORT,
+                    // which plain BM25 buries in an 8k-line file under port-heavy and generic
+                    // `default()` files). The subset form requires >=2 sub-tokens (so a
+                    // single-token glue name like `default` can't qualify) and every sub-token
+                    // to appear among the query terms — extra glue terms in the query (e.g.
+                    // "inspect") don't block it. Backlog #1: align query tokenization with the
+                    // index-side symbol sub-tokens.
+                    let name_subtokens = crate::parser::split_identifier(&sym.name);
                     let exact_hit = is_discriminative_name(&sym.name)
-                        && query_terms.iter().any(|&t| t == sym.name.to_lowercase());
+                        && (query_terms.iter().any(|&t| t == sym.name.to_lowercase())
+                            || (name_subtokens.len() >= 2
+                                && name_subtokens.iter().all(|st| {
+                                    let st = st.to_lowercase();
+                                    query_terms.iter().any(|&t| t == st)
+                                })));
                     let all_terms_hit = term_match_count == query_terms.len();
                     // Partial coverage additionally requires NAME evidence (at least one
                     // term hitting the symbol name itself) — see `term_hits_symbol_name`.
