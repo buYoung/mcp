@@ -237,6 +237,16 @@ impl LanguageSpec for CppSpec {
         get_cpp_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        // `.h` is parsed with the C++ grammar (tolerant of plain C).
+        &["h", "cpp", "cc", "cxx", "hpp", "hh", "hxx"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        // C/C++: `#include` is the only import-equivalent construct.
+        line.trim_start().starts_with("#include")
+    }
+
     fn name_for_capture(
         &self,
         capture_name: &str,

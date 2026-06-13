@@ -81,6 +81,14 @@ impl LanguageSpec for JavaSpec {
         get_java_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["java"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        line.trim_start().starts_with("import ")
+    }
+
     fn is_test(
         &self,
         node: Node,

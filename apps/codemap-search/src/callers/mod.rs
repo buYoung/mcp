@@ -41,6 +41,7 @@ pub use annotate::{
     ANNOTATION_OMITTED_MARKER,
 };
 
+use crate::lang::spec_for_ext;
 use crate::parser::ExtractedSymbol;
 use std::path::Path;
 
@@ -74,15 +75,15 @@ pub struct CallerConfig {
 }
 
 /// Render a symbol's display name, prefixed by its `owner` when present:
-/// Rust/Go → `Owner::name`, class-nested languages → `Owner.name`. The separator is
-/// chosen by extension so the rendered form matches each language's convention.
+/// Rust → `Owner::name`, class-nested languages → `Owner.name`. The separator comes from
+/// the file's [`crate::lang::LanguageSpec`] so the rendered form matches each language's
+/// convention; an unregistered extension falls back to `.` (the historic default arm).
 fn qualified_name(sym: &ExtractedSymbol, file_path: &str) -> String {
     match &sym.owner {
         Some(owner) => {
-            let sep = match extension_of(file_path) {
-                "rs" => "::",
-                _ => ".",
-            };
+            let sep = spec_for_ext(extension_of(file_path))
+                .map(|spec| spec.qualified_name_separator())
+                .unwrap_or(".");
             format!("{owner}{sep}{}", sym.name)
         }
         None => sym.name.clone(),
@@ -97,27 +98,12 @@ fn extension_of(path: &str) -> &str {
 }
 
 /// Whether `line` (already trimmed) is an import/use statement in the language of `ext`,
-/// so a name appearing there is excluded from non-call-reference reporting. Conservative:
-/// an unclassifiable line stays in (degrades to the hedged "possible callback" wording).
+/// so a name appearing there is excluded from non-call-reference reporting. Delegates to
+/// the file's [`crate::lang::LanguageSpec`]. Conservative: an unclassifiable line — including
+/// any unregistered extension (the historic default arm) — stays in (degrades to the hedged
+/// "possible callback" wording).
 fn is_import_line(line: &str, ext: &str) -> bool {
-    let trimmed = line.trim_start();
-    match ext {
-        "rs" => trimmed.starts_with("use "),
-        "py" => trimmed.starts_with("import ") || trimmed.starts_with("from "),
-        "ts" | "tsx" | "js" | "jsx" => {
-            trimmed.starts_with("import ") || trimmed.starts_with("require(")
-                || trimmed.contains("require(")
-        }
-        "go" => trimmed.starts_with("import ") || trimmed.starts_with("import("),
-        "java" | "kt" | "kts" => trimmed.starts_with("import "),
-        // C/C++: `#include` is the only import-equivalent construct.
-        "c" | "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => {
-            trimmed.starts_with("#include")
-        }
-        // Assembly: `.include` embeds another assembly file.
-        "s" | "S" | "asm" => trimmed.starts_with(".include"),
-        _ => false,
-    }
+    spec_for_ext(ext).is_some_and(|spec| spec.is_import_line(line))
 }
 
 /// Read a workspace-relative file's contents, resolving it against `root`. Falls back to

@@ -1,12 +1,14 @@
 //! Shared filesystem / path infrastructure used across every layer: path
 //! canonicalization, workspace-root containment, the ignore-aware walker, the
-//! source-extension allowlist, the walk/limit constants, and the index path-key
+//! source-extension predicate, the walk/limit constants, and the index path-key
 //! helpers. Centralizing them here removes the former reverse dependencies
 //! (`tools → mcp`, `index → mcp`) and the path-logic duplication.
 //!
 //! Dependency direction: the walk/limit constants (excluded dirs, max indexed
-//! bytes, source extensions) are owned HERE; `config.rs` references them
-//! (`config → workspace`, one-way). The lone exception is [`build_walker`], which
+//! bytes) are owned HERE; `config.rs` references them (`config → workspace`,
+//! one-way). The source-extension allowlist is NOT owned here — it is derived from
+//! the language registry, so [`is_source_extension`] delegates to
+//! [`crate::lang::source_extensions`] (`workspace → lang`, one-way). [`build_walker`]
 //! reads `config::get()` at runtime for the configurable exclude set / git-exclude
 //! toggle — an accepted dependency on the global config singleton.
 
@@ -16,18 +18,6 @@ use std::path::{Path, PathBuf};
 /// pending final confirmation in Child 05; keep it a single constant so the rename
 /// is one line.
 pub const CODEMAP_IGNORE_FILENAME: &str = ".codemapignore";
-
-/// The source-file extensions codemap-search understands. Single source of truth —
-/// Child 03 collapses the previously-duplicated literal lists (`main.rs`, `mcp.rs`,
-/// `index.rs`, `benchmark.rs`) onto this constant.
-pub const SOURCE_EXTENSIONS: &[&str] = &[
-    "rs", "py", "ts", "tsx", "js", "jsx", "go", "java", "kt", "kts",
-    // C and C++: `.h` is listed here and parsed with the C++ grammar (tolerant of plain C).
-    "c", "h", "cpp", "cc", "cxx", "hpp", "hh", "hxx",
-    // Assembly (GAS AT&T and Intel syntax): `S` (uppercase) is preprocessed GAS and must be
-    // listed explicitly — extension comparison is case-sensitive.
-    "s", "S", "asm",
-];
 
 /// Files larger than this are skipped before parsing/indexing (Child 04). Hand-written
 /// source virtually never exceeds 1 MiB; this guards against minified bundles and
@@ -73,11 +63,13 @@ pub const ALWAYS_EXCLUDED_DIRS: &[&str] = &[
     ".codemap-index",
 ];
 
-/// Whether `ext` is a source extension codemap-search understands. Single predicate
-/// over [`SOURCE_EXTENSIONS`] — replaces the `matches!(ext, "rs" | "py" | …)` literals
-/// that were duplicated across `main.rs`, `mcp.rs`, `index.rs`, and `benchmark.rs`.
+/// Whether `ext` is a source extension codemap-search understands. Single predicate over
+/// the registry-derived allowlist [`crate::lang::source_extensions`] (the union of every
+/// [`crate::lang::LanguageSpec`]'s extensions) — so adding a language never edits this file.
+/// Signature unchanged: the four consumer sites (`index`, `callers`, `main.rs`, `benchmark`)
+/// are untouched.
 pub fn is_source_extension(ext: &str) -> bool {
-    SOURCE_EXTENSIONS.contains(&ext)
+    crate::lang::source_extensions().contains(ext)
 }
 
 /// Minified web bundle filename suffixes excluded as default `grep` noise (the

@@ -118,6 +118,17 @@ impl LanguageSpec for AsmSpec {
         get_asm_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        // `S` (uppercase) is preprocessed GAS and must be listed explicitly — extension
+        // comparison is case-sensitive.
+        &["s", "S", "asm"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        // Assembly: `.include` embeds another assembly file.
+        line.trim_start().starts_with(".include")
+    }
+
     fn collect_exported_names(&self, root: Node, source: &[u8], out: &mut HashSet<String>) {
         // ASM: pre-pass to collect all `.globl`/`.global` exported symbol names so the
         // per-label export check is a simple set lookup (O(1)) during the match loop.

@@ -80,6 +80,15 @@ impl LanguageSpec for PythonSpec {
         get_python_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["py"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("import ") || trimmed.starts_with("from ")
+    }
+
     fn docstring_anchor<'a>(&self, node: Node<'a>) -> Node<'a> {
         if let Some(parent) = node.parent() {
             if parent.kind() == "decorated_definition" {

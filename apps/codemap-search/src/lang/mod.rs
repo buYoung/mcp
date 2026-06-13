@@ -13,12 +13,17 @@
 //! To support a new tree-sitter language:
 //! 1. Add the grammar crate to `apps/codemap-search/Cargo.toml` (one Cargo dependency).
 //! 2. Add one file `lang/<name>.rs` with a `struct <Name>Spec;` implementing
-//!    [`LanguageSpec`] — its query string, compiled-query getter (lazy `OnceLock`), and the
-//!    hooks whose behavior differs from the defaults.
+//!    [`LanguageSpec`] — its query string, compiled-query getter (lazy `OnceLock`), its
+//!    [`LanguageSpec::extensions`] list, and the hooks whose behavior differs from the
+//!    defaults (e.g. [`LanguageSpec::qualified_name_separator`],
+//!    [`LanguageSpec::is_import_line`]).
 //! 3. Add one registry entry in [`spec_for_ext`] mapping the file extension(s) to a
-//!    `&'static <Name>Spec`.
-//! No edits to [`crate::parser`] are needed: the generic walk resolves the spec from the
-//! registry and calls the hooks.
+//!    `&'static <Name>Spec`, and one entry in [`ALL_SPECS`] so the new extensions join the
+//!    [`source_extensions`] allowlist.
+//! No edits to [`crate::parser`], `crate::callers`, or `crate::workspace` are needed: the
+//! generic walk resolves the spec from the registry and calls the hooks, the extension
+//! allowlist is derived from [`ALL_SPECS`], and `callers` delegates separators / import-line
+//! detection to the spec.
 
 mod asm;
 pub(crate) mod c_family;
@@ -30,6 +35,7 @@ mod rust;
 mod typescript;
 
 use std::collections::HashSet;
+use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
 /// Outcome of the C-family/ASM accept-and-name cluster: either skip this query match
@@ -52,6 +58,29 @@ pub(crate) trait LanguageSpec: Sync {
 
     /// The compiled query for `ext` (lazy, compiled once per grammar via `OnceLock`).
     fn query(&self, ext: &str) -> &'static Query;
+
+    /// The source-file extensions this spec serves (no leading dot). Unioned across all
+    /// specs in [`ALL_SPECS`] to derive the source-extension allowlist
+    /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.
+    fn extensions(&self) -> &'static [&'static str];
+
+    /// The separator between an owning type and a member in a qualified symbol name
+    /// (`callers` annotation display). Default `"."` matches every class-nested language;
+    /// only Rust overrides to `"::"`.
+    fn qualified_name_separator(&self) -> &'static str {
+        "."
+    }
+
+    /// Whether `line` (already trimmed by the caller via `trim_start`) is an import/use
+    /// statement in this language, so a name appearing there is excluded from
+    /// non-call-reference reporting. Default encodes the TypeScript-family rule
+    /// (`import` / `require(`); each language file overrides with its own construct.
+    fn is_import_line(&self, line: &str) -> bool {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("import ")
+            || trimmed.starts_with("require(")
+            || trimmed.contains("require(")
+    }
 
     /// Pre-pass collecting file-wide exported symbol names before the match loop (TS
     /// `export { ... }` specifiers; ASM `.globl`/`.global` directives). Default: no-op.
@@ -183,6 +212,35 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
         _ => None,
     }
+}
+
+/// Every registered [`LanguageSpec`], one per supported language. The source-extension
+/// allowlist ([`source_extensions`]) is the union of each spec's [`LanguageSpec::extensions`].
+/// Adding a language appends one entry here (alongside the one [`spec_for_ext`] arm).
+static ALL_SPECS: &[&dyn LanguageSpec] = &[
+    &rust::RustSpec,
+    &python::PythonSpec,
+    &typescript::TypeScriptSpec,
+    &go::GoSpec,
+    &java::JavaSpec,
+    &kotlin::KotlinSpec,
+    &c_family::c::CSpec,
+    &c_family::cpp::CppSpec,
+    &asm::AsmSpec,
+];
+
+/// The source-file extensions codemap-search understands, derived once as the union of
+/// every spec's [`LanguageSpec::extensions`] in [`ALL_SPECS`]. Replaces the former
+/// hand-maintained `workspace::SOURCE_EXTENSIONS` literal so adding a language never edits
+/// `workspace.rs`. Membership-only (a `HashSet`); no caller depends on ordering.
+pub fn source_extensions() -> &'static HashSet<&'static str> {
+    static SOURCE_EXTENSIONS: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    SOURCE_EXTENSIONS.get_or_init(|| {
+        ALL_SPECS
+            .iter()
+            .flat_map(|spec| spec.extensions().iter().copied())
+            .collect()
+    })
 }
 
 // ---------------------------------------------------------------------------

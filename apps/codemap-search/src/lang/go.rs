@@ -160,6 +160,15 @@ impl LanguageSpec for GoSpec {
         get_go_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["go"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("import ") || trimmed.starts_with("import(")
+    }
+
     fn refine_kind(&self, capture_name: &str, node: Node, kind: &'static str) -> &'static str {
         if capture_name == "symbol.gotype" {
             go_type_kind(node)

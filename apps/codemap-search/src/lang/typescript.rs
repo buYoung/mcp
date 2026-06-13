@@ -141,6 +141,13 @@ impl LanguageSpec for TypeScriptSpec {
         }
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["ts", "js", "tsx", "jsx"]
+    }
+
+    // `is_import_line` and `qualified_name_separator` use the trait defaults (the
+    // TypeScript-family `import` / `require(` rule and the `.` separator) verbatim.
+
     fn collect_exported_names(&self, root: Node, source: &[u8], out: &mut HashSet<String>) {
         collect_ts_exported_names(root, source, out);
     }

@@ -116,6 +116,14 @@ impl LanguageSpec for KotlinSpec {
         get_kotlin_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["kt", "kts"]
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        line.trim_start().starts_with("import ")
+    }
+
     fn refine_kind(&self, capture_name: &str, node: Node, kind: &'static str) -> &'static str {
         if capture_name == "symbol.ktclass" {
             kotlin_class_kind(node)

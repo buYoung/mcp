@@ -129,6 +129,18 @@ impl LanguageSpec for RustSpec {
         get_rust_query()
     }
 
+    fn extensions(&self) -> &'static [&'static str] {
+        &["rs"]
+    }
+
+    fn qualified_name_separator(&self) -> &'static str {
+        "::"
+    }
+
+    fn is_import_line(&self, line: &str) -> bool {
+        line.trim_start().starts_with("use ")
+    }
+
     fn is_test(
         &self,
         node: Node,
