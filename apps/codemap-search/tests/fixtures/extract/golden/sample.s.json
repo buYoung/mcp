@@ -1,0 +1,62 @@
+{
+  "filePath": "sample.s",
+  "totalLines": 14,
+  "symbols": [
+    {
+      "name": "save_regs",
+      "kind": "fn",
+      "range": {
+        "startLine": 5,
+        "startCol": 1,
+        "endLine": 5,
+        "endCol": 17
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "exported_entry",
+      "kind": "fn",
+      "range": {
+        "startLine": 9,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 16
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "internal_label",
+      "kind": "fn",
+      "range": {
+        "startLine": 13,
+        "startCol": 1,
+        "endLine": 13,
+        "endCol": 16
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [],
+  "docstrings": []
+}

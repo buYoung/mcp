@@ -1,0 +1,152 @@
+{
+  "filePath": "sample.go",
+  "totalLines": 35,
+  "symbols": [
+    {
+      "name": "Server",
+      "kind": "struct",
+      "range": {
+        "startLine": 5,
+        "startCol": 6,
+        "endLine": 7,
+        "endCol": 2
+      },
+      "docstring": "Server holds connection state.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Addr",
+      "kind": "field",
+      "range": {
+        "startLine": 6,
+        "startCol": 2,
+        "endLine": 6,
+        "endCol": 13
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Start",
+      "kind": "fn",
+      "range": {
+        "startLine": 10,
+        "startCol": 1,
+        "endLine": 13,
+        "endCol": 2
+      },
+      "docstring": "Start begins serving and returns the bind address.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Server"
+    },
+    {
+      "name": "LegacyStart",
+      "kind": "fn",
+      "range": {
+        "startLine": 18,
+        "startCol": 1,
+        "endLine": 20,
+        "endCol": 2
+      },
+      "docstring": "LegacyStart is the old entry point.\n\nDeprecated: use Start instead.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Server"
+    },
+    {
+      "name": "PublicHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 23,
+        "startCol": 1,
+        "endLine": 25,
+        "endCol": 2
+      },
+      "docstring": "PublicHelper is an exported free function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "privateHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 28,
+        "startCol": 1,
+        "endLine": 30,
+        "endCol": 2
+      },
+      "docstring": "privateHelper is unexported.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "TestServerStart",
+      "kind": "fn",
+      "range": {
+        "startLine": 33,
+        "startCol": 1,
+        "endLine": 35,
+        "endCol": 2
+      },
+      "docstring": "TestServerStart is a Go test entry point.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "127.0.0.1:8080",
+      "line": 11
+    },
+    {
+      "text": "legacy",
+      "line": 19
+    }
+  ],
+  "docstrings": [
+    "Server holds connection state.",
+    "Start begins serving and returns the bind address.",
+    "LegacyStart is the old entry point.\n\nDeprecated: use Start instead.",
+    "PublicHelper is an exported free function.",
+    "privateHelper is unexported.",
+    "TestServerStart is a Go test entry point."
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "filePath": "sample.ts",
+  "totalLines": 32,
+  "symbols": [
+    {
+      "name": "UserService",
+      "kind": "class",
+      "range": {
+        "startLine": 4,
+        "startCol": 8,
+        "endLine": 17,
+        "endCol": 2
+      },
+      "docstring": "A user service.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 9,
+        "endCol": 4
+      },
+      "docstring": "Fetch the current user.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "UserService"
+    },
+    {
+      "name": "endpoint",
+      "kind": "variable",
+      "range": {
+        "startLine": 7,
+        "startCol": 11,
+        "endLine": 7,
+        "endCol": 52
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "legacyFetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 14,
+        "startCol": 3,
+        "endLine": 16,
+        "endCol": 4
+      },
+      "docstring": "@deprecated use fetch instead",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "UserService"
+    },
+    {
+      "name": "publicHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 20,
+        "startCol": 8,
+        "endLine": 22,
+        "endCol": 2
+      },
+      "docstring": "An exported free function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "privateHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 24,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "UserService",
+      "kind": "test",
+      "range": {
+        "startLine": 28,
+        "startCol": 1,
+        "endLine": 32,
+        "endCol": 3
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "renders",
+      "kind": "test",
+      "range": {
+        "startLine": 29,
+        "startCol": 3,
+        "endLine": 31,
+        "endCol": 5
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "https://api.example.com/user",
+      "line": 7
+    },
+    {
+      "text": "legacy",
+      "line": 15
+    },
+    {
+      "text": "UserService",
+      "line": 28
+    },
+    {
+      "text": "renders",
+      "line": 29
+    }
+  ],
+  "docstrings": [
+    "A user service.",
+    "Fetch the current user.",
+    "@deprecated use fetch instead",
+    "An exported free function."
+  ]
+}

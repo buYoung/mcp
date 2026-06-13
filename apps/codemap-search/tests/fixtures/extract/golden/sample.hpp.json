@@ -1,0 +1,131 @@
+{
+  "filePath": "sample.hpp",
+  "totalLines": 28,
+  "symbols": [
+    {
+      "name": "Point",
+      "kind": "struct",
+      "range": {
+        "startLine": 6,
+        "startCol": 1,
+        "endLine": 13,
+        "endCol": 2
+      },
+      "docstring": "A point value type (struct members default to public/exported).",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "label",
+      "kind": "fn",
+      "range": {
+        "startLine": 10,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 6
+      },
+      "docstring": "Return a label for the point.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Point"
+    },
+    {
+      "name": "Service",
+      "kind": "class",
+      "range": {
+        "startLine": 16,
+        "startCol": 1,
+        "endLine": 28,
+        "endCol": 2
+      },
+      "docstring": "A service with a public and a private member.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "start",
+      "kind": "fn",
+      "range": {
+        "startLine": 19,
+        "startCol": 5,
+        "endLine": 19,
+        "endCol": 18
+      },
+      "docstring": "Start the service.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Service"
+    },
+    {
+      "name": "startLegacy",
+      "kind": "fn",
+      "range": {
+        "startLine": 24,
+        "startCol": 5,
+        "endLine": 24,
+        "endCol": 24
+      },
+      "docstring": "@deprecated use start instead",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Service"
+    },
+    {
+      "name": "hiddenState",
+      "kind": "fn",
+      "range": {
+        "startLine": 27,
+        "startCol": 5,
+        "endLine": 27,
+        "endCol": 23
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Service"
+    }
+  ],
+  "literals": [
+    {
+      "text": "point",
+      "line": 11
+    }
+  ],
+  "docstrings": [
+    "A point value type (struct members default to public/exported).",
+    "Return a label for the point.",
+    "A service with a public and a private member.",
+    "Start the service.",
+    "@deprecated use start instead"
+  ]
+}

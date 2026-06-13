@@ -1,0 +1,119 @@
+{
+  "filePath": "sample.java",
+  "totalLines": 24,
+  "symbols": [
+    {
+      "name": "Sample",
+      "kind": "class",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 24,
+        "endCol": 2
+      },
+      "docstring": "Fixture exercising Java branch-sensitive extraction.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 6
+      },
+      "docstring": "Fetch the current value.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Sample"
+    },
+    {
+      "name": "legacyFetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 14,
+        "endCol": 6
+      },
+      "docstring": "Old fetcher.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Sample"
+    },
+    {
+      "name": "packagePrivateHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 18,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Sample"
+    },
+    {
+      "name": "testFetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 20,
+        "startCol": 5,
+        "endLine": 23,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Sample"
+    }
+  ],
+  "literals": [
+    {
+      "text": "fetched value",
+      "line": 6
+    },
+    {
+      "text": "legacy",
+      "line": 13
+    },
+    {
+      "text": "package-private",
+      "line": 17
+    }
+  ],
+  "docstrings": [
+    "Fixture exercising Java branch-sensitive extraction.",
+    "Fetch the current value.",
+    "Old fetcher."
+  ]
+}

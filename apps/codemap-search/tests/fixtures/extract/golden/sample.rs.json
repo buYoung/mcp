@@ -1,0 +1,136 @@
+{
+  "filePath": "sample.rs",
+  "totalLines": 30,
+  "symbols": [
+    {
+      "name": "Config",
+      "kind": "struct",
+      "range": {
+        "startLine": 4,
+        "startCol": 1,
+        "endLine": 6,
+        "endCol": 2
+      },
+      "docstring": "Fixture exercising Rust branch-sensitive extraction.\nA configuration container.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "port",
+      "kind": "field",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 18
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "load",
+      "kind": "fn",
+      "range": {
+        "startLine": 10,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 6
+      },
+      "docstring": "Build a default configuration.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Config"
+    },
+    {
+      "name": "legacy_load",
+      "kind": "fn",
+      "range": {
+        "startLine": 17,
+        "startCol": 5,
+        "endLine": 19,
+        "endCol": 6
+      },
+      "docstring": "Old loader.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Config"
+    },
+    {
+      "name": "internal_helper",
+      "kind": "fn",
+      "range": {
+        "startLine": 23,
+        "startCol": 1,
+        "endLine": 25,
+        "endCol": 2
+      },
+      "docstring": "An internal helper that is not exported.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "test_loads_config",
+      "kind": "fn",
+      "range": {
+        "startLine": 28,
+        "startCol": 1,
+        "endLine": 30,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "default config",
+      "line": 11
+    },
+    {
+      "text": "use load instead",
+      "line": 16
+    },
+    {
+      "text": "internal helper",
+      "line": 24
+    }
+  ],
+  "docstrings": [
+    "Fixture exercising Rust branch-sensitive extraction.\nA configuration container.",
+    "Build a default configuration.",
+    "Old loader.",
+    "An internal helper that is not exported."
+  ]
+}
