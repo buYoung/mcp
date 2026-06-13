@@ -72,6 +72,13 @@ The reference LSP arm (**serena**) exposes three navigation tools — `find_symb
 
 Repos were depth-1 pin-cloned (working tree = tracked, no build artifacts). A hard constraint of the benchmark: **zero changes to scout's code or to the target repos**; all benchmark artifacts live in a separate `$BENCH_ROOT` directory.
 
+Dataset notes:
+
+- **Primary-language LOC:** TypeScript 2,429,978 (vscode); Go 3,889,004 (kubernetes).
+- **File-count basis:** the table's file counts (15,610 / 30,689) are all files zoekt indexed, non-code included; tokei recognizes fewer source files (14,023 / 25,999). LOC was measured with tokei 14.0 on the pinned working tree on the date of record, `.gitignore` respected.
+- **Exclusion rules:** `.gitignore` respected, plus zoekt's default binary-file exclusion.
+- **vendor/ parity:** kubernetes includes its checked-in `vendor/` tree (~65 MB); it is in scope for built-in text search and for scout's index *equally*, so it does not advantage either side.
+
 ### Task design (ground-truth v2)
 
 12 tasks = 2 repos × 3 categories × 2 tasks each (difficulty is fixed per category: fix=low, feat=medium, flow=high), totaling **46 essential anchors**.
@@ -103,11 +110,14 @@ Repos were depth-1 pin-cloned (working tree = tracked, no build artifacts). A ha
 
 ### Scoring
 
+- **Answer format:** every run must return `{"locations":["<repo-relative path>:<line>", ...]}`; locations are parsed to `{file, line}` and matched against the anchor set.
 - **Headline metric: F2** — recall-weighted harmonic mean (`5PR / (4P + R)`, β=2). The intent is "did it find every essential anchor", with only a weak precision penalty for over-return.
+- **Secondary metrics:** recall (anchors hit / anchors), precision (hits / returned locations), and over-return (returned locations ÷ anchors; 1 = exact, >1 = noise).
 - **Matching tolerance:** `file:line` matched at ±3 lines.
 - **Significance test:** paired bootstrap on per-task mean F2 (B=10,000, seed=12345). A contrast is significant when the 95% CI excludes 0.
 - **Source of truth:** per-agent workflow transcripts were parsed (not subagent self-reports), mapped via a unique prompt tag `[[RUN:arm|task|run]]`.
-- **Scorer parity:** both harnesses share the dataset, ground-truth set, and scorer byte-for-byte (`extractLocations` + `score`, tol ±3 unchanged).
+- **Scorer parity:** both harnesses share the dataset, ground-truth set, and scorer byte-for-byte (`extractLocations` + `score`, tol ±3 unchanged). Codex answers are fed to the same scorer under a separate `env="native-codex"` label and scored into a separate file; Claude and Codex records are never pooled.
+- **Latency percentiles:** E2E p50/p90/p95 are computed over per-run latencies with the nearest-rank method (`ceil(p/100 · n)`); p99 is omitted because per-arm samples (n = 36 / 24 / 18) are too small to support it.
 - **Outliers / DNF:** no outlier removal. Run-level failures (empty or unparseable answers) are scored as 0. The one environment-level failure — serena's kubernetes index timeout — was excluded from aggregation and reported separately rather than scored as 0 (see Limitations 8 for why this asymmetry favors serena).
 - **Adversarial scoring check:** planned (a separate subagent re-verifying sampled scores against the answer set to catch ±3 boundary and path-normalization bugs), but no execution artifacts were recorded for this run — it is queued as a control for the next measurement, not claimed as a completed check.
 
@@ -126,19 +136,26 @@ Repos were depth-1 pin-cloned (working tree = tracked, no build artifacts). A ha
 
 **Audit result:** across all 144 primary runs, **0 isolation leaks** — no arm called a disallowed MCP, and no pure arm used a built-in. Per-arm: `scout-add` 36/0, `scout-pure` 36/0, `serena-pure` 18/0, `default` 36/0, `serena-add` 18/0.
 
+How the leak count was verified:
+
+- **Claude:** isolation is audited from the per-agent transcripts themselves (`agent-*.jsonl`), not from agent self-reports — every tool call in every transcript is checked against the arm's whitelist, and the result is persisted as an audit artifact (`results/audit-v2-n3.json`).
+- **Codex:** arms are isolated by registering/omitting MCP servers in `~/.codex/config.toml` and toggling the shell tool. `scout-pure` ran with the shell tool hard-disabled (`shellTool: false`) and the session logs show 0 shell calls — config-level rather than harness-level isolation, but clean in practice.
+- **MCP tool-call success rates (Codex, post-fix):** `scout-pure` 675/678 (99.6%), `scout-add` 724/736 (98.4%), `serena-add` 876/876 (100%). Claude-side scout/serena MCP calls had no integration failures.
+
 ### Sample sizes
 
 - **Total: 144 primary runs** (48 task-instances × 3 runs) in the Claude harness.
   - `default`, `scout-pure`, `scout-add`: 36 runs/arm (12 tasks × 3).
   - `serena-pure`, `serena-add`: 18 runs/arm (vscode-only, 6 tasks × 3; kubernetes was DNF).
 - **Supplementary Codex harness: 24 runs/arm** — reps=2 for `default`, `scout-pure`, `scout-add` (12 tasks × 2); reps=4 for `serena-add` (vscode-only, 6 tasks × 4).
-- **Cost envelope (Claude harness only):** $44.06, 64.3M tokens, 2,660 tool-calls across the 144 primary runs. Cost was controlled via a reps=1 scouting pass (48 runs, ~$15) followed by an N=3 increment (+96 runs, ~$29). Codex-harness cost is a derived estimate based on an unconfirmed mini-tier price assumption and is reported only in the Codex efficiency table.
+- **Cost envelope (Claude harness only):** $44.06, 64.3M tokens, 2,660 tool-calls across the 144 primary runs (dollar figures computed from a Sonnet list-price approximation; tokens are measured exactly). Cost was controlled via a reps=1 scouting pass (48 runs, ~$15) followed by an N=3 increment (+96 runs, ~$29). Codex-harness cost is a derived estimate based on an unconfirmed mini-tier price assumption and is reported only in the Codex efficiency table.
 
 ### Measurement environment
 
 - Single machine: 14-core Apple Silicon laptop, macOS 15.7.1.
-- scout binary: managed `v0.0.3` (zoekt-index, zoekt-webserver, Universal Ctags 6.1.0).
+- scout binary: managed `v0.0.3` (zoekt-index, zoekt-webserver, Universal Ctags 6.1.0), with PATH pinned to the managed install directory (`~/.scout/bin/v0.0.3`) to rule out a locally built binary slipping in.
 - Models: Claude Sonnet 4.6 (primary), gpt-5.4-mini (supplementary, run via a separate agent CLI).
+- Concurrency & warm-up: Claude arms ran as parallel in-session workflow sub-agents, one independent session per task with no warm-up pass — cold MCP server boot is included in Track B end-to-end latency; Codex jobs ran under a scheduler at concurrency 12.
 - **Track A caveat:** measured under loadavg 7.28 (high load) — absolute milliseconds may be inflated by ~20–30%.
 
 ---
@@ -241,8 +258,7 @@ Efficiency (mean per run):
 | scout-add | 33.42 | 7.50 | 979,161 | 26,103 | 0.096 | 363.49 | 375 / 484 / 528 |
 | serena-add | 37.33 | 6.29 | 1,039,993 | 23,122 | 0.082 | 294.70 | 303 / 484 / 491 |
 
-² Codex "turns" = model-utterance count, which differs in meaning from Claude turns; not directly comparable.
-³ gpt-5.4-mini pricing is an unconfirmed mini-tier approximation (in $0.25 / cached-in $0.025 / out $2.00 per MTok).
+² Codex "turns" = model-utterance count, which differs in meaning from Claude turns; not directly comparable. ³ gpt-5.4-mini pricing is an unconfirmed mini-tier approximation (in $0.25 / cached-in $0.025 / out $2.00 per MTok).
 
 Significance — paired bootstrap (Codex):
 
@@ -271,7 +287,27 @@ Per-task F2 (Codex):
 | vsc-flow-1 | vscode | flow | 4 | 0.239 | 0.119 | 0.357 | 0.265 |
 | vsc-flow-2 | vscode | flow | 5 | 0.762 | 0.441 | 0.863 | 0.594 |
 
-> Integrity note: in the Codex harness, scout MCP calls failed at ~100% in the first run (`"user cancelled MCP tool call"`). Only the two scout arms were fixed and rerun; success rates after the fix were `scout-pure` 675/678 (99.6%) and `scout-add` 724/736 (98.4%). Consequently `default`/`serena-add` come from the initial batch and the scout arms from a separate rerun batch. This batch separation can perturb latency/cost (quality F2/recall is unaffected by it) and is the root of the provisional-signal caveat above.
+Breakdown by repo (Codex):
+
+| arm | kubernetes | vscode |
+|---|--:|--:|
+| default | 0.489 | 0.473 |
+| scout-add | 0.574 | 0.538 |
+| scout-pure | 0.460 | 0.446 |
+| serena-add¹ | — | 0.464 |
+
+Breakdown by category (Codex):
+
+| arm | feat (med) | fix (low) | flow (high) |
+|---|--:|--:|--:|
+| default | 0.432 | 0.653 | 0.357 |
+| scout-add | 0.497 | 0.704 | 0.466 |
+| scout-pure | 0.416 | 0.704 | 0.239 |
+| serena-add¹ | 0.333 | 0.630 | 0.429 |
+
+The category difficulty ordering — fix easiest, flow hardest — reproduces in both harnesses. Within the Codex harness, `scout-add` gains most where tasks are hardest (flow 0.357 → 0.466, feat 0.432 → 0.497 vs `default`), with recall and precision rising together (0.526 → 0.600 and 0.461 → 0.525) — consistent with scout helping to locate distributed edit points, subject to the provisional-signal caveats below.
+
+> Integrity note: in the Codex harness, scout MCP calls failed at ~100% in the first run (`"user cancelled MCP tool call"`). The initial-batch scout data therefore measured tool absence (shell fallback), not scout utility, and was discarded as invalid. Only the two scout arms were fixed and rerun; success rates after the fix were `scout-pure` 675/678 (99.6%) and `scout-add` 724/736 (98.4%). Consequently `default`/`serena-add` come from the initial batch and the scout arms from a separate rerun batch. Task prompts were confirmed byte-identical across the two batches; what differs is execution timing and the unfrozen environment (Limitations 7). This batch separation can perturb latency/cost (quality F2/recall is unaffected by it) and is the root of the provisional-signal caveat above.
 
 ### Track A — tool latency (direct measurement)
 
@@ -303,7 +339,9 @@ Raw samples (where recorded):
 - vscode 1-file re-index: [3420.3, 3408.6, 3417.8] ms · kubernetes: [5543.9, 4960.4, 4822.7] ms
 - fingerprint walk: vscode median 307.7 ms (range 293–351.7) · kubernetes median 519.6 ms (range 503.7–560.6)
 
-**Read of Track A:** a 30k-file index finishes in ~4 s, and warm-query p50s span 0.4–50.2 ms with p90s at or below 51.3 ms. However, a single-file change triggers a *full* re-index (~3–5 s) — there is no incremental indexing. For this read-only benchmark with a persistent index, the re-index cost does not affect Track B latency or F2, but it is a real caveat for edit-loop workflows.
+**Read of Track A:** a 30k-file index finishes in ~4 s, and warm-query p50s span 0.4–50.2 ms with p90s at or below 51.3 ms. However, a single-file change triggers a *full* re-index (~3–5 s) — there is no incremental indexing (the bundled `zoekt-index` exposes no delta/incremental mode). For this read-only benchmark with a persistent index, the re-index cost does not affect Track B latency or F2, but it is a real caveat for edit-loop workflows.
+
+**Index persistence in Track B:** the on-disk index (`.scout/zoekt`) is never wiped between sessions, so each repo pays at most one cold build on first contact and every subsequent query is warm. scout's higher Track B end-to-end latency is therefore not a re-indexing artifact — it comes from MCP round-trips and additional exploration rounds (see Cost trade-off).
 
 ---
 
@@ -330,6 +368,7 @@ scout consistently raises turns, latency, and cost — the increase comes from M
 
 - Claude: `scout-pure` vs `default` — turns +31%, E2E p50 +48% (89 s vs 60 s), cost +29%, with 0 quality gain.
 - Codex: `scout-add` vs `default` — tool-calls 25.3→33.4, tok in 829k→979k, E2E p50 288→375 s, cost $0.089→$0.096, for a +15.6% quality gain (provisional).
+- Over-return (a context-noise proxy) is a harness-level trait, only meaningful within a harness: Claude arms return 2.1–3.7× the anchor count vs ~1.5× for Codex arms. Within each harness, scout does not blow up noise — Codex over-return is essentially flat across arms (1.46–1.56), while Claude's scout arms return somewhat more (2.89 → 3.48–3.70), which F2's weak precision penalty already prices in.
 
 ### Notable failures
 
@@ -394,6 +433,9 @@ bash harness/perf-run.sh                 # -> results/perf-native.json
 # 3) Track B (Codex) — codex exec, 4-arm x 12 tasks x reps=2
 #    Toggle scout/serena MCP per arm in the codex config; run the job runner.
 #    NOTE: run the two scout arms only after confirming MCP integration works.
+#    Session logs land per batch under logs/, e.g.
+#      logs/codex-exec-<model>-<date>/        (default, serena-add — initial batch)
+#      logs/codex-exec-<model>-scout-rerun/   (scout-add, scout-pure — rerun batch)
 
 # 4) Collect Codex answers
 node harness/collect-codex.mjs           # -> results/trackB-codex-n3.jsonl (96 records)
@@ -403,21 +445,44 @@ node harness/score-trackB-multi.mjs results/trackB-native-v2-n3.jsonl
 node harness/score-trackB-multi.mjs results/trackB-codex-n3.jsonl --out=scores-trackB-codex-n3
 ```
 
-Sanity checks: `wc -l results/trackB-codex-n3.jsonl` = 96; Codex no-result count = 0; scout MCP success rate ≥ 98%.
+Sanity checks: `wc -l results/trackB-codex-n3.jsonl` = 96; Codex no-result count = 0; scout MCP success rate ≥ 98%; Claude aggregates should reproduce the score-summary artifact (`results/scores-trackB-v2-n3.md`) table-for-table.
 
 Record schema: `{env, taskId, repo, category, contestant, run, locations:[{file,line}], tools_used, tokens:{in,out}, turns, costUsd, error}`. Transcript→arm mapping uses the embedded `[[RUN:arm|task|run]]` tag.
 
+Artifact map (names as referenced throughout; covered by the availability note above):
+
+- Ground truth: `groundtruth.json` (v2, 12 tasks / 46 anchors), with curation evidence in `results/gt-anchors.json` and `results/gt-validation{,-v2}.json`.
+- Scorer (shared, unchanged): `harness/locations.mjs` (`extractLocations` + `score`, tol ±3); aggregation via `harness/score-trackB-multi.mjs`.
+- Claude harness: raw runs `results/trackB-native-v2-n3.jsonl` (144 runs), scores `results/scores-trackB-v2-n3.{json,md}`, isolation audit `results/audit-v2-n3.json`.
+- Codex harness: collector `harness/collect-codex.mjs`, collected runs `results/trackB-codex-n3.jsonl` (96 records; scout arms from the rerun batch), scores `results/scores-trackB-codex-n3.{json,md}`, per-batch session logs under `logs/`.
+- Track A: `results/perf-native.json` (plus per-repo splits).
+
 ### Planned next measurements (fairness guards)
+
+**Forward fairness charter — seven articles, binding on this and all future measurements.** Codified after this run; the priority table below implements it. Top-level principle: the measurement is unconditionally fair — nothing is done that grants scout extra credit.
+
+1. **Separate quality from cost.** F2/recall/precision must be independent of indexing and warm-up state; if pre-warming changes F2, that is a bug to investigate, not a result.
+2. **One-time setup costs are reported separately and explicitly, under the same rule for every arm.** scout index build, serena LSP onboarding, rg = 0. No silent exclusion *and* no silent inclusion. Latency is reported in both regimes — cold-start and warm/steady-state — each clearly labeled.
+3. **No baseline weakening.** An rg arm means real ripgrep guaranteed on PATH and announced as available; no arm gets a prompt or tool description that favors one side — the system-prompt skeleton stays arm-neutral.
+4. **Same environment, same batch.** All arms run in the same batch with the same CLI/runtime/model snapshot and reasoning settings, with versions recorded in a manifest. (A scout-only separate-batch rerun, as happened this round, is treated as a violation to eliminate.)
+5. **Pre-registration.** New repos, pin SHAs, and ground truth are frozen *before* any results are seen. No picking "repos where scout does well". Ground truth is never generated from the output of scout, rg, or serena — tool-agnostic manual curation with independent verification.
+6. **DNFs and failures are scored under one rule and never hidden.** Unfavorable events (serena's index failure, scout's initial MCP failure) belong in the body of the report; the empty-answer-scores-0 rule applies to tool failures the same way.
+7. **The tested tool's own preferences are not scoring rules.** Even where scout's design docs prefer excluding indexing time from benchmark cost, a fair benchmark reports indexing cost separately rather than hiding it.
+
+Index/warm-up handling under articles 1–2: pre-build every repo's index *before* timed runs begin, so no single task accidentally absorbs the one-time build; verify and record index state in the manifest (pre-built at commit X, persisted across N sessions, 0 rebuilds during timed runs); and always surface the one-time build cost (Track A: ~2.8 s vscode / ~4.1 s kubernetes) as its own line. serena receives the same treatment for LSP onboarding time.
 
 | priority | item | fairness guard |
 |---|---|---|
-| P0 | add an rg arm (Codex) | rg guaranteed on PATH; arm-neutral prompt |
-| P0 | same-batch rerun for all arms + freeze env/version manifest | removes batch confound |
-| P0 | split cold/warm latency + pre-warm index + record state | does not hide indexing cost |
+| P0 | add an rg arm (Codex) | rg guaranteed on PATH; arm-neutral prompt (art. 3) |
+| P0 | same-batch rerun for all arms + freeze env/version manifest | removes batch confound (art. 4) |
+| P0 | split cold/warm latency + pre-warm index + record state | does not hide indexing cost (arts. 1–2, 7) |
 | P1 | Codex N≥3 + one session per task | isolation symmetry with Claude |
 | P1 | Claude tool-call success / serena breakdown at Codex granularity | reporting symmetry |
-| P2 | add a Rust multi-crate monorepo (pre-registered) | language/structure diversity, no cherry-pick |
+| P1 | uniform DNF scoring + run Codex serena-pure | one rule for all failures (art. 6) |
+| P2 | add a Rust multi-crate monorepo (pre-registered) | language/structure diversity, no cherry-pick (art. 5) |
 | P2 | report F1 / Fβ-sweep / anchor-pooled micro-average | metric does not dictate the conclusion |
+
+The pre-registered third repo is **tikv** (a Rust multi-crate monorepo); its pin SHA and ground truth will be frozen before measurement (article 5). The goal is language and structural diversity — TypeScript/Go → Rust, where macros and trait dispatch stress both text search and ctags — not raw size: vscode and kubernetes already sit at 3.5M / 5.4M code LOC. The regimes where ripgrep itself slows down (10M+ LOC, slow or remote filesystems) remain a separate follow-up.
 
 ---
 

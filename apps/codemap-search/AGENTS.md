@@ -8,7 +8,7 @@
 
 - `Cargo.toml`: Rust package metadata and dependencies for clap, tokio, tree-sitter grammars, Tantivy, notify, tracing, TOML config, and ripgrep library crates.
 - `README.md`: user-facing installation, MCP registration, tool, config, and logging reference.
-- `docs/`: benchmark reports, design notes, and configuration references; keep implementation changes aligned with current design docs.
+- `docs/`: benchmark workflow/evolution reports (`benchmark-workflow.md`, `benchmark-evolution.md`), campaign datasets and harness assets (`bench-2026-06/`, `bench-2026-06-django-strapi/`), and the configuration reference; keep config-key changes aligned with `configuration.md`.
 - `src/main.rs`: CLI entry. It initializes stderr logging/config, dispatches CLI subcommands, and in `mcp` mode scaffolds config, creates the Tantivy engine, starts indexer/watcher, and runs the MCP loop.
 - `src/mcp.rs`: hand-written JSON-RPC/MCP protocol loop, tool schemas, request dispatch, search/overview rendering, warming/stale-result notices, path safety, output caps, and indexer auto-restart.
 - `src/index.rs`: Tantivy schema, query parsing recovery, incremental indexing, mtime cache, extraction-format sidecar versioning, corrupt-index rebuild, ranking, and result selection.
