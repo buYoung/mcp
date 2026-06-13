@@ -1,0 +1,109 @@
+{
+    "_meta": {
+        "purpose": "축 B-context — '착수 가능 컨텍스트 수집' 벤치. 회사 벤치('X가 어떻게 동작하는지 조사')와 동일 클래스: edit-site localization이 아니라, code-agent가 작업에 바로 착수할 만큼의 구조적 컨텍스트를 모으는 능력. 헤드라인 = 컨텍스트 recall @ 비용(토큰).",
+        "corpus": "scrapy @ 4e956bd1f8b3b5c... (174 py files, 63k LOC, Python)",
+        "task_class": "comprehension/flow-tracing (구현 아님). 정답 = 기존 코드의 실제 호출 체인(객관적, 코드로 검증).",
+        "why_grep_hostile": "과제 자연키워드 'DOWNLOADER_MIDDLEWARES'는 3파일만 매칭(default_settings, core/downloader/middleware.py, 템플릿). 체인의 동적 indirection(build_component_list@conf.py, MiddlewareManager.from_crawler의 load_object+build_from_crawler 루프@middleware.py, load_object/build_from_crawler@utils/misc.py)은 그 키워드를 포함하지 않아 grep로 체인을 조립 불가. 'middleware'(32파일)·'load_object'(23파일)·'from_crawler'(57파일)는 노이즈라 격리 안 됨. codemap의 overview/BM25는 이 indirection을 구조로 격리 → 변별 타깃.",
+        "ground_truth_construction": [
+            "Agent A(blind, 기본도구): 동족 과제(다운로드 latency stats 확장)를 실제 구현+스모크 통과 → 확장 로딩·시그널·stats 인프라가 실재함을 확증(diff: artifacts/scrapy-latency.diff). corpus는 검증 후 핀 SHA로 복원.",
+            "도구 다양화(advisor 반-grep-bias): 체인을 grep/read(Bash) + codemap-search-scrapy(MCP, Bash구동) 두 뷰로 제안 → 각 컴포넌트를 실제 코드(core/downloader/middleware.py 전문, middleware.py, utils/misc.py, utils/conf.py)로 읽어 호출 체인상 존재를 1:1 검증. 정답 = 'tracer가 연 파일'이 아니라 '코드가 실제로 거치는 체인'(코드가 arbiter).",
+            "pre-change 좌표 = 핀 SHA 4e956bd 기준."
+        ]
+    },
+    "scoring_prereg": {
+        "headline": "essential context recall @ 토큰(비용). 보조: precision(노이즈), tool_calls.",
+        "deliverable_contract": "착수 전 읽어야 할 '완전하되 노이즈 없는' 위치셋. recall(체인 커버리지)·precision(무관 위치 배제) 둘 다 의미. 정지점은 에이전트 자율 → recall·precision·비용이 정지점에 의존함을 해석 시 명시(stop confound).",
+        "answer_format": "{\"locations\":[\"<repo상대경로>:LINE\", ...]}",
+        "recall_scored_on": "essential 컴포넌트(class=context). 체인을 구성하는 함수/정의 영역.",
+        "match_policy": {
+            "region": "allowed_lines 범위 내 hit(함수/정의 영역). 컨텍스트 수집은 '올바른 컴포넌트를 짚었나'라 함수범위 채점.",
+            "region_multi": "한 컴포넌트가 분리된 구간에 존재(예: load_object와 build_from_crawler) → allowed_regions 중 하나 hit."
+        },
+        "pure_vs_additive": "additive=실사용 재현(Claude Code+codemap). pure=codemap 순수능력. additive가 baseline에 또 지면 task class가 아니라 단발 sub-agent 하베스 artifact를 의심(edit-site 벤치서 additive가 juggle로 산만했던 전례)."
+    },
+    "tasks": [
+        {
+            "id": "scrapy-ctx-1",
+            "difficulty": "medium",
+            "statement": "스크래피에서 다운로더 미들웨어(downloader middleware)가 설정에 적힌 문자열로부터 로드되어, 실제 요청·응답 처리에 끼어들기까지 어떻게 동작하는지 조사하라. 다른 개발자가 새 다운로더 미들웨어를 추가하거나 기존 동작을 수정하는 작업에 바로 착수할 수 있을 만큼, 핵심 코드 위치(설정 해석 → 우선순위 결정 → 클래스 로딩·인스턴스화 → 미들웨어 메서드 등록 → 요청·응답 처리 시 호출)를 file:line으로 수집하라.",
+            "essential_anchors": [
+                {
+                    "concept": "설정 등록 지점(문자열 클래스경로+우선순위)",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/settings/default_settings.py:285",
+                    "allowed_lines": [285, 305],
+                    "note": "DOWNLOADER_MIDDLEWARES_BASE dict. 유일하게 grep-friendly한 진입점."
+                },
+                {
+                    "concept": "우선순위 병합·정렬 → 정렬된 클래스경로 리스트",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/utils/conf.py:20",
+                    "allowed_lines": [20, 63],
+                    "note": "build_component_list. grep-hostile(키워드 미포함)."
+                },
+                {
+                    "concept": "설정→미들웨어 리스트 추출(매니저 진입)",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/core/downloader/middleware.py:37",
+                    "allowed_lines": [37, 41],
+                    "note": "DownloaderMiddlewareManager._get_mwlist_from_settings"
+                },
+                {
+                    "concept": "문자열→클래스 동적 로딩·인스턴스화 루프",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/middleware.py:88",
+                    "allowed_lines": [88, 114],
+                    "note": "MiddlewareManager.from_crawler: load_object(clspath)+build_from_crawler(mwcls,crawler). grep-hostile 핵심."
+                },
+                {
+                    "concept": "동적 로딩 primitive(경로→객체, 인스턴스화)",
+                    "class": "context",
+                    "match": "region_multi",
+                    "loc": "scrapy/utils/misc.py:58",
+                    "allowed_regions": [[55, 75], [176, 210]],
+                    "note": "load_object + build_from_crawler. grep-hostile(키워드 미포함, 23/57파일 노이즈)."
+                },
+                {
+                    "concept": "미들웨어 메서드 발견·등록(hasattr → methods 큐)",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/core/downloader/middleware.py:43",
+                    "allowed_lines": [43, 52],
+                    "note": "DownloaderMiddlewareManager._add_middleware: process_request/response/exception 등록."
+                },
+                {
+                    "concept": "요청·응답 처리 시 미들웨어 호출(끼어드는 지점)",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/core/downloader/middleware.py:96",
+                    "allowed_lines": [96, 138],
+                    "note": "_process_request/_process_response: methods 큐 순회 호출."
+                },
+                {
+                    "concept": "다운로더에서 미들웨어 매니저 진입(체인 시작)",
+                    "class": "context",
+                    "match": "region",
+                    "loc": "scrapy/core/downloader/__init__.py:126",
+                    "allowed_lines": [116, 135],
+                    "note": "Downloader.fetch → self.middleware.download_async(...)"
+                }
+            ],
+            "context_optional": [
+                {
+                    "loc": "scrapy/middleware.py:116",
+                    "note": "MiddlewareManager._add_middleware 베이스(downloader가 override) — 이해 보조"
+                },
+                {
+                    "loc": "scrapy/core/downloader/__init__.py:223",
+                    "note": "_download: 실제 다운로드+시그널 emit — 흐름 말단"
+                }
+            ],
+            "leakage": "no — 과제는 'downloader middleware'(공개 개념)·동작만 서술. load_object/build_from_crawler/MiddlewareManager/build_component_list 등 내부 심볼 미노출.",
+            "solvable": "yes — 체인이 코드로 명확히 추적됨. 단 동적 indirection이라 grep 단일키워드로는 conf/middleware-base/misc 컴포넌트가 누락됨(변별점)."
+        }
+    ]
+}

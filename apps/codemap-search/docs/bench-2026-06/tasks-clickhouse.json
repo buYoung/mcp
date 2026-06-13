@@ -1,0 +1,320 @@
+{
+    "repo": "clickhouse",
+    "repo_path": "/tmp/benchmark-data/ClickHouse-master",
+    "created": "2026-06-12",
+    "tasks": [
+        {
+            "id": "c1",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "easy",
+            "prompt": "codemap-search MCP 도구를 사용해서 ClickHouse의 IStorage 클래스가 정의된 위치와, 주 생성자(explicit IStorage(StorageID storage_id_, ...))가 선언된 줄을 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Storages/IStorage.h",
+                "line_start": 83,
+                "line_end": 88,
+                "symbol": "DB::IStorage",
+                "evidence_quote": "class IStorage : public std::enable_shared_from_this<IStorage>, public TypePromotion<IStorage>, public IHints<>",
+                "additional_locations": [
+                    {
+                        "file": "src/Storages/IStorage.h",
+                        "line": 88,
+                        "note": "주 생성자 선언: explicit IStorage(StorageID storage_id_, std::unique_ptr<StorageInMemoryMetadata> metadata_ = nullptr);"
+                    },
+                    {
+                        "file": "src/Storages/IStorage.cpp",
+                        "line": 42,
+                        "note": "보너스: 생성자의 아웃오브라인 정의 IStorage::IStorage(...) — 요구사항은 아니며 언급해도 정답에 영향 없음"
+                    }
+                ]
+            },
+            "rubric": "정답: src/Storages/IStorage.h의 클래스 정의(83줄, 83-84 인용 허용)와 생성자 선언(88줄, ±1줄 허용) 둘 다 제시. 부분 정답: 둘 중 하나만 정확히 제시(파일은 맞고 줄 번호 하나 누락/오류). 오답: 다른 파일을 제시하거나 두 줄 번호 모두 5줄 이상 벗어남."
+        },
+        {
+            "id": "c2",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 DB::Block 클래스의 cloneEmpty() 메서드에 대해 헤더 파일의 선언 위치와 .cpp 파일의 아웃오브라인(out-of-line) 정의 위치를 둘 다 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Core/Block.cpp",
+                "line_start": 512,
+                "line_end": 521,
+                "symbol": "DB::Block::cloneEmpty",
+                "evidence_quote": "Block Block::cloneEmpty() const",
+                "additional_locations": [
+                    { "file": "src/Core/Block.h", "line": 143, "note": "헤더 선언: Block cloneEmpty() const;" }
+                ]
+            },
+            "rubric": "정답: src/Core/Block.cpp:512(정의 시작, ±1줄 허용)와 src/Core/Block.h:143(선언, ±1줄 허용) 둘 다 제시. 부분 정답: 둘 중 한 위치만 정확. 오답: cloneEmptyColumns(Block.h:153/156)와 혼동하거나 두 위치 모두 부정확."
+        },
+        {
+            "id": "c3",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "easy",
+            "prompt": "codemap-search MCP 도구를 사용해서 ClickHouse의 ColumnVector 템플릿 클래스(template <typename T> class ColumnVector)가 정의된 위치를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Columns/ColumnVector.h",
+                "line_start": 24,
+                "line_end": 25,
+                "symbol": "DB::ColumnVector",
+                "evidence_quote": "class ColumnVector final : public COWHelper<IColumnHelper<ColumnVector<T>, ColumnFixedSizeHelper>, ColumnVector<T>>",
+                "additional_locations": [
+                    {
+                        "file": "src/Columns/ColumnVector.h",
+                        "line": 24,
+                        "note": "템플릿 매개변수 줄: template <typename T>"
+                    }
+                ]
+            },
+            "rubric": "정답: src/Columns/ColumnVector.h의 24줄 또는 25줄을 클래스 정의로 제시. 부분 정답: 파일은 맞지만 줄 번호가 5줄 이내로 빗나감(예: extern template 인스턴스화 줄 389-392를 정의로 제시하면 부분 아님 — 오답). 오답: 다른 파일(.cpp의 인스턴스화 등)을 정의 위치로 제시."
+        },
+        {
+            "id": "c4",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 zkutil 네임스페이스의 ZooKeeper 클래스(zkutil::ZooKeeper)가 정의된 위치를 찾아. 같은 이름의 Coordination::ZooKeeper 클래스와 혼동하지 말고 네임스페이스를 확인해. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Common/ZooKeeper/ZooKeeper.h",
+                "line_start": 189,
+                "line_end": 189,
+                "symbol": "zkutil::ZooKeeper",
+                "evidence_quote": "class ZooKeeper",
+                "additional_locations": [
+                    {
+                        "file": "src/Common/ZooKeeper/ZooKeeper.h",
+                        "line": 52,
+                        "note": "감싸는 네임스페이스 시작: namespace zkutil"
+                    },
+                    {
+                        "file": "src/Common/ZooKeeper/ZooKeeperImpl.h",
+                        "line": 108,
+                        "note": "오답 함정(distractor): Coordination::ZooKeeper — class ZooKeeper final : public IKeeper. 이것을 zkutil::ZooKeeper의 정의로 제시하면 오답"
+                    }
+                ]
+            },
+            "rubric": "정답: src/Common/ZooKeeper/ZooKeeper.h:189(±2줄 허용)를 zkutil::ZooKeeper 정의로 제시. 부분 정답: 파일은 맞지만 줄 번호가 크게 빗나감, 또는 두 클래스를 모두 나열하되 어느 쪽이 zkutil인지 명시하지 못함. 오답: src/Common/ZooKeeper/ZooKeeperImpl.h:108(Coordination::ZooKeeper)을 zkutil::ZooKeeper로 제시."
+        },
+        {
+            "id": "c5",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 enum class JoinKind의 정의 위치와 Paste 열거자가 선언된 줄을 찾고, src/Parsers 디렉터리 아래에서 JoinKind::Paste가 사용되는 모든 위치를 나열해. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Core/Joins.h",
+                "line_start": 12,
+                "line_end": 21,
+                "symbol": "DB::JoinKind",
+                "evidence_quote": "enum class JoinKind : uint8_t",
+                "additional_locations": [
+                    {
+                        "file": "src/Core/Joins.h",
+                        "line": 20,
+                        "note": "Paste 열거자 선언: Paste, /// Used to join parts without `ON` clause."
+                    },
+                    {
+                        "file": "src/Parsers/ASTTablesInSelectQuery.cpp",
+                        "line": 245,
+                        "note": "사용처: case JoinKind::Paste:"
+                    },
+                    {
+                        "file": "src/Parsers/ParserTablesInSelectQuery.cpp",
+                        "line": 251,
+                        "note": "사용처: table_join->kind = JoinKind::Paste;"
+                    },
+                    {
+                        "file": "src/Parsers/ParserTablesInSelectQuery.cpp",
+                        "line": 277,
+                        "note": "사용처: (table_join->kind == JoinKind::Cross || table_join->kind == JoinKind::Paste)"
+                    },
+                    {
+                        "file": "src/Parsers/ParserTablesInSelectQuery.cpp",
+                        "line": 287,
+                        "note": "사용처: is_natural && (... || table_join->kind == JoinKind::Paste)"
+                    },
+                    {
+                        "file": "src/Parsers/ParserTablesInSelectQuery.cpp",
+                        "line": 300,
+                        "note": "사용처: table_join->kind != JoinKind::Cross && table_join->kind != JoinKind::Paste"
+                    }
+                ]
+            },
+            "rubric": "정답: (a) src/Core/Joins.h:12의 enum 정의, (b) Joins.h:20의 Paste 열거자, (c) src/Parsers 아래 사용처 5곳(ASTTablesInSelectQuery.cpp:245, ParserTablesInSelectQuery.cpp:251/277/287/300) 전부 제시. 부분 정답: (a)+(b)는 맞고 사용처를 3-4곳만 나열. 오답: enum 정의 파일이 틀리거나 사용처를 2곳 이하만 제시."
+        },
+        {
+            "id": "c6",
+            "lang": "cpp",
+            "kind": "definition",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 REGISTER_FUNCTION 매크로가 #define으로 정의된 위치(보조 매크로 REGISTER_FUNCTION_IMPL 포함)와, sleep 함수가 이 매크로로 등록되는 REGISTER_FUNCTION(Sleep) 사용 위치를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Common/register_objects.h",
+                "line_start": 33,
+                "line_end": 33,
+                "symbol": "REGISTER_FUNCTION",
+                "evidence_quote": "#define REGISTER_FUNCTION(fn) REGISTER_FUNCTION_IMPL(fn, registerFunction##fn, REGISTER_FUNCTION_##fn)",
+                "additional_locations": [
+                    {
+                        "file": "src/Common/register_objects.h",
+                        "line": 28,
+                        "note": "보조 매크로 정의: #define REGISTER_FUNCTION_IMPL(fn, func_name, register_name) \\"
+                    },
+                    { "file": "src/Functions/sleep.cpp", "line": 181, "note": "사용처: REGISTER_FUNCTION(Sleep)" }
+                ]
+            },
+            "rubric": "정답: src/Common/register_objects.h:33(REGISTER_FUNCTION)과 28(REGISTER_FUNCTION_IMPL), 그리고 src/Functions/sleep.cpp:181(REGISTER_FUNCTION(Sleep)) 세 위치 모두 제시. 부분 정답: 매크로 정의 위치(33줄 필수)는 맞췄으나 IMPL(28줄) 또는 sleep.cpp:181 중 하나 누락. 오답: register_objects.h를 찾지 못했거나 sleep.cpp 사용처만 제시."
+        },
+        {
+            "id": "c7",
+            "lang": "cpp",
+            "kind": "error",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 ClickHouse 에러 코드 INFINITE_LOOP(코드 번호 269)가 정의된 위치와, ErrorCodes::INFINITE_LOOP로 예외를 throw하는 위치를 최소 4곳 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Common/ErrorCodes.cpp",
+                "line_start": 230,
+                "line_end": 230,
+                "symbol": "DB::ErrorCodes::INFINITE_LOOP",
+                "evidence_quote": "    M(269, INFINITE_LOOP) \\",
+                "additional_locations": [
+                    {
+                        "file": "src/Interpreters/DatabaseCatalog.cpp",
+                        "line": 1890,
+                        "note": "throw 지점 (throw Exception(은 1889줄에서 시작): Cannot add dependencies ... cyclic dependencies"
+                    },
+                    {
+                        "file": "src/Interpreters/DatabaseCatalog.cpp",
+                        "line": 1922,
+                        "note": "throw 지점 (throw Exception(은 1921줄에서 시작): Cannot rename ... cyclic dependencies"
+                    },
+                    {
+                        "file": "src/Interpreters/DatabaseCatalog.cpp",
+                        "line": 1959,
+                        "note": "throw 지점 (throw Exception(은 1958줄에서 시작): Cannot exchange ... cyclic dependencies"
+                    },
+                    {
+                        "file": "src/Databases/TablesDependencyGraph.cpp",
+                        "line": 540,
+                        "note": "throw 지점 (throw Exception(은 539줄에서 시작): Tables ... have cyclic dependencies"
+                    },
+                    {
+                        "file": "src/Storages/StorageDistributed.cpp",
+                        "line": 455,
+                        "note": "throw 지점: throw Exception(ErrorCodes::INFINITE_LOOP, \"Distributed table {} looks at itself\", id_.table_name);"
+                    },
+                    {
+                        "file": "src/Storages/StorageBuffer.cpp",
+                        "line": 142,
+                        "note": "throw 지점: \"Destination table is myself. Will lead to infinite loop.\""
+                    },
+                    {
+                        "file": "src/Storages/StorageBuffer.cpp",
+                        "line": 738,
+                        "note": "throw 지점: \"Destination table is myself. Write will cause infinite loop.\""
+                    }
+                ]
+            },
+            "rubric": "정답: (a) src/Common/ErrorCodes.cpp:230의 M(269, INFINITE_LOOP) 정의와 (b) 나열된 7개 throw 지점 중 서로 다른 4곳 이상 제시(각 지점은 ±2줄 허용 — throw Exception( 시작 줄 인용도 인정). 부분 정답: (a)는 맞고 throw 지점 2-3곳, 또는 (a) 누락이나 throw 지점 4곳 이상. 오답: 정의 위치가 틀리고 throw 지점도 2곳 미만."
+        },
+        {
+            "id": "c8",
+            "lang": "cpp",
+            "kind": "flow",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 CREATE TABLE ... ENGINE = Memory 처리 시 Memory 스토리지 엔진이 등록되고 생성되는 흐름을 추적해: (1) registerStorageMemory 함수 정의, (2) 그 안에서 factory.registerStorage(\"Memory\", ...)를 호출하는 줄, (3) registerStorages()에서 registerStorageMemory를 호출하는 줄, (4) 등록된 엔진 이름으로 스토리지 인스턴스를 생성하는 StorageFactory::get 정의. 네 지점 모두 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Storages/StorageFactory.cpp",
+                "line_start": 67,
+                "line_end": 67,
+                "symbol": "DB::StorageFactory::get",
+                "evidence_quote": "StoragePtr StorageFactory::get(",
+                "additional_locations": [
+                    {
+                        "file": "src/Storages/StorageMemory.cpp",
+                        "line": 686,
+                        "note": "(1) 등록 함수 정의: void registerStorageMemory(StorageFactory & factory)"
+                    },
+                    {
+                        "file": "src/Storages/StorageMemory.cpp",
+                        "line": 688,
+                        "note": "(2) factory.registerStorage(\"Memory\", [](const StorageFactory::Arguments & args)"
+                    },
+                    {
+                        "file": "src/Storages/registerStorages.cpp",
+                        "line": 126,
+                        "note": "(3) registerStorageMemory(factory); 호출"
+                    }
+                ]
+            },
+            "rubric": "정답: 네 지점 모두 제시 — StorageMemory.cpp:686(±1), StorageMemory.cpp:688(±1), registerStorages.cpp:126(±1), StorageFactory.cpp:67(±1). 부분 정답: 네 지점 중 3곳 정확. 오답: 2곳 이하만 정확하거나 흐름 순서를 잇지 못함(예: StorageMemory 클래스 정의만 제시)."
+        },
+        {
+            "id": "c9",
+            "lang": "cpp",
+            "kind": "callers",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 parseQueryAndMovePosition 함수의 정의 위치를 찾고, 이 함수를 호출하는 호출 지점을 최소 5곳 나열해. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Parsers/parseQuery.cpp",
+                "line_start": 398,
+                "line_end": 417,
+                "symbol": "DB::parseQueryAndMovePosition",
+                "evidence_quote": "ASTPtr parseQueryAndMovePosition(",
+                "additional_locations": [
+                    {
+                        "file": "src/Parsers/parseQuery.h",
+                        "line": 29,
+                        "note": "헤더 선언 (호출 지점 아님 — 호출 수에 포함 불가)"
+                    },
+                    { "file": "src/Parsers/parseQuery.cpp", "line": 429, "note": "호출 지점: parseQuery 내부" },
+                    {
+                        "file": "src/Parsers/parseQuery.cpp",
+                        "line": 479,
+                        "note": "호출 지점: ast = parseQueryAndMovePosition(parser, pos, end, ...)"
+                    },
+                    { "file": "src/Access/AccessEntityIO.cpp", "line": 64, "note": "호출 지점" },
+                    {
+                        "file": "src/Common/Scheduler/Workload/WorkloadEntityKeeperStorage.cpp",
+                        "line": 261,
+                        "note": "호출 지점"
+                    },
+                    {
+                        "file": "src/Common/Scheduler/Workload/WorkloadEntityStorageBase.cpp",
+                        "line": 910,
+                        "note": "호출 지점"
+                    },
+                    { "file": "src/Client/ClientBase.cpp", "line": 505, "note": "호출 지점" },
+                    { "file": "src/Client/LocalConnection.cpp", "line": 264, "note": "호출 지점" },
+                    { "file": "src/Client/ClientBaseHelpers.cpp", "line": 600, "note": "호출 지점" },
+                    { "file": "programs/format/Format.cpp", "line": 265, "note": "호출 지점" }
+                ]
+            },
+            "rubric": "정답: (a) src/Parsers/parseQuery.cpp:398의 정의와 (b) 나열된 9개 호출 지점 중 서로 다른 5곳 이상 제시(각 ±1줄 허용). 헤더 선언(parseQuery.h:29)은 호출 지점으로 인정하지 않음. 부분 정답: (a)는 맞고 호출 지점 3-4곳, 또는 (a)를 헤더 선언으로 잘못 제시했으나 호출 지점 5곳 이상. 오답: 정의 위치가 틀리고 호출 지점도 3곳 미만."
+        },
+        {
+            "id": "c10",
+            "lang": "cpp",
+            "kind": "concept",
+            "difficulty": "easy",
+            "prompt": "codemap-search MCP 도구를 사용해서 파일 경로 등에 쓰이는 글롭(glob) 패턴('*', '?', '{a,b}', '{1..10}')을 re2 정규식 문자열로 변환하는 함수를 찾아 그 정의 위치를 답해. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "src/Common/parseGlobs.cpp",
+                "line_start": 60,
+                "line_end": 177,
+                "symbol": "DB::makeRegexpPatternFromGlobs",
+                "evidence_quote": "std::string makeRegexpPatternFromGlobs(const std::string & initial_str_with_globs)",
+                "additional_locations": [
+                    {
+                        "file": "src/Common/parseGlobs.h",
+                        "line": 14,
+                        "note": "헤더 선언: std::string makeRegexpPatternFromGlobs(const std::string & initial_str_with_globs);"
+                    }
+                ]
+            },
+            "rubric": "정답: makeRegexpPatternFromGlobs를 지목하고 src/Common/parseGlobs.cpp:60(±1줄)을 정의 위치로 제시. 부분 정답: 함수는 맞지만 헤더 선언(parseGlobs.h:14)만 제시. 오답: 다른 함수(예: containsRangeGlob, expand 계열)를 제시하거나 파일이 틀림."
+        }
+    ]
+}

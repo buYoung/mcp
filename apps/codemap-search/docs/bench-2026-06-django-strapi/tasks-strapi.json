@@ -1,0 +1,438 @@
+{
+    "repo": "strapi",
+    "repo_path": "/tmp/benchmark-data/strapi-develop",
+    "created": "2026-06-12",
+    "notes": "strapi 모노레포(packages/ 하위 core/plugins/providers/cli/utils). 체크아웃에 .git 이 없어 gitignore 검사는 GIT_DIR 분리(detached git dir, /tmp/benchmark-data/fakegit) 후 git check-ignore 로 수행 — 과제 대상 파일 전부 비-ignore(exit 1). dist/build/node_modules 디렉터리는 체크아웃에 존재하지 않음. 모든 대상 파일은 .ts/.js 이며 최대 크기 117KB(5.0.0-discard-drafts.ts) < 1MiB. 변별력 장치: 동명이인 함수(getDeepPopulate 가 core/core 와 content-manager 에 각각 존재), 문자열 키 기반 동적 디스패치(strapi.plugin('upload').provider, container.get('documents'), getService('user')), 반환 객체 별칭 노출(publish: publishEntry), 3561줄 대형 파일 내비게이션, 3개 패키지에 분산된 bcrypt 비교 지점. ground truth 는 전부 rg/sed 전수 grep 으로 확정했고 codemap-search 도구는 일절 사용하지 않음.",
+    "tasks": [
+        {
+            "id": "s1",
+            "lang": "ts",
+            "kind": "definition",
+            "difficulty": "easy",
+            "prompt": "codemap-search MCP 도구를 사용해서 createCoreController 팩토리 함수가 실제로 정의된 위치를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/factories.ts",
+                "line_start": 15,
+                "line_end": 52,
+                "symbol": "createCoreController",
+                "evidence_quote": "const createCoreController = <",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/factories.ts",
+                        "line": 129,
+                        "note": "export 블록 — 'createCoreController,' (보너스, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/cli/create-strapi-app/templates/example/src/api/article/controllers/article.ts",
+                        "line": 7,
+                        "note": "함정 — 'export default factories.createCoreController(...)' 사용 지점(템플릿 앱). example-js 쪽 동일 패턴 5곳(global/article/about/author/category controllers .js 7~9줄)도 같은 함정"
+                    },
+                    {
+                        "file": "packages/generators/generators/src/templates/ts/core-controller.ts.hbs",
+                        "line": 7,
+                        "note": "함정 — .hbs 템플릿 사용 지점(인덱싱 비대상 확장자)"
+                    }
+                ]
+            },
+            "rubric": "정답: packages/core/core/src/factories.ts:15 의 정의를 제시(시그니처 15~23, 본문 15~52 범위 내 줄 인용 허용, 허용 오차 ±2줄). 부분: 파일은 factories.ts 로 맞췄으나 줄 번호가 15~52 범위 밖(예: export 줄 129만 제시). 오답: packages/cli/create-strapi-app/templates/** 의 사용 지점이나 .hbs 템플릿을 정의 위치로 제시. 전수 grep 결과 createCoreController 출현은 factories.ts(15, 129) + cli 템플릿(ts 5파일×1줄, js 5파일×2줄=15줄) + .hbs 3줄이 전부이며 정의는 factories.ts:15 한 곳뿐."
+        },
+        {
+            "id": "s2",
+            "lang": "ts",
+            "kind": "literal",
+            "difficulty": "easy",
+            "prompt": "codemap-search MCP 도구를 사용해서 strapi 서버의 기본 HTTP 포트 번호 1337 리터럴이 기본 서버 설정값으로 할당되는 위치를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/configuration/index.ts",
+                "line_start": 23,
+                "line_end": 23,
+                "symbol": "defaultServerConfig.port",
+                "evidence_quote": "port: Number(process.env.PORT) || 1337,",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/configuration/index.ts",
+                        "line": 21,
+                        "note": "둘러싼 객체 — 'const defaultServerConfig = {' (보너스, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/mcp/index.ts",
+                        "line": 115,
+                        "note": "함정 — \"strapi.config.get('server.url', 'http://localhost:1337')\" URL 폴백 문자열(설정 기본값 할당 아님)"
+                    },
+                    {
+                        "file": "packages/core/strapi/src/cli/commands/transfer/command.ts",
+                        "line": 157,
+                        "note": "함정 — 'http://localhost:1337/admin' 안내 메시지 문자열"
+                    },
+                    {
+                        "file": "packages/core/upload/admin/src/future/utils/files.ts",
+                        "line": 52,
+                        "note": "함정 — 주석 내 예시 URL"
+                    }
+                ]
+            },
+            "rubric": "정답: packages/core/core/src/configuration/index.ts:23 의 'port: Number(process.env.PORT) || 1337,' 을 제시(허용 오차 ±1줄, defaultServerConfig 21줄 언급은 보너스). 부분: 파일은 맞으나 줄 번호 오차가 ±1 초과. 오답: services/mcp/index.ts:115 의 URL 폴백, cli transfer command.ts:157 의 안내 문자열, 주석 속 예시 URL 등 비-설정 지점을 할당 위치로 제시. 전수 grep(rg -n \"1337\" packages, 테스트 제외) 결과 숫자 리터럴 1337 의 설정 할당은 configuration/index.ts:23 한 곳뿐이고 나머지는 모두 URL 문자열/주석/테스트. cli/create-strapi-app/templates/** 하위 config/server.{ts,js} 의 port 기본값 할당(예: example/config/server.ts:5)은 사용자 앱 스캐폴딩 템플릿이므로 코어 기본 설정값으로 제시하면 오답."
+        },
+        {
+            "id": "s3",
+            "lang": "ts",
+            "kind": "callers",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 @strapi/core 패키지의 document-service 모듈에 있는 getDeepPopulate 함수의 정의 위치와, document-service 모듈 내부에서 이 함수를 호출하는 모든 호출 지점을 찾아. content-manager 패키지에 있는 같은 이름의 다른 함수와 혼동하지 마. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/services/document-service/utils/populate.ts",
+                "line_start": 13,
+                "line_end": 72,
+                "symbol": "getDeepPopulate (document-service)",
+                "evidence_quote": "export const getDeepPopulate = (uid: UID.Schema, opts: Options = {}) => {",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/services/document-service/events.ts",
+                        "line": 24,
+                        "note": "호출 지점 1 — 'const populate = getDeepPopulate(uid, {});' (createEventManager 내부)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 447,
+                        "note": "호출 지점 2 — \"populate: getDeepPopulate(uid, { relationalFields: ['id'] }),\" (clone 경로)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 558,
+                        "note": "호출 지점 3 — \"populate: getDeepPopulate(uid, { relationalFields: ['documentId', 'locale'] }),\" (publish 경로)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 660,
+                        "note": "호출 지점 4 — \"populate: getDeepPopulate(uid, { relationalFields: ['documentId', 'locale'] }),\" (discardDraft 경로)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/utils/populate.ts",
+                        "line": 45,
+                        "note": "재귀 호출 1 — 컴포넌트 속성 처리(보너스, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/utils/populate.ts",
+                        "line": 54,
+                        "note": "재귀 호출 2 — 다이나믹존 처리(보너스, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/content-manager/server/src/services/utils/populate.ts",
+                        "line": 156,
+                        "note": "함정 — content-manager 패키지의 동명 함수 'const getDeepPopulate = (' (다른 구현)"
+                    }
+                ]
+            },
+            "rubric": "정답: 정의 packages/core/core/src/services/document-service/utils/populate.ts:13(본문 13~72 내 인용 허용) + 외부 호출 지점 4곳(events.ts:24, repository.ts:447, 558, 660) 전부 제시. 호출 지점 줄 번호는 ±0 정확해야 함. 재귀 호출(populate.ts:45, 54)과 import 줄(events.ts:4, repository.ts:21) 제시 여부는 채점에 영향 없음. 부분: 정의 + 호출 지점 1~3곳, 또는 정의 누락이지만 호출 4곳 전부. 오답: content-manager 의 동명 함수(packages/core/content-manager/server/src/services/utils/populate.ts:156)를 정의로 제시하거나 정의·호출 모두 부정확. 전수 grep 결과 core/core 내 getDeepPopulate 출현은 9곳(정의 1, import 2, 외부 호출 4, 재귀 2)이고 content-manager 쪽 동명 함수 관련 출현(정의 156, export 468, 호출 등)은 별도 함수임."
+        },
+        {
+            "id": "s4",
+            "lang": "ts",
+            "kind": "error",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 RateLimitError 클래스가 정의된 위치와 이 에러를 throw 하는 모든 지점을 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/utils/src/errors.ts",
+                "line_start": 105,
+                "line_end": 119,
+                "symbol": "RateLimitError",
+                "evidence_quote": "class RateLimitError<TMessage extends string = string, TDetails = unknown> extends ApplicationError<",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/admin/server/src/middlewares/rateLimit.ts",
+                        "line": 40,
+                        "note": "throw 지점 1 — 'throw new RateLimitError();' (admin 로그인 rate limit handler)"
+                    },
+                    {
+                        "file": "packages/core/email/server/src/middlewares/rateLimit.ts",
+                        "line": 29,
+                        "note": "throw 지점 2 — 'throw new RateLimitError();' (email 플러그인 rate limit handler)"
+                    },
+                    {
+                        "file": "packages/plugins/users-permissions/server/middlewares/rateLimit.js",
+                        "line": 88,
+                        "note": "throw 지점 3 — 'throw new RateLimitError();' (users-permissions auth rate limit handler)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/errors.ts",
+                        "line": 22,
+                        "note": "보조 — 'classError: errors.RateLimitError,' (HTTP 429 매핑, throw 아님, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/admin/admin/src/utils/getFetchClient.ts",
+                        "line": 17,
+                        "note": "함정 — 타입 유니온 멤버 '| errors.RateLimitError' (throw 지점 아님)"
+                    },
+                    {
+                        "file": "packages/core/utils/src/errors.ts",
+                        "line": 165,
+                        "note": "보조 — export 블록(채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: 정의 packages/core/utils/src/errors.ts:105(클래스 본문 105~119 내 인용 허용) + throw 지점 3곳(admin/server/src/middlewares/rateLimit.ts:40, email/server/src/middlewares/rateLimit.ts:29, plugins/users-permissions/server/middlewares/rateLimit.js:88) 전부 제시. throw 지점 줄 번호는 ±0 정확해야 함. 부분: 정의 + throw 지점 1~2곳, 또는 정의 누락이지만 throw 3곳 전부. 오답: 정의 위치가 틀리고 throw 지점도 0~1곳, 또는 core/services/errors.ts:22 의 상태코드 매핑이나 getFetchClient.ts:17 의 타입 유니온을 throw 지점으로 잘못 제시. 전수 grep(rg -n RateLimitError packages, 테스트 제외) 결과 출현 12곳: 정의부 3줄(errors.ts:105/106/115), export(165), throw 3곳, 구조분해 import 3곳(admin:7, email:6, u-p:7), 매핑(services/errors.ts:22), 타입(getFetchClient.ts:17) — throw 는 3곳이 전부."
+        },
+        {
+            "id": "s5",
+            "lang": "ts",
+            "kind": "concept",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 strapi 코어에서 여러 cron 작업 정의(키-값 모음)를 받아 각각을 스케줄링 라이브러리의 Job 인스턴스로 만들어 내부 작업 목록에 추가하는 메서드의 정의를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/services/cron.ts",
+                "line_start": 39,
+                "line_end": 76,
+                "symbol": "createCronService > add",
+                "evidence_quote": "add(tasks: Tasks = {}) {",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/services/cron.ts",
+                        "line": 34,
+                        "note": "둘러싼 팩토리 — 'const createCronService = () => {' (보너스, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/cron.ts",
+                        "line": 91,
+                        "note": "함정 — 'start() {' (이미 등록된 작업을 스케줄에 올리는 메서드, 작업 추가 아님)"
+                    },
+                    {
+                        "file": "packages/core/content-releases/server/src/services/scheduling.ts",
+                        "line": 23,
+                        "note": "함정 — 'strapi.cron.add({' (add 의 호출 지점이지 정의 아님)"
+                    },
+                    {
+                        "file": "packages/core/types/src/modules/cron.ts",
+                        "line": 1,
+                        "note": "함정 — cron 모듈 타입 선언 파일(구현 아님)"
+                    }
+                ]
+            },
+            "rubric": "정답: packages/core/core/src/services/cron.ts:39 의 add 메서드를 제시(본문 39~76 내 줄 인용 허용, 허용 오차 ±2줄; createCronService 34줄을 함께 인용해도 인정). 부분: 파일은 cron.ts 로 맞췄으나 add 가 아닌 createCronService(34)만 제시하거나 start(91)/remove(78)를 제시. 오답: content-releases 의 scheduling.ts(strapi.cron.add 호출 지점)나 packages/core/types/src/modules/cron.ts(타입 선언)를 정의로 제시. node-schedule 를 사용하는 구현 파일은 전수 grep 결과 core/src/services/cron.ts 와 types/src/modules/cron.ts(타입) 둘뿐이며 Job 생성·목록 추가 로직은 add(39~76) 한 곳."
+        },
+        {
+            "id": "s6",
+            "lang": "ts",
+            "kind": "flow",
+            "difficulty": "medium",
+            "prompt": "codemap-search MCP 도구를 사용해서 strapi.documents 접근자가 문서 서비스 구현에 연결되는 흐름을 추적해. (1) Strapi 클래스의 documents getter 정의, (2) 'documents' 키로 서비스가 컨테이너에 등록되는 줄, (3) 그 등록이 호출하는 createDocumentService 함수의 정의, 세 위치를 모두 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/Strapi.ts",
+                "line_start": 117,
+                "line_end": 119,
+                "symbol": "Strapi.documents (getter)",
+                "evidence_quote": "get documents(): Modules.Documents.Service {",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/Strapi.ts",
+                        "line": 293,
+                        "note": "2단계 컨테이너 등록 — \".add('documents', () => createDocumentService(this))\" (registerInternalServices 체인)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/index.ts",
+                        "line": 24,
+                        "note": "3단계 — 'export const createDocumentService = (' (시그니처 24~27)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/index.ts",
+                        "line": 41,
+                        "note": "보조 — 'const repository = createContentTypeRepository(uid, validator);' (uid별 리포지토리 생성, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 46,
+                        "note": "보조 — 'export const createContentTypeRepository: RepositoryFactoryMethod = (' (채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: 세 단계 모두 정확 — (1) getter = packages/core/core/src/Strapi.ts:117(117~119 내 허용), (2) 등록 = Strapi.ts:293(±0), (3) createDocumentService = packages/core/core/src/services/document-service/index.ts:24(시그니처 24~27 내 허용). 부분: 세 단계 중 두 단계만 정확. 오답: 정확한 단계가 1개 이하, 또는 (1)에서 deprecated 인 entityService getter(Strapi.ts:113)나 (3)에서 createContentTypeRepository(repository.ts:46)만 제시하고 createDocumentService 를 찾지 못한 경우 해당 단계는 오답 처리(추가로 함께 언급한 경우는 감점 없음). 컨테이너 등록은 문자열 키 'documents' 기반 동적 디스패치라 단순 심볼 추적으로는 (2)에 도달하기 어려움 — 전수 grep 결과 createDocumentService 출현은 index.ts:24(정의), Strapi.ts:33(import), Strapi.ts:293(호출) 3곳이 전부."
+        },
+        {
+            "id": "s7",
+            "lang": "ts",
+            "kind": "flow",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 document service 의 문서 발행(publish) 흐름을 추적해. (1) 리포지토리에 있는 publish 메서드의 정의, (2) 그 메서드가 published 엔트리를 실제로 생성하기 위해 entries 서비스를 통해 호출하는 함수의 정의(노출 이름과 실제 함수 이름이 다름), (3) 발행 후 'entry.publish' 이벤트 발행을 담당하는 이벤트 매니저 생성 함수의 정의, 세 함수의 위치를 모두 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/services/document-service/repository.ts",
+                "line_start": 541,
+                "line_end": 621,
+                "symbol": "createContentTypeRepository > publish",
+                "evidence_quote": "async function publish(opts = {} as any) {",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/services/document-service/entries.ts",
+                        "line": 128,
+                        "note": "2단계 — 'async function publishEntry(entry: any, params = {} as any) {' (반환 객체에서 'publish: publishEntry,' 로 별칭 노출, 158줄)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/entries.ts",
+                        "line": 158,
+                        "note": "별칭 매핑 — 'publish: publishEntry,' (entries.publish 호출이 publishEntry 로 연결되는 지점)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/events.ts",
+                        "line": 23,
+                        "note": "3단계 — 'const createEventManager = (strapi: Core.Strapi, uid: UID.Schema) => {' (내부 emitEvent 27, strapi.eventHub.emit 42)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 599,
+                        "note": "보조 — 'entries.publish(draft, queryParams)' 호출 지점(채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 619,
+                        "note": "보조 — \"publishedEntries.forEach(emitEvent('entry.publish'));\" (채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/repository.ts",
+                        "line": 316,
+                        "note": "보조 — 'const eventManager = createEventManager(strapi, uid);' (317 curry 래핑, 채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: 세 단계 모두 정확 — (1) publish = repository.ts:541(본문 541~621 내 인용 허용), (2) publishEntry = entries.ts:128(본문 128~139 내 허용; 별칭 매핑 158줄 인용도 인정), (3) createEventManager = events.ts:23(본문 23~60 내 허용; 내부 emitEvent 27 또는 eventHub.emit 42 인용도 인정). 부분: 세 단계 중 두 단계만 정확. 오답: 정확한 단계가 1개 이하. (2)에서 entries.ts 의 createEntry(채택 시 잘못된 함수)나 repository.ts:599 호출 지점만 제시하고 publishEntry 정의를 특정하지 못하면 해당 단계 오답. (1)에서 collection-types 컨트롤러의 publish(packages/core/content-manager/server/src/controllers/collection-types.ts)를 제시하면 다른 레이어이므로 오답. entries.publish 라는 노출 이름과 publishEntry 라는 실제 정의 이름이 달라(반환 객체 별칭) 단순 이름 검색으로는 (2)에 도달하기 어려움."
+        },
+        {
+            "id": "s8",
+            "lang": "ts",
+            "kind": "flow",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 upload 플러그인이 파일을 스토리지 프로바이더로 넘기는 흐름을 추적해. (1) upload 서비스가 위임하는 'provider' 서비스의 upload 메서드 정의(스트림 지원 여부에 따라 분기), (2) 설정된 프로바이더 이름으로 모듈을 해석(resolve)해 초기화하는 createProvider 함수의 정의, (3) 기본 local 프로바이더 패키지에서 실제 파일 쓰기를 구현하는 uploadStream(또는 upload) 메서드의 정의, 세 위치를 모두 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/upload/server/src/services/provider.ts",
+                "line_start": 13,
+                "line_end": 33,
+                "symbol": "provider service > upload",
+                "evidence_quote": "async upload(file: UploadableFile) {",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/upload/server/src/register.ts",
+                        "line": 56,
+                        "note": "2단계 — 'const createProvider = (config: Config) => {' (본문 56~114, require.resolve(`@strapi/provider-upload-${providerName}`) 는 64줄)"
+                    },
+                    {
+                        "file": "packages/core/upload/server/src/register.ts",
+                        "line": 36,
+                        "note": "보조 — \"strapi.plugin('upload').provider = createProvider(uploadConfig);\" (동적 디스패치 연결점, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/providers/upload-local/src/index.ts",
+                        "line": 80,
+                        "note": "3단계 — 'uploadStream(file: File): Promise<void> {' (본문 80~102)"
+                    },
+                    {
+                        "file": "packages/providers/upload-local/src/index.ts",
+                        "line": 103,
+                        "note": "3단계 대체 정답 — 'upload(file: File): Promise<void> {' (본문 103~123, 버퍼 경로)"
+                    },
+                    {
+                        "file": "packages/core/upload/server/src/services/upload.ts",
+                        "line": 302,
+                        "note": "보조 — getService('provider').upload 호출 지점 5곳 중 1곳(302, 309, 316, 353, 442 — 채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: 세 단계 모두 정확 — (1) provider 서비스 upload = packages/core/upload/server/src/services/provider.ts:13(본문 13~33 내 인용 허용), (2) createProvider = packages/core/upload/server/src/register.ts:56(본문 56~114 내 허용; 할당 지점 36줄 인용도 인정), (3) packages/providers/upload-local/src/index.ts 의 uploadStream:80(80~102) 또는 upload:103(103~123) 중 하나 이상. 부분: 세 단계 중 두 단계만 정확. 오답: 정확한 단계가 1개 이하. (1)에서 upload.ts 의 uploadFileAndPersist(342)나 getService('provider').upload 호출 지점(302/309/316/353/442)만 제시하고 provider.ts:13 정의를 특정하지 못하면 해당 단계 오답. (3)에서 upload-aws-s3 등 다른 프로바이더를 제시하면 오답(과제가 local 을 명시). 프로바이더는 문자열 조합(@strapi/provider-upload-${name})으로 require.resolve 되는 동적 디스패치라 정적 심볼 추적이 끊기는 지점이 핵심 난점. 전수 grep 결과 getService('provider').upload 호출은 upload.ts 5곳이 전부."
+        },
+        {
+            "id": "s9",
+            "lang": "ts",
+            "kind": "callers",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 5.0.0 discard-drafts 데이터베이스 마이그레이션 파일 안에서 cloneComponentInstance 함수의 정의 위치와 이 함수를 호출하는 모든 호출 지점, 그리고 같은 파일에서 외부에 등록되는 discardDocumentDrafts 마이그레이션 객체의 정의 위치를 찾아. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                "line_start": 1702,
+                "line_end": 1919,
+                "symbol": "cloneComponentInstance",
+                "evidence_quote": "async function cloneComponentInstance({",
+                "additional_locations": [
+                    {
+                        "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                        "line": 1867,
+                        "note": "호출 지점 1 — 'const newNestedId = await cloneComponentInstance({' (중첩 컴포넌트 재귀 경로 1)"
+                    },
+                    {
+                        "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                        "line": 1896,
+                        "note": "호출 지점 2 — 'const newNestedId = await cloneComponentInstance({' (중첩 컴포넌트 재귀 경로 2)"
+                    },
+                    {
+                        "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                        "line": 3275,
+                        "note": "호출 지점 3 — 'newComponentId = await cloneComponentInstance({' (콘텐츠 타입 컴포넌트 복제 경로)"
+                    },
+                    {
+                        "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                        "line": 3553,
+                        "note": "마이그레이션 객체 — 'export const discardDocumentDrafts: Migration = {' (3553~3561, up 은 3556에서 migrateUp(3426) 위임)"
+                    },
+                    {
+                        "file": "packages/core/core/src/providers/registries.ts",
+                        "line": 38,
+                        "note": "보조 — 'strapi.db.migrations.providers.internal.register(discardDocumentDrafts);' (등록 지점, 채점 비필수)"
+                    },
+                    {
+                        "file": "packages/core/core/src/migrations/database/5.0.0-discard-drafts.ts",
+                        "line": 3426,
+                        "note": "보조 — 'const migrateUp = async (trx: Knex, db: Database) => {' (채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: (a) cloneComponentInstance 정의 = 5.0.0-discard-drafts.ts:1702(시그니처 1702~1730 내 인용 허용) + (b) 호출 지점 3곳 전부(1867, 1896, 3275 — ±0 정확) + (c) discardDocumentDrafts 객체 = 같은 파일 3553(3553~3561 내 허용). 부분: (a)+(b) 중 호출 1~2곳 누락, 또는 (a)(b) 정확하지만 (c) 누락, 또는 (c)+호출 3곳 정확하지만 (a) 누락. 오답: 정의 위치가 틀리고 호출 지점도 1곳 이하. 함정: 1867/1896 은 cloneComponentInstance 본문 내부의 재귀 호출이라 정의 범위만 읽고 끝내면 3275(외부 호출)를 놓치기 쉽고, 반대로 외부 호출만 찾으면 재귀 2곳을 놓침. 전수 grep 결과 cloneComponentInstance 출현은 이 파일 4곳(정의 1702, 호출 1867/1896/3275)이 전부이고, discardDocumentDrafts 출현은 정의(3553)+registries.ts import(7)/register(38) 3곳이 전부. 3561줄 대형 파일 내비게이션 과제."
+        },
+        {
+            "id": "s10",
+            "lang": "ts",
+            "kind": "concept",
+            "difficulty": "hard",
+            "prompt": "codemap-search MCP 도구를 사용해서 사용자가 제출한 평문 비밀번호를 저장된 bcrypt 해시와 대조해 검증하는 비교 호출이 실제로 실행되는 모든 위치를 테스트 코드를 제외하고 찾아. 관리자 로그인 외의 경로도 빠짐없이 확인해. 정확한 파일 경로와 줄 번호를 인용해서 답해. 파일은 수정하지 마.",
+            "expected": {
+                "file": "packages/core/admin/server/src/services/auth.ts",
+                "line_start": 23,
+                "line_end": 23,
+                "symbol": "validatePassword (admin)",
+                "evidence_quote": "const validatePassword = (password: string, hash: string) => bcrypt.compare(password, hash);",
+                "additional_locations": [
+                    {
+                        "file": "packages/plugins/users-permissions/server/services/user.js",
+                        "line": 130,
+                        "note": "비교 지점 2 — 'return bcrypt.compare(password, hash);' (validatePassword 메서드, 시그니처 129줄)"
+                    },
+                    {
+                        "file": "packages/plugins/documentation/server/src/controllers/documentation.ts",
+                        "line": 163,
+                        "note": "비교 지점 3 — 'const isValid = await bcrypt.compare(password, hash);' (documentation 플러그인 login 컨트롤러, 함수 시그니처 154줄)"
+                    },
+                    {
+                        "file": "packages/core/admin/server/src/services/auth.ts",
+                        "line": 15,
+                        "note": "함정 — 'const hashPassword = (password: string) => bcrypt.hash(password, 10);' (해시 생성, 비교 아님)"
+                    },
+                    {
+                        "file": "packages/plugins/users-permissions/server/services/user.js",
+                        "line": 50,
+                        "note": "함정 — 'values[key] = await bcrypt.hash(values[key], rounds);' (해시 생성, 비교 아님)"
+                    },
+                    {
+                        "file": "packages/core/core/src/services/document-service/attributes/transforms.ts",
+                        "line": 29,
+                        "note": "함정 — 'return bcrypt.hashSync(value.toString(), rounds);' (password 속성 저장용 해시 생성, 비교 아님)"
+                    },
+                    {
+                        "file": "packages/plugins/documentation/server/src/controllers/documentation.ts",
+                        "line": 236,
+                        "note": "함정 — 'config.password = await bcrypt.hash(data.password, 10);' (해시 생성, 비교 아님)"
+                    },
+                    {
+                        "file": "packages/plugins/users-permissions/server/controllers/auth.js",
+                        "line": 75,
+                        "note": "보조 — \"getService('user').validatePassword(\" 호출 지점(222줄에도 1곳, 비교 실행 지점 아님, 채점 비필수)"
+                    }
+                ]
+            },
+            "rubric": "정답: 비교 호출 3곳 전부 제시 — (1) packages/core/admin/server/src/services/auth.ts:23(±0), (2) packages/plugins/users-permissions/server/services/user.js:130(메서드 시그니처 129줄 인용도 인정), (3) packages/plugins/documentation/server/src/controllers/documentation.ts:163(±1, 둘러싼 login 154줄만 제시하면 부분). 부분: 3곳 중 2곳만 정확, 또는 3곳을 모두 찾았지만 해시 생성 지점을 비교 지점으로 함께 잘못 분류. 오답: 정확한 비교 지점이 1곳 이하이거나 해시 생성 지점(auth.ts:15, user.js:50, transforms.ts:29, documentation.ts:236)만 제시. validatePassword 호출부(users-permissions controllers/auth.js:75, 222 / admin auth.ts:37)는 비교가 실행되는 지점이 아니므로 정답 대체 불가(추가 언급은 감점 없음). 전수 grep(rg -n bcrypt packages) 결과 bcrypt.compare 는 위 3곳이 전부이고(테스트 제외), 그 외 출현은 hash/hashSync 4곳, import/package.json, 주석 1곳 — 정답이 core/admin, plugins/users-permissions(JS), plugins/documentation 3개 패키지에 분산된 개념 검색 과제."
+        }
+    ]
+}

@@ -1,0 +1,65 @@
+[
+    {
+        "arm": "baseline",
+        "rep": 1,
+        "tokens": 16605,
+        "tool_calls": 10,
+        "locations": ["src/cli.rs:600", "src/config.rs:136", "src/main.rs:310", "src/walk.rs:282"]
+    },
+    {
+        "arm": "baseline",
+        "rep": 2,
+        "tokens": 25880,
+        "tool_calls": 10,
+        "locations": ["src/cli.rs:600", "src/config.rs:136", "src/main.rs:310", "src/walk.rs:282"]
+    },
+    {
+        "arm": "baseline",
+        "rep": 3,
+        "tokens": 15752,
+        "tool_calls": 12,
+        "locations": ["src/config.rs:136", "src/cli.rs:600", "src/main.rs:310", "src/walk.rs:288"]
+    },
+    {
+        "arm": "pure",
+        "rep": 1,
+        "tokens": 19122,
+        "tool_calls": 14,
+        "locations": ["src/cli.rs:600", "src/config.rs:135", "src/main.rs:377", "src/walk.rs:282"]
+    },
+    {
+        "arm": "pure",
+        "rep": 2,
+        "tokens": 20852,
+        "tool_calls": 14,
+        "locations": ["src/cli.rs:600", "src/config.rs:66", "src/main.rs:310", "src/walk.rs:282"]
+    },
+    {
+        "arm": "pure",
+        "rep": 3,
+        "tokens": 22640,
+        "tool_calls": 18,
+        "locations": ["src/cli.rs:600", "src/config.rs:66", "src/main.rs:377", "src/walk.rs:282"]
+    },
+    {
+        "arm": "additive",
+        "rep": 1,
+        "tokens": 29679,
+        "tool_calls": 13,
+        "locations": ["src/cli.rs:601", "src/config.rs:67", "src/main.rs:310", "src/walk.rs:291"]
+    },
+    {
+        "arm": "additive",
+        "rep": 2,
+        "tokens": 21206,
+        "tool_calls": 16,
+        "locations": ["src/cli.rs:600", "src/config.rs:66", "src/main.rs:310", "src/walk.rs:282"]
+    },
+    {
+        "arm": "additive",
+        "rep": 3,
+        "tokens": 24777,
+        "tool_calls": 14,
+        "locations": ["src/cli.rs:600", "src/config.rs:135", "src/main.rs:378", "src/walk.rs:282"]
+    }
+]

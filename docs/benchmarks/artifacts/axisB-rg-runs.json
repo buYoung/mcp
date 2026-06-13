@@ -1,0 +1,145 @@
+[
+    {
+        "arm": "baseline",
+        "rep": 1,
+        "tokens": 36154,
+        "tool_calls": 17,
+        "locations": [
+            "crates/core/flags/defs.rs:131",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:142",
+            "crates/core/main.rs:219"
+        ]
+    },
+    {
+        "arm": "baseline",
+        "rep": 2,
+        "tokens": 34755,
+        "tool_calls": 26,
+        "locations": [
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/defs.rs:60",
+            "crates/core/flags/defs.rs:1247",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:146",
+            "crates/core/main.rs:222"
+        ]
+    },
+    {
+        "arm": "baseline",
+        "rep": 3,
+        "tokens": 32000,
+        "tool_calls": 21,
+        "locations": [
+            "crates/core/flags/defs.rs:1319",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:146",
+            "crates/core/main.rs:222"
+        ]
+    },
+    {
+        "arm": "pure",
+        "rep": 1,
+        "tokens": 53786,
+        "tool_calls": 22,
+        "locations": [
+            "crates/core/flags/defs.rs:44",
+            "crates/core/flags/defs.rs:61",
+            "crates/core/flags/defs.rs:1319",
+            "crates/core/flags/lowargs.rs:40",
+            "crates/core/flags/hiargs.rs:36",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:251",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:107",
+            "crates/core/main.rs:143",
+            "crates/core/main.rs:160",
+            "crates/core/main.rs:219"
+        ]
+    },
+    {
+        "arm": "pure",
+        "rep": 2,
+        "tokens": 56919,
+        "tool_calls": 24,
+        "locations": [
+            "crates/core/flags/defs.rs:44",
+            "crates/core/flags/defs.rs:60",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:107",
+            "crates/core/main.rs:143",
+            "crates/core/main.rs:160",
+            "crates/core/main.rs:219"
+        ]
+    },
+    {
+        "arm": "pure",
+        "rep": 3,
+        "tokens": 48685,
+        "tool_calls": 22,
+        "locations": [
+            "crates/core/flags/defs.rs:44",
+            "crates/core/flags/defs.rs:60",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:149",
+            "crates/core/flags/hiargs.rs:314",
+            "crates/core/flags/hiargs.rs:1254",
+            "crates/core/main.rs:143",
+            "crates/core/main.rs:219"
+        ]
+    },
+    {
+        "arm": "additive",
+        "rep": 1,
+        "tokens": 52124,
+        "tool_calls": 22,
+        "locations": [
+            "crates/core/flags/defs.rs:44",
+            "crates/core/flags/defs.rs:1247",
+            "crates/core/flags/lowargs.rs:73",
+            "crates/core/flags/hiargs.rs:63",
+            "crates/core/flags/hiargs.rs:280",
+            "crates/core/main.rs:146",
+            "crates/core/main.rs:222"
+        ]
+    },
+    {
+        "arm": "additive",
+        "rep": 2,
+        "tokens": 65606,
+        "tool_calls": 25,
+        "locations": [
+            "crates/core/flags/defs.rs:61",
+            "crates/core/flags/defs.rs:1318",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:251",
+            "crates/core/main.rs:143",
+            "crates/core/main.rs:219"
+        ]
+    },
+    {
+        "arm": "additive",
+        "rep": 3,
+        "tokens": 39486,
+        "tool_calls": 30,
+        "locations": [
+            "crates/core/flags/defs.rs:44",
+            "crates/core/flags/defs.rs:1379",
+            "crates/core/flags/lowargs.rs:102",
+            "crates/core/flags/hiargs.rs:99",
+            "crates/core/flags/hiargs.rs:251",
+            "crates/core/flags/hiargs.rs:1250",
+            "crates/core/main.rs:107",
+            "crates/core/main.rs:160"
+        ]
+    }
+]

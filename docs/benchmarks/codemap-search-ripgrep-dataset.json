@@ -1,0 +1,121 @@
+{
+    "_meta": {
+        "purpose": "축 B(에이전트 E2E) ground-truth — ripgrep 변별 티어. fd(23파일, parity)와 달리 ripgrep(100파일/39k LOC, 멀티크레이트)은 도구 간 실제 변별이 기대되는 크기점. 헤드라인은 비용(토큰)+행동, 정확도(F2)는 pass/fail 게이트로 사용.",
+        "corpus": "BurntSushi/ripgrep @ 82313cf95849bfe425109ad9506a52154879b1b1",
+        "construction_pipeline": [
+            "Agent A(blind, codemap-search 미인지, 기본도구만): --total-count 기능 실제 구현 → cargo build 통과 + single/parallel 양 경로 스모크 테스트(총합 라인 실제 출력 확인) → diff 저장(브랜치 bench-grandtotal)",
+            "좌표 검증: 앵커가 원본 SHA(82313cf) 파일과 1:1 대조(pre-change 확정). corpus는 검증 후 핀 SHA로 복원(detached)",
+            "Agent B(독립, NL 과제문만, 기본도구만, 핀 트리): 코드 추적으로 편집 지점 재도출 + leakage/solvable 점검",
+            "diff-as-arbiter: 정답 앵커는 어느 에이전트 리스트도 아닌 build+smoke 통과 diff의 헌크에서 도출(pre-change 좌표). A∩B로 region 허용라인셋·accepted-alternate 결정"
+        ],
+        "diffs": ["/Users/buyong/workspace/private/codemap-bench/artifacts/rg-feat-1.diff"],
+        "ab_agreement": "A와 B가 독립적으로 동일 구조 도출: (1)defs.rs FLAGS 등록+struct 정의, (2)단일스레드 main.rs search() 종료 출력, (3)병렬 main.rs search_parallel() 종료 출력, (4)'stats 강제 활성화가 필수'라는 비자명 핵심을 둘 다 독립 발견(A=printer 빌더 .stats() 게이트 635/664, B=fn stats 헬퍼 ~1254 — 동일 개념·상이 위치, 둘 다 유효). 기계적 배선(필드/접근자/from_low_args)도 양자 일치."
+    },
+    "scoring_prereg": {
+        "headline_for_ripgrep": "비용(반환 토큰)+행동(도구 사용 패턴)이 주 신호. F2는 정확도 pass/fail 게이트.",
+        "secondary": ["recall", "precision", "over-return", "tool_call_count", "returned_tokens"],
+        "answer_format": "{\"locations\":[\"<repo상대경로>:LINE\", ...]}",
+        "recall_scored_on": "class=edit 인 essential 앵커만 (과제 질문='기능 구현 시 어디를 고쳐야 하나'). class=understand/wiring은 비채점.",
+        "match_policy": {
+            "point": "단일 지점 앵커 — tol ±3줄",
+            "region": "블록 앵커 — allowed_lines 범위 내 어디든 hit. ±3 적용 안 함",
+            "region_multi": "개념이 분리된 2+ 구간에 정당하게 존재(예: 단일/병렬 두 경로, A/B가 서로 다른 유효 위치 선택) — allowed_regions 중 어느 한 구간에 hit하면 그 앵커 충족. fd 데이터셋의 단일-range region을 다중-range로 일반화한 것.",
+            "rationale": "ripgrep 멀티크레이트는 같은 개념(예: 'stats 강제 활성화')이 둘 이상의 유효 위치를 가짐(A=printer 게이트, B=fn stats). 정확 라인이 아니라 '올바른 편집 영역을 짚었는가'를 잰다."
+        },
+        "accepted_alternate_policy": "accepted_alternates 위치는 precision 감점 면제(유효한 다른 정상구현). recall 가점 없음.",
+        "notes": [
+            "ripgrep은 디렉터리 검색 시 기본 병렬, 단일파일/-j1에서 단일스레드 → 정답 구현은 두 경로 모두 수정해야 함(essential 3·4가 이를 포착).",
+            "총합 카운트 원천은 stats.matched_lines()(= -c의 파일별 매칭라인 수 합). asc/desc 같은 모호성 없음."
+        ]
+    },
+    "tasks": [
+        {
+            "id": "rg-feat-1",
+            "difficulty": "medium",
+            "statement": "rg로 여러 파일을 검색할 때 '-c/--count'는 파일마다 매칭 수를 따로 보여주지만, 전체 파일을 통틀어 '총 몇 개가 매칭됐는지' 단일 합계는 보여주지 않는다. 검색이 끝난 뒤, 매칭된 라인의 전체 총합을 표준 출력 맨 끝에 한 줄로 추가 출력하는 새 옵션을 추가하라. 기존 출력(파일별 결과/카운트)은 그대로 두고, 마지막에 총합 한 줄만 덧붙인다. 단일 파일/단일 스레드 경로와 디렉터리/병렬 검색 경로 양쪽에서 모두 동작해야 한다. 이 옵션은 결과를 출력하지 않는 모드에서는 동작할 필요가 없다.",
+            "essential_anchors": [
+                {
+                    "concept": "새 CLI 플래그 정의·등록(사용자 진입점)",
+                    "class": "edit",
+                    "match": "region_multi",
+                    "loc": "crates/core/flags/defs.rs:132",
+                    "allowed_regions": [[44, 152], [1240, 1400]],
+                    "diff_hunk": "@@ -130 (FLAGS 슬라이스에 &TotalCount 등록) + @@ -6567 (struct TotalCount + impl Flag 정의)",
+                    "note": "FLAGS 등록 배열 [44,152] 또는 Count/CountMatches 플래그 struct-def 군집 [1240,1400] 중 어디든 = 플래그 정의 위치(A·B·실측 에이전트 모두 이 둘 중 하나로 수렴). 보정: struct 정의 위치를 essential로 승격(원래 [44,152] 단일범위 → region_multi)."
+                },
+                {
+                    "concept": "총합 산출을 위한 stats 강제 활성화(비자명 핵심)",
+                    "class": "edit",
+                    "match": "region_multi",
+                    "loc": "crates/core/flags/hiargs.rs:635",
+                    "allowed_regions": [[632, 668], [1248, 1262]],
+                    "diff_hunk": "@@ -632/-661 (printer 빌더 .stats(is_some()||total_count) 두 곳) — A. B 대안: fn stats 헬퍼(~1254)에서 Some 반환",
+                    "note": "Count 모드는 stats를 자동 활성화 안 함 → 강제 활성화해야 search_result.stats()가 Some. A·B가 독립적으로 '필수'로 도출한 비자명 지점."
+                },
+                {
+                    "concept": "단일스레드 검색 종료 후 총합 출력",
+                    "class": "edit",
+                    "match": "region",
+                    "loc": "crates/core/main.rs:146",
+                    "allowed_lines": [107, 151],
+                    "diff_hunk": "@@ -116/-135/-145 (search() 본문: total_count_stats decl·누적·print_stats 뒤 writeln)",
+                    "note": "보정: 편집이 search() 함수 본문 전반(116·137·155)에 분산 → 함수범위 [107,151](fn search 107~닫는 } 151)로 채점. 함수 식별=경로 식별."
+                },
+                {
+                    "concept": "병렬 검색 종료 후 총합 출력",
+                    "class": "edit",
+                    "match": "region",
+                    "loc": "crates/core/main.rs:222",
+                    "allowed_lines": [160, 229],
+                    "diff_hunk": "@@ -164/-175/-200/-223 (search_parallel() 본문: decl·캡처·누적·writeln+bufwtr.print)",
+                    "note": "보정: 편집이 search_parallel() 함수 본문 전반에 분산 → 함수범위 [160,229](fn 160~닫는 } 229)로 채점."
+                }
+            ],
+            "understand_anchors": [
+                {
+                    "concept": "총합 값 원천(매칭라인 수 누적·읽기)",
+                    "class": "understand",
+                    "loc": "crates/printer/src/stats.rs:60",
+                    "note": "matched_lines() (line 67 matches()도 동일 계열). AddAssign으로 파일별 누산."
+                },
+                {
+                    "concept": "Count 모드가 stats를 자동 활성화하지 않는 이유",
+                    "class": "understand",
+                    "loc": "crates/printer/src/summary.rs:119",
+                    "note": "SummaryKind::Count.requires_stats() == false → 강제 활성화 필요 근거."
+                },
+                {
+                    "concept": "기존 stats 누적 경로(이미 완성)",
+                    "class": "understand",
+                    "loc": "crates/core/main.rs:118",
+                    "note": "args.stats() Some이면 search()/search_parallel() 누적 루프가 자동 동작(단일 118, 병렬 ~166)."
+                }
+            ],
+            "mechanical_wiring": [
+                { "loc": "crates/core/flags/lowargs.rs:103", "note": "LowArgs total_count: bool 필드(기계적)" },
+                { "loc": "crates/core/flags/hiargs.rs:101", "note": "HiArgs total_count: bool 필드(기계적)" },
+                {
+                    "loc": "crates/core/flags/hiargs.rs:317",
+                    "note": "from_low_args: total_count: low.total_count 배선(기계적)"
+                },
+                { "loc": "crates/core/flags/hiargs.rs:827", "note": "total_count() 접근자(기계적)" }
+            ],
+            "accepted_alternates": [
+                {
+                    "loc": "crates/core/flags/defs.rs:6570",
+                    "note": "struct TotalCount + impl Flag 정의 위치 — A는 StopOnNonmatch 인접(~6568), B는 Count 인접(~1245) 제안. 정의는 어디든 유효 → precision 면제(등록 [44,152]이 essential)."
+                },
+                {
+                    "loc": "crates/printer/src/summary.rs:431",
+                    "note": "SearchResult/Summary에 별도 match_count 필드를 추가해 stats 강제활성화를 우회하는 대체 구현(B가 언급한 alternate). 비필수·미가점·미감점."
+                },
+                {
+                    "loc": "crates/core/main.rs:143",
+                    "note": "총합 누적 지점(else if total_count_stats += ...) — 단일 143/병렬 ~202. essential 출력앵커와 동일 함수 내 근접 → region에 포함되거나 alternate."
+                }
+            ],
+            "leakage": "A:no / B:no — NL은 '-c/--count'(공개 플래그)와 사용자 관찰 동작만 서술. LowArgs/HiArgs/FLAGS/Stats/print_stats 등 내부 심볼 미노출. '--total-count' 이름은 제안일 뿐(fd-feat-1과 동일 관행).",
+            "solvable": "yes — 모든 편집 지점이 코드 추적으로 특정 가능. 유일 미묘점(Count 모드가 stats 자동활성화 안 함 → 강제 필요)을 B가 독립적으로 추적·해결."
+        }
+    ]
+}

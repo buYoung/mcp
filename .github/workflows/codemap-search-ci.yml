@@ -1,0 +1,63 @@
+name: codemap-search CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/codemap-search/**"
+      - ".github/workflows/codemap-search-ci.yml"
+  pull_request:
+    paths:
+      - "apps/codemap-search/**"
+      - ".github/workflows/codemap-search-ci.yml"
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: codemap-search-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint-and-test:
+    name: fmt + clippy + test
+    runs-on: ubuntu-latest
+    # Run every step from the standalone crate, so the commands are byte-identical to
+    # what is verified locally (no --manifest-path form differences, esp. for cargo fmt).
+    defaults:
+      run:
+        working-directory: apps/codemap-search
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/codemap-search
+      - name: fmt --check
+        run: cargo fmt --check
+      - name: clippy -D warnings
+        run: cargo clippy --all-targets -- -D warnings
+      - name: test
+        run: cargo test
+
+  build:
+    name: release build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/codemap-search
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/codemap-search
+      - name: build --release
+        run: cargo build --release

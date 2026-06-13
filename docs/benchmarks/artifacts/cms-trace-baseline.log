@@ -1,0 +1,6 @@
+CALL overview {} -> 20688B 597L 20.7ms
+CALL read {"file_path": "src/walk.rs", "offset": 126, "limit": 305} -> 13257B 305L 0.3ms
+CALL read {"file_path": "src/config.rs", "offset": 60, "limit": 83} -> 3715B 83L 0.2ms
+CALL read {"file_path": "src/cli.rs", "offset": 585, "limit": 40} -> 1702B 40L 0.2ms
+CALL read {"file_path": "src/main.rs", "offset": 234, "limit": 145} -> 6876B 145L 0.2ms
+CALL read {"file_path": "src/walk.rs", "offset": 430, "limit": 40} -> 1806B 40L 0.2ms

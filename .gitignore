@@ -39,3 +39,9 @@ yarn-error.log*
 /.serena/
 **/.turbo
 /apps/**/target/
+
+# codemap-search local index/config cache
+.codemap/
+
+# AntiGravity CLI local project registration
+.antigravitycli/

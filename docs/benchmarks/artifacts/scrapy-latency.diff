@@ -1,0 +1,74 @@
+diff --git a/scrapy/extensions/downloadlatency.py b/scrapy/extensions/downloadlatency.py
+new file mode 100644
+index 0000000..1cdd7be
+--- /dev/null
++++ b/scrapy/extensions/downloadlatency.py
+@@ -0,0 +1,56 @@
++"""
++Extension for collecting download latency statistics.
++
++Measures the elapsed time from when a request reaches the downloader
++to when the response is received, and reports aggregate stats
++(count, average, maximum) when the spider closes.
++"""
++
++from __future__ import annotations
++
++from typing import TYPE_CHECKING
++
++from scrapy import Spider, signals
++from scrapy.http import Request, Response
++
++if TYPE_CHECKING:
++    # typing.Self requires Python 3.11
++    from typing_extensions import Self
++
++    from scrapy.crawler import Crawler
++    from scrapy.statscollectors import StatsCollector
++
++
++class DownloadLatencyStats:
++    def __init__(self, stats: StatsCollector):
++        self.stats: StatsCollector = stats
++        self._total_latency: float = 0.0
++        self._count: int = 0
++        self._max_latency: float = 0.0
++
++    @classmethod
++    def from_crawler(cls, crawler: Crawler) -> Self:
++        assert crawler.stats
++        o = cls(crawler.stats)
++        crawler.signals.connect(o.response_downloaded, signal=signals.response_downloaded)
++        crawler.signals.connect(o.spider_closed, signal=signals.spider_closed)
++        return o
++
++    def response_downloaded(
++        self, response: Response, request: Request, spider: Spider
++    ) -> None:
++        latency: float | None = request.meta.get("download_latency")
++        if latency is None:
++            return
++        self._count += 1
++        self._total_latency += latency
++        if latency > self._max_latency:
++            self._max_latency = latency
++
++    def spider_closed(self, spider: Spider, reason: str) -> None:
++        if self._count == 0:
++            return
++        avg_latency = self._total_latency / self._count
++        self.stats.set_value("downloader/latency/count", self._count)
++        self.stats.set_value("downloader/latency/avg", avg_latency)
++        self.stats.set_value("downloader/latency/max", self._max_latency)
+diff --git a/scrapy/settings/default_settings.py b/scrapy/settings/default_settings.py
+index 7d56120..565e9ee 100644
+--- a/scrapy/settings/default_settings.py
++++ b/scrapy/settings/default_settings.py
+@@ -321,6 +321,7 @@ EXTENSIONS_BASE = {
+     "scrapy.extensions.logstats.LogStats": 0,
+     "scrapy.extensions.spiderstate.SpiderState": 0,
+     "scrapy.extensions.throttle.AutoThrottle": 0,
++    "scrapy.extensions.downloadlatency.DownloadLatencyStats": 0,
+ }
+ 
+ FEEDS = {}
