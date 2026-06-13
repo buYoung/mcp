@@ -4,9 +4,8 @@
 //! override. Glob matching uses the shared gitignore-style engine in `mod.rs`
 //! (`rg --glob` semantics: a slash-less pattern matches the basename at any depth).
 
-use super::{
-    arg_bool, arg_required_str, build_glob_matcher, build_walker, current_dir, resolve_within_cwd,
-};
+use super::{arg_bool, arg_required_str, build_glob_matcher};
+use crate::workspace::{build_walker, current_dir, resolve_within_cwd};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -52,7 +51,7 @@ fn resolve_absolute_pattern(
             format!("Absolute path pattern has no file component to match: {pattern}"),
         ));
     }
-    let base_canonical = crate::mcp::canonicalize_path_lenient(&PathBuf::from(&base_str));
+    let base_canonical = crate::workspace::canonicalize_path_lenient(&PathBuf::from(&base_str));
     let allow_outside = crate::config::get().allow_absolute_path_outside_root;
     if !allow_outside && !base_canonical.starts_with(cwd_canonical) {
         return Err((
@@ -89,7 +88,7 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         let base = if Path::new(path).is_absolute()
             && crate::config::get().allow_absolute_path_outside_root
         {
-            crate::mcp::canonicalize_path_lenient(&PathBuf::from(path))
+            crate::workspace::canonicalize_path_lenient(&PathBuf::from(path))
         } else {
             resolve_within_cwd(path)?
         };

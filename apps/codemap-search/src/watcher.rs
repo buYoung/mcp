@@ -291,7 +291,7 @@ enum EventPathKind {
 }
 
 /// The watcher-side path filter, mirroring the shared walk's exclusions
-/// ([`crate::tools::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories`) so
+/// ([`crate::workspace::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories`) so
 /// tantivy's commits to `.codemap/index` and churn in `node_modules`/`target`/… never
 /// re-trigger indexing. `.git` paths are dropped except the HEAD-hint files.
 fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
@@ -321,7 +321,7 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
     for component in rel.components() {
         if let Component::Normal(name) = component {
             if let Some(name) = name.to_str() {
-                if crate::tools::ALWAYS_EXCLUDED_DIRS.contains(&name)
+                if crate::workspace::ALWAYS_EXCLUDED_DIRS.contains(&name)
                     || excluded_directories.iter().any(|d| d == name)
                 {
                     return EventPathKind::Ignored;

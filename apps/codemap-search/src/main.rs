@@ -123,18 +123,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Shared walker: EXCLUDED_DIRS + .gitignore/.codemapignore (Child 04), so the
             // CLI codemap matches the MCP overview and never traverses node_modules/.git.
-            for entry in codemap_search::tools::build_walker(&cwd, false)
+            for entry in codemap_search::workspace::build_walker(&cwd, false)
                 .build()
                 .filter_map(|e| e.ok())
             {
                 let file_path = entry.path();
                 if file_path.is_file() {
                     if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
-                        if codemap_search::tools::is_source_extension(ext) {
+                        if codemap_search::workspace::is_source_extension(ext) {
                             if let Ok(rel_path) = file_path.strip_prefix(&cwd) {
                                 let rel_path_str = rel_path.to_string_lossy().to_string();
                                 if let Some(content) =
-                                    codemap_search::tools::read_source_for_parse(file_path)
+                                    codemap_search::workspace::read_source_for_parse(file_path)
                                 {
                                     if let Ok(extracted) =
                                         extractor.extract(&content, &rel_path_str)

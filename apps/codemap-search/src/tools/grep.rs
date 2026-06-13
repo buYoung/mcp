@@ -7,9 +7,9 @@
 //! BM25 index can miss — this realizes the spec's "rg 역할" alongside `search`.
 
 use super::{
-    arg_bool, arg_required_str, arg_usize, build_glob_matcher, build_walker, current_dir,
-    resolve_within_cwd, split_grep_globs, GlobMatcher,
+    arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
 };
+use crate::workspace::{build_walker, current_dir, resolve_within_cwd};
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
@@ -220,7 +220,7 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
         // `*.min.js` is not asking for the noise filter to hide their target).
         if !include_ignored && glob_matcher.is_none() {
             if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
-                if super::is_minified_bundle(name) {
+                if crate::workspace::is_minified_bundle(name) {
                     continue;
                 }
             }

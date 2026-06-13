@@ -3,7 +3,6 @@ use crate::indexer::IndexerHandle;
 use crate::watcher::{WatcherHandle, WatcherStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
@@ -52,62 +51,6 @@ pub struct McpServer {
     last_refresh_trigger: Option<Instant>,
     // Automatic indexer restarts performed so far (see `maybe_restart_indexer`).
     indexer_restart_attempts: u32,
-}
-
-pub(crate) fn canonicalize_path_lenient(path: &std::path::Path) -> PathBuf {
-    let mut current = path.to_path_buf();
-    let mut suffix = PathBuf::new();
-    while !current.exists() {
-        if let Some(parent) = current.parent() {
-            if let Some(file_name) = current.file_name() {
-                let mut new_suffix = PathBuf::from(file_name);
-                new_suffix.push(suffix);
-                suffix = new_suffix;
-                current = parent.to_path_buf();
-            } else {
-                break;
-            }
-        } else {
-            break;
-        }
-    }
-    if let Ok(canonical) = current.canonicalize() {
-        // Joining an empty suffix would append a trailing separator (`/file/`),
-        // which makes a later `metadata()` on a regular file fail with ENOTDIR.
-        if suffix.as_os_str().is_empty() {
-            canonical
-        } else {
-            canonical.join(suffix)
-        }
-    } else {
-        path.to_path_buf()
-    }
-}
-
-fn is_safe_path(p: &str) -> bool {
-    let cwd = match std::env::current_dir() {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let target = cwd.join(p);
-
-    let mut resolved = PathBuf::new();
-    for component in target.components() {
-        match component {
-            std::path::Component::ParentDir => {
-                resolved.pop();
-            }
-            std::path::Component::CurDir => {}
-            _ => {
-                resolved.push(component.as_os_str());
-            }
-        }
-    }
-
-    let resolved_canonical = canonicalize_path_lenient(&resolved);
-    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
-
-    resolved_canonical.starts_with(&cwd_canonical)
 }
 
 /// Cap a code snippet at `max_lines` AND `max_bytes`, appending an elision marker when
@@ -1231,7 +1174,7 @@ impl McpServer {
                         let format = arguments.get("format").and_then(|v| v.as_str());
 
                         if let Some(p) = path {
-                            if !is_safe_path(p) {
+                            if crate::workspace::resolve_within_cwd(p).is_err() {
                                 return Err((-32602, "Path traversal detected".to_string()));
                             }
                         }
@@ -1269,7 +1212,8 @@ impl McpServer {
                         let codemap_text = if let Some(p) = path {
                             let target_path = cwd.join(p);
                             let canonical_cwd = cwd.canonicalize().unwrap_or(cwd);
-                            let canonical_target = canonicalize_path_lenient(&target_path);
+                            let canonical_target =
+                                crate::workspace::canonicalize_path_lenient(&target_path);
                             if canonical_target.is_file() {
                                 if let Ok(rel_path) = canonical_target.strip_prefix(&canonical_cwd)
                                 {

@@ -259,45 +259,8 @@ fn tokenize_path(file_path: &str) -> String {
     tokens.join(" ")
 }
 
-fn normalize_relative_path(path: &Path) -> String {
-    let s = path.to_string_lossy().to_string();
-    let replaced = s.replace('\\', "/");
-    let mut trimmed = replaced.as_str();
-    while trimmed.starts_with("./") {
-        trimmed = &trimmed[2..];
-    }
-    while trimmed.starts_with('/') {
-        trimmed = &trimmed[1..];
-    }
-    trimmed.to_string()
-}
-
-/// Compute the stored index key for `entry_path`: the path relative to the
-/// (canonicalized) current working directory, normalized to forward slashes. Falls
-/// back to the leading-slash-stripped absolute path when the file is outside the cwd
-/// (e.g. an absolute walk root in tests) — byte-identical to the pre-Child-04 logic,
-/// so incremental delete-detection (which keys on this string) is preserved.
-fn relative_index_path(entry_path: &Path, abs_cwd: &Path) -> String {
-    let abs_path = entry_path
-        .canonicalize()
-        .unwrap_or_else(|_| entry_path.to_path_buf());
-    let rel = abs_path.strip_prefix(abs_cwd).unwrap_or(entry_path);
-    normalize_relative_path(rel)
-}
-
-/// The stored index key for a path that may no longer exist on disk (a watcher remove
-/// event): lenient canonicalization resolves the deepest existing ancestor (so a deleted
-/// file under a symlinked root — e.g. macOS `/var` → `/private/var` — still strips the
-/// canonical cwd prefix), yielding the same key [`relative_index_path`] stored when the
-/// file existed.
-fn stored_index_key(path: &Path, abs_cwd: &Path) -> String {
-    let abs_path = crate::mcp::canonicalize_path_lenient(path);
-    let rel = abs_path.strip_prefix(abs_cwd).unwrap_or(path);
-    normalize_relative_path(rel)
-}
-
 /// Whether an event path would be reached by the shared ignore-aware walk
-/// ([`crate::tools::build_walker`]) descending from the workspace root. The full walk
+/// ([`crate::workspace::build_walker`]) descending from the workspace root. The full walk
 /// honors directory-only ignore rules (e.g. a `.gitignore` line `generated/`) by never
 /// descending into the ignored directory, so a single depth-1 check of the immediate
 /// parent is NOT enough — it would be rooted *inside* the ignored subtree and the
@@ -317,7 +280,7 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
     let mut current = root;
     for component in rel.components() {
         let next = current.join(component);
-        let is_visible = crate::tools::build_walker(&current, false)
+        let is_visible = crate::workspace::build_walker(&current, false)
             .max_depth(Some(1))
             .build()
             .filter_map(|e| e.ok())
@@ -338,12 +301,12 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
 }
 
 /// Gather the index entry for a single file: enforce the source-extension allowlist
-/// and the [`crate::tools::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
+/// and the [`crate::workspace::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
 /// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
 /// same-second edit still reindexes. Returns `None` when the file is not to be indexed.
 fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, PathBuf, u64)> {
     let ext = entry_path.extension().and_then(|s| s.to_str())?;
-    if !crate::tools::is_source_extension(ext) {
+    if !crate::workspace::is_source_extension(ext) {
         return None;
     }
     let metadata = std::fs::metadata(entry_path).ok()?;
@@ -355,7 +318,7 @@ fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, Pat
         .ok()?
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .ok()?;
-    let rel_path = relative_index_path(entry_path, abs_cwd);
+    let rel_path = crate::workspace::relative_index_path(entry_path, abs_cwd);
     Some((
         rel_path,
         entry_path.to_path_buf(),
@@ -382,7 +345,7 @@ impl TantivySearchEngine {
                 // Shared walker: honors EXCLUDED_DIRS + .gitignore/.codemapignore so
                 // node_modules/target/… never enter the BM25 index (Child 04), matching
                 // find/grep. include_ignored=false keeps ignored paths out of the index.
-                for entry in crate::tools::build_walker(path, false)
+                for entry in crate::workspace::build_walker(path, false)
                     .build()
                     .filter_map(|e| e.ok())
                 {
@@ -609,14 +572,14 @@ impl TantivySearchEngine {
 
         for path in paths {
             if path.is_file() {
-                let canonical_key = stored_index_key(path, &abs_cwd);
+                let canonical_key = crate::workspace::stored_index_key(path, &abs_cwd);
                 // Case-only renames on case-insensitive filesystems (macOS APFS default):
                 // the event may arrive under the OLD spelling, which canonicalizes to the
                 // new on-disk spelling — the old spelling's doc would otherwise go stale
                 // forever, since no later event names it and the watcher-healthy path
                 // never runs the full-walk set-difference cleanup.
                 if let Ok(raw_rel) = path.strip_prefix(&abs_cwd) {
-                    let raw_key = normalize_relative_path(raw_rel);
+                    let raw_key = crate::workspace::normalize_relative_path(raw_rel);
                     if raw_key != canonical_key && indexed_mtimes.contains_key(&raw_key) {
                         to_delete.push(raw_key);
                     }
@@ -651,7 +614,7 @@ impl TantivySearchEngine {
                 // event (same flip-flop hazard as the file branch); anything indexed
                 // under it is stale by the full walk's standards — drop it.
                 if !is_path_visible_to_walk(path) {
-                    let prefix = format!("{}/", stored_index_key(path, &abs_cwd));
+                    let prefix = format!("{}/", crate::workspace::stored_index_key(path, &abs_cwd));
                     for indexed_path in indexed_mtimes.keys() {
                         if indexed_path.starts_with(&prefix) {
                             to_delete.push(indexed_path.clone());
@@ -663,7 +626,7 @@ impl TantivySearchEngine {
                 // set difference here is scoped to the subtree the walk fully covered, so
                 // it is NOT the full-walk-only delete logic the doc comment above forbids.
                 let mut subtree_disk_paths = std::collections::HashSet::new();
-                for entry in crate::tools::build_walker(path, false)
+                for entry in crate::workspace::build_walker(path, false)
                     .build()
                     .filter_map(|e| e.ok())
                 {
@@ -680,7 +643,7 @@ impl TantivySearchEngine {
                         }
                     }
                 }
-                let prefix = format!("{}/", stored_index_key(path, &abs_cwd));
+                let prefix = format!("{}/", crate::workspace::stored_index_key(path, &abs_cwd));
                 for indexed_path in indexed_mtimes.keys() {
                     if indexed_path.starts_with(&prefix)
                         && !subtree_disk_paths.contains(indexed_path)
@@ -691,7 +654,7 @@ impl TantivySearchEngine {
             } else {
                 // Absent on disk: delete the exact path, and any indexed files under it in
                 // case the removed path was a directory.
-                let rel_path = stored_index_key(path, &abs_cwd);
+                let rel_path = crate::workspace::stored_index_key(path, &abs_cwd);
                 let prefix = format!("{rel_path}/");
                 for indexed_path in indexed_mtimes.keys() {
                     if indexed_path == &rel_path || indexed_path.starts_with(&prefix) {
@@ -1054,18 +1017,6 @@ mod tests {
         assert_eq!(tokenize_path("src/lib.rs"), "src lib rs");
         assert_eq!(tokenize_path("a\\b\\c.js"), "a b c js");
         assert_eq!(tokenize_path("main.rs"), "main rs");
-    }
-
-    #[test]
-    fn test_normalize_relative_path_helper() {
-        assert_eq!(
-            normalize_relative_path(Path::new("./src/lib.rs")),
-            "src/lib.rs"
-        );
-        assert_eq!(
-            normalize_relative_path(Path::new("src\\lib.rs")),
-            "src/lib.rs"
-        );
     }
 
     #[test]

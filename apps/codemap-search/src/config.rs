@@ -18,7 +18,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-/// Repo-local / global config directory name. Kept in [`crate::tools::EXCLUDED_DIRS`] so
+/// Repo-local / global config directory name. Kept in [`crate::workspace::EXCLUDED_DIRS`] so
 /// the tool never walks (indexes) it.
 pub const CODEMAP_DIR_NAME: &str = ".codemap";
 /// Config file name, shared by the repo and global layers.
@@ -239,8 +239,8 @@ impl Default for ResolvedConfig {
         Self {
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             result_threshold: 5,
-            max_file_size: crate::tools::MAX_INDEXED_FILE_BYTES,
-            excluded_directories: crate::tools::EXCLUDED_DIRS
+            max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
+            excluded_directories: crate::workspace::EXCLUDED_DIRS
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
@@ -708,7 +708,7 @@ mod tests {
         let defaults = ResolvedConfig::default();
         assert_eq!(cfg.index_path, defaults.index_path);
         assert_eq!(cfg.result_threshold, 5);
-        assert_eq!(cfg.max_file_size, crate::tools::MAX_INDEXED_FILE_BYTES);
+        assert_eq!(cfg.max_file_size, crate::workspace::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
         assert_eq!(cfg.search_anchor_snippet_limit, 3);

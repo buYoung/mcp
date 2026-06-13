@@ -2,7 +2,8 @@
 //! Code's Read tool so an agent can swap its built-in without surprises. Direct
 //! filesystem I/O, no index/engine dependency.
 
-use super::{get_arg, lenient_usize, resolve_within_cwd};
+use super::{get_arg, lenient_usize};
+use crate::workspace::resolve_within_cwd;
 use serde_json::Value;
 
 /// When `limit` is omitted, refuse to read files larger than this so a single call

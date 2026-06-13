@@ -8,3 +8,4 @@ pub mod mcp;
 pub mod parser;
 pub mod tools;
 pub mod watcher;
+pub mod workspace;

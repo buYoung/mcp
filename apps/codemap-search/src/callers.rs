@@ -2,7 +2,7 @@
 //! per-call `caller_context=false` or config `caller_context_default` to disable).
 //!
 //! Given the matched `fn` symbols of one file, this module performs a single
-//! combined-regex workspace scan (reusing [`crate::tools::build_walker`] + the
+//! combined-regex workspace scan (reusing [`crate::workspace::build_walker`] + the
 //! `grep.rs` searcher pattern), classifies each hit post-hoc (trailing `(` → call
 //! site, else → non-call reference), attributes call sites to their innermost
 //! enclosing definition symbol from the codemap snapshot, discovers depth-1 callees
@@ -201,10 +201,8 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
         .build();
 
     // Produce workspace-relative display paths that match the codemap snapshot's
-    // `file_path` keys. The indexer keys each file by `canonicalize().strip_prefix(canon
-    // cwd)` (index.rs::relative_index_path), so mirror that: strip the canonical root from
-    // the canonical entry; fall back to stripping the raw root (the walker yields entries
-    // rooted at `root` as passed) so the keys line up whether or not the cwd is a symlink.
+    // `file_path` keys via the shared `crate::workspace::workspace_display_path` helper
+    // (canonicalize → strip canonical root, falling back to the raw root → backslash→slash).
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let raw_root = root.to_path_buf();
 
@@ -219,7 +217,7 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
     let mut budgets = vec![per_name_cap; names.len()];
     let mut truncated = vec![false; names.len()];
 
-    for result in crate::tools::build_walker(root, false).build() {
+    for result in crate::workspace::build_walker(root, false).build() {
         let entry = match result {
             Ok(e) => e,
             Err(_) => continue,
@@ -233,7 +231,7 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
             Some(e) => e,
             None => continue,
         };
-        if !crate::tools::is_source_extension(ext) {
+        if !crate::workspace::is_source_extension(ext) {
             continue;
         }
         match std::fs::metadata(path) {
@@ -241,12 +239,7 @@ fn scan_workspace(names: &[String], cfg: &CallerConfig, root: &Path) -> Option<S
             Ok(_) => {}
             Err(_) => continue,
         }
-        let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-        let relative = canonical_path
-            .strip_prefix(&canonical_root)
-            .or_else(|_| path.strip_prefix(&raw_root))
-            .unwrap_or(path);
-        let display = relative.to_string_lossy().replace('\\', "/");
+        let display = crate::workspace::workspace_display_path(path, &canonical_root, &raw_root);
         let mut sink = ClassifySink {
             names,
             file_path: display,
