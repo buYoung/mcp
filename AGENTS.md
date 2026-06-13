@@ -30,3 +30,4 @@ A monorepo of standalone local MCP servers and shared TypeScript configuration f
 
 ## User custom rules
 - codemap-search 를 적극 활용하세요. Read, Grep, Find 대체가능
+- **read fable5.md**
