@@ -303,7 +303,7 @@ fn enclosing_fn<'a>(file: &'a ExtractedFile, line: usize) -> Option<&'a Extracte
                 None => Some(sym),
                 Some(current) => {
                     // Prefer the strictly-inner one; on equal spans keep the first found.
-                    if crate::codemap::range_strictly_contains(&current.range, &sym.range) {
+                    if crate::parser::range_strictly_contains(&current.range, &sym.range) {
                         Some(sym)
                     } else {
                         Some(current)

@@ -76,18 +76,6 @@ pub struct DetailsCodemap<'a> {
 /// if that normalization ever changes.
 const FUNCTION_SCOPE_KINDS: &[&str] = &["fn", "method", "function"];
 
-/// `outer` strictly contains `inner` when `inner`'s line span sits inside
-/// `outer`'s and the two spans are not identical — so a symbol never contains
-/// itself and two symbols sharing a range never drop each other.
-pub(crate) fn range_strictly_contains(
-    outer: &crate::parser::CodeRange,
-    inner: &crate::parser::CodeRange,
-) -> bool {
-    outer.start_line <= inner.start_line
-        && inner.end_line <= outer.end_line
-        && (outer.start_line < inner.start_line || inner.end_line < outer.end_line)
-}
-
 /// A symbol is "significant" when it is exported, or when it is not nested inside
 /// a function scope in the same file. Type members (class/struct/impl methods —
 /// contained by a type symbol, not a function) stay significant; function-local
@@ -102,7 +90,7 @@ fn is_significant_symbol(
     }
     !file_symbols.iter().any(|parent| {
         FUNCTION_SCOPE_KINDS.contains(&parent.kind.as_str())
-            && range_strictly_contains(&parent.range, &symbol.range)
+            && crate::parser::range_strictly_contains(&parent.range, &symbol.range)
     })
 }
 
