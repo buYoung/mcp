@@ -8,8 +8,7 @@
 
 - `Cargo.toml`: Rust package metadata and dependencies for clap, tokio, tree-sitter grammars, Tantivy, notify, tracing, TOML config, and ripgrep library crates.
 - `README.md`: user-facing installation, MCP registration, tool, config, and logging reference.
-- `docs/`: benchmark prose only — `benchmark-workflow.md` (measurement standard + numbers), `benchmark-evolution.md` (causal narrative), and `configuration.md`; keep config-key changes aligned with `configuration.md`.
-- `benchmarks/`: machine fixtures consumed only at benchmark time — campaign datasets, MCP configs, and the shell harness (`bench-2026-06/`, `bench-2026-06-django-strapi/`). NOT documentation: derive no claims, numbers, or causality from here; the sole narrative source is `docs/benchmark-*.md`. See `benchmarks/README.md`.
+- `docs/`: benchmark prose only — `benchmark-workflow.md` (measurement standard + numbers), `benchmark-evolution.md` (causal narrative), and `configuration.md`; keep config-key changes aligned with `configuration.md`. Measurement execution assets (harness, datasets, fixtures) were removed in 2026-06 — these two docs are the sole record and are not re-runnable as-is (restore from git history if a rerun is needed).
 - `src/main.rs`: CLI entry. It initializes stderr logging/config, dispatches CLI subcommands, and in `mcp` mode scaffolds config, creates the Tantivy engine, starts indexer/watcher, and runs the MCP loop.
 - `src/mcp.rs`: hand-written JSON-RPC/MCP protocol loop, tool schemas, request dispatch, search/overview rendering, warming/stale-result notices, path safety, output caps, and indexer auto-restart.
 - `src/index.rs`: Tantivy schema, query parsing recovery, incremental indexing, mtime cache, extraction-format sidecar versioning, corrupt-index rebuild, ranking, and result selection.

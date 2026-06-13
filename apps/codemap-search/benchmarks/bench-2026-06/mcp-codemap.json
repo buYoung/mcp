@@ -1,8 +1,0 @@
-{
-    "mcpServers": {
-        "codemap-search": {
-            "command": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search/target/release/codemap-search",
-            "args": ["mcp"]
-        }
-    }
-}

@@ -55,7 +55,7 @@ arm 3종은 baseline(빌트인 도구만)·pure(codemap 도구만)·additive(양
 
 ## 캠페인 1 — SurrealDB (v3→v7): search가 답을 싣게 만들기
 
-codex CLI(gpt-5.5) 단일 arm, surrealdb(Rust, 약 2,700 파일), 6과제 × 2rep, 측정→수정 5회차. 과제 정의·ground truth 표(t1~t6)는 기계 재료 `../benchmarks/bench-2026-06/tasks-surrealdb.md`가 단일 출처다(코퍼스 결속 정답 키라 본 서술 문서에는 옮기지 않는다). 에이전트의 검색 행동을 **발견 → 신뢰 → 인용** 3단계로 보고 각 단계의 병목을 차례로 제거했다.
+codex CLI(gpt-5.5) 단일 arm, surrealdb(Rust, 약 2,700 파일), 6과제 × 2rep, 측정→수정 5회차. 과제 정의·ground truth 표(t1~t6)는 코퍼스 결속 정답 키라 본 서술 문서에도, 저장소에도 남기지 않는다(데이터셋 제거됨 — `benchmark-workflow.md` §5) — 캠페인 1의 서사는 본 절과 `benchmark-workflow.md` §9-4가 단일 기록이다. 에이전트의 검색 행동을 **발견 → 신뢰 → 인용** 3단계로 보고 각 단계의 병목을 차례로 제거했다.
 
 ### 1.0 전제 — MCP ToolAnnotations (`readOnlyHint`)
 
