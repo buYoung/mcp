@@ -16,7 +16,7 @@ use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
-use crate::index::TantivySearchEngine;
+use super::TantivySearchEngine;
 use crate::parser::ExtractedFile;
 
 /// Message to the indexer thread.
@@ -106,7 +106,8 @@ impl IndexerHandle {
     /// Clone of the command channel sender for the filesystem watcher. The watcher thread
     /// holds this clone, so it MUST be dropped (watcher shut down) before this handle is
     /// dropped — the indexer's `recv()` loop ends only when ALL senders are gone
-    /// (guaranteed by `McpServer`'s field declaration order: `watcher` before `indexer`).
+    /// (guaranteed by [`super::EngineSupervisor`]'s field declaration order: `watcher`
+    /// before `indexer`).
     pub fn command_sender(&self) -> SyncSender<IndexCommand> {
         self.sender
             .as_ref()

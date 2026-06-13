@@ -1,10 +1,6 @@
-use crate::index::SearcherHandle;
-use crate::indexer::IndexerHandle;
-use crate::watcher::{WatcherHandle, WatcherStatus};
+use crate::index::EngineSupervisor;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,29 +24,11 @@ pub struct JsonRpcResponse {
 }
 
 pub struct McpServer {
-    // Read-only search handle over the committed index (cloned Arc-backed reader). Indexing
-    // happens off-thread, so the request loop never blocks on it.
-    searcher: SearcherHandle,
-    // Filesystem watcher (None when `watch = false` or the watch failed to start). Field
-    // order is load-bearing: struct fields drop in declaration order, and the watcher
-    // thread holds a sender clone into the indexer channel — `watcher` MUST be declared
-    // (and thus dropped) BEFORE `indexer`, whose drop joins a recv loop that only ends
-    // once ALL senders are gone. The opposite order deadlocks on shutdown.
-    watcher: Option<WatcherHandle>,
-    // Background indexer: fire-and-forget refresh trigger, warming/error status, and the
-    // current codemap snapshot consumed by `overview`.
-    indexer: IndexerHandle,
-    // Watcher health flag: while healthy, the watcher keeps the index current and the
-    // request-triggered refresh below is suppressed entirely. Stays unhealthy forever
-    // when `watch = false` or the watch failed to start, which preserves the lazy path.
-    watcher_status: Arc<WatcherStatus>,
-    // Instant of the last refresh trigger. Within `config::index_staleness_ms` we skip
-    // re-triggering so a burst of search/overview calls enqueues at most one refresh; the
-    // indexer's own mtime diff keeps each pass incremental. A single field now suffices
-    // because search and overview share one background refresh.
-    last_refresh_trigger: Option<Instant>,
-    // Automatic indexer restarts performed so far (see `maybe_restart_indexer`).
-    indexer_restart_attempts: u32,
+    // The live index subsystem: read-only searcher handle, background indexer, optional
+    // filesystem watcher, and the supervision state (auto-restart + refresh fallback). The
+    // server calls `ensure_alive()`/`trigger_refresh()` on it at the search/overview
+    // dispatch sites and reads the committed snapshot through its accessors.
+    engine: EngineSupervisor,
 }
 
 /// Cap a code snippet at `max_lines` AND `max_bytes`, appending an elision marker when
@@ -447,20 +425,8 @@ fn render_anchored_symbols(
 }
 
 impl McpServer {
-    pub fn new(
-        searcher: SearcherHandle,
-        watcher: Option<WatcherHandle>,
-        indexer: IndexerHandle,
-        watcher_status: Arc<WatcherStatus>,
-    ) -> Self {
-        Self {
-            searcher,
-            watcher,
-            indexer,
-            watcher_status,
-            last_refresh_trigger: None,
-            indexer_restart_attempts: 0,
-        }
+    pub fn new(engine: EngineSupervisor) -> Self {
+        Self { engine }
     }
 }
 
@@ -527,87 +493,7 @@ impl<R: tokio::io::AsyncRead + Unpin> LimitedLineReader<R> {
     }
 }
 
-/// Cap on automatic indexer restarts per server process: enough to absorb sporadic
-/// failures, finite so a deterministically-crashing pass (e.g. a parser bug tripped by
-/// one specific file on every walk) cannot respawn-loop forever. Past the cap the
-/// existing "results are frozen" notice stands and a server restart is required.
-const MAX_INDEXER_RESTART_ATTEMPTS: u32 = 5;
-
 impl McpServer {
-    /// Auto-recover a dead indexer thread (config `indexer_auto_restart`, default true):
-    /// rebuild the engine, respawn the indexer, and re-attach the watcher, so one panic
-    /// does not freeze results for the rest of the session. Runs at most once per
-    /// request, only when death is actually observed, and never past
-    /// [`MAX_INDEXER_RESTART_ATTEMPTS`]. `TantivySearchEngine::new` rebuilds a corrupt
-    /// index directory, so a crash caused by index corruption heals instead of recurring.
-    fn maybe_restart_indexer(&mut self) {
-        if !crate::config::get().indexer_auto_restart || !self.indexer.is_dead() {
-            return;
-        }
-        if self.indexer_restart_attempts >= MAX_INDEXER_RESTART_ATTEMPTS {
-            return; // exhausted — the dead-indexer notice keeps reporting frozen results
-        }
-        self.indexer_restart_attempts += 1;
-        tracing::warn!(
-            "indexer thread died — auto-restarting ({}/{})",
-            self.indexer_restart_attempts,
-            MAX_INDEXER_RESTART_ATTEMPTS
-        );
-
-        // Tear the watcher down FIRST: its thread holds a sender clone into the dead
-        // channel, and its drop flips the shared health flag off — done before the
-        // respawn below so it cannot clobber the new watcher's healthy=true.
-        self.watcher = None;
-
-        let engine =
-            match crate::index::TantivySearchEngine::new(&crate::config::get().index_path) {
-                Ok(engine) => engine,
-                Err(e) => {
-                    tracing::warn!("indexer auto-restart failed to reopen the index: {e}");
-                    return; // next request retries (attempt already counted)
-                }
-            };
-        self.searcher = engine.searcher_handle();
-        // Old IndexerHandle drops on assignment: its thread is already dead, so the
-        // join returns immediately — no shutdown-order hazard here.
-        self.indexer = crate::indexer::spawn_indexer(engine);
-
-        if crate::config::get().watch {
-            if let Ok(cwd) = std::env::current_dir() {
-                self.watcher = crate::watcher::spawn_watcher(
-                    &cwd,
-                    self.indexer.command_sender(),
-                    Arc::clone(&self.watcher_status),
-                );
-            }
-        }
-    }
-
-    /// Enqueue a background index refresh unless one was already triggered within the
-    /// staleness window. Fire-and-forget — never blocks the request on indexing. Shared by
-    /// search and overview, which both serve the indexer's published snapshot.
-    ///
-    /// While the filesystem watcher is healthy this is a no-op: the watcher already keeps
-    /// the index current, so suppressing the request-triggered full walk here is what
-    /// actually removes the per-request O(repo) walk during active use. The fallback below
-    /// runs only when the watcher is absent (`watch = false`), failed to start, or died.
-    fn maybe_trigger_refresh(&mut self) {
-        // A dead indexer disarms the suppression: falling through lets `trigger_refresh`
-        // observe the disconnected channel and raise the "results are frozen" notice,
-        // which a healthy-looking watcher would otherwise mask indefinitely.
-        if self.watcher_status.is_healthy() && !self.indexer.is_dead() {
-            return;
-        }
-        let staleness = Duration::from_millis(crate::config::get().index_staleness_ms);
-        let is_fresh = self
-            .last_refresh_trigger
-            .is_some_and(|t| t.elapsed() < staleness);
-        if !is_fresh {
-            self.indexer.trigger_refresh();
-            self.last_refresh_trigger = Some(Instant::now());
-        }
-    }
-
     pub async fn run(&mut self) -> Result<(), String> {
         let stdin = tokio::io::stdin();
         let mut reader = LimitedLineReader::new(stdin, 10 * 1024 * 1024 + 100 * 1024);
@@ -820,11 +706,11 @@ impl McpServer {
                         // — the response never blocks on indexing. A queued trigger
                         // coalesces bursts; the indexer's mtime diff keeps each pass
                         // incremental.
-                        self.maybe_restart_indexer();
-                        self.maybe_trigger_refresh();
+                        self.engine.ensure_alive();
+                        self.engine.trigger_refresh();
 
                         let results = self
-                            .searcher
+                            .engine
                             .search(query, 100)
                             .map_err(|e| (-32603, format!("Search error: {}", e)))?;
 
@@ -836,15 +722,15 @@ impl McpServer {
                         let mut text = String::new();
                         // While the initial background index builds, results can be empty or
                         // partial — say so, and point at the always-live tools meanwhile.
-                        if self.indexer.is_dead() {
+                        if self.engine.is_dead() {
                             text.push_str(
                                 "_Background indexer stopped — search results are frozen at the last index and may be stale; restart the server to recover. read/find/grep stay live._\n\n",
                             );
-                        } else if self.indexer.is_warming() {
+                        } else if self.engine.is_warming() {
                             text.push_str(
                                 "_Index is warming up (initial background indexing) — results may be empty or partial; retry shortly, or use grep/find for live results._\n\n",
                             );
-                        } else if let Some(err) = self.indexer.last_error() {
+                        } else if let Some(err) = self.engine.last_error() {
                             text.push_str(&format!(
                                 "_Last background index refresh failed: {err} — results may be stale._\n\n"
                             ));
@@ -877,7 +763,7 @@ impl McpServer {
                             // annotation byte budget is what is still free under `byte_cap`
                             // at this point (snippets keep priority, two-counter inside).
                             let caller_annotations = if caller_context_enabled {
-                                let snapshot = self.indexer.codemap_snapshot();
+                                let snapshot = self.engine.codemap_snapshot();
                                 let requests: Vec<crate::callers::AnnotationRequest<'_>> =
                                     detail_results
                                         .iter()
@@ -1187,18 +1073,18 @@ impl McpServer {
                         // snapshot the indexer publishes — no per-call tree walk or parse.
                         // The indexer parses the working tree once for the index and reuses
                         // it here, so the former overview-only walk+parse is gone.
-                        self.maybe_restart_indexer();
-                        self.maybe_trigger_refresh();
-                        let snapshot = self.indexer.codemap_snapshot();
+                        self.engine.ensure_alive();
+                        self.engine.trigger_refresh();
+                        let snapshot = self.engine.codemap_snapshot();
                         let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
 
                         // Nothing to show yet because the initial index is still building (or
                         // the indexer thread died before it finished): say so rather than
                         // render an empty codemap.
                         if extracted_files.is_empty()
-                            && (self.indexer.is_warming() || self.indexer.is_dead())
+                            && (self.engine.is_warming() || self.engine.is_dead())
                         {
-                            let text = if self.indexer.is_dead() {
+                            let text = if self.engine.is_dead() {
                                 "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
                             } else {
                                 "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."

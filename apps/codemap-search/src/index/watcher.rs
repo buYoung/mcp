@@ -4,9 +4,10 @@
 //! path-scoped ([`IndexCommand::RefreshPaths`]) for ordinary edits, a full walk
 //! ([`IndexCommand::Refresh`]) for bulk events (git HEAD change, event overflow/rescan,
 //! oversized batches). While the watcher is healthy the server suppresses its
-//! request-triggered fallback entirely (see `McpServer::maybe_trigger_refresh`), which is
-//! what removes the per-request O(repo) walk; when the watch can't start (e.g. the Linux
-//! inotify limit) or dies, [`WatcherStatus`] flips unhealthy and the fallback takes over.
+//! request-triggered fallback entirely (see [`super::EngineSupervisor::trigger_refresh`]),
+//! which is what removes the per-request O(repo) walk; when the watch can't start (e.g. the
+//! Linux inotify limit) or dies, [`WatcherStatus`] flips unhealthy and the fallback takes
+//! over.
 //!
 //! Feedback-loop prevention: events under `.codemap` / `.codemap-index` / `.git` (except
 //! the HEAD-hint files) / the configured excluded directories are dropped before they
@@ -36,7 +37,7 @@ use std::time::{Duration, Instant};
 
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::indexer::IndexCommand;
+use super::IndexCommand;
 
 /// Above this many distinct paths in one debounce window, a single full walk is cheaper
 /// and safer than per-path passes (and bulk events of this size usually mean a branch
@@ -70,7 +71,7 @@ impl WatcherStatus {
 /// the `RecommendedWatcher` disconnects the event channel, the debounce loop's `recv`
 /// observes it and exits (dropping its `IndexCommand` sender clone), then the thread is
 /// joined. The `IndexerHandle` must therefore drop AFTER this handle — guaranteed by
-/// `McpServer`'s field declaration order (`watcher` before `indexer`).
+/// [`super::EngineSupervisor`]'s field declaration order (`watcher` before `indexer`).
 pub struct WatcherHandle {
     watcher: Option<RecommendedWatcher>,
     status: Arc<WatcherStatus>,

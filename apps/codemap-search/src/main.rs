@@ -188,31 +188,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // writer) moves into the background indexer, which starts the initial index pass
             // immediately so the first request need not block on it.
             let searcher = engine.searcher_handle();
-            let indexer = codemap_search::indexer::spawn_indexer(engine);
+            let indexer = index::spawn_indexer(engine);
             // Health gate shared with the server: stays unhealthy when `watch = false` or
             // the watch fails to start, which keeps the request-triggered fallback active.
-            let watcher_status =
-                std::sync::Arc::new(codemap_search::watcher::WatcherStatus::default());
+            let watcher_status = std::sync::Arc::new(index::WatcherStatus::default());
             let watcher = codemap_search::config::get().watch.then(|| {
-                codemap_search::watcher::spawn_watcher(
+                index::spawn_watcher(
                     &cwd,
                     indexer.command_sender(),
                     std::sync::Arc::clone(&watcher_status),
                 )
             });
-            // The server owns both handles so it can rebuild them when the indexer dies
-            // (`indexer_auto_restart`); McpServer's field order guarantees the shutdown
+            // The supervisor owns all the handles so it can rebuild them when the indexer
+            // dies (`indexer_auto_restart`); its field order guarantees the shutdown
             // sequence — watcher dropped (thread joined, its command-sender clone
             // released) before IndexerHandle::drop closes the channel and joins the
             // indexer, whose recv loop ends only when ALL senders are gone.
-            let mut server = mcp::McpServer::new(
+            let supervisor = index::EngineSupervisor::new(
                 searcher,
                 watcher.flatten(),
                 indexer,
                 watcher_status,
             );
+            let mut server = mcp::McpServer::new(supervisor);
             server.run().await?;
-            // server drop → watcher field drop → indexer field drop (see McpServer).
+            // server drop → EngineSupervisor drop → watcher field drop → indexer field drop.
         }
         Commands::Search { query, limit } => {
             let engine =
