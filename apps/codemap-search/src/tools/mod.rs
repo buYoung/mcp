@@ -8,9 +8,23 @@
 
 pub mod find;
 pub mod grep;
+pub mod overview;
 pub mod read;
+pub mod search;
 
+use crate::index::EngineSupervisor;
+use serde_json::Value;
 use std::path::Path;
+
+/// Borrowed request context for the snapshot-backed tools (`search`/`overview`). The MCP
+/// dispatch arm runs the `EngineSupervisor` lifecycle (`ensure_alive`/`trigger_refresh`)
+/// itself, then hands the tool body an immutable engine borrow plus the parsed arguments;
+/// the tool reads the committed snapshot through `engine` and never needs `&mut`. The
+/// live-filesystem tools (`read`/`find`/`grep`) keep their plain `fn(&Value)` shape.
+pub struct ToolContext<'a> {
+    pub engine: &'a EngineSupervisor,
+    pub arguments: &'a Value,
+}
 
 // --- Shared gitignore-style glob matching (find + grep) --------------------------------
 
@@ -172,4 +186,103 @@ pub(crate) fn arg_required_str<'a>(
     get_arg(args, key)
         .and_then(|v| v.as_str())
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
+}
+
+/// The MCP `initialize` `instructions` string. Co-located with [`list_tools`] so the
+/// product-surface prose and the tool schemas cannot drift apart. Byte-identical to the
+/// value the server has always returned — do not edit without intending a behavior change.
+pub fn instructions() -> &'static str {
+    "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, concepts, and quoted strings ('where is the auth token refreshed?', an error message, a config default). BM25 over indexed symbols/docstrings/string literals — identifier splitting and ranking find what an exact pattern misses. Top-ranked files render in full detail — line-numbered snippets plus each matched function's depth-1 callers and callees (on by default; caller_context=false to disable) — so one call answers both 'where is it' and 'who calls it'; further matches follow as a ranked one-line list. Snippet line numbers and caller file:line positions are exact — cite them directly instead of re-reading to confirm (e.g. if search already showed `example.py:42→ def compute_total(...)`, cite example.py:42 directly — a follow-up read of the same range adds no accuracy; only caller→definition attribution is name-match approximate).\n- grep: first move for exact-pattern enumeration — every occurrence of a name you already confirmed, regex matches, comments, non-code files, just-edited files (no index lag).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
+}
+
+/// The MCP `tools/list` result: the five tool schemas (name, description, read-only
+/// annotations, and input schema). Co-located with [`instructions`] so schema and prose
+/// stay in sync. Byte-identical to the value the server has always returned.
+pub fn list_tools() -> Value {
+    serde_json::json!({
+                "tools": [
+                    {
+                        "name": "overview",
+                        "description": "Hierarchical codemap. No path: repo-root map with file/symbol counts; folder path: narrows; file path: that file's symbols with line ranges.",
+                        // All five tools are read-only over the local workspace. Declaring it
+                        // matters: clients gate approval on these hints (Codex auto-cancels
+                        // un-annotated tools in non-interactive runs, and prompts per call in
+                        // interactive ones).
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string", "description": "Empty/omitted = repo root overview; a folder path narrows; a file path shows that file's symbol details. Aliases 'file_path'/'file'/'query' are also accepted." },
+                                "format": { "type": "string", "description": "Optional output format (e.g. 'llms-txt')." }
+                            }
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "description": "Symbol, definition, concept, and quoted-string lookup: BM25 keyword search over indexed symbols, docstrings, and string literals (error messages, config defaults); identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — symbols with line ranges and line-numbered snippets, each matched function annotated with its depth-1 callers and callees (on by default; positions exact, attribution name-match approximate) — and remaining matches follow as a ranked one-line list. Cite line numbers directly from the response — e.g. if search already showed `example.py:42\u{2192} def compute_total(...)`, cite example.py:42 directly; a follow-up read of the same range adds no accuracy.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string" },
+                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees (approximate, name-match only). Detail view only; on by default (config caller_context_default) — pass false to disable." }
+                            },
+                            "required": ["query"]
+                        }
+                    },
+                    {
+                        "name": "read",
+                        "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": { "type": "string", "description": "Workspace-relative path to the file. Aliases 'path'/'file'/'query' are also accepted." },
+                                "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
+                                "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
+                            },
+                            "required": ["file_path"]
+                        }
+                    },
+                    {
+                        "name": "find",
+                        "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without a slash (e.g. '*rpc*') matches only the filename, never a directory segment — to match a path component use '**/*rpc*' or '**/rpc/**'.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "pattern": { "type": "string", "description": "Glob pattern, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates." },
+                                "path": { "type": "string", "description": "Base directory to search (default '.')." },
+                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
+                            },
+                            "required": ["pattern"]
+                        }
+                    },
+                    {
+                        "name": "grep",
+                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
+                                "path": { "type": "string", "description": "Base directory to search (default '.')." },
+                                "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
+                                "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'content' — matching lines as 'file:line:text' with line numbers (via -n). Use 'files_with_matches' for a cheap file-list enumeration, or 'count' for per-file match counts." },
+                                "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
+                                "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
+                                "-A": { "type": "integer", "description": "Lines of context after each match." },
+                                "-B": { "type": "integer", "description": "Lines of context before each match." },
+                                "-C": { "type": "integer", "description": "Lines of context before and after (overrides -A/-B)." },
+                                "multiline": { "type": "boolean", "description": "Allow matches to span lines (default false)." },
+                                "head_limit": { "type": "integer", "description": "Max results (default 250; 0 = unlimited)." },
+                                "offset": { "type": "integer", "description": "0-indexed result offset for pagination (default 0)." },
+                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
+                            },
+                            "required": ["pattern"]
+                        }
+                    }
+                ]
+    })
 }
