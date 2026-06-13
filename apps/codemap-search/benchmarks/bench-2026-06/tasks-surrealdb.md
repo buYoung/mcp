@@ -1,8 +1,8 @@
 # 캠페인 1 데이터셋 — surrealdb 고정 과제 (v3→v7)
 
-캠페인 1(surrealdb 단일 arm, codex gpt-5.5) 측정에 사용된 과제 정의와 ground truth. 인과 서사는 `../benchmark-evolution.md` 캠페인 1 절, 수치 상세는 `../benchmark-workflow.md` §8 캠페인 1 절 참조.
+캠페인 1(surrealdb 단일 arm, codex gpt-5.5) 측정에 사용된 과제 정의와 ground truth. **기계 입력물(재료)이며 문서가 아니다** — 인과·수치 서사는 여기서 도출하지 말고 `../../docs/benchmark-evolution.md` 캠페인 1 절(인과)과 `../../docs/benchmark-workflow.md` §9-4(수치)를 단일 출처로 본다. 아래 줄 번호는 당시 스냅샷에만 유효한 정답 키다.
 
-- 대상 스냅샷: /tmp/surrealdb-main (Rust, 약 2,700 파일, 2026-06 스냅샷 — 커밋 SHA 미기록, `../benchmark-workflow.md` §8 한계 7 참조. 줄 단위 ground truth는 이 스냅샷에만 결속된다)
+- 대상 스냅샷: /tmp/surrealdb-main (Rust, 약 2,700 파일, 2026-06 스냅샷 — 커밋 SHA 미기록. 줄 단위 ground truth는 이 스냅샷에만 결속된다. 같은 저장소를 다시 측정할 때도 정답은 그 시점 코퍼스에서 새로 도출할 것)
 - 매트릭스: 6과제 × 2rep = 12 에피소드/회차, 측정→수정 5회차(v4 1회 무효)
 - 프롬프트 고정 프레임: 모두 "codemap-search MCP 도구를 사용해서 …. 파일은 수정하지 마." 형식 — 도구 유도 문구가 빠지면 측정이 오염된다(v4 사고). 캠페인 2부터의 형식("정확한 파일 경로와 줄 번호를 인용해서 답해" 포함)과 다르다. 기계 판정 rubric·함정 보기는 캠페인 2(`tasks-*.json`)부터 도입됐고 이 세트에는 없다.
 
