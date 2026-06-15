@@ -1,7 +1,7 @@
 mod tokenize;
 mod types;
 
-pub use tokenize::split_identifier;
+pub use tokenize::{split_identifier, QueryTokens};
 pub use types::*;
 
 use std::path::Path;

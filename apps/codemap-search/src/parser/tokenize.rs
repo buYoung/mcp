@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 pub fn split_identifier(ident: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
@@ -55,6 +57,113 @@ pub fn split_identifier(ident: &str) -> Vec<String> {
     }
 
     tokens
+}
+
+#[derive(Debug, Clone)]
+pub struct QueryTokens {
+    raw_words: Vec<String>,
+    words: Vec<String>,
+    tokens: Vec<String>,
+    raw_word_set: HashSet<String>,
+    word_set: HashSet<String>,
+    token_set: HashSet<String>,
+    has_qualified_word: bool,
+    search_text: String,
+}
+
+impl QueryTokens {
+    pub fn parse(query: &str) -> Self {
+        let mut raw_words = Vec::new();
+        let mut words = Vec::new();
+        let mut raw_word_set = HashSet::new();
+        let mut word_set = HashSet::new();
+        let mut tokens = Vec::new();
+        let mut token_set = HashSet::new();
+        let mut has_qualified_word = false;
+
+        for raw_word in query.split_whitespace().filter_map(|word| {
+            let lower = word.to_lowercase();
+            (!lower.is_empty()).then_some(lower)
+        }) {
+            has_qualified_word |= raw_word
+                .chars()
+                .any(|c| !(c.is_alphanumeric() || c == '_' || c == '-'));
+            push_unique(&mut raw_words, &mut raw_word_set, raw_word);
+        }
+
+        for word in query
+            .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-'))
+            .filter_map(|word| {
+                let lower = word.to_lowercase();
+                (!lower.is_empty()).then_some(lower)
+            })
+        {
+            push_unique(&mut words, &mut word_set, word.clone());
+            push_unique(&mut tokens, &mut token_set, word.clone());
+            for token in split_identifier(&word) {
+                push_unique(&mut tokens, &mut token_set, token);
+            }
+        }
+
+        let search_text = if tokens.is_empty() {
+            query.to_string()
+        } else {
+            tokens.join(" ")
+        };
+
+        Self {
+            raw_words,
+            words,
+            tokens,
+            raw_word_set,
+            word_set,
+            token_set,
+            has_qualified_word,
+            search_text,
+        }
+    }
+
+    pub fn raw_words(&self) -> &[String] {
+        &self.raw_words
+    }
+
+    pub fn words(&self) -> &[String] {
+        &self.words
+    }
+
+    pub fn tokens(&self) -> &[String] {
+        &self.tokens
+    }
+
+    pub fn search_text(&self) -> &str {
+        &self.search_text
+    }
+
+    pub fn contains_word(&self, word: &str) -> bool {
+        self.word_set.contains(word)
+    }
+
+    pub fn contains_raw_word(&self, word: &str) -> bool {
+        self.raw_word_set.contains(word)
+    }
+
+    pub fn contains_token(&self, token: &str) -> bool {
+        self.token_set.contains(token)
+    }
+
+    pub fn has_qualified_word(&self) -> bool {
+        self.has_qualified_word
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tokens.is_empty()
+    }
+}
+
+fn push_unique(values: &mut Vec<String>, seen: &mut HashSet<String>, value: String) {
+    if seen.insert(value.clone()) {
+        values.push(value);
+    }
 }
 
 #[cfg(test)]

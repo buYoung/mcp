@@ -109,7 +109,44 @@ fn compact_symbol_names(symbols: &[crate::parser::ExtractedSymbol], limit: usize
     text
 }
 
+fn signal_symbol_label(signal: &crate::index::SearchRankingSignal) -> String {
+    signal
+        .symbol_owner
+        .as_deref()
+        .filter(|owner| !owner.is_empty())
+        .map(|owner| format!("{owner}.{}", signal.symbol_name))
+        .unwrap_or_else(|| signal.symbol_name.clone())
+}
+
 fn match_reason(res: &crate::index::SearchResult) -> String {
+    if let Some(signal) = &res.ranking_signal {
+        let symbol_label = signal_symbol_label(signal);
+        if signal.exact_boost_applied {
+            if signal.owner_match_count > 0 {
+                return format!("owner-qualified exact symbol: `{symbol_label}`");
+            }
+            if signal.path_match_count > 0 {
+                return format!("path-supported exact symbol: `{symbol_label}`");
+            }
+            return format!("exact symbol: `{symbol_label}`");
+        }
+        if signal.exact_name_hit {
+            return format!("exact symbol (unboosted): `{symbol_label}`");
+        }
+        if signal.owner_match_count > 0 {
+            return format!(
+                "owner-qualified symbol: `{symbol_label}` (tokens {}/{})",
+                signal.matched_token_count, signal.query_token_count
+            );
+        }
+        if signal.matched_token_count == signal.query_token_count {
+            return format!("all query tokens matched symbol: `{symbol_label}`");
+        }
+        return format!(
+            "symbol token coverage {}/{}: `{symbol_label}`",
+            signal.matched_token_count, signal.query_token_count
+        );
+    }
     if !res.symbol_fallback {
         return format!(
             "symbol match: {}",
@@ -126,6 +163,14 @@ fn match_reason(res: &crate::index::SearchResult) -> String {
 }
 
 fn ambiguity_note(res: &crate::index::SearchResult) -> Option<String> {
+    if let Some(signal) = &res.ranking_signal {
+        if signal.same_name_candidate_count > 1 {
+            return Some(format!(
+                "{} same-name `{}` symbols in ranked candidates",
+                signal.same_name_candidate_count, signal.symbol_name
+            ));
+        }
+    }
     let mut counts = std::collections::BTreeMap::<&str, usize>::new();
     for symbol in &res.matched_symbols {
         *counts.entry(symbol.name.as_str()).or_default() += 1;
@@ -262,12 +307,11 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             None
         };
 
-        // Two query sets (P1, 2-tier anchoring). Tier-1: whole-identifier
-        // query words for exact NAME equality (strict — the primary anchor).
-        // Tier-2: sub-token set from the SAME splitter the index uses (loose
-        // — owner/sub-token match, used only when a file has no Tier-1 hit).
-        let query_word_set = render::query_words(query);
-        let query_token_set = render::query_tokens(query);
+        // Shared query model (P1, 2-tier anchoring). Tier-1 uses whole query
+        // words for exact NAME equality; Tier-2 uses the same sub-token set
+        // ranking consumes, so rendering and ranking interpret punctuation
+        // and identifier boundaries identically.
+        let query_tokens = crate::parser::QueryTokens::parse(query);
 
         let detail_result_count = detail_results.len();
         let mut rendered_detail_count = 0usize;
@@ -324,12 +368,12 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 let mut matched_in_fallback: Vec<&crate::parser::ExtractedSymbol> = res
                     .matched_symbols
                     .iter()
-                    .filter(|s| render::symbol_is_tier1(s, &query_word_set))
+                    .filter(|s| render::symbol_is_tier1(s, &query_tokens))
                     .collect();
                 if matched_in_fallback.len() < FALLBACK_SNIPPET_CAP {
                     for sym in res.matched_symbols.iter().filter(|s| {
-                        !render::symbol_is_tier1(s, &query_word_set)
-                            && render::symbol_matches_query(s, &query_token_set)
+                        !render::symbol_is_tier1(s, &query_tokens)
+                            && render::symbol_matches_query(s, &query_tokens)
                     }) {
                         if matched_in_fallback.len() >= FALLBACK_SNIPPET_CAP {
                             break;
@@ -356,8 +400,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     &mut text,
                     &res.file_path,
                     matched_in_fallback,
-                    &query_word_set,
-                    &query_token_set,
+                    &query_tokens,
                     &render_caps,
                     caller_annotations.as_ref(),
                 );
@@ -411,8 +454,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     &mut text,
                     &res.file_path,
                     symbols,
-                    &query_word_set,
-                    &query_token_set,
+                    &query_tokens,
                     &render_caps,
                     caller_annotations.as_ref(),
                 );

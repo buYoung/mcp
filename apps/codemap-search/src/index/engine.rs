@@ -6,6 +6,19 @@ use tantivy::query::AllQuery;
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchRankingSignal {
+    pub symbol_name: String,
+    pub symbol_owner: Option<String>,
+    pub exact_name_hit: bool,
+    pub exact_boost_applied: bool,
+    pub matched_token_count: usize,
+    pub query_token_count: usize,
+    pub owner_match_count: usize,
+    pub path_match_count: usize,
+    pub same_name_candidate_count: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub file_path: String,
@@ -17,6 +30,9 @@ pub struct SearchResult {
     /// docstring/path token, not a symbol-name match). The detail view renders these
     /// names-only (no snippets) so a path/docstring match never dumps full file source.
     pub symbol_fallback: bool,
+    /// Compact explanation data for the strongest matched symbol. Rendering turns this into
+    /// bounded `match_reason` / `ambiguity` hints without exposing score internals.
+    pub ranking_signal: Option<SearchRankingSignal>,
 }
 
 pub trait SearchEngine {

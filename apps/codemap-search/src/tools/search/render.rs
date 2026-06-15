@@ -69,25 +69,6 @@ fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String
     String::new()
 }
 
-/// Tokenize a query string into the SAME sub-token set the index builds, so "query-matching
-/// symbol" anchoring (P1) uses identical splitting to ranking. Each whitespace-separated word
-/// is run through [`crate::parser::split_identifier`] (camel/snake/kebab/acronym aware,
-/// lowercasing), and the lowercased raw word is added too so a quoted-string / single-token
-/// query still matches. Returns a lowercase token set.
-pub(super) fn query_tokens(query: &str) -> std::collections::HashSet<String> {
-    let mut tokens = std::collections::HashSet::new();
-    for word in query.split_whitespace() {
-        for tok in crate::parser::split_identifier(word) {
-            tokens.insert(tok);
-        }
-        let lower = word.to_lowercase();
-        if !lower.is_empty() {
-            tokens.insert(lower);
-        }
-    }
-    tokens
-}
-
 /// Whether a symbol is a "query-matching symbol" (P1, Tier-2): any sub-token of its NAME, or
 /// of its OWNER (the enclosing type/impl/class), intersects the query token set. The
 /// owner-token path is load-bearing — it keeps a query like "StorageFactory get" anchoring the
@@ -99,18 +80,18 @@ pub(super) fn query_tokens(query: &str) -> std::collections::HashSet<String> {
 /// of `SELECT` crossing `get_select`, `get_extra_select`, … — the live A/B regression P1 fixed).
 pub(super) fn symbol_matches_query(
     sym: &crate::parser::ExtractedSymbol,
-    query_tokens: &std::collections::HashSet<String>,
+    query: &crate::parser::QueryTokens,
 ) -> bool {
     if crate::parser::split_identifier(&sym.name)
         .iter()
-        .any(|t| query_tokens.contains(t))
+        .any(|t| query.contains_token(t))
     {
         return true;
     }
     if let Some(owner) = &sym.owner {
         if crate::parser::split_identifier(owner)
             .iter()
-            .any(|t| query_tokens.contains(t))
+            .any(|t| query.contains_token(t))
         {
             return true;
         }
@@ -118,39 +99,16 @@ pub(super) fn symbol_matches_query(
     false
 }
 
-/// The set of "query words" (P1 Tier-1): the raw query split on whitespace AND punctuation
-/// (`.`, `,`, `(`, `)`, quotes, brackets, etc.) into whole-identifier words, each lowercased.
-/// Unlike [`query_tokens`], a word is NOT further sub-split — `execute_sql` stays one word — so
-/// Tier-1 equality is whole-identifier (`execute_sql == execute_sql`), not sub-token. Examples:
-/// "SQLCompiler execute_sql SELECT" → {sqlcompiler, execute_sql, select};
-/// "class Q django.db.models" → {class, q, django, db, models}.
-pub(super) fn query_words(query: &str) -> std::collections::HashSet<String> {
-    query
-        // A query word is a maximal run of identifier characters: ASCII alphanumerics, '_',
-        // '-', and any non-ASCII alphanumeric (so unicode identifiers survive). Everything
-        // else — whitespace, '.', ',', parens, quotes, brackets — is a separator.
-        .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-'))
-        .filter_map(|word| {
-            let lower = word.to_lowercase();
-            if lower.is_empty() {
-                None
-            } else {
-                Some(lower)
-            }
-        })
-        .collect()
-}
-
 /// Whether a symbol is a Tier-1 (exact-name) match (P1): its NAME, lowercased, equals one of the
-/// query words as a whole identifier. This is strict — `get_select` is NOT Tier-1 for query word
-/// `select` — so Tier-1 anchors only the symbols the agent actually named (execute_sql,
-/// sqlcompiler, q, cached_property), and `StorageFactory get` makes the member `get` Tier-1 by
-/// name equality while owner-token matches stay Tier-2.
+/// query words as a whole identifier, or one raw query word when punctuation is part of the
+/// symbol name (`operator=`, `~Ops`). This is strict — `get_select` is NOT Tier-1 for query word
+/// `select` — so Tier-1 anchors only the symbols the agent actually named.
 pub(super) fn symbol_is_tier1(
     sym: &crate::parser::ExtractedSymbol,
-    query_words: &std::collections::HashSet<String>,
+    query: &crate::parser::QueryTokens,
 ) -> bool {
-    query_words.contains(&sym.name.to_lowercase())
+    let symbol_name = sym.name.to_lowercase();
+    query.contains_word(&symbol_name) || query.contains_raw_word(&symbol_name)
 }
 
 /// A compact 2-line declaration summary for a CONTAINER whose member matched (P1 §4): the
@@ -252,8 +210,7 @@ pub(super) fn render_anchored_symbols(
     text: &mut String,
     file_path: &str,
     symbols: Vec<&crate::parser::ExtractedSymbol>,
-    query_word_set: &std::collections::HashSet<String>,
-    query_token_set: &std::collections::HashSet<String>,
+    query: &crate::parser::QueryTokens,
     caps: &AnchoredRenderCaps,
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
 ) -> AnchoredRenderOutcome {
@@ -280,13 +237,13 @@ pub(super) fn render_anchored_symbols(
     // looser sub-token/owner match. Anchor on Tier-1 when the file holds any, else Tier-2.
     let tier1_ranges: Vec<(usize, usize)> = render_order
         .iter()
-        .filter(|s| symbol_is_tier1(s, query_word_set))
+        .filter(|s| symbol_is_tier1(s, query))
         .map(|s| (s.range.start_line, s.range.end_line))
         .collect();
     let has_tier1 = !tier1_ranges.is_empty();
     let tier2_ranges: Vec<(usize, usize)> = render_order
         .iter()
-        .filter(|s| symbol_matches_query(s, query_token_set))
+        .filter(|s| symbol_matches_query(s, query))
         .map(|s| (s.range.start_line, s.range.end_line))
         .collect();
     let anchor_ranges: &[(usize, usize)] = if has_tier1 {
@@ -297,9 +254,9 @@ pub(super) fn render_anchored_symbols(
     let any_match = !anchor_ranges.is_empty();
     let is_anchor_sym = |sym: &crate::parser::ExtractedSymbol| {
         if has_tier1 {
-            symbol_is_tier1(sym, query_word_set)
+            symbol_is_tier1(sym, query)
         } else {
-            symbol_matches_query(sym, query_token_set)
+            symbol_matches_query(sym, query)
         }
     };
     let encloses_anchor_range = |start: usize, end: usize| {
@@ -355,7 +312,7 @@ pub(super) fn render_anchored_symbols(
         if !is_match && !is_summary_container {
             // Demoted symbol (C1/C3): over-cap anchor or Tier-2 hit → 3 signature lines;
             // a non-matching symbol → 1 signature line. No caller/callee annotation.
-            let is_tier2_hit = symbol_matches_query(sym, query_token_set);
+            let is_tier2_hit = symbol_matches_query(sym, query);
             let sig_lines = if is_overcap_anchor || is_tier2_hit { 3 } else { 1 };
             let (sig, more_lines) = get_signature_snippet(file_path, &sym.range, sig_lines);
             if sig.is_empty() {

@@ -1,9 +1,10 @@
-use super::{SearchResult, SearcherHandle};
-use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol};
+use super::{SearchRankingSignal, SearchResult, SearcherHandle};
+use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, QueryTokens};
+use std::collections::{HashMap, HashSet};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::Value;
-use tantivy::TantivyDocument;
+use tantivy::{DocAddress, TantivyDocument};
 
 /// Runs a query-parse attempt and converts a panic into `None`. tantivy 0.26's
 /// query grammar `panic!`s instead of returning `Err` on some adversarial inputs
@@ -35,11 +36,129 @@ const TEST_PATH_SCORE_WEIGHT: f32 = 0.3;
 /// co-terms ("error", "enum") can outvote it via term frequency in unrelated files.
 const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
 
+const SYMBOL_SIGNAL_SCORE_CAP: f32 = 1.6;
+
+/// Secondary plain-token query for qualified names is a recall supplement, not the primary
+/// ranking signal. Keep its raw score below the primary Tantivy query and let exact owner/member
+/// evidence earn its way upward during post-ranking.
+const QUALIFIED_TOKEN_SUPPLEMENT_SCORE_WEIGHT: f32 = 0.6;
+
+const COMMON_EXACT_NAMES: &[&str] = &[
+    "constructor",
+    "definition",
+    "function",
+    "default",
+    "handler",
+    "manager",
+    "service",
+    "context",
+    "options",
+    "settings",
+];
+
+struct CandidateFile {
+    raw_score: f32,
+    file_path: String,
+    total_lines: usize,
+    symbols: Vec<ExtractedSymbol>,
+    literals: Vec<ExtractedLiteral>,
+}
+
+struct SymbolMatch<'a> {
+    exact_hit: bool,
+    exact_boost_eligible: bool,
+    term_match_count: usize,
+    owner_match_count: usize,
+    path_match_count: usize,
+    signal_score: f32,
+    symbol: &'a ExtractedSymbol,
+}
+
 /// A name specific enough that exact equality with a query term means intent: multi-token
 /// identifiers (snake/camel compounds) or long single tokens. Short single-word names
 /// ("new", "write", "Error") are too generic to treat as a definition request.
 fn is_discriminative_name(name: &str) -> bool {
     name.len() >= 8 || crate::parser::split_identifier(name).len() >= 2
+}
+
+fn is_common_exact_name(name: &str, name_frequency: usize) -> bool {
+    let lower = name.to_lowercase();
+    COMMON_EXACT_NAMES.contains(&lower.as_str())
+        || (crate::parser::split_identifier(name).len() <= 1 && name_frequency >= 3)
+}
+
+fn term_hits_owner(sym: &ExtractedSymbol, term: &str) -> bool {
+    sym.owner.as_ref().is_some_and(|owner| {
+        owner.to_lowercase().contains(term)
+            || crate::parser::split_identifier(owner)
+                .iter()
+                .any(|t| t.contains(term))
+    })
+}
+
+fn term_hits_path(path: &str, term: &str) -> bool {
+    path.to_lowercase().contains(term)
+}
+
+fn owner_query_match(sym: &ExtractedSymbol, query: &QueryTokens) -> bool {
+    query.tokens().iter().any(|term| term_hits_owner(sym, term))
+}
+
+fn owner_query_match_count(sym: &ExtractedSymbol, query: &QueryTokens) -> usize {
+    query
+        .tokens()
+        .iter()
+        .filter(|term| term_hits_owner(sym, term))
+        .count()
+}
+
+fn whole_exact_name_hit(sym: &ExtractedSymbol, query: &QueryTokens) -> bool {
+    let symbol_name = sym.name.to_lowercase();
+    query.contains_word(&symbol_name) || query.contains_raw_word(&symbol_name)
+}
+
+fn subtoken_exact_name_hit(sym: &ExtractedSymbol, query: &QueryTokens) -> bool {
+    let name_subtokens = crate::parser::split_identifier(&sym.name);
+    name_subtokens.len() >= 2
+        && name_subtokens
+            .iter()
+            .all(|subtoken| query.contains_token(subtoken))
+}
+
+fn exact_name_hit(sym: &ExtractedSymbol, query: &QueryTokens) -> bool {
+    whole_exact_name_hit(sym, query) || subtoken_exact_name_hit(sym, query)
+}
+
+fn exact_boost_eligible(
+    sym: &ExtractedSymbol,
+    query: &QueryTokens,
+    _file_path: &str,
+    name_frequency: usize,
+) -> bool {
+    let whole_exact = whole_exact_name_hit(sym, query);
+    let subtoken_exact = subtoken_exact_name_hit(sym, query);
+    if !(whole_exact || subtoken_exact) {
+        return false;
+    }
+    let owner_match_count = owner_query_match_count(sym, query);
+    let has_owner_evidence = owner_match_count > 0;
+    if whole_exact
+        && query.has_qualified_word()
+        && !query.contains_raw_word(&sym.name.to_lowercase())
+        && !has_owner_evidence
+    {
+        return false;
+    }
+    if subtoken_exact && !whole_exact && query.has_qualified_word() && !has_owner_evidence {
+        return false;
+    }
+    if !is_discriminative_name(&sym.name) && !has_owner_evidence {
+        return false;
+    }
+    if is_common_exact_name(&sym.name, name_frequency) && owner_match_count < 2 {
+        return false;
+    }
+    true
 }
 
 /// One query term hits a symbol's NAME when it appears in the raw name, any split sub-token
@@ -78,6 +197,143 @@ fn symbol_matches_term(sym: &ExtractedSymbol, term: &str) -> bool {
 /// so the strict baseline already covers it.
 fn partial_match_threshold(term_count: usize) -> usize {
     term_count.div_ceil(2)
+}
+
+fn symbol_name_frequencies(candidates: &[CandidateFile]) -> HashMap<String, usize> {
+    let mut frequencies = HashMap::new();
+    for candidate in candidates {
+        for symbol in &candidate.symbols {
+            *frequencies.entry(symbol.name.to_lowercase()).or_insert(0) += 1;
+        }
+    }
+    frequencies
+}
+
+fn score_symbol_match<'a>(
+    sym: &'a ExtractedSymbol,
+    query: &QueryTokens,
+    file_path: &str,
+    name_frequency: usize,
+) -> Option<SymbolMatch<'a>> {
+    if query.is_empty() {
+        return None;
+    }
+
+    let term_match_count = query
+        .tokens()
+        .iter()
+        .filter(|term| symbol_matches_term(sym, term))
+        .count();
+    let name_match_count = query
+        .tokens()
+        .iter()
+        .filter(|term| term_hits_symbol_name(sym, term))
+        .count();
+    let owner_match_count = query
+        .tokens()
+        .iter()
+        .filter(|term| term_hits_owner(sym, term))
+        .count();
+    let path_match_count = query
+        .tokens()
+        .iter()
+        .filter(|term| term_hits_path(file_path, term))
+        .count();
+
+    let exact_hit = exact_name_hit(sym, query);
+    let exact_boost_eligible = exact_boost_eligible(sym, query, file_path, name_frequency);
+    let all_terms_hit = term_match_count == query.tokens().len();
+    let partial_hit = query.tokens().len() >= 3
+        && term_match_count >= partial_match_threshold(query.tokens().len())
+        && name_match_count > 0;
+    if !(exact_hit || all_terms_hit || partial_hit) {
+        return None;
+    }
+
+    let has_strong_symbol_evidence = owner_match_count > 0;
+    let coverage = term_match_count as f32 / query.tokens().len().max(1) as f32;
+    let signal_score = if has_strong_symbol_evidence {
+        (coverage * 0.2)
+            + if exact_boost_eligible { 0.1 } else { 0.0 }
+            + if owner_match_count > 0 { 0.18 } else { 0.0 }
+            + if path_match_count > 0 { 0.05 } else { 0.0 }
+    } else {
+        0.0
+    };
+
+    Some(SymbolMatch {
+        exact_hit,
+        exact_boost_eligible,
+        term_match_count,
+        owner_match_count,
+        path_match_count,
+        signal_score,
+        symbol: sym,
+    })
+}
+
+fn symbol_signal_multiplier(scored_symbols: &[SymbolMatch<'_>]) -> f32 {
+    let best_signal = scored_symbols
+        .iter()
+        .map(|scored| scored.signal_score)
+        .fold(0.0_f32, f32::max);
+    (1.0 + best_signal).min(SYMBOL_SIGNAL_SCORE_CAP)
+}
+
+fn candidate_from_doc(
+    searcher: &tantivy::Searcher,
+    handle: &SearcherHandle,
+    score: f32,
+    doc_address: DocAddress,
+    score_weight: f32,
+) -> Result<CandidateFile, String> {
+    let doc = searcher
+        .doc::<TantivyDocument>(doc_address)
+        .map_err(|e| e.to_string())?;
+
+    let file_path = doc
+        .get_first(handle.file_path_field)
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let extracted_json = doc
+        .get_first(handle.extracted_json_field)
+        .and_then(|v| v.as_str())
+        .unwrap_or("{}");
+
+    let extracted_file: ExtractedFile =
+        serde_json::from_str(extracted_json).unwrap_or_else(|_| ExtractedFile {
+            file_path: file_path.clone(),
+            total_lines: 0,
+            symbols: Vec::new(),
+            literals: Vec::new(),
+            docstrings: Vec::new(),
+        });
+
+    Ok(CandidateFile {
+        raw_score: score * score_weight,
+        file_path,
+        total_lines: extracted_file.total_lines,
+        symbols: extracted_file.symbols,
+        literals: extracted_file.literals,
+    })
+}
+
+fn has_owner_exact_symbol(candidate: &CandidateFile, query: &QueryTokens) -> bool {
+    candidate.symbols.iter().any(|sym| {
+        owner_query_match(sym, query)
+            && exact_boost_eligible(sym, query, &candidate.file_path, 1)
+    })
+}
+
+fn should_supplement_qualified_query(query: &QueryTokens) -> bool {
+    query.raw_words().iter().any(|raw_word| {
+        raw_word.contains("::")
+            || raw_word
+                .split_once('.')
+                .is_some_and(|(_, member)| member.starts_with('_') || member.ends_with('_'))
+    })
 }
 
 /// True for paths that look like test/bench scaffolding rather than implementation.
@@ -125,22 +381,29 @@ impl SearcherHandle {
             return Ok(Vec::new());
         }
 
+        let query_tokens = QueryTokens::parse(query_str);
+
         let query = match parse_query_catching_panic(|| query_parser.parse_query(query_str)) {
             Some(Ok(q)) => q,
             // Primary parse failed or panicked (e.g. a bare `*` in tantivy 0.26):
-            // strip special characters to spaces and retry as a plain term query.
+            // retry with the shared tokenizer's plain term query. If the tokenizer found no
+            // identifier terms, strip special characters to spaces as the last fallback.
             _ => {
-                let escaped: String = query_str
-                    .to_lowercase()
-                    .chars()
-                    .map(|c| {
-                        if c.is_alphanumeric() || c.is_whitespace() {
-                            c
-                        } else {
-                            ' '
-                        }
-                    })
-                    .collect();
+                let escaped = if query_tokens.is_empty() {
+                    query_str
+                        .to_lowercase()
+                        .chars()
+                        .map(|c| {
+                            if c.is_alphanumeric() || c.is_whitespace() {
+                                c
+                            } else {
+                                ' '
+                            }
+                        })
+                        .collect()
+                } else {
+                    query_tokens.search_text().to_string()
+                };
                 if escaped.trim().is_empty() {
                     return Ok(Vec::new());
                 }
@@ -156,108 +419,119 @@ impl SearcherHandle {
             .search(&query, &TopDocs::with_limit(limit).order_by_score())
             .map_err(|e| e.to_string())?;
 
-        let mut results = Vec::new();
-        let query_lower = query_str.to_lowercase();
+        let mut candidates = Vec::new();
+        let mut seen_paths = HashSet::new();
 
         for (score, doc_address) in top_docs {
-            let doc = searcher
-                .doc::<TantivyDocument>(doc_address)
-                .map_err(|e| e.to_string())?;
+            let candidate = candidate_from_doc(&searcher, self, score, doc_address, 1.0)?;
+            seen_paths.insert(candidate.file_path.clone());
+            candidates.push(candidate);
+        }
 
-            let file_path = doc
-                .get_first(self.file_path_field)
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+        if should_supplement_qualified_query(&query_tokens)
+            && query_tokens.search_text().trim() != query_str.trim()
+        {
+            if let Some(Ok(token_query)) =
+                parse_query_catching_panic(|| query_parser.parse_query(query_tokens.search_text()))
+            {
+                let supplemental_top_docs = searcher
+                    .search(&token_query, &TopDocs::with_limit(limit).order_by_score())
+                    .map_err(|e| e.to_string())?;
+                for (score, doc_address) in supplemental_top_docs {
+                    let candidate = candidate_from_doc(
+                        &searcher,
+                        self,
+                        score,
+                        doc_address,
+                        QUALIFIED_TOKEN_SUPPLEMENT_SCORE_WEIGHT,
+                    )?;
+                    if seen_paths.contains(&candidate.file_path) {
+                        continue;
+                    }
+                    if has_owner_exact_symbol(&candidate, &query_tokens) {
+                        seen_paths.insert(candidate.file_path.clone());
+                        candidates.push(candidate);
+                    }
+                }
+            }
+        }
 
-            let extracted_json = doc
-                .get_first(self.extracted_json_field)
-                .and_then(|v| v.as_str())
-                .unwrap_or("{}");
+        let name_frequencies = symbol_name_frequencies(&candidates);
+        let mut results = Vec::new();
 
-            let extracted_file: ExtractedFile = serde_json::from_str(extracted_json)
-                .unwrap_or_else(|_| ExtractedFile {
-                    file_path: file_path.clone(),
-                    total_lines: 0,
-                    symbols: Vec::new(),
-                    literals: Vec::new(),
-                    docstrings: Vec::new(),
-                });
-
-            let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
-
-            // Capture the file's total line count before the partial moves of
-            // `.symbols`/`.literals` below borrow `extracted_file` apart.
-            let total_lines = extracted_file.total_lines;
-            let all_symbols = extracted_file.symbols;
+        for candidate in candidates {
+            let all_symbols = candidate.symbols;
 
             // Matched-symbol selection. All-terms is the precision baseline, but agent
             // queries carry glue words ("definition", "handler") no symbol can match,
             // which used to classify nearly every multi-word query as fallback — killing
             // snippets and caller/callee annotations. Two promotions relax it:
-            //  - exact name: a query term that IS a discriminative symbol name (the same
-            //    signal as EXACT_NAME_SCORE_BOOST) marks that symbol matched outright;
+            //  - exact name/sub-token subset: a query names the symbol directly;
             //  - partial coverage: in a 3+ term query, a symbol matching at least half
             //    the terms is matched (glue words no longer veto everything).
-            // Selection is ordered exact-first then by matched-term count, so the
-            // renderer's symbol cap keeps the strongest evidence instead of line order.
-            let mut scored_symbols: Vec<(bool, usize, &ExtractedSymbol)> = all_symbols
+            // Selection is ordered by exact/boost/signal strength first, so the renderer's
+            // symbol cap keeps the strongest evidence instead of line order.
+            let mut scored_symbols: Vec<SymbolMatch<'_>> = all_symbols
                 .iter()
                 .filter_map(|sym| {
-                    if query_terms.is_empty() {
-                        return None;
-                    }
-                    let term_match_count = query_terms
-                        .iter()
-                        .filter(|&&term| symbol_matches_term(sym, term))
-                        .count();
-                    // Exact-name intent fires two ways: a query term equals the whole
-                    // symbol name, OR the query spells a multi-token name's sub-tokens as
-                    // separate terms ("default port" / "inspect default port" → DEFAULT_PORT,
-                    // which plain BM25 buries in an 8k-line file under port-heavy and generic
-                    // `default()` files). The subset form requires >=2 sub-tokens (so a
-                    // single-token glue name like `default` can't qualify) and every sub-token
-                    // to appear among the query terms — extra glue terms in the query (e.g.
-                    // "inspect") don't block it. Backlog #1: align query tokenization with the
-                    // index-side symbol sub-tokens.
-                    let name_subtokens = crate::parser::split_identifier(&sym.name);
-                    let exact_hit = is_discriminative_name(&sym.name)
-                        && (query_terms.iter().any(|&t| t == sym.name.to_lowercase())
-                            || (name_subtokens.len() >= 2
-                                && name_subtokens.iter().all(|st| {
-                                    let st = st.to_lowercase();
-                                    query_terms.iter().any(|&t| t == st)
-                                })));
-                    let all_terms_hit = term_match_count == query_terms.len();
-                    // Partial coverage additionally requires NAME evidence (at least one
-                    // term hitting the symbol name itself) — see `term_hits_symbol_name`.
-                    let partial_hit = query_terms.len() >= 3
-                        && term_match_count >= partial_match_threshold(query_terms.len())
-                        && query_terms.iter().any(|&t| term_hits_symbol_name(sym, t));
-                    (exact_hit || all_terms_hit || partial_hit)
-                        .then_some((exact_hit, term_match_count, sym))
+                    let frequency = name_frequencies
+                        .get(&sym.name.to_lowercase())
+                        .copied()
+                        .unwrap_or(0);
+                    score_symbol_match(sym, &query_tokens, &candidate.file_path, frequency)
                 })
                 .collect();
             scored_symbols.sort_by(|a, b| {
-                b.0.cmp(&a.0)
-                    .then(b.1.cmp(&a.1))
-                    .then(a.2.range.start_line.cmp(&b.2.range.start_line))
+                b.exact_boost_eligible
+                    .cmp(&a.exact_boost_eligible)
+                    .then(b.exact_hit.cmp(&a.exact_hit))
+                    .then(b.term_match_count.cmp(&a.term_match_count))
+                    .then(b.owner_match_count.cmp(&a.owner_match_count))
+                    .then(b.path_match_count.cmp(&a.path_match_count))
+                    .then_with(|| {
+                        b.signal_score
+                            .partial_cmp(&a.signal_score)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    })
+                    .then(a.symbol.range.start_line.cmp(&b.symbol.range.start_line))
             });
 
             // Post-rank adjustment (see the constants above): an exact discriminative
-            // symbol-name hit boosts the file, a test/bench-looking path demotes it. Both
-            // re-rank only within the BM25 top `limit` — the candidate set is unchanged.
-            let exact_name_hit = scored_symbols.iter().any(|(exact, _, _)| *exact);
-            let mut adjusted_score = score;
+            // symbol-name hit boosts the file, a bounded symbol-evidence multiplier blends in
+            // owner/path/coverage signals, and a test/bench-looking path demotes it. Primary
+            // BM25 still supplies the base candidate set; qualified-name supplemental hits can
+            // add owner/exact candidates, then final results are truncated back to `limit`.
+            let ranking_signal = scored_symbols.first().map(|scored| {
+                let same_name_candidate_count = name_frequencies
+                    .get(&scored.symbol.name.to_lowercase())
+                    .copied()
+                    .unwrap_or(1);
+                SearchRankingSignal {
+                    symbol_name: scored.symbol.name.clone(),
+                    symbol_owner: scored.symbol.owner.clone(),
+                    exact_name_hit: scored.exact_hit,
+                    exact_boost_applied: scored.exact_boost_eligible,
+                    matched_token_count: scored.term_match_count,
+                    query_token_count: query_tokens.tokens().len(),
+                    owner_match_count: scored.owner_match_count,
+                    path_match_count: scored.path_match_count,
+                    same_name_candidate_count,
+                }
+            });
+            let exact_name_hit = scored_symbols
+                .iter()
+                .any(|scored| scored.exact_boost_eligible);
+            let mut adjusted_score = candidate.raw_score;
             if exact_name_hit {
                 adjusted_score *= EXACT_NAME_SCORE_BOOST;
             }
-            if is_test_like_path(&file_path) {
+            adjusted_score *= symbol_signal_multiplier(&scored_symbols);
+            if is_test_like_path(&candidate.file_path) {
                 adjusted_score *= TEST_PATH_SCORE_WEIGHT;
             }
             let mut matched_symbols: Vec<ExtractedSymbol> = scored_symbols
                 .into_iter()
-                .map(|(_, _, sym)| sym.clone())
+                .map(|scored| scored.symbol.clone())
                 .collect();
             // The doc ranked in via some field (symbol/docstring/path). If the symbol
             // selection is empty (e.g. matched via docstring or path tokens), fall
@@ -273,32 +547,35 @@ impl SearcherHandle {
             // half-coverage for 3+ term queries (an error-message literal shouldn't be
             // vetoed by one glue word). Match decisions use `text`; `line` is carried
             // through for the detail view to render `[L<n>]`.
-            let matched_literals: Vec<ExtractedLiteral> = extracted_file
+            let matched_literals: Vec<ExtractedLiteral> = candidate
                 .literals
                 .into_iter()
                 .filter(|lit| {
-                    if query_terms.is_empty() {
+                    if query_tokens.is_empty() {
                         return false;
                     }
                     let lit_lower = lit.text.to_lowercase();
-                    let term_match_count = query_terms
+                    let term_match_count = query_tokens
+                        .tokens()
                         .iter()
-                        .filter(|&&term| lit_lower.contains(term))
+                        .filter(|term| lit_lower.contains((*term).as_str()))
                         .count();
-                    term_match_count == query_terms.len()
-                        || query_terms.iter().any(|&t| t == lit_lower)
-                        || (query_terms.len() >= 3
-                            && term_match_count >= partial_match_threshold(query_terms.len()))
+                    term_match_count == query_tokens.tokens().len()
+                        || query_tokens.contains_word(&lit_lower)
+                        || (query_tokens.tokens().len() >= 3
+                            && term_match_count
+                                >= partial_match_threshold(query_tokens.tokens().len()))
                 })
                 .collect();
 
             results.push(SearchResult {
-                file_path,
+                file_path: candidate.file_path,
                 score: adjusted_score,
-                total_lines,
+                total_lines: candidate.total_lines,
                 matched_symbols,
                 matched_literals,
                 symbol_fallback,
+                ranking_signal,
             });
         }
 
@@ -307,7 +584,9 @@ impl SearcherHandle {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.file_path.cmp(&b.file_path))
         });
+        results.truncate(limit);
 
         Ok(results)
     }

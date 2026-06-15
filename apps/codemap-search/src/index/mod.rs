@@ -12,7 +12,9 @@ mod ranking;
 mod supervisor;
 mod watcher;
 
-pub use engine::{SearchEngine, SearchResult, SearcherHandle, TantivySearchEngine};
+pub use engine::{
+    SearchEngine, SearchRankingSignal, SearchResult, SearcherHandle, TantivySearchEngine,
+};
 pub use indexer::{spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus};
 pub use supervisor::EngineSupervisor;
 pub use watcher::{spawn_watcher, WatcherHandle, WatcherStatus};
