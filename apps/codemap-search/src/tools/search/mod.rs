@@ -118,51 +118,124 @@ fn signal_symbol_label(signal: &crate::index::SearchRankingSignal) -> String {
         .unwrap_or_else(|| signal.symbol_name.clone())
 }
 
+/// Compact `match_reason` label (Child 05 byte-flatten): a short enum-style phrase, not a verbose
+/// sentence. When the file ranked in on a qualified-name string literal (`encoding::base64::decode`),
+/// that literal is named verbatim — it is the discriminative reason this file matched, and surfacing
+/// it stops a legacy dispatch table from being mislabeled by a weak module symbol.
 fn match_reason(res: &crate::index::SearchResult) -> String {
+    if let Some(literal) = &res.qualified_literal_hit {
+        return format!("matched literal: `{literal}`");
+    }
     if let Some(signal) = &res.ranking_signal {
         let symbol_label = signal_symbol_label(signal);
         if signal.exact_boost_applied {
             if signal.owner_match_count > 0 {
-                return format!("owner-qualified exact symbol: `{symbol_label}`");
+                return format!("owner-exact `{symbol_label}`");
             }
             if signal.path_match_count > 0 {
-                return format!("path-supported exact symbol: `{symbol_label}`");
+                return format!("path-exact `{symbol_label}`");
             }
-            return format!("exact symbol: `{symbol_label}`");
+            return format!("exact `{symbol_label}`");
         }
         if signal.exact_name_hit {
-            return format!("exact symbol (unboosted): `{symbol_label}`");
+            return format!("exact(unboosted) `{symbol_label}`");
         }
         if signal.owner_match_count > 0 {
             return format!(
-                "owner-qualified symbol: `{symbol_label}` (tokens {}/{})",
+                "owner `{symbol_label}` ({}/{})",
                 signal.matched_token_count, signal.query_token_count
             );
         }
-        if signal.matched_token_count == signal.query_token_count {
-            return format!("all query tokens matched symbol: `{symbol_label}`");
-        }
         return format!(
-            "symbol token coverage {}/{}: `{symbol_label}`",
+            "token {}/{} `{symbol_label}`",
             signal.matched_token_count, signal.query_token_count
         );
     }
     if !res.symbol_fallback {
-        return format!(
-            "symbol match: {}",
-            compact_symbol_names(&res.matched_symbols, 3)
-        );
+        return format!("symbol: {}", compact_symbol_names(&res.matched_symbols, 3));
     }
     if !res.matched_literals.is_empty() {
-        return format!(
-            "literal/path/docstring match: {} literal(s)",
-            res.matched_literals.len()
-        );
+        return format!("literal/path/docstring ({})", res.matched_literals.len());
     }
-    "path/docstring match; symbol list is fallback context".to_string()
+    "path/docstring".to_string()
 }
 
-fn ambiguity_note(res: &crate::index::SearchResult) -> Option<String> {
+/// The last `::`/`.`-separated segment of a qualified name (`encoding::base64::decode` → `decode`),
+/// lowercased. The segment a dispatch/lookup literal shares with the symbol that implements it, so
+/// the cross-path scan can match the legacy literal to its exec definition site.
+fn qualified_name_leaf(qualified: &str) -> String {
+    qualified
+        .rsplit(|c| c == ':' || c == '.')
+        .find(|seg| !seg.is_empty())
+        .unwrap_or(qualified)
+        .to_lowercase()
+}
+
+/// Cross-path presence of qualified names across the whole result set (Child 05 repair): for each
+/// qualified literal that ranked in, how many distinct files reference it as a string literal
+/// (legacy dispatch/lookup) vs define its leaf as a symbol (exec implementation). When both sides
+/// are non-empty, the same qualified name is handled in more than one place — the path-aware signal
+/// that replaces the old same-name-symbol-count noise, telling a weak model to check both routes.
+struct CrossPathPresence {
+    /// qualified literal → (count of files matching it as a literal, count defining its leaf as a symbol).
+    counts: std::collections::HashMap<String, (usize, usize)>,
+}
+
+impl CrossPathPresence {
+    fn build(results: &[crate::index::SearchResult]) -> Self {
+        // Distinct qualified literals that ranked in anywhere.
+        let qualified_literals: std::collections::HashSet<String> = results
+            .iter()
+            .filter_map(|res| res.qualified_literal_hit.clone())
+            .collect();
+        let mut counts = std::collections::HashMap::new();
+        for literal in qualified_literals {
+            let leaf = qualified_name_leaf(&literal);
+            let mut literal_paths = std::collections::HashSet::new();
+            let mut symbol_paths = std::collections::HashSet::new();
+            for res in results {
+                if res.qualified_literal_hit.as_deref() == Some(literal.as_str()) {
+                    literal_paths.insert(res.file_path.as_str());
+                }
+                let defines_leaf = res.matched_symbols.iter().any(|sym| {
+                    sym.name.to_lowercase() == leaf
+                        || crate::parser::split_identifier(&sym.name)
+                            .last()
+                            .is_some_and(|seg| *seg == leaf)
+                });
+                if defines_leaf {
+                    symbol_paths.insert(res.file_path.as_str());
+                }
+            }
+            counts.insert(literal, (literal_paths.len(), symbol_paths.len()));
+        }
+        Self { counts }
+    }
+
+    /// The cross-path note for one result, if its qualified literal is handled in both a literal
+    /// (dispatch) site and a symbol (implementation) site.
+    fn note_for(&self, res: &crate::index::SearchResult) -> Option<String> {
+        let literal = res.qualified_literal_hit.as_ref()?;
+        let (literal_count, symbol_count) = self.counts.get(literal).copied()?;
+        if literal_count > 0 && symbol_count > 0 {
+            let paths = literal_count + symbol_count;
+            return Some(format!(
+                "`{literal}` 이름은 {paths}개 경로에 존재 (구현 심볼 {symbol_count} + dispatch 리터럴 {literal_count}) — 둘 다 확인",
+            ));
+        }
+        None
+    }
+}
+
+fn ambiguity_note(
+    res: &crate::index::SearchResult,
+    cross_path: &CrossPathPresence,
+) -> Option<String> {
+    // Path-aware cross-path signal first: when this file's qualified literal is also implemented
+    // as a symbol elsewhere in the results, that multi-route fact beats the same-name count.
+    if let Some(note) = cross_path.note_for(res) {
+        return Some(note);
+    }
     if let Some(signal) = &res.ranking_signal {
         if signal.same_name_candidate_count > 1 {
             return Some(format!(
@@ -184,13 +257,11 @@ fn ambiguity_note(res: &crate::index::SearchResult) -> Option<String> {
     (!ambiguous.is_empty()).then(|| ambiguous.join(", "))
 }
 
+/// Compact read-suggestion (Child 05 byte-flatten): a short `read <path>:<offset> (<limit> lines)`
+/// form instead of the full JSON argument object. Shortened, not removed — codex may still parse
+/// the path:line hint to drive a targeted `read` (offset/limit are recoverable from the form).
 fn format_read_suggestion(file_path: &str, offset: usize, limit: usize) -> String {
-    let args = serde_json::json!({
-        "file_path": file_path,
-        "offset": offset,
-        "limit": limit,
-    });
-    format!("read {args}")
+    format!("read {file_path}:{offset} ({limit} lines)")
 }
 
 fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
@@ -207,6 +278,77 @@ fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
     res.matched_literals
         .first()
         .map(|literal| format_read_suggestion(&res.file_path, literal.line, 1))
+}
+
+/// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
+/// top-level file. The diversity unit for the detail-head reorder.
+fn parent_dir(file_path: &str) -> &str {
+    file_path.rsplit_once('/').map_or("", |(dir, _)| dir)
+}
+
+/// Minimum score ratio (displacing candidate ÷ same-dir candidate) for the diversity reorder to
+/// defer a same-dir candidate in favor of a different-dir one. Below this gap the same-dir file is
+/// clearly stronger and keeps its slot, so a much weaker different-dir file never displaces a
+/// genuinely top match (the plan's "yield only when the score gap is small" guard).
+const DIVERSITY_MIN_SCORE_RATIO: f32 = 0.6;
+
+/// Soft directory diversity for the detail head: stop one directory from monopolizing the top
+/// `head_len` detail slots. Walks results in score order and greedily fills the head, but defers a
+/// candidate once its parent directory already holds `per_dir_cap` head slots — pulling the next
+/// different-directory candidate forward — UNLESS no diverse candidate remains OR the best
+/// remaining diverse candidate is much weaker (its score is below `DIVERSITY_MIN_SCORE_RATIO`× this
+/// candidate's score), in which case the stronger same-dir file keeps its slot. Deferred same-dir
+/// candidates keep their relative order and are appended right after, so nothing is dropped and the
+/// tail still sees them ranked. Score order is otherwise preserved; this only reorders, never
+/// re-scores (Lever B path-diversity aid; conservative so a genuinely single-directory answer is
+/// barely perturbed). Returns indices into `results` in the new order.
+fn diversified_order(
+    results: &[crate::index::SearchResult],
+    head_len: usize,
+    per_dir_cap: usize,
+) -> Vec<usize> {
+    if results.len() <= 1 || head_len == 0 {
+        return (0..results.len()).collect();
+    }
+    let mut head: Vec<usize> = Vec::with_capacity(head_len);
+    let mut deferred: Vec<usize> = Vec::new();
+    let mut dir_counts: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for (index, res) in results.iter().enumerate() {
+        if head.len() >= head_len {
+            // Head is full; everything else keeps score order in the tail.
+            deferred.push(index);
+            continue;
+        }
+        let dir = parent_dir(&res.file_path);
+        let dir_count = dir_counts.get(dir).copied().unwrap_or(0);
+        // Remaining head capacity after this candidate would be placed.
+        let head_room_left = head_len - head.len();
+        // The strongest different-dir candidate still ahead (results are score-sorted, so the first
+        // such one is the strongest). Defer only when it both exists in enough number to fill the
+        // remaining room AND is not much weaker than this candidate — otherwise displacing the
+        // stronger same-dir file would trade a real top match for a noticeably weaker one.
+        let diverse_ahead: Vec<&crate::index::SearchResult> = results[index + 1..]
+            .iter()
+            .filter(|other| parent_dir(&other.file_path) != dir)
+            .collect();
+        let strongest_diverse_score = diverse_ahead.first().map(|other| other.score);
+        let score_gap_small = match strongest_diverse_score {
+            Some(diverse_score) if res.score > 0.0 => {
+                diverse_score >= res.score * DIVERSITY_MIN_SCORE_RATIO
+            }
+            // A non-positive base score can't anchor a ratio; treat any diverse candidate as close.
+            Some(_) => true,
+            None => false,
+        };
+        if dir_count >= per_dir_cap && diverse_ahead.len() >= head_room_left && score_gap_small {
+            deferred.push(index);
+            continue;
+        }
+        head.push(index);
+        *dir_counts.entry(dir).or_insert(0) += 1;
+    }
+    head.extend(deferred);
+    head
 }
 
 /// Run the `search` tool and return the rendered detail/tail text. The MCP dispatch arm wraps
@@ -254,6 +396,11 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             "_Last background index refresh failed: {err} — results may be stale._\n\n"
         ));
     }
+    // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
+    // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so
+    // the per-file ambiguity note can flag multi-route names path-aware.
+    let cross_path = CrossPathPresence::build(&results);
+
     // Hybrid rendering: the top-ranked files (BM25 order) always get the
     // full detail view — snippets plus call context — and every match
     // beyond the threshold is appended as a compact, ranked one-line
@@ -261,8 +408,18 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // detail for its strongest hits instead of a wall of file headers
     // that forces a follow-up grep (the dominant agent-observed failure
     // mode of the old overview-only branch).
-    let detail_results = &results[..results.len().min(result_branch_threshold)];
-    let remaining_results = &results[detail_results.len()..];
+    //
+    // Soft directory diversity: reorder so a single directory cluster can't monopolize the detail
+    // head (Lever B). Conservative — score order is otherwise preserved and deferred same-dir files
+    // fall straight into the tail, so nothing is dropped.
+    const DETAIL_DIR_CAP: usize = 3;
+    let ordered: Vec<&crate::index::SearchResult> =
+        diversified_order(&results, result_branch_threshold, DETAIL_DIR_CAP)
+            .into_iter()
+            .map(|index| &results[index])
+            .collect();
+    let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
+    let remaining_results = &ordered[detail_results.len()..];
     let mut output_was_capped = false;
     {
         // Detail view: enclosing code scopes for the pinpointed files,
@@ -316,7 +473,12 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         let detail_result_count = detail_results.len();
         let mut rendered_detail_count = 0usize;
         let mut budget_hit = false;
-        'files: for res in detail_results {
+        // Cross-file caller-block dedup (Child 05 / over-match repair): owned ACROSS the whole
+        // detail loop, not per file, so a repeated caller list spanning file boundaries collapses
+        // to a "same as `name` above" back-reference instead of re-printing. Threaded into every
+        // file's `render_anchored_symbols` call.
+        let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
+        'files: for &res in detail_results {
             if text.len() >= byte_cap {
                 budget_hit = true;
                 break;
@@ -326,12 +488,15 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 "### File: {} ({} lines)\n",
                 res.file_path, res.total_lines
             ));
-            let mut hints = format!("- match_reason: {}\n", match_reason(res));
-            if let Some(ambiguity) = ambiguity_note(res) {
-                hints.push_str(&format!("- ambiguity: {ambiguity}\n"));
+            // Hints, compressed (Child 05 byte-flatten): match_reason and the cross-path/ambiguity
+            // note share one line; the read suggestion is its own short line.
+            let mut hint_line = format!("- match: {}", match_reason(res));
+            if let Some(ambiguity) = ambiguity_note(res, &cross_path) {
+                hint_line.push_str(&format!("; {ambiguity}"));
             }
+            let mut hints = format!("{hint_line}\n");
             if let Some(suggestion) = read_suggestion(res) {
-                hints.push_str(&format!("- read_suggestion: `{suggestion}`\n"));
+                hints.push_str(&format!("- {suggestion}\n"));
             }
             if text.len() + hints.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
                 text.push_str(&hints);
@@ -403,6 +568,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     &query_tokens,
                     &render_caps,
                     caller_annotations.as_ref(),
+                    &mut caller_block_dedup,
                 );
                 snippet_starts.extend(outcome.emitted_starts);
                 if outcome.budget_hit {
@@ -457,6 +623,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     &query_tokens,
                     &render_caps,
                     caller_annotations.as_ref(),
+                    &mut caller_block_dedup,
                 );
                 if outcome.budget_hit {
                     budget_hit = true;
@@ -513,21 +680,23 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         );
         let mut shown_tail = 0usize;
         for res in remaining_results.iter().take(tail_file_limit) {
-            let symbol_notes: Vec<String> = if res.symbol_fallback {
-                Vec::new()
-            } else {
-                res.matched_symbols
-                    .iter()
-                    .take(3)
-                    .map(|sym| {
-                        format!(
-                            "{} [L{}-{}]",
-                            sym.name, sym.range.start_line, sym.range.end_line
-                        )
-                    })
-                    .collect()
-            };
-            if symbol_notes.is_empty() {
+            // The matched qualified literal leads the tail note (#2): it is the discriminative
+            // reason a legacy dispatch/lookup file ranked in, and surfacing it in BOTH the
+            // non-fallback (symbol-notes) and the bare-path (fallback) sub-branches fixes the
+            // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
+            let mut notes: Vec<String> = Vec::new();
+            if let Some(literal) = &res.qualified_literal_hit {
+                notes.push(format!("matched literal: `{literal}`"));
+            }
+            if !res.symbol_fallback {
+                notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
+                    format!(
+                        "{} [L{}-{}]",
+                        sym.name, sym.range.start_line, sym.range.end_line
+                    )
+                }));
+            }
+            if notes.is_empty() {
                 tail.push_str(&format!(
                     "- {} ({} lines)\n",
                     res.file_path, res.total_lines
@@ -537,7 +706,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     "- {} ({} lines) — {}\n",
                     res.file_path,
                     res.total_lines,
-                    symbol_notes.join(", ")
+                    notes.join(", ")
                 ));
             }
             shown_tail += 1;

@@ -213,6 +213,7 @@ pub(super) fn render_anchored_symbols(
     query: &crate::parser::QueryTokens,
     caps: &AnchoredRenderCaps,
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
+    caller_block_dedup: &mut crate::callers::CallerBlockDedup,
 ) -> AnchoredRenderOutcome {
     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
     let AnchoredRenderCaps {
@@ -283,7 +284,6 @@ pub(super) fn render_anchored_symbols(
     };
 
     let mut emitted_ranges: Vec<(usize, usize)> = Vec::new();
-    let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
     for sym in render_order {
         let (start, end) = (sym.range.start_line, sym.range.end_line);
         if emitted_ranges
@@ -308,12 +308,25 @@ pub(super) fn render_anchored_symbols(
         let is_summary_container = any_match && encloses_anchor && (has_tier1 || !is_anchor);
         let is_full_anchor = any_match && is_anchor && !is_summary_container;
         let is_overcap_anchor = is_full_anchor && !promoted_anchor_starts.contains(&start);
-        let is_match = !any_match || (is_full_anchor && !is_overcap_anchor);
+        // Over-match suppression (#3): when NO symbol matched the query (`!any_match` — the file
+        // ranked in on path/docstring and these are its own symbols, e.g. forward declarations or
+        // large non-anchor container methods), each symbol is demoted from a full snippet to a
+        // 3-line signature instead of dumping its whole body. Previously `!any_match` short-
+        // circuited `is_match` to true and rendered every symbol in full. With `any_match` this is
+        // byte-identical to before, so the common (a-symbol-matched) path does not regress; the
+        // `symbol_fallback` branch never reaches here with non-matching symbols (it passes only
+        // matching symbols or an empty set), so pure path/docstring hits stay visible.
+        let is_match = is_full_anchor && !is_overcap_anchor;
         if !is_match && !is_summary_container {
-            // Demoted symbol (C1/C3): over-cap anchor or Tier-2 hit → 3 signature lines;
-            // a non-matching symbol → 1 signature line. No caller/callee annotation.
+            // Demoted symbol (C1/C3/#3): over-cap anchor, Tier-2 hit, or an over-match symbol in a
+            // no-symbol-matched file → 3 signature lines; an `any_match` non-matching symbol → 1
+            // signature line. No caller/callee annotation.
             let is_tier2_hit = symbol_matches_query(sym, query);
-            let sig_lines = if is_overcap_anchor || is_tier2_hit { 3 } else { 1 };
+            let sig_lines = if is_overcap_anchor || is_tier2_hit || !any_match {
+                3
+            } else {
+                1
+            };
             let (sig, more_lines) = get_signature_snippet(file_path, &sym.range, sig_lines);
             if sig.is_empty() {
                 emitted_ranges.push((start, start));
@@ -344,10 +357,10 @@ pub(super) fn render_anchored_symbols(
         }
         if !is_summary_container {
             if let Some(annotations) = caller_annotations {
-                if let Some(prepared) = annotations.render(file_path, start, &caller_block_dedup) {
+                if let Some(prepared) = annotations.render(file_path, start, caller_block_dedup) {
                     if text.len() + prepared.text().len() <= byte_cap {
                         text.push_str(prepared.text());
-                        prepared.commit(&mut caller_block_dedup);
+                        prepared.commit(caller_block_dedup);
                     } else if text.len() + crate::callers::ANNOTATION_OMITTED_MARKER.len() <= byte_cap
                     {
                         text.push_str(crate::callers::ANNOTATION_OMITTED_MARKER);
