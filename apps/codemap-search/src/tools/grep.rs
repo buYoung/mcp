@@ -111,9 +111,18 @@ fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>,
         None
     } else if page.is_empty() {
         Some(format!("[No results at offset {offset}; {total} total.]"))
+    } else if end < total {
+        Some(format!(
+            "[Showing results {}-{} of {}; next_offset={}. Continue with offset={} and the same head_limit, or raise head_limit if you want a larger page.]",
+            start + 1,
+            end,
+            total,
+            end,
+            end
+        ))
     } else {
         Some(format!(
-            "[Showing results {}-{} of {}; pass a larger head_limit or offset to page further.]",
+            "[Showing results {}-{} of {}; this is the last page.]",
             start + 1,
             end,
             total
@@ -271,8 +280,10 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             if files.is_empty() {
                 return Ok("Found 0 total occurrence(s) across 0 file(s).".to_string());
             }
-            let rows: Vec<(String, usize)> =
-                files.iter().map(|f| (f.path.clone(), f.occurrences)).collect();
+            let rows: Vec<(String, usize)> = files
+                .iter()
+                .map(|f| (f.path.clone(), f.occurrences))
+                .collect();
             let (page, footer) = paginate(&rows, offset, head_limit);
             // Summary counts the post-head_limit rows (Claude Code sums the truncated slice).
             let total_occ: usize = page.iter().map(|(_, c)| c).sum();

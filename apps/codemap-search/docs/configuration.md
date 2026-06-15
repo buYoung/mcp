@@ -24,12 +24,12 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 | Key | Type | Default | Summary |
 |---|---|---|---|
 | `index_path` | string | `".codemap/index"` | Where the tantivy index lives (relative to the repo root) |
-| `result_threshold` | integer | `5` | `search` detail-vs-overview branch threshold |
+| `result_threshold` | integer | `5` | Number of top-ranked files `search` renders as details before the ranked tail |
 | `max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
 | `excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
 | `use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
 | `index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
-| `search_overview_file_limit` | integer | `12` | Max file headers in `search`'s ranked-tail / codemap-overview branch |
+| `search_overview_file_limit` | integer | `12` | Max file headers in `search`'s compact ranked tail |
 | `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
@@ -38,7 +38,7 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 | `read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
 | `search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
 | `search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
-| `search_detail_byte_cap` | integer (bytes) | `32768` | Total byte budget for the `search` detail view; emission stops with a truncation note once reached |
+| `search_detail_byte_cap` | integer (bytes) | `32768` | Hard byte ceiling for one `search` response, including the partial-output footer |
 | `search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
 | `search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
 | `search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
@@ -58,19 +58,19 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ### Search output
 
-- **`result_threshold`** — `search` returns per-file symbol details when the match count is at or below this value, and a codemap overview above it.
-- **`search_overview_file_limit`** — caps how many file headers `search` emits in its codemap-overview branch (the branch taken when matches exceed `result_threshold`). Output-size only — safe to tune.
-- **`search_detail_snippet_max_lines`** — per-symbol snippet line cap in the detail view (the ≤ `result_threshold` branch). A function body longer than this is truncated with an elision marker. Output-size only — safe to tune (default 80).
+- **`result_threshold`** — number of top-ranked files that `search` renders with per-file symbol details before any remaining matches move to the compact ranked tail.
+- **`search_overview_file_limit`** — caps how many file headers `search` emits in that ranked tail. Output-size only — safe to tune.
+- **`search_detail_snippet_max_lines`** — per-symbol snippet line cap in the detail view for those top-ranked files. A function body longer than this is truncated with an elision marker. Output-size only — safe to tune (default 80).
 - **`search_detail_symbol_limit`** — max symbols rendered per file in the detail view. Symbols beyond the cap are replaced by a "N more not shown" note. Output-size only (default 20).
-- **`search_detail_byte_cap`** — total byte budget for one `search` detail response. Once the rendered output reaches this limit, emission stops with a truncation note. Output-size only (default 32768 ≈ 32 KiB).
+- **`search_detail_byte_cap`** — hard byte ceiling for one `search` response. The final output, including the partial-output footer, is kept within this cap. Partial output tells the caller to narrow the query or read the listed ranges; `search` does not expose a public page-offset parameter. Output-size only (default 32768 ≈ 32 KiB).
 - **`search_literal_max_len`** — matched-literal truncation length in characters. A literal value longer than this is cut with an ellipsis in the detail view. Output-size only (default 200).
 - **`search_literal_limit`** — max matched literals rendered per file in the detail view. Output-size only (default 10).
 - **`search_anchor_snippet_limit`** — per-file cap on how many anchor symbols (exact-name Tier-1 hits, or the Tier-2 fallback when a file has no Tier-1) receive a full snippet in the detail view. Anchors ranked beyond the cap are demoted to a ≤3-line signature with a `… (N more lines)` marker rather than a one-line stub, so a broad query on a common name (`save`, `send`) can't flood the response with many full snippets. A file whose anchor count is at or below the cap is unaffected. Output-size only (default 3).
 
 ### Tool output limits
 
-- **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes) would exceed this throws rather than emitting an unbounded blob. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
-- **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider than this many characters is replaced with `[Omitted long matching line]`, matching Claude Code's `--max-columns 500` default. Set `0` to disable the cap (default 500).
+- **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes) would exceed this throws rather than emitting an unbounded blob. Oversized errors include a concrete narrower `offset`/`limit` suggestion. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
+- **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider than this many characters is replaced with `[Omitted long matching line]`, matching Claude Code's `--max-columns 500` default. Partial `grep` pages include the shown range, total count, and `next_offset`. Set `0` to disable the column cap (default 500).
 - **`allow_absolute_path_outside_root`** — when `false` (the default), `find` rejects absolute-path patterns whose resolved prefix falls outside the workspace root, preserving the sandbox. Set `true` to let `find` search arbitrary on-disk locations via absolute globs (e.g. paths Claude Code's Glob tool passes with an absolute base).
 
 ### Caller/callee context

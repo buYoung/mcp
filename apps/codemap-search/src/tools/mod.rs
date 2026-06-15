@@ -150,7 +150,9 @@ pub(crate) fn get_arg<'a>(args: &'a serde_json::Value, key: &str) -> Option<&'a 
 
 /// Read a boolean argument with a default, tolerating alias spellings via [`get_arg`].
 pub(crate) fn arg_bool(args: &serde_json::Value, key: &str, default: bool) -> bool {
-    get_arg(args, key).and_then(|v| v.as_bool()).unwrap_or(default)
+    get_arg(args, key)
+        .and_then(|v| v.as_bool())
+        .unwrap_or(default)
 }
 
 /// Coerce a JSON value to `usize`, accepting both a real `Value::Number` (`as_u64`) and a
@@ -192,7 +194,7 @@ pub(crate) fn arg_required_str<'a>(
 /// product-surface prose and the tool schemas cannot drift apart. Byte-identical to the
 /// value the server has always returned — do not edit without intending a behavior change.
 pub fn instructions() -> &'static str {
-    "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, concepts, and quoted strings ('where is the auth token refreshed?', an error message, a config default). BM25 over indexed symbols/docstrings/string literals — identifier splitting and ranking find what an exact pattern misses. Top-ranked files render in full detail — line-numbered snippets plus each matched function's depth-1 callers and callees (on by default; caller_context=false to disable) — so one call answers both 'where is it' and 'who calls it'; further matches follow as a ranked one-line list. Snippet line numbers and caller file:line positions are exact — cite them directly instead of re-reading to confirm (e.g. if search already showed `example.py:42→ def compute_total(...)`, cite example.py:42 directly — a follow-up read of the same range adds no accuracy; only caller→definition attribution is name-match approximate).\n- grep: first move for exact-pattern enumeration — every occurrence of a name you already confirmed, regex matches, comments, non-code files, just-edited files (no index lag).\n- overview: orient in unfamiliar code; before reading a large file, overview it to get the exact line range.\n- read / find: file contents / glob lookup.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
+    "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, concepts, and quoted strings ('where is the auth token refreshed?', an error message, a config default). BM25 over indexed symbols/docstrings/string literals — identifier splitting and ranking find what exact grep matching misses. Top-ranked files render detail with compact match_reason/ambiguity/read_suggestion hints, line-numbered snippets, and each matched function's depth-1 callers/callees (on by default; caller_context=false to disable); further matches follow as a ranked one-line list. Output is capped by search_detail_byte_cap; when partial, narrow the query or read the listed ranges. Snippet line numbers and caller file:line positions are exact — cite them directly instead of re-reading to confirm; only caller→definition attribution is name-match approximate.\n- grep: first move for exact-pattern enumeration — every occurrence of a name you already confirmed, regex matches, comments, non-code files, just-edited files (no index lag). Pages with more results include next_offset.\n- overview: orient in unfamiliar code; root is bounded and includes compact file-symbol groups, folder path narrows, file path gives exact line ranges.\n- read / find: file contents / glob lookup; read uses offset/limit windows for large files.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
 }
 
 /// The MCP `tools/list` result: the five tool schemas (name, description, read-only
@@ -203,7 +205,7 @@ pub fn list_tools() -> Value {
                 "tools": [
                     {
                         "name": "overview",
-                        "description": "Hierarchical codemap. No path: repo-root map with file/symbol counts; folder path: narrows; file path: that file's symbols with line ranges.",
+                        "description": "Hierarchical codemap. No path: bounded repo-root map with compact file-symbol groups; folder path narrows; file path shows that file's symbols with line ranges.",
                         // All five tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
@@ -213,13 +215,13 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Empty/omitted = repo root overview; a folder path narrows; a file path shows that file's symbol details. Aliases 'file_path'/'file'/'query' are also accepted." },
-                                "format": { "type": "string", "description": "Optional output format (e.g. 'llms-txt')." }
+                                "format": { "type": "string", "description": "Optional output format (e.g. 'llms-txt'); root llms-txt output is bounded." }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": "Symbol, definition, concept, and quoted-string lookup: BM25 keyword search over indexed symbols, docstrings, and string literals (error messages, config defaults); identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — symbols with line ranges and line-numbered snippets, each matched function annotated with its depth-1 callers and callees (on by default; positions exact, attribution name-match approximate) — and remaining matches follow as a ranked one-line list. Cite line numbers directly from the response — e.g. if search already showed `example.py:42\u{2192} def compute_total(...)`, cite example.py:42 directly; a follow-up read of the same range adds no accuracy.",
+                        "description": "Symbol, definition, concept, and quoted-string lookup: BM25 keyword search over indexed symbols, docstrings, and string literals (error messages, config defaults); identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — compact match_reason/ambiguity/read_suggestion hints, symbols with line ranges and line-numbered snippets, and each matched function annotated with its depth-1 callers/callees (on by default; positions exact, attribution name-match approximate) — and remaining matches follow as a ranked one-line list. Output is capped by search_detail_byte_cap; when partial, narrow the query or read the listed ranges. Cite line numbers directly from the response.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -232,7 +234,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "read",
-                        "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files.",
+                        "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files and oversized errors suggest a narrower window.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -260,7 +262,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "grep",
-                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Partial output includes total count and next_offset. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",

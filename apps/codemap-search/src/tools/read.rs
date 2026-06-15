@@ -126,7 +126,7 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
         return Err((
             -32602,
             format!(
-                "File content ({} bytes) exceeds the maximum read size of {READ_FILE_BYTE_CAP} bytes. Use the offset and limit parameters to read it in smaller chunks.",
+                "File content ({} bytes) exceeds the maximum read size of {READ_FILE_BYTE_CAP} bytes. Continue with a narrower window such as offset=1, limit=200, then advance offset by the number of lines read.",
                 metadata.len()
             ),
         ));
@@ -181,11 +181,18 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     // truncating, matching Claude Code's token-cap behavior.
     let output_cap = crate::config::get().read_output_byte_cap;
     if rendered.len() > output_cap {
+        let requested_line_count = window.len().max(1);
+        let suggested_limit = requested_line_count
+            .saturating_mul(output_cap)
+            .checked_div(rendered.len())
+            .unwrap_or(1)
+            .saturating_sub(1)
+            .max(1);
         return Err((
             -32602,
             format!(
-                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Use a narrower offset/limit window.",
-                rendered.len()
+                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Continue with a narrower window such as offset={start_line}, limit={suggested_limit}. If limit=1 still exceeds the cap, use grep to locate narrower text first.",
+                rendered.len(),
             ),
         ));
     }

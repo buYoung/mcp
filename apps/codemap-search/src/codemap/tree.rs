@@ -2,8 +2,21 @@ use super::summary::DirectorySummary;
 
 type ChildMap<'a> = std::collections::HashMap<&'a str, Vec<&'a DirectorySummary>>;
 
+/// Max child groups rendered inline on one directory row. The row count cap alone is not
+/// enough for very wide repos because one anchor can otherwise inline hundreds of siblings.
+const INLINE_CHILD_LIMIT: usize = 12;
+
 fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
+}
+
+fn directory_label(path: &str, file_count: usize, symbol_count: usize) -> String {
+    format!(
+        "{} ({} files, {} symbols)",
+        basename(path),
+        file_count,
+        symbol_count
+    )
 }
 
 /// A directory is a leaf when it has no subdirectories.
@@ -31,29 +44,27 @@ fn dir_has_leaf_child(children: &ChildMap, path: &str) -> bool {
 /// - deep (has a non-leaf child) → `name (counts)` (bare; its subtree continues on its
 ///   own anchor line(s))
 fn render_inline_child(children: &ChildMap, child: &DirectorySummary) -> String {
-    let base = basename(&child.path);
-    let head = format!(
-        "{} ({} files, {} symbols)",
-        base, child.file_count, child.symbol_count
-    );
+    let head = directory_label(&child.path, child.file_count, child.symbol_count);
     if dir_is_leaf(children, &child.path) || dir_is_deep(children, &child.path) {
         head
     } else {
         // terminal-group: inline its leaf children one level deep, wrapped in braces so
         // the nested group is unambiguous against the parent's own sibling list
         // (`auth: {a, b}, common` — `common` is clearly the parent's child, not auth's).
-        let leaves = children[child.path.as_str()]
+        let leaf_children = &children[child.path.as_str()];
+        let mut leaves = leaf_children
             .iter()
-            .map(|g| {
-                format!(
-                    "{} ({} files, {} symbols)",
-                    basename(&g.path),
-                    g.file_count,
-                    g.symbol_count
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
+            .take(INLINE_CHILD_LIMIT)
+            .map(|g| directory_label(&g.path, g.file_count, g.symbol_count))
+            .collect::<Vec<_>>();
+        if leaf_children.len() > INLINE_CHILD_LIMIT {
+            leaves.push(format!(
+                "+{} more; use `overview {}`",
+                leaf_children.len() - INLINE_CHILD_LIMIT,
+                child.path
+            ));
+        }
+        let leaves = leaves.join(", ");
         format!("{}: {{{}}}", head, leaves)
     }
 }
@@ -71,7 +82,8 @@ fn render_inline_child(children: &ChildMap, child: &DirectorySummary) -> String 
 ///   promoted to anchors instead.
 /// The full repo `directories` slice is passed regardless of scope; only directories
 /// reachable from `scope` are seeded, so the rest never render. Output is bounded by
-/// `limit` emitted anchor lines so a pathologically wide tree can't blow the budget.
+/// `limit` emitted anchor lines and [`INLINE_CHILD_LIMIT`] inline children per anchor so a
+/// pathologically wide tree can't blow the budget.
 pub(crate) fn write_directory_tree(
     f: &mut std::fmt::Formatter<'_>,
     directories: &[DirectorySummary],
@@ -139,11 +151,19 @@ pub(crate) fn write_directory_tree(
         let dir = by_path[path];
         match children.get(path) {
             Some(kids) if !kids.is_empty() => {
-                let inlined = kids
+                let mut inlined = kids
                     .iter()
+                    .take(INLINE_CHILD_LIMIT)
                     .map(|c| render_inline_child(&children, c))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                    .collect::<Vec<_>>();
+                if kids.len() > INLINE_CHILD_LIMIT {
+                    inlined.push(format!(
+                        "+{} more; use `overview {}` or `find`",
+                        kids.len() - INLINE_CHILD_LIMIT,
+                        dir.path
+                    ));
+                }
+                let inlined = inlined.join(", ");
                 writeln!(
                     f,
                     "- {} ({} files, {} symbols): {}",

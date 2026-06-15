@@ -9,13 +9,13 @@ fn test_codemap_root_view() {
     ])
     .unwrap();
 
-    // Root view is a directory skeleton (Design B): the `src` directory rolls up its
-    // files instead of listing each nested file — drill into the folder for the files.
+    // Root view keeps the directory skeleton and includes bounded compact file-symbol rows.
     let assert = run_cli(&["codemap"], temp.path());
     assert
         .success()
         .stdout(predicates::str::contains("- src ("))
-        .stdout(predicates::str::contains("src/main.rs").not());
+        .stdout(predicates::str::contains("src/main.rs"))
+        .stdout(predicates::str::contains("{fn: main}"));
 }
 
 #[test]

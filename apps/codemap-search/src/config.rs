@@ -40,7 +40,7 @@ const CONFIG_TEMPLATE: &str = "\
 # Where the tantivy index lives (relative to the repo root).
 # index_path = \".codemap/index\"
 
-# `search` returns file details at or below this many matches, a codemap overview above.
+# `search` renders this many top-ranked files as details; the rest become ranked tail rows.
 # result_threshold = 5
 
 # Files larger than this many bytes are skipped before parse/index (minified/generated blobs).
@@ -61,8 +61,8 @@ const CONFIG_TEMPLATE: &str = "\
 # live disk, so brief search staleness is corrected by the follow-up read. (default 5000)
 # index_staleness_ms = 5000
 
-# Max file headers `search` emits in its ranked-tail / codemap-overview branch (when
-# matches exceed result_threshold). Caps the context a broad query can spend. (default 12)
+# Max file headers `search` emits in the ranked tail after the top result_threshold
+# detail files. Caps the context a broad query can spend. (default 12)
 # search_overview_file_limit = 12
 
 # Filesystem watcher: when true (the default), file changes refresh the index in the
@@ -98,12 +98,12 @@ const CONFIG_TEMPLATE: &str = "\
 # cap that applies only when `limit` is omitted. (default 102400 ≈ 100 KiB)
 # read_output_byte_cap = 102400
 
-# `search` detail-view caps (the ≤ result_threshold branch that emits code snippets). These
-# bound the detail response so a query matching a few large files can't dump tens of
-# thousands of lines. Output-size only.
+# `search` detail-view caps for the top result_threshold files. These bound the total
+# search response so a query matching a few large files can't dump tens of thousands
+# of lines. Output-size only.
 # search_detail_snippet_max_lines = 80   # per-symbol snippet line cap; over-long bodies elide
 # search_detail_symbol_limit = 20        # max symbols rendered per file; rest summarized
-# search_detail_byte_cap = 32768         # total detail-view byte budget (32 KiB) before cutoff
+# search_detail_byte_cap = 32768         # hard search response ceiling (32 KiB), including footer
 # search_literal_max_len = 200           # matched-literal truncation length (chars)
 # search_literal_limit = 10              # max matched literals rendered per file
 # search_anchor_snippet_limit = 3        # max anchor symbols given a FULL snippet per file; further
@@ -131,8 +131,8 @@ const CONFIG_TEMPLATE: &str = "\
 pub struct ResolvedConfig {
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
-    /// `search` overview/detail branch threshold — at or below it `search` returns file
-    /// details, above it a codemap overview (default 5).
+    /// Number of top-ranked files `search` renders as details before remaining matches
+    /// become compact ranked-tail rows (default 5).
     pub result_threshold: usize,
     /// Files larger than this (bytes) are skipped before read/parse (default 1 MiB).
     pub max_file_size: u64,
@@ -152,9 +152,9 @@ pub struct ResolvedConfig {
     /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
     /// is corrected by the follow-up read/grep.
     pub index_staleness_ms: u64,
-    /// Max file headers `search` emits in its ranked-tail / codemap-overview branch
-    /// (default 12). Caps the context a broad query can spend; pairs with `result_threshold`,
-    /// which picks the overview-vs-detail branch. Output-size only — safe to tune.
+    /// Max file headers `search` emits in the compact ranked tail (default 12). Caps
+    /// the context a broad query can spend after the top `result_threshold` detail files.
+    /// Output-size only — safe to tune.
     pub search_overview_file_limit: usize,
     /// Filesystem watcher toggle (default true). When the watcher runs and is healthy,
     /// changes refresh the index autonomously and `search`/`overview` never trigger a
@@ -192,9 +192,8 @@ pub struct ResolvedConfig {
     /// `search` detail-view per-file symbol cap (default 20). Beyond it, a "more symbols
     /// not shown" note replaces the remaining symbols. Output-size only.
     pub search_detail_symbol_limit: usize,
-    /// `search` detail-view total output byte budget (default 32768 ≈ 32 KiB). Once the
-    /// rendered detail view reaches this, emission stops with a truncation note. Output-size
-    /// only.
+    /// Hard byte ceiling for one `search` response (default 32768 ≈ 32 KiB), including
+    /// detail files, ranked tail, and the partial-output footer. Output-size only.
     pub search_detail_byte_cap: usize,
     /// `search` matched-literal truncation length in characters (default 200). A longer
     /// literal is cut with an ellipsis. Output-size only.

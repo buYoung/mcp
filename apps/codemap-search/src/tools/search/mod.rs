@@ -10,10 +10,165 @@ pub mod render;
 
 use crate::tools::ToolContext;
 
+const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
+
+fn truncate_to_char_boundary(text: &mut String, max_len: usize) {
+    if text.len() <= max_len {
+        return;
+    }
+    let mut end = max_len;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    text.truncate(end);
+}
+
+fn has_open_markdown_fence(text: &str) -> bool {
+    text.lines().filter(|line| line.trim() == "```").count() % 2 == 1
+}
+
+fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> String {
+    if !is_partial && text.len() <= byte_cap {
+        return text;
+    }
+    if byte_cap == 0 {
+        return String::new();
+    }
+    if SEARCH_CAP_FOOTER.len() >= byte_cap {
+        let mut footer = SEARCH_CAP_FOOTER.to_string();
+        truncate_to_char_boundary(&mut footer, byte_cap);
+        return footer;
+    }
+
+    let mut fence_close = "";
+    loop {
+        let reserve = SEARCH_CAP_FOOTER.len() + fence_close.len();
+        let allowed = byte_cap.saturating_sub(reserve);
+        truncate_to_char_boundary(&mut text, allowed);
+        let next_fence_close = if has_open_markdown_fence(&text) {
+            "\n```\n"
+        } else {
+            ""
+        };
+        if next_fence_close == fence_close {
+            break;
+        }
+        fence_close = next_fence_close;
+    }
+
+    format!("{text}{fence_close}{SEARCH_CAP_FOOTER}")
+}
+
+fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str) {
+    if byte_cap <= SEARCH_CAP_FOOTER.len() {
+        return;
+    }
+
+    let mut note = note.to_string();
+    let note_room = byte_cap - SEARCH_CAP_FOOTER.len();
+    if note.len() >= note_room {
+        text.clear();
+        truncate_to_char_boundary(&mut note, note_room);
+        text.push_str(&note);
+        return;
+    }
+
+    let mut fence_close = "";
+    loop {
+        let reserve = SEARCH_CAP_FOOTER.len() + fence_close.len() + note.len();
+        let allowed = byte_cap.saturating_sub(reserve);
+        truncate_to_char_boundary(text, allowed);
+        let next_fence_close = if has_open_markdown_fence(text) {
+            "\n```\n"
+        } else {
+            ""
+        };
+        if next_fence_close == fence_close {
+            break;
+        }
+        fence_close = next_fence_close;
+    }
+
+    text.push_str(fence_close);
+    text.push_str(&note);
+}
+
+fn tail_omission_note(omitted_count: usize) -> String {
+    format!("{omitted_count} files omitted; narrow the query.\n")
+}
+
+fn compact_symbol_names(symbols: &[crate::parser::ExtractedSymbol], limit: usize) -> String {
+    let mut names: Vec<&str> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+    names.sort_unstable();
+    names.dedup();
+    let shown: Vec<&str> = names.iter().take(limit).copied().collect();
+    let mut text = shown.join(", ");
+    if names.len() > shown.len() {
+        text.push_str(&format!(", +{} more", names.len() - shown.len()));
+    }
+    text
+}
+
+fn match_reason(res: &crate::index::SearchResult) -> String {
+    if !res.symbol_fallback {
+        return format!(
+            "symbol match: {}",
+            compact_symbol_names(&res.matched_symbols, 3)
+        );
+    }
+    if !res.matched_literals.is_empty() {
+        return format!(
+            "literal/path/docstring match: {} literal(s)",
+            res.matched_literals.len()
+        );
+    }
+    "path/docstring match; symbol list is fallback context".to_string()
+}
+
+fn ambiguity_note(res: &crate::index::SearchResult) -> Option<String> {
+    let mut counts = std::collections::BTreeMap::<&str, usize>::new();
+    for symbol in &res.matched_symbols {
+        *counts.entry(symbol.name.as_str()).or_default() += 1;
+    }
+    let ambiguous: Vec<String> = counts
+        .into_iter()
+        .filter(|(_, count)| *count > 1)
+        .take(3)
+        .map(|(name, count)| format!("{count} `{name}` symbols"))
+        .collect();
+    (!ambiguous.is_empty()).then(|| ambiguous.join(", "))
+}
+
+fn format_read_suggestion(file_path: &str, offset: usize, limit: usize) -> String {
+    let args = serde_json::json!({
+        "file_path": file_path,
+        "offset": offset,
+        "limit": limit,
+    });
+    format!("read {args}")
+}
+
+fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
+    if !res.symbol_fallback {
+        return res.matched_symbols.first().map(|symbol| {
+            let limit = symbol
+                .range
+                .end_line
+                .saturating_sub(symbol.range.start_line)
+                .saturating_add(1);
+            format_read_suggestion(&res.file_path, symbol.range.start_line, limit)
+        });
+    }
+    res.matched_literals
+        .first()
+        .map(|literal| format_read_suggestion(&res.file_path, literal.line, 1))
+}
+
 /// Run the `search` tool and return the rendered detail/tail text. The MCP dispatch arm wraps
 /// the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
-    let query = ctx.arguments
+    let query = ctx
+        .arguments
         .get("query")
         .and_then(|v| v.as_str())
         .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
@@ -22,12 +177,14 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // parameter, when present, always wins (an explicit `false`
     // overrides the default); the repo-level config key only decides
     // the default when the parameter is omitted.
-    let caller_context_enabled = ctx.arguments
+    let caller_context_enabled = ctx
+        .arguments
         .get("caller_context")
         .and_then(|v| v.as_bool())
         .unwrap_or_else(|| crate::config::get().caller_context_default);
 
-    let results = ctx.engine
+    let results = ctx
+        .engine
         .search(query, 100)
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
 
@@ -59,9 +216,9 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // detail for its strongest hits instead of a wall of file headers
     // that forces a follow-up grep (the dominant agent-observed failure
     // mode of the old overview-only branch).
-    let detail_results =
-        &results[..results.len().min(result_branch_threshold)];
+    let detail_results = &results[..results.len().min(result_branch_threshold)];
     let remaining_results = &results[detail_results.len()..];
+    let mut output_was_capped = false;
     {
         // Detail view: enclosing code scopes for the pinpointed files,
         // bounded by config caps so a few large or fallback-matched files
@@ -81,15 +238,14 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         // at this point (snippets keep priority, two-counter inside).
         let caller_annotations = if caller_context_enabled {
             let snapshot = ctx.engine.codemap_snapshot();
-            let requests: Vec<crate::callers::AnnotationRequest<'_>> =
-                detail_results
-                    .iter()
-                    .map(|res| crate::callers::AnnotationRequest {
-                        file_path: &res.file_path,
-                        symbols: &res.matched_symbols,
-                        is_fallback: res.symbol_fallback,
-                    })
-                    .collect();
+            let requests: Vec<crate::callers::AnnotationRequest<'_>> = detail_results
+                .iter()
+                .map(|res| crate::callers::AnnotationRequest {
+                    file_path: &res.file_path,
+                    symbols: &res.matched_symbols,
+                    is_fallback: res.symbol_fallback,
+                })
+                .collect();
             let caller_cfg = crate::callers::CallerConfig {
                 scan_cap: cfg.scan_cap,
                 caller_list_cap: cfg.caller_list_cap,
@@ -100,15 +256,8 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 max_file_size: cfg.max_file_size,
             };
             let available = byte_cap.saturating_sub(text.len());
-            let root = std::env::current_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."));
-            crate::callers::annotate_results(
-                &requests,
-                &snapshot,
-                &caller_cfg,
-                available,
-                &root,
-            )
+            let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            crate::callers::annotate_results(&requests, &snapshot, &caller_cfg, available, &root)
         } else {
             None
         };
@@ -120,16 +269,29 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         let query_word_set = render::query_words(query);
         let query_token_set = render::query_tokens(query);
 
+        let detail_result_count = detail_results.len();
+        let mut rendered_detail_count = 0usize;
         let mut budget_hit = false;
         'files: for res in detail_results {
             if text.len() >= byte_cap {
                 budget_hit = true;
                 break;
             }
+            rendered_detail_count += 1;
             text.push_str(&format!(
                 "### File: {} ({} lines)\n",
                 res.file_path, res.total_lines
             ));
+            let mut hints = format!("- match_reason: {}\n", match_reason(res));
+            if let Some(ambiguity) = ambiguity_note(res) {
+                hints.push_str(&format!("- ambiguity: {ambiguity}\n"));
+            }
+            if let Some(suggestion) = read_suggestion(res) {
+                hints.push_str(&format!("- read_suggestion: `{suggestion}`\n"));
+            }
+            if text.len() + hints.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
+                text.push_str(&hints);
+            }
 
             if res.symbol_fallback {
                 // Matched via docstring/path, not a symbol name — render
@@ -159,13 +321,11 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 // empty and the behavior is unchanged (P1 §5): pure
                 // path/docstring/literal hits do not regress.
                 const FALLBACK_SNIPPET_CAP: usize = 5;
-                let mut matched_in_fallback: Vec<&crate::parser::ExtractedSymbol> =
-                    res.matched_symbols
-                        .iter()
-                        .filter(|s| {
-                            render::symbol_is_tier1(s, &query_word_set)
-                        })
-                        .collect();
+                let mut matched_in_fallback: Vec<&crate::parser::ExtractedSymbol> = res
+                    .matched_symbols
+                    .iter()
+                    .filter(|s| render::symbol_is_tier1(s, &query_word_set))
+                    .collect();
                 if matched_in_fallback.len() < FALLBACK_SNIPPET_CAP {
                     for sym in res.matched_symbols.iter().filter(|s| {
                         !render::symbol_is_tier1(s, &query_word_set)
@@ -183,11 +343,10 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 // the path deduped (a member fully inside an already-shown
                 // range) or dropped at the byte cap — so a matching symbol is
                 // never both rendered AND re-listed below.
-                let mut snippet_starts: std::collections::HashSet<usize> =
-                    matched_in_fallback
-                        .iter()
-                        .map(|s| s.range.start_line)
-                        .collect();
+                let mut snippet_starts: std::collections::HashSet<usize> = matched_in_fallback
+                    .iter()
+                    .map(|s| s.range.start_line)
+                    .collect();
                 let render_caps = render::AnchoredRenderCaps {
                     snippet_max_lines,
                     anchor_snippet_limit: cfg.search_anchor_snippet_limit,
@@ -219,10 +378,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     }
                     text.push_str(&format!(
                         "- Symbol: {} ({}) [L{}-{}]\n",
-                        sym.name,
-                        sym.kind,
-                        sym.range.start_line,
-                        sym.range.end_line
+                        sym.name, sym.kind, sym.range.start_line, sym.range.end_line
                     ));
                     listed += 1;
                 }
@@ -243,10 +399,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 // internal range sort, so a promoted symbol deep in a large
                 // file is never cut in favor of earlier-but-weaker matches,
                 // and the function's promoted-anchor pick stays rank-ordered.
-                let skipped_for_cap = res
-                    .matched_symbols
-                    .len()
-                    .saturating_sub(symbol_limit);
+                let skipped_for_cap = res.matched_symbols.len().saturating_sub(symbol_limit);
                 let symbols: Vec<&crate::parser::ExtractedSymbol> =
                     res.matched_symbols.iter().take(symbol_limit).collect();
                 let render_caps = render::AnchoredRenderCaps {
@@ -290,9 +443,14 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             }
         }
         if budget_hit {
-            text.push_str(
-                "\n_Detail view truncated at the output budget; refine the query or use overview/read to inspect specific files._\n",
-            );
+            output_was_capped = true;
+        }
+        if output_was_capped {
+            let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
+            if omitted_detail_count > 0 || !remaining_results.is_empty() {
+                let note = tail_omission_note(omitted_detail_count + remaining_results.len());
+                append_preserved_partial_note(&mut text, byte_cap, &note);
+            }
         }
     }
 
@@ -303,19 +461,16 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // match) shows a bare header instead of leaking unrelated symbols.
     // Count-capped by `search_overview_file_limit` and byte-capped like
     // the detail view.
-    if !remaining_results.is_empty() {
+    let byte_cap = crate::config::get().search_detail_byte_cap;
+    if !output_was_capped && !remaining_results.is_empty() {
         let tail_cfg = crate::config::get();
         let tail_file_limit = tail_cfg.search_overview_file_limit;
-        let tail_byte_cap = tail_cfg.search_detail_byte_cap;
-        text.push_str(&format!(
+        let mut tail = format!(
             "\n## Other matches — {} more files, ranked by relevance\n",
             remaining_results.len()
-        ));
+        );
         let mut shown_tail = 0usize;
         for res in remaining_results.iter().take(tail_file_limit) {
-            if text.len() >= tail_byte_cap {
-                break;
-            }
             let symbol_notes: Vec<String> = if res.symbol_fallback {
                 Vec::new()
             } else {
@@ -325,20 +480,18 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     .map(|sym| {
                         format!(
                             "{} [L{}-{}]",
-                            sym.name,
-                            sym.range.start_line,
-                            sym.range.end_line
+                            sym.name, sym.range.start_line, sym.range.end_line
                         )
                     })
                     .collect()
             };
             if symbol_notes.is_empty() {
-                text.push_str(&format!(
+                tail.push_str(&format!(
                     "- {} ({} lines)\n",
                     res.file_path, res.total_lines
                 ));
             } else {
-                text.push_str(&format!(
+                tail.push_str(&format!(
                     "- {} ({} lines) — {}\n",
                     res.file_path,
                     res.total_lines,
@@ -348,12 +501,29 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             shown_tail += 1;
         }
         if remaining_results.len() > shown_tail {
-            text.push_str(&format!(
-                "- _… {} more files not shown; refine the query to narrow._\n",
-                remaining_results.len() - shown_tail
-            ));
+            if shown_tail == 0 {
+                tail.push_str(&format!(
+                    "- _Showing tail files 0 of {}; {} files not shown. Continue by narrowing the query._\n",
+                    remaining_results.len(),
+                    remaining_results.len()
+                ));
+            } else {
+                tail.push_str(&format!(
+                    "- _Showing tail files 1-{shown_tail} of {}; {} more files not shown. Continue by narrowing the query._\n",
+                    remaining_results.len(),
+                    remaining_results.len() - shown_tail
+                ));
+            }
+        }
+        if text.len() + tail.len() <= byte_cap {
+            text.push_str(&tail);
+        } else {
+            let note = tail_omission_note(remaining_results.len());
+            append_preserved_partial_note(&mut text, byte_cap, &note);
+            output_was_capped = true;
         }
     }
 
-    Ok(text)
+    let is_partial = output_was_capped || text.len() > byte_cap;
+    Ok(finish_search_output(text, byte_cap, is_partial))
 }

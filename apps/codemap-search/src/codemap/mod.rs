@@ -1,8 +1,8 @@
 mod summary;
 mod tree;
 
-pub use summary::{DirectorySummary, ExtractedFileSummary, ExtractedSymbolSummary};
 use summary::{build_directory_summaries, is_significant_symbol, summarize_file};
+pub use summary::{DirectorySummary, ExtractedFileSummary, ExtractedSymbolSummary};
 use tree::write_directory_tree;
 
 pub trait CodemapView {
@@ -17,12 +17,46 @@ pub struct RootCodemap<'a> {
     pub files: Vec<ExtractedFileSummary<'a>>,
 }
 
-/// Max directory rows the root view emits before truncating with a footer. The
-/// per-file dump is already gone (Design B); this only bounds pathologically wide
-/// monorepos so a tree with thousands of directories can't reintroduce the bloat.
-/// Set high enough that an ordinary large repo (hundreds of directories) renders in
-/// full — at ~50 bytes/row even 400 rows is ~5 KB, an order below the old per-file dump.
-const ROOT_DIRECTORY_LIMIT: usize = 400;
+/// Max directory rows the root view emits before truncating with a footer. Directory rows
+/// can inline large child groups, so keep the root-first orientation bounded and let callers
+/// drill into a subtree for the complete directory map.
+const ROOT_DIRECTORY_LIMIT: usize = 60;
+/// Max recursive file rows in the root view. Folder and file detail views remain the
+/// continuation path for complete listings and line ranges.
+const ROOT_FILE_SUMMARY_LIMIT: usize = 60;
+/// Max symbol names shown per kind inside a compact root file row.
+const ROOT_SYMBOLS_PER_KIND_LIMIT: usize = 4;
+/// Max file links in llms-txt root output. The full file set remains discoverable through
+/// folder overview and find; llms-txt is a first-call orientation surface, not an index dump.
+const LLMS_TXT_FILE_LIMIT: usize = 200;
+
+fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
+    let mut by_kind: std::collections::BTreeMap<&str, Vec<&str>> =
+        std::collections::BTreeMap::new();
+    for symbol in &file.symbols {
+        by_kind.entry(symbol.kind).or_default().push(symbol.name);
+    }
+    if by_kind.is_empty() {
+        return None;
+    }
+
+    let mut groups = Vec::new();
+    for (kind, mut names) in by_kind {
+        names.sort_unstable();
+        names.dedup();
+        let total = names.len();
+        let shown: Vec<&str> = names
+            .into_iter()
+            .take(ROOT_SYMBOLS_PER_KIND_LIMIT)
+            .collect();
+        let mut group = format!("{kind}: {}", shown.join(", "));
+        if total > shown.len() {
+            group.push_str(&format!(", +{} more", total - shown.len()));
+        }
+        groups.push(group);
+    }
+    Some(format!("{{{}}}", groups.join("; ")))
+}
 
 #[derive(Debug, Clone)]
 pub struct FolderCodemap<'a> {
@@ -64,21 +98,28 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
             writeln!(f)?;
         }
 
-        // Only repo-root-level files (no parent directory) are listed individually —
-        // every nested file is reachable by drilling its directory. This is what keeps
-        // the root view bounded on a large tree (the per-file dump was the bulk).
-        let root_level_files: Vec<&ExtractedFileSummary<'a>> = self
-            .files
-            .iter()
-            .filter(|file| !file.file_path.contains('/'))
-            .collect();
-        if !root_level_files.is_empty() {
-            writeln!(f, "## Files (repo root)")?;
-            for file in root_level_files {
+        if !self.files.is_empty() {
+            writeln!(
+                f,
+                "## Files (first {} by path; grouped significant symbols, no line ranges)",
+                ROOT_FILE_SUMMARY_LIMIT.min(self.files.len())
+            )?;
+            for file in self.files.iter().take(ROOT_FILE_SUMMARY_LIMIT) {
+                let symbols = grouped_symbol_summary(file)
+                    .map(|summary| format!(" {summary}"))
+                    .unwrap_or_default();
                 writeln!(
                     f,
-                    "- File: {} ({} lines, {} symbols)",
-                    file.file_path, file.total_lines, file.symbol_count
+                    "- File: {} ({} lines, {} symbols){}",
+                    file.file_path, file.total_lines, file.symbol_count, symbols
+                )?;
+            }
+            if self.files.len() > ROOT_FILE_SUMMARY_LIMIT {
+                writeln!(
+                    f,
+                    "- _Showing files 1-{} of {}; continue with `overview <dir>` for the relevant subtree or `find` for exact file enumeration._",
+                    ROOT_FILE_SUMMARY_LIMIT,
+                    self.files.len()
                 )?;
             }
             writeln!(f)?;
@@ -126,7 +167,12 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
                 f,
                 "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
             )?;
-            write_directory_tree(f, &self.directories, &self.folder_path, ROOT_DIRECTORY_LIMIT)?;
+            write_directory_tree(
+                f,
+                &self.directories,
+                &self.folder_path,
+                ROOT_DIRECTORY_LIMIT,
+            )?;
             writeln!(f)?;
         }
 
@@ -225,10 +271,11 @@ impl CodemapGenerator {
     pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
         let total_files = files.len();
 
-        let files_summary: Vec<ExtractedFileSummary<'a>> =
+        let mut files_summary: Vec<ExtractedFileSummary<'a>> =
             files.iter().map(summarize_file).collect();
-        // Root counts the significant symbols actually surfaced downstream, not
-        // the raw extracted total — so the headline matches the per-file sums.
+        files_summary.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+        // Root counts significant symbols after per-file summarization, not the
+        // raw extracted total; the later row caps only limit what is printed.
         let total_symbols = files_summary.iter().map(|f| f.symbol_count).sum();
 
         let directories = build_directory_summaries(&files_summary);
@@ -252,8 +299,9 @@ impl CodemapGenerator {
 
         // Repo-wide summaries → repo-wide directory counts (so a directory reads the same
         // here as in the root view); the renderer scopes the output to this folder.
-        let all_summaries: Vec<ExtractedFileSummary<'a>> =
+        let mut all_summaries: Vec<ExtractedFileSummary<'a>> =
             files.iter().map(summarize_file).collect();
+        all_summaries.sort_by(|a, b| a.file_path.cmp(&b.file_path));
         let directories = build_directory_summaries(&all_summaries);
 
         // Walk the summaries once: accumulate this folder's recursive totals and collect
@@ -305,8 +353,24 @@ impl CodemapGenerator {
         let mut view = String::new();
         let _ = writeln!(view, "# llms.txt");
         let _ = writeln!(view);
-        for file in files {
+        let mut sorted_files: Vec<&crate::parser::ExtractedFile> = files.iter().collect();
+        sorted_files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+        let shown = sorted_files.len().min(LLMS_TXT_FILE_LIMIT);
+        let _ = writeln!(
+            view,
+            "> Showing the first {shown} of {} indexed files by path.",
+            sorted_files.len()
+        );
+        let _ = writeln!(view);
+        for file in sorted_files.into_iter().take(LLMS_TXT_FILE_LIMIT) {
             let _ = writeln!(view, "- [{}]({})", file.file_path, file.file_path);
+        }
+        if files.len() > LLMS_TXT_FILE_LIMIT {
+            let _ = writeln!(
+                view,
+                "- _{} more files not shown; continue with `overview <dir>` or `find`._",
+                files.len() - LLMS_TXT_FILE_LIMIT
+            );
         }
         view
     }
@@ -382,13 +446,10 @@ mod tests {
         assert!(formatted.contains("- **Total Files**: 2"));
         assert!(formatted.contains("- **Total Symbols**: 2"));
         assert!(formatted.contains("## Directories"));
-        // Root view is a directory skeleton with recursive counts, not a per-file dump:
-        // both files live under `src`, so it rolls up to one directory row.
+        // Root view keeps the directory skeleton and adds bounded compact file-symbol rows.
         assert!(formatted.contains("- src (2 files, 2 symbols)"));
-        // Nested files are reachable by drilling their directory — they are not listed
-        // individually at root (that per-file dump was the bloat we removed).
-        assert!(!formatted.contains("- File: src/main.rs"));
-        assert!(!formatted.contains("  - main (fn)"));
+        assert!(formatted.contains("- File: src/main.rs (0 lines, 1 symbols) {fn: main}"));
+        assert!(formatted.contains("- File: src/lib.rs (0 lines, 1 symbols) {fn: init}"));
         assert!(!formatted.contains("[L"));
     }
 
@@ -429,7 +490,8 @@ mod tests {
         );
         // ...its grandchild `sub` is promoted instead.
         assert!(
-            formatted.contains("- top/junction/sub (1 files, 1 symbols): leafX (1 files, 1 symbols)"),
+            formatted
+                .contains("- top/junction/sub (1 files, 1 symbols): leafX (1 files, 1 symbols)"),
             "sub should be promoted to an anchor line:\n{formatted}"
         );
         // The terminal-group `group` is inlined into `top`, never a standalone anchor.
@@ -542,7 +604,10 @@ mod tests {
             ),
             "a nested terminal-group should fold with braces:\n{formatted}"
         );
-        assert!(formatted.contains("- mod/leafA (1 files, 1 symbols)"), "{formatted}");
+        assert!(
+            formatted.contains("- mod/leafA (1 files, 1 symbols)"),
+            "{formatted}"
+        );
 
         // Files section: files directly in the folder, with symbol count + symbol bullets
         // (no line ranges — that stays search/grep's job).
@@ -588,7 +653,10 @@ mod tests {
                 },
                 owner: None,
             }],
-            literals: vec![crate::parser::ExtractedLiteral { text: "magic_value".to_string(), line: 1 }],
+            literals: vec![crate::parser::ExtractedLiteral {
+                text: "magic_value".to_string(),
+                line: 1,
+            }],
             docstrings: vec!["A check function\nwith multiple lines".to_string()],
         };
 
