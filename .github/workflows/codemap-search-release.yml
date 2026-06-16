@@ -1,10 +1,12 @@
 name: codemap-search Release
 
-# Tag the release commit `codemap-search-vX.Y.Z` to build and publish prebuilt binaries.
+# Tag the release commit `codemap-vX.Y.Z` to build and publish prebuilt binaries.
+# This is the only release trigger: pushes to branches never publish, and the tag
+# prefix is scoped to codemap-search so no other app can be released from here.
 on:
   push:
     tags:
-      - "codemap-search-v*"
+      - "codemap-v[0-9]*"
 
 permissions:
   contents: write
