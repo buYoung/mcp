@@ -190,22 +190,32 @@ pub(crate) fn arg_required_str<'a>(
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }
 
-/// The MCP `initialize` `instructions` string. Co-located with [`list_tools`] so the
-/// product-surface prose and the tool schemas cannot drift apart. Byte-identical to the
-/// value the server has always returned — do not edit without intending a behavior change.
+/// The MCP `initialize` `instructions` string, also returned verbatim by the
+/// `initial_instructions` tool so the guidance reaches clients that do not surface
+/// server-level instructions (e.g. Codex, which omits the `initialize` instructions but
+/// reads tool descriptions and calls the tool). Single source; co-located with
+/// [`list_tools`] so prose and tool schemas stay in sync.
 pub fn instructions() -> &'static str {
-    "Five code-navigation tools; split by purpose, not by order.\n- search: first move for symbols, definitions, concepts, and quoted strings ('where is the auth token refreshed?', an error message, a config default). BM25 over indexed symbols/docstrings/string literals — identifier splitting and ranking find what exact grep matching misses. Top-ranked files render detail with compact match_reason/ambiguity/read_suggestion hints, line-numbered snippets, and each matched function's depth-1 callers/callees (on by default; caller_context=false to disable); further matches follow as a ranked one-line list. Output is capped by search_detail_byte_cap; when partial, narrow the query or read the listed ranges. Snippet line numbers and caller file:line positions are exact — cite them directly instead of re-reading to confirm; only caller→definition attribution is name-match approximate.\n- grep: first move for exact-pattern enumeration — every occurrence of a name you already confirmed, regex matches, comments, non-code files, just-edited files (no index lag). Pages with more results include next_offset.\n- overview: orient in unfamiliar code; root is bounded and includes compact file-symbol groups, folder path narrows, file path gives exact line ranges.\n- read / find: file contents / glob lookup; read uses offset/limit windows for large files.\nTypical flow: search to locate a symbol and see its call context, then read the exact range; grep when you need every literal occurrence or just-edited files."
+    "Five code-navigation tools. Pick by intent, not order.\n* `search`: use first for symbols, definitions, concepts, quoted strings, errors, config defaults, or 'where is X done?' questions. BM25 over indexed symbols, docstrings, and string literals; identifier splitting + ranking find what exact grep misses. Top files include compact `match_reason`, ambiguity hints, `read_suggestion`, line snippets, and matched function depth-1 callers/callees. Set `caller_context=false` to disable. More matches appear as ranked one-line list. Output capped by `search_detail_byte_cap`; if partial, narrow query or read listed ranges. Snippet lines and caller `file:line` exact — cite directly, do not re-read to confirm. Only caller→definition attribution is name-match approximate.\n* `grep`: use first for exact enumeration: confirmed names, regex, comments, non-code files, or just-edited files with no index lag. More pages include `next_offset`.\n* `overview`: use to orient in unfamiliar code or get symbol line ranges before `read`. Root gives bounded repo map with compact file/symbol groups. Folder path narrows. File path gives exact symbol ranges.\n* `read`: read file contents. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`, especially for large files.\n* `find`: locate files by glob and confirm exact paths.\nTypical flow: `search` finds symbol + call context → `read` exact range. Use `grep` when every literal occurrence matters or file was just edited."
 }
 
-/// The MCP `tools/list` result: the five tool schemas (name, description, read-only
-/// annotations, and input schema). Co-located with [`instructions`] so schema and prose
-/// stay in sync. Byte-identical to the value the server has always returned.
+/// The MCP `tools/list` result: the six tool schemas (name, description, read-only
+/// annotations, and input schema), including `initial_instructions`. Co-located with
+/// [`instructions`] so schema and prose stay in sync. Tool descriptions intentionally
+/// carry imperative usage guidance; the cross-tool flow lives in [`instructions`] and the
+/// `initial_instructions` tool result.
 pub fn list_tools() -> Value {
     serde_json::json!({
                 "tools": [
                     {
+                        "name": "initial_instructions",
+                        "description": "REQUIRED FIRST CALL: before using search/grep/read/find/overview, call this once with no arguments to load the codemap-search usage rules and the recommended navigation flow.",
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": { "type": "object", "properties": {} }
+                    },
+                    {
                         "name": "overview",
-                        "description": "Hierarchical codemap. No path: bounded repo-root map with compact file-symbol groups; folder path narrows; file path shows that file's symbols with line ranges.",
+                        "description": "Use for repo orientation or to get a symbol's line range before read. No path returns a bounded repo-root map with recursive file/symbol counts per directory plus top files with grouped significant symbol names, but no line ranges. Folder path narrows to that folder. File path lists symbols with exact line ranges. To get a symbol range before reading, run overview, then read that window. For a named symbol or concept, prefer search.",
                         // All five tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
@@ -221,7 +231,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "search",
-                        "description": "Symbol, definition, concept, and quoted-string lookup: BM25 keyword search over indexed symbols, docstrings, and string literals (error messages, config defaults); identifier splitting and ranking recover what exact grep matching misses. Top-ranked files render in detail — compact match_reason/ambiguity/read_suggestion hints, symbols with line ranges and line-numbered snippets, and each matched function annotated with its depth-1 callers/callees (on by default; positions exact, attribution name-match approximate) — and remaining matches follow as a ranked one-line list. Output is capped by search_detail_byte_cap; when partial, narrow the query or read the listed ranges. Cite line numbers directly from the response.",
+                        "description": "Default first tool for symbols, definitions, concepts, quoted strings, errors, config defaults, or 'where is X done?' questions. BM25 over indexed symbols, docstrings, and string literals; identifier splitting finds what exact patterns miss. Top files show line-numbered snippets, symbol ranges, read_suggestion, and matched function depth-1 callers/callees. Set caller_context=false to skip call context. Remaining matches are ranked one-line results. Snippet lines and caller file:line are exact; caller→definition attribution is name-match approximate. Cite returned lines, then read the suggested range. Do not re-read to confirm or re-search returned info. If partial via search_detail_byte_cap, narrow the query or read listed ranges.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -234,7 +244,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "read",
-                        "description": "Read one file's contents as '   N\u{2192}content' lines; offset/limit pages large files and oversized errors suggest a narrower window.",
+                        "description": "Read one file as N\u{2192}content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar. Get ranges from search read_suggestion or overview, then read that window. No-limit reads of large files are refused with a narrower-window error. Do not read a whole large file just to find one symbol.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -248,7 +258,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "find",
-                        "description": "Locate files by glob (e.g. '**/*.rs') to confirm exactly which files exist. mtime-sorted, capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without a slash (e.g. '*rpc*') matches only the filename, never a directory segment — to match a path component use '**/*rpc*' or '**/rpc/**'.",
+                        "description": "Locate files by glob, e.g. '**/*.rs', to confirm exact files exist. Results are mtime-sorted and capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without slash, e.g. '*rpc*', matches filenames only, never directory segments. To match a path component, use '**/*rpc*' or '**/rpc/**'.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -262,7 +272,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "grep",
-                        "description": "Exact literal/regex match over files on disk; parameters mirror Claude Code's Grep. Partial output includes total count and next_offset. Respects .gitignore/.codemapignore; set include_ignored to bypass.",
+                        "description": "Use for exhaustive exact literal/regex matches on disk: confirmed names, regexes, comments, non-code files, or just-edited files with no index lag. Params mirror Claude Code Grep. If a scoped pattern returns 0, do not rerun unchanged. Check path, glob, type, -i, multiline, or include_ignored; or switch to search for semantic/identifier-split lookup. Broaden regex only when intended. Partial output gives total count and next_offset; page with offset. Respects .gitignore and .codemapignore; set include_ignored to bypass.",
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
