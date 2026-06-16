@@ -36,6 +36,22 @@ const TEST_PATH_SCORE_WEIGHT: f32 = 0.3;
 /// co-terms ("error", "enum") can outvote it via term frequency in unrelated files.
 const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
 
+/// Post-rank multiplier when a qualified-name query word (`encoding::base64::decode`, a `::`/`.`
+/// path) exactly equals one of a file's string literals but the file has NO symbol-exact hit.
+/// Legacy dispatch/lookup tables map such a name in a string literal (`"encoding::base64::decode"
+/// => …`) that lives ONLY in the literal field (boost 1.0), so under plain BM25 it is buried far
+/// below the exec path's owner-qualified symbols. This lifts the qualified-literal file enough to
+/// land in the detail/tail beside the exec match — co-exposure, not re-rank: it is held strictly
+/// BELOW `EXACT_NAME_SCORE_BOOST` (3.0) so a symbol-exact exec member always ranks first. Gated to
+/// qualified (`::`/`.`) forms so a bare common word in a literal can't earn it.
+const QUALIFIED_LITERAL_SCORE_BOOST: f32 = 1.6;
+/// Gates ONLY the qualified-literal score lift (#1) below. Held off pending Lever-B validation
+/// (run cms-perf-improve-20260615): the lift's co-exposure mechanism is proven safe but its
+/// weak-model payoff is unconfirmed. `qualified_literal_hit` is still computed and carried, so the
+/// literal-exposure label (#2) and cross-path note (#4) stay live — only the rank promotion is
+/// dormant. Flip back to `true` to re-enable the lift in one edit.
+const ENABLE_QUALIFIED_LITERAL_BOOST: bool = false;
+
 const SYMBOL_SIGNAL_SCORE_CAP: f32 = 1.6;
 
 /// Secondary plain-token query for qualified names is a recall supplement, not the primary
@@ -327,6 +343,39 @@ fn has_owner_exact_symbol(candidate: &CandidateFile, query: &QueryTokens) -> boo
     })
 }
 
+/// A query raw_word counts as "qualified" when it carries a path separator (`::` or `.`) — the
+/// shape of a fully-qualified dispatch/lookup name (`encoding::base64::decode`). Bare words are
+/// excluded so the qualified-literal boost can never fire on a common single token.
+fn is_qualified_word(raw_word: &str) -> bool {
+    raw_word.contains("::") || raw_word.contains('.')
+}
+
+/// The qualified-name literal in `literals` that EXACTLY equals a qualified query raw_word, if any.
+/// Drives [`QUALIFIED_LITERAL_SCORE_BOOST`] and the renderer's literal-aware tail label. Exact
+/// whole-value equality (not substring) on the lowercased literal text keeps a constants table that
+/// merely contains the path as a fragment from earning the boost; the qualified gate keeps a bare
+/// common word out. Returns the original-cased literal text for display. Takes the literal slice
+/// (not the whole candidate) so it can run after `candidate.symbols` has been moved out.
+fn qualified_literal_exact_hit(literals: &[ExtractedLiteral], query: &QueryTokens) -> Option<String> {
+    let qualified_words: Vec<&String> = query
+        .raw_words()
+        .iter()
+        .filter(|raw_word| is_qualified_word(raw_word))
+        .collect();
+    if qualified_words.is_empty() {
+        return None;
+    }
+    literals
+        .iter()
+        .find(|lit| {
+            let lit_lower = lit.text.to_lowercase();
+            qualified_words
+                .iter()
+                .any(|raw_word| lit_lower == **raw_word)
+        })
+        .map(|lit| lit.text.clone())
+}
+
 fn should_supplement_qualified_query(query: &QueryTokens) -> bool {
     query.raw_words().iter().any(|raw_word| {
         raw_word.contains("::")
@@ -521,9 +570,24 @@ impl SearcherHandle {
             let exact_name_hit = scored_symbols
                 .iter()
                 .any(|scored| scored.exact_boost_eligible);
+            // Qualified-name literal co-exposure: a file whose string literal IS a qualified
+            // query word (`encoding::base64::decode`) but has no symbol-exact hit gets a bounded
+            // lift so the legacy dispatch/lookup table surfaces beside the exec path. Applied ONLY
+            // when there is no symbol-exact hit so it never stacks onto `EXACT_NAME_SCORE_BOOST`
+            // (which would push a literal-only file above a real symbol match) — co-exposure, not
+            // re-rank.
+            // The field is computed unconditionally (drives the #2 literal label + #4 cross-path
+            // note). The score lift below is held off via ENABLE_QUALIFIED_LITERAL_BOOST; keeping
+            // this computation here means neutralizing the lift never strips the literal exposure.
+            let qualified_literal_hit =
+                qualified_literal_exact_hit(&candidate.literals, &query_tokens);
             let mut adjusted_score = candidate.raw_score;
             if exact_name_hit {
                 adjusted_score *= EXACT_NAME_SCORE_BOOST;
+            } else if ENABLE_QUALIFIED_LITERAL_BOOST && qualified_literal_hit.is_some() {
+                // held pending Lever-B validation (run cms-perf-improve-20260615); field retained
+                // for literal exposure (#2) + cross-path note (#4)
+                adjusted_score *= QUALIFIED_LITERAL_SCORE_BOOST;
             }
             adjusted_score *= symbol_signal_multiplier(&scored_symbols);
             if is_test_like_path(&candidate.file_path) {
@@ -576,6 +640,7 @@ impl SearcherHandle {
                 matched_literals,
                 symbol_fallback,
                 ranking_signal,
+                qualified_literal_hit,
             });
         }
 

@@ -33,6 +33,14 @@ pub struct SearchResult {
     /// Compact explanation data for the strongest matched symbol. Rendering turns this into
     /// bounded `match_reason` / `ambiguity` hints without exposing score internals.
     pub ranking_signal: Option<SearchRankingSignal>,
+    /// The qualified-name string literal (`encoding::base64::decode`) this file matched when a
+    /// qualified query word exactly equals one of its string literals. Carries the dispatch/lookup
+    /// literal so the renderer can label the file in the tail / `match_reason` instead of
+    /// mislabeling it by a weak module symbol — a legacy dispatch table reads as itself, not as
+    /// "a plain mod.rs". Computed independently of the (currently held) qualified-literal score
+    /// lift (see `ENABLE_QUALIFIED_LITERAL_BOOST`), so this label survives with the lift off.
+    /// `None` when no qualified literal matched.
+    pub qualified_literal_hit: Option<String>,
 }
 
 pub trait SearchEngine {

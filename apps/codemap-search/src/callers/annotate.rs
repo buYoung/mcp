@@ -59,10 +59,10 @@ impl SymbolAnnotation {
     }
 
     /// Render in render order, deduping the caller block against `seen_caller_blocks` (a
-    /// per-file `name → already-emitted caller block` map owned by the renderer). When this
-    /// symbol's caller block byte-matches one already emitted for the same name, the caller
-    /// block collapses to a one-line back-reference; otherwise it renders in full. The fixed
-    /// `prefix` / `suffix` always render verbatim.
+    /// view-wide `name → already-emitted caller block` map owned by the renderer, shared across
+    /// files). When this symbol's caller block byte-matches one already emitted for the same name,
+    /// the caller block collapses to a one-line back-reference; otherwise it renders in full. The
+    /// fixed `prefix` / `suffix` always render verbatim.
     ///
     /// The map is NOT mutated here: a full caller block is recorded as the back-reference
     /// target only once the renderer confirms it actually emitted the text (the renderer may
@@ -244,29 +244,45 @@ fn render_symbol_annotation(
     }
     } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
-    // --- Callees (always shown; labeled target-ambiguous at ≥ threshold defs). Held in the
-    // fixed `suffix` part — never deduped, always rendered after the (possibly back-referenced)
-    // caller block. ---
+    // --- Callees: depth-1, name-match only. Held in the fixed `suffix` part — never deduped,
+    // always rendered after the (possibly back-referenced) caller block.
+    //
+    // Target-ambiguous callees (a name with ≥ `common_name_threshold` definitions) carry near-zero
+    // navigational signal — the agent can't act on "context (8 defs, target ambiguous)". They are
+    // SUPPRESSED from the per-name list and collapsed into a single trailing count, so the block
+    // shows only disambiguated, actionable callees plus a visible "(+N ambiguous suppressed)" note
+    // instead of a wall of unactionable lines. ---
     let mut suffix = String::new();
     let callees = discover_callees(sym, file_path, &index.fn_names, root);
     if !callees.is_empty() {
-        suffix.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
         let shown = callees.len().min(cfg.callee_list_cap);
+        let mut rendered_lines = String::new();
+        let mut ambiguous_suppressed = 0usize;
         for name in callees.iter().take(shown) {
             let def_count = *index.fn_def_counts.get(name).unwrap_or(&0);
             if def_count >= cfg.common_name_threshold {
-                suffix.push_str(&format!(
-                    "    - {name} ({def_count} defs, target ambiguous)\n"
-                ));
+                ambiguous_suppressed += 1;
             } else {
-                suffix.push_str(&format!("    - {}\n", callee_display(name, index)));
+                rendered_lines.push_str(&format!("    - {}\n", callee_display(name, index)));
             }
         }
-        if callees.len() > shown {
-            suffix.push_str(&format!(
-                "    - _… {} more not shown._\n",
-                callees.len() - shown
-            ));
+        // Only emit the block header when at least one actionable callee or a suppressed-count
+        // note will follow it, so a symbol whose callees are all ambiguous doesn't print a bare
+        // header. The header still summarizes what was found.
+        if !rendered_lines.is_empty() || ambiguous_suppressed > 0 || callees.len() > shown {
+            suffix.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
+            suffix.push_str(&rendered_lines);
+            if ambiguous_suppressed > 0 {
+                suffix.push_str(&format!(
+                    "    - _… {ambiguous_suppressed} ambiguous callee(s) suppressed (multiple defs — use grep to enumerate)._\n"
+                ));
+            }
+            if callees.len() > shown {
+                suffix.push_str(&format!(
+                    "    - _… {} more not shown._\n",
+                    callees.len() - shown
+                ));
+            }
         }
     }
 
@@ -317,11 +333,13 @@ pub struct DetailAnnotations {
     annotations: HashMap<(String, usize), SymbolAnnotation>,
 }
 
-/// Per-file caller-block dedup state owned by the renderer across one file's emitted symbols:
-/// `name → already-emitted caller block`. Construct one per detail file (the "same as above"
-/// back-reference only points within the same file), thread it through every
-/// [`DetailAnnotations::render`] / [`PreparedAnnotation::commit`] call for that file in
-/// emission order, then drop it.
+/// Caller-block dedup state owned by the renderer across emitted symbols: `name → already-emitted
+/// caller block`. Construct ONE for the whole detail view (shared across files) and thread it
+/// through every [`DetailAnnotations::render`] / [`PreparedAnnotation::commit`] call in emission
+/// order, so a caller block that repeats across file boundaries collapses to a "same as `name`
+/// above" back-reference instead of re-printing (cross-file dedup). The back-reference target is
+/// recorded only on actual emission, so it always points at a block already printed earlier in the
+/// view regardless of which file printed it.
 pub type CallerBlockDedup = HashMap<String, String>;
 
 /// A rendered-but-not-yet-committed annotation: the text to emit plus the dedup record intent.
@@ -341,8 +359,8 @@ impl PreparedAnnotation {
     }
 
     /// Commit this annotation's caller block as the back-reference target for later same-named
-    /// symbols in the same file. Call ONLY after the text was actually emitted. A no-op when the
-    /// render was itself a back-reference or carried no caller block.
+    /// symbols across the whole detail view. Call ONLY after the text was actually emitted. A no-op
+    /// when the render was itself a back-reference or carried no caller block.
     pub fn commit(self, seen: &mut CallerBlockDedup) {
         if let Some((name, block)) = self.record {
             seen.insert(name, block);
@@ -525,10 +543,12 @@ mod tests {
 
     #[test]
     fn test_callee_and_caller_ambiguity_labels_for_common_name() {
-        // `make` has two fn defs → as a callee it is labeled target-ambiguous (still shown);
-        // as a MATCHED name its callers are rendered with an attribution-ambiguity label —
-        // never suppressed. The sibling definition's own header line must not appear as a
-        // caller (it classifies as `make(` but sits inside a same-named def range).
+        // `make` has two fn defs → as a callee it is target-ambiguous, so it is SUPPRESSED from
+        // the callee list and collapsed into a "(N ambiguous callee(s) suppressed)" note (the
+        // ambiguous callee line carries no actionable target). As a MATCHED name, its callers are
+        // still rendered with an attribution-ambiguity label — never suppressed. The sibling
+        // definition's own header line must not appear as a caller (it classifies as `make(` but
+        // sits inside a same-named def range).
         let (_dir, root) = crate::callers::fixtures::write_repo(&[(
             "amb.rs",
             "pub fn make() {}\npub fn make() {}\npub fn user() {\n    make();\n}\n",
@@ -550,8 +570,12 @@ mod tests {
         let ann = annotate_results(&req_user, &snapshot, &cfg(), 100_000, &root).unwrap();
         let user_text = note(&ann, "amb.rs", 3);
         assert!(
-            user_text.contains("make (2 defs, target ambiguous)"),
-            "callee target-ambiguity label: {user_text}"
+            !user_text.contains("make (2 defs, target ambiguous)"),
+            "ambiguous callee line is suppressed, not rendered: {user_text}"
+        );
+        assert!(
+            user_text.contains("ambiguous callee(s) suppressed"),
+            "suppressed ambiguous callees collapse into a visible count note: {user_text}"
         );
         // Caller side: annotating `make` itself → callers listed with an ambiguity label.
         let make_text = note(&ann, "amb.rs", 1);
