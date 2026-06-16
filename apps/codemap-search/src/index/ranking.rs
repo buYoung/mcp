@@ -45,6 +45,12 @@ const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
 /// BELOW `EXACT_NAME_SCORE_BOOST` (3.0) so a symbol-exact exec member always ranks first. Gated to
 /// qualified (`::`/`.`) forms so a bare common word in a literal can't earn it.
 const QUALIFIED_LITERAL_SCORE_BOOST: f32 = 1.6;
+/// Gates ONLY the qualified-literal score lift (#1) below. Held off pending Lever-B validation
+/// (run cms-perf-improve-20260615): the lift's co-exposure mechanism is proven safe but its
+/// weak-model payoff is unconfirmed. `qualified_literal_hit` is still computed and carried, so the
+/// literal-exposure label (#2) and cross-path note (#4) stay live — only the rank promotion is
+/// dormant. Flip back to `true` to re-enable the lift in one edit.
+const ENABLE_QUALIFIED_LITERAL_BOOST: bool = false;
 
 const SYMBOL_SIGNAL_SCORE_CAP: f32 = 1.6;
 
@@ -570,12 +576,17 @@ impl SearcherHandle {
             // when there is no symbol-exact hit so it never stacks onto `EXACT_NAME_SCORE_BOOST`
             // (which would push a literal-only file above a real symbol match) — co-exposure, not
             // re-rank.
+            // The field is computed unconditionally (drives the #2 literal label + #4 cross-path
+            // note). The score lift below is held off via ENABLE_QUALIFIED_LITERAL_BOOST; keeping
+            // this computation here means neutralizing the lift never strips the literal exposure.
             let qualified_literal_hit =
                 qualified_literal_exact_hit(&candidate.literals, &query_tokens);
             let mut adjusted_score = candidate.raw_score;
             if exact_name_hit {
                 adjusted_score *= EXACT_NAME_SCORE_BOOST;
-            } else if qualified_literal_hit.is_some() {
+            } else if ENABLE_QUALIFIED_LITERAL_BOOST && qualified_literal_hit.is_some() {
+                // held pending Lever-B validation (run cms-perf-improve-20260615); field retained
+                // for literal exposure (#2) + cross-path note (#4)
                 adjusted_score *= QUALIFIED_LITERAL_SCORE_BOOST;
             }
             adjusted_score *= symbol_signal_multiplier(&scored_symbols);

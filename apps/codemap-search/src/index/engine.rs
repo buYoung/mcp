@@ -35,10 +35,11 @@ pub struct SearchResult {
     pub ranking_signal: Option<SearchRankingSignal>,
     /// The qualified-name string literal (`encoding::base64::decode`) this file matched when a
     /// qualified query word exactly equals one of its string literals. Carries the dispatch/lookup
-    /// literal that ranking promoted (see `QUALIFIED_LITERAL_SCORE_BOOST`) so the renderer can
-    /// label the file in the tail / `match_reason` instead of mislabeling it by a weak module
-    /// symbol — a legacy dispatch table reads as itself, not as "a plain mod.rs". `None` when no
-    /// qualified literal matched.
+    /// literal so the renderer can label the file in the tail / `match_reason` instead of
+    /// mislabeling it by a weak module symbol — a legacy dispatch table reads as itself, not as
+    /// "a plain mod.rs". Computed independently of the (currently held) qualified-literal score
+    /// lift (see `ENABLE_QUALIFIED_LITERAL_BOOST`), so this label survives with the lift off.
+    /// `None` when no qualified literal matched.
     pub qualified_literal_hit: Option<String>,
 }
 
