@@ -4,18 +4,6 @@ use std::path::Path;
 
 pub struct BenchmarkEngine;
 
-fn normalize_path_str(p: &str) -> String {
-    let replaced = p.replace('\\', "/");
-    let mut trimmed = replaced.as_str();
-    while trimmed.starts_with("./") {
-        trimmed = &trimmed[2..];
-    }
-    while trimmed.starts_with('/') {
-        trimmed = &trimmed[1..];
-    }
-    trimmed.to_string()
-}
-
 impl BenchmarkEngine {
     pub fn run_benchmark(
         queries_path: &str,
@@ -74,7 +62,7 @@ impl BenchmarkEngine {
                 .canonicalize()
                 .unwrap_or_else(|_| file_path.clone());
             let rel = abs_path.strip_prefix(&abs_cwd).unwrap_or(&file_path);
-            let rel_path = normalize_path_str(&rel.to_string_lossy());
+            let rel_path = crate::workspace::normalize_workspace_key(&rel.to_string_lossy());
             precomputed_source_files.push((file_path, rel_path));
         }
 
@@ -102,7 +90,7 @@ impl BenchmarkEngine {
                 if let Some(expected_arr) = expected_val.as_array() {
                     for val in expected_arr {
                         if let Some(s) = val.as_str() {
-                            expected_normalized.push(normalize_path_str(s));
+                            expected_normalized.push(crate::workspace::normalize_workspace_key(s));
                         }
                     }
                 } else {
@@ -186,7 +174,7 @@ impl BenchmarkEngine {
 
             let index_set: std::collections::HashSet<String> = index_results
                 .iter()
-                .map(|r| normalize_path_str(&r.file_path))
+                .map(|r| crate::workspace::normalize_workspace_key(&r.file_path))
                 .collect();
 
             let index_recall = if expected_normalized.is_empty() {

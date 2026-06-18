@@ -24,14 +24,15 @@ const FIND_FILES_TRUNCATION_MESSAGE: &str =
 /// fully-literal absolute path (no metacharacter) splits into dirname (base) + basename
 /// (pattern). The split point is the last `/` at or before the first metacharacter.
 fn split_static_prefix(pattern: &str) -> (String, String) {
-    let meta_index = pattern.find(['*', '?', '[', '{']);
+    let normalized = pattern.replace('\\', "/");
+    let meta_index = normalized.find(['*', '?', '[', '{']);
     let split_at = match meta_index {
-        Some(index) => pattern[..index].rfind('/').map(|s| s + 1).unwrap_or(0),
-        None => pattern.rfind('/').map(|s| s + 1).unwrap_or(0),
+        Some(index) => normalized[..index].rfind('/').map(|s| s + 1).unwrap_or(0),
+        None => normalized.rfind('/').map(|s| s + 1).unwrap_or(0),
     };
     (
-        pattern[..split_at].to_string(),
-        pattern[split_at..].to_string(),
+        normalized[..split_at].to_string(),
+        normalized[split_at..].to_string(),
     )
 }
 
@@ -51,7 +52,9 @@ fn resolve_absolute_pattern(
             format!("Absolute path pattern has no file component to match: {pattern}"),
         ));
     }
-    let base_canonical = crate::workspace::canonicalize_path_lenient(&PathBuf::from(&base_str));
+    let base_canonical = crate::workspace::canonicalize_path_lenient(
+        &crate::workspace::path_from_workspace_input(&base_str),
+    );
     let allow_outside = crate::config::get().allow_absolute_path_outside_root;
     if !allow_outside && !base_canonical.starts_with(cwd_canonical) {
         return Err((
@@ -73,7 +76,8 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
     // Resolve the search base and the glob matched relative to it. Absolute patterns split
     // their static prefix into the base (Claude Code parity); relative patterns search the
     // `path` arg and reject `..` escapes.
-    let (base, relative_pattern) = if Path::new(pattern).is_absolute() {
+    let pattern_path = crate::workspace::path_from_workspace_input(pattern);
+    let (base, relative_pattern) = if pattern_path.is_absolute() {
         resolve_absolute_pattern(pattern, &cwd_canonical)?
     } else {
         if pattern.split(['/', '\\']).any(|seg| seg == "..") {
@@ -85,13 +89,13 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         // Honor `allow_absolute_path_outside_root` for an absolute `path` arg too (decision
         // 4), so the opt-in escape hatch is symmetric with absolute patterns. Without the
         // flag, `resolve_within_cwd` still sandboxes the path to the workspace root.
-        let base = if Path::new(path).is_absolute()
-            && crate::config::get().allow_absolute_path_outside_root
-        {
-            crate::workspace::canonicalize_path_lenient(&PathBuf::from(path))
-        } else {
-            resolve_within_cwd(path)?
-        };
+        let path_arg = crate::workspace::path_from_workspace_input(path);
+        let base =
+            if path_arg.is_absolute() && crate::config::get().allow_absolute_path_outside_root {
+                crate::workspace::canonicalize_path_lenient(&path_arg)
+            } else {
+                resolve_within_cwd(path)?
+            };
         (base, pattern.to_string())
     };
 
@@ -156,4 +160,21 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         out.push_str(FIND_FILES_TRUNCATION_MESSAGE);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_static_prefix_normalizes_windows_separators() {
+        assert_eq!(
+            split_static_prefix("G:\\repo\\src\\*.rs"),
+            ("G:/repo/src/".to_string(), "*.rs".to_string())
+        );
+        assert_eq!(
+            split_static_prefix("G:\\repo\\src\\lib.rs"),
+            ("G:/repo/src/".to_string(), "lib.rs".to_string())
+        );
+    }
 }

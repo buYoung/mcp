@@ -50,6 +50,18 @@ fn test_codemap_details_view() {
         .stdout(predicates::str::contains("details"))
         // File view is a trimmed outline now; docstrings are read/grep's job.
         .stdout(predicates::str::contains("Details view test").not());
+
+    let assert_backslash = run_cli(&["codemap", "--path", "src\\lib.rs"], temp.path());
+    assert_backslash
+        .success()
+        .stdout(predicates::str::contains("details"))
+        .stdout(predicates::str::contains("Details view test").not());
+
+    let assert_dot_backslash = run_cli(&["codemap", "--path", ".\\src\\lib.rs"], temp.path());
+    assert_dot_backslash
+        .success()
+        .stdout(predicates::str::contains("details"))
+        .stdout(predicates::str::contains("Details view test").not());
 }
 
 #[test]

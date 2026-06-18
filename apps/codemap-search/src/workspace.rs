@@ -136,7 +136,7 @@ pub(crate) fn current_dir() -> Result<PathBuf, (i64, String)> {
 /// whose only caller now checks `resolve_within_cwd(p).is_err()`).
 pub(crate) fn resolve_within_cwd(rel: &str) -> Result<PathBuf, (i64, String)> {
     let cwd = current_dir()?;
-    let target = cwd.join(rel);
+    let target = cwd.join(path_from_workspace_input(rel));
 
     // Lexically collapse `.`/`..` before canonicalizing so traversal can't escape.
     let mut resolved = PathBuf::new();
@@ -224,11 +224,17 @@ pub fn read_source_for_parse(path: &Path) -> Option<String> {
     std::fs::read_to_string(path).ok()
 }
 
-/// Normalize a relative path to the stored index-key form: backslashes to forward
-/// slashes, then strip every leading `./` and `/`.
-pub(crate) fn normalize_relative_path(path: &Path) -> String {
-    let s = path.to_string_lossy().to_string();
-    let replaced = s.replace('\\', "/");
+/// Convert a user-supplied workspace path to a [`PathBuf`], accepting Windows-style
+/// separators even on non-Windows hosts. Filesystem APIs still receive paths, while
+/// workspace-key comparisons stay slash-normalized at string boundaries.
+pub fn path_from_workspace_input(path: &str) -> PathBuf {
+    PathBuf::from(path.replace('\\', "/"))
+}
+
+/// Normalize a path string to the stored workspace-key form: cwd-relative,
+/// forward-slash separated, with no leading `./` or `/`.
+pub fn normalize_workspace_key(path: &str) -> String {
+    let replaced = path.replace('\\', "/");
     let mut trimmed = replaced.as_str();
     while trimmed.starts_with("./") {
         trimmed = &trimmed[2..];
@@ -237,6 +243,32 @@ pub(crate) fn normalize_relative_path(path: &Path) -> String {
         trimmed = &trimmed[1..];
     }
     trimmed.to_string()
+}
+
+/// Normalize a relative path to the stored index-key form.
+pub(crate) fn normalize_relative_path(path: &Path) -> String {
+    normalize_workspace_key(&path.to_string_lossy())
+}
+
+/// Compute a workspace-relative key for a user or walker path. This mirrors the
+/// indexer's key contract for in-workspace files: canonicalize the path and root,
+/// strip the root, then normalize to forward slashes. If the path cannot be
+/// relativized to the workspace root, fall back to the input path's normalized form.
+pub fn workspace_relative_key(path: &Path, workspace_root: &Path) -> String {
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        workspace_root.join(path)
+    };
+    let canonical_path = canonicalize_path_lenient(&absolute_path);
+    let canonical_root = workspace_root
+        .canonicalize()
+        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let relative = canonical_path
+        .strip_prefix(&canonical_root)
+        .or_else(|_| absolute_path.strip_prefix(workspace_root))
+        .unwrap_or(path);
+    normalize_relative_path(relative)
 }
 
 /// Compute the stored index key for `entry_path`: the path relative to the
@@ -272,7 +304,11 @@ pub(crate) fn stored_index_key(path: &Path, abs_cwd: &Path) -> String {
 /// Distinct from [`relative_index_path`]: this keeps the two-step (canonical-then-raw)
 /// fallback and does only the backslash→slash replacement (no leading `./`/`/` strip),
 /// so the caller-scan display path stays byte-identical.
-pub(crate) fn workspace_display_path(entry_path: &Path, canonical_root: &Path, raw_root: &Path) -> String {
+pub(crate) fn workspace_display_path(
+    entry_path: &Path,
+    canonical_root: &Path,
+    raw_root: &Path,
+) -> String {
     let canonical_path = entry_path
         .canonicalize()
         .unwrap_or_else(|_| entry_path.to_path_buf());
@@ -295,6 +331,19 @@ mod tests {
         );
         assert_eq!(
             normalize_relative_path(Path::new("src\\lib.rs")),
+            "src/lib.rs"
+        );
+    }
+
+    #[test]
+    fn test_workspace_relative_key_normalizes_user_path_spellings() {
+        let root = std::env::current_dir().unwrap();
+        assert_eq!(
+            workspace_relative_key(Path::new("./src/lib.rs"), &root),
+            "src/lib.rs"
+        );
+        assert_eq!(
+            workspace_relative_key(Path::new(".\\src\\lib.rs"), &root),
             "src/lib.rs"
         );
     }

@@ -22,9 +22,11 @@ async fn test_cross_bm25_mcp_branching() {
     // 2. Call search via MCP (6 matches > threshold 5 -> hybrid: 5 detail + 1 ranked tail).
     //    Poll until the initial index covers all 6 files (the tail line appears).
     let res_large = client
-        .send_tool_until("search", serde_json::json!({ "query": "query_func" }), |t| {
-            t.contains("Other matches — 1 more files")
-        })
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "query_func" }),
+            |t| t.contains("Other matches — 1 more files"),
+        )
         .await
         .unwrap();
 
@@ -40,9 +42,11 @@ async fn test_cross_bm25_mcp_branching() {
     // 4. Call search again via MCP (4 matches ≤ threshold -> all-detail, no tail). Poll
     //    until the deletions are reflected by a background refresh (the tail disappears).
     let res_small = client
-        .send_tool_until("search", serde_json::json!({ "query": "query_func" }), |t| {
-            !t.contains("Other matches") && t.contains("fn query_func")
-        })
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "query_func" }),
+            |t| !t.contains("Other matches") && t.contains("fn query_func"),
+        )
         .await
         .unwrap();
 
@@ -171,6 +175,92 @@ async fn test_cross_mcp_codemap_reflects_modify() {
     assert!(
         !text.contains("before_symbol"),
         "stale symbol leaked from codemap: {text:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_cross_mcp_overview_accepts_slash_and_backslash_file_paths() {
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", "pub fn overview_path_symbol() {}"),
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let forward = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "overview",
+                "arguments": { "path": "src/lib.rs" }
+            }),
+        )
+        .await
+        .unwrap();
+    let forward_text = forward["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        forward_text.contains("overview_path_symbol"),
+        "forward-slash overview should show file details: {forward_text:?}"
+    );
+
+    let backslash = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "overview",
+                "arguments": { "path": "src\\lib.rs" }
+            }),
+        )
+        .await
+        .unwrap();
+    let backslash_text = backslash["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        backslash_text.contains("overview_path_symbol"),
+        "backslash overview should show file details: {backslash_text:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", "pub fn searchable_path_symbol() {}\n"),
+        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let search = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "searchable_path_symbol" }),
+            |t| t.contains("read src/lib.rs:"),
+        )
+        .await
+        .unwrap();
+    let search_text = search["result"]["content"][0]["text"].as_str().unwrap();
+    let suggestion_path = search_text
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("- read ")
+                .and_then(|rest| rest.split_once(':').map(|(path, _)| path))
+        })
+        .expect("search should render a read suggestion");
+    assert_eq!(suggestion_path, "src/lib.rs");
+
+    let read = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "read",
+                "arguments": { "file_path": suggestion_path }
+            }),
+        )
+        .await
+        .unwrap();
+    let read_text = read["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        read_text.contains("searchable_path_symbol"),
+        "search read suggestion path should be readable: {read_text:?}"
     );
 }
 

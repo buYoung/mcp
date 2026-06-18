@@ -111,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cwd = std::env::current_dir()?;
 
             if let Some(ref p) = path {
-                let target_path = cwd.join(p);
+                let target_path = cwd.join(codemap_search::workspace::path_from_workspace_input(p));
                 if !target_path.exists() {
                     eprintln!("Error: Path '{}' not found", p);
                     std::process::exit(1);
@@ -131,16 +131,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if file_path.is_file() {
                     if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
                         if codemap_search::workspace::is_source_extension(ext) {
-                            if let Ok(rel_path) = file_path.strip_prefix(&cwd) {
-                                let rel_path_str = rel_path.to_string_lossy().to_string();
-                                if let Some(content) =
-                                    codemap_search::workspace::read_source_for_parse(file_path)
-                                {
-                                    if let Ok(extracted) =
-                                        extractor.extract(&content, &rel_path_str)
-                                    {
-                                        extracted_files.push(extracted);
-                                    }
+                            let rel_path_str =
+                                codemap_search::workspace::workspace_relative_key(file_path, &cwd);
+                            if let Some(content) =
+                                codemap_search::workspace::read_source_for_parse(file_path)
+                            {
+                                if let Ok(extracted) = extractor.extract(&content, &rel_path_str) {
+                                    extracted_files.push(extracted);
                                 }
                             }
                         }
@@ -149,17 +146,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             if let Some(ref p) = path {
-                let target_path = cwd.join(p);
+                let target_path = cwd.join(codemap_search::workspace::path_from_workspace_input(p));
                 if target_path.is_file() {
-                    if let Ok(rel_path) = target_path.strip_prefix(&cwd) {
-                        let rel_path_str = rel_path.to_string_lossy().to_string();
-                        if let Some(file) =
-                            extracted_files.iter().find(|f| f.file_path == rel_path_str)
-                        {
-                            let view = CodemapGenerator::generate_detail_view(file);
-                            println!("{}", view);
-                            return Ok(());
-                        }
+                    let rel_path_str =
+                        codemap_search::workspace::workspace_relative_key(&target_path, &cwd);
+                    if let Some(file) = extracted_files.iter().find(|f| f.file_path == rel_path_str)
+                    {
+                        let view = CodemapGenerator::generate_detail_view(file);
+                        println!("{}", view);
+                        return Ok(());
                     }
                     eprintln!("Error: Failed to process file '{}'", p);
                     std::process::exit(1);
@@ -204,12 +199,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // sequence — watcher dropped (thread joined, its command-sender clone
             // released) before IndexerHandle::drop closes the channel and joins the
             // indexer, whose recv loop ends only when ALL senders are gone.
-            let supervisor = index::EngineSupervisor::new(
-                searcher,
-                watcher.flatten(),
-                indexer,
-                watcher_status,
-            );
+            let supervisor =
+                index::EngineSupervisor::new(searcher, watcher.flatten(), indexer, watcher_status);
             let mut server = mcp::McpServer::new(supervisor);
             server.run().await?;
             // server drop → EngineSupervisor drop → watcher field drop → indexer field drop.

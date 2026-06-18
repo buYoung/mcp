@@ -81,6 +81,19 @@ async fn test_read_basic_arrow_format() {
         out.lines().next().unwrap().contains("1\u{2192}"),
         "first line should be '1\u{2192}…': {out:?}"
     );
+
+    let backslash_resp = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "src\\core.rs" })),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        text(&backslash_resp),
+        out,
+        "backslash and forward-slash file paths should read the same file"
+    );
 }
 
 #[tokio::test]
@@ -246,9 +259,15 @@ async fn test_read_non_utf8_content_decodes_lossily() {
         )
         .await
         .unwrap();
-    assert!(!is_error(&resp), "non-UTF-8 content must decode lossily, not error");
+    assert!(
+        !is_error(&resp),
+        "non-UTF-8 content must decode lossily, not error"
+    );
     let out = text(&resp);
-    assert!(out.contains("text") && out.contains("binary"), "content surfaced: {out}");
+    assert!(
+        out.contains("text") && out.contains("binary"),
+        "content surfaced: {out}"
+    );
 }
 
 // ---- find ----------------------------------------------------------------
@@ -298,6 +317,44 @@ async fn test_find_include_ignored_bypass() {
 }
 
 #[tokio::test]
+async fn test_find_accepts_windows_style_relative_pattern() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("find", serde_json::json!({ "pattern": "src\\*.rs" })),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(out.contains("src/core.rs"), "{out:?}");
+    assert!(out.contains("src/util.rs"), "{out:?}");
+}
+
+#[tokio::test]
+async fn test_find_accepts_workspace_internal_absolute_backslash_pattern() {
+    let temp = sample_repo();
+    let absolute_pattern = temp
+        .path()
+        .join("src")
+        .join("*.rs")
+        .to_string_lossy()
+        .replace('/', "\\");
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_request(
+            "tools/call",
+            call("find", serde_json::json!({ "pattern": absolute_pattern })),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(out.contains("src/core.rs"), "{out:?}");
+    assert!(out.contains("src/util.rs"), "{out:?}");
+}
+
+#[tokio::test]
 async fn test_find_path_param_escape_is_rejected() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -333,7 +390,8 @@ async fn test_grep_content_is_default_mode() {
     let out = text(&resp);
     // Default is now content mode: lines render as `file:line:text` with line numbers.
     assert!(
-        out.lines().any(|l| l.starts_with("src/util.rs:") && l.contains("TODO")),
+        out.lines()
+            .any(|l| l.starts_with("src/util.rs:") && l.contains("TODO")),
         "content line format `file:line:text` expected by default: {out:?}"
     );
     assert!(

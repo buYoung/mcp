@@ -20,11 +20,13 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         .filter(|p| !p.is_empty() && *p != ".");
     let format = ctx.arguments.get("format").and_then(|v| v.as_str());
 
-    if let Some(p) = path {
-        if crate::workspace::resolve_within_cwd(p).is_err() {
-            return Err((-32602, "Path traversal detected".to_string()));
-        }
-    }
+    let resolved_path = match path {
+        Some(p) => Some(
+            crate::workspace::resolve_within_cwd(p)
+                .map_err(|_| (-32602, "Path traversal detected".to_string()))?,
+        ),
+        None => None,
+    };
 
     let cwd = std::env::current_dir()
         .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
@@ -35,9 +37,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
     // render an empty codemap.
-    if extracted_files.is_empty()
-        && (ctx.engine.is_warming() || ctx.engine.is_dead())
-    {
+    if extracted_files.is_empty() && (ctx.engine.is_warming() || ctx.engine.is_dead()) {
         let text = if ctx.engine.is_dead() {
             "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
         } else {
@@ -48,51 +48,30 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 
     use crate::codemap::CodemapView;
     let codemap_text = if let Some(p) = path {
-        let target_path = cwd.join(p);
-        let canonical_cwd = cwd.canonicalize().unwrap_or(cwd);
-        let canonical_target =
-            crate::workspace::canonicalize_path_lenient(&target_path);
-        if canonical_target.is_file() {
-            if let Ok(rel_path) = canonical_target.strip_prefix(&canonical_cwd)
-            {
-                let rel_path_str = rel_path.to_string_lossy().to_string();
-                if let Some(file) =
-                    extracted_files.iter().find(|f| f.file_path == rel_path_str)
-                {
-                    crate::codemap::CodemapGenerator::generate_detail_view(file)
-                        .to_markdown()
-                } else {
-                    // On disk but absent from the codemap: skipped, not
-                    // broken — non-source extension, over the size cap, or
-                    // unparseable. Say so rather than imply a failure.
-                    return Err((-32602, format!(
-                        "File '{}' is not in the codemap (not a supported source file, exceeds the size cap, or could not be parsed)",
-                        p
-                    )));
-                }
+        let target_path = resolved_path
+            .as_ref()
+            .ok_or_else(|| (-32603, format!("Failed to process path '{}'", p)))?;
+        if target_path.is_file() {
+            let rel_path_str = crate::workspace::workspace_relative_key(target_path, &cwd);
+            if let Some(file) = extracted_files.iter().find(|f| f.file_path == rel_path_str) {
+                crate::codemap::CodemapGenerator::generate_detail_view(file).to_markdown()
             } else {
-                return Err((
-                    -32603,
-                    format!("Failed to process file '{}'", p),
-                ));
+                // On disk but absent from the codemap: skipped, not
+                // broken — non-source extension, over the size cap, or
+                // unparseable. Say so rather than imply a failure.
+                return Err((-32602, format!(
+                    "File '{}' is not in the codemap (not a supported source file, exceeds the size cap, or could not be parsed)",
+                    p
+                )));
             }
         } else {
-            crate::codemap::CodemapGenerator::generate_folder_view(
-                extracted_files,
-                p,
-            )
-            .to_markdown()
+            crate::codemap::CodemapGenerator::generate_folder_view(extracted_files, p).to_markdown()
         }
     } else {
         if format == Some("llms-txt") {
-            crate::codemap::CodemapGenerator::generate_llms_txt_view(
-                extracted_files,
-            )
+            crate::codemap::CodemapGenerator::generate_llms_txt_view(extracted_files)
         } else {
-            crate::codemap::CodemapGenerator::generate_root_view(
-                extracted_files,
-            )
-            .to_markdown()
+            crate::codemap::CodemapGenerator::generate_root_view(extracted_files).to_markdown()
         }
     };
 

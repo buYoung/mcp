@@ -38,7 +38,8 @@ pub(crate) fn normalize_glob_prefix(pattern: &str) -> String {
         Some(rest) => ("!", rest),
         None => ("", pattern),
     };
-    let mut body = rest;
+    let replaced = rest.replace('\\', "/");
+    let mut body = replaced.as_str();
     while let Some(stripped) = body.strip_prefix("./") {
         body = stripped;
     }
@@ -197,6 +198,17 @@ pub(crate) fn arg_required_str<'a>(
 /// [`list_tools`] so prose and tool schemas stay in sync.
 pub fn instructions() -> &'static str {
     "Five code-navigation tools. Pick by intent, not order.\n* `search`: use first for symbols, definitions, concepts, quoted strings, errors, config defaults, or 'where is X done?' questions. BM25 over indexed symbols, docstrings, and string literals; identifier splitting + ranking find what exact grep misses. Top files include compact `match_reason`, ambiguity hints, `read_suggestion`, line snippets, and matched function depth-1 callers/callees. Set `caller_context=false` to disable. More matches appear as ranked one-line list. Output capped by `search_detail_byte_cap`; if partial, narrow query or read listed ranges. Snippet lines and caller `file:line` exact — cite directly, do not re-read to confirm. Only caller→definition attribution is name-match approximate.\n* `grep`: use first for exact enumeration: confirmed names, regex, comments, non-code files, or just-edited files with no index lag. More pages include `next_offset`.\n* `overview`: use to orient in unfamiliar code or get symbol line ranges before `read`. Root gives bounded repo map with compact file/symbol groups. Folder path narrows. File path gives exact symbol ranges.\n* `read`: read file contents. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`, especially for large files.\n* `find`: locate files by glob and confirm exact paths.\nTypical flow: `search` finds symbol + call context → `read` exact range. Use `grep` when every literal occurrence matters or file was just edited."
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_glob_prefix;
+
+    #[test]
+    fn test_normalize_glob_prefix_accepts_windows_separators() {
+        assert_eq!(normalize_glob_prefix(".\\src\\*.rs"), "src/*.rs");
+        assert_eq!(normalize_glob_prefix("!.\\src\\*.rs"), "!src/*.rs");
+    }
 }
 
 /// The MCP `tools/list` result: the six tool schemas (name, description, read-only
