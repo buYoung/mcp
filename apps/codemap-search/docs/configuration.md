@@ -17,7 +17,7 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 - **Never-exit:** a missing file, parse error, unknown key, or wrong-typed value warns to stderr and falls back to the default for that key. The server never crashes over config.
 - **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created — every key commented out at its default, so the file changes nothing until you uncomment a line. An existing file is never overwritten.
-- **Validation:** numeric keys must be positive integers, `index_path` must be a non-empty string, `excluded_directories` must be an array of strings. An invalid value warns and falls back to the default for that key.
+- **Validation:** numeric keys must be positive integers, `index_path` must be a non-empty string, arrays must contain strings, and filesystem permission policies must be `workspace`, `allowed_roots`, or `anywhere`. An invalid value warns and falls back to the default for that key.
 
 ## Key reference
 
@@ -33,7 +33,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 | `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
-| `allow_absolute_path_outside_root` | bool | `false` | Allow `find` absolute-path patterns whose resolved prefix falls outside the workspace root |
+| `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].allowed_roots` | string array | `[]` | Canonicalized external roots available to tools set to `allowed_roots` |
 | `grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
 | `read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
 | `search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
@@ -71,7 +74,16 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 - **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes) would exceed this throws rather than emitting an unbounded blob. Oversized errors include a concrete narrower `offset`/`limit` suggestion. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
 - **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider than this many characters is replaced with `[Omitted long matching line]`, matching Claude Code's `--max-columns 500` default. Partial `grep` pages include the shown range, total count, and `next_offset`. Set `0` to disable the column cap (default 500).
-- **`allow_absolute_path_outside_root`** — when `false` (the default), `find` rejects absolute-path patterns whose resolved prefix falls outside the workspace root, preserving the sandbox. Set `true` to let `find` search arbitrary on-disk locations via absolute globs (e.g. paths Claude Code's Glob tool passes with an absolute base).
+
+### Filesystem permissions
+
+`read`, `find`, and `grep` are live filesystem tools. By default, each tool is confined to the current workspace root and rejects `..` traversal or absolute paths that resolve outside the workspace. The `[filesystem_permissions]` table lets you widen access per tool:
+
+- **`workspace`** — workspace only. This is the default for `find`, `grep`, and `read`.
+- **`allowed_roots`** — workspace plus the canonicalized paths listed in `allowed_roots`.
+- **`anywhere`** — full-disk access for that tool. Use this only when the MCP server already runs in an environment where broad local file access is acceptable.
+
+`allowed_roots` entries are canonicalized before matching, so symlink and `..` resolution cannot broaden access beyond the configured roots. `search` and `overview` are index-backed and keep their workspace indexing scope; this permission table applies only to `read`, `find`, and `grep`.
 
 ### Caller/callee context
 
@@ -108,7 +120,6 @@ search_overview_file_limit = 12
 watch = true
 watch_debounce_ms = 500
 indexer_auto_restart = true
-allow_absolute_path_outside_root = false
 grep_max_columns = 500
 read_output_byte_cap = 102400             # 100 KiB
 search_detail_snippet_max_lines = 80
@@ -117,6 +128,46 @@ search_detail_byte_cap = 32768            # 32 KiB
 search_literal_max_len = 200
 search_literal_limit = 10
 search_anchor_snippet_limit = 3
+
+[filesystem_permissions]
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+allowed_roots = []
+```
+
+### Default workspace-only permissions
+
+```toml
+[filesystem_permissions]
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+allowed_roots = []
+```
+
+### Bounded external roots
+
+This example lets `find` and `grep` inspect a shared source tree while keeping `read` confined to the workspace:
+
+```toml
+[filesystem_permissions]
+find = "allowed_roots"
+grep = "allowed_roots"
+read = "workspace"
+allowed_roots = ["G:/shared/source", "D:/vendor-src"]
+```
+
+### High-risk broad access
+
+This intentionally gives one tool full-disk access. Prefer `allowed_roots` unless the MCP server is already isolated by the surrounding environment:
+
+```toml
+[filesystem_permissions]
+find = "anywhere"
+grep = "workspace"
+read = "workspace"
+allowed_roots = []
 ```
 
 ## The `.codemap/` directory and ignore files

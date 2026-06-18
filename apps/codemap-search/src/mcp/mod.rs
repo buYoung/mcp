@@ -196,11 +196,9 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    "initial_instructions" => {
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": crate::tools::instructions() }]
-                        }))
-                    }
+                    "initial_instructions" => Ok(serde_json::json!({
+                        "content": [{ "type": "text", "text": crate::tools::instructions() }]
+                    })),
                     _ => Err((-32601, "Tool not found".to_string())),
                 }
             }

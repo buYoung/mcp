@@ -98,7 +98,12 @@ impl LanguageSpec for PythonSpec {
         node
     }
 
-    fn docstring_fallback(&self, node: Node, source: &[u8], _comments: &[String]) -> Option<String> {
+    fn docstring_fallback(
+        &self,
+        node: Node,
+        source: &[u8],
+        _comments: &[String],
+    ) -> Option<String> {
         get_python_inline_docstring(node, source)
     }
 
@@ -133,9 +138,7 @@ impl LanguageSpec for PythonSpec {
         } else {
             false
         };
-        super::path_indicates_test(file_path)
-            || name_starts_test_normalized
-            || has_test_decorator
+        super::path_indicates_test(file_path) || name_starts_test_normalized || has_test_decorator
     }
 
     fn is_exported(

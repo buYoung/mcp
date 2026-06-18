@@ -338,8 +338,7 @@ fn candidate_from_doc(
 
 fn has_owner_exact_symbol(candidate: &CandidateFile, query: &QueryTokens) -> bool {
     candidate.symbols.iter().any(|sym| {
-        owner_query_match(sym, query)
-            && exact_boost_eligible(sym, query, &candidate.file_path, 1)
+        owner_query_match(sym, query) && exact_boost_eligible(sym, query, &candidate.file_path, 1)
     })
 }
 
@@ -356,7 +355,10 @@ fn is_qualified_word(raw_word: &str) -> bool {
 /// merely contains the path as a fragment from earning the boost; the qualified gate keeps a bare
 /// common word out. Returns the original-cased literal text for display. Takes the literal slice
 /// (not the whole candidate) so it can run after `candidate.symbols` has been moved out.
-fn qualified_literal_exact_hit(literals: &[ExtractedLiteral], query: &QueryTokens) -> Option<String> {
+fn qualified_literal_exact_hit(
+    literals: &[ExtractedLiteral],
+    query: &QueryTokens,
+) -> Option<String> {
     let qualified_words: Vec<&String> = query
         .raw_words()
         .iter()

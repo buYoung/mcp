@@ -199,11 +199,7 @@ impl LanguageSpec for RustSpec {
         &["mod_item", "declaration_list", "enum_variant_list"]
     }
 
-    fn owner_for_container<'a>(
-        &self,
-        current: Node<'a>,
-        source: &[u8],
-    ) -> Option<Option<String>> {
+    fn owner_for_container<'a>(&self, current: Node<'a>, source: &[u8]) -> Option<Option<String>> {
         // Rust: a method lives in an `impl_item` (read its `type`; for `impl Trait for Type`
         // the `type` field is the implementing `Type`) or a `trait_item` default method; an
         // enum variant is owned by its `enum_item` (reached via the `enum_variant_list`

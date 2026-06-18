@@ -102,9 +102,7 @@ pub fn spawn_watcher(
 ) -> Option<WatcherHandle> {
     // Canonicalize so event paths (which the OS reports against the resolved root) strip
     // cleanly in the path filter, e.g. macOS `/var` → `/private/var`.
-    let root = root
-        .canonicalize()
-        .unwrap_or_else(|_| root.to_path_buf());
+    let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
 
     let (event_sender, event_receiver) = channel();
     // `std::sync::mpsc::Sender` implements notify's EventHandler: events are forwarded to
@@ -241,11 +239,7 @@ fn run_debounce_loop(
 
 /// Fold one notify event into the batch: errors and rescans escalate to a full walk,
 /// access-kind events are dropped, and each path is classified by the filter below.
-fn accumulate(
-    batch: &mut PendingBatch,
-    event: Result<notify::Event, notify::Error>,
-    root: &Path,
-) {
+fn accumulate(batch: &mut PendingBatch, event: Result<notify::Event, notify::Error>, root: &Path) {
     let event = match event {
         Ok(event) => event,
         Err(e) => {
@@ -303,10 +297,7 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
     if rel.as_os_str().is_empty() {
         return EventPathKind::WatchRoot;
     }
-    if GIT_REF_HINT_PATHS
-        .iter()
-        .any(|hint| rel == Path::new(hint))
-    {
+    if GIT_REF_HINT_PATHS.iter().any(|hint| rel == Path::new(hint)) {
         return EventPathKind::GitRefHint;
     }
     let config = crate::config::get();

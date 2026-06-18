@@ -261,7 +261,7 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "file_path": { "type": "string", "description": "Workspace-relative path to the file. Aliases 'path'/'file'/'query' are also accepted." },
+                                "file_path": { "type": "string", "description": "Workspace-relative path by default; configured filesystem permissions may allow absolute paths. Aliases 'path'/'file'/'query' are also accepted." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
                                 "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
                             },
@@ -276,7 +276,7 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "pattern": { "type": "string", "description": "Glob pattern, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates." },
-                                "path": { "type": "string", "description": "Base directory to search (default '.')." },
+                                "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
                                 "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
                             },
                             "required": ["pattern"]
@@ -290,7 +290,7 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
-                                "path": { "type": "string", "description": "Base directory to search (default '.')." },
+                                "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
                                 "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
                                 "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'content' — matching lines as 'file:line:text' with line numbers (via -n). Use 'files_with_matches' for a cheap file-list enumeration, or 'count' for per-file match counts." },

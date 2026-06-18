@@ -491,11 +491,9 @@ async fn test_caller_context_default_on_annotates_when_omitted() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let response = client
-        .send_tool_until(
-            "search",
-            serde_json::json!({ "query": "target" }),
-            |t| t.contains("approximate") && !t.contains("warming up"),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "target" }), |t| {
+            t.contains("approximate") && !t.contains("warming up")
+        })
         .await
         .unwrap();
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
@@ -521,11 +519,9 @@ async fn test_caller_context_repo_off_is_byte_identical() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let omitted = client
-        .send_tool_until(
-            "search",
-            serde_json::json!({ "query": "target" }),
-            |t| t.contains("target") && !t.contains("warming up"),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "target" }), |t| {
+            t.contains("target") && !t.contains("warming up")
+        })
         .await
         .unwrap();
     let explicit_false = client
@@ -640,11 +636,9 @@ async fn test_caller_context_explicit_false_overrides_repo_default_on() {
 
     // Omitted → repo default ON → annotated.
     let omitted = client
-        .send_tool_until(
-            "search",
-            serde_json::json!({ "query": "target" }),
-            |t| t.contains("approximate") && !t.contains("warming up"),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "target" }), |t| {
+            t.contains("approximate") && !t.contains("warming up")
+        })
         .await
         .unwrap();
     let omitted_text = omitted["result"]["content"][0]["text"].as_str().unwrap();
@@ -690,7 +684,10 @@ async fn test_caller_context_zero_callers_caveat() {
         text.contains("no direct caller observed"),
         "observation-scope caveat: {text}"
     );
-    assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+    assert!(
+        !text.contains("0 callers"),
+        "never a bare 0 callers: {text}"
+    );
 }
 
 /// Flag on with a small `search_detail_byte_cap`: a `fn` with many callers yields a large

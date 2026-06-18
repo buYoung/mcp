@@ -14,6 +14,23 @@
 
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum FilesystemTool {
+    Find,
+    Grep,
+    Read,
+}
+
+impl FilesystemTool {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Find => "find",
+            Self::Grep => "grep",
+            Self::Read => "read",
+        }
+    }
+}
+
 /// Per-repo custom ignore file using gitignore syntax/semantics. Name is still
 /// pending final confirmation in Child 05; keep it a single constant so the rename
 /// is one line.
@@ -136,9 +153,70 @@ pub(crate) fn current_dir() -> Result<PathBuf, (i64, String)> {
 /// whose only caller now checks `resolve_within_cwd(p).is_err()`).
 pub(crate) fn resolve_within_cwd(rel: &str) -> Result<PathBuf, (i64, String)> {
     let cwd = current_dir()?;
-    let target = cwd.join(path_from_workspace_input(rel));
+    let resolved_canonical = resolve_path_lenient_from_cwd(&cwd, rel);
+    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
 
-    // Lexically collapse `.`/`..` before canonicalizing so traversal can't escape.
+    if resolved_canonical.starts_with(&cwd_canonical) {
+        Ok(resolved_canonical)
+    } else {
+        Err((-32602, format!("Path escapes the workspace root: {rel}")))
+    }
+}
+
+/// Resolve a path for a live filesystem tool according to its configured permission policy.
+/// Workspace paths are always allowed; external paths require either the tool's
+/// `allowed_roots` policy plus a matching configured root, or its explicit `anywhere` policy.
+pub(crate) fn resolve_for_filesystem_tool(
+    path: &str,
+    tool: FilesystemTool,
+) -> Result<PathBuf, (i64, String)> {
+    let cwd = current_dir()?;
+    let resolved_canonical = resolve_path_lenient_from_cwd(&cwd, path);
+    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
+
+    if resolved_canonical.starts_with(&cwd_canonical) {
+        return Ok(resolved_canonical);
+    }
+
+    let permissions = &crate::config::get().filesystem_permissions;
+    let policy = match tool {
+        FilesystemTool::Find => permissions.find,
+        FilesystemTool::Grep => permissions.grep,
+        FilesystemTool::Read => permissions.read,
+    };
+
+    match policy {
+        crate::config::FilesystemPermissionPolicy::Workspace => Err((
+            -32602,
+            format!(
+                "{} path escapes the workspace root: {path}. Configure [filesystem_permissions].{} = \"allowed_roots\" with allowed_roots, or \"anywhere\", to permit it.",
+                tool.name(),
+                tool.name()
+            ),
+        )),
+        crate::config::FilesystemPermissionPolicy::AllowedRoots => {
+            if permissions
+                .allowed_roots
+                .iter()
+                .any(|root| resolved_canonical.starts_with(root))
+            {
+                Ok(resolved_canonical)
+            } else {
+                Err((
+                    -32602,
+                    format!(
+                        "{} path is outside the workspace and configured allowed_roots: {path}",
+                        tool.name()
+                    ),
+                ))
+            }
+        }
+        crate::config::FilesystemPermissionPolicy::Anywhere => Ok(resolved_canonical),
+    }
+}
+
+fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
+    let target = cwd.join(path_from_workspace_input(input));
     let mut resolved = PathBuf::new();
     for component in target.components() {
         match component {
@@ -149,15 +227,7 @@ pub(crate) fn resolve_within_cwd(rel: &str) -> Result<PathBuf, (i64, String)> {
             other => resolved.push(other.as_os_str()),
         }
     }
-
-    let resolved_canonical = canonicalize_path_lenient(&resolved);
-    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
-
-    if resolved_canonical.starts_with(&cwd_canonical) {
-        Ok(resolved_canonical)
-    } else {
-        Err((-32602, format!("Path escapes the workspace root: {rel}")))
-    }
+    canonicalize_path_lenient(&resolved)
 }
 
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects

@@ -81,7 +81,10 @@ fn clean_go_doc_comments(comments: &[String]) -> Option<String> {
         if let Some(rest) = trimmed.strip_prefix("//") {
             lines.push(rest.trim().to_string());
         } else if trimmed.starts_with("/*") {
-            let inner = trimmed.trim_start_matches("/*").trim_end_matches("*/").trim();
+            let inner = trimmed
+                .trim_start_matches("/*")
+                .trim_end_matches("*/")
+                .trim();
             for line in inner.lines() {
                 lines.push(line.trim().trim_start_matches('*').trim().to_string());
             }
@@ -182,17 +185,19 @@ impl LanguageSpec for GoSpec {
         // symbol is captured on.
         if let Some(parent) = node.parent() {
             let pk = parent.kind();
-            if pk == "type_declaration"
-                || pk == "const_declaration"
-                || pk == "var_declaration"
-            {
+            if pk == "type_declaration" || pk == "const_declaration" || pk == "var_declaration" {
                 return parent;
             }
         }
         node
     }
 
-    fn docstring_fallback(&self, _node: Node, _source: &[u8], comments: &[String]) -> Option<String> {
+    fn docstring_fallback(
+        &self,
+        _node: Node,
+        _source: &[u8],
+        comments: &[String],
+    ) -> Option<String> {
         clean_go_doc_comments(comments)
     }
 
@@ -255,11 +260,7 @@ impl LanguageSpec for GoSpec {
         &["interface_type", "type_declaration"]
     }
 
-    fn owner_for_container<'a>(
-        &self,
-        current: Node<'a>,
-        source: &[u8],
-    ) -> Option<Option<String>> {
+    fn owner_for_container<'a>(&self, current: Node<'a>, source: &[u8]) -> Option<Option<String>> {
         // Go: an interface method (`method_elem`) is owned by its enclosing `type_spec`.
         if current.kind() == "type_spec" {
             let Some(name) = current.child_by_field_name("name") else {

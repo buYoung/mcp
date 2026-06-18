@@ -68,8 +68,8 @@ impl<'a> Sink for ClassifySink<'a> {
                     from = at + name.len();
                     // Word-boundary guard: the char immediately before/after the match must
                     // not be an identifier char, so `new` does not match inside `renew`.
-                    let before_ok = at == 0
-                        || !is_ident_char(line[..at].chars().next_back().unwrap_or(' '));
+                    let before_ok =
+                        at == 0 || !is_ident_char(line[..at].chars().next_back().unwrap_or(' '));
                     let after_idx = at + name.len();
                     let after_char = line[after_idx..].chars().next();
                     let after_ok = after_char.map(|c| !is_ident_char(c)).unwrap_or(true);

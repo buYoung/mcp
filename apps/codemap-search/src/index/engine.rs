@@ -516,8 +516,11 @@ impl TantivySearchEngine {
 
             for literal in &extracted.literals {
                 if literal.text.chars().count() > INDEXED_LITERAL_MAX_CHARS {
-                    let capped: String =
-                        literal.text.chars().take(INDEXED_LITERAL_MAX_CHARS).collect();
+                    let capped: String = literal
+                        .text
+                        .chars()
+                        .take(INDEXED_LITERAL_MAX_CHARS)
+                        .collect();
                     doc.add_text(self.literal_field, &capped);
                 } else {
                     doc.add_text(self.literal_field, &literal.text);
@@ -601,12 +604,10 @@ impl TantivySearchEngine {
                     continue;
                 }
                 match collect_index_entry(path, &abs_cwd) {
-                    Some((rel_path, disk_path, mtime)) => {
-                        match indexed_mtimes.get(&rel_path) {
-                            Some(&indexed_mtime) if indexed_mtime == mtime => {}
-                            _ => to_index.push((rel_path, disk_path, mtime)),
-                        }
-                    }
+                    Some((rel_path, disk_path, mtime)) => match indexed_mtimes.get(&rel_path) {
+                        Some(&indexed_mtime) if indexed_mtime == mtime => {}
+                        _ => to_index.push((rel_path, disk_path, mtime)),
+                    },
                     None => {
                         // Not indexable (extension/size): if a former source file now
                         // exceeds the cap, drop its stale doc.

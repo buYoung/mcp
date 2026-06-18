@@ -157,7 +157,10 @@ mod tests {
     #[test]
     fn test_qualified_name_from_owner_rust_uses_colons() {
         let s = fixtures::sym("new", "fn", 5, 8, Some("TantivySearchEngine"));
-        assert_eq!(qualified_name(&s, "src/index.rs"), "TantivySearchEngine::new");
+        assert_eq!(
+            qualified_name(&s, "src/index.rs"),
+            "TantivySearchEngine::new"
+        );
     }
 
     #[test]
@@ -276,7 +279,11 @@ pub(super) mod fixtures {
 
     /// Render one symbol's annotation from a `DetailAnnotations` with a FRESH per-file dedup
     /// map (so a single-symbol lookup always yields the full block, never a back-reference).
-    pub(in crate::callers) fn note(ann: &DetailAnnotations, file_path: &str, start: usize) -> String {
+    pub(in crate::callers) fn note(
+        ann: &DetailAnnotations,
+        file_path: &str,
+        start: usize,
+    ) -> String {
         let mut seen = CallerBlockDedup::new();
         ann.render(file_path, start, &seen)
             .map(|prepared| {
@@ -288,7 +295,11 @@ pub(super) mod fixtures {
     }
 
     /// Whether a symbol has an annotation at all (the render-time analog of the old `get`).
-    pub(in crate::callers) fn has_note(ann: &DetailAnnotations, file_path: &str, start: usize) -> bool {
+    pub(in crate::callers) fn has_note(
+        ann: &DetailAnnotations,
+        file_path: &str,
+        start: usize,
+    ) -> bool {
         let seen = CallerBlockDedup::new();
         ann.render(file_path, start, &seen).is_some()
     }

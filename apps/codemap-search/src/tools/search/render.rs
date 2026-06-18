@@ -273,8 +273,7 @@ pub(super) fn render_anchored_symbols(
             .iter()
             .copied()
             .filter(|s| {
-                is_anchor_sym(s)
-                    && !encloses_anchor_range(s.range.start_line, s.range.end_line)
+                is_anchor_sym(s) && !encloses_anchor_range(s.range.start_line, s.range.end_line)
             })
             .take(anchor_snippet_limit)
             .map(|s| s.range.start_line)
@@ -361,7 +360,8 @@ pub(super) fn render_anchored_symbols(
                     if text.len() + prepared.text().len() <= byte_cap {
                         text.push_str(prepared.text());
                         prepared.commit(caller_block_dedup);
-                    } else if text.len() + crate::callers::ANNOTATION_OMITTED_MARKER.len() <= byte_cap
+                    } else if text.len() + crate::callers::ANNOTATION_OMITTED_MARKER.len()
+                        <= byte_cap
                     {
                         text.push_str(crate::callers::ANNOTATION_OMITTED_MARKER);
                     }

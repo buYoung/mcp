@@ -5,9 +5,9 @@
 //! (`rg --glob` semantics: a slash-less pattern matches the basename at any depth).
 
 use super::{arg_bool, arg_required_str, build_glob_matcher};
-use crate::workspace::{build_walker, current_dir, resolve_within_cwd};
+use crate::workspace::{build_walker, current_dir, resolve_for_filesystem_tool, FilesystemTool};
 use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::SystemTime;
 
 /// Max files returned; on overflow keep the NEWEST [`FIND_FILES_RESULT_LIMIT`] by
@@ -37,12 +37,8 @@ fn split_static_prefix(pattern: &str) -> (String, String) {
 }
 
 /// Resolve an absolute glob pattern into a (canonicalized search base, relative remainder).
-/// The base must stay within the workspace root unless `allow_absolute_path_outside_root`
-/// is enabled; an escaping base (including via `..`) is rejected by default.
-fn resolve_absolute_pattern(
-    pattern: &str,
-    cwd_canonical: &Path,
-) -> Result<(PathBuf, String), (i64, String)> {
+/// The base is checked through the shared filesystem permission model.
+fn resolve_absolute_pattern(pattern: &str) -> Result<(PathBuf, String), (i64, String)> {
     let (base_str, remainder) = split_static_prefix(pattern);
     // A dir-only absolute pattern (trailing `/`, no file part) leaves nothing to match;
     // reject rather than silently matching every file under the base.
@@ -52,16 +48,7 @@ fn resolve_absolute_pattern(
             format!("Absolute path pattern has no file component to match: {pattern}"),
         ));
     }
-    let base_canonical = crate::workspace::canonicalize_path_lenient(
-        &crate::workspace::path_from_workspace_input(&base_str),
-    );
-    let allow_outside = crate::config::get().allow_absolute_path_outside_root;
-    if !allow_outside && !base_canonical.starts_with(cwd_canonical) {
-        return Err((
-            -32602,
-            format!("Absolute path pattern escapes the workspace root: {pattern}"),
-        ));
-    }
+    let base_canonical = resolve_for_filesystem_tool(&base_str, FilesystemTool::Find)?;
     Ok((base_canonical, remainder))
 }
 
@@ -70,15 +57,12 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
     let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
     let include_ignored = arg_bool(args, "include_ignored", false);
 
-    let cwd = current_dir()?;
-    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
-
     // Resolve the search base and the glob matched relative to it. Absolute patterns split
     // their static prefix into the base (Claude Code parity); relative patterns search the
     // `path` arg and reject `..` escapes.
     let pattern_path = crate::workspace::path_from_workspace_input(pattern);
     let (base, relative_pattern) = if pattern_path.is_absolute() {
-        resolve_absolute_pattern(pattern, &cwd_canonical)?
+        resolve_absolute_pattern(pattern)?
     } else {
         if pattern.split(['/', '\\']).any(|seg| seg == "..") {
             return Err((
@@ -86,16 +70,7 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
                 format!("Parent-directory ('..') patterns are not allowed: {pattern}"),
             ));
         }
-        // Honor `allow_absolute_path_outside_root` for an absolute `path` arg too (decision
-        // 4), so the opt-in escape hatch is symmetric with absolute patterns. Without the
-        // flag, `resolve_within_cwd` still sandboxes the path to the workspace root.
-        let path_arg = crate::workspace::path_from_workspace_input(path);
-        let base =
-            if path_arg.is_absolute() && crate::config::get().allow_absolute_path_outside_root {
-                crate::workspace::canonicalize_path_lenient(&path_arg)
-            } else {
-                resolve_within_cwd(path)?
-            };
+        let base = resolve_for_filesystem_tool(path, FilesystemTool::Find)?;
         (base, pattern.to_string())
     };
 
@@ -109,6 +84,8 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
     // Shared gitignore-style matcher: `*.rs` matches at any depth, `**` crosses dirs,
     // `{a,b}` brace-expands, leading `!` negates — identical to `rg --glob`.
     let matcher = build_glob_matcher(&base, &[relative_pattern])?;
+    let cwd = current_dir()?;
+    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
 
     let mut hits: Vec<(String, SystemTime)> = Vec::new();
     for result in build_walker(&base, include_ignored).build() {

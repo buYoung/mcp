@@ -3,7 +3,7 @@
 //! filesystem I/O, no index/engine dependency.
 
 use super::{get_arg, lenient_usize};
-use crate::workspace::resolve_within_cwd;
+use crate::workspace::{resolve_for_filesystem_tool, FilesystemTool};
 use serde_json::Value;
 
 /// When `limit` is omitted, refuse to read files larger than this so a single call
@@ -100,7 +100,7 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     let file_path = resolve_file_path_arg(args)?;
     let (offset, limit) = resolve_window_args(args);
 
-    let resolved = resolve_within_cwd(file_path)?;
+    let resolved = resolve_for_filesystem_tool(file_path, FilesystemTool::Read)?;
 
     let metadata = std::fs::metadata(&resolved)
         .map_err(|e| (-32602, format!("Cannot read '{file_path}': {e}")))?;

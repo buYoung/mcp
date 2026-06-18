@@ -120,7 +120,9 @@ impl LanguageSpec for JavaSpec {
         _comments_text: &str,
     ) -> bool {
         has_annotation(node, "Deprecated", source)
-            || docstring.as_ref().is_some_and(|d| d.contains("@deprecated"))
+            || docstring
+                .as_ref()
+                .is_some_and(|d| d.contains("@deprecated"))
     }
 
     fn find_owner(&self, node: Node, ext: &str, source: &[u8]) -> Option<String> {

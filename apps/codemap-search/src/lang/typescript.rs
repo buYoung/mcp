@@ -176,7 +176,7 @@ impl LanguageSpec for TypeScriptSpec {
             "generator_function_declaration",
             "class_static_block",
             // anonymous-type / object-value bodies (a value, not a named type)
-            "class", // class expression: `const X = class { ... }`
+            "class",  // class expression: `const X = class { ... }`
             "object", // object literal: `{ handler() {} }`
         ]
     }

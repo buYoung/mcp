@@ -223,14 +223,8 @@ impl CodeExtractor for TreeSitterExtractor {
                             let has_fixme = contains_case_insensitive(node_text, "fixme")
                                 || contains_case_insensitive(&comments_text, "fixme");
 
-                            let is_test = spec.is_test(
-                                node,
-                                &name,
-                                kind,
-                                file_path,
-                                source,
-                                &comments_text,
-                            );
+                            let is_test =
+                                spec.is_test(node, &name, kind, file_path, source, &comments_text);
 
                             let is_exported =
                                 spec.is_exported(node, &name, kind, source, &exported_names);
@@ -273,7 +267,10 @@ impl CodeExtractor for TreeSitterExtractor {
                     if let Ok(text) = node.utf8_text(source) {
                         let stripped = strip_quotes(text);
                         let line = node.start_position().row + 1;
-                        literals.push(ExtractedLiteral { text: stripped, line });
+                        literals.push(ExtractedLiteral {
+                            text: stripped,
+                            line,
+                        });
                     }
                 }
             }
@@ -294,7 +291,6 @@ impl CodeExtractor for TreeSitterExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     // --- Rust Parser Tests ---
     #[test]
@@ -657,11 +653,7 @@ class Calculator:
     fn test_owner_go_generic_receiver_normalized() {
         // `*Box[T]` → `Box` (square-bracketed generic args stripped).
         assert_eq!(
-            owner_of(
-                "package p\nfunc (b *Box[T]) Get() {}\n",
-                "main.go",
-                "Get"
-            ),
+            owner_of("package p\nfunc (b *Box[T]) Get() {}\n", "main.go", "Get"),
             Some("Box".to_string())
         );
     }
@@ -852,9 +844,15 @@ class Calculator:
             ("class T {\n  fun a() {}\n}\n", "x.kt"),
             // C: struct with a nested function pointer field (no method ownership in C,
             // but exercises the owner walk without panicking).
-            ("struct S { int x; };\nint add(int a, int b) { return a + b; }", "x.c"),
+            (
+                "struct S { int x; };\nint add(int a, int b) { return a + b; }",
+                "x.c",
+            ),
             // C++: class with an in-class method declaration and an out-of-line definition.
-            ("class Widget { public: void draw(); };\nvoid Widget::draw() {}", "x.cpp"),
+            (
+                "class Widget { public: void draw(); };\nvoid Widget::draw() {}",
+                "x.cpp",
+            ),
             // ASM: a globl label and a non-globl label.
             (".globl _main\n_main:\n  ret\n_local:\n  ret\n", "x.s"),
         ];

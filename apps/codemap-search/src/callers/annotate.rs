@@ -69,7 +69,10 @@ impl SymbolAnnotation {
     /// still drop it for byte budget). The second tuple element is that record intent — the
     /// `(name, caller block)` to insert on successful emission, or `None` when this render is
     /// already a back-reference / has no caller block to record.
-    fn render(&self, seen_caller_blocks: &HashMap<String, String>) -> (String, Option<(String, String)>) {
+    fn render(
+        &self,
+        seen_caller_blocks: &HashMap<String, String>,
+    ) -> (String, Option<(String, String)>) {
         let mut out = String::with_capacity(self.full_len());
         out.push_str(&self.prefix);
         let record = match seen_caller_blocks.get(&self.name) {
@@ -139,109 +142,113 @@ fn render_symbol_annotation(
             sym.name, own_def_count, sym.name
         ));
     } else {
-    let is_common = own_def_count >= cfg.common_name_threshold;
-    // Map this name's call-site hits to their enclosing fn.
-    let mut caller_entries: Vec<String> = Vec::new();
-    let mut seen_callers: HashSet<String> = HashSet::new();
-    for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
-        // Exclude hits inside ANY same-named `fn` definition's range: a definition header
-        // (`fn name(`) classifies as a call, and a call within a same-named body is
-        // (self-)recursion — neither is a caller. Covers the symbol's own range and, for
-        // common names, every sibling definition.
-        if is_within_same_named_fn(hit, &sym.name, index) {
-            continue;
-        }
-        let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
-        let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
-            Some(encl) => {
-                let qn = qualified_name(encl, &file.unwrap().file_path);
-                format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
-            }
-            None => {
-                // File absent from snapshot, or line in no symbol range → never drop.
-                format!(
-                    "{}:{} (top-level/unindexed)",
-                    hit.file_path, hit.line_number
-                )
-            }
-        };
-        if seen_callers.insert(entry.clone()) {
-            caller_entries.push(entry);
-        }
-    }
-    let scan_truncated = scan.truncated_names.contains(&sym.name);
-    if caller_entries.is_empty() {
-        // No direct callers: surface non-call references (the dead-code antidote), then
-        // always the observation-scope caveat — never a bare "0 callers".
-        let mut refs: Vec<String> = Vec::new();
-        let mut seen_refs: HashSet<String> = HashSet::new();
-        for hit in scan.hits.iter().filter(|h| h.name == sym.name && !h.is_call) {
-            // Exclude references inside same-named definition ranges and import/use lines.
+        let is_common = own_def_count >= cfg.common_name_threshold;
+        // Map this name's call-site hits to their enclosing fn.
+        let mut caller_entries: Vec<String> = Vec::new();
+        let mut seen_callers: HashSet<String> = HashSet::new();
+        for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
+            // Exclude hits inside ANY same-named `fn` definition's range: a definition header
+            // (`fn name(`) classifies as a call, and a call within a same-named body is
+            // (self-)recursion — neither is a caller. Covers the symbol's own range and, for
+            // common names, every sibling definition.
             if is_within_same_named_fn(hit, &sym.name, index) {
                 continue;
             }
-            let hit_ext = extension_of(&hit.file_path);
-            if is_import_line(&hit.line_text, hit_ext) {
-                continue;
-            }
-            let entry = format!(
-                "{}:{}: `{}`",
-                hit.file_path,
-                hit.line_number,
-                hit.line_text.trim()
-            );
-            if seen_refs.insert(entry.clone()) {
-                refs.push(entry);
-            }
-            if refs.len() >= cfg.caller_list_cap {
-                break;
+            let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
+            let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
+                Some(encl) => {
+                    let qn = qualified_name(encl, &file.unwrap().file_path);
+                    format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
+                }
+                None => {
+                    // File absent from snapshot, or line in no symbol range → never drop.
+                    format!(
+                        "{}:{} (top-level/unindexed)",
+                        hit.file_path, hit.line_number
+                    )
+                }
+            };
+            if seen_callers.insert(entry.clone()) {
+                caller_entries.push(entry);
             }
         }
-        if refs.is_empty() {
-            caller_block.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
-        } else {
-            caller_block.push_str(
+        let scan_truncated = scan.truncated_names.contains(&sym.name);
+        if caller_entries.is_empty() {
+            // No direct callers: surface non-call references (the dead-code antidote), then
+            // always the observation-scope caveat — never a bare "0 callers".
+            let mut refs: Vec<String> = Vec::new();
+            let mut seen_refs: HashSet<String> = HashSet::new();
+            for hit in scan
+                .hits
+                .iter()
+                .filter(|h| h.name == sym.name && !h.is_call)
+            {
+                // Exclude references inside same-named definition ranges and import/use lines.
+                if is_within_same_named_fn(hit, &sym.name, index) {
+                    continue;
+                }
+                let hit_ext = extension_of(&hit.file_path);
+                if is_import_line(&hit.line_text, hit_ext) {
+                    continue;
+                }
+                let entry = format!(
+                    "{}:{}: `{}`",
+                    hit.file_path,
+                    hit.line_number,
+                    hit.line_text.trim()
+                );
+                if seen_refs.insert(entry.clone()) {
+                    refs.push(entry);
+                }
+                if refs.len() >= cfg.caller_list_cap {
+                    break;
+                }
+            }
+            if refs.is_empty() {
+                caller_block.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
+            } else {
+                caller_block.push_str(
                 "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
             );
-            for r in refs {
-                caller_block.push_str(&format!("    - {r}\n"));
+                for r in refs {
+                    caller_block.push_str(&format!("    - {r}\n"));
+                }
             }
-        }
-        // A truncated scan must never read as a confident zero.
-        if scan_truncated {
-            caller_block.push_str(
-                "    - _(caller scan hit its per-name hit cap — sites may have been missed)_\n",
-            );
-        }
-    } else {
-        let shown = caller_entries.len().min(cfg.caller_list_cap);
-        if is_common {
-            // Common matched name: a name-match scan cannot tell which definition each
-            // site targets — render the list anyway, labeled, instead of suppressing it.
-            caller_block.push_str(&format!(
+            // A truncated scan must never read as a confident zero.
+            if scan_truncated {
+                caller_block.push_str(
+                    "    - _(caller scan hit its per-name hit cap — sites may have been missed)_\n",
+                );
+            }
+        } else {
+            let shown = caller_entries.len().min(cfg.caller_list_cap);
+            if is_common {
+                // Common matched name: a name-match scan cannot tell which definition each
+                // site targets — render the list anyway, labeled, instead of suppressing it.
+                caller_block.push_str(&format!(
                 "  - _callers (file:line positions exact; name-match attribution approximate — `{}` has {} definitions, call sites may target any of them):_\n",
                 sym.name, own_def_count
             ));
-        } else {
-            caller_block.push_str(
+            } else {
+                caller_block.push_str(
                 "  - _callers (file:line positions exact; name-match attribution approximate):_\n",
             );
+            }
+            for entry in caller_entries.iter().take(shown) {
+                caller_block.push_str(&format!("    - {entry}\n"));
+            }
+            if caller_entries.len() > shown {
+                caller_block.push_str(&format!(
+                    "    - _… {} more not shown._\n",
+                    caller_entries.len() - shown
+                ));
+            }
+            if scan_truncated {
+                caller_block.push_str(
+                    "    - _(caller scan hit its per-name hit cap — list may be incomplete)_\n",
+                );
+            }
         }
-        for entry in caller_entries.iter().take(shown) {
-            caller_block.push_str(&format!("    - {entry}\n"));
-        }
-        if caller_entries.len() > shown {
-            caller_block.push_str(&format!(
-                "    - _… {} more not shown._\n",
-                caller_entries.len() - shown
-            ));
-        }
-        if scan_truncated {
-            caller_block.push_str(
-                "    - _(caller scan hit its per-name hit cap — list may be incomplete)_\n",
-            );
-        }
-    }
     } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
     // --- Callees: depth-1, name-match only. Held in the fixed `suffix` part — never deduped,
@@ -450,7 +457,10 @@ pub fn annotate_results(
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
                 overall_remaining = overall_remaining.saturating_sub(reserved);
-                annotations.insert((req.file_path.to_string(), sym.range.start_line), annotation);
+                annotations.insert(
+                    (req.file_path.to_string(), sym.range.start_line),
+                    annotation,
+                );
             }
         }
     }
@@ -468,10 +478,7 @@ mod tests {
         // `target_fn` is defined in def.rs and called from inside `caller_fn` in use.rs.
         let (_dir, root) = crate::callers::fixtures::write_repo(&[
             ("def.rs", "pub fn target_fn() {\n    let x = 1;\n}\n"),
-            (
-                "use.rs",
-                "pub fn caller_fn() {\n    target_fn();\n}\n",
-            ),
+            ("use.rs", "pub fn caller_fn() {\n    target_fn();\n}\n"),
         ]);
         let snapshot = vec![
             file("def.rs", vec![sym("target_fn", "fn", 1, 3, None)]),
@@ -484,9 +491,15 @@ mod tests {
         }];
         let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
         let text = note(&ann, "def.rs", 1);
-        assert!(text.contains("callers"), "should have a callers section: {text}");
+        assert!(
+            text.contains("callers"),
+            "should have a callers section: {text}"
+        );
         assert!(text.contains("caller_fn"), "enclosing symbol name: {text}");
-        assert!(text.contains("use.rs:2"), "file:line of the call site: {text}");
+        assert!(
+            text.contains("use.rs:2"),
+            "file:line of the call site: {text}"
+        );
         assert!(text.contains("approximate"), "approximate label: {text}");
     }
 
@@ -618,8 +631,14 @@ mod tests {
             text.contains("non-call position"),
             "non-call reference label instead of bare 0 callers: {text}"
         );
-        assert!(text.contains("reg.rs:2"), "the raw reference line:line: {text}");
-        assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+        assert!(
+            text.contains("reg.rs:2"),
+            "the raw reference line:line: {text}"
+        );
+        assert!(
+            !text.contains("0 callers"),
+            "never a bare 0 callers: {text}"
+        );
     }
 
     #[test]
@@ -651,7 +670,8 @@ mod tests {
     #[test]
     fn test_zero_caller_shows_observation_scope_caveat_never_bare_zero() {
         // `lonely` has no callers and no references anywhere → observation-scope caveat.
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[("lone.rs", "pub fn lonely() {}\n")]);
+        let (_dir, root) =
+            crate::callers::fixtures::write_repo(&[("lone.rs", "pub fn lonely() {}\n")]);
         let snapshot = vec![file("lone.rs", vec![sym("lonely", "fn", 1, 1, None)])];
         let requests = vec![AnnotationRequest {
             file_path: "lone.rs",
@@ -664,7 +684,10 @@ mod tests {
             text.contains("no direct caller observed"),
             "observation-scope caveat: {text}"
         );
-        assert!(!text.contains("0 callers"), "never a bare 0 callers: {text}");
+        assert!(
+            !text.contains("0 callers"),
+            "never a bare 0 callers: {text}"
+        );
     }
 
     #[test]
@@ -718,7 +741,8 @@ mod tests {
     #[test]
     fn test_fallback_results_not_annotated() {
         // A `symbol_fallback` result (ranked via path/docstring) is never annotated.
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[("def.rs", "pub fn target_fn() {}\n")]);
+        let (_dir, root) =
+            crate::callers::fixtures::write_repo(&[("def.rs", "pub fn target_fn() {}\n")]);
         let snapshot = vec![file("def.rs", vec![sym("target_fn", "fn", 1, 1, None)])];
         let requests = vec![AnnotationRequest {
             file_path: "def.rs",
@@ -850,9 +874,7 @@ mod tests {
         // omission note. The FIRST emitted must show the full omit line (defect 2); the rest
         // back-reference it (they are byte-identical). Even if the renderer skips the first
         // line-order symbol, the omit line must still appear on the first EMITTED one.
-        let body = (0..6)
-            .map(|_| "pub fn poll() {}\n")
-            .collect::<String>();
+        let body = (0..6).map(|_| "pub fn poll() {}\n").collect::<String>();
         let (_dir, root) = crate::callers::fixtures::write_repo(&[("p.rs", &body)]);
         let symbols: Vec<_> = (0..6)
             .map(|i| sym("poll", "fn", i + 1, i + 1, None))

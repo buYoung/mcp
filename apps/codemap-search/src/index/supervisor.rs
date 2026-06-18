@@ -6,8 +6,8 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use super::{IndexerHandle, SearchResult, SearcherHandle, WatcherHandle, WatcherStatus};
 use super::{spawn_indexer, spawn_watcher, CodemapSnapshot, TantivySearchEngine};
+use super::{IndexerHandle, SearchResult, SearcherHandle, WatcherHandle, WatcherStatus};
 
 /// Cap on automatic indexer restarts per server process: enough to absorb sporadic
 /// failures, finite so a deterministically-crashing pass (e.g. a parser bug tripped by

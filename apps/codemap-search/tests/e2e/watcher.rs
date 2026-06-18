@@ -174,11 +174,7 @@ async fn test_watcher_branch_switch_full_walk() {
     run_git(repo, &["commit", "-m", "main"]);
 
     run_git(repo, &["checkout", "-b", "feature"]);
-    fs::write(
-        repo.join("src/lib.rs"),
-        "pub fn feature_branch_symbol() {}",
-    )
-    .unwrap();
+    fs::write(repo.join("src/lib.rs"), "pub fn feature_branch_symbol() {}").unwrap();
     fs::write(repo.join("src/extra.rs"), "pub fn extra_symbol() {}").unwrap();
     run_git(repo, &["add", "."]);
     run_git(repo, &["commit", "-m", "feature"]);
@@ -244,7 +240,10 @@ async fn test_watch_false_preserves_request_triggered_refresh() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn find_me() {}"),
         // Watcher off + near-zero debounce: the pre-watcher lazy behavior, verbatim.
-        (".codemap/config.toml", "watch = false\nindex_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
 

@@ -149,7 +149,9 @@ commented, no-op template is auto-created for discoverability — every key docu
 inline at its default.
 
 All keys, defaults, and the `.codemap/` directory layout are documented in
-[docs/configuration.md](./docs/configuration.md).
+[docs/configuration.md](./docs/configuration.md), including `[filesystem_permissions]` for
+controlling whether `read`, `find`, and `grep` stay workspace-only or may use configured
+external roots.
 
 ## Logging
 

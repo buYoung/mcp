@@ -173,7 +173,10 @@ fn find_function_declarator(node: Node) -> Option<Node> {
     // (tree-sitter-cpp 0.23.4 node-types.json confirmed); their inner declarator is a
     // positional named child. Recurse over named children, but only into declarator-wrapper
     // kinds — never `parameter_list` — so the walk cannot pick up a parameter's name.
-    if matches!(node.kind(), "reference_declarator" | "parenthesized_declarator") {
+    if matches!(
+        node.kind(),
+        "reference_declarator" | "parenthesized_declarator"
+    ) {
         for i in 0..node.child_count() {
             let child = node.child(i as u32).unwrap();
             if matches!(
@@ -221,7 +224,7 @@ fn cpp_nearest_access_specifier(member_node: Node, source: &[u8]) -> Option<Stri
 fn cpp_member_is_exported(member_node: Node, container_kind: &str, source: &[u8]) -> bool {
     match cpp_nearest_access_specifier(member_node, source) {
         Some(ref spec) if spec == "public" => true,
-        Some(_) => false, // private or protected
+        Some(_) => false,                             // private or protected
         None => container_kind == "struct_specifier", // struct defaults public, class private
     }
 }

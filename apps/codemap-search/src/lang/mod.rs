@@ -117,7 +117,12 @@ pub(crate) trait LanguageSpec: Sync {
 
     /// Language-specific docstring fallback when the comment-promotion path yields `None`
     /// (Python inline `"""` docstrings, Go plain `//` doc comments). Default: `None`.
-    fn docstring_fallback(&self, _node: Node, _source: &[u8], _comments: &[String]) -> Option<String> {
+    fn docstring_fallback(
+        &self,
+        _node: Node,
+        _source: &[u8],
+        _comments: &[String],
+    ) -> Option<String> {
         None
     }
 
@@ -159,7 +164,9 @@ pub(crate) trait LanguageSpec: Sync {
         docstring: &Option<String>,
         _comments_text: &str,
     ) -> bool {
-        docstring.as_ref().is_some_and(|d| d.contains("@deprecated"))
+        docstring
+            .as_ref()
+            .is_some_and(|d| d.contains("@deprecated"))
     }
 
     /// Resolve the enclosing *type* (owner) of the symbol at `node`, or `None`. Default

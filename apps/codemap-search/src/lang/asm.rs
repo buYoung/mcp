@@ -152,7 +152,7 @@ impl LanguageSpec for AsmSpec {
         // other `meta` node matches (`.globl`, etc.).
         if node.kind() == "meta" {
             match asm_meta_kind_text {
-                Some(k) if k == ".macro" => {} // keep: emit this macro
+                Some(k) if k == ".macro" => {}        // keep: emit this macro
                 _ => return Some(NameDecision::Skip), // discard: not a .macro
             }
         }

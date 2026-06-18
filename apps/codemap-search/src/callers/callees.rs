@@ -92,7 +92,10 @@ mod tests {
     fn test_callee_display_unambiguous_qualifies_ambiguous_bare() {
         let snapshot = vec![
             file("a.rs", vec![sym("alpha", "fn", 1, 3, Some("Engine"))]),
-            file("b.rs", vec![sym("beta", "fn", 1, 3, None), sym("beta", "fn", 5, 7, None)]),
+            file(
+                "b.rs",
+                vec![sym("beta", "fn", 1, 3, None), sym("beta", "fn", 5, 7, None)],
+            ),
         ];
         let index = build_symbol_index(&snapshot);
         // alpha: exactly one fn def → qualified via owner.

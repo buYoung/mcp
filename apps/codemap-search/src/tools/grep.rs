@@ -9,7 +9,7 @@
 use super::{
     arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
 };
-use crate::workspace::{build_walker, current_dir, resolve_within_cwd};
+use crate::workspace::{build_walker, current_dir, resolve_for_filesystem_tool, FilesystemTool};
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
@@ -162,7 +162,7 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
     let offset = arg_usize(args, "offset", 0);
     let include_ignored = arg_bool(args, "include_ignored", false);
 
-    let base = resolve_within_cwd(path)?;
+    let base = resolve_for_filesystem_tool(path, FilesystemTool::Grep)?;
     if !base.exists() {
         return Err((-32602, format!("Search path does not exist: {path}")));
     }

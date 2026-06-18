@@ -18,6 +18,44 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+/// Permission policy for a live filesystem tool (`find`, `grep`, `read`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilesystemPermissionPolicy {
+    Workspace,
+    AllowedRoots,
+    Anywhere,
+}
+
+impl FilesystemPermissionPolicy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Workspace => "workspace",
+            Self::AllowedRoots => "allowed_roots",
+            Self::Anywhere => "anywhere",
+        }
+    }
+}
+
+/// Resolved filesystem permission settings for live disk tools.
+#[derive(Debug, Clone)]
+pub struct FilesystemPermissions {
+    pub find: FilesystemPermissionPolicy,
+    pub grep: FilesystemPermissionPolicy,
+    pub read: FilesystemPermissionPolicy,
+    pub allowed_roots: Vec<PathBuf>,
+}
+
+impl Default for FilesystemPermissions {
+    fn default() -> Self {
+        Self {
+            find: FilesystemPermissionPolicy::Workspace,
+            grep: FilesystemPermissionPolicy::Workspace,
+            read: FilesystemPermissionPolicy::Workspace,
+            allowed_roots: Vec::new(),
+        }
+    }
+}
+
 /// Repo-local / global config directory name. Kept in [`crate::workspace::EXCLUDED_DIRS`] so
 /// the tool never walks (indexes) it.
 pub const CODEMAP_DIR_NAME: &str = ".codemap";
@@ -80,11 +118,14 @@ const CONFIG_TEMPLATE: &str = "\
 # results frozen at the last commit until the server is restarted instead.
 # indexer_auto_restart = true
 
-# Allow `find` absolute-path patterns whose static prefix resolves OUTSIDE the workspace
-# root (Claude Code's Glob accepts any absolute base). Default false keeps the sandbox:
-# absolute/`..` patterns escaping the root are rejected. Set true only to opt into
-# searching arbitrary on-disk locations via `find`.
-# allow_absolute_path_outside_root = false
+# Filesystem permissions for live disk tools. Defaults keep all tools workspace-confined.
+# Policies: \"workspace\" (repo only), \"allowed_roots\" (repo plus allowed_roots), \"anywhere\"
+# (full disk access for that tool).
+# [filesystem_permissions]
+# find = \"workspace\"
+# grep = \"workspace\"
+# read = \"workspace\"
+# allowed_roots = []
 
 # `grep` content-mode column cap: a matched line longer than this many columns is replaced
 # with `[Omitted long matching line]` instead of being dumped in full (Claude Code passes
@@ -171,12 +212,9 @@ pub struct ResolvedConfig {
     /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
     /// Set false to keep the frozen-results behavior until the server restarts.
     pub indexer_auto_restart: bool,
-    /// Allow `find` absolute-path patterns whose static prefix resolves outside the
-    /// workspace root (default false). When false, absolute/`..` patterns escaping the
-    /// root are rejected as today; when true, `find` bypasses the within-root assertion
-    /// so a Claude Code-style absolute glob can search anywhere on disk. The default
-    /// preserves the sandbox; this is the opt-in escape hatch.
-    pub allow_absolute_path_outside_root: bool,
+    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
+    /// every tool workspace-confined unless configured otherwise.
+    pub filesystem_permissions: FilesystemPermissions,
     /// `grep` content-mode column cap (default 500, matching Claude Code's `--max-columns
     /// 500`). A matched line wider than this is replaced with `[Omitted long matching
     /// line]`; `0` disables the cap. Output-size only.
@@ -249,7 +287,7 @@ impl Default for ResolvedConfig {
             watch: true,
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
-            allow_absolute_path_outside_root: false,
+            filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 500,
             read_output_byte_cap: 102_400,
             search_detail_snippet_max_lines: 80,
@@ -284,7 +322,7 @@ struct ConfigLayer {
     watch: Option<bool>,
     watch_debounce_ms: Option<u64>,
     indexer_auto_restart: Option<bool>,
-    allow_absolute_path_outside_root: Option<bool>,
+    filesystem_permissions: FilesystemPermissionsLayer,
     grep_max_columns: Option<usize>,
     read_output_byte_cap: Option<usize>,
     search_detail_snippet_max_lines: Option<usize>,
@@ -300,6 +338,14 @@ struct ConfigLayer {
     annotation_sub_budget: Option<usize>,
     common_name_threshold: Option<usize>,
     caller_omit_def_threshold: Option<usize>,
+}
+
+#[derive(Default)]
+struct FilesystemPermissionsLayer {
+    find: Option<FilesystemPermissionPolicy>,
+    grep: Option<FilesystemPermissionPolicy>,
+    read: Option<FilesystemPermissionPolicy>,
+    allowed_roots: Option<Vec<PathBuf>>,
 }
 
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
@@ -365,11 +411,13 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "watch" => layer.watch = as_bool(&v, &key, path),
             "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(&v, &key, path),
             "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(&v, &key, path),
-            "allow_absolute_path_outside_root" => {
-                layer.allow_absolute_path_outside_root = as_bool(&v, &key, path)
+            "filesystem_permissions" => {
+                layer.filesystem_permissions = normalize_filesystem_permissions(&v, path)
             }
             "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(&v, &key, path),
-            "read_output_byte_cap" => layer.read_output_byte_cap = as_positive_usize(&v, &key, path),
+            "read_output_byte_cap" => {
+                layer.read_output_byte_cap = as_positive_usize(&v, &key, path)
+            }
             "search_detail_snippet_max_lines" => {
                 layer.search_detail_snippet_max_lines = as_positive_usize(&v, &key, path)
             }
@@ -388,9 +436,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "search_anchor_snippet_limit" => {
                 layer.search_anchor_snippet_limit = as_positive_usize(&v, &key, path)
             }
-            "caller_context_default" => {
-                layer.caller_context_default = as_bool(&v, &key, path)
-            }
+            "caller_context_default" => layer.caller_context_default = as_bool(&v, &key, path),
             "scan_cap" => layer.scan_cap = as_positive_usize(&v, &key, path),
             "caller_list_cap" => layer.caller_list_cap = as_positive_usize(&v, &key, path),
             "callee_list_cap" => layer.callee_list_cap = as_positive_usize(&v, &key, path),
@@ -455,10 +501,11 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .indexer_auto_restart
             .or(global.indexer_auto_restart)
             .unwrap_or(defaults.indexer_auto_restart),
-        allow_absolute_path_outside_root: repo
-            .allow_absolute_path_outside_root
-            .or(global.allow_absolute_path_outside_root)
-            .unwrap_or(defaults.allow_absolute_path_outside_root),
+        filesystem_permissions: merge_filesystem_permissions(
+            repo.filesystem_permissions,
+            global.filesystem_permissions,
+            defaults.filesystem_permissions,
+        ),
         grep_max_columns: repo
             .grep_max_columns
             .or(global.grep_max_columns)
@@ -495,7 +542,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .caller_context_default
             .or(global.caller_context_default)
             .unwrap_or(defaults.caller_context_default),
-        scan_cap: repo.scan_cap.or(global.scan_cap).unwrap_or(defaults.scan_cap),
+        scan_cap: repo
+            .scan_cap
+            .or(global.scan_cap)
+            .unwrap_or(defaults.scan_cap),
         caller_list_cap: repo
             .caller_list_cap
             .or(global.caller_list_cap)
@@ -527,6 +577,56 @@ fn union_excludes(mut base: Vec<String>, extra: Vec<String>) -> Vec<String> {
         }
     }
     base
+}
+
+fn normalize_filesystem_permissions(
+    value: &toml::Value,
+    path: &Path,
+) -> FilesystemPermissionsLayer {
+    let mut layer = FilesystemPermissionsLayer::default();
+    let table = match value.as_table() {
+        Some(table) => table,
+        None => {
+            warn(&format!(
+                "config 'filesystem_permissions' must be a table: {} — ignored",
+                path.display()
+            ));
+            return layer;
+        }
+    };
+
+    for (key, value) in table {
+        match key.as_str() {
+            "find" => layer.find = as_permission_policy(value, "filesystem_permissions.find", path),
+            "grep" => layer.grep = as_permission_policy(value, "filesystem_permissions.grep", path),
+            "read" => layer.read = as_permission_policy(value, "filesystem_permissions.read", path),
+            "allowed_roots" => {
+                layer.allowed_roots =
+                    as_allowed_roots(value, "filesystem_permissions.allowed_roots", path)
+            }
+            other => warn(&format!(
+                "unknown config key 'filesystem_permissions.{other}': {} — ignored",
+                path.display()
+            )),
+        }
+    }
+    layer
+}
+
+fn merge_filesystem_permissions(
+    repo: FilesystemPermissionsLayer,
+    global: FilesystemPermissionsLayer,
+    defaults: FilesystemPermissions,
+) -> FilesystemPermissions {
+    FilesystemPermissions {
+        find: repo.find.or(global.find).unwrap_or(defaults.find),
+        grep: repo.grep.or(global.grep).unwrap_or(defaults.grep),
+        read: repo.read.or(global.read).unwrap_or(defaults.read),
+        allowed_roots: repo
+            .allowed_roots
+            .or(global.allowed_roots)
+            .unwrap_or(defaults.allowed_roots),
+    }
 }
 
 // --- Process-wide resolved config ------------------------------------------------------
@@ -654,6 +754,25 @@ fn as_bool(value: &toml::Value, key: &str, path: &Path) -> Option<bool> {
     }
 }
 
+fn as_permission_policy(
+    value: &toml::Value,
+    key: &str,
+    path: &Path,
+) -> Option<FilesystemPermissionPolicy> {
+    match value.as_str() {
+        Some("workspace") => Some(FilesystemPermissionPolicy::Workspace),
+        Some("allowed_roots") => Some(FilesystemPermissionPolicy::AllowedRoots),
+        Some("anywhere") => Some(FilesystemPermissionPolicy::Anywhere),
+        _ => {
+            warn(&format!(
+                "config '{key}' must be one of 'workspace', 'allowed_roots', or 'anywhere': {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
 fn as_string_array(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<String>> {
     let array = match value.as_array() {
         Some(a) => a,
@@ -679,6 +798,23 @@ fn as_string_array(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<St
         }
     }
     Some(out)
+}
+
+fn as_allowed_roots(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<PathBuf>> {
+    let raw_roots = as_string_array(value, key, path)?;
+    let mut roots = Vec::with_capacity(raw_roots.len());
+    for raw_root in raw_roots {
+        if raw_root.trim().is_empty() {
+            warn(&format!(
+                "config '{key}' must not contain empty paths: {} — ignored",
+                path.display()
+            ));
+            return None;
+        }
+        let root_path = crate::workspace::path_from_workspace_input(&raw_root);
+        roots.push(crate::workspace::canonicalize_path_lenient(&root_path));
+    }
+    Some(roots)
 }
 
 /// Diagnostics go to stderr only — stdout is reserved for the MCP JSON-RPC stream (the

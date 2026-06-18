@@ -25,7 +25,10 @@ pub(super) fn build_symbol_index(snapshot: &[ExtractedFile]) -> SymbolIndex<'_> 
     let mut fn_def_counts: HashMap<String, usize> = HashMap::new();
     for file in snapshot {
         for sym in &file.symbols {
-            by_name.entry(sym.name.as_str()).or_default().push((file, sym));
+            by_name
+                .entry(sym.name.as_str())
+                .or_default()
+                .push((file, sym));
             if sym.kind == "fn" {
                 fn_names.insert(sym.name.clone());
                 *fn_def_counts.entry(sym.name.clone()).or_insert(0) += 1;
@@ -58,7 +61,10 @@ pub(super) fn is_within_same_named_fn(hit: &ScanHit, name: &str, index: &SymbolI
 /// The innermost `fn`-scope symbol whose inclusive line range contains `line` in `file`.
 /// Smallest span wins (innermost nesting), tie-broken by `range_strictly_contains`. The
 /// inclusive test (`start <= line <= end`) keeps single-line callables attributable.
-pub(super) fn enclosing_fn<'a>(file: &'a ExtractedFile, line: usize) -> Option<&'a ExtractedSymbol> {
+pub(super) fn enclosing_fn<'a>(
+    file: &'a ExtractedFile,
+    line: usize,
+) -> Option<&'a ExtractedSymbol> {
     let mut best: Option<&ExtractedSymbol> = None;
     for sym in &file.symbols {
         if sym.kind != "fn" {
@@ -93,7 +99,10 @@ mod tests {
         // on that exact line to it (the strict-contains test would drop it).
         let f = file(
             "a.ts",
-            vec![sym("handler", "fn", 10, 10, None), sym("outer", "fn", 1, 50, None)],
+            vec![
+                sym("handler", "fn", 10, 10, None),
+                sym("outer", "fn", 1, 50, None),
+            ],
         );
         let encl = enclosing_fn(&f, 10).unwrap();
         // The innermost (smallest span) wins: handler (10-10), not outer (1-50).
@@ -104,7 +113,10 @@ mod tests {
     fn test_enclosing_fn_innermost_wins() {
         let f = file(
             "a.rs",
-            vec![sym("outer", "fn", 1, 100, None), sym("inner", "fn", 40, 60, None)],
+            vec![
+                sym("outer", "fn", 1, 100, None),
+                sym("inner", "fn", 40, 60, None),
+            ],
         );
         assert_eq!(enclosing_fn(&f, 50).unwrap().name, "inner");
         assert_eq!(enclosing_fn(&f, 5).unwrap().name, "outer");
