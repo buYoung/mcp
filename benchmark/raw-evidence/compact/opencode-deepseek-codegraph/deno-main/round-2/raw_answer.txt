@@ -1,0 +1,5 @@
+이 저장소에서 해당 패턴을 찾았습니다.
+
+**Resolution path**: pnpm workspace symlink + TypeScript의 bare-specifier `extends` resolution. `scout/tsconfig.json`은 `"extends": "@repo/typescript-config/node.json"`으로 선언하고, `@repo/typescript-config/package.json`에는 `exports`/`main`/`dependencies` 필드가 아예 없습니다. 그러나 tsc가 이 bare specifier를 resolving할 때, pnpm이 만든 `node_modules/@repo/typescript-config` → `packages/typescript-config/` 심링크를 따라가 `node.json`을 바로 읽습니다. tsc의 `extends` resolution은 package.json의 `exports` 필드를 검사하지 않고 단순히 path-based resolve를 수행하므로, manifest상의 정보 부족이 문제되지 않습니다.
+
+**Wrong version case**: 패키지의 `publishConfig.access`가 `"public"`으로 설정되어 있어 npm publish가 의도되어 있습니다. `@repo/typescript-config`는 버전이 `0.0.0`으로 고정되어 있고 workspace `devDependencies`에는 `"workspace:*"`로만 걸려 있습니다. 만약 이 패키지가 npm에 publish된 후, 어떤 consumer가 pnpm workspace가 아닌 npm registry에서 `@repo/typescript-config@0.0.0`을 설치하면, workspace 내 로컬 버전과 npm에 publish된 버전이 다를 때 consumer는 엉뚱한 `base.json`/`node.json` 구성을 조용히 물려받게 됩니다 — tsc는 `exports` 체크를 하지 않으므로 경고도 없습니다.

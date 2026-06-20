@@ -1,0 +1,111 @@
+{
+  "filePath": "sample.c",
+  "totalLines": 26,
+  "symbols": [
+    {
+      "name": "MAX_CONNECTIONS",
+      "kind": "const",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 4,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Connection",
+      "kind": "struct",
+      "range": {
+        "startLine": 6,
+        "startCol": 1,
+        "endLine": 8,
+        "endCol": 2
+      },
+      "docstring": "A connection record.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "connection_open",
+      "kind": "fn",
+      "range": {
+        "startLine": 11,
+        "startCol": 1,
+        "endLine": 14,
+        "endCol": 2
+      },
+      "docstring": "Open a connection and return a status message.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "connection_open_legacy",
+      "kind": "fn",
+      "range": {
+        "startLine": 19,
+        "startCol": 1,
+        "endLine": 21,
+        "endCol": 2
+      },
+      "docstring": "@deprecated use connection_open instead",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "internal_count",
+      "kind": "fn",
+      "range": {
+        "startLine": 24,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "connection opened",
+      "line": 12
+    },
+    {
+      "text": "legacy",
+      "line": 20
+    }
+  ],
+  "docstrings": [
+    "A connection record.",
+    "Open a connection and return a status message.",
+    "@deprecated use connection_open instead"
+  ]
+}

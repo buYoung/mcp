@@ -1,0 +1,110 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01EreA9Ux6KGK5zyWRSXqY11",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01EreA9Ux6KGK5zyWRSXqY11",
+        "response_size_bytes": 1230
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_017tfLPGV8H1Nwj3wCZctSRe",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_017tfLPGV8H1Nwj3wCZctSRe",
+        "response_size_bytes": 60
+    },
+    {
+        "phase": "call",
+        "tool_name": "Glob",
+        "call_id": "toolu_01CB1sKpnEUoyGZojcYHSnVb",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Glob",
+        "call_id": "toolu_01CB1sKpnEUoyGZojcYHSnVb",
+        "response_size_bytes": 93
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_014AuvV1Wa2UFFfRCMKQHAA8",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_014AuvV1Wa2UFFfRCMKQHAA8",
+        "response_size_bytes": 931
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01NKyjKaZoHMXSMjAgUpfTGk",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01NKyjKaZoHMXSMjAgUpfTGk",
+        "response_size_bytes": 11442
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_014JBRBwkwmU2t4Bq4xAkHrv",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_014JBRBwkwmU2t4Bq4xAkHrv",
+        "response_size_bytes": 16
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01Tg1q2TPcfPjmSnNiRmQd8A",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01Tg1q2TPcfPjmSnNiRmQd8A",
+        "response_size_bytes": 3858
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_0185RCWsa5Yf8zps1rQ1hT2g",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_0185RCWsa5Yf8zps1rQ1hT2g",
+        "response_size_bytes": 8931
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_013Vki3AQmEGWFkDEjC1TGCz",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_013Vki3AQmEGWFkDEjC1TGCz",
+        "response_size_bytes": 3961
+    }
+]

@@ -1,0 +1,12 @@
+이 코드베이스에는 Angular 코드가 없지만, 질문 자체는 Angular 플랫폼의 일반적인 동작 원리이므로 답변드립니다.
+
+Angular가 model을 `<select>` 위젯에 다시 적용하는 시점은 **변경 감지(change detection) 주기**가 결정합니다. 구체적인 매커니즘은 `SelectControlValueAccessor`의 `writeValue()` 호출로, 이는 `ngModel`/`formControl`의 `@Input()` setter를 통해 Angular 변경 감지가 값을 감지했을 때만 트리거됩니다.
+
+개별 `<option>`의 등록/해제(`NgSelectOption`의 `ngOnDestroy`/`ngAfterViewInit`)는 `_optionMap`을 동기적으로 갱신할 뿐, **`writeValue()`를 즉시 호출하지 않습니다**. 그 이유는:
+
+DOM에서 조건부 렌더링(`*ngFor` 등)으로 여러 옵션이 한꺼번에 제거될 때, 각 제거가 개별적으로 `writeValue()`를 호출하면 선택되었던 옵션이 사라지는 중간 상태에서 브라우저가 **다른 남아있는 옵션으로 자동 전환**해버리기 때문입니다. Angular는 모든 자식 뮤테이션이 끝난 이후 **단 한 번의 변경 감지 주기**에서만 model을 적용함으로써:
+
+- 불필요한 재선택을 방지하고
+- 지연(drift) 없이 정확한 객체 참조 비교로 올바른 옵션을 다시 선택합니다.
+
+이 지연 전략 없이는 DOM이 settling되는 짧은 순간에 브라우저의 `<select>` 내장 동작이 예상치 못한 선택 변경을 유발하게 됩니다.

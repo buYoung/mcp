@@ -1,0 +1,156 @@
+{
+  "filePath": "sample.kt",
+  "totalLines": 29,
+  "symbols": [
+    {
+      "name": "Repository",
+      "kind": "class",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 24,
+        "endCol": 2
+      },
+      "docstring": "Fixture exercising Kotlin branch-sensitive extraction.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 6
+      },
+      "docstring": "Fetch a record.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "query",
+      "kind": "property",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 42
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "legacyFetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 14,
+        "endCol": 6
+      },
+      "docstring": "Old fetcher.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "privateHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 18,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "testFetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 20,
+        "startCol": 5,
+        "endLine": 23,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "publicHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 27,
+        "startCol": 1,
+        "endLine": 29,
+        "endCol": 2
+      },
+      "docstring": "An exported top-level function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "select * from users",
+      "line": 6
+    },
+    {
+      "text": "use fetch instead",
+      "line": 11
+    },
+    {
+      "text": "legacy",
+      "line": 13
+    }
+  ],
+  "docstrings": [
+    "Fixture exercising Kotlin branch-sensitive extraction.",
+    "Fetch a record.",
+    "Old fetcher.",
+    "An exported top-level function."
+  ]
+}

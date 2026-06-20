@@ -1,0 +1,27 @@
+Based on my exploration of this ClickHouse codebase, the discarded fallback fields remain observable because of the **Block-level processing model**:
+
+## Why fallback fields are observable
+
+**1. Block is the unit of processing** (`src/Core/Block.h:30`):
+- All columns in a Block must have the **same number of rows** and **compatible types**
+- `checkNumberOfRows()` at `src/Core/Block.cpp:420` validates ALL columns, not just the ones you'll SELECT
+- If any column has mismatched rows or invalid types, it throws `SIZES_OF_COLUMNS_DOESNT_MATCH`
+
+**2. Type validation before projection**:
+- `performRequiredConversions()` at `src/Interpreters/inplaceBlockConversions.cpp:270` converts ALL columns to required types
+- The query planner determines the type of the **entire result row** before applying projections
+- Even if you only SELECT one column, the other columns still exist in intermediate Blocks and are validated
+
+**3. Column retention during execution**:
+- Columns are not pruned immediately when no longer needed - they remain in the Block until an explicit projection step removes them
+- Fallback values become columns that must pass the same type/row validation as regular columns
+
+## How sentinel junk causes throws
+
+When you provide fallback values like `dictGetOrDefault('dict', ('value1', 'value2'), ('default1', 'default2'), key)`:
+
+1. If `'default2'` can't be converted to the expected type for `value2`, `safeGet<T>()` at `src/Core/Field.h:450` throws
+2. If the fallback column has wrong row count, `checkNumberOfRows()` throws at line 436
+3. The exception happens **before** the SELECT projection is applied
+
+The key insight: in ClickHouse's processing model, validation happens on the full Block before projection, not after.

@@ -1,0 +1,65 @@
+Here is a precise account of what the code actually does and where the risk lives.
+
+---
+
+## The packaging flow
+
+**Single distributable**: the `deno` npm package assembled by `tools/release/npm/build.ts`.
+
+**Startup file from generated output**: `install.cjs` (`build.ts:106`) — the `postinstall` entry point that `build.ts` copies verbatim into the output directory. It is five lines whose entire job is to call `install_api.cjs`:
+
+```js
+// install.cjs (the postinstall entry)
+const api = require("./install_api.cjs");
+const exePath = api.runInstall();
+```
+
+**Helper from a neighboring source tree**: `install_api.cjs` is authored in `tools/release/npm/` — a source directory with no `package.json` of its own; its nearest Deno-side manifest is `tools/deno.json`, which only lists an `importMap` reference and has no `@deno/*` entries at all. At build time (`build.ts:105`):
+
+```
+currentDir.join("install_api.cjs").copyFileToDirSync(denoDir);
+```
+
+it is physically lifted out of that source neighborhood and dropped into the output package directory alongside the generated `package.json`.
+
+**The plain package import**: inside `install_api.cjs`, line 26:
+
+```js
+const sourcePackagePath = path.dirname(
+  require.resolve("@deno/" + target + "/package.json"),
+);
+```
+
+This is a bare npm-scoped package specifier — `@deno/linux-x64-glibc`, `@deno/darwin-arm64`, etc. — with nothing in `install_api.cjs`'s source-tree neighborhood that declares those packages as dependencies.
+
+---
+
+## What resolution path keeps this working
+
+When `build.ts:107` writes the generated `package.json` for the `deno` package, it includes:
+
+```js
+optionalDependencies: packages
+  .map((pkg) => `@deno/${getPackageNameNoScope(pkg)}`)
+  .reduce((obj, pkgName) => ({ ...obj, [pkgName]: version }), {}),
+```
+
+So after `npm install deno`, npm places the platform-specific packages under the same `node_modules/` tree as the `deno` package itself. At runtime `install_api.cjs` is executing from inside `node_modules/deno/`, so Node.js's **upward `node_modules` walk** starting at that directory finds the platform package:
+
+1. checks `node_modules/deno/node_modules/@deno/<target>/package.json` — usually absent
+2. checks `node_modules/@deno/<target>/package.json` — present (npm hoisted the optional dep here)
+3. succeeds
+
+The source file's nearby manifest never justified the import; the *generated* `package.json` — produced by a different script and placed in the output directory at build time — is what makes the resolution hold at runtime.
+
+---
+
+## When it quietly binds the wrong version
+
+Because `require.resolve` uses a positional, first-match upward walk rather than an integrity-checked lookup against the package that declares the dependency, a version mismatch can slip in silently:
+
+- If another package in the same project (e.g. a monorepo sibling, or a global `npm install -g` context where other tools are installed) depends on `@deno/<target>` at a **different exact version**, npm may hoist *that* version to the root `node_modules/@deno/<target>/` and either nest the `deno`-matched version or skip installing it entirely (optional deps can be omitted when npm decides a compatible version is already present in the tree).
+- `require.resolve` — starting from `node_modules/deno/` — walks upward and returns the **first match**, which is the hoisted but mismatched version.
+- The result: `install_api.cjs` locates and copies the *wrong* binary — one whose version does not correspond to the `deno` package the user installed — without any error, because both a `package.json` and a `deno`/`deno.exe` executable are physically present in that package directory.
+
+The `optionalDependencies` declaration in `build.ts:100-102` pins the dep at exactly `version` (same string as the `deno` release), but npm's flat-install hoisting logic can still let a foreign `@deno/<target>` at the root shadow it — and the code has no version-coherence check after the `require.resolve` returns.

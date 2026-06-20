@@ -1,0 +1,50 @@
+Now I have everything I need. Let me put it all together precisely.
+
+---
+
+The two mechanisms are in `FunctionDictGetNoType` (`dictGetOrDefault`) and `JoinGetOverloadResolver` (`joinGet`/`joinGetOrNull`).
+
+## Mechanism 1 — `dictGetOrDefault`: the entire default tuple is cast before any outer projection can discard elements
+
+Source: `src/Functions/FunctionsExternalDictionaries.h:479–504`
+
+When the caller asks for multiple attributes — `dictGetOrDefault('d', ('attr1','attr2'), key, (good_val, SENTINEL_JUNK))` — the fourth argument (the whole default tuple) is cast against `result_type` (which is `Tuple(T1, T2)`) **in a single `castColumnAccurate` call**, before the result is returned to the query plan:
+
+```cpp
+// line 481-483
+ColumnWithTypeAndName column_to_cast = {column_before_cast.column->convertToFullColumnIfConst(), ...};
+auto result = castColumnAccurate(column_to_cast, result_type);   // validates ALL tuple elements
+```
+
+`castColumnAccurate` validates **every** tuple element against its corresponding dictionary attribute type. There is no "I'll only read element 1 later" information at this point. If `SENTINEL_JUNK` has a type incompatible with `T2`, it throws here — before the outer `tupleElement(..., 1)` ever gets to run.
+
+The short-circuit path (`getDefaultsShortCircuit`, lines 661–682) has the same shape: it still calls `castColumnAccurate(column_to_cast, result_type)` on the materialized rows.
+
+Downstream, all columns are extracted into `default_cols` (line 499: `default_cols = tuple_column->getColumnsCopy()`) and every one of them is forwarded to the dictionary's `getColumns()` call. The dictionary layer therefore also sees all fallback columns.
+
+## Mechanism 2 — `joinGet`: the storage's per-table `join_use_nulls` flag silently changes the return type the plan sees
+
+Source: `src/Functions/FunctionJoinGet.cpp:204–209`
+
+```cpp
+bool effective_or_null = or_null || storage_join->useNulls();   // storage setting overrides caller intent
+auto return_type = storage_join->joinGetCheckAndGetReturnType(data_types, attr_name, effective_or_null);
+const char * effective_name = effective_or_null ? "joinGetOrNull" : "joinGet";
+```
+
+And in `HashJoin::joinGetCheckAndGetReturnType` (line 1191–1192):
+
+```cpp
+if (or_null && JoinCommon::canBecomeNullable(elem.type))
+    elem.type = makeNullable(elem.type);
+return elem.type;
+```
+
+A `StorageJoin` created with `SETTINGS join_use_nulls = 1` causes `useNulls()` to return `true`. When that happens, a call written as `joinGet(...)` — the "one-field form" that looks like it will never produce `NULL` — resolves to `effective_or_null = true`, is renamed internally to `joinGetOrNull`, and returns `Nullable(T)` instead of `T`. The rest of the plan therefore sees a **`Nullable(T)` type node** even though no nullable function was written. The caller has no way to see this from the SQL text; the type change is entirely driven by the storage-level setting baked in at table creation time.
+
+## Why this matters together
+
+In both cases the discarded fallback slot or the "plain" function form is **observable before the outer projection runs**:
+
+- For `dictGetOrDefault`, type validation on the full default tuple is a blocking synchronous step during `executeImpl`. There is no lazy per-element validation.
+- For `joinGet`, the return type is fixed at plan-build time (`buildImpl` / `getReturnTypeImpl`) based on the storage's setting, not the function name. Every plan node downstream of that call is typed according to whatever `joinGetCheckAndGetReturnType` returned — so stuffing in a `joinGet` and expecting the plan to see `T` will silently give it `Nullable(T)` if the table was built with nulls enabled.

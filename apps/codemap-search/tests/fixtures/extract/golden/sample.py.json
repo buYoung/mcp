@@ -1,0 +1,188 @@
+{
+  "filePath": "sample.py",
+  "totalLines": 31,
+  "symbols": [
+    {
+      "name": "Repository",
+      "kind": "class",
+      "range": {
+        "startLine": 4,
+        "startCol": 1,
+        "endLine": 18,
+        "endCol": 20
+      },
+      "docstring": "A data repository.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 10,
+        "endCol": 21
+      },
+      "docstring": "Fetch a record.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "query",
+      "kind": "variable",
+      "range": {
+        "startLine": 9,
+        "startCol": 9,
+        "endLine": 9,
+        "endCol": 38
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "_private_method",
+      "kind": "fn",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 17
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Repository"
+    },
+    {
+      "name": "legacy_fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 18,
+        "endCol": 20
+      },
+      "docstring": "Deprecated fetcher.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "public_function",
+      "kind": "fn",
+      "range": {
+        "startLine": 21,
+        "startCol": 1,
+        "endLine": 23,
+        "endCol": 16
+      },
+      "docstring": "A free function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "_hidden_function",
+      "kind": "fn",
+      "range": {
+        "startLine": 26,
+        "startCol": 1,
+        "endLine": 27,
+        "endCol": 13
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "test_repository_fetch",
+      "kind": "fn",
+      "range": {
+        "startLine": 30,
+        "startCol": 1,
+        "endLine": 31,
+        "endCol": 25
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "Fixture exercising Python branch-sensitive extraction.",
+      "line": 1
+    },
+    {
+      "text": "A data repository.",
+      "line": 5
+    },
+    {
+      "text": "Fetch a record.",
+      "line": 8
+    },
+    {
+      "text": "select * from users",
+      "line": 9
+    },
+    {
+      "text": "Deprecated fetcher.",
+      "line": 17
+    },
+    {
+      "text": "A free function.",
+      "line": 22
+    },
+    {
+      "text": "ok",
+      "line": 23
+    }
+  ],
+  "docstrings": [
+    "A data repository.",
+    "Fetch a record.",
+    "Deprecated fetcher.",
+    "A free function."
+  ]
+}

@@ -101,10 +101,7 @@ export const CONFIG_FILE_NAME = "config.toml";
 export const DEFAULT_SHOW_LINE_NUMBERS = true;
 
 /** 설정 미지정 시 repo `.gitignore`의 디렉터리 이름을 제외 집합에 합칠지의 기본값. */
-export const DEFAULT_RESPECT_GITIGNORE = true;
-
-/** 설정 미지정 시 `<repo>/.scout/`를 `.git/info/exclude`에 등록할지의 기본값. */
-export const DEFAULT_REGISTER_GIT_EXCLUDE = true;
+export const DEFAULT_USE_GITIGNORE = true;
 
 // read_file (DESIGN §4.1)
 

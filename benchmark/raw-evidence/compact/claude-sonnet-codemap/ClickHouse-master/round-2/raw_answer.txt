@@ -1,0 +1,48 @@
+Now I have everything needed for a precise answer. The two observable mechanisms are both documented in `DictGetTupleElementPass.cpp`.
+
+---
+
+## Why "unused" fallback slots remain observable
+
+The entry point is `dictGet`/`dictGetOrDefault` with a **tuple of attribute names**: when you request multiple attributes, the function returns a named `Tuple`. Engineers who only need one field wrap it in `tupleElement(…, 'field')` and assume the other tuple slots are inert. The `DictGetTupleElementPass` optimizer (`src/Analyzer/Passes/DictGetTupleElementPass.cpp`) exists precisely to rewrite that pattern into a cheaper single-attribute call — and its bail-out conditions expose exactly where the assumption breaks.
+
+### 1. The default-value cast operates on the whole tuple before element selection
+
+In `FunctionDictGetNoType::executeImpl` (`src/Functions/FunctionsExternalDictionaries.h:483`):
+
+```cpp
+auto result = castColumnAccurate(column_to_cast, result_type);
+```
+
+`result_type` is the full `Tuple(attr1_type, attr2_type, …)` inferred by `getReturnTypeImpl`. The **entire** default-value argument — all slots — is cast to that tuple type at this point. Element selection happens afterward. So if you write:
+
+```sql
+tupleElement(
+    dictGetOrDefault('dict', ('uid', 'score'), key,  ('ok', 'junk_sentinel')),
+    1   -- only reads 'uid'
+)
+```
+
+and `score` is `UInt64` while `'junk_sentinel'` cannot be cast to `UInt64`, the `castColumnAccurate` call throws on the score slot even though the consumer never touches it. The `DictGetTupleElementPass` makes this explicit at `DictGetTupleElementPass.cpp:163–182`: it bails out of the rewrite unless every element type of the default tuple **exactly** matches the corresponding dictionary attribute type, because the rewrite would cast only the selected element, silently suppressing the exception on the others.
+
+### 2. The single-attribute form surfaces a different type
+
+`getReturnTypeImpl` (`FunctionsExternalDictionaries.h:404–414`) branches on attribute count:
+
+```cpp
+if (attribute_types.size() > 1)
+    return std::make_shared<DataTypeTuple>(attribute_types, attribute_names);  // tuple form
+
+return attribute_types.front();   // single-attribute form — can be LowCardinality(X)
+```
+
+A tuple cannot carry `LowCardinality`, so the tuple-attribute form always strips it. The single-attribute form returns the attribute's declared type verbatim, which may be `LowCardinality(String)`. After `tupleElement` extracts element 1 from the tuple form, it produces plain `String`. If the optimizer naively rewrote that to `dictGet('dict', 'attr1', key)`, the result type would change to `LowCardinality(String)` — a different type observable by every parent node in the query plan. The pass guards against this at `DictGetTupleElementPass.cpp:249–251`:
+
+```cpp
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;
+```
+
+---
+
+**The root cause in both cases**: the multi-attribute form of `dictGet` is not a lazy record from which unused fields are discarded. It is a single function call that produces one fully-typed, fully-cast `Tuple` column. The default-value argument is coerced to the whole tuple type **atomically** at execution, so bad values in any slot can throw regardless of which element a consumer reads. And the type the caller of `tupleElement` observes is determined by the element type within the tuple, which differs from what the single-attribute form would infer — specifically around `LowCardinality` wrapping that a tuple cannot carry.

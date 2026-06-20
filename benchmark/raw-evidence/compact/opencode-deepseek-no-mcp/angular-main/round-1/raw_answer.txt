@@ -1,0 +1,9 @@
+`_writeValueAfterRender()`가 `_queuedWrite` 플래그로 개별 호출을 coalescing하고, `afterNextRender({ write: () => ... })`의 **write phase**에서 단 한 번 모델을 다시 적용합니다. _queuedWrite가 true면 중복 호출을 무시하고, render cycle 종료 후 단 한 번 실행됩니다.
+
+개별 child mutation을 즉시 re-selection하지 않는 이유는 세 가지입니다:
+
+1. **성능**: option 하나 추가/제거될 때마다 O(n) `_compareWith` 호출이 발생하면 선택지가 많을 때 기하급수적으로 증가 (#41330)
+2. **Safari/IE11**: option text node가 DOM에 반영되기 전에 `value`를 설정하면 deselect가 실패 (#14505)
+3. **Animation module**: 사라지는 선택지가 DOM에서 완전히 제거되기 전에 값이 바뀌면 브라우저가 첫 번째 option으로 fallback (#18430)
+
+(`packages/forms/src/directives/select_control_value_accessor.ts:148-192`)

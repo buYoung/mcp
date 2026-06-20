@@ -1,0 +1,40 @@
+{
+    "arm_id": "opencode-minimax-serena",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "serena",
+    "codebase": "ClickHouse-master",
+    "round": 2,
+    "wall_time_s": 537.206,
+    "tokens": {
+        "input_tokens": 1154,
+        "output_tokens": 444,
+        "cache_read_input_tokens": 29115,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 2,
+        "read": 10,
+        "serena_search_for_pattern": 5
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 13726,
+        "read": 38552,
+        "serena_search_for_pattern": 75
+    },
+    "assigned_backend_tool_bytes": 75,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "76eb5c9c72b3e9d9b5c66b164e9b6bf7cf8c079bed2d71f4581f3688f338f41c",
+    "scorer_score": 0,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

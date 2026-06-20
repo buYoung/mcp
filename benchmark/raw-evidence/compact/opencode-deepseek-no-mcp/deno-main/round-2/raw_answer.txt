@@ -1,0 +1,5 @@
+앱 `scout` (및 `mcp-server`)는 `tsc`로 `dist/`에 생성된 startup(`dist/index.js`)을 가지며, pnpm workspace의 strict `node_modules` 구조 아래에서 모듈을 해석합니다.
+
+**Resolution path**: pnpm은 선언된 의존성만 각 패키지의 `node_modules`에 심링크하고, 나머지는 `node_modules/.pnpm/` 가상 스토어에 격리합니다. Node.js의 `require.resolve`는 파일 경로에서 출발해 부모 디렉터리로 올라가며 `node_modules/<package>`를 탐색하므로, 루트 `node_modules`(`.modules.yaml`에 `"hoistedDependencies"`로 등록된 패키지들 — `zod@4.4.3`, `@modelcontextprotocol/sdk`, `smol-toml` 등)까지 닿으면 어느 앱에서든 해당 패키지를 bare import 할 수 있습니다. `apps/scout/node_modules/`에 없어도 `apps/node_modules/zod`→`node_modules/.pnpm/zod@4.4.3/node_modules/zod` 심링크 체인으로 해석됩니다.
+
+**Quiet wrong-version binding**: 두 workspace 패키지가 서로 다른 semver 범위(`zod@^3.23` vs `zod@^4.4`)로 같은 패키지를 의존할 경우, pnpm은 `node_modules/.pnpm/` 아래에 각각 `zod@3.23.8`과 `zod@4.4.3` 둘 다 저장합니다. 하지만 루트 `node_modules/zod`에 hoist되는 것은 하나뿐(보통 더 높은 major). 의존성 미선언 helper 모듈이 bare import로 `zod`를 쓰면, 어느 앱에 속했든 루트 hoist 버전(`4.4.3`)을 항상 받게 됩니다 — 만약 그 모듈이 `3.x` API를 썼다면 조용히 깨집니다. pnpm-lock.yaml이 버전을 고정하므로 패키지 매니페스트가 잡히지 않은 이 경로는 인간 검토 없이 누락된 선언을 영속화합니다.

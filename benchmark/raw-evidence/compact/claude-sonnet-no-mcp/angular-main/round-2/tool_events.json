@@ -1,0 +1,38 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "Glob",
+        "call_id": "toolu_01Y4qonHNxqLhN9qJJoavrkd",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Glob",
+        "call_id": "toolu_01Y4qonHNxqLhN9qJJoavrkd",
+        "response_size_bytes": 134
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01RBAUhD1wHvVfVvu2SutNze",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01RBAUhD1wHvVfVvu2SutNze",
+        "response_size_bytes": 486
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01Xrjskxzm5FFsHZuDKR8yty",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01Xrjskxzm5FFsHZuDKR8yty",
+        "response_size_bytes": 10540
+    }
+]

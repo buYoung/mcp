@@ -1,0 +1,42 @@
+{
+    "arm_id": "claude-sonnet-codemap",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "codemap",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 176.553,
+    "tokens": {
+        "input_tokens": 22,
+        "output_tokens": 8550,
+        "cache_read_input_tokens": 489401,
+        "cache_creation_input_tokens": 55327
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 1,
+        "mcp__codemap-search__search": 11,
+        "mcp__codemap-search__overview": 2,
+        "mcp__codemap-search__read": 8
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 205,
+        "mcp__codemap-search__search": 77430,
+        "mcp__codemap-search__overview": 7658,
+        "mcp__codemap-search__read": 32703
+    },
+    "assigned_backend_tool_bytes": 117791,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "cf575f2431887192708ba79c0bccbe12c6eba55caddd3b413f060c505e8ea214",
+    "scorer_score": 0.9375,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 1,
+        "backends": {
+            "codemap": 1
+        }
+    },
+    "backend_process_group_cleaned": true
+}

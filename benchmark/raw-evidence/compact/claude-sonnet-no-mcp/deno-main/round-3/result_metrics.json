@@ -1,0 +1,43 @@
+{
+    "arm_id": "claude-sonnet-no-mcp",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "no-mcp",
+    "codebase": "deno-main",
+    "round": 3,
+    "wall_time_s": 124.055,
+    "tokens": {
+        "input_tokens": 2995,
+        "output_tokens": 5690,
+        "cache_read_input_tokens": 247263,
+        "cache_creation_input_tokens": 31336
+    },
+    "tool_call_distribution": {
+        "Glob": 1,
+        "Bash": 4,
+        "Read": 9,
+        "Grep": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "Glob": 5129,
+        "Bash": 1539,
+        "Read": 62282,
+        "Grep": 412
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "33aac6ab04e0228915702b2f610275e894b66fe54d7b1b45b7b25bb592dac1ce",
+    "scorer_score": 0.1875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 7,
+            "no-mcp": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

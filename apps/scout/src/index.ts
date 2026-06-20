@@ -18,7 +18,6 @@ import {
     type ResolvedBinaries,
     resolveBinaries,
 } from "./startup/ensure-required-binaries.js";
-import { registerScoutInGitExclude } from "./startup/git-exclude.js";
 import {
     type LookupSymbolArguments,
     registerTools,
@@ -78,7 +77,7 @@ async function main(): Promise<void> {
     // 설정 로드 직후 gitignore 디렉터리-이름을 union 한다(replace 아님 — 별개 소스).
     // provider/lifecycle를 동기·단순하게 유지하기 위해, gitignore union은 여기서 끝낸다.
     const loadedConfig = await loadScoutConfig(repositoryRoot);
-    const gitignoreNames = loadedConfig.index.respectGitignore ? await readGitignoreDirectoryNames(repositoryRoot) : [];
+    const gitignoreNames = loadedConfig.index.useGitignore ? await readGitignoreDirectoryNames(repositoryRoot) : [];
     const effectiveExcluded = [...new Set([...loadedConfig.index.excludedDirectories, ...gitignoreNames])];
     // excludedDirectories를 effectiveExcluded로 치환한 불변 복사본을 만들어 provider에 넘긴다.
     const config: ResolvedScoutConfig = {
@@ -88,11 +87,6 @@ async function main(): Promise<void> {
             excludedDirectories: effectiveExcluded,
         },
     };
-
-    // .scout/ 산출물을 .git/info/exclude에 등록해 숨긴다(전역 설정으로만 토글, default on).
-    if (config.index.registerGitExclude) {
-        await registerScoutInGitExclude(repositoryRoot);
-    }
 
     // 읽기 계층(read_file·find_files)은 파일시스템 직접 접근이라 바이너리·색인에 독립적이다.
     // 따라서 바이너리 해석과 무관하게 무조건 생성한다(색인 빌드 전·webserver 죽어 있어도 동작).

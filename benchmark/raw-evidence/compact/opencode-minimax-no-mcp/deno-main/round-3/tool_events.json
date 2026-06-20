@@ -1,0 +1,254 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_vpwwzgld4scd_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_vpwwzgld4scd_1",
+        "response_size_bytes": 16716
+    },
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_vpwwzgld4scd_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_vpwwzgld4scd_2",
+        "response_size_bytes": 2728
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_vpwwzgld4scd_3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_vpwwzgld4scd_3",
+        "response_size_bytes": 293
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_kssbvyz8eo2n_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_kssbvyz8eo2n_1",
+        "response_size_bytes": 471
+    },
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_kssbvyz8eo2n_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_kssbvyz8eo2n_2",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_kssbvyz8eo2n_3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_kssbvyz8eo2n_3",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_1",
+        "response_size_bytes": 152
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_2",
+        "response_size_bytes": 140
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_3",
+        "response_size_bytes": 229
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_4",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_88k4x67cmsmc_4",
+        "response_size_bytes": 861
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_1",
+        "response_size_bytes": 1464
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_2",
+        "response_size_bytes": 1214
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_ai71s6iis2z5_3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_aomqitvqpm8t_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_aomqitvqpm8t_1",
+        "response_size_bytes": 248
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_jwqiyzgu0llc_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_jwqiyzgu0llc_1",
+        "response_size_bytes": 7916
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_7axsa4juqjg3_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_7axsa4juqjg3_1",
+        "response_size_bytes": 164
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_7axsa4juqjg3_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_7axsa4juqjg3_2",
+        "response_size_bytes": 169
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_fuixtzfo962m_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_fuixtzfo962m_1",
+        "response_size_bytes": 281
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_xdwsdvb8uc9h_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_xdwsdvb8uc9h_1",
+        "response_size_bytes": 182
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_acsxpsr9yoxo_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_acsxpsr9yoxo_1",
+        "response_size_bytes": 358
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_acsxpsr9yoxo_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_acsxpsr9yoxo_2",
+        "response_size_bytes": 3040
+    }
+]

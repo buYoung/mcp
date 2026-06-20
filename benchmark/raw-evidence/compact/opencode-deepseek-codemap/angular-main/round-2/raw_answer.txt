@@ -1,0 +1,7 @@
+**Rule:** `_writeValueAfterRender()` (`select_control_value_accessor.ts:173`) schedules `writeValue` via `afterNextRender({write: ...})`. The `_queuedWrite` flag coalesces any intermediate requests — the model is re-applied exactly once per render cycle, after all DOM mutations are flushed.
+
+**Why no immediate re-selection per child mutation:** The `ngValue` setter (`:274`) and `ngOnDestroy` (`:298`) both call `_writeValueAfterRender()` instead of `writeValue` directly. The JSDoc at lines 154–170 names three concrete failures this avoids:
+
+1. **Exponential `_compareWith` calls** (issue #41330) — calling `writeValue` per-Option balloons comparisons.
+2. **Safari/IE11 deselect** (issue #14505) — setting `select.value` before the option's text node is attached leaves the wrong option selected.
+3. **Animations drift** (issue #18430) — if a selected `<option>` stays in the DOM (animations delay removal) and `writeValue` runs immediately, the browser re-selects the first remaining option when the element finally vanishes, even though the model says "nothing matches." Batching after render ensures the stale option is gone before the value is set.

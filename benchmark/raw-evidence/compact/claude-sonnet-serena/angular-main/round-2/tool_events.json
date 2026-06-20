@@ -1,0 +1,74 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01FXTmo4ELShGeFN4kiobQPm",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01FXTmo4ELShGeFN4kiobQPm",
+        "response_size_bytes": 46
+    },
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01UG1VKSKEznNPpSdXkG6F52",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01UG1VKSKEznNPpSdXkG6F52",
+        "response_size_bytes": 32
+    },
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01KqY1rhgFQnBknj4wsagdT9",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01KqY1rhgFQnBknj4wsagdT9",
+        "response_size_bytes": 138
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__serena__find_symbol",
+        "call_id": "toolu_01MyzMMjiTqZhCgEetx3r1z7",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__serena__search_for_pattern",
+        "call_id": "toolu_01XhK1e5sKXciPJSEkuccStS",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__serena__find_symbol",
+        "call_id": "toolu_01MyzMMjiTqZhCgEetx3r1z7",
+        "response_size_bytes": 1639
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__serena__search_for_pattern",
+        "call_id": "toolu_01XhK1e5sKXciPJSEkuccStS",
+        "response_size_bytes": 13526
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01MUmL5nKeXdP5nGE1D1FQVp",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01MUmL5nKeXdP5nGE1D1FQVp",
+        "response_size_bytes": 10540
+    }
+]

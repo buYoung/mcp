@@ -1,0 +1,73 @@
+Here is a precise account of the two rules, traced directly to the source.
+
+---
+
+## The deferred single-write rule
+
+### What triggers a re-selection pass
+
+Every mutation to the option set goes through `_writeValueAfterRender()` (`select_control_value_accessor.ts:173`). Three entry points call it:
+
+| Event | Code |
+|---|---|
+| An `<option [ngValue]="…">` input is set or updated | `NgSelectOption.ngValue` setter, L278 |
+| A plain `<option value="…">` is set | `NgSelectOption.value` setter, L289 |
+| An `<option>` is destroyed (removed from DOM) | `NgSelectOption.ngOnDestroy`, L300 |
+
+The method itself (`L173–192`) applies one gate before scheduling anything:
+
+```ts
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                        // ← collapse: second call is a no-op
+  }
+  this._queuedWrite = true;
+  afterNextRender(
+    { write: () => {
+        this._queuedWrite = false;
+        this.writeValue(this.value); // ← the one real re-selection pass
+      }
+    },
+    { injector: this.appRefInjector },
+  );
+}
+```
+
+The **rule** is therefore: re-apply the model to the `<select>` element once, in the `write` phase of the **next completed render**, regardless of how many option mutations occurred in the current change-detection cycle.
+
+---
+
+### Why each individual mutation must not fire an immediate pass
+
+The comment block at `L153–171` records three distinct bugs that motivated this design, each requiring deferred execution for a different reason.
+
+**1. Quadratic comparison cost — issue #41330**
+
+`writeValue` resolves the model back to a DOM option by calling `_getOptionId` (L225–230), which iterates the entire `_optionMap` and invokes `_compareWith` on every stored object:
+
+```ts
+_getOptionId(value: any): string | null {
+  for (const id of this._optionMap.keys()) {
+    if (this._compareWith(this._optionMap.get(id), value)) return id;
+  }
+  return null;
+}
+```
+
+If called eagerly after each of *n* option additions, that is 1 + 2 + … + n = O(n²) comparisons. With `compareWith` pointing at a non-trivial function (deep-equality, HTTP round-trip result, etc.), this balloons. Deferring collapses all mutations in one cycle into exactly one O(n) scan.
+
+**2. Partial-DOM race on Safari / IE 11 — issue #14505**
+
+`NgSelectOption.ngValue` first writes to `_optionMap`, then calls `_setElementValue` to stamp the option's DOM `value` attribute, then calls `_writeValueAfterRender`. If `writeValue` executed synchronously at that point, Angular would call `this.setProperty('value', valueString)` on the `<select>` while the option's text-node child had not yet been appended. The browser would fail to recognise the match and leave the wrong option selected.
+
+**3. Animation-module lingering elements — issue #18430**
+
+When the animations module removes an option, it keeps the `<option>` element in the DOM until the leave animation finishes. If `writeValue` ran immediately after the logical removal, the model value would find no live matching option and `<select>.value` would be set to an empty string. When the browser finally ejected the still-visible element, it would silently fall back to the first remaining option — a ghost selection that contradicts the model.
+
+By scheduling in `afterNextRender({ write })`, the pass runs only after all pending DOM writes (including animated removals) have been committed to the live tree, so the browser's own fallback mechanism never activates.
+
+---
+
+### Summary
+
+The `_queuedWrite` boolean is the coalescing guard: the first mutation in a cycle arms the `afterNextRender` callback and closes the gate; every subsequent mutation in the same cycle hits the early-return at L174 and is absorbed for free. After the render the gate re-opens (`_queuedWrite = false`), and exactly one `writeValue` → `_getOptionId` scan is performed against the now-stable DOM.

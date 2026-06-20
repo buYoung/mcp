@@ -1,0 +1,42 @@
+{
+    "arm_id": "claude-sonnet-serena",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "serena",
+    "codebase": "angular-main",
+    "round": 1,
+    "wall_time_s": 55.943,
+    "tokens": {
+        "input_tokens": 10,
+        "output_tokens": 2236,
+        "cache_read_input_tokens": 63734,
+        "cache_creation_input_tokens": 7777
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 2,
+        "mcp__serena__search_for_pattern": 1,
+        "Read": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 251,
+        "mcp__serena__search_for_pattern": 1445,
+        "Read": 10540
+    },
+    "assigned_backend_tool_bytes": 1445,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "7d2efd1eb83d2252b76e2167d64bc2df5961ba6ad193fc4662acb1afd6b6ad0a",
+    "scorer_score": 0.625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 10,
+        "backends": {
+            "codemap": 3,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

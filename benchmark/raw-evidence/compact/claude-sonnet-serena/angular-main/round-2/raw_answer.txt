@@ -1,0 +1,54 @@
+Here is the complete picture, grounded in the code.
+
+---
+
+## The coalescing gate: `_queuedWrite` + `afterNextRender`
+
+### What triggers re-selection
+
+Every `<option ngValue="…">` element is an `NgSelectOption` directive. Whenever its `ngValue` setter fires — on first render, on re-render with a new value, or in `ngOnDestroy` when the element is being torn down — it calls `_writeValueAfterRender()` on the parent `SelectControlValueAccessor` (`select_control_value_accessor.ts:278–300`).
+
+`_writeValueAfterRender` is the scheduling gate (`lines 173–192`):
+
+```ts
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                              // ← already scheduled; do nothing
+  }
+  this._queuedWrite = true;
+
+  afterNextRender(
+    {
+      write: () => {
+        if (this.destroyRef.destroyed) return;
+        this._queuedWrite = false;
+        this.writeValue(this.value);    // ← single full re-selection pass
+      },
+    },
+    {injector: this.appRefInjector},
+  );
+}
+```
+
+**The rule:** no matter how many option elements are added, mutated, or destroyed during a single change-detection cycle, the flag `_queuedWrite` ensures exactly **one** `afterNextRender` callback is registered. That callback does the one and only full re-selection pass (`writeValue → _getOptionId → _compareWith` over every entry in `_optionMap`) after Angular has finished writing all DOM mutations for that render cycle.
+
+---
+
+### Why individual mutations must not trigger an immediate full pass
+
+The comment block at `lines 153–170` names three concrete bugs that the deferred-batch design prevents simultaneously:
+
+#### 1. Exponential `compareWith` calls — issue #41330
+`_getOptionId` (line 225) walks every key in `_optionMap` and calls `_compareWith` until it finds a match. If `writeValue` were called immediately inside each option's `ngValue` setter, adding or replacing *N* options would invoke `_compareWith` up to 1 + 2 + … + N = O(N²) times. The flag collapses all N mutations into one pass.
+
+#### 2. First-option phantom selection in Safari and IE 11 — issue #14505
+At the moment a `<option>` element's `ngValue` setter fires, Angular has set the element's `.value` property but has not yet appended the child text node. In those browsers, setting `select.value` at that instant could fail to deselect the first option because the `<option>` element was not yet fully formed in the DOM. Deferring until `afterNextRender { write }` guarantees all child text nodes are present before the select's value is written.
+
+#### 3. Animation-delayed removal — issue #18430 (all browsers)
+When the `@angular/animations` module is active, a destroyed `NgSelectOption` calls `_optionMap.delete(this.id)` immediately, but the `<option>` DOM node lingers in the document for the duration of its leave animation. If `writeValue` were called at that moment, `_getOptionId` would return `null` (the object is gone from the map), and the browser would be asked to set a value that no `<option>` holds. When the animation eventually removes the element, the browser auto-advances to the first remaining `<option>` — visibly drifting away from the model without any user action. Waiting until the *next* render, by which point the animation engine has finished and the DOM element is actually gone, closes this race.
+
+---
+
+### Summary
+
+The single `_queuedWrite` boolean is the invariant-preserving lock. The first option mutation in a render cycle sets it and registers one `afterNextRender` callback; all subsequent mutations in the same cycle short-circuit immediately. The callback fires in the `write` phase — after every pending DOM update including animation teardowns — so both the `_optionMap` and the actual `<option>` elements are in a consistent state when `_getOptionId` does its one bounded scan. This keeps `compareWith` calls linear in the number of options, and eliminates the window in which the browser can auto-select a phantom option.

@@ -1,0 +1,32 @@
+{
+    "arm_id": "codex-gpt54-no-mcp",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "no-mcp",
+    "codebase": "angular-main",
+    "round": 2,
+    "wall_time_s": 57.998,
+    "tokens": {
+        "input_tokens": 153851,
+        "output_tokens": 2037,
+        "cached_input_tokens": 116096
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "3eefe3a34818c8370038093ae150ac6f3b143ff6163396f44d4288b71ca4d494",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 8,
+        "backends": {
+            "codemap": 5,
+            "no-mcp": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

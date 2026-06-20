@@ -1,0 +1,175 @@
+{
+  "filePath": "sample.cpp",
+  "totalLines": 38,
+  "symbols": [
+    {
+      "name": "Widget",
+      "kind": "class",
+      "range": {
+        "startLine": 4,
+        "startCol": 1,
+        "endLine": 11,
+        "endCol": 2
+      },
+      "docstring": "A widget with a public and a private member.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "draw",
+      "kind": "fn",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 17
+      },
+      "docstring": "Draw the widget.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Widget"
+    },
+    {
+      "name": "hiddenHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 10,
+        "startCol": 5,
+        "endLine": 10,
+        "endCol": 24
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Widget"
+    },
+    {
+      "name": "draw",
+      "kind": "fn",
+      "range": {
+        "startLine": 14,
+        "startCol": 1,
+        "endLine": 17,
+        "endCol": 2
+      },
+      "docstring": "Out-of-line definition: owner is Widget.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Widget"
+    },
+    {
+      "name": "hiddenHelper",
+      "kind": "fn",
+      "range": {
+        "startLine": 19,
+        "startCol": 1,
+        "endLine": 21,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Widget"
+    },
+    {
+      "name": "makeWidget",
+      "kind": "fn",
+      "range": {
+        "startLine": 24,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 2
+      },
+      "docstring": "An exported free function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "makeWidgetLegacy",
+      "kind": "fn",
+      "range": {
+        "startLine": 31,
+        "startCol": 1,
+        "endLine": 33,
+        "endCol": 2
+      },
+      "docstring": "@deprecated use makeWidget instead",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "internalCount",
+      "kind": "fn",
+      "range": {
+        "startLine": 36,
+        "startCol": 1,
+        "endLine": 38,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "widget label",
+      "line": 15
+    },
+    {
+      "text": "widget",
+      "line": 25
+    },
+    {
+      "text": "legacy",
+      "line": 32
+    }
+  ],
+  "docstrings": [
+    "A widget with a public and a private member.",
+    "Draw the widget.",
+    "Out-of-line definition: owner is Widget.",
+    "An exported free function.",
+    "@deprecated use makeWidget instead"
+  ]
+}

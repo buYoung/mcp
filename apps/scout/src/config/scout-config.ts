@@ -7,9 +7,8 @@ import {
     DEFAULT_CONTEXT_LINES,
     DEFAULT_HEAD_LIMIT,
     DEFAULT_OUTPUT_MODE,
-    DEFAULT_REGISTER_GIT_EXCLUDE,
-    DEFAULT_RESPECT_GITIGNORE,
     DEFAULT_SHOW_LINE_NUMBERS,
+    DEFAULT_USE_GITIGNORE,
     EXCLUDED_DIRECTORY_NAMES,
     INDEX_BUILD_TIMEOUT_MS,
     OUTPUT_MODES,
@@ -33,8 +32,7 @@ export interface ResolvedScoutConfig {
     index: {
         excludedDirectories: readonly string[];
         stalenessCheckMs: number;
-        respectGitignore: boolean;
-        registerGitExclude: boolean;
+        useGitignore: boolean;
     };
     limits: {
         searchRequestTimeoutMs: number;
@@ -54,8 +52,7 @@ interface ScoutConfigLayer {
     showLineNumbers?: boolean;
     excludedDirectories?: string[];
     stalenessCheckMs?: number;
-    respectGitignore?: boolean;
-    registerGitExclude?: boolean;
+    useGitignore?: boolean;
     searchRequestTimeoutMs?: number;
     indexBuildTimeoutMs?: number;
 }
@@ -64,12 +61,7 @@ interface ScoutConfigLayer {
 const KNOWN_OUTPUT_KEYS = new Set(["mode", "head_limit", "context_lines", "show_line_numbers"]);
 
 /** TOML `[index]` 테이블에서 인식하는 키 집합. */
-const KNOWN_INDEX_KEYS = new Set([
-    "excluded_directories",
-    "staleness_check_ms",
-    "respect_gitignore",
-    "register_git_exclude",
-]);
+const KNOWN_INDEX_KEYS = new Set(["excluded_directories", "staleness_check_ms", "use_gitignore"]);
 
 /** TOML `[limits]` 테이블에서 인식하는 키 집합. */
 const KNOWN_LIMITS_KEYS = new Set(["search_request_timeout_ms", "index_build_timeout_ms"]);
@@ -96,8 +88,7 @@ const DEFAULT_CONFIG_TEMPLATE = `# scout 설정
 [index]
 # excluded_directories = [".git", "node_modules", "dist"]  # 문자열 배열(replace)
 # staleness_check_ms = 2000     # 정수 > 0
-# respect_gitignore = true      # bool — true면 repo .gitignore의 디렉터리 이름을 제외 집합에 합침
-# register_git_exclude = true   # bool — 전역 설정에서만 적용(repo 레이어 값은 무시됨)
+# use_gitignore = true          # bool — true면 repo .gitignore의 디렉터리 이름을 제외 집합에 합침
 
 [limits]
 # search_request_timeout_ms = 15000   # 정수 > 0
@@ -111,7 +102,7 @@ const DEFAULT_CONFIG_TEMPLATE = `# scout 설정
  * 1. 전역 디렉터리(`~/.scout`)를 보장하고, 전역 설정 파일이 없으면 주석 템플릿을 생성한다.
  * 2. repo·global 설정 파일을 읽어 파싱한다(없음/파싱 실패 → 경고 후 빈 레이어).
  * 3. 각 레이어를 정규화·검증한다(알 수 없는 키/타입 오류 → 경고 후 무시).
- * 4. 키 단위로 repo > global > default 우선순위 병합. 단 registerGitExclude는 global 전용.
+ * 4. 키 단위로 repo > global > default 우선순위 병합.
  * 5. 전 과정을 try/catch로 감싸 어떤 예외도 프로세스를 죽이지 않게 한다(절대 exit/throw 안 함).
  */
 export async function loadScoutConfig(repositoryRoot: string): Promise<ResolvedScoutConfig> {
@@ -278,17 +269,10 @@ function normalizeIndexTable(table: unknown, configPath: string, layer: ScoutCon
                 }
                 break;
             }
-            case "respect_gitignore": {
-                const bool = readBoolean(value, "index.respect_gitignore", configPath);
+            case "use_gitignore": {
+                const bool = readBoolean(value, "index.use_gitignore", configPath);
                 if (bool != null) {
-                    layer.respectGitignore = bool;
-                }
-                break;
-            }
-            case "register_git_exclude": {
-                const bool = readBoolean(value, "index.register_git_exclude", configPath);
-                if (bool != null) {
-                    layer.registerGitExclude = bool;
+                    layer.useGitignore = bool;
                 }
                 break;
             }
@@ -328,14 +312,9 @@ function normalizeLimitsTable(table: unknown, configPath: string, layer: ScoutCo
 }
 
 /**
- * 키 단위로 repo > global > default 우선순위 병합. registerGitExclude만 global 전용이라
- * repo 레이어가 값을 주면 경고 후 무시하고 global > default만 적용한다.
+ * 키 단위로 repo > global > default 우선순위 병합.
  */
 function mergeLayers(repoLayer: ScoutConfigLayer, globalLayer: ScoutConfigLayer): ResolvedScoutConfig {
-    if (repoLayer.registerGitExclude !== undefined) {
-        warn("register_git_exclude는 전역 설정에서만 적용됩니다 — repo 값 무시");
-    }
-
     return {
         output: {
             mode: repoLayer.outputMode ?? globalLayer.outputMode ?? DEFAULT_OUTPUT_MODE,
@@ -347,9 +326,7 @@ function mergeLayers(repoLayer: ScoutConfigLayer, globalLayer: ScoutConfigLayer)
             excludedDirectories: repoLayer.excludedDirectories ??
                 globalLayer.excludedDirectories ?? [...EXCLUDED_DIRECTORY_NAMES],
             stalenessCheckMs: repoLayer.stalenessCheckMs ?? globalLayer.stalenessCheckMs ?? STALENESS_CHECK_TTL_MS,
-            respectGitignore: repoLayer.respectGitignore ?? globalLayer.respectGitignore ?? DEFAULT_RESPECT_GITIGNORE,
-            // global 전용 키: repo 레이어 값은 위에서 경고만 남기고 여기서는 참조하지 않는다.
-            registerGitExclude: globalLayer.registerGitExclude ?? DEFAULT_REGISTER_GIT_EXCLUDE,
+            useGitignore: repoLayer.useGitignore ?? globalLayer.useGitignore ?? DEFAULT_USE_GITIGNORE,
         },
         limits: {
             searchRequestTimeoutMs:

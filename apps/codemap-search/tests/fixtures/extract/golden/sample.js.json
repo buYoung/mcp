@@ -1,0 +1,176 @@
+{
+  "filePath": "sample.js",
+  "totalLines": 32,
+  "symbols": [
+    {
+      "name": "Cache",
+      "kind": "class",
+      "range": {
+        "startLine": 4,
+        "startCol": 8,
+        "endLine": 17,
+        "endCol": 2
+      },
+      "docstring": "A cache helper.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "read",
+      "kind": "fn",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 9,
+        "endCol": 4
+      },
+      "docstring": "Read a value.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Cache"
+    },
+    {
+      "name": "key",
+      "kind": "variable",
+      "range": {
+        "startLine": 7,
+        "startCol": 11,
+        "endLine": 7,
+        "endCol": 28
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "legacyRead",
+      "kind": "fn",
+      "range": {
+        "startLine": 14,
+        "startCol": 3,
+        "endLine": 16,
+        "endCol": 4
+      },
+      "docstring": "@deprecated use read instead",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Cache"
+    },
+    {
+      "name": "publicLookup",
+      "kind": "fn",
+      "range": {
+        "startLine": 20,
+        "startCol": 8,
+        "endLine": 22,
+        "endCol": 2
+      },
+      "docstring": "An exported free function.",
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "privateLookup",
+      "kind": "fn",
+      "range": {
+        "startLine": 24,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Cache",
+      "kind": "test",
+      "range": {
+        "startLine": 28,
+        "startCol": 1,
+        "endLine": 32,
+        "endCol": 3
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "reads",
+      "kind": "test",
+      "range": {
+        "startLine": 29,
+        "startCol": 3,
+        "endLine": 31,
+        "endCol": 5
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "cache-key",
+      "line": 7
+    },
+    {
+      "text": "legacy",
+      "line": 15
+    },
+    {
+      "text": "Cache",
+      "line": 28
+    },
+    {
+      "text": "reads",
+      "line": 29
+    }
+  ],
+  "docstrings": [
+    "A cache helper.",
+    "Read a value.",
+    "@deprecated use read instead",
+    "An exported free function."
+  ]
+}

@@ -1,0 +1,19 @@
+이 패턴은 `codemap-search`의 `SearchResult.symbol_fallback` 경로에 있습니다. `ranking.rs:604`에서 `matched_symbols`가 비어 있으면 파일의 *모든* 심볼로 채워집니다:
+
+```rust
+// ranking.rs:604
+let symbol_fallback = matched_symbols.is_empty();
+if symbol_fallback {
+    matched_symbols = all_symbols;
+}
+```
+
+엔지니어는 "fallback이면 `matched_symbols`는 아무도 안 읽는다"고 생각해 쓰레기를 채우지만, 이 필드는 **세 개의 관찰 가능한 소비 경로**가 있습니다:
+
+1. **교차 경로 존재(Crossth Presence)** — `search/mod.rs:200`에서 `matched_symbols`를 순회하며 파일이 qualified literal의 leaf 심볼을 "정의"하는지 결정합니다. 쓰레기 심볼이 leaf 이름과 일치하면 cross-path note가 달라집니다.
+
+2. **호출자 어노테이션 디스패치** — `search/mod.rs:448`에서 `matched_symbols`와 `symbol_fallback`이 `AnnotationRequest`로 전달되어 caller/callee 분석을 구동합니다. 심볼 내용이 분석 대상과 비용을 결정합니다.
+
+3. **Fallback 렌더링 재질의** — `search/mod.rs:533-547`에서 fallback 경로가 `matched_symbols`를 `symbol_is_tier1`/`symbol_matches_query`로 **다시 질의**해 어떤 심볼이 full snippet을 받을지 결정합니다. 모든 심볼이 쓰레기면 이 재질의가 빈 결과를 반환해 렌더링 동작이 바뀝니다.
+
+동일한 쿼리 결과(`SearchResult`)가 **세 가지 다른 "구문 계획"**(cross-path 스캔, annotation dispatch, 렌더링 재질의)을 통해 소비되고, 각각 `symbol_fallback`과 `matched_symbols`를 다르게 해석합니다. "버려진" fallback 슬롯은 던져지거나(throw = cross-path 오분류) 형제 경로에 다른 타입을 표면화합니다(render = fallback vs non-fallback이 완전히 다른 출력 트리를 구동).

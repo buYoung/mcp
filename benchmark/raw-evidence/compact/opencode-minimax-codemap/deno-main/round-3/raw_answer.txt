@@ -1,0 +1,23 @@
+Based on my exploration of the codebase, I can answer your question:
+
+## Resolution Path
+
+The packaging flow works through the **NpmResolutionSnapshot** system. When `deno compile` builds a standalone binary:
+
+1. `libs/resolver/graph.rs:426-447` - `resolve_bare_specifier_in_npm_snapshot()` converts bare specifiers (e.g., `"lodash"`) to `npm:{specifier}` format
+2. The resolution uses the **workspace-wide npm snapshot** (`NpmResolutionSnapshot`) built from the root workspace's `package.json` dependencies - not from each workspace member's own manifest
+3. When your helper module does `import "bar"` without listing it in its own `package.json`, the resolver falls back to the npm snapshot which aggregates packages from the entire workspace
+
+So if the root workspace has `"bar"` in dependencies, the helper can import it even though its own `package.json` doesn't list it - because the npm snapshot already resolved `"bar"` from the root.
+
+## When It Quietly Binds the Wrong Version
+
+The dangerous case is when **version constraints differ between workspace members**:
+
+- Root workspace resolves `lodash@4.17.20` (first resolved version wins in the snapshot)
+- A workspace member expects `lodash@^4.18.0` and relies on a subpath export or API only available in `4.18+`
+- The helper module gets `4.17.20` from the hoisted snapshot at the root level
+
+The resolution at `libs/resolver/graph.rs:371-402` (`resolve_managed_npm_req_ref`) resolves packages from whatever version the snapshot chose, without checking if that version satisfies the importing workspace member's own declared constraints.
+
+This is a classic **hoisting version mismatch** problem in pnpm-style workspaces - the same package can end up with different versions depending on which workspace member's dependency declaration "wins" the resolution race.

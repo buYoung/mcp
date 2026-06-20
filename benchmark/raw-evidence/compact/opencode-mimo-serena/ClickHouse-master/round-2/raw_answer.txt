@@ -1,0 +1,73 @@
+이 코드베이스에서 "버려진" 폴백 필드가 여전히 관찰 가능하게 되는 이유는 세 가지 메커니즘 때문입니다.
+
+---
+
+**1. 더미 컬럼은 명시적으로 보존됩니다**
+
+`JoinStepLogical.cpp:421-433`의 `removeUnusedColumns`에서:
+- 소비자가 필요로 하는 컬럼 → 유지
+- 소비자가 필요로 하지 **않는** 일반 컬럼 → 제거
+- 소비자가 필요로 하지 **않는** 더미 컬럼(`__join_result_dummy`) → **유지**
+
+```cpp
+else if (!isDummyColumnOfThisStep(output_node))
+{
+    /// 제거 대상
+    removed_any_output = true;
+    ...
+}
+else
+{
+    /// Dummy column kept even though not required.
+    required_nodes.push_back(output_node);
+    kept_output_positions.push_back(i);
+}
+```
+
+파이프라인은 최소 1개 출력 컬럼이 필요하므로, `SELECT count() FROM t1 JOIN t2 ON ...` 같은 쿼리에서 사용자 컬럼이 하나도 없어도 이 더미 컬럼이 살아남니다.
+
+---
+
+**2. 더미 컬럼의 표현이 materialize되면서 헤더 불일치를 일으킵니다**
+
+`JoinStepLogical.cpp:572-580`의 `updateOutputHeader`에서:
+```cpp
+/// Materialize constant columns because we need a non-constant dummy column as result
+for (const auto * node : outputs)
+{
+    if (isDummyColumnOfThisStep(node))
+    {
+        materializeBlockInplace(header);
+        break;
+    }
+}
+```
+
+원래 더미 컬럼은 `Const UInt8`인데, materialize 과정을 거치면 `UInt8`로 변경됩니다. 이 표현 변경은 `removeUnusedColumns.cpp:49-54`에서 부모의 입력 헤더와 자식의 출력 헤더가 다르다고 판단하게 만듭니다:
+
+```cpp
+/// Even when all column names match, the column representations might differ
+/// (e.g., Const vs materialized after JoinStepLogical materializes its dummy column).
+```
+
+이 불일치는 디스카딩(ExpressionStep 삽입)이나 헤더 동기화를 트리거하여, "**읽지 않는 필드인데도 파이프라인 구조 자체를 바꾸는**" 결과를 낳습니다.
+
+---
+
+**3. `canRemoveColumnsFromOutput`이 단일 더미 컬럼일 때 제거를 차단합니다**
+
+`JoinStepLogical.cpp:550-555`:
+```cpp
+bool JoinStepLogical::canRemoveColumnsFromOutput() const
+{
+    if (output_header == nullptr)
+        return false;
+    return canRemoveUnusedColumns() && output_header->columns() > 1;
+}
+```
+
+출력 컬럼이 1개뿐(바로 더미 컬럼)이면 `false`를 반환하여, 상위 최적화 패스가 이 스텝의 출력을 further 제거하지 못하도록 막습니다.
+
+---
+
+**요약**: 더미 컬럼은 "아무도 읽지 않는 슬롯"이 아니라 파이프라인의 최소 출력 보장, 헤더 동기화, 최적화 통제에 관여하는 관찰 가능 entity입니다. 센티넬 값을 여기에 넣으면 materialize 과정에서 타입이 바뀌거나, 헤더 불일치로 인해 의도치 않은 ExpressionStep이 삽입되거나, 쿼리 자체가 예외를 던질 수 있습니다.

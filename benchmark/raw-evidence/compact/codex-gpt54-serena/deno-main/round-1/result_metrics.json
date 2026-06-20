@@ -1,0 +1,33 @@
+{
+    "arm_id": "codex-gpt54-serena",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "serena",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 1105.174,
+    "tokens": {
+        "input_tokens": 284903,
+        "output_tokens": 12251,
+        "cached_input_tokens": 192384
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "4c065503d42a602688dc6d44cc79d6c844ca29f953adcfebce785547c9a52c36",
+    "scorer_score": 0.375,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 4,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

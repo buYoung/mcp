@@ -1,0 +1,33 @@
+{
+    "arm_id": "codex-gpt54-serena",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "serena",
+    "codebase": "angular-main",
+    "round": 2,
+    "wall_time_s": 71.238,
+    "tokens": {
+        "input_tokens": 178761,
+        "output_tokens": 2693,
+        "cached_input_tokens": 135680
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "897b9bc1265160656a8b15112246ec2888475e5d2756a9e8e7b0ce6a22e18486",
+    "scorer_score": 0.6875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 4,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

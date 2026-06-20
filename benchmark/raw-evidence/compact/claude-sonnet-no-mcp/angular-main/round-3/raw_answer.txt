@@ -1,0 +1,68 @@
+Here is the precise mechanism, traced through the source.
+
+---
+
+## The gating rule: `_queuedWrite` + `afterNextRender`
+
+Every mutation that touches the option list — an option setting its `ngValue`, a plain `value` binding, or an option being destroyed — calls one method:
+
+```
+packages/forms/src/directives/select_control_value_accessor.ts:173
+_writeValueAfterRender()
+```
+
+That method has a single guard at the top:
+
+```ts
+// line 174
+if (this._queuedWrite || this.appRefInjector.destroyed) {
+  return;
+}
+this._queuedWrite = true;
+
+afterNextRender(
+  { write: () => {
+      this._queuedWrite = false;
+      this.writeValue(this.value);   // the real re-selection pass
+  }},
+  { injector: this.appRefInjector },
+);
+```
+
+**Rule in one sentence**: the model is re-applied to the `<select>` element exactly once — in `afterNextRender`'s `write` phase — after the current render cycle finishes, no matter how many individual option mutations happened during that cycle.
+
+---
+
+## Why individual mutations are intentionally blocked
+
+The comment block at lines 153-172 names three distinct bugs this design was written to prevent:
+
+### 1. Exponential `_compareWith` calls (issue #41330)
+
+`writeValue` calls `_getOptionId`, which walks every entry in `_optionMap` and invokes `_compareWith` for each one:
+
+```ts
+// line 225-229
+_getOptionId(value: any): string | null {
+  for (const id of this._optionMap.keys()) {
+    if (this._compareWith(this._optionMap.get(id), value)) return id;
+  }
+  return null;
+}
+```
+
+If `writeValue` fired eagerly on every option mutation, adding or replacing N options would trigger N calls to `_getOptionId`, each scanning up to N entries — O(N²) comparisons. The `_queuedWrite` flag collapses all of those into a single scan that runs once after the list is fully settled.
+
+### 2. Browser drift during animated/delayed removal (issue #18430)
+
+The animations module does not remove `<option>` elements from the DOM synchronously. If `writeValue` were called the moment an option's `ngOnDestroy` fired (line 299), Angular would update `select.value` while the disappearing option was still physically in the DOM. The browser, seeing that option then vanish, would silently move the selection to the first remaining option — even though the Angular model never changed. By deferring until `afterNextRender`, the DOM has reached its final post-animation state before Angular touches `select.value`.
+
+### 3. Safari / IE 11 pre-text-node deselection (issue #14505)
+
+Setting `select.value` before an `<option>`'s text-node child was appended to the DOM caused those browsers to fail to deselect the first option when no option matched the model. The `write` phase of `afterNextRender` guarantees the full subtree is committed before the value is applied.
+
+---
+
+## Summary
+
+The `_queuedWrite` boolean is the coalescing sentinel. The first option mutation in a render cycle sets it and registers one `afterNextRender` callback; every subsequent mutation in the same cycle returns immediately. The callback clears the flag and does the single authoritative `writeValue` call once the DOM is stable — protecting both the O(N) equality budget and the browser's selection state against partially-removed options.

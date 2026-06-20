@@ -1,0 +1,61 @@
+Here is the complete picture, drawn entirely from the source code.
+
+---
+
+## The rule: one deferred re-selection per render cycle, not one per option mutation
+
+### Data model
+
+`SelectControlValueAccessor` maintains a `_optionMap: Map<string, any>` (line 122). Each `<option>` element is a `NgSelectOption` directive; when it is constructed its parent select assigns it a monotonically-increasing string id from `_idCounter`, and that id is the stable key in the map. The map value is the **whole object** bound via `[ngValue]`.
+
+### How equality is decided
+
+`_getOptionId(value)` (line 225) walks the map and calls `this._compareWith(storedObject, value)` on each entry. `_compareWith` defaults to `Object.is` but is overridable via the `[compareWith]` input (line 133). The id it returns is used to form the opaque value-string that the `<select>` DOM element actually holds (`"0: Object"`, `"1: Object"`, …), decoupling the DOM from the application objects entirely.
+
+### When re-selection is triggered
+
+Every mutation path for an individual `<option>` ends with the same call:
+
+| Event | Code path |
+|---|---|
+| Option's `[ngValue]` is set or updated | `ngValue` setter → updates `_optionMap`, then calls `_writeValueAfterRender()` (line 278) |
+| Option's plain `value` is set | `value` setter → calls `_writeValueAfterRender()` (line 289) |
+| Option is destroyed (removed from DOM) | `ngOnDestroy` → deletes from `_optionMap`, then calls `_writeValueAfterRender()` (line 300) |
+
+None of them call `writeValue` directly. They all go through the deferred path.
+
+### The deduplication gate: `_writeValueAfterRender()`
+
+```typescript
+// select_control_value_accessor.ts:173
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                          // <-- gate: at most one in-flight callback
+  }
+  this._queuedWrite = true;
+  afterNextRender(
+    { write: () => {
+        if (this.destroyRef.destroyed) return;
+        this._queuedWrite = false;
+        this.writeValue(this.value); // <-- single full re-selection pass
+    }},
+    { injector: this.appRefInjector },
+  );
+}
+```
+
+The `_queuedWrite` boolean means: however many options fire mutations in the same change-detection pass (e.g., an `*ngFor` rebuilding 50 items replaces every option in rapid succession), only the **first** one schedules the `afterNextRender` callback. All subsequent calls return immediately. When Angular's render cycle completes and DOM writes are flushed, the one queued callback runs `writeValue(this.value)`, walking the now-complete `_optionMap` exactly once.
+
+### Why individual mutations are intentionally blocked from triggering an immediate pass
+
+The source code comment at lines 153–169 documents three concrete bugs that the deferred design prevents:
+
+1. **Exponential `compareWith` cost (issue #41330):** If `writeValue` ran on every option addition/removal, `_getOptionId` would loop over all `n` currently registered options for each of the `n` mutations — `O(n²)` comparisons. Coalescing to one post-render call makes it `O(n)`.
+
+2. **Safari / IE 11 partial-DOM bug (issue #14505):** Angular sets the `<select>` element's `value` property during `writeValue`. If that happened before an `<option>`'s text-node child was appended to the DOM, those browsers failed to deselect the first option when no option matched the model. Waiting until the render's write phase guarantees all child nodes are already in the DOM.
+
+3. **Animation-module deferred removal (issue #18430):** The animations module keeps a leaving `<option>` element in the DOM while its exit animation plays. If `writeValue` fired immediately on `ngOnDestroy` (right after the option was removed from `_optionMap`), it would set the select's DOM value while the `<option>` element was still physically present. When the browser then removed that element after the animation ended, it would snap the selection to the first remaining option — a selection the model never asked for. Deferring to after the next render means all animation-driven DOM removals have also resolved before the re-selection runs.
+
+---
+
+**In one sentence:** every option mutation calls `_writeValueAfterRender()`, which schedules a single `afterNextRender` write-phase callback (guarded by `_queuedWrite` so only one is ever in flight) that calls `writeValue` once after the full DOM is stable — preventing O(n²) comparison blowup, partial-DOM browser quirks, and animation-driven selection drift.

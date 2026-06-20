@@ -1,0 +1,51 @@
+{
+    "arm_id": "opencode-deepseek-codemap",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "codemap",
+    "codebase": "ClickHouse-master",
+    "round": 1,
+    "wall_time_s": 209.851,
+    "tokens": {
+        "input_tokens": 4497,
+        "output_tokens": 330,
+        "cache_read_input_tokens": 44800,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "codemap-search_overview": 1,
+        "codemap-search_grep": 8,
+        "codemap-search_find": 5,
+        "read": 18,
+        "invalid": 1,
+        "todowrite": 4,
+        "codemap-search_search": 2,
+        "codemap-search_read": 6
+    },
+    "tool_result_bytes_by_tool": {
+        "codemap-search_overview": 0,
+        "codemap-search_grep": 4691,
+        "codemap-search_find": 1783,
+        "read": 58063,
+        "invalid": 259,
+        "todowrite": 2719,
+        "codemap-search_search": 11691,
+        "codemap-search_read": 32108
+    },
+    "assigned_backend_tool_bytes": 50273,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "f74340cfb10af1f1d5249cf0526018318efeabe37cad986781f7574d4d9318d5",
+    "scorer_score": 1,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 7,
+            "no-mcp": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

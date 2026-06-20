@@ -1,0 +1,51 @@
+Here is the precise chain, mapped to actual files:
+
+---
+
+## The packaging flow
+
+`build.ts` is "turning an app into a single distributable" — it generates a `dist/deno/` npm package on disk. That package's `bin` entry (`bin.cjs`) is **the startup file**, copied directly from `tools/release/npm/bin.cjs`. When the local `deno` binary is missing, `bin.cjs:17` does:
+
+```js
+require("./install_api.cjs").runInstall()
+```
+
+**`install_api.cjs` is the helper from the neighboring source tree.** It lives alongside `build.ts` in `tools/release/npm/`, which has no `package.json` of its own. That directory never declares `@deno/<platform>` as a dependency — there is no manifest in `tools/release/npm/` at all. Yet `install_api.cjs:26` makes this bare-specifier call:
+
+```js
+require.resolve("@deno/" + target + "/package.json")
+```
+
+`@deno/linux-x64-glibc`, `@deno/darwin-arm64`, etc. are nowhere in `tools/release/npm/`'s own (nonexistent) manifest.
+
+---
+
+## The resolution path that keeps it working
+
+The **generated** `dist/deno/package.json` — written by `build.ts:100–102` — is what actually brings those packages in:
+
+```ts
+optionalDependencies: packages
+  .map((pkg) => `@deno/${getPackageNameNoScope(pkg)}`)
+  .reduce((obj, pkgName) => ({ ...obj, [pkgName]: version }), {}),
+```
+
+When npm installs `deno`, it installs all six `@deno/<os>-<cpu>[-<libc>]` platform packages as optional dependencies. They land in `node_modules/@deno/<target>/`.
+
+When Node.js executes `require.resolve("@deno/linux-x64-glibc/package.json")` from inside `node_modules/deno/install_api.cjs`, it uses the standard CJS resolution algorithm: walk up the directory tree from `__dirname`, checking each ancestor's `node_modules/@deno/linux-x64-glibc/` in turn. It finds the package at `node_modules/@deno/linux-x64-glibc/` — installed there by the `deno` package's own manifest — and resolution succeeds.
+
+`install_api.cjs` itself never needed to declare the dependency because it relies entirely on the outer distributable's manifest having already placed the platform packages in the module graph.
+
+---
+
+## When it can quietly bind the wrong installed version
+
+The resolution call at `install_api.cjs:26` is a plain `require.resolve` with no version validation. It returns the first matching package Node finds while walking up — and that winner is decided by **npm's hoisting**, not by `install_api.cjs`.
+
+The silent mismatch happens when:
+
+> Another package in the same `node_modules` tree (or npm workspace) already has a direct dependency on `@deno/<target>` at a **different version** than the one `deno@X.Y.Z` expects.
+
+npm's deduplication algorithm will hoist whichever version satisfies the widest set of consumers to `node_modules/@deno/<target>/`. If that winning version differs from the platform binary the `deno` wrapper was built for, Node's `require.resolve` still returns it without complaint — `install_api.cjs` never inspects the `version` field of the `package.json` it resolves. It just takes the path and copies the binary from there. The user ends up running a Deno binary whose version doesn't match the `deno` npm wrapper, with no error or warning.
+
+The exact trigger: a workspace or outer project that pins `@deno/linux-x64-glibc@2.x` causes npm to hoist v2's binary to the top-level `node_modules/@deno/linux-x64-glibc/`, while the `deno@1.x` wrapper's matching v1 copy either gets nested under `node_modules/deno/node_modules/` (if npm detects the conflict) or is deduplicated away entirely (if npm considers the two ranges compatible). Either outcome is silent; `install_api.cjs` gets back a path and proceeds.

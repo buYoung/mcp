@@ -1,0 +1,26 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_function_fpa4f0dgad4c_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_function_fpa4f0dgad4c_1",
+        "response_size_bytes": 6915
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_wxjvh8l1ldmq_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_wxjvh8l1ldmq_1",
+        "response_size_bytes": 11064
+    }
+]

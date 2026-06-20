@@ -1,0 +1,35 @@
+Based on the code exploration, here's the answer:
+
+## Resolution Path
+
+The packaging flow works because of the **node_modules directory tree-walk** in `libs/resolver/npm/managed/local.rs:174-195`. When resolving a package import, the algorithm walks up the directory tree from the referrer's location:
+
+```rust
+for current_folder in local_path.ancestors().skip(1) {
+  let node_modules_folder = if current_folder.ends_with("node_modules") {
+    Cow::Borrowed(current_folder)
+  } else {
+    Cow::Owned(current_folder.join("node_modules"))
+  };
+  let sub_dir = join_package_name_to_path(node_modules_folder, name);
+  if self.sys.is_dir(Cow::Borrowed(&sub_dir)) {
+    return Ok(self.sys.fs_canonicalize(&sub_dir)...);
+  }
+  if current_folder == self.root_node_modules_path {
+    break;
+  }
+}
+```
+
+The helper module's undeclared dependency succeeds because the package exists in **some ancestor `node_modules/` directory** — the resolution finds it before hitting the root boundary.
+
+## When It Binds the Wrong Version
+
+**When multiple versions of the same package exist at different node_modules hierarchy levels**, and the **helper's source tree location** causes a different version to be discovered first during the upward walk.
+
+For example:
+- `/release/root/node_modules/helper/` (v1.0.0)
+- `/release/root/node_modules/pkg/` (v1.0.0)  
+- `/release/generated/helper/node_modules/pkg/` (v2.0.0)
+
+If the generated startup file's output is placed under `/release/generated/` and pulls in the helper, the tree-walk from `/release/generated/helper/some_file.js` will find `v1.0.0` in `/release/root/node_modules/pkg/` first (walking up), rather than the `v2.0.0` that the helper's actual dependencies expect.

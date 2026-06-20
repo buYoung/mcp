@@ -1,0 +1,66 @@
+name: codemap-search Release
+
+# Tag the release commit `codemap-vX.Y.Z` to build and publish prebuilt binaries.
+# This is the only release trigger: pushes to branches never publish, and the tag
+# prefix is scoped to codemap-search so no other app can be released from here.
+on:
+  push:
+    tags:
+      - "codemap-v[0-9]*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  MANIFEST: apps/codemap-search/Cargo.toml
+  BIN: codemap-search
+
+jobs:
+  release:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, archive: tar.gz }
+          - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
+          - { os: macos-13, target: x86_64-apple-darwin, archive: tar.gz }
+          # Windows is best-effort.
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/codemap-search
+
+      - name: Build
+        run: cargo build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          dir="apps/codemap-search/target/${{ matrix.target }}/release"
+          name="${BIN}-${{ matrix.target }}"
+          tar -czf "${name}.tar.gz" -C "$dir" "$BIN"
+          shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
+
+      - name: Package (windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $dir = "apps/codemap-search/target/${{ matrix.target }}/release"
+          $name = "$env:BIN-${{ matrix.target }}"
+          Compress-Archive -Path "$dir/$env:BIN.exe" -DestinationPath "$name.zip"
+          (Get-FileHash "$name.zip" -Algorithm SHA256).Hash > "$name.zip.sha256"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            codemap-search-${{ matrix.target }}.*

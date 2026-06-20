@@ -1,0 +1,39 @@
+{
+    "arm_id": "opencode-deepseek-no-mcp",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "no-mcp",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 171.62,
+    "tokens": {
+        "input_tokens": 10695,
+        "output_tokens": 292,
+        "cache_read_input_tokens": 1664,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "read": 1,
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "read": 0,
+        "task": 11555
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "dd6b6f3c29dd96aff433040c4e4e15e0d6d7ed93709a638df06736e34c0e9a4e",
+    "scorer_score": 0,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 8,
+            "codemap": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

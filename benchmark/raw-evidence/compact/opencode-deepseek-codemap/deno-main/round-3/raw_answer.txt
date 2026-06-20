@@ -1,0 +1,24 @@
+이 질문은 Deno의 `deno compile` standalone binary 생성 흐름을 설명합니다. 핵심은 **BYONM(Bring Your Own Node Modules) 해석 경로**에 있습니다.
+
+### 정상 동작하는 해석 경로
+
+`libs/resolver/npm/byonm.rs`의 `resolve_pkg_json_and_alias_for_req` (L213-345)는 bare specifier를 세 단계로 해석합니다:
+
+1. **Ancestor package.json 스캔** (L264-274) — referrer 디렉토리부터 위로 올라가며 각 `package.json`의 `dependencies`에 해당 dep이 있는지 확인
+2. **Root package.json** (L277-288) — 프로젝트 루트의 `package.json`
+3. **Ancestor walk으로 `node_modules/<name>` 물리 탐색** (L317-325) — `dir_path.ancestors().skip(1)`을 따라 올라가며 `node_modules/<req.name>/package.json`이 존재하면 `name` 필드만 확인하고 version 대조
+
+3번 경로가 "helper의 manifest가 dep을 선언하지 않았지만 빌드가 성공하는" 이유입니다. `fill_npm_vfs` (L1125-1160)가 BYONM 모드에서 workspace 전체의 모든 `node_modules/` 디렉토리를 VFS에 통째로 임베드하므로, helper 모듈이 bare specifier를 `import`하면 hoisted된 상위 `node_modules/`에서 물리적으로 발견됩니다.
+
+### 잘못된 버전을 조용히 바인딩하는 경우
+
+`search_node_modules` (L292-316)에서 version 검사에 있는 `unwrap_or(true)` (L310) 때문입니다:
+
+```
+dep_pkg_json.version.as_ref()
+  .and_then(|v| Version::parse_from_npm(v).ok())
+  .map(|version| version_req_matches_including_pre(&req.version_req, &version))
+  .unwrap_or(true)  // <-- 여기
+```
+
+설치된 패키지의 `package.json`에서 version을 파싱할 수 없거나 없으면 **무조건 통과**합니다. 또한 ancestor walk는 의존성 트리 토폴로지를 전혀 고려하지 않습니다. 예를 들어, `app → lodash@4.x`가 hoisted되어 있고, helper 모듈이 의존성 체인을 통해 `lodash@3.x`를 써야 하는 상황에서 `node_modules/lodash`를 조상 방향으로 탐색하면 `lodash@4.x`를 찾아 조용히 바인딩합니다. helper 자신의 `package.json`에 dep이 선언되어 있지 않았기 때문에 1단계에서 걸러지지 않고, 3단계의 물리 탐색만 통과하여 잘못된 버전이 선택됩니다.

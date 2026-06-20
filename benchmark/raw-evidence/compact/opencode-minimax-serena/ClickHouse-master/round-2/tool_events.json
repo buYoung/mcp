@@ -1,0 +1,206 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_function_hzp56k50rqsk_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_function_hzp56k50rqsk_1",
+        "response_size_bytes": 6303
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_wrttrrd4zn2c_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_wrttrrd4zn2c_1",
+        "response_size_bytes": 9631
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_wrttrrd4zn2c_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_wrttrrd4zn2c_2",
+        "response_size_bytes": 1306
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_u1o8h2c5s9zv_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_u1o8h2c5s9zv_2",
+        "response_size_bytes": 2888
+    },
+    {
+        "phase": "call",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_u1o8h2c5s9zv_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_u1o8h2c5s9zv_1",
+        "response_size_bytes": 15
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_mvh6zghxvyj8_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_mvh6zghxvyj8_1",
+        "response_size_bytes": 5103
+    },
+    {
+        "phase": "call",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_mvh6zghxvyj8_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_mvh6zghxvyj8_2",
+        "response_size_bytes": 15
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_secoowk5xcrm_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_secoowk5xcrm_1",
+        "response_size_bytes": 2968
+    },
+    {
+        "phase": "call",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_85rsje0jt4og_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_85rsje0jt4og_1",
+        "response_size_bytes": 15
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_iknbvftysgw3_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_iknbvftysgw3_1",
+        "response_size_bytes": 252
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_function_j6q1legvgaqx_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_function_j6q1legvgaqx_1",
+        "response_size_bytes": 7423
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_nhsl2mx0ie5d_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_nhsl2mx0ie5d_1",
+        "response_size_bytes": 7502
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_nhsl2mx0ie5d_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_nhsl2mx0ie5d_2",
+        "response_size_bytes": 3616
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_9gignpcsrxb6_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_9gignpcsrxb6_1",
+        "response_size_bytes": 2247
+    },
+    {
+        "phase": "call",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_9gignpcsrxb6_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_9gignpcsrxb6_2",
+        "response_size_bytes": 15
+    },
+    {
+        "phase": "call",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_g6z0a0cfaqje_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "serena_search_for_pattern",
+        "call_id": "call_function_g6z0a0cfaqje_1",
+        "response_size_bytes": 15
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_gi8y7p7r96zv_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_gi8y7p7r96zv_1",
+        "response_size_bytes": 3039
+    }
+]

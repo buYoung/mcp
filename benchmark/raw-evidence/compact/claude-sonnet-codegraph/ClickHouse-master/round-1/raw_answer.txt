@@ -1,0 +1,54 @@
+Now I have the full picture. Here is the precise answer.
+
+---
+
+## The enrichment primitive: `dictGet` / `dictGetOrDefault`
+
+When the second argument is a **tuple of attribute names** — `dictGet('d', ('attr1', 'attr2'), key)` — the function returns a `DataTypeTuple` with one element per attribute. Engineers reading only element 1 via `tupleElement(…, 1)` assume the other slots, including their defaults in `dictGetOrDefault`, are invisible to the engine. That assumption breaks in two distinct ways, and `DictGetTupleElementPass.cpp` documents both explicitly.
+
+---
+
+### Mechanism 1 — `castColumnAccurate` evaluates the entire default tuple (`FunctionsExternalDictionaries.h:476-504`)
+
+```cpp
+auto result = castColumnAccurate(column_to_cast, result_type);   // line 483
+```
+
+`result_type` is the full `Tuple(attr1_type, attr2_type, …)` derived at analysis time. `castColumnAccurate` operates on the whole tuple column, not just the element the caller will eventually read. If the fallback at position 2 is, say, a `String` literal but `attr2` is a `UInt64` attribute, the cast of that unused element throws at execution time — even though `tupleElement(result, 1)` never touches it.
+
+The pass's own comment at `DictGetTupleElementPass.cpp:164-168` states this:
+
+> `dictGetOrDefault` casts the entire default tuple to the dict's attribute tuple type at execution. If the element types of the default tuple don't match the dict's attribute types, that cast can throw on an un-selected element (for example, a string default for a `UInt64` attribute).
+
+The pass protects against the *opposite* problem: its type-equality guard (`line 180-182`) refuses to rewrite unless the default tuple's element types already match the attribute types exactly, so it only fires when the cast cannot throw on any element. The **un-optimized path** always throws on mismatched sentinel values.
+
+---
+
+### Mechanism 2 — `LowCardinality` surface difference between the one-attribute form and the tuple form (`DictGetTupleElementPass.cpp:246-251`)
+
+```cpp
+/// The single-attribute form of `dictGet` preserves a `LowCardinality` wrapper from the
+/// key argument, while the tuple-attribute form drops it (a tuple cannot be `LowCardinality`).
+/// If the result types differ, the rewrite would change the type observed by the parent
+/// node and break the surrounding query tree. Bail out in that case.
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;
+```
+
+`FunctionDictGetNoType::getReturnTypeImpl` (`line 404-414`) takes two fundamentally different code paths depending on how many attributes were requested:
+
+```cpp
+if (attribute_types.size() > 1)
+    return std::make_shared<DataTypeTuple>(attribute_types, attribute_names);  // always a plain Tuple
+
+// single-attribute path falls through to:
+return attribute_types.front();   // can be LowCardinality(T) directly
+```
+
+Because a `Tuple` can never itself carry a `LowCardinality` wrapper, the multi-attribute form always strips it. The single-attribute form invokes `useDefaultImplementationForLowCardinalityColumns` machinery, so when the key column is `LowCardinality(String)` the single-attribute result type is `LowCardinality(attr_type)`. After the `DictGetTupleElementPass` would rewrite `tupleElement(dictGet(…, ('attr',), key), 1)` → `dictGet(…, 'attr', key)`, the result type changes from plain `attr_type` to `LowCardinality(attr_type)` — a different type visible to every operator above it in the plan. The bail-out guard catches this and leaves the tree unchanged.
+
+---
+
+### Summary
+
+Both effects flow from the same architectural decision: the tuple-attribute form of `dictGet` is a single function call whose result type and execution path cover **all** requested attributes jointly. There is no late narrowing. The fallback column is cast wholesale before any element is projected out, and the type the plan records for the node is the full tuple type — not the element type the query eventually reads. The `DictGetTupleElementPass` exists precisely to collapse that into a single-attribute call, but it can only do so when neither hazard applies: when all default tuple element types already match (so no cast can throw) and when `LowCardinality` propagation would not change the result type.

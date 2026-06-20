@@ -1,0 +1,26 @@
+{
+    "command": "claude",
+    "args": [
+        "-p",
+        "--model",
+        "sonnet",
+        "--setting-sources",
+        "",
+        "--strict-mcp-config",
+        "--mcp-config",
+        "<REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-02/phases/solver-episodes/claude-sonnet-serena/angular-main/round-2/mcp_config.json",
+        "--allowedTools",
+        "mcp__serena__find_symbol,mcp__serena__find_referencing_symbols,mcp__serena__find_implementations,mcp__serena__find_declaration,mcp__serena__get_symbols_overview,mcp__serena__search_for_pattern,mcp__serena__list_dir,mcp__serena__find_file,Read,ToolSearch",
+        "--disallowedTools",
+        "Bash,Glob,Grep,Edit,Write,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,Workflow,Agent,Skill",
+        "--output-format",
+        "stream-json",
+        "--verbose"
+    ],
+    "cwd": "<REPO_ROOT>/.agents/benchmark-data/angular-main",
+    "command_line": "claude -p --model sonnet --setting-sources '' --strict-mcp-config --mcp-config <REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-02/phases/solver-episodes/claude-sonnet-serena/angular-main/round-2/mcp_config.json --allowedTools mcp__serena__find_symbol,mcp__serena__find_referencing_symbols,mcp__serena__find_implementations,mcp__serena__find_declaration,mcp__serena__get_symbols_overview,mcp__serena__search_for_pattern,mcp__serena__list_dir,mcp__serena__find_file,Read,ToolSearch --disallowedTools Bash,Glob,Grep,Edit,Write,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,Workflow,Agent,Skill --output-format stream-json --verbose",
+    "contains_bare": false,
+    "setting_sources_used": true,
+    "runtime": "claude-sonnet",
+    "backend": "serena"
+}
