@@ -1,0 +1,24 @@
+{
+    "$schema": "https://unpkg.com/release-it@20/schema/release-it.json",
+    "npm": false,
+    "hooks": {
+        "after:bump": [
+            "node scripts/release/bump-cargo-version.js ${version}",
+            "node scripts/release/write-changelog.js ${latestTag} ${version}"
+        ]
+    },
+    "git": {
+        "commitArgs": ["-a"],
+        "commitMessage": "chore(release): codemap-v${version}",
+        "tagName": "codemap-v${version}",
+        "tagAnnotation": "codemap-search v${version}",
+        "tagMatch": "codemap-v[0-9]*",
+        "requireBranch": "main",
+        "requireCleanWorkingDir": false,
+        "push": true,
+        "pushArgs": ["--follow-tags"]
+    },
+    "github": {
+        "release": false
+    }
+}
