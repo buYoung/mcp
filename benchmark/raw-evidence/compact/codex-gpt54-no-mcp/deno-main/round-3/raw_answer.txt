@@ -1,0 +1,10 @@
+현재 그 흐름이 유지되는 이유는 번들 해석기가 일반 그래프 해석에 실패한 뒤, 베어 스펙ifier면 관리형 npm 스냅샷으로 한 번 더 우회 해석하기 때문입니다.
+
+구체적으로는 [cli/tools/bundle/mod.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/cli/tools/bundle/mod.rs:1560)에서 `resolve_with_graph(...)`가 실패하면, 인접 소스 트리에서 끌려온 파일의 plain package import에 대해 `resolver.resolve_bare_specifier_in_npm_snapshot(...)`를 호출합니다. 이 함수는 [libs/resolver/graph.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/graph.rs:404)에서 설명하듯 referrer의 `package.json` 선언 여부와 무관하게 관리형 npm 스냅샷에서 패키지 이름으로 찾고, 내부적으로는 `npm:<name>` 즉 사실상 `name@*`로 해석합니다([libs/resolver/graph.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/graph.rs:426)).
+
+조용히 잘못된 설치 버전에 바인딩될 수 있는 경우도 그 주석에 적혀 있습니다. 빌드 스냅샷 안에 같은 패키지의 여러 버전이 있을 때입니다. 이 우회 경로는 “가장 가까운 `node_modules`에서 어떤 버전이 보여야 하는가”를 따지지 않고 이름만으로 하나를 고르므로, 그 헬퍼 모듈 자신의 인접 트리라면 선택됐어야 할 버전과 다른 버전에 붙을 수 있습니다([libs/resolver/graph.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/graph.rs:417)). 즉:
+
+1. 정상 경로: 그래프 해석 실패
+2. 우회 경로: 관리형 npm 스냅샷에서 `name@*`로 재해석
+3. 위험 조건: 같은 이름의 다중 버전이 스냅샷에 공존할 때
+4. 결과: “가장 가까운 버전”이 아니라 “이름으로 잡힌 어떤 버전”에 묶일 수 있음

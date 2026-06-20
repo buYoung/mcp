@@ -1,0 +1,41 @@
+{
+    "arm_id": "claude-sonnet-codemap",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "codemap",
+    "codebase": "angular-main",
+    "round": 1,
+    "wall_time_s": 96.511,
+    "tokens": {
+        "input_tokens": 8,
+        "output_tokens": 2485,
+        "cache_read_input_tokens": 78887,
+        "cache_creation_input_tokens": 12088
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 1,
+        "mcp__codemap-search__search": 2,
+        "mcp__codemap-search__read": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 201,
+        "mcp__codemap-search__search": 25441,
+        "mcp__codemap-search__read": 6268
+    },
+    "assigned_backend_tool_bytes": 31709,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "1e2eedb4805cfd33517635271aaa761d31abac794d3229ec38c94b39eff544d1",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 5,
+            "no-mcp": 6
+        }
+    },
+    "backend_process_group_cleaned": true
+}

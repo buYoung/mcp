@@ -1,0 +1,74 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01KJZW2zMVFthZnLRbAesWzP",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01KJZW2zMVFthZnLRbAesWzP",
+        "response_size_bytes": 75
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_011yJK6dpfibHuX2Gsx7QvaM",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_011yJK6dpfibHuX2Gsx7QvaM",
+        "response_size_bytes": 26574
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01DeLBHffsuujicvTKXarcFP",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01DeLBHffsuujicvTKXarcFP",
+        "response_size_bytes": 23159
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01Rc5Yo37w54veHyoa2KUhNE",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01Rc5Yo37w54veHyoa2KUhNE",
+        "response_size_bytes": 21734
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_0152UmHZ1PNfTBLcRB6mQEEv",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_0152UmHZ1PNfTBLcRB6mQEEv",
+        "response_size_bytes": 23977
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_015RF8ihz68oCiW39U7Zy22D",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_015RF8ihz68oCiW39U7Zy22D",
+        "response_size_bytes": 25335
+    }
+]

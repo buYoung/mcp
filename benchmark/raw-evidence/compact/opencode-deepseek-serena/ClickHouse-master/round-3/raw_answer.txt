@@ -1,0 +1,6 @@
+Let me look at how Tantivy produces the search output and what happens with the fields
+이 코드베이스에서 제공되지 않은 fallback 필드가 관찰 가능한 이유는 두 가지입니다:
+
+**1. Tantivy의 다중 필드 QueryParser 구성** (`ranking.rs:412-419`): Tantivy가 `symbol`, `docstring`, `file_path_parts`, `literal`의 4개 TEXT 필드에 대해 쿼리를 실행합니다. `extracted_json` JSON 블롭 내부에 수집된 `docstrings: Vec<String>`은 절대 읽히지 않지만(`candidate_from_doc`에서 `CandidateFile`로 복사되지 않음, `ranking.rs:330-336`), 각 개별 심볼의 `sym.docstring`은 Tantivy의 `docstring_field`에 색인되어 검색 일치와 BM25 순위에 영향을 줍니다. 소비자가 `matched_symbols`만 읽더라도 Tantivy는 계속해서 모든 필드를 스캔합니다 — 폐기된 것처럼 보이는 "docstring" 슬롯이 실제로는 어떤 문서가 검색 결과에 포함되는지를 결정합니다. 그리고 Tantivy 0.26의 특정 입력에 대한 `panic!`(참고: `parse_query_catching_panic`의 `ranking.rs:9-25` 래퍼)은 잘못된 field 색인 데이터(예: Tantivy 파서를 망가뜨리는 리터럴)가 다중 필드 검색 실행 중에 패닉을 발생시킬 수 있음을 의미합니다.
+
+**2. 구조적 타입이자 실행 경로 분기로서의 `symbol_fallback`** (`engine.rs:32`, `ranking.rs:604`): `symbol_fallback` 필드는 `matched_symbols`가 파일의 fallback-모든 심볼로 대체될 때 `true`로 설정됩니다. 대부분의 fallback 심볼은 소비자에 의해 "렌더링되지 않지만"(렌더러는 요약만 표시하고 스니펫은 표시하지 않음, `search/mod.rs:505-602`), 이 부울 값 자체는 상호 배타적인 두 가지 렌더링 계획(스니펫 포함 vs 이름-전용) 사이에서 분기하여 각각 다른 타입 심볼 세트(`matched_symbols`의 서로 다른 슬라이스, 없음 vs 전체)를 후속 함수(`render_anchored_symbols`, caller annotations)에 노출시킵니다. 하나의 부울 fallback 플래그가 전체 후속 처리 파이프라인에 대한 효과적인 타입을 변경합니다.

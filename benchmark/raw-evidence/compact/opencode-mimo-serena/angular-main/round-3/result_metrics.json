@@ -1,0 +1,27 @@
+{
+    "arm_id": "opencode-mimo-serena",
+    "runtime": "opencode-mimo",
+    "model": "openrouter/xiaomi/mimo-v2.5",
+    "model_label": "mimo-v2.5",
+    "backend": "serena",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 1802.202,
+    "tokens": null,
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "timeout",
+    "answer_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scorer_score": null,
+    "mutation_guard_status": "clean",
+    "harness_valid": false,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

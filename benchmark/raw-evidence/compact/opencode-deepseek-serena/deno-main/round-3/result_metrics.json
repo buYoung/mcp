@@ -1,0 +1,44 @@
+{
+    "arm_id": "opencode-deepseek-serena",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "serena",
+    "codebase": "deno-main",
+    "round": 3,
+    "wall_time_s": 1799.985,
+    "tokens": {
+        "input_tokens": 50975,
+        "output_tokens": 81,
+        "cache_read_input_tokens": 1920,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 3,
+        "todowrite": 1,
+        "read": 25,
+        "serena_search_for_pattern": 2,
+        "invalid": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 25072,
+        "todowrite": 497,
+        "read": 78238,
+        "serena_search_for_pattern": 30,
+        "invalid": 1354
+    },
+    "assigned_backend_tool_bytes": 30,
+    "backend_exercised": true,
+    "extraction_status": "timeout",
+    "answer_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scorer_score": null,
+    "mutation_guard_status": "clean",
+    "harness_valid": false,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

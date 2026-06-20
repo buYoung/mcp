@@ -1,0 +1,194 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_17d64ea7bf2f4701ab",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_17d64ea7bf2f4701ab",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_5aad3a8a79394c9bb4",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_5aad3a8a79394c9bb4",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_3ap3b9so2ppj_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_3ap3b9so2ppj_1",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_3ap3b9so2ppj_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_3ap3b9so2ppj_2",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_s39mlflopo2z_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_s39mlflopo2z_1",
+        "response_size_bytes": 293
+    },
+    {
+        "phase": "call",
+        "tool_name": "glob",
+        "call_id": "call_function_puhgo5zr5wam_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "glob",
+        "call_id": "call_function_puhgo5zr5wam_1",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_puhgo5zr5wam_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_puhgo5zr5wam_2",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_u4abl9ul3n5a_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_u4abl9ul3n5a_1",
+        "response_size_bytes": 12066
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_u4abl9ul3n5a_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_u4abl9ul3n5a_2",
+        "response_size_bytes": 21185
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_kkgsi3zyjwjg_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_kkgsi3zyjwjg_1",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_kkgsi3zyjwjg_2",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_kkgsi3zyjwjg_2",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_vt6zsmw8n6mm_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_vt6zsmw8n6mm_1",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_jxjlw6rpv8hk_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_jxjlw6rpv8hk_1",
+        "response_size_bytes": 6158
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_function_n4rg65aw7s9s_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_function_n4rg65aw7s9s_1",
+        "response_size_bytes": 5520
+    },
+    {
+        "phase": "call",
+        "tool_name": "grep",
+        "call_id": "call_function_8nzc9bmaa98a_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "grep",
+        "call_id": "call_function_8nzc9bmaa98a_1",
+        "response_size_bytes": 14
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_function_izuwxdrm6ks4_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_function_izuwxdrm6ks4_1",
+        "response_size_bytes": 5501
+    }
+]

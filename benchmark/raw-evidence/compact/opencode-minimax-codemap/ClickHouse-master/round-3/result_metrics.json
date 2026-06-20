@@ -1,0 +1,42 @@
+{
+    "arm_id": "opencode-minimax-codemap",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "codemap",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 639.424,
+    "tokens": {
+        "input_tokens": 527,
+        "output_tokens": 369,
+        "cache_read_input_tokens": 48827,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1,
+        "codemap-search_read": 2,
+        "read": 19,
+        "codemap-search_grep": 12
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 4999,
+        "codemap-search_read": 0,
+        "read": 78646,
+        "codemap-search_grep": 33307
+    },
+    "assigned_backend_tool_bytes": 33307,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "f30faf55ed53c7e43a79531072aeb2d0dc6089c2f2caa80decb2776d063e4653",
+    "scorer_score": 0.125,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "codemap": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,42 @@
+{
+    "arm_id": "opencode-minimax-serena",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "serena",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 1334.346,
+    "tokens": {
+        "input_tokens": 420,
+        "output_tokens": 492,
+        "cache_read_input_tokens": 59579,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 4,
+        "read": 27,
+        "serena_search_for_pattern": 3,
+        "invalid": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 16390,
+        "read": 116204,
+        "serena_search_for_pattern": 69057,
+        "invalid": 677
+    },
+    "assigned_backend_tool_bytes": 69057,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "57089487e0525a4d5aadf0ba947950b0ce52208d7d099ad3dee02202cb4a63e3",
+    "scorer_score": 0.1875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

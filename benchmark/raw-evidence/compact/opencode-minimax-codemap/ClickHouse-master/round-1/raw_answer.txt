@@ -1,0 +1,38 @@
+Let me explore the codebase to understand this phenomenon.
+
+This codebase appears to be ClickHouse (based on the structure). Let me search for the specific pattern you're describing — sentinel values in fallback/enriched query fields.
+
+Let me look at the `RemoveUnusedProjectionColumnsPass` which deals with removing unused columns:
+
+Let me look at the column removal/usage optimization logic:
+
+Let me search for specific patterns around column type checking and throw behavior:
+
+I found relevant code. Let me read the `DictGetTupleElementPass.cpp` which has comments about why unused elements can't always be removed:
+
+Found it. The comment at `DictGetTupleElementPass.cpp:164-170` explains exactly this phenomenon:
+
+```cpp
+/// `dictGetOrDefault` casts the entire default tuple to the dict's attribute tuple type at
+/// execution (see `castColumnAccurate` in `FunctionDictGetNoType::executeImpl`). If the
+/// element types of the default tuple don't match the dict's attribute types, that cast
+/// can throw on an un-selected element (for example, a string default for a `UInt64`
+/// attribute). After rewriting to a single-attribute call only the selected element is
+/// cast, so such exceptions are suppressed. Bail out unless element types match exactly
+```
+
+And at lines 204-206 regarding side effects:
+
+```cpp
+/// Only rewrite when all tuple arguments are constants. Otherwise, dropping the
+/// other elements could lose side effects (e.g. `tuple('ok', throwIf(1))` would
+/// no longer evaluate `throwIf(1)` after the rewrite, changing query semantics).
+```
+
+**결론:** `dictGetOrDefault`에서 전체 기본값 튜플은 단일 타입 강제 변환 작업으로 처리됩니다. 따라서:
+
+1. **예외 발생 가능성:** 사용자가 단 하나의 요소만 읽더라도, 나머지 "버려진" 요소들의 타입 호환성 검증이 여전히 수행됩니다. 예컨대 `UInt64` 어트리뷰트에 대한 문자열 기본값은 선택되지 않은 요소에서 여전히 예외를 발생시킬 수 있습니다.
+
+2. **타입 다형성:** `dictGetOrDefault(..., tuple(...), ...)` 형태를 단일 요소 호출로 재작성하면, 반환 타입이 튜플에서 개별 요소의 타입으로 변경되어 계획의 다른 부분에 다른 타입이 노출됩니다.
+
+즉, 튜플 전체에 대한 캐스트가 단일 원자 연산으로 발생하기 때문에Discard된(버려진) 필드가 여전히 관찰(검사/예외 발생) 가능한 것입니다.

@@ -1,0 +1,7 @@
+## 요약
+
+**해결 경로**: pnpm workspaces의 **node_modules hoisting** 메커니즘입니다. 헬퍼 모듈이 자체 `package.json`에 선언하지 않은 패키지를 import해도, workspace root나 다른 패키지의 `node_modules`에서 해당 패키지를 발견하면 빌드가 통과합니다. 이를 "phantom/ghost dependency"라고 합니다.
+
+**잘못된 버전이 조용히 바인딩되는 경우**: `zod@3.25.76`과 `zod@4.4.3` 두 버전이 동시에 설치되어 있을 때, 헬퍼 모듈이 `import { z } from "zod"`을 하면 pnpm이 hoist한 `zod@3.25.76`이 로드될 수 있습니다. 이 경우 빌드 시점에는 에러가 나지 않지만, 런타임에 API 불일치로 조용히 실패합니다.
+
+**구체적 발견사항** (`@modelcontextprotocol/inspector-cli@0.21.2` → `zod@3.25.76` 전이 종속성 vs 앱들이 선언한 `zod@4.4.3`)

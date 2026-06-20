@@ -1,0 +1,32 @@
+{
+    "arm_id": "codex-gpt54-codemap",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "codemap",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 51.839,
+    "tokens": {
+        "input_tokens": 95545,
+        "output_tokens": 1746,
+        "cached_input_tokens": 75264
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "3a8c41e9b301c1c5eba9b28674541102c7d2606206a62feedbc89ca4eb33b4ac",
+    "scorer_score": 0.625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 7,
+            "codemap": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

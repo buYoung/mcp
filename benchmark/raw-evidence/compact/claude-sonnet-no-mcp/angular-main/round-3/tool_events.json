@@ -1,0 +1,38 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01N3jWZfYGyohXNXK4RAZRn4",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01N3jWZfYGyohXNXK4RAZRn4",
+        "response_size_bytes": 584
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01816E6JTo4aPJvVgRCuojHi",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01816E6JTo4aPJvVgRCuojHi",
+        "response_size_bytes": 203
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01A3NTemsozSLzaNtBKB7Psy",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01A3NTemsozSLzaNtBKB7Psy",
+        "response_size_bytes": 10540
+    }
+]

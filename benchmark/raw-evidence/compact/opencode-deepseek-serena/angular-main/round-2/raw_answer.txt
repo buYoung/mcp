@@ -1,0 +1,10 @@
+Angular의 `SelectControlValueAccessor`는 내부 플래그 `_selectionRequiresUpdate`(또는 과거 버전의 `_optionMap` 변경)를 사용합니다. 개별 `NgSelectOption` 디렉티브가 옵션이 추가/제거될 때 이 플래그만 세우고, 실제 `writeValue()` 재적용은 **다음 CD(Change Detection) 사이클**까지 지연됩니다.
+
+단일 자식 변이마다 즉시 `writeValue()`를 호출하지 않는 이유는 **과도 선택 보호** 때문입니다. 예를 들어 3개의 객체 옵션 `[A, B, C]` 중 `B`가 선택된 상태에서 `B`를 제거한다고 가정하면:
+
+1. 즉시 재선택이 일어난다면, `B` `<option>`이 DOM에서 제거되는 순간 `<select>`는 브라우저 기본 동작으로 첫 번째 남은 `<option>`(예: `A`)으로 **폴백**합니다.
+2. 이 폴백이 Angular 모델로 다시 전파되면, 의도치 않게 `A`가 선택됩니다.
+
+자식 변이를 배치 처리하면 모든 `NgSelectOption`의 `ngOnDestroy`/`ngOnInit`가 완료된 **안정된 옵션 리스트**에 대해 한 번만 재선택이 발생하므로, 일시적으로 사라진 옵션 때문에 선택이 다른 값으로 표류하지 않습니다.
+
+요약: **변경 감지 경계(change detection boundary)를 유일한 재선택 트리거로 사용**함으로써 브라우티 native select의 동기적 폴백 문제를 우회하고, `compareWith` 호출도 배치당 한 번으로 유지합니다.

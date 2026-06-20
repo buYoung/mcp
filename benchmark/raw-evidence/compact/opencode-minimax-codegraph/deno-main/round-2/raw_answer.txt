@@ -1,0 +1,23 @@
+Let me explore the codebase to understand the structure and find the relevant resolution behavior.
+
+Let me search for any packaging-related configuration and explore the monorepo structure more.
+
+Let me search more specifically for packaging-related code in the codebase.
+
+Let me look at the npm/pnpm resolution behavior and how packages interact in this monorepo.
+
+Based on the code structure and the scenario described, I can answer this module resolution question:
+
+**Resolution path that keeps it working:**
+
+Node's `require()` / ES module resolution walks **up the directory tree** from the importing file looking for `node_modules`. So when `helper` (in a sibling source tree or `node_modules`) does `require('some-package')`:
+
+1. Checks `/helper/node_modules/some-package`
+2. Checks `/app/node_modules/some-package` (parent — where the main app's dependencies live)
+3. Continues upward
+
+If the release's root package has `some-package` in its `dependencies`, the resolution finds it in step 2, even though `helper`'s own `package.json` doesn't list it. This is the classic **phantom dependency** / **hoisting** behavior.
+
+**Case where it quietly binds the wrong version:**
+
+When **different packages expect different versions** — e.g., main app uses `pkg@1.0` but a sibling helper pulls in `pkg@2.0`. npm/yarn hoist whichever installs first; pnpm strict mode prevents this. Without `overrides` or strict resolution, you silently get whichever version the resolver encounters first during installation, which may not satisfy either consumer's version constraint.

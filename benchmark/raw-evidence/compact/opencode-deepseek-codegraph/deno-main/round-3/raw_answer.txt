@@ -1,0 +1,4 @@
+Let me explore the codebase to identify the relevant modules and resolution path.
+
+
+Let me check for cross-package imports and undeclared dependencies in this monorepo

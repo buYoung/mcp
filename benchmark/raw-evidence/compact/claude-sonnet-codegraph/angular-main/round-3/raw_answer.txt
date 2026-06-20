@@ -1,0 +1,59 @@
+The answer is entirely in `packages/forms/src/directives/select_control_value_accessor.ts`. Here is the full picture.
+
+---
+
+## The two-tier write protocol
+
+### Tier 1 — `writeValue` (the actual re-selection pass)
+
+`writeValue` (line 198) is the only place Angular pushes the model back onto the `<select>` element. It:
+
+1. Calls `_getOptionId(value)` which walks `_optionMap` and invokes `_compareWith` once per registered option until it finds a match.
+2. Serialises the result as `"id: value"` via `_buildValueString` and sets that string on the element's `value` property.
+
+The default `_compareWith` is `Object.is`. When bound to whole objects you supply your own `compareWith` function so identity comparisons actually work. The cost of each `writeValue` call is **O(N)** where N is the option count.
+
+### Tier 2 — `_writeValueAfterRender` (the deferred gate)
+
+Every mutation that touches the option list calls `_writeValueAfterRender` instead of `writeValue` directly:
+
+- `NgSelectOption.ngValue` setter (line 278) — option added or its object value replaced
+- `NgSelectOption.value` setter (line 289) — option added with a primitive value
+- `NgSelectOption.ngOnDestroy` (line 300) — option removed
+
+`_writeValueAfterRender` works as follows:
+
+```
+if (_queuedWrite) return;          // gate: only one pending write at a time
+_queuedWrite = true;
+afterNextRender({ write: () => {
+    _queuedWrite = false;
+    writeValue(this.value);        // the single re-selection pass
+}}, { injector: appRefInjector });
+```
+
+`_queuedWrite` acts as a one-slot queue. No matter how many options change during one render batch, exactly one `afterNextRender` callback is registered, and it fires during the **write phase of the next render** — i.e., after all DOM mutations from that batch have been committed.
+
+---
+
+## Why individual mutations must not trigger an immediate full re-selection pass
+
+The comment block at lines 153–170 spells out three independent bugs that the deferred approach fixes:
+
+### 1. Quadratic `compareWith` explosion — issue #41330
+
+If each added option called `writeValue` synchronously, adding N options would produce N calls to `writeValue`, and each call iterates all already-registered options. That is **O(N²)** `compareWith` invocations for a list of N items — a real problem when options are whole objects and `compareWith` does non-trivial field comparison. The single deferred write reduces this to exactly **O(N)** comparisons regardless of how many options were mutated.
+
+### 2. Safari / IE 11 deselection failure — issue #14505
+
+Angular appends an `<option>` element's text node in a separate step after setting its `value` property. If `writeValue` ran while options were being constructed (i.e., before the text nodes were committed), the browser saw an incomplete DOM and would leave the first `<option>` in a spuriously selected state when no option matched the model. Waiting for `afterNextRender` guarantees the entire option subtree is fully in the DOM before the selection property is set.
+
+### 3. Animation module delayed removal — issue #18430
+
+When the animations module removes an option, it keeps the element in the DOM until the leave animation finishes. If `writeValue` fired immediately on `NgSelectOption.ngOnDestroy`, Angular would correctly find no matching option and clear the selection — but the animated `<option>` was still physically present. When the browser later removed it, the browser's own selection logic would pick the first remaining option, silently overriding the model. Deferring to `afterNextRender` means Angular only writes the selection after the animation has already removed the node from the DOM.
+
+---
+
+## Summary
+
+The rule is: **re-selection runs once, after the next complete render, not once per option mutation.** The `_queuedWrite` boolean collapses any number of option additions, replacements, and removals that happen within a single render cycle into a single `writeValue` call scheduled via `afterNextRender`. This keeps `compareWith` invocations linear, ensures the DOM is stable before Angular touches the `value` property, and prevents the browser from silently reassigning the selection when animated options leave the DOM after Angular has already updated its model.

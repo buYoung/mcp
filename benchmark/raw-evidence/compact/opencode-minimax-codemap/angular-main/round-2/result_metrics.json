@@ -1,0 +1,37 @@
+{
+    "arm_id": "opencode-minimax-codemap",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "codemap",
+    "codebase": "angular-main",
+    "round": 2,
+    "wall_time_s": 120.874,
+    "tokens": {
+        "input_tokens": 8913,
+        "output_tokens": 546,
+        "cache_read_input_tokens": 1339,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 4476
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "399a70a64888068477f69ee41dba54d424176869d87ddb4c8a7d6927ed24fbba",
+    "scorer_score": 0.0625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 4,
+            "no-mcp": 7
+        }
+    },
+    "backend_process_group_cleaned": true
+}

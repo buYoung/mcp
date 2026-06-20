@@ -1,0 +1,40 @@
+{
+    "arm_id": "claude-sonnet-codegraph",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "codegraph",
+    "codebase": "ClickHouse-master",
+    "round": 1,
+    "wall_time_s": 173.231,
+    "tokens": {
+        "input_tokens": 10,
+        "output_tokens": 7195,
+        "cache_read_input_tokens": 151268,
+        "cache_creation_input_tokens": 34965
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 1,
+        "mcp__codegraph__codegraph_explore": 3,
+        "Read": 3
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 75,
+        "mcp__codegraph__codegraph_explore": 66852,
+        "Read": 36064
+    },
+    "assigned_backend_tool_bytes": 66852,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "40c5dc96622e0f8178e54a7ccc9c67afa8fc31f1247f0c6c7a03f6eda7e2a2b0",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 4,
+        "backends": {
+            "codegraph": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

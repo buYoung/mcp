@@ -1,0 +1,446 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_overview",
+        "call_id": "call_00_i7xe2dSqxCTuIjXAHBJQ0621",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_overview",
+        "call_id": "call_00_i7xe2dSqxCTuIjXAHBJQ0621",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_01_AnVT6BuuDmHdhK4A2d7r0109",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_01_AnVT6BuuDmHdhK4A2d7r0109",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_02_5kSqBdjazsGmdkjiiZOn4229",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_02_5kSqBdjazsGmdkjiiZOn4229",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_b4d1fece4b78446d9d679035",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_b4d1fece4b78446d9d679035",
+        "response_size_bytes": 471
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_00_WLf85ZDylAqNz9xRV72w8682",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_00_WLf85ZDylAqNz9xRV72w8682",
+        "response_size_bytes": 229
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_01_782TvyqPspbnNUf2fuXT4781",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_01_782TvyqPspbnNUf2fuXT4781",
+        "response_size_bytes": 861
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_02_r7Z1uozFZv4w8UZ0oQ4y5341",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_02_r7Z1uozFZv4w8UZ0oQ4y5341",
+        "response_size_bytes": 152
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_03_MNUMfbYr2BlF3VvpmdjY4801",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_03_MNUMfbYr2BlF3VvpmdjY4801",
+        "response_size_bytes": 140
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_6766e7c0c9e340c3a1aa3326",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_6766e7c0c9e340c3a1aa3326",
+        "response_size_bytes": 7916
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_593bd17739c641619ce9f328",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_593bd17739c641619ce9f328",
+        "response_size_bytes": 1464
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_7247e82f94474a8096b80a81",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_7247e82f94474a8096b80a81",
+        "response_size_bytes": 1214
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_f0b7f672631a44798a10c14a",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_f0b7f672631a44798a10c14a",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_48f224cd2992442f811009a5",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_48f224cd2992442f811009a5",
+        "response_size_bytes": 358
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_1f057002892b48859a6084a7",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_1f057002892b48859a6084a7",
+        "response_size_bytes": 883
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_f1380701c69644ecadb0dd57",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_f1380701c69644ecadb0dd57",
+        "response_size_bytes": 248
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_548b8f3664174ef4a7e5500c",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_548b8f3664174ef4a7e5500c",
+        "response_size_bytes": 213
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_84da927bbd024c3f81853053",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_84da927bbd024c3f81853053",
+        "response_size_bytes": 252
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_8754500435c042cc9243203e",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_8754500435c042cc9243203e",
+        "response_size_bytes": 164
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_9602e9555d2c4a79bc8d668d",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_9602e9555d2c4a79bc8d668d",
+        "response_size_bytes": 119
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_c888751d440c438897f8a5d4",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_c888751d440c438897f8a5d4",
+        "response_size_bytes": 254
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_fa16bea6d6104f0c926c931c",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_fa16bea6d6104f0c926c931c",
+        "response_size_bytes": 388
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_749fcfe7c8ae481cb0350810",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_749fcfe7c8ae481cb0350810",
+        "response_size_bytes": 393
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_e427ea773dea490990eef852",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_e427ea773dea490990eef852",
+        "response_size_bytes": 6382
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_6d338f54dc804e9983b91ea4",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_6d338f54dc804e9983b91ea4",
+        "response_size_bytes": 5959
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_cd2610e635da4823bb2e1748",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_cd2610e635da4823bb2e1748",
+        "response_size_bytes": 4035
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_13d88e889ee742f1967681ee",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_13d88e889ee742f1967681ee",
+        "response_size_bytes": 7407
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_09e3f6465b0c429ea7f5b456",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_09e3f6465b0c429ea7f5b456",
+        "response_size_bytes": 182
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_b8082240b63248568946b9ad",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_b8082240b63248568946b9ad",
+        "response_size_bytes": 239
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_388aa0f08fdb4efb8b699a1d",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_388aa0f08fdb4efb8b699a1d",
+        "response_size_bytes": 11378
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_7c4c4a9b67c74604986c7ccb",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_7c4c4a9b67c74604986c7ccb",
+        "response_size_bytes": 349
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_00_5lbpjsLoPtroq8adkHYJ1662",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_00_5lbpjsLoPtroq8adkHYJ1662",
+        "response_size_bytes": 206
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_01_zFK2npii78QXouyryD203462",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_01_zFK2npii78QXouyryD203462",
+        "response_size_bytes": 4305
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_02_Hg2ZylzwKN5qlkVq02Gm6396",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_02_Hg2ZylzwKN5qlkVq02Gm6396",
+        "response_size_bytes": 206
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_2efba37953354b85a9e50287",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_2efba37953354b85a9e50287",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_5737c22f98a44535bc112392",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_find",
+        "call_id": "call_5737c22f98a44535bc112392",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_read",
+        "call_id": "call_fe647ef60ddb4e48b99295da",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_read",
+        "call_id": "call_fe647ef60ddb4e48b99295da",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_00_WYQBTSYDjzOD7wqfEfib9286",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codemap-search_grep",
+        "call_id": "call_00_WYQBTSYDjzOD7wqfEfib9286",
+        "response_size_bytes": 0
+    }
+]

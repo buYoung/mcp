@@ -1,0 +1,27 @@
+핵심 파일은 `packages/forms/src/directives/select_control_value_accessor.ts`입니다.
+
+---
+
+## 재선택 실행 시점 결정 규칙
+
+`_writeValueAfterRender()` (`select_control_value_accessor.ts:173`)가 그 규칙입니다.
+
+각 `<option>`의 `ngValue` 세터(`:274`), `value` 세터(`:287`), `ngOnDestroy`(`:298`)가 옵션을 추가/수정/제거할 때마다 `_writeValueAfterRender()`를 호출합니다. 하지만 `_queuedWrite` 불리언 플래그(`:174`)가 같은 렌더 사이클 내에서 이미 `true`면 즉시 리턴합니다. 따라서 **한 렌더 사이클의 모든 자식 변이가 끝난 후 `afterNextRender` 콜백이 단 한 번만 실행**되어 `writeValue()`가 호출됩니다.
+
+즉, `_compareWith` 기반 전체 순회(`:225-229`)는 변이 배치당 한 번만 일어납니다.
+
+---
+
+## 개별 자식 변이가 즉시 전체 재선택을 트리거하지 않는 이유
+
+주석(`:153-169`)에 세 가지 근거가 명시되어 있습니다:
+
+1. **O(n²) 비교 폭증 방지 (issue #41330)** — `_optionMap`을 순회하는 `_getOptionId`가 매 옵션마다 호출되면, n개 변이에 대해 O(n²)번 `_compareWith`가 실행됩니다. 렌더 후 단 한 번만 실행하면 O(n)으로 축소됩니다.
+
+2. **Safari/IE 11에서의 선택 해제 실패 (issue #14505)** — 옵션의 자식 텍스트 노드가 DOM에 아직 붙기 전에 select의 value를 기록하면, 브라우저가 매칭 실패로 판단하여 이전 선택을 해제하지 못합니다.
+
+3. **animations 모듈의 지연 DOM 제거 (issue #18430)** — 선택된 옵션이 애니메이션으로 지연 제거되는 동안 Angular가 즉시 모델을 다시 기록하면, 브라우저가 남은 첫 번째 옵션의 값으로 스냅됩니다. DOM에서 실제로 제거된 후 브라우저가 값을 다시 덮어쓰면서 모델과 불일치가 발생합니다.
+
+---
+
+요약하면, `_queuedWrite` 플래그 + `afterNextRender`가 **변이 배치를 단일 write로 코아레스(merge)**하고, 이는 비교 복잡도와 브라우저 레이스 컨디션을 동시에 해결합니다.

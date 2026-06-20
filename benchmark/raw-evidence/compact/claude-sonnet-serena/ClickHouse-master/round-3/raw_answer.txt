@@ -1,0 +1,64 @@
+Now I have a complete picture. Here is the precise answer.
+
+---
+
+## Why Discarded Fallback Fields Remain Observable
+
+There are two distinct mechanisms, both grounded in specific lines of code.
+
+---
+
+### Mechanism 1 — The default tuple is cast as a whole before any field is selected
+
+`FunctionsExternalDictionaries.h:483`:
+```cpp
+auto result = castColumnAccurate(column_to_cast, result_type);
+```
+
+`result_type` here is the **full** dictionary-attribute tuple type (e.g. `Tuple(UInt64, String)`). The entire default-value argument — all fallback slots together — is passed through `castColumnAccurate` in one call, before it is split into per-attribute columns at line 499:
+```cpp
+default_cols = tuple_column->getColumnsCopy();
+```
+
+That split only happens *after* the cast. So if slot 2 holds a `String` like `'JUNK'` but attribute 2 in the dictionary is `UInt64`, the cast throws immediately, regardless of the fact that the caller's `tupleElement(..., 1)` will never touch that slot. The fallback field never needed to be read; it only needed to be *cast*, and that cast runs unconditionally over every element.
+
+---
+
+### Mechanism 2 — The one-field form can surface a different type to the plan
+
+`DictGetTupleElementPass.cpp` is an optimizer pass that rewrites
+```
+tupleElement(dictGet('d', ('attr',), key), 1)
+```
+into the cheaper single-attribute form
+```
+dictGet('d', 'attr', key)
+```
+
+The single-attribute form passes the key through the function framework's `LowCardinality` propagation path. Because a `Tuple` cannot be `LowCardinality`, the tuple-attribute form drops any `LowCardinality` wrapper on the key before the call, so the `tupleElement` result type is plain `T`. After the rewrite, the single-attribute dictGet resolves to `LowCardinality(T)` — a different type — even though the values are identical. The parent nodes in the query tree were shaped around the old type, so this breaks them. This is why the pass has an explicit bail-out at line 250:
+
+```cpp
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;
+```
+
+---
+
+### Why the pass is careful about the default tuple (tying both together)
+
+`DictGetTupleElementPass.cpp:163–183`:
+```cpp
+/// `dictGetOrDefault` casts the entire default tuple to the dict's attribute tuple type at
+/// execution (see `castColumnAccurate` in `FunctionDictGetNoType::executeImpl`). If the
+/// element types of the default tuple don't match the dict's attribute types, that cast
+/// can throw on an un-selected element …
+/// Bail out unless element types match exactly.
+```
+
+Before rewriting a `dictGetOrDefault`, the pass verifies that every element of the default tuple already matches the corresponding dictionary attribute type. Only when that holds can it safely extract just the selected element's default and drop the rest. If the types don't match exactly, it does **not** rewrite — because the rewrite would suppress a throw that the un-optimized form would have raised (from Mechanism 1), changing observable behaviour.
+
+And for non-constant default tuple arguments (e.g. `tuple('ok', throwIf(1))`), the pass also refuses to rewrite, because dropping the un-selected elements would silently suppress side effects in those slots (lines 206–219).
+
+---
+
+**Summary:** the fallback fields stay observable because `castColumnAccurate` operates on the full default tuple atomically, so a type-mismatched "unused" slot throws before any field selection occurs. The one-field form is not semantically equivalent to extracting one element from the tuple form: it can surface a `LowCardinality`-wrapped type to the rest of the plan that the tuple form would have stripped.

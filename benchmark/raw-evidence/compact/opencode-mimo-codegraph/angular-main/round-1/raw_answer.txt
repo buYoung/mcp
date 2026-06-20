@@ -1,0 +1,36 @@
+Now I have the full picture. Here's the answer:
+
+## 재적용 규칙
+
+두 코드 경로 모두 **단일 렌더 사이클이 완료될 때까지 개별 option 변경을 모아두는** 동일한 원칙을 따른다.
+
+### Reactive Forms 경로
+
+`SelectControlValueAccessor` (`packages/forms/src/directives/select_control_value_accessor.ts:151-192`)는 `_queuedWrite` 불리언 플래그와 `afterNextRender`를 조합한다:
+
+1. 각 `<option>`의 `ngValue` 세터가 바뀌거나 `ngOnDestroy`될 때마다 `_writeValueAfterRender()`가 호출된다 (`:278`, `:289`, `:300`).
+2. 하지만 `_queuedWrite`가 이미 `true`이면 즉시 반환한다 — 즉同一个 렌더 사이클에서 option이 N개 추가되어도 `writeValue`는 **정확히 한 번** 예약된다.
+3. `afterNextRender`의 `write` 콜백에서만 `_queuedWrite = false`로 리셋되고, 그 시점에 `writeValue(this.value)`가 실행되어 `_compareWith` (기본 `Object.is`)로 `_optionMap`을 순회하며 현재 값과 일치하는 option ID를 찾는다.
+
+### Signal Forms 경로
+
+`control_native.ts:42,81-94`는 `updateMode` 불리언 플래그를 사용한다:
+
+1. `observeSelectMutations`가 `MutationObserver`로 `<select>`의 자식 추가/제거/속성 변경을 감시한다 (`select.ts:29-43`).
+2. observer 콜백이 fire될 때 `updateMode`가 아직 `false`이면 즉시 반환한다 (`:88`).
+3. 첫 번째 update 패스가 끝나고 `updateMode = true`가 된 후에야 개별 option 변경이 `input.value` 재동기화를 트리거한다.
+
+## 개별 자식 변경이 즉시 재선택을 트리거하지 않는 이유
+
+주석이 명시적으로 세 가지 이유를 든다 (`select_control_value_accessor.ts:154-169`):
+
+**1. 비교 연산 폭발 방지 (issue #41330)**
+option이 추가/제거될 때마다 `writeValue`가 호출되면, 각 호출마다 `_optionMap` 전체를 `_compareWith`로 순회하므로 비교 횟수가 **지수적으로** 증가한다 (O(n²)). 한 번만 호출되도록 모아두면 O(n)이 된다.
+
+**2. 브라우저 드리프트 방지 (issue #18430)**
+`@angular/animations` 사용 시 option 제거가 지연된다. 만약 현재 선택된 option이 DOM에서 아직 사라지지 않은 상태에서 Angular가 `select.value`를 강제로 바꾸면, option이 실제로 제거되는 순간 브라우저가 **첫 번째 option의 값으로 자동 전환**한다 — 모델 값과 무관하게. `afterNextRender`로 모든 option DOM 변경이 완료된 시점에 한 번에 쓰면 이 문제가 없다.
+
+**3. Safari/IE11 option 렌더링 순서 문제 (issue #14505)**
+option의 텍스트 자식 노드가 DOM에 추가되기 전에 `select.value`를 설정하면 첫 번째 option의 선택 해제가 실패한다. 전체 option 렌더링 후 재설정하면 해결된다.
+
+요약: 두 코드 모두 **"렌더 사이클 동안 option 변경을 버퍼링하고, 렌더 완료 시점에 정확히 한 번만 `_compareWith` 기반 재선택을 수행"**한다. 개별 option 변경은 즉시 `_writeValueAfterRender`/observer 콜백을 호출하지만, `_queuedWrite`/`updateMode` 플래그가 같은 사이클의 중복 호출을 차단한다.

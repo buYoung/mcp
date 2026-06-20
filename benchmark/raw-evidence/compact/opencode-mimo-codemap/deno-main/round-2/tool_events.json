@@ -1,0 +1,26 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "skill",
+        "call_id": "call_0f65c9ac3462498faeadd953",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "skill",
+        "call_id": "call_0f65c9ac3462498faeadd953",
+        "response_size_bytes": 16261
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_2c64bf6945fc451283d9d1cb",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_2c64bf6945fc451283d9d1cb",
+        "response_size_bytes": 11220
+    }
+]

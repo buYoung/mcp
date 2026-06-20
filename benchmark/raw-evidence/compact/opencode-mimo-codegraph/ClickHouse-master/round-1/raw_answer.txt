@@ -1,0 +1,64 @@
+이 동작은 ClickHouse의 `dictGetOrDefault`가 **튜플 값 경로(tuple-valued path)**를 사용할 때, 읽지 않는 fallback 슬롯이 여전히 **실행 시점에서 타입 검증과 기본값 복원을 거치기 때문**입니다. 두 가지 메커니즘이 작동합니다.
+
+## 1. 런타임: 전체 튜플 형태의 기본값 복원
+
+`src/Functions/FunctionsExternalDictionaries.h:716-752`를 보면, `attribute_names.size() > 1`인 멀티 속성 경로에서는 결과 컬럼 전체를 튜플로 묶어서 처리합니다:
+
+```cpp
+// 716행: 멀티 속성 분기
+if (attribute_names.size() > 1)
+{
+    // ...
+    // 737-744행: 모든 튜플 컬럼에 대해 기본값 복원
+    for (size_t col = 0; col < result_columns.size(); ++col)
+    {
+        restoreShortCircuitColumn(
+            result_columns[col],
+            tuple_defaults.getColumnPtr(col),
+            mask_column,
+            result_tuple_type.getElements()[col]);
+    }
+}
+```
+
+반면 단일 속성 경로(754행 이후)는 선택된 컬럼 하나에 대해서만 복원합니다. 즉, **멀티 속성 경로는 선택 여부와 관계없이 튜플의 모든 슬롯에 대해 `castColumnAccurate`를 수행**합니다. 읽지 않는 슬롯에 잘못된 타입의 기본값이 들어 있으면 여기서 예외가 발생하고, 쿼리는 실패합니다.
+
+## 2. 분석기: 합류 억제를 위한 안전장치
+
+`DictGetTupleElementPass`는 `tupleElement(dictGet(...), N)` 패턴을 단일 속성 `dictGet`으로 합치려는 최적화입니다. 그런데 단순히 읽지 않는 슬롯을 제거하면 위 런타임 예외가 사라지므로, 이 패스는 합치기 전에 세 가지 검사를 수행합니다:
+
+**a) 전체 기본값 튜플 타입 정확 일치 (156-182행)**
+```cpp
+// 기본값 튜플의 각 요소 타입이 결과 튜플의 해당 요소와 정확히 같은지 확인
+for (size_t i = 0; i < default_elems.size(); ++i)
+    if (!default_elems[i]->equals(*result_elems[i]))
+        return;  // 불일치하면 합치기 포기 → 원래 동작 보존
+```
+
+**b) `tuple(...)` 기본값의 상수 요구 (196-220행)**
+```cpp
+// tuple() 함수의 모든 인자가 상수인지 확인
+bool all_constants = true;
+for (const auto & tuple_arg : default_tuple_args)
+    if (!tuple_arg->as<ConstantNode>())
+        all_constants = false;
+```
+`tuple('ok', throwIf(1))` 같은 표현식에서 읽지 않는 `throwIf(1)`을 제거하면 부작용이 사라지므로, 비상수 요소가 포함된 경우 합치기를 포기합니다.
+
+**c) 결과 타입 보존 (244-250행)**
+```cpp
+// LowCardinality 래퍼 보존 여부 확인
+// 단일 속성 form은 키에서 LowCardinality를 보존하지만,
+// 튜플 속성 form은 튜플에 LowCardinality를 적용할 수 없으므로 래퍼를 드롭함
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;  // 타입 불일치 → 합치기 포기
+```
+
+## 결론
+
+읽지 않는 fallback 슬롯이 여전히 관찰 가능한 이유는 두 계층에서 동시에 보호되기 때문입니다:
+
+1. **런타임 계층**: 멀티 속성 경로가 전체 튜플을 한 번에 캐스팅/복원하므로, 읽지 않는 슬롯의 잘못된 타입이 여전히 예외를 발생시킵니다.
+2. **분석기 계층**: 최적화가 이 동작을 변경하지 않도록 타입 정확 일치, 상수 요구, 결과 타입 보존이라는 세 가지 가드를 걸어둡니다.
+
+즉, 엔지니어가 "읽지도 않는 슬롯에 sentinel을 넣어도 되겠지"라고 생각해도, ClickHouse는 **튜플 전체의 타입 안전성을 런타임과 컴파일타임 양쪽에서 보장**하기 때문에 해당 슬롯은 여전히 쿼리 동작에 영향을 미칩니다.

@@ -1,0 +1,11 @@
+이 질문의 핵심은 `packages/forms/src/directives/select_control_value_accessor.ts` 의 `_writeValueAfterRender` 메커니즘입니다.
+
+**재적용 시점 규칙:** `_writeValueAfterRender`는 `afterNextRender`의 `write` 페이즈로 `writeValue` 호출을 연기합니다. `_queuedWrite` 플래그로 중복 예약을 방지하여, N개의 옵션이 연속으로 추가/제거되어도 단 한 번의 `writeValue`만 스케줄됩니다.
+
+**개별 자식 변경을 즉시 재선택으로 연결하지 않는 이유** (동일 파일 153–169행):
+
+1. **지수적 비용 방지** (#41330): 옵션 추가/제거마다 `writeValue`를 호출하면 `_compareWith` 비교가 옵션 개수보다 훨씩 많이 발생합니다.
+2. **Safari/IE11 선택 해제 버그** (#14505): 옵션의 텍스트 노드가 DOM에 추가되기 전에 `<select>`의 `value`를 설정하면 첫 번째 옵션이 선택 해제되지 않습니다.
+3. **애니메이션 지연 제거 시 브라우저 드리프트** (#18430): 선택된 옵션이 제거될 때 `writeValue`를 즉시 호출하면, DOM에서 옵션이 실제로 제거되기 전에 값을 설정하게 됩니다. 이후 브라우저가 남은 첫 번째 옵션으로 셀렉트를 밀어버립니다 — 이것이 사용자가 말한 "disappearing item stays in the DOM a little longer"로 인한 드리프트 현상입니다.
+
+요약: `_queuedWrite` + `afterNextRender`로 모든 옵션이 DOM에 안착한 후에야 단 한 번의 `writeValue`가 실행되며, 그때서야 `_compareWith`로 현재 모델값에 매칭되는 옵션 ID를 찾아 `<select>.value`에 설정합니다.

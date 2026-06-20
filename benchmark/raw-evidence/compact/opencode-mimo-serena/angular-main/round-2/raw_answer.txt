@@ -1,0 +1,35 @@
+다음 두 가지 질문에 대한 답입니다.
+
+---
+
+## 1. 모델을 다시 적용하는 규칙
+
+`SelectControlValueAccessor._writeValueAfterRender()` (`packages/forms/src/directives/select_control_value_accessor.ts:172`)가 유일한 게이트키퍼입니다.
+
+자식 `NgSelectOption`은 세 시점에서 부모의 `_writeValueAfterRender()`를 호출합니다:
+- `ngValue` setter 발동 시 (`:277`)
+- `value` setter 발동 시 (`:288`)
+- `ngOnDestroy` 시 (`:299`)
+
+그런데 `_writeValueAfterRender`는 `_queuedWrite` 불리안 플래그를 먼저 검사합니다. 이미 `true`이면 즉시 반환하여 중복 호출을 차단합니다. `false`일 때만 `true`로 설정한 뒤, `afterNextRender` 콜백을 **단 한 번** 스케줄링하여 다음 렌더 주기 이후 `writeValue(this.value)`를 실행합니다.
+
+즉, 자식 옵션이 N개 추가되거나 제거되어도 `_writeValueAfterRender`가 N번 불려도, 실제로 `_optionMap`을 순회하며 `_compareWith`로 매칭하는 `writeValue`는 **한 번만** 실행됩니다.
+
+---
+
+## 2. 개별 자식 변이가 즉시 전체 재선택 패스를 트리거하지 않는 이유
+
+코드 주석(`:153-167`)이 세 가지 이슈를 명시적으로 언급합니다:
+
+**성능 — issue #41330**  
+`_getOptionId`(`:224`)는 `_optionMap`의 모든 키를 순회하면서 `_compareWith`를 호출합니다. 자식 옵션 하나 추가/제거될 때마다 `writeValue`가 호출되면, 각 호출마다 전체 맵을 스캔하므로 비교 횟수가 **O(n²)** 로 폭발합니다. `_queuedWrite` 배치инг으로 전체 렌더 배치가 끝난 후 1회만 호출하도록 제한합니다.
+
+**Safari/IE11 DOM 순서 — issue #14505**  
+자식 `<option>`의 텍스트 노드가 DOM에 아직 추가되기 전에 부모 `<select>`의 `value` 속성을 설정하면, 매칭되는 옵션이 없을 때 첫 번째 옵션이 제대로 선택 해제되지 않습니다. `afterNextRender`로 모든 DOM 조작이 끝난 시점으로 미루면 해결됩니다.
+
+**애니메이션 지연 제거 — issue #18430**  
+`animations` 모듈을 사용하면 제거 대상 `<option>`이 DOM에서 지연 삭제됩니다. 자식 변이 시점에 즉시 재선택을 실행하면, 아직 DOM에 남아있는 옵션이 브라우저에 의해 "선택된 값"으로 인식되고, 실제로 DOM에서 사라질 때 브라우저가 임의의 첫 번째 옵션으로 값을 뒤바꿉니다. `afterNextRender`는 실제 DOM 업데이트 이후에만 실행되므로 이 문제를 방지합니다.
+
+---
+
+**요약**: `_queuedWrite` 불리안 플래그 + `afterNextRender` 스케줄링이 결합되어, 자식 옵션의 개별 변이를 현재 렌더 배치 내에서 **배치 단위로 수집**한 뒤, 전체 DOM 갱신이 완료된 시점에 **단 한 번** 비교/선택 로직을 실행합니다. 이렇게 해서 O(n²) 비교 폭발, 브라우저 DOM 드리프트, 애니메이션 지연 삭제 문제를 모두 동시에 해결합니다.

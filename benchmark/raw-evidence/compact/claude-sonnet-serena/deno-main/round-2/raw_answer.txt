@@ -1,0 +1,40 @@
+Here is the full picture, grounded in the actual code.
+
+---
+
+## The scenario
+
+`deno compile --bundle` is the "single distributable." The entry point is a `dist/`-rooted generated file. The bundler follows `new Worker(new URL(...))` and similar dynamic references into modules that live **outside** that entry point's package scope — e.g. a worker or helper authored in a sibling source tree and pulled in alongside the generated `dist/` output.
+
+That helper file has a bare npm import such as `import "chalk"`. Its own `package.json` (if it even has one) does not list that dependency. Normal resolution fails because the referrer is out-of-scope from the managed package graph's perspective.
+
+---
+
+## The resolution path that keeps it working
+
+`resolve_bare_specifier_in_npm_snapshot` — **`libs/resolver/graph.rs:426`**.
+
+When `op_bundle_resolve` in the bundler (`cli/tools/bundle/mod.rs:1558-1581`) gets a resolution error for a bare specifier coming from an out-of-scope referrer, it checks:
+
+```
+looks_like_bare_specifier(path)           // not relative, not absolute, not a URL scheme
+  && resolver.resolve_bare_specifier_in_npm_snapshot(...)
+```
+
+`looks_like_bare_specifier` (`mod.rs:1422`) is any string that isn't `.`/`/`/`#`-prefixed and can't be parsed as a URL — so plain package names like `"chalk"` or `"lodash/fp"` qualify.
+
+The fallback (`graph.rs:433`) synthesises `npm:{raw_specifier}` with **no version constraint** — i.e. `name@*` — and resolves that against the build's already-populated managed npm snapshot. If the package got pulled in anywhere else in the build, it's in the snapshot and the import succeeds.
+
+This deliberately mirrors what Node.js and Bun do: walk up the directory tree until a `node_modules` folder provides the package.
+
+---
+
+## When it silently binds the wrong version
+
+The comment at `graph.rs:417-422` states it directly:
+
+> The specifier carries no version constraint, so this resolves `name@*`. If the build's snapshot holds **more than one version** of the package, the snapshot picks one by name alone, which may not be the version the referrer's own `node_modules` tree would select.
+
+Concretely: if the main app locks `react@19` and the sibling helper was written expecting `react@18`, and both end up in the npm snapshot (possible when workspaces or peer-dep overrides install multiple versions), the fallback resolves `react@*` and returns whichever version the snapshot iterator encounters first. Node.js and Bun would instead walk upward from the helper's actual file-system location and find the nearest matching `node_modules/react` — which could be the `@18` copy. The `--bundle` fallback does not do that directory traversal; it has no filesystem proximity signal at fallback time.
+
+**For the common single-version case the result is identical** — hence "quietly": no error is raised either way, the wrong version only surfaces if the helper actually exercises an API that differs between the two versions.

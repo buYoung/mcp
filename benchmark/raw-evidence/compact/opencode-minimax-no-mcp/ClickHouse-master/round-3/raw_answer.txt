@@ -1,0 +1,27 @@
+## 핵심 원인
+
+**`dictGetOrDefault`는 전체 기본값 튜플을 단일 연산으로 결과 타입으로 cast한 뒤에야 요소를 분해합니다.**
+
+```cpp
+// FunctionsExternalDictionaries.h:481-499
+auto result = castColumnAccurate(column_to_cast, result_type);  // 전체 튜플을 먼저 cast
+if (attribute_names.size() > 1)
+{
+    const auto * tuple_column = checkAndGetColumn<ColumnTuple>(result.get());
+    default_cols = tuple_column->getColumnsCopy();  // 그 다음 분해
+}
+```
+
+따라서 `dictGetOrDefault('dict', ('a', 'b'), key, ('x', 123)).a`를 호출해도:
+- `'x'`는 `b` 속성의 `UInt64` 타입으로 cast를 시도 → **throw**
+
+### one-field form의 타입 불일치
+
+`DictGetTupleElementPass.cpp:246-251`에서 설명:
+
+> The single-attribute form of `dictGet` preserves a `LowCardinality` wrapper from the key argument, while the tuple-attribute form drops it.
+
+- 단일 속성: `LowCardinality(String)` 보존
+- 다중 속성: 튜플은 `LowCardinality` 불가 → `String`으로 빠짐
+
+이 타입 차이가 부모 플랜 노드의 타입推到를 바꿀 수 있어, `bail-out` 조건이 없으면 최적화가 의미론을 깨뜨립니다.

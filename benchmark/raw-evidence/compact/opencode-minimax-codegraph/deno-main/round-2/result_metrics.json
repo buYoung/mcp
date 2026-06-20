@@ -1,0 +1,42 @@
+{
+    "arm_id": "opencode-minimax-codegraph",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "codegraph",
+    "codebase": "deno-main",
+    "round": 2,
+    "wall_time_s": 235.009,
+    "tokens": {
+        "input_tokens": 903,
+        "output_tokens": 262,
+        "cache_read_input_tokens": 73467,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "read": 35,
+        "codegraph_codegraph_explore": 2,
+        "codegraph_codegraph_search": 3
+    },
+    "tool_result_bytes_by_tool": {
+        "read": 167102,
+        "codegraph_codegraph_explore": 41625,
+        "codegraph_codegraph_search": 4730
+    },
+    "assigned_backend_tool_bytes": 46355,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "2b0177a6f1df923fe36473f3bfc3bc5b5102c9b48f478ce55226fd02805a6a11",
+    "scorer_score": 0.1875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 4,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

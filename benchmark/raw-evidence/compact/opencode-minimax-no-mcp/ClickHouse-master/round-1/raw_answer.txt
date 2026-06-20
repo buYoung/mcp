@@ -1,0 +1,16 @@
+ClickHouse의 `dictGetOrDefault`에서 **다중 속성 튜플 형태** 사용 시 발생합니다:
+
+```sql
+tupleElement(dictGetOrDefault('dict', ('a', 'b'), key, (fallback_a, fallback_b)), 1)
+```
+
+**메커니즘 1** — 전체 fallback 튜플이 element 추출 전에 한 번에 cast됨. 소비자가 요소 2를 읽지 않더라도, `fallback_b`가 잘못된 타입이면 `castColumnAccurate`에서 예외 발생 (`FunctionsExternalDictionaries.h:481-499`)
+
+**메커니즘 2** — 단일 속성 form은 `LowCardinality(String)`을 보존하지만, 튜플 form은 `Tuple(...)`을 반환하여 `LowCardinality`가 제거됨 (`FunctionsExternalDictionaries.h:404-414`)
+
+`DictGetTupleElementPass` 최적화 pass가 이를 rewriting하려 할 때 세 가지 조건에서 bail out합니다 (`DictGetTupleElementPass.cpp`):
+- `F1`: 기본값 튜플 타입 불일치 시 예외 가능성
+- `F3`: constant 이외의 기본값이 있으면 미읽은 slot의 side effect가 사라짐  
+- `F4`: 타입 불일치 시 rewriting 금지
+
+그래서 engineers가 "어차피 안 읽는 필드"에 넣은 sentinel junk가 여전히 쿼리 동작에 관찰 가능한 영향을 미칩니다.

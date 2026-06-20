@@ -1,0 +1,9 @@
+**Resolution path:** pnpm의 peerDependency 링커가 체인을 만듭니다.
+
+생성된 `@agentclientprotocol/sdk/dist/acp.js`가 `import { z } from "zod/v4"`를 수행할 때:
+1. **빌드 타임 (tsc):** `@agentclientprotocol/sdk`의 `node_modules/zod` — pnpm이 peerDependency `zod`를 `@buyong-mcp/acp-bridge`의 정식 의존성 `zod@4.4.3`으로 해결해 심볼릭 링크를 생성해둠
+2. **런타임 (Node.js):** `dist/acp.js`가 `"zod/v4"`를 찾을 때, Node의 ESM resolution이 importing file의 위치에서 시작해 `@agentclientprotocol/sdk/node_modules/zod` → (실패시 상위) `apps/mcp-server/node_modules/zod` 순서로 탐색
+
+이것이 **pnpm의 peerDependency 자동 symlinking**이 빌드/실행을 계속 가능하게 하는 경로입니다.
+
+**잘못된 버전이 조용히 바인딩되는 경우:** 만약 `@buyong-mcp/acp-bridge`가 `zod` 의존성을 제거해도, **다른 워크스페이스 패키지**(예: scout)가 여전히 `zod`를 가져오고 있다면 pnpm이 `zod`를 루트 `node_modules`에 hoisting합니다. Node의 resolution algorithm이 `@agentclientprotocol/sdk`의 위치에서 찾지 못하면 상위로 올라가 hoisting된 `zod`를 발견하게 되고 — 예를 들어 `zod@3.x`가 hoisting되어 있다면 `zod/v4` 하위 경로 내보내기(subpath export)가 존재하지 않아 **런타임 `ERR_MODULE_NOT_FOUND`** 로 실패합니다. 이는 peerDependency 엄격 확인이 `pnpm install`에서 경고만 출력할 뿐 차단하지 않기 때문에 조용히 발생할 수 있습니다.

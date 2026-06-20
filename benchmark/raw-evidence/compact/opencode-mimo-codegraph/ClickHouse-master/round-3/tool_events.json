@@ -1,0 +1,50 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_f85f8a518ee84f3f902f65af",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_f85f8a518ee84f3f902f65af",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_efd472f898da4f2e8da99ab3",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_efd472f898da4f2e8da99ab3",
+        "response_size_bytes": 463
+    },
+    {
+        "phase": "call",
+        "tool_name": "read",
+        "call_id": "call_1a8b5f1eb1454290be06b291",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "read",
+        "call_id": "call_1a8b5f1eb1454290be06b291",
+        "response_size_bytes": 7916
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_3add50f984c34d9c9ca5a7a8",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_3add50f984c34d9c9ca5a7a8",
+        "response_size_bytes": 15101
+    }
+]

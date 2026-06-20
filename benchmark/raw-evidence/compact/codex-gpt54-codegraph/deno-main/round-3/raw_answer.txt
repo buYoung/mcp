@@ -1,0 +1,12 @@
+현재 이 흐름이 계속 되는 이유는, 단일 실행 파일 런타임이 BYONM 해석기를 가상 파일 시스템 위에 다시 세우고, 의존성 해석을 꽤 넓게 폴백하기 때문입니다.
+
+`cli/rt/run.rs:1200` 부근에서 standalone 런타임은 `NodeModules::Byonm`이면 `ByonmNpmResolverCreateOptions`를 만들 때 `root_node_modules_dir`를 VFS 내부 경로로 연결하고 `search_stop_dir`를 `root_path`로 고정합니다. 그리고 실제 `bare specifier`는 `EmbeddedModuleLoader.resolve_inner()`에서 먼저 `workspace_resolver.resolve()`로 `package.json` 기반 매핑을 시도한 뒤, `PackageJson` 매핑이면 `npm_req_resolver.resolve_req_with_sub_path()`로 넘깁니다. 그 다음 `libs/resolver/npm/byonm.rs:213`의 `resolve_pkg_json_and_alias_for_req()`가 다음 순서로 폴백합니다.
+
+1. referrer 기준으로 가장 가까운 조상 `package.json`들을 위로 훑음  
+2. 없으면 `root_node_modules_dir`의 부모에 있는 프로젝트 루트 `package.json`으로 다시 시도함 (`byonm.rs:276-288`)  
+3. 그래도 없으면 referrer에서 위로 올라가며 각 `node_modules/<pkg>`를 직접 검사함 (`byonm.rs:290-325`)  
+4. 마지막으로 루트 `node_modules`도 검사함 (`byonm.rs:327-341`)
+
+그래서 생성 산출물의 엔트리포인트가 옆 소스 트리의 헬퍼를 끌어오더라도, 그 헬퍼 자신의 근처 `package.json`이 그 패키지를 선언하지 않았어도, 릴리스 전체의 루트 `package.json`이나 이미 포함된 `node_modules`가 그 패키지를 갖고 있으면 빌드와 실행이 계속 성립합니다.
+
+조용히 잘못된 설치 버전에 붙을 수 있는 경우는 그 폴백이 `.deno` 저장소 쪽으로 내려갈 때입니다. `resolve_pkg_folder_from_deno_module_req()`는 alias로 찾은 실제 설치본의 버전이 요구 범위를 만족하지 않으면 `root_node_modules/.deno`를 다시 뒤지고 (`byonm.rs:169-200`), `resolve_folder_in_root_node_modules()`는 정확한 버전이 아니면 “범위를 만족하는 것 중 가장 높은 버전”을 고릅니다 (`byonm.rs:405-418`). 즉, 헬퍼가 자기 선언이 아니라 다른 곳의 선언을 빌려 해석되는 상황에서, 같은 패키지의 설치본이 여러 개 있으면 의도한 트리의 버전이 아니라 이미 포함돼 있던 다른 만족 버전으로 조용히 바인딩될 수 있습니다.

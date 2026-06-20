@@ -1,0 +1,39 @@
+{
+    "arm_id": "opencode-mimo-codegraph",
+    "runtime": "opencode-mimo",
+    "model": "openrouter/xiaomi/mimo-v2.5",
+    "model_label": "mimo-v2.5",
+    "backend": "codegraph",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 515.667,
+    "tokens": {
+        "input_tokens": 5739,
+        "output_tokens": 658,
+        "cache_read_input_tokens": 9728,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "read": 2,
+        "task": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "read": 7916,
+        "task": 15564
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "33de6908e29e843eb3077b592b68004ad9b685d04adb5bd0988d6366c699647f",
+    "scorer_score": 0.125,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 5,
+        "backends": {
+            "serena": 1,
+            "codegraph": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,80 @@
+Now I have the complete picture. Here is the precise answer.
+
+---
+
+## Why discarded fallback fields in `dictGetOrDefault` remain observable
+
+The "reference source enrichment" is ClickHouse's `dictGetOrDefault(dict, attr_names, key, defaults)`. When you call the multi-attribute form and only read one result element via `tupleElement(...)`, the query tree looks like:
+
+```sql
+SELECT tupleElement(
+    dictGetOrDefault(my_dict, ('country', 'score'), user_id, ('??', 0)),
+    1   -- only 'country' is ever consumed
+)
+```
+
+Two separate mechanisms keep the ignored slots observable.
+
+---
+
+### 1. The full default tuple is cast before any element is extracted
+
+In `FunctionsExternalDictionaries.h:483`:
+
+```cpp
+// column_to_cast = the entire default tuple the caller supplied
+auto result = castColumnAccurate(column_to_cast, result_type);
+// result_type = full Tuple(String, UInt64) from the dictionary schema
+
+if (attribute_names.size() > 1)
+{
+    const auto * tuple_column = checkAndGetColumn<ColumnTuple>(result.get());
+    default_cols = tuple_column->getColumnsCopy();   // split AFTER the cast
+}
+```
+
+`castColumnAccurate` is called on the **whole** default tuple and coerces every element to its corresponding dictionary attribute type. Individual slots are extracted only afterward. There is no per-element short-circuit for "nobody reads this column."
+
+**Consequence:** if an engineer stuffs a `String` sentinel into the `score` slot (which is `UInt64` in the dictionary schema), `castColumnAccurate` throws at execution time, even though the query never touches that slot. The sentinel type, not its value, is what kills the query.
+
+The `DictGetTupleElementPass` optimizer (the rewrite that simplifies the pattern) explicitly records this at `DictGetTupleElementPass.cpp:163-170`:
+
+```cpp
+/// `dictGetOrDefault` casts the entire default tuple to the dict's attribute tuple type at
+/// execution (see `castColumnAccurate` in `FunctionDictGetNoType::executeImpl`). If the
+/// element types of the default tuple don't match the dict's attribute types, that cast
+/// can throw on an un-selected element (for example, a string default for a `UInt64`
+/// attribute). After rewriting to a single-attribute call only the selected element is
+/// cast, so such exceptions are suppressed. Bail out unless element types match exactly ...
+```
+
+This is why the optimizer refuses to rewrite the call unless every element of the default tuple already matches the dictionary schema exactly — rewriting would silently suppress a throw that the un-optimized form would produce.
+
+---
+
+### 2. The single-attribute form surfaces a different type to the rest of the plan
+
+When the optimizer *does* rewrite `tupleElement(dictGet(dict, ('a','b'), key), 1)` into `dictGet(dict, 'a', key)`, the result type can change. The code guards against this at `DictGetTupleElementPass.cpp:250-251`:
+
+```cpp
+/// The single-attribute form of `dictGet` preserves a `LowCardinality` wrapper from the
+/// key argument, while the tuple-attribute form drops it (a tuple cannot be `LowCardinality`).
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;
+```
+
+The reason is structural:
+
+- **Tuple form** → `dictGet(dict, ('attr1','attr2'), LC_key)` → the result type is `Tuple(T1, T2)`, which cannot itself be `LowCardinality`. After `tupleElement(..., 1)` you get plain `T1`.
+- **Single-attribute form** → `dictGet(dict, 'attr1', LC_key)` → the result inherits the `LowCardinality` tag from the key and returns `LowCardinality(T1)`.
+
+If the optimizer replaced the tuple form with the single-attribute form without the check, the type seen by the parent nodes would silently change from `T1` to `LowCardinality(T1)`. That breaks any downstream node that was typed against the original `T1`. So the optimizer bails out if the types diverge — meaning the two forms are not interchangeable, and the number of attributes in the call (even for attributes that are thrown away) determines which type flows up the plan tree.
+
+---
+
+### Summary
+
+| Fallback slot behavior | Mechanism |
+|---|---|
+| Junk sentinel in an unused slot can throw | `castColumnAccurate` is applied to the **whole** default tuple before element extraction. A type-incompatible sentinel causes the cast to fail even when only another element is read. |
+| One-field (single-attribute) call surfaces a different type | The single-attribute `dictGet` preserves `LowCardinality` from the key; the tuple-attribute form always strips it. Swapping one form for the other without checking changes what type the surrounding plan sees. |

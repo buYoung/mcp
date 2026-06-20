@@ -1,0 +1,10 @@
+{
+    "command": "opencode",
+    "args": ["run", "--model", "openrouter/xiaomi/mimo-v2.5", "--format", "json"],
+    "cwd": "<REPO_ROOT>/.agents/benchmark-data/deno-main",
+    "command_line": "opencode run --model openrouter/xiaomi/mimo-v2.5 --format json",
+    "contains_bare": false,
+    "setting_sources_used": false,
+    "runtime": "opencode-mimo",
+    "backend": "no-mcp"
+}

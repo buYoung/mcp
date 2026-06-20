@@ -1,0 +1,9 @@
+여기서는 “한 필드만 읽는다”가 곧 “나머지 필드는 관측 불가”를 뜻하지 않습니다. `tupleElement(dictGetOrDefault(...), i)` 형태에서는 바깥의 `tupleElement`가 잘라내기 전에, 안쪽 `dictGetOrDefault`가 먼저 **튜플 전체의 타입과 기본값 의미를 확정**합니다.
+
+1. 예외 여부가 바뀌는 이유  
+[`src/Functions/FunctionsExternalDictionaries.h`](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Functions/FunctionsExternalDictionaries.h:476)에서 `dictGetOrDefault`의 기본값 인자는 선택된 원소만이 아니라 **전체 `result_type`으로 먼저 `castColumnAccurate`** 됩니다. 다중 속성 요청이면 그 결과를 다시 튜플 컬럼으로 풀어 `default_cols`를 만듭니다. 그래서 나중에 버릴 슬롯이라도 타입이 안 맞으면 그 슬롯 때문에 먼저 예외가 납니다. 이 점을 최적화 패스도 직접 인정하고, “선택되지 않은 원소의 캐스팅이 예외를 낼 수 있으면” 단일 속성 호출로 바꾸지 않고 중단합니다. 그 방어 로직이 [`src/Analyzer/Passes/DictGetTupleElementPass.cpp`](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:164)에 있습니다.
+
+2. 타입이 바뀌는 이유  
+다중 속성 `dictGet`는 반환형이 `Tuple(...)`이라서 키 쪽의 `LowCardinality` 같은 래퍼를 그대로 유지할 수 없지만, 단일 속성 `dictGet`는 그 래퍼를 보존할 수 있습니다. 그래서 겉으로는 “한 필드만 꺼내는 같은 질의”여도, `tupleElement(dictGet(tuple_attrs,...), 1)`와 `dictGet(single_attr,...)`는 상위 플랜이 보는 타입이 달라질 수 있습니다. 이 차이 때문에 최적화 패스는 재작성 뒤 결과 타입이 원래 `tupleElement` 결과 타입과 정확히 같을 때만 치환합니다. 그 검사가 [`src/Analyzer/Passes/DictGetTupleElementPass.cpp`](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:246)에 있습니다.
+
+요약하면, 버려지는 기본값 슬롯도 여기서는 “평가 전 캐스팅”과 “반환형 결정” 단계에 참여합니다. 그래서 읽히지 않아도 여전히 관측 가능합니다.

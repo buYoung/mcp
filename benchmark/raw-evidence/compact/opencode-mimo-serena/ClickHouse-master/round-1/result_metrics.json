@@ -1,0 +1,38 @@
+{
+    "arm_id": "opencode-mimo-serena",
+    "runtime": "opencode-mimo",
+    "model": "openrouter/xiaomi/mimo-v2.5",
+    "model_label": "mimo-v2.5",
+    "backend": "serena",
+    "codebase": "ClickHouse-master",
+    "round": 1,
+    "wall_time_s": 286.709,
+    "tokens": {
+        "input_tokens": 917,
+        "output_tokens": 709,
+        "cache_read_input_tokens": 28032,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 2,
+        "read": 7
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 17110,
+        "read": 32390
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "f2f37b337bafc9662e275fd52e8866c05252f86caae64bb4cd1de2497220a4db",
+    "scorer_score": 0,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,26 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_3a2649f790f94d0181234878",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_3a2649f790f94d0181234878",
+        "response_size_bytes": 12298
+    },
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_4fdcb0946f064534a0c6de66",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_4fdcb0946f064534a0c6de66",
+        "response_size_bytes": 10742
+    }
+]

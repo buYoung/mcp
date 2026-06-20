@@ -1,0 +1,40 @@
+The code lives in `packages/forms/src/directives/select_control_value_accessor.ts`.
+
+---
+
+## Rule: `_writeValueAfterRender()` + `afterNextRender` batching
+
+Angular **does not** re-apply the model at the moment each `<option>` is added/removed/changed. Instead it **defers** the re-application to the next render pass via `afterNextRender`:
+
+```typescript
+// line 173-191
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;          // ← already scheduled: skip
+  }
+  this._queuedWrite = true;
+  afterNextRender(
+    { write: () => {
+        this._queuedWrite = false;
+        this.writeValue(this.value);  // ← runs once, after DOM settles
+      } },
+    { injector: this.appRefInjector },
+  );
+}
+```
+
+Every time an option's `ngValue`/`value` setter fires (line 278, 289) or an option is destroyed (line 300), it calls `_writeValueAfterRender()`. The `_queuedWrite` flag ensures that **no matter how many mutations occur in a single render cycle, exactly one `writeValue` fires** after the browser has laid out all the new DOM.
+
+---
+
+## Why individual mutations don't trigger immediate re-selection
+
+The comments at lines 154–169 name three reasons:
+
+| Problem | Cause | Consequence without batching |
+|---|---|---|
+| **Exponential `compareWith` calls** (issue #41330) | Each `writeValue` iterates `_optionMap` with `_compareWith` for every option | O(n²) instead of O(n) when N options are added at once |
+| **Safari/IE first-option deselection bug** (issue #14505) | Angular set the `<select>` value before the option's text node was in the DOM | Browser would pick the wrong remaining option |
+| **Animation delayed-removal drift** (issue #18430) | Angular changed the select value *before* the animations module physically removed the DOM node | Browser auto-selected the first remaining `<option>` even though it didn't match the model |
+
+In short: the "disappearing item stays in the DOM a little longer" is **intentional** — it is the mechanism (deferred `writeValue` via `afterNextRender`) that prevents the browser from making a spurious intermediate selection.

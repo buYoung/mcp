@@ -1,0 +1,43 @@
+{
+    "arm_id": "opencode-minimax-no-mcp",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "no-mcp",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 329.767,
+    "tokens": {
+        "input_tokens": 1201,
+        "output_tokens": 240,
+        "cache_read_input_tokens": 27771,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1,
+        "grep": 2,
+        "glob": 6,
+        "read": 21
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 5477,
+        "grep": 20518,
+        "glob": 84,
+        "read": 33526
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "a0bfeaf7e72ebb2bb63dc0d013d3639d912ba2bfeb3edf86de02749d5e5c8819",
+    "scorer_score": 0.6875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 7,
+            "codemap": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

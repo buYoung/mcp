@@ -1,0 +1,41 @@
+{
+    "arm_id": "opencode-deepseek-codemap",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "codemap",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 132.103,
+    "tokens": {
+        "input_tokens": 16612,
+        "output_tokens": 374,
+        "cache_read_input_tokens": 33792,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "codemap-search_search": 2,
+        "read": 23,
+        "codemap-search_grep": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "codemap-search_search": 14282,
+        "read": 103667,
+        "codemap-search_grep": 818
+    },
+    "assigned_backend_tool_bytes": 15100,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "18988915d8b0cba2ea5296ffa5259a9071bc61d2f74bcbc2926f70f85fb99a51",
+    "scorer_score": 0.6875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 5,
+            "codemap": 6
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,26 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01DxaEYpQyFdLunHUkHUnxCW",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01DxaEYpQyFdLunHUkHUnxCW",
+        "response_size_bytes": 75
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_0162taY1MnMFNTzhC61qehvW",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_0162taY1MnMFNTzhC61qehvW",
+        "response_size_bytes": 26117
+    }
+]

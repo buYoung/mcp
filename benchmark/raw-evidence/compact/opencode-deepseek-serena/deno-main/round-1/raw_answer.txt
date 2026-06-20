@@ -1,0 +1,25 @@
+Let me look more carefully at specific files and paths that might reveal this pattern.
+
+
+이 시나리오를 설명하는 핵심 메커니즘은 **`createRequire`/`require.resolve` + Node.js의 상위 디렉터리 탐색**입니다. `apps/mcp-server/src/agents/common/local-binary.ts:10-13`:
+
+```typescript
+const requireFromCurrentModule = createRequire(import.meta.url);
+
+export function resolveLocalNodeBinaryCommand(packageName: string, binaryName: string): LocalNodeBinaryCommand {
+    const packageJsonPath = requireFromCurrentModule.resolve(`${packageName}/package.json`);
+```
+
+컴파일된 `dist/agents/common/local-binary.js`가 실행될 때, `import.meta.url`은 `dist/agents/common/`으로 고정됩니다. `require.resolve`가 그곳에서부터 `node_modules/`를 타고 올라가며 탐색하는 경로입니다:
+
+```
+dist/agents/common/local-binary.js → require.resolve("@agentclientprotocol/claude-agent-acp/package.json")
+  dist/agents/common/node_modules/ → 없음
+  dist/agents/node_modules/        → 없음
+  dist/node_modules/               → 없음
+  node_modules/                    → 발견! (apps/mcp-server/node_modules/, pnpm symlink)
+```
+
+이 탐색 경로 덕분에 헬퍼(compiled `local-binary.js`)는 자신의 `package.json`에 선언되지 않은 패키지도, 같은 앱의 `package.json`에만 선언되어 있어도 런타임에 찾을 수 있습니다.
+
+**잘못된 버전이 조용히 바인딩되는 경우**: pnpm이 `hoist-pattern` 기본값(또는 향후 번들러 설정)으로 인해 전이 의존성을 루트 `node_modules/`로 호이스팅할 때입니다. 예를 들어 `@agentclientprotocol/claude-agent-acp`가 `mcp-server`에는 `0.33.1`로 고정되어 있지만, 루트나 다른 워크스페이스 패키지에 호이스팅된 다른 버전이 있다면, `require.resolve`가 `apps/mcp-server/node_modules/`에 도달하기 전에 상위에서 먼저 그 버전을 찾아 잘못 바인딩할 수 있습니다. 이 코드베이스는 `.npmrc`가 비어있어 pnpm의 기본 호이스팅 정책을 그대로 사용하므로 이 위험이 존재합니다.

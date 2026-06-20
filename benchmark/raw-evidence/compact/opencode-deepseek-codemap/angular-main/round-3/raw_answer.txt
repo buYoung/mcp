@@ -1,0 +1,11 @@
+**Re-applies: a deferred one-shot `afterNextRender(write:)` callback, gated by `_queuedWrite`.** (`select_control_value_accessor.ts:173-191`)
+
+`afterNextRender` registers the reconciliation to run in the `write` phase — *after* the current render pass fully settles. The `_queuedWrite` boolean coalesces multiple rapid child mutations (add/remove/replace from `ngValue`/`value` setters and `ngOnDestroy` at lines `274-301`) into a single pass.
+
+**Why individual child mutations don't trigger immediate re-selection:** three reasons documented at lines `153-169`:
+
+1. **Excess comparator scans** — each child write would iterate `_optionMap` with `_compareWith` on every child. During initial rendering of N options this is O(N²) (`#41330`).
+2. **Premature DOM state before children are attached** — setting `select.value` before an option's text node is appended causes Safari/IE to fail to deselect the first option when nothing matches (`#14505`).
+3. **Delayed removal + animation exit** — if a selected option is removed but lingers in the DOM (animations), calling `writeValue` immediately would deselect before the option is physically gone; when the browser finally removes it, it falls back to the first remaining option instead of staying cleared (`#18430`).
+
+The deferral uses the **application injector** (not the node injector) because the node injector can be marked destroyed before `ngOnDestroy` hooks run during teardown (line `146-148`), and the callback itself checks `this.destroyRef.destroyed` before executing (line `183`).

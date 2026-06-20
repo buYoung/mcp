@@ -1,0 +1,28 @@
+현재 코드베이스에서 해당 패키징 흐름을 작동시키는 해석 경로와 잘못된 버전을 바인딩할 수 있는 경우를 분석했습니다.
+
+## 작동 원리
+
+**Node.js 모듈 해석 경로**: 파일이 `import`를 수행하면, Node.js는 가장 가까운 `node_modules` 디렉터리를 찾은 뒤 디렉터리 트리를 탐색합니다. pnpm은 `hoistPattern: ["*"]` 설정으로 **모든 워크스페이스 패키지의 의존성을 루트 `node_modules/`로 호이스팅**합니다.
+
+이것이 의미하는 것:
+- `apps/scout/src/config/scout-config.ts`가 `smol-toml`을 import할 때, scout의 `package.json`에 `smol-toml`이 선언되어 있지 않더라도 루트 `node_modules/`에서 패키지를 찾을 수 있습니다
+- 실제로 `apps/scout/package.json`에는 `smol-toml: ^1.6.1`이 선언되어 있지만, 만약 선언하지 않았더라도 `apps/mcp-server/package.json`의 `smol-toml` 의존성이 호이스팅되어 동작했을 것입니다
+
+## 잘못된 버전 바인딩이 발생하는 경우
+
+**동일 패키지에 대한 서로 다른 버전 선언이 있을 때**:
+
+```yaml
+# pnpm-lock.yaml에서 확인
+apps/mcp-server:
+  '@modelcontextprotocol/sdk': ^1.29.0  → 1.29.0(zod@4.4.3)
+apps/scout:
+  '@modelcontextprotocol/sdk': ^1.29.0  → 1.29.0(zod@4.4.3)
+```
+
+현재 코드베이스에서는 두 앱이 동일한 버전을 사용하므로 충돌이 없습니다. 하지만 만약:
+1. `apps/mcp-server`가 `zod: ^3.0.0`을 선언하고
+2. `apps/scout`가 `zod: ^4.0.0`을 선언하면
+3. pnpm은 하나의 버전만 호이스팅하고, 다른 앱은 의도치 않게 다른 버전의 `zod`를 사용하게 됩니다
+
+**핵심 위험**: `dist/index.js`(생성된 출력물)가 인접 소스 트리의 헬퍼를 import할 때, 그 헬퍼의 `package.json`에 선언되지 않은 패키지를 사용하는 경우 Node.js 모듈 해석이 루트까지 올라가 호이스팅된 버전을 바인딩합니다. 이는 빌드 시점에는 성공하지만, 특정 앱이 요구하는 버전과 다른 버전이 호이스팅되면 런타임에 예기치 못한 동작이 발생할 수 있습니다.

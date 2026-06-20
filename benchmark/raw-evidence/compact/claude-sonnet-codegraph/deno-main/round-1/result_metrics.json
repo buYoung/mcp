@@ -1,0 +1,42 @@
+{
+    "arm_id": "claude-sonnet-codegraph",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "codegraph",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 185.84,
+    "tokens": {
+        "input_tokens": 18,
+        "output_tokens": 7751,
+        "cache_read_input_tokens": 405208,
+        "cache_creation_input_tokens": 42447
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 2,
+        "mcp__codegraph__codegraph_explore": 3,
+        "Read": 12
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 130,
+        "mcp__codegraph__codegraph_explore": 72183,
+        "Read": 13934
+    },
+    "assigned_backend_tool_bytes": 72183,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "cbd46b88863bf83967d6bc5f07b6e17c4f07ba87be36f1a78117806a6801bd99",
+    "scorer_score": 0.125,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 7,
+            "no-mcp": 2,
+            "codegraph": 2
+        }
+    },
+    "backend_process_group_cleaned": true
+}

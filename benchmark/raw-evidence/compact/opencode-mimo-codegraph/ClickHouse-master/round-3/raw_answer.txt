@@ -1,0 +1,23 @@
+## 핵심 원인
+
+이 코드베이스에서 "읽히지 않는 fallback 필드"가 여전히 관찰 가능한 이유는 **세 가지 설계 선택**에 기인합니다.
+
+### 1. Sentinel이 정리(pruning)를 통과한다
+
+`addMissingDefaults` (`src/Interpreters/addMissingDefaults.cpp:94`)는 모든 대상 테이블 스키마 컬럼을 `required_columns`에 넣고 `removeUnusedActions`를 호출합니다. 소비자가 한 필드만 읽더라도 **스키마에 존재하는 모든 컬럼이 "필수"로 표시**되어 정리되지 않습니다.
+
+### 2. 검증이 전체 블록에 작동한다
+
+- `StorageInMemoryMetadata::check()` (`src/Storages/StorageInMemoryMetadata.cpp:745-780`)는 블록의 **모든 컬럼**에 대해 타입 일치를 검증합니다. Sentinel 컬럼의 타입이 다르면 `TYPE_MISMATCH` 예외가 발생합니다.
+- `CheckConstraintsTransform` (`src/Interpreters/InsertDependenciesBuilder.cpp:1452-1454`)는 전체 블록에 CHECK 제약조건을 평가합니다. Sentinel 값이 제약조건을 위반하면 쿼리가 던져집니다.
+- Nullable → non-Nullable 변환 (`src/Interpreters/inplaceBlockConversions.cpp:155-183`)에서 sentinel이 NULL을 포함하면 `BAD_ARGUMENTS` 예외가 발생합니다.
+
+### 3. 필드 수가 쿼리 플랜의 타입 구조를 결정한다
+
+`ExpressionStep` (`src/Processors/QueryPlan/ExpressionStep.cpp:67-74`)는 DAG 출력 노드 전체로부터 출력 헤더를 생성합니다. SELECT가 한 필드를 반환하면 DAG 출력이 적고, 여러 필드를 반환하면 타입 변환 액션이 달라집니다.
+
+특히 `InterpreterInsertQuery.cpp:425-429`의 `MatchColumnsMode::Position`은 **위치 기반 매칭**을 사용하므로, 반환 필드 수에 따라 소스 컬럼이 어떤 대상 컬럼에 매핑되는지가 바뀌고, 각각의 타입캐스트가 성공/실패 여부를 좌우합니다.
+
+---
+
+**요약:** ClickHouse의 보강(`enrichment`) 파이프라인은 소비자의 프로젝션이 아닌 **대상 테이블 스키마 전체**를 기준으로 sentinel 컬럼을 만들고, 검증·제약조건 평가·타입 변환도 블록 전체에 적용하므로, 읽히지 않는 필드라도 여전히 예외를 던지거나 플랜의 타입 구조를 바꿀 수 있습니다.

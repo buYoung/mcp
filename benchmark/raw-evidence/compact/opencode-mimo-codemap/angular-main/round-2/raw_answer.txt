@@ -1,0 +1,32 @@
+질문하신 두 가지 핵심 메커니즘은 모두 `select_control_value_accessor.ts`에 구현되어 있습니다.
+
+---
+
+## 1. 모델 재적용 시점 결정 규칙
+
+핵심은 `_writeValueAfterRender()` 메서드(`select_control_value_accessor.ts:173-191`)입니다.
+
+```
+_queuedWrite 플래그 → afterNextRender({write: ...}) → writeValue(this.value)
+```
+
+동작 원리:
+- 자식 option이 추가/제거될 때마다 `_writeValueAfterRender()`가 호출되지만, **`_queuedWrite` 플래그가 이미 `true`이면 즉시 복귀**합니다.
+- 플래그가 처음 설정되면 `afterNextRender({write: ...})` 콜백을 **다음 렌더 이후 한 번만 실행**하도록 예약합니다.
+- 콜백 실행 시 플래그를 `false`로 리셋하고 `writeValue(this.value)`를 단 한 번 호출합니다.
+
+즉, **"모든 자식 뮤테이션이 DOM에 반영된 다음, 단일 재조정 패스만 수행"**하는 것이 규칙입니다. 여러 option이 동시에 추가/제거되어도 `_compareWith` 호출은 O(1)로 유지됩니다.
+
+---
+
+## 2. 개별 자식 뮤테이션이 즉시 전체 재선택을 트리거하지 않는 이유
+
+소스의 주석(`lines 153-169`)이 세 가지 근거를 명시합니다:
+
+**성능 (issue #41330)** — 각 option 추가/제거마다 즉시 `writeValue`를 호출하면, `_getOptionId` 내부의 `_compareWith` 호출 횟수가 옵션 수의 제곱수준으로 증가합니다.
+
+**Safari/IE11 DOM 정합성 (issue #14505)** — option 요소의 자식 텍스트 노드가 아직 DOM에 추가되기 전에 `writeValue`를 호출하면, 브라우저가 선택 해제 상태로 남는 문제가 발생합니다.
+
+**애니메이션으로 인한 선택 드리프트 (issue #18430)** — Angular animations 모듈 사용 시 선택된 option이 DOM에서 지연 제거됩니다. 이 상태에서 `writeValue`가 즉시 실행되면, 브라우저가 매칭되는 option이 없는 것으로 판단하고 **임의의 남은 option으로 자동 선택을 전환**합니다.
+
+따라서 개별 뮤테이션마다 즉시 재선택을 트리거하는 대신, 모든 DOM 변경이 완료된 후 `_queuedWrite` coalesce를 통해 **한 번에** 재조정하는 것이 의도적입니다.

@@ -1,0 +1,45 @@
+{
+    "arm_id": "opencode-deepseek-codemap",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "codemap",
+    "codebase": "deno-main",
+    "round": 1,
+    "wall_time_s": 132.439,
+    "tokens": {
+        "input_tokens": 6995,
+        "output_tokens": 594,
+        "cache_read_input_tokens": 49152,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "codemap-search_overview": 1,
+        "codemap-search_grep": 7,
+        "codemap-search_find": 1,
+        "codemap-search_search": 2,
+        "codemap-search_read": 11
+    },
+    "tool_result_bytes_by_tool": {
+        "codemap-search_overview": 115412,
+        "codemap-search_grep": 16849,
+        "codemap-search_find": 0,
+        "codemap-search_search": 19328,
+        "codemap-search_read": 52762
+    },
+    "assigned_backend_tool_bytes": 204351,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "113832175c67d8c025c5e1450b6ccb58bb2820397d6099dc33cf20b42f09f038",
+    "scorer_score": 0.375,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 6,
+            "no-mcp": 5
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,41 @@
+{
+    "arm_id": "claude-sonnet-serena",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "serena",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 158.761,
+    "tokens": {
+        "input_tokens": 17,
+        "output_tokens": 7280,
+        "cache_read_input_tokens": 184823,
+        "cache_creation_input_tokens": 20115
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 3,
+        "mcp__serena__search_for_pattern": 4,
+        "Read": 4
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 245,
+        "mcp__serena__search_for_pattern": 12575,
+        "Read": 29170
+    },
+    "assigned_backend_tool_bytes": 12575,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "a959c35cb82ab0ece47d1c5381941be166179bd2143556ea7602aee1498f0021",
+    "scorer_score": 1,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 6,
+        "backends": {
+            "codegraph": 4,
+            "serena": 2
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,76 @@
+Here is the complete picture from the source.
+
+---
+
+## The gating rule: `_queuedWrite` + `afterNextRender`
+
+Every time an `<option>` child is touched — its `ngValue` setter fires, its `value` setter fires, or it is destroyed — it calls `_writeValueAfterRender()` on the parent `SelectControlValueAccessor` (`select_control_value_accessor.ts:278,289,300`).
+
+That method is intentionally a **no-op after the first call per render cycle**:
+
+```ts
+// select_control_value_accessor.ts:173-192
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                          // ← all subsequent child mutations are swallowed
+  }
+
+  this._queuedWrite = true;          // ← first caller sets the flag and registers once
+
+  afterNextRender(
+    {
+      write: () => {
+        if (this.destroyRef.destroyed) return;
+        this._queuedWrite = false;
+        this.writeValue(this.value); // ← real re-selection pass, runs after full render
+      },
+    },
+    {injector: this.appRefInjector},
+  );
+}
+```
+
+**The rule:** re-apply the model to the `<select>` DOM element exactly once, in the `write` phase of the *next* render cycle, no matter how many option children changed in the current cycle.
+
+---
+
+## Why individual mutations must not trigger an immediate pass — three distinct bugs
+
+The long block comment at `select_control_value_accessor.ts:153-171` records three separate, non-hypothetical reasons, each tied to a filed issue:
+
+### 1. Exponential equality comparisons — issue #41330
+
+`writeValue` resolves the selected option by calling `_getOptionId`, which walks the entire `_optionMap` and invokes `_compareWith` (defaulting to `Object.is`, but potentially a custom comparator) for every entry:
+
+```ts
+// select_control_value_accessor.ts:225-229
+_getOptionId(value: any): string | null {
+  for (const id of this._optionMap.keys()) {
+    if (this._compareWith(this._optionMap.get(id), value)) return id;
+  }
+  return null;
+}
+```
+
+If `writeValue` were called once per option mutation, adding/removing *N* options would cause O(N²) comparator invocations. Batching collapses that to O(N) — one walk after all options are settled.
+
+### 2. Premature DOM write before text nodes are appended — issue #14505
+
+In Safari and IE 11, setting the `<select>`'s `.value` property while an `<option>` element exists in the DOM but its **text child node has not yet been appended** caused the browser to silently refuse the deselection of the first option. `afterNextRender` with `{write: ...}` guarantees the phase executes only after Angular has finished constructing child content, so every option's text node is already in the DOM when the value property is set.
+
+### 3. Animations delay actual DOM removal — issue #18430
+
+When the animations module is active, a removed option stays physically in the DOM while its leave animation plays. Without the deferred write:
+
+1. Angular logically removes option X (no match for the model → call `writeValue`).
+2. `writeValue` sets `select.value` correctly to empty/null.
+3. The leave animation finishes; the browser removes option X.
+4. The browser, seeing the currently-selected element disappear, auto-selects the **first remaining option** — overwriting the model value in the DOM without any Angular event.
+
+By deferring to `afterNextRender`, the re-selection write runs *after* the browser has already finished removing leaving elements, so step 4 cannot happen.
+
+---
+
+## Summary
+
+The invariants hold because `_queuedWrite` acts as a **set-once-per-cycle deduplication flag**: the first child mutation in a render cycle reserves one `afterNextRender(write)` slot and flips the flag; every other mutation in that same cycle is a cheap early return. The single deferred write then sees the fully-settled DOM — all additions committed, all animated removals complete — and does exactly one O(N) equality walk to pin the model value onto the correct option.

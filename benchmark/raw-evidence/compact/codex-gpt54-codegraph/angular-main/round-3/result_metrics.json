@@ -1,0 +1,31 @@
+{
+    "arm_id": "codex-gpt54-codegraph",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "codegraph",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 57.866,
+    "tokens": {
+        "input_tokens": 61651,
+        "output_tokens": 1325,
+        "cached_input_tokens": 35968
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "df158490487733a294ee62c9116a29a96c9e27ecbda09ff7e6df04aa6a594c94",
+    "scorer_score": 0.625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 4,
+        "backends": {
+            "codegraph": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,26 @@
+{
+    "command": "claude",
+    "args": [
+        "-p",
+        "--model",
+        "sonnet",
+        "--setting-sources",
+        "",
+        "--strict-mcp-config",
+        "--mcp-config",
+        "<REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-02/phases/solver-episodes/claude-sonnet-codemap/deno-main/round-1/mcp_config.json",
+        "--allowedTools",
+        "mcp__codemap-search__search,mcp__codemap-search__overview,mcp__codemap-search__read,mcp__codemap-search__find,mcp__codemap-search__grep,Read,ToolSearch",
+        "--disallowedTools",
+        "Bash,Glob,Grep,Edit,Write,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,Workflow,Agent,Skill",
+        "--output-format",
+        "stream-json",
+        "--verbose"
+    ],
+    "cwd": "<REPO_ROOT>/.agents/benchmark-data/deno-main",
+    "command_line": "claude -p --model sonnet --setting-sources '' --strict-mcp-config --mcp-config <REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-02/phases/solver-episodes/claude-sonnet-codemap/deno-main/round-1/mcp_config.json --allowedTools mcp__codemap-search__search,mcp__codemap-search__overview,mcp__codemap-search__read,mcp__codemap-search__find,mcp__codemap-search__grep,Read,ToolSearch --disallowedTools Bash,Glob,Grep,Edit,Write,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,Workflow,Agent,Skill --output-format stream-json --verbose",
+    "contains_bare": false,
+    "setting_sources_used": true,
+    "runtime": "claude-sonnet",
+    "backend": "codemap"
+}

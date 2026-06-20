@@ -1,0 +1,32 @@
+{
+    "arm_id": "codex-gpt54-codemap",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "codemap",
+    "codebase": "deno-main",
+    "round": 2,
+    "wall_time_s": 102.103,
+    "tokens": {
+        "input_tokens": 662565,
+        "output_tokens": 3832,
+        "cached_input_tokens": 583296
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "3e37da0a4770e356ffc9102f80a5728246a92d57f6010fbac1e8afacdcb1d795",
+    "scorer_score": 0.6875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 6,
+            "no-mcp": 5
+        }
+    },
+    "backend_process_group_cleaned": true
+}

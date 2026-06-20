@@ -1,0 +1,35 @@
+Let me explore the codebase to understand the packaging flow and resolution mechanics.
+
+Let me check the fable5.md file and explore more about the build/release setup:
+
+Based on my exploration of the codebase, I can now answer your question about the packaging flow and resolution mechanism.
+
+## Resolution Path That Keeps It Working
+
+The packaging flow works due to **Node.js module resolution walking up the directory tree** combined with **pnpm's root hoisting**.
+
+When a helper module at `apps/scout/src/startup/helper.ts` does:
+```typescript
+import { something } from 'smol-toml'
+```
+
+Node's resolver looks for `smol-toml` in:
+1. `apps/scout/src/startup/node_modules/`
+2. `apps/scout/src/node_modules/`
+3. `apps/scout/node_modules/`
+4. `apps/node_modules/`
+5. `node_modules/` ← **found here** (hoisted to workspace root)
+
+Since `smol-toml@1.6.1` is declared in `apps/scout/package.json` and pnpm hoists common dependencies to the workspace root (visible in `.modules.yaml` with `"hoistPattern": ["*"]`), the plain import resolves correctly.
+
+## Case Where It Quietly Binds the Wrong Version
+
+**Version mismatch between hoisted dependencies** — the silent binding failure occurs when:
+
+1. The **main app** depends on `zod@^4.4.3` (mcp-server's dep)
+2. A **helper module** (from a copied/neighboring source tree) imports `zod` without declaring it
+3. A **third package** in the workspace brings in `zod@3.x` (e.g., `@modelcontextprotocol/inspector-cli@0.21.2(zod@3.25.76)` in the hoisted deps)
+
+Because Node resolves to the **first match in the walk-up chain**, the helper might get `zod@3.x` while the rest of the app expects `zod@4.x`, causing runtime failures with no build-time warning since no manifest declares the mismatch.
+
+The `.modules.yaml` shows this exact pattern: multiple `zod` versions coexist in `hoistedDependencies` with version qualifiers, and without explicit version pinning in each consumer's manifest, the resolution is determined by directory traversal order rather than semantic compatibility.

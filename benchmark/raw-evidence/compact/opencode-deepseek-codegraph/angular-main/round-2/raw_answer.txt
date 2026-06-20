@@ -1,0 +1,9 @@
+`_writeValueAfterRender` (line 173)은 `afterNextRender`의 `write` 페이즈로 실제 `writeValue` 호출을 연기합니다. 개별 `NgSelectOption.ngValue` setter나 `ngOnDestroy`가 `_writeValueAfterRender`를 부르지만, `_queuedWrite` 플래그가 모든 호출을 하나로 합쳐서(`coalesce`) 딱 한 번만 실행되게 합니다.
+
+이렇게 한 이유는 세 가지 버그에 기인합니다:
+
+1. **성능 폭발 방지** (#41330) — 옵션이 추가/제거될 때마다 `_getOptionId`의 `_compareWith` 루프를 바로 돌리면 옵션 개수×돌연변이 횟수만큼 비교가 지수적으로 늘어납니다.
+2. **Safari/IE11 텍스트 노드 타이밍** (#14505) — value property를 먼저 설정하고 option의 text node가 나중에 붙으면 첫 번째 옵션이 선택 해제되지 않는 문제가 있었습니다.
+3. **애니메이션 잔류 옵션 점프** (#18430) — 선택된 옵션이 사라졌지만 애니메이션 때문에 DOM에 아직 남아있을 때, 브라우저가 select value를 첫 번째 남은 옵션으로 밀어버리는 현상을 `writeValue`를 모든 DOM 변경이 끝난 후로 미룸으로써 회피합니다.
+
+정리하면 **afterNextRender write phase**가 재-선택 타이밍을 결정하는 규칙이고, `_queuedWrite`가 개별 돌연변이의 즉시 적용을 막는 게이트입니다.

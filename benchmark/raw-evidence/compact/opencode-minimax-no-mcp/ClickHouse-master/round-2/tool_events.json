@@ -1,0 +1,14 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "task",
+        "call_id": "call_function_u84qaym8yhdx_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "task",
+        "call_id": "call_function_u84qaym8yhdx_1",
+        "response_size_bytes": 5641
+    }
+]

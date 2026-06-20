@@ -1,0 +1,38 @@
+{
+    "arm_id": "opencode-mimo-codegraph",
+    "runtime": "opencode-mimo",
+    "model": "openrouter/xiaomi/mimo-v2.5",
+    "model_label": "mimo-v2.5",
+    "backend": "codegraph",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 274.713,
+    "tokens": {
+        "input_tokens": 4615,
+        "output_tokens": 988,
+        "cache_read_input_tokens": 9344,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 15988
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "11ed38d6c0b2760669adf1f55767416358392e69910d2925e6c517fc73a1ae04",
+    "scorer_score": 0.875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 7,
+            "no-mcp": 3,
+            "codegraph": 1
+        }
+    },
+    "backend_process_group_cleaned": true
+}

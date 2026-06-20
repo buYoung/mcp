@@ -1,0 +1,62 @@
+I now have a complete picture. Here is the precise answer.
+
+---
+
+## The Scenario: `deno compile .` + Framework Detection
+
+### The flow in question
+
+1. **Startup file from generated output** (`cli/tools/compile.rs:139-143`): When `deno compile .` detects a framework, it generates a temporary entrypoint ``.deno_compile_entry_{random}.ts`` in the project directory. For Astro this is `import "./dist/server/entry.mjs"`, for Remix `import "./node_modules/.bin/remix-serve"`, for SvelteKit `import "./build/index.js"`, etc.
+
+2. **Helper module from a neighboring source tree** (`cli/tools/framework.rs:146-320`): The `include_paths` in each `FrameworkDetection` embed the framework's build output (`.next/`, `dist/`, `build/`, `_fresh/`) into the VFS. Those directories live beside the project source; they are the "neighboring" trees. Their files (e.g., `build/index.js` or `.next/server/webpack-runtime.js`) are ordinary CommonJS bundles.
+
+3. **Plain package import that the nearby manifest doesn't justify**: The build output files issue bare CJS `require('react')`, `require('express')`, etc. The `build/` or `dist/server/` directory has no `package.json` listing those packages; the requirement is implicit in the bundled code.
+
+4. **Build still succeeds because the release brought the package in elsewhere**: The project root's `package.json` lists those dependencies, so `node_modules/react` etc. exist at the root level.
+
+---
+
+### The resolution path that makes this work
+
+The code path is **`ByonmNpmResolver::resolve_package_folder_from_package`** (`libs/resolver/npm/byonm.rs:438–503`), specifically the `inner` closure:
+
+```rust
+for current_folder in start_folder.ancestors() {
+    let node_modules_folder = current_folder.join("node_modules");
+    let sub_dir = join_package_name_to_path(node_modules_folder, name);
+    if sys.is_dir(Cow::Borrowed(&sub_dir)) {
+        return Ok(sub_dir);          // ← first match wins
+    }
+    if search_stop_dir == Some(current_folder) {
+        break;                       // ← VFS boundary in compiled binaries
+    }
+}
+```
+
+Starting from the **parent directory of the referrer file** (e.g., `build/`), it walks every ancestor: `build/ → project-root/ → ...`. At `project-root/node_modules/react` it finds a directory and immediately returns it. No `package.json` anywhere along the helper's own path needs to declare the dependency — the project-root's installed copy is enough.
+
+In a compiled binary (`cli/rt/run.rs:1200–1215`) the BYONM resolver is created with `search_stop_dir: Some(root_path.clone())` (the VFS root), so the walk cannot escape the embedded filesystem. That boundary is what keeps the binary self-contained.
+
+---
+
+### When it silently binds the wrong installed version
+
+The `inner` walk returns the **first** `node_modules/<package>` directory found — **without any version check at all.** Compare this with the `npm:` specifier path (`resolve_pkg_folder_from_deno_module_req`, `byonm.rs:169–194`), which explicitly reads the resolved package's `package.json` and verifies the installed version satisfies the requested constraint before accepting the result.
+
+For a bare `require('react')` there is no version constraint in the call — the ancestor walk just returns whatever it finds. The wrong version gets bound silently when:
+
+- **An intermediate directory on the ancestor walk contains a different version.** E.g., in a monorepo:
+  ```
+  workspace/
+    packages/
+      shared/             ← helper lives here; node_modules/react@17
+        node_modules/react@17
+        src/helper.js     ← require('react')
+      app/                ← compiled project; node_modules/react@18
+        node_modules/react@18
+  ```
+  The walk from `shared/src/` reaches `shared/node_modules/react@17` first. It never reaches `app/node_modules/react@18`. The binary ships version 17 even though `app`'s manifest asked for 18.
+
+- **npm deduplication hoisted a different version above the project root.** If the project root's own `node_modules/react` was deduplicated away by a parent-workspace `node_modules/react@16`, the ancestor walk finds `@16` before `@18` would be reached — silently running the helper against the wrong major.
+
+The key asymmetry: `npm:react@^18` in an explicit ESM import always has its resolved version validated; a bare `require('react')` inside a bundled helper never does. If the physically installed tree happens to satisfy the helper's unstated assumption, everything works; if it doesn't, the mismatch is invisible until runtime.
