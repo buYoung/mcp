@@ -1,0 +1,39 @@
+{
+    "arm_id": "claude-sonnet-no-mcp",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "no-mcp",
+    "codebase": "angular-main",
+    "round": 3,
+    "wall_time_s": 45.268,
+    "tokens": {
+        "input_tokens": 4,
+        "output_tokens": 1901,
+        "cache_read_input_tokens": 46446,
+        "cache_creation_input_tokens": 4260
+    },
+    "tool_call_distribution": {
+        "Grep": 2,
+        "Read": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "Grep": 787,
+        "Read": 10540
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "589e59f6ef85dfeec29bd92aa379adac97734c095e65267e06874ced59d9335c",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 5,
+            "no-mcp": 6
+        }
+    },
+    "backend_process_group_cleaned": true
+}

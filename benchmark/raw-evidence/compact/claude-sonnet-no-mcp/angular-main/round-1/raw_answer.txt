@@ -1,0 +1,47 @@
+The entire answer lives in `select_control_value_accessor.ts`. Here is a precise breakdown.
+
+---
+
+## The rule: `afterNextRender` with a write-phase callback, gated by a single queued flag
+
+Every time a child `<option>` changes — its `ngValue` or `value` setter fires, or it is destroyed — it calls `_writeValueAfterRender()` on the parent `SelectControlValueAccessor` (lines 278, 289, 300).
+
+That method enforces one invariant before doing anything else:
+
+```ts
+// line 174
+if (this._queuedWrite || this.appRefInjector.destroyed) {
+  return;
+}
+this._queuedWrite = true;
+
+afterNextRender(
+  {
+    write: () => {
+      this._queuedWrite = false;
+      this.writeValue(this.value);   // the actual re-selection pass
+    },
+  },
+  {injector: this.appRefInjector},
+);
+```
+
+The effective rule is:
+
+> **Re-apply the model value to the `<select>` DOM element once, in the `write` phase of the next render cycle, no matter how many options changed before that render completes.**
+
+---
+
+## Why individual child mutations are blocked from triggering an immediate re-selection pass
+
+The `_queuedWrite` boolean is the deliberate coalescing gate. The first option mutation in a given render cycle sets it to `true` and schedules one `afterNextRender`. Every subsequent mutation in the same cycle hits the early return and does nothing. The flag is cleared only when the scheduled write callback actually fires.
+
+The source comment at lines 154–172 names three distinct bugs that motivated this design:
+
+| Bug | What went wrong without the gate | Reference |
+|---|---|---|
+| **Exponential comparisons** | `writeValue` was called for every added/removed option. Each call runs `_getOptionId`, which loops over the entire `_optionMap` calling `_compareWith`. N options mutating → O(N²) comparisons. | issue #41330 |
+| **Safari/IE11 deselection failure** | `writeValue` fired while an option's text-node child had not yet been appended to the DOM. The browser could not deselect the first option because the element was structurally incomplete. | issue #14505 |
+| **Animation-module ghost selection** | When animations delay DOM removal, the departing selected option was still in the DOM when `writeValue` ran. The browser then changed the select to that option, then removed it, and finally (on its own) snapped to the first remaining option — contradicting the model. | issue #18430 |
+
+Deferring to `afterNextRender`'s `write` phase solves all three at once: the DOM is fully settled (additions appended, animated removals actually gone, `_optionMap` reflecting the final set), and the comparison loop runs exactly once regardless of how many options came or went.

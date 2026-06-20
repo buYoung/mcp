@@ -1,0 +1,41 @@
+{
+    "arm_id": "claude-sonnet-serena",
+    "runtime": "claude-sonnet",
+    "model": "sonnet",
+    "model_label": "sonnet",
+    "backend": "serena",
+    "codebase": "deno-main",
+    "round": 3,
+    "wall_time_s": 221.865,
+    "tokens": {
+        "input_tokens": 22,
+        "output_tokens": 10173,
+        "cache_read_input_tokens": 435605,
+        "cache_creation_input_tokens": 43536
+    },
+    "tool_call_distribution": {
+        "ToolSearch": 5,
+        "Read": 15,
+        "mcp__serena__search_for_pattern": 8
+    },
+    "tool_result_bytes_by_tool": {
+        "ToolSearch": 428,
+        "Read": 62972,
+        "mcp__serena__search_for_pattern": 4721
+    },
+    "assigned_backend_tool_bytes": 4721,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "c211190f8e83ea5e20021c37a62a0aa08802ee2638e906866058b8de8c7b8a5a",
+    "scorer_score": 0.1875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 6,
+        "backends": {
+            "codegraph": 4,
+            "serena": 2
+        }
+    },
+    "backend_process_group_cleaned": true
+}

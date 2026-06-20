@@ -1,0 +1,56 @@
+I have a complete picture now. Here is the precise answer.
+
+---
+
+## The Scenario
+
+This describes **`deno bundle`** (via `DenoPluginHandler`) building a compiled distributable. The entry point is in a `dist/`-style generated directory. A helper module lives outside that directory — reached indirectly (e.g. via a `new Worker(new URL(...))` reference) — so it is outside the entrypoint's package scope. That helper does a plain `import x from "chalk"` (or similar) with no `npm:` prefix, and its own nearby `package.json`/`deno.json` does not list `chalk`. The top-level project's manifest does list it, so `chalk` is present in the npm resolution snapshot embedded in the build.
+
+---
+
+## The Resolution Path That Makes It Work
+
+When `bundle_resolve` tries to resolve the bare specifier for the helper, the normal graph resolver fails because the import is unmapped from the helper's location (`cli/tools/bundle/mod.rs:1540-1556`). The fallback at lines 1562–1581 then fires:
+
+```
+// The graph may record an unmapped-bare-specifier error for a referrer
+// pulled in from outside the entrypoint's package scope (e.g. a source
+// file reached via a `new Worker(new URL(...))` reference next to a
+// `dist/`-rooted entrypoint). The package is still in the build's npm
+// snapshot, so resolve it by name the way Node/Bun do before giving up.
+```
+
+The call chain is:
+
+1. `looks_like_bare_specifier("chalk")` → true (`cli/tools/bundle/mod.rs:1422-1431`)
+2. `resolver.resolve_bare_specifier_in_npm_snapshot("chalk", ...)` (`libs/resolver/graph.rs:426-447`)  
+   — constructs `npm:chalk` (**no version constraint**) then calls `resolve_managed_npm_req_ref`
+3. `resolve_managed_npm_req_ref` (`libs/resolver/graph.rs:371-402`)  
+   — calls `managed_resolver.resolve_pkg_folder_from_deno_module_req(req)`
+4. `ManagedNpmResolver::resolve_pkg_folder_from_deno_module_req` (`libs/resolver/npm/managed/mod.rs:216-222`)  
+   — calls `self.resolution.resolve_pkg_id_from_pkg_req(req)`
+5. `NpmResolutionSnapshot::resolve_pkg_from_pkg_req` (`libs/npm/resolution/snapshot.rs:664-691`)  
+   — `package_reqs.get(req)` misses (this bare req was never registered as a root package), so falls back to scanning `packages_by_name` and picks:
+
+```rust
+ids
+  .iter()
+  .filter(|id| req.version_req.matches(&id.nv.version))
+  .map(|id| &id.nv)
+  .max_by_key(|nv| &nv.version)   // ← highest version in snapshot
+```
+
+Because the req is `npm:chalk` with a wildcard version requirement, **every installed version of `chalk` in the snapshot satisfies it**, and the resolver returns the highest one present.
+
+---
+
+## When It Can Silently Bind the Wrong Version
+
+The silent misresolution happens when **the snapshot contains more than one installed copy of the package** — which is common with peer dependency variations. For example:
+
+- The top-level app declares `chalk@^5.3.0` → `chalk@5.3.0` is in the snapshot.
+- Some transitive peer dependency pulled in `chalk@4.1.2` as a separate copy in the snapshot.
+
+The fallback's versionless lookup picks `5.3.0` (the highest). But if the helper's own `package.json` had declared `"chalk": "^4.0.0"`, proper resolution walking up the filesystem from the helper's location would have found `chalk@4.1.2`. The fallback bypasses all of that and silently binds the highest version in the global snapshot.
+
+The inverse is equally possible: a helper that needs the newer API gets downgraded if it happens to be added to the graph before the higher version was resolved. The key invariant that breaks is this: the version the helper receives is determined entirely by **what other packages in the build happened to pull into the snapshot**, not by anything the helper itself declared.

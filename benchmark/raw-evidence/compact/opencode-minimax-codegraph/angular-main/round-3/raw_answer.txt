@@ -1,0 +1,13 @@
+**Rule:** `SelectControlValueAccessor._writeValueAfterRender()` (packages/forms/src/directives/select_control_value_accessor.ts:173) queues the model→widget re-application via `afterNextRender` instead of executing it immediately.
+
+**Why individual mutations are silenced:**
+
+The JSDoc on that method (lines 154–169) explains all three reasons:
+
+1. **Avoid exponential `_compareWith` calls** (issue #41330) — calling `writeValue` per individual add/removed option produces O(n²) comparison work vs. O(n) when deferred to a single post-render pass.
+
+2. **Safari/IE deselection bug** (issue #14505) — setting the `<select>` value *before* the option's text node is appended to the DOM caused the first option to stay selected even when no match existed.
+
+3. **Animations module delayed removal** (issue #18430) — when a selected option is removed, Angular would re-select before the DOM actually removes the element. The browser then "helpfully" picks the first remaining option, drifting onto a wrong choice.
+
+The `_queuedWrite` flag (line 151, 178) guarantees at most **one** deferred `writeValue` call per render cycle, regardless of how many `_writeValueAfterRender()` invocations fire during options mutations.

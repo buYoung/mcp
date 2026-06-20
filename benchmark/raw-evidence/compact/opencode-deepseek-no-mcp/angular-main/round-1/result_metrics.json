@@ -1,0 +1,37 @@
+{
+    "arm_id": "opencode-deepseek-no-mcp",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "no-mcp",
+    "codebase": "angular-main",
+    "round": 1,
+    "wall_time_s": 194.429,
+    "tokens": {
+        "input_tokens": 9885,
+        "output_tokens": 250,
+        "cache_read_input_tokens": 3328,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 15889
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "8848ba2ba6d60007d24dd768ee2548f79b4c5f2aeb25dadabd9fb8ecf287f70a",
+    "scorer_score": 0.5,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 7,
+            "no-mcp": 4
+        }
+    },
+    "backend_process_group_cleaned": true
+}

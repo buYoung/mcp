@@ -1,0 +1,42 @@
+{
+    "schema_version": "1.0",
+    "task_id": "ClickHouse-master",
+    "candidate_id": "clickhouse-unused-fallback-slots-observable-v1",
+    "source_private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/private_answer_key.md",
+    "source_per_fact_score": [
+        ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/per_fact_score.json",
+        ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/per_fact_score.json"
+    ],
+    "facts": [
+        {
+            "fact_id": "F1",
+            "statement": "The multi-attribute default path still casts/restores the whole fallback tuple before field extraction, so an unselected bad slot can throw.",
+            "weight": 0.25
+        },
+        {
+            "fact_id": "F2",
+            "statement": "The analyzer-side collapse is only safe when the full default tuple type matches exactly, because otherwise collapsing would suppress an exception from an unselected slot.",
+            "weight": 0.25
+        },
+        {
+            "fact_id": "F3",
+            "statement": "tuple(...) fallback elements must all be constant; otherwise dropping unread slots can suppress side effects or exceptions.",
+            "weight": 0.25
+        },
+        {
+            "fact_id": "F4",
+            "statement": "A similar one-field collapse can change the parent-visible type because the scalar form can preserve LowCardinality while the tuple-valued form cannot.",
+            "weight": 0.25
+        }
+    ],
+    "fact_count_F": 4,
+    "weights": [0.25, 0.25, 0.25, 0.25],
+    "weight_sum": 1.0,
+    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
+    "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)",
+    "weights_uniform": true,
+    "reproduction_tolerance_band": 0.25,
+    "band_derivation": "F=4, weights uniform (0.25 each, weight_sum=1.0). Uniform이므로 밴드 = 1/F = 1/4 = 0.25. 단일 fact 한 단계 오판(예: 1.0↔0.5 또는 0.5↔0.0)이 일으키는 최대 점수 swing은 weight_step = 0.25 × 0.5 = 0.125이지만, §5.5 사양은 밴드를 fact 1개 전체 폭(±1/F)으로 정의하므로 0.25를 사용. weight는 per_fact_score.json의 명시 weight(0.25 균일)에서 추출.",
+    "band_caveat": null,
+    "user_surface_required": false
+}

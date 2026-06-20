@@ -1,0 +1,52 @@
+Here is the precise mechanism, traced through the actual code.
+
+---
+
+## The resolution path
+
+**Step 1 — import map fails.**
+`WorkspaceResolver::resolve()` first tries the synthesized workspace import map (`libs/resolver/workspace.rs:1228–1237`). Because the helper's own `deno.json` has no `imports` entry for the bare specifier and its scope in the synthetic map is empty for it, the import map returns an unmapped-bare-specifier error.
+
+**Step 2 — `FolderScopedMap` ascent through `package.json` hierarchy (lines 1386–1413).**
+On the bare-specifier error branch, the resolver calls:
+
+```rust
+// workspace.rs:1388-1412
+for (_dir_url, pkg_json_folder) in
+    self.pkg_jsons.entries_for_specifier(referrer)
+{
+    for (bare_specifier, dep_result) in pkg_json_folder
+        .deps
+        .dependencies
+        .iter()
+        .chain(pkg_json_folder.deps.dev_dependencies.iter())
+    {
+        if let Some(path) = specifier.strip_prefix(bare_specifier.as_str())
+            && (path.is_empty() || path.starts_with('/'))
+        {
+            return Ok(MappedResolution::PackageJson { ... dep_result });
+        }
+    }
+}
+```
+
+`entries_for_specifier` returns all `package.json` scopes whose folder URL is an ancestor of the helper module's URL, **sorted closest-first**. The loop walks up the directory tree and stops at the first `package.json` whose `dependencies` or `dev_dependencies` contains the bare package name. The helper's own `package.json` has no entry for it, but the workspace root's `package.json` does — so the root's `dep_result` (its declared `PackageReq`) wins.
+
+**Step 3 — npm snapshot lookup.**
+The returned `dep_result` carries a `PackageReq` (e.g., `some-package@^1.0.0`). The npm resolver looks that up in the snapshot embedded in the compiled binary. That snapshot is the **full managed resolution snapshot** built from the entire workspace at compile time (`binary.rs:436`, `fill_npm_vfs`). The package is found there because the overall release brought it in, and the helper gets its installed VFS folder.
+
+**Step 4 — At runtime in the compiled binary.**
+`try_from_serializable` reconstructs the `WorkspaceResolver` with the same serialized `package_jsons` and import map. The `FolderScopedMap` behaves identically, so the runtime resolution repeats steps 2–3 against the embedded npm VFS.
+
+---
+
+## When it silently binds the wrong installed version
+
+The name-strip match at `workspace.rs:1397` is a **pure prefix match on the package name** — it carries no version expectation from the helper module itself (the helper has no manifest entry), and it does not cross-check the resolved version against anything the helper was authored for.
+
+The quiet wrong-version case:
+- The workspace root's `package.json` declares `"some-package": "^1.0.0"`, resolved in the snapshot to `1.5.0`.
+- The helper was originally written and tested against `some-package@^2.0.0` (a different major).
+- Because the helper has no own manifest entry for `some-package`, there is no competing `PackageReq` to produce a conflict. The `FolderScopedMap` ascent finds the root's `^1.0.0` entry first, returns it, the snapshot resolves to `1.5.0`, and the helper binds to a version it was never tested against — silently, with no error.
+
+This is structurally the same as Node.js's hoisted `node_modules` problem: the dependency resolution for the helper is governed entirely by whatever the nearest ancestor manifest happened to declare, not by any explicit requirement the helper itself expresses.

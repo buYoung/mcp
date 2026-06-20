@@ -1,0 +1,37 @@
+{
+    "arm_id": "opencode-minimax-no-mcp",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "no-mcp",
+    "codebase": "ClickHouse-master",
+    "round": 2,
+    "wall_time_s": 107.686,
+    "tokens": {
+        "input_tokens": 2159,
+        "output_tokens": 320,
+        "cache_read_input_tokens": 7611,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 5641
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "740ee1ebe89a65e6c17970b6d8475071ef5103b59b810b690b12b1290f337116",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 6,
+            "codemap": 5
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,13 @@
+현재 이 경로가 계속 동작하는 핵심은 두 단계입니다.
+
+`compile --bundle` 경로는 번들 엔트리포인트 옆의 가장 가까운 `package.json`을 자동으로 VFS에 포함시키고, 번들에서 외부화된 이웃 로컬 파일도 실제 경로 그대로 함께 싣습니다. 그 코드는 [cli/tools/compile.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/cli/tools/compile.rs:213) 와 [cli/tools/compile.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/cli/tools/compile.rs:239) 에 있습니다.
+
+런타임 해석은 그 다음 `byonm` 해석기로 넘어갑니다. 여기서 `PackageJsonResolver::get_closest_package_jsons()` 가 헬퍼 파일 경로에서 시작해 부모 디렉터리로 올라가며 `package.json` 을 찾고([libs/node_resolver/package_json.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/node_resolver/package_json.rs:97)), `resolve_pkg_json_and_alias_for_req()` 는
+
+1. 헬퍼 파일의 상위 `package.json` 들을 순서대로 보고  
+2. 못 찾으면 릴리스 전체의 루트 `node_modules` 옆 프로젝트 `package.json` 으로 되돌아가고  
+3. 그래도 없으면 가장 가까운 상위 `node_modules`, 마지막으로 루트 `node_modules` 를 직접 훑습니다
+
+([libs/resolver/npm/byonm.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/npm/byonm.rs:262), [libs/resolver/npm/byonm.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/npm/byonm.rs:276), [libs/resolver/npm/byonm.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/npm/byonm.rs:290)). 그래서 헬퍼 자신의 근처 매니페스트가 그 의존성을 설명하지 못해도, 릴리스 루트가 이미 그 패키지를 끌어왔으면 그대로 붙습니다.
+
+조용히 잘못된 설치 버전에 묶일 수 있는 경우는 `tag` 기반 요구사항입니다. `resolve_pkg_folder_from_deno_module_req()` 는 일반 semver면 실제 설치된 `package.json` 의 `version` 을 다시 검증하지만, `latest` 같은 태그면 비교를 못 하므로 그냥 alias 해석을 신뢰합니다([libs/resolver/npm/byonm.rs](<REPO_ROOT>/.agents/benchmark-data/deno-main/libs/resolver/npm/byonm.rs:169)). 그래서 루트 쪽이 그 패키지를 이미 가져왔고 디스크에는 다른 버전이 깔려 있어도, 태그 요구사항이면 조용히 그 설치본에 바인딩될 수 있습니다.

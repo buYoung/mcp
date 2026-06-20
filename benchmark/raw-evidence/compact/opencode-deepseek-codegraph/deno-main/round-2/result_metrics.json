@@ -1,0 +1,43 @@
+{
+    "arm_id": "opencode-deepseek-codegraph",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "codegraph",
+    "codebase": "deno-main",
+    "round": 2,
+    "wall_time_s": 456.68,
+    "tokens": {
+        "input_tokens": 64993,
+        "output_tokens": 373,
+        "cache_read_input_tokens": 5120,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "codegraph_codegraph_explore": 3,
+        "read": 35,
+        "invalid": 1,
+        "task": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "codegraph_codegraph_explore": 73329,
+        "read": 86855,
+        "invalid": 260,
+        "task": 8746
+    },
+    "assigned_backend_tool_bytes": 73329,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "37fc8d8f51b5ffeef49d05dd07bc35408d1d6c4639fca6b62ab924a1386c01ea",
+    "scorer_score": 0.0625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 5,
+        "backends": {
+            "codegraph": 4,
+            "serena": 1
+        }
+    },
+    "backend_process_group_cleaned": true
+}

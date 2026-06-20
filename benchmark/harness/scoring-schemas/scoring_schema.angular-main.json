@@ -1,0 +1,64 @@
+{
+    "schema_version": "1.0",
+    "task_id": "angular-main",
+    "candidate_id": "angular-deferred-choice-reconciliation-v1",
+    "source_private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/private_answer_key.md",
+    "source_per_fact_score": [
+        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/per_fact_score.json",
+        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/per_fact_score.json",
+        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/per_fact_score.json"
+    ],
+    "frozen_statement_source": "round-2/per_fact_score.json (canonical active item, canonical_score 0.5625). revalidation run-1/run-2는 동일 8-fact·동일 채점 구조의 추가 채점 인스턴스로 source에 포함하되, statement 텍스트는 canonical round-2 문구를 권위로 freeze함.",
+    "facts": [
+        {
+            "fact_id": "F1",
+            "statement": "The single-choice object-backed path uses parent-owned id mapping plus comparator-backed id lookup, not direct object identity writes to the DOM.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F2",
+            "statement": "Child add/update/remove events only mutate bookkeeping and request delayed reconciliation rather than performing a full immediate rewrite.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F3",
+            "statement": "Reconciliation is coalesced with a queued flag and also gated against scheduling after the application injector is already destroyed.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F4",
+            "statement": "The actual model-to-view rewrite runs in a one-shot post-render write phase rather than inside each child setter or destroy hook.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F5",
+            "statement": "The scheduling uses the application injector because the node injector can already be destroyed during teardown, and the callback checks directive destruction before writing.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F6",
+            "statement": "The hook is truly post-render and one-shot through shared after-render registration and cleanup semantics, not just an arbitrary delayed callback.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F7",
+            "statement": "The multiple-choice control path is intentionally different because it updates immediately per child mutation instead of using the queued post-render pass.",
+            "weight": 0.125
+        },
+        {
+            "fact_id": "F8",
+            "statement": "The reasons for deferral include both cost and correctness: avoid repeated comparator scans, avoid premature browser state before child content is fully attached, and avoid wrong fallback selection during delayed removal.",
+            "weight": 0.125
+        }
+    ],
+    "fact_count_F": 8,
+    "weights": [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
+    "weight_sum": 1.0,
+    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
+    "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)",
+    "weights_uniform": true,
+    "reproduction_tolerance_band": 0.125,
+    "band_derivation": "F=8, weights uniform (각 1/8=0.125, weight_sum=1.0). per_fact_score.json은 객체 구조로 명시 weight 키가 없으나, overall_score == facts[].score 산술평균임을 검증함(round-2: 합 4.5/8=0.5625; revalidation run-1: 0.5625, run-2: 합 1.5/8=0.1875). 따라서 weight는 추출이 아니라 균일 1/8로 유도. Uniform이므로 밴드 = 1/F = 1/8 = 0.125. 재현 게이트는 이 schema로 round-2(0.5625), revalidation run-1(0.5625), revalidation run-2(0.1875) 세 앵커를 각각 ±0.125 안에서 재현해야 함.",
+    "band_caveat": null,
+    "user_surface_required": false
+}

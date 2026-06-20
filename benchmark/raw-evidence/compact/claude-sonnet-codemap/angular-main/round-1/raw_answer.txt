@@ -1,0 +1,74 @@
+All the evidence is in `packages/forms/src/directives/select_control_value_accessor.ts`. Here is the precise answer.
+
+---
+
+## The two-level gate: `_queuedWrite` + `afterNextRender`
+
+### What triggers a re-selection pass
+
+`writeValue()` (L198–206) is the method that actually re-applies the model. It does two things: it calls `_getOptionId(value)` to walk the `_optionMap` with the `_compareWith` function until a match is found, then it sets `select.value` to the encoded `"<id>: <display>"` string.
+
+But `writeValue` is **never called directly** when the option list changes. Instead, every mutation goes through `_writeValueAfterRender()` (L173–192):
+
+```ts
+// L151
+private _queuedWrite = false;
+
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                         // already scheduled — drop this call
+  }
+  this._queuedWrite = true;
+  afterNextRender(
+    { write: () => {
+        if (this.destroyRef.destroyed) return;
+        this._queuedWrite = false;
+        this.writeValue(this.value); // one pass, after the frame settles
+    }},
+    {injector: this.appRefInjector},
+  );
+}
+```
+
+**The rule:** re-selection happens once, in the `write` phase of the next render cycle, no matter how many option mutations happened during the current frame.
+
+---
+
+### Who calls `_writeValueAfterRender()`
+
+Every child `NgSelectOption` calls it on three occasions (L274–300):
+
+| Event | What happens first |
+|---|---|
+| `ngValue` setter — option value set/updated | Updates `_optionMap.set(id, value)`, stamps the `<option>` element, then queues |
+| `value` setter — plain string option | Stamps the element, then queues |
+| `ngOnDestroy` — option removed | Deletes `_optionMap.delete(id)`, then queues |
+
+The `_queuedWrite` boolean collapses all of those into exactly **one** `afterNextRender` callback.
+
+---
+
+### Why immediate re-selection is deliberately blocked
+
+The comment block on `_writeValueAfterRender` (L153–171) names three bugs that a naïve "call `writeValue` per mutation" approach caused:
+
+**1. Exponential `_compareWith` calls — issue #41330**  
+`_getOptionId` (L225–229) is a linear scan over every entry in `_optionMap` using the caller-supplied `_compareWith` function:
+```ts
+for (const id of this._optionMap.keys()) {
+  if (this._compareWith(this._optionMap.get(id), value)) return id;
+}
+```
+If `writeValue` fired per option while N options were being added, you would get `1 + 2 + … + N` = O(N²) comparisons. With object comparisons this is expensive; with a custom `compareWith` that hits external state it is catastrophic.
+
+**2. Safari/IE 11 DOM ordering bug — issue #14505**  
+Angular processes inputs before appending text nodes. If `writeValue` ran while an option's child text node was not yet in the DOM, the browser's selection logic could fail to clear a previously-selected option that should no longer be selected. Deferring to `afterNextRender`'s `write` phase guarantees the full DOM subtree is present.
+
+**3. Animations-module ghost-option bug — issue #18430**  
+When an option is removed while an Angular animation is active, the element stays in the DOM through its leave transition. If `writeValue` fired the moment the option was logically deleted from `_optionMap`, the `<select>` value would be updated while the DOM still contained the old `<option>`. The moment that element was actually removed from the DOM, the browser's native fallback would silently promote the first remaining option to selected — regardless of what Angular had just set.
+
+---
+
+### Summary
+
+The deciding rule is: **re-apply the model exactly once, scheduled via `afterNextRender {write:}`, after every pending option mutation in the current frame has settled.** The `_queuedWrite` boolean is the idempotency guard. Individual child mutations update `_optionMap` (or remove from it) and then yield — they are prevented from calling `writeValue` immediately to avoid O(N²) comparison cost, DOM-ordering races during construction, and browser-native selection drift caused by elements that are logically gone but physically still present during animations.

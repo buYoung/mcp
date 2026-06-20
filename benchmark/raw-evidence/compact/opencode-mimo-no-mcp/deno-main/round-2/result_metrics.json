@@ -1,0 +1,43 @@
+{
+    "arm_id": "opencode-mimo-no-mcp",
+    "runtime": "opencode-mimo",
+    "model": "openrouter/xiaomi/mimo-v2.5",
+    "model_label": "mimo-v2.5",
+    "backend": "no-mcp",
+    "codebase": "deno-main",
+    "round": 2,
+    "wall_time_s": 221.628,
+    "tokens": {
+        "input_tokens": 1111,
+        "output_tokens": 1004,
+        "cache_read_input_tokens": 35968,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "task": 1,
+        "read": 14,
+        "grep": 8,
+        "glob": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "task": 7046,
+        "read": 45484,
+        "grep": 12678,
+        "glob": 258
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "a2950be79abe75c0fbed2cb4c3bac57da72e5289b44b05246dcb0fb7e1568f46",
+    "scorer_score": 0.1875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 9,
+            "codemap": 2
+        }
+    },
+    "backend_process_group_cleaned": true
+}

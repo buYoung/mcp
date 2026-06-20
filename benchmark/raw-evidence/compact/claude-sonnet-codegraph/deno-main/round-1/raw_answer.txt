@@ -1,0 +1,51 @@
+Here is the complete picture, traced through the actual files.
+
+---
+
+## The scenario in this codebase
+
+**The single distributable** is the npm release built by `tools/release/npm/build.ts` — the script that packages the Deno binary into platform-specific npm packages.
+
+**The startup invocation** is generated: the shebang on line 1 of `build.ts`:
+```
+#!/usr/bin/env -S deno run -A --lock=tools/deno.lock.json
+```
+
+**The helper** is `build.ts` itself, which lives in `tools/release/npm/` — a subtree that has no `deno.json` of its own. At line 8 it has a bare package import:
+```ts
+import { parseArgs } from "@std/cli/parse-args";
+```
+
+That import specifier carries no version. There is no `deno.json` in `tools/release/npm/` that would justify it.
+
+---
+
+## The resolution path that keeps it working
+
+Deno walks **up the directory tree** from the importing file looking for a `deno.json`/`deno.jsonc`. Starting from `tools/release/npm/`, it skips `tools/release/` (no config there) and lands on **`tools/deno.json`**:
+
+```json
+{
+  "lock": false,
+  "importMap": "../import_map.json",
+  ...
+}
+```
+
+That config delegates to the **root `import_map.json`**, which is owned by the overall Deno repo's test infrastructure. That map contains (line 73):
+
+```json
+"@std/cli/parse-args": "./tests/util/std/cli/parse_args.ts"
+```
+
+So `@std/cli/parse-args` resolves to a **locally-vendored file** (`tests/util/std/cli/parse_args.ts`) that the main repo already maintains for its own test suite. The helper `build.ts` silently inherits this resolution without declaring the dependency anywhere near itself.
+
+---
+
+## When it quietly binds the wrong version
+
+The shebang pins `--lock=tools/deno.lock.json`. Scanning that lock file, there is **no entry for `@std/cli`** at all — only entries for the explicitly-versioned specifiers (`jsr:@david/dax@0.42.0`, `npm:decompress@4.2.1`, etc.).
+
+The reason: Deno's lock file only records registry specifiers (`jsr:`, `npm:`, `https:`). Because the import map reroutes `@std/cli/parse-args` to a **local file path**, the lock mechanism has nothing to pin. The version of `parseArgs` that `build.ts` runs is entirely determined by whichever copy of `tests/util/std/cli/parse_args.ts` happens to be checked out.
+
+So the silent wrong-version scenario is: a routine `@std` stdlib bump updates the vendored copy in `tests/util/std/cli/` to a new `@std/cli` version, the lock file records no change (it was already a local path), `build.ts` builds without errors — and the release tooling is now running a different version of `parseArgs` than it was before, with no signal that anything changed.

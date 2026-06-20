@@ -1,0 +1,62 @@
+I now have the complete picture. Here is a precise account of the flow and the failure mode.
+
+---
+
+## The scenario in this codebase
+
+This is the `deno compile --bundle` path. The relevant pieces are:
+
+| Role | Code |
+|---|---|
+| Generated startup file | `.deno_compile_bundle_*.mjs` written to `initial_cwd` by `run_bundle_for_compile` (`compile.rs:373`) |
+| Neighboring helper | A worker discovered by scanning the bundle for `new URL("X", import.meta.url)` patterns, resolved by basename search via `find_file_by_name` (`compile.rs:467`) when it doesn't sit in the same directory as the generated bundle |
+| Plain package import | A bare specifier like `import foo from "some-npm-package"` in that worker source file |
+
+The entrypoint is generated output (e.g. from a framework's `dist/`). The worker source lives in a `src/` or similar tree that is a sibling of `dist/` — the "neighboring source tree." The worker's nearest `deno.json` / `package.json` does not declare the npm dependency. Normal Deno graph resolution therefore has no mapping for it.
+
+---
+
+## The resolution path that keeps the build alive
+
+In `bundle_resolve` (`bundle/mod.rs:1558-1581`), after `resolver.resolve_with_graph()` fails, the fallback fires:
+
+```
+// The graph may record an unmapped-bare-specifier error for a referrer
+// pulled in from outside the entrypoint's package scope (e.g. a source
+// file reached via a `new Worker(new URL(...))` reference next to a
+// `dist/`-rooted entrypoint). The package is still in the build's npm
+// snapshot, so resolve it by name the way Node/Bun do before giving up.
+```
+
+The three-step chain:
+
+1. `looks_like_bare_specifier(path)` (`bundle/mod.rs:1422`) — guards that the specifier is not relative, absolute, a `#`-import, or a parseable URL.
+
+2. `resolver.resolve_bare_specifier_in_npm_snapshot(path, …)` (`resolver/graph.rs:426`) — builds the string `npm:some-npm-package` (no version → implicit `*`) and calls `resolve_managed_npm_req_ref`. It only activates for the **managed** npm resolver; BYONM silently skips the fallback entirely and falls through.
+
+3. `NpmResolutionSnapshot::resolve_pkg_from_pkg_req` (`npm/resolution/snapshot.rs:664`) — looks up the synthesised `some-npm-package@*` req. The exact-req map (`package_reqs`) will not have an entry for `*`, so it falls to the iteration path:
+
+```rust
+ids
+    .iter()
+    .filter(|id| req.version_req.matches(&id.nv.version))  // * matches all
+    .map(|id| &id.nv)
+    .max_by_key(|nv| &nv.version)                          // picks highest
+```
+
+Because `*` satisfies every version, this succeeds as long as **any version of the package exists anywhere in the snapshot** — i.e. as long as the overall release already brought the package in through some other dependency.
+
+---
+
+## When it silently binds the wrong version
+
+The fallback always picks the **numerically highest** version of the package present in the snapshot. If the snapshot holds multiple versions because different parts of the dependency graph required different ranges, the helper gets whichever version happened to be highest in the snapshot rather than the version it was written against.
+
+Example:
+
+- The main app depends on `some-npm-package@4.x` → snapshot has `4.17.0`.
+- A transitive dependency also needs `some-npm-package@3.x` → snapshot also has `3.10.1`.
+- The helper was authored against the `3.x` API.
+- The fallback picks `4.17.0` (highest), and the helper silently runs against an incompatible version.
+
+There is no warning emitted; the fallback logs only at `log::debug!` level (`bundle/mod.rs:1575`). The binary builds cleanly and the version mismatch surfaces only at runtime, if at all.

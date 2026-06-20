@@ -1,0 +1,17 @@
+상황: `deno compile`(단일 배포판 생성), **BYONM**(Bring Your Own Node Modules) 모드, 워크스페이스 구조.
+
+**동작하게 하는 해결 경로**
+
+`libs/resolver/npm/byonm.rs:438`의 `resolve_package_folder_from_package`는 참조자 디렉터리에서 시작해 모든 조상 디렉터리를 오르며 각각의 `node_modules/<name>`을 검사하는 Node.js 스타일의 **디렉터리 상향 탐색**을 수행한다. `package.json`의 의존성 선언은 전혀 보지 않는다 — 그저 파일 시스템에 해당 폴더가 존재하는지만 확인한다.
+
+`deno compile`에서 BYONM의 `fill_npm_vfs`(`cli/standalone/binary.rs:1125-1159`)는 워크스페이스 루트부터 모든 하위 디렉터리를 순회하며 발견하는 모든 `node_modules/`를 VFS에 재귀적으로 추가한다. 따라서 런타임에도 같은 상향 탐색이 VFS 내에서 동일하게 동작한다.
+
+`resolve_if_for_npm_pkg`(`libs/resolver/npm/mod.rs:533`)는 일반 해석 실패 시 bare specifier를 npm 패키지로 간주하고 위의 경로로 다시 시도한다.
+
+**잘못된 버전이 바인딩되는 경우**
+
+두 시나리오:
+
+1. **워크스페이스 내 중복 버전** — `packages/a/node_modules/lodash@4`와 `node_modules/lodash@3`이 모두 있을 때, `packages/a/helper.ts`가 `import "lodash"` 하면 가까운 `packages/a/`의 `lodash@4`를 찾지만, `packages/a/`에 `node_modules`가 없는 경우 `node_modules/lodash@3`으로 조용히 넘어간다. 헬퍼의 `package.json`이 `"lodash": "^4.0.0"`이라도 이 검증 없이 설치된 폴더가 우선된다.
+
+2. **VFS 이스케이프** — `search_stop_dir`(`byonm.rs:55-56`, `byonm.rs:453` `break`)이 없으면 스탠드얼론 바이너리가 VFS 경계를 넘어 사용자 시스템의 `node_modules`를 읽어 예상치 못한 버전에 바인딩될 수 있다. 이 옵션은 정확히 그 경우를 막기 위해 존재한다.

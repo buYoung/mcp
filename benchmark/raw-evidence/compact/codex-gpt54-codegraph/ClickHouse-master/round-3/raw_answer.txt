@@ -1,0 +1,7 @@
+여기서는 "어차피 한 필드만 읽는다"가 성립하지 않습니다. 관측 지점이 최종 소비자만이 아니라, 그 앞의 실행 의미와 타입 해석에도 있기 때문입니다.
+
+첫째, `dictGetOrDefault`의 다중 속성 형태는 선택된 필드만 따로 처리하지 않고 기본값 튜플 전체를 사전의 속성 튜플 타입으로 맞추는 경로를 탑니다. 그래서 버려질 슬롯이라도 기본값 튜플 안에 타입이 안 맞는 원소가 있으면, 그 원소 때문에 캐스트가 실패해 쿼리가 예외를 던질 수 있습니다. 이 점이 코드에 직접 적혀 있습니다. `DictGetTupleElementPass`는 이런 의미 변화 때문에, 선택되지 않은 원소에서 예외가 사라질 수 있는 경우 최적화를 포기합니다 ([src/Analyzer/Passes/DictGetTupleElementPass.cpp:156](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:156)). 실제 실행 쪽도 다중 속성일 때는 `dictionary->getColumns(...)`와 튜플 기본값 복원 경로를 사용합니다 ([src/Functions/FunctionsExternalDictionaries.h:726](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Functions/FunctionsExternalDictionaries.h:726)).
+
+둘째, 한 필드만 뽑는 형태로 바꿔도 타입이 같다는 보장이 없습니다. `tupleElement(dictGet(...tuple attrs...), N)`를 `dictGet(...single attr...)`로 바꾸면, 단일 속성 형태는 키 인자에서 온 `LowCardinality`를 유지할 수 있지만 튜플 형태는 그 래퍼를 잃습니다. 그래서 최종 값이 논리적으로 같아 보여도, 상위 플랜이 관측하는 결과 타입은 달라질 수 있습니다. 이 때문에 패스는 재작성 뒤 결과 타입이 기존 `tupleElement` 결과 타입과 정확히 같을 때만 최적화를 허용합니다 ([src/Analyzer/Passes/DictGetTupleElementPass.cpp:246](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:246)).
+
+정리하면, 버려지는 `fallback` 필드는 여기서도 여전히 observable합니다. 이유는 그 필드들이 "출력값"으로는 안 보이더라도, 전체 튜플 기본값의 캐스트 성공 여부와 함수 결과 타입 결정에 참여하기 때문입니다. 즉, 이 코드베이스에서는 투영 전에 이미 예외 의미와 타입 의미가 노출됩니다.

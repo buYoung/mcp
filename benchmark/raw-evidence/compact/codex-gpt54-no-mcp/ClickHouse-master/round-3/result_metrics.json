@@ -1,0 +1,32 @@
+{
+    "arm_id": "codex-gpt54-no-mcp",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "no-mcp",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 87.378,
+    "tokens": {
+        "input_tokens": 359072,
+        "output_tokens": 2960,
+        "cached_input_tokens": 290944
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "2e63ac1524f6abdd1f029d9d8fd67acc0668df82d19636293a0ce0def5e88636",
+    "scorer_score": 0.625,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "no-mcp": 5,
+            "codemap": 6
+        }
+    },
+    "backend_process_group_cleaned": true
+}

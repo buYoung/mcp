@@ -1,0 +1,66 @@
+The full picture is now clear. Here is a precise answer.
+
+---
+
+## The two mechanisms that keep "discarded" fallback fields observable
+
+The construct is **`tupleElement(dictGetOrDefault('dict', ('a','b','c'), key, default_tuple), N)`** — a multi-attribute dictionary lookup where the consumer only reads one element of the returned tuple.
+
+### 1. The cast-throws issue — execution time (`FunctionsExternalDictionaries.h:483`)
+
+```cpp
+// FunctionsExternalDictionaries.h:481-483
+ColumnWithTypeAndName column_to_cast = {
+    column_before_cast.column->convertToFullColumnIfConst(), ...};
+auto result = castColumnAccurate(column_to_cast, result_type);   // ← full tuple type
+```
+
+`castColumnAccurate` is called on the **entire** default-value argument, coerced to the **full** dictionary attribute tuple type. That type is derived from every attribute in the tuple, not just the one being read. If any "junk" slot in the default tuple has a type incompatible with the corresponding dict attribute (e.g., a string literal where the dict declares `UInt64`), this cast throws at runtime — regardless of which element `tupleElement` extracts afterward.
+
+The `DictGetTupleElementPass` optimizer would normally eliminate this exposure by rewriting to a single-attribute call. But it bails out (lines 171–183 of `DictGetTupleElementPass.cpp`) unless the default tuple's element types **exactly match** the dict's attribute types:
+
+```cpp
+// DictGetTupleElementPass.cpp:172-183
+const auto * default_tuple_type = typeid_cast<const DataTypeTuple *>(...);
+...
+for (size_t i = 0; i < default_elems.size(); ++i)
+    if (!default_elems[i]->equals(*result_elems[i]))
+        return;   // ← bail: can't optimize away the bad slot
+```
+
+So a mismatched junk default blocks the optimization, and the full-tuple cast still runs and can still throw, even though the bad slot is never read.
+
+---
+
+### 2. The type-surface issue — analysis/optimizer time (`DictGetTupleElementPass.cpp:248-251`)
+
+When the pass *does* successfully rewrite, it converts:
+
+```sql
+tupleElement(dictGet('d', ('a','b'), key), 1)
+-- becomes:
+dictGet('d', 'a', key)
+```
+
+The single-attribute form can return `LowCardinality(T)` when the key column is `LowCardinality`, because scalar dict attributes can carry that wrapper. The tuple-attribute form **always drops it** — a tuple cannot be `LowCardinality`. These two expressions therefore have the same logical content but **different result types**.
+
+That difference would be invisible inside the `tupleElement` wrapper, but after the rewrite the parent node in the query tree sees the type directly:
+
+```cpp
+// DictGetTupleElementPass.cpp:250-251
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;   // ← bail: rewrite would change the type the rest of the plan observes
+```
+
+The pass explicitly refuses to rewrite when the types diverge, because doing so would silently change the type flowing into whatever sits above (ORDER BY, a subsequent cast, a JOIN condition, etc.).
+
+---
+
+### Summary
+
+| Slot behavior | Mechanism | Location |
+|---|---|---|
+| Junk type in an unused slot can throw | `castColumnAccurate` validates the **whole** default tuple eagerly at execution | `FunctionsExternalDictionaries.h:483` |
+| Single-field rewrite surfaces a different type | `LowCardinality` is preserved in the scalar form but stripped in the tuple form; optimizer bails to avoid the mismatch | `DictGetTupleElementPass.cpp:250` |
+
+The shared root cause is that the "discarded" slots are never actually discarded at the layers where it matters: the default-value cast happens before any field is selected, and the type resolver computes the result type of the full-tuple variant differently from the scalar variant. Both effects are visible to code that runs before the field selection is applied.

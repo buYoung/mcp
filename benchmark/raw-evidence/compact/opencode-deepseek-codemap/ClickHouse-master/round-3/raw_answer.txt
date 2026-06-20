@@ -1,0 +1,5 @@
+`dictGetOrDefault` (또는 일반 `dictGet`)가 복수 속성을 조회할 때, 딕셔너리 튜플 타입으로 전체 `default` 인자를 `castColumnAccurate` 처리합니다 (`src/Functions/FunctionsExternalDictionaries.h:483`). **버려질 거라 생각한 필드도 이 캐스트의 대상이 되므로**, 호환되지 않는 센티널 값이 들어 있으면 예외가 발생합니다.
+
+동시에 `FieldToDataType::operator()(const Tuple &)` (`src/DataTypes/FieldToDataType.cpp:174-183`)는 **튜플의 모든 원소를 순회**해 타입을 추론하므로, 한 필드만 채운 폼의 튜플 타입이 완전한 폼과 달라져 쿼리 플랜의 나머지에 노출됩니다.
+
+이 두 지점을 `DictGetTupleElementPass` (`src/Analyzer/Passes/DictGetTupleElementPass.cpp:164-169`)가 명시적으로 방어하고 있습니다 — 리라이트 전에 default tuple의 모든 element 타입이 일치하는지 검사해, 캐스트가 실패하거나 타입이 흐트러지는 경우 최적화를 포기합니다.

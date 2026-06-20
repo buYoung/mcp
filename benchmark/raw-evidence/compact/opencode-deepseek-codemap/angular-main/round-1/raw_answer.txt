@@ -1,0 +1,9 @@
+The rule is in `SelectControlValueAccessor._writeValueAfterRender`. It schedules a single `writeValue` call via `afterNextRender({ write: ... })`, guarded by `_queuedWrite` to coalesce all mutations into one pass per render cycle.
+
+The comment at `select_control_value_accessor.ts:154-169` gives three reasons individual child mutations must not trigger immediate `writeValue`:
+
+1. **성능 (#41330)**: `ngValue`/`ngOnDestroy`마다 `writeValue`를 호출하면 `_compareWith`가 매번 전체 `_optionMap`을 도는 `O(n*m)`이 되는데, 한 번으로 모으면 `O(n)`이다.
+2. **Safari/IE11 선택 해제 버그 (#14505)**: `select.value`를 자식 텍스트 노드가 DOM에 붙기도 전에 설정하면, 매칭되는 옵션이 없을 때 첫 번째 옵션이 `selected`로 남는다.
+3. **애니메이션 지연 제거 버그 (#18430)**: `ngOnDestroy`에서 동기로 `writeValue`를 호출하면 선택된 옵션이 아직 DOM에 남아 있는 상태에서 select 값을 바꾸게 된다. 이후 애니메이션이 끝나 옵션이 실제로 제거될 때 브라우저가 자동으로 첫 번째 옵션을 선택해 버려, 의도와 다른 값으로 표류(drift)한다.
+
+세 문제 모두 `afterNextRender`로 모든 child mutation이 DOM에 반영된 **후** 단 한 번만 `writeValue`를 실행함으로써 해결된다.

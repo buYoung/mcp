@@ -1,0 +1,50 @@
+There is no `package.json` in `tools/release/npm/`. That confirms the picture. Here is the complete answer.
+
+---
+
+## The scenario, mapped to specific files
+
+### Participants
+
+| Role | File |
+|---|---|
+| Startup file from generated output | `dist/deno/bin.cjs` (+ the generated `dist/deno/package.json`) |
+| Helper from neighboring source tree | `tools/release/npm/install_api.cjs` — copied verbatim into `dist/deno/` by `build.ts:104–106` |
+| Plain package import without a local manifest | `install_api.cjs:26` — `require.resolve("@deno/" + target + "/package.json")` |
+
+`tools/release/npm/` has **no `package.json`** of its own. Nothing in that directory declares `@deno/linux-x64-glibc`, `@deno/darwin-arm64`, etc. as dependencies. Yet `install_api.cjs` calls `require.resolve` on those names at runtime.
+
+---
+
+## What makes it work — Node.js upward `require.resolve` walk
+
+Node.js module resolution for `require.resolve("@deno/<target>/package.json")` starts from `__dirname` — the directory of the *calling* file — and walks up the filesystem checking each `node_modules/` layer:
+
+```
+.../node_modules/deno/          ← __dirname of install_api.cjs
+    bin.cjs
+    install_api.cjs
+    install.cjs
+    package.json  ← generated; lists optionalDependencies: { "@deno/linux-x64-glibc": "1.x.y", … }
+.../node_modules/@deno/         ← one level up; found here ✓
+    linux-x64-glibc/
+    darwin-arm64/
+    …
+```
+
+`build.ts` generates `dist/deno/package.json` with every platform package as an `optionalDependency` (`build.ts:100–102`). When `npm install deno` runs, npm places those sibling packages one directory-level above the `deno/` folder. `require.resolve` walks up from `node_modules/deno/`, reaches the parent `node_modules/`, and finds `@deno/<target>` — even though the helper file never declared that dependency itself. The parent manifest supplies the justification retroactively.
+
+---
+
+## When it silently binds the wrong version
+
+The upward walk does **not stop at the nearest package boundary**; it keeps climbing every `node_modules/` directory up to the filesystem root. If a `@deno/<target>` package from a *different* version is already present at a higher point in the tree — e.g.,:
+
+```
+/project/node_modules/@deno/linux-x64-glibc@1.40.0   ← stale, from an earlier install
+/project/packages/my-tool/node_modules/deno@1.41.0
+```
+
+Node.js's resolution finds the `1.40.0` binary **first** because it is higher in the tree, and `require.resolve` returns that path. `install_api.cjs` then copies or executes the `1.40.0` binary while the `deno` package itself is `1.41.0`. The mismatch is silent — no error is thrown, no version check is performed; the wrong executable simply runs.
+
+This is the classic **phantom/hoisted dependency** hazard: `install_api.cjs` depends on a package that only exists in a separately generated manifest, and resolution is governed by directory depth rather than declared version constraints.

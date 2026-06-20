@@ -1,0 +1,5 @@
+두 가지 메커니즘 때문입니다:
+
+1. **타입 분기**: `dictGet('dict', ('a','b'), key)`는 `Tuple(a_type, b_type)`을 반환하지만, 단일 필드 형식 `dictGet('dict', 'a', key)`는 스칼라 `a_type`을 반환합니다. 한 필드만 읽는 쿼리를 리팩터링해도 타입이 달라질 수 있습니다 (`src/Functions/FunctionsExternalDictionaries.h:404-414`).
+
+2. **기본값 평가가 예외를 유발**: `dictGetOrDefault`는 `castColumnAccurate`로 **전체 튜플 기본값을 통째로 캐스팅**합니다. 소비자가 읽지 않는 fallback 슬롯이라도 `1/0` 같은 sentinel 값이 들어 있으면 캐스팅 시 예외가 발생해 쿼리가 실패합니다 (`src/Functions/FunctionsExternalDictionaries.h:467-507`).

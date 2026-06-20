@@ -1,0 +1,108 @@
+{
+    "run_id": "cms-official-benchmark-20260619-02",
+    "generated_at": "2026-06-19",
+    "task_count": 3,
+    "selected_task_count_per_repo": 1,
+    "scope_note": "repo당 1 selected task; repo당 3 tasks 확장은 범위 아님",
+    "repos": ["ClickHouse-master", "deno-main", "angular-main"],
+    "tasks": {
+        "ClickHouse-master": {
+            "task_id": "ClickHouse-master",
+            "code_root": "<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master",
+            "candidate_root": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3",
+            "public_question": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/private_answer_key.md",
+            "fairness_notes": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/fairness_notes.md",
+            "fact_count_F": 4,
+            "prior_scores": [0.6, 0.45],
+            "calibration_evidence": {
+                "run-1": {
+                    "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/per_fact_score.json",
+                    "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/scorer_output.json",
+                    "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/raw_answer.txt",
+                    "stored_score": 0.6
+                },
+                "run-2": {
+                    "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/per_fact_score.json",
+                    "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/scorer_output.json",
+                    "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/raw_answer.txt",
+                    "stored_score": 0.45
+                }
+            },
+            "p0_score_match": "match",
+            "p0_notes": "per_fact_score.json은 배열 구조(객체 배열, fact/weight/score/evidence 키). run-1 가중합산: 1.0*0.25+0.6*0.25+0.0*0.25+0.8*0.25=0.6. run-2 가중합산: 1.0*0.25+0.0*0.25+0.0*0.25+0.8*0.25=0.45."
+        },
+        "deno-main": {
+            "task_id": "deno-main",
+            "code_root": "<REPO_ROOT>/.agents/benchmark-data/deno-main",
+            "candidate_root": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1",
+            "public_question": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/private_answer_key.md",
+            "fairness_notes": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/fairness_notes.md",
+            "fact_count_F": 8,
+            "prior_scores": [0.125, 0.1875],
+            "calibration_evidence": {
+                "run-1": {
+                    "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-1/per_fact_score.json",
+                    "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-1/scorer_output.json",
+                    "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-1/raw_answer.md",
+                    "stored_score": 0.125
+                },
+                "run-2": {
+                    "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-2/per_fact_score.json",
+                    "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-2/scorer_output.json",
+                    "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-2/raw_answer.md",
+                    "stored_score": 0.1875
+                }
+            },
+            "p0_score_match": "match",
+            "p0_notes": "per_fact_score.json은 객체 구조(candidate_id/facts/overall_score/summary 키). run-1 overall_score=0.125, run-2 overall_score=0.1875. raw_answer 확장자가 .md."
+        },
+        "angular-main": {
+            "task_id": "angular-main",
+            "code_root": "<REPO_ROOT>/.agents/benchmark-data/angular-main",
+            "candidate_root": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2",
+            "public_question": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/private_answer_key.md",
+            "fairness_notes": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/fairness_notes.md",
+            "fact_count_F": 8,
+            "prior_scores": [0.5625],
+            "calibration_evidence": {
+                "round-2": {
+                    "description": "round-2 디렉터리가 단일 run으로 평탄하게 구성됨(run-* 서브디렉터리 없음)",
+                    "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/per_fact_score.json",
+                    "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/scorer_output.json",
+                    "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/raw_answer.md",
+                    "stored_score": 0.5625
+                },
+                "revalidation": {
+                    "description": "sonnet 2x 재검증 run. run-1=0.5625(angular-main 코드베이스 접근), run-2=0.1875(저장소 오매핑으로 지식 답변 후퇴). model variance 증거.",
+                    "revalidation_root": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2",
+                    "run-1": {
+                        "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/per_fact_score.json",
+                        "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/scorer_output.json",
+                        "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/raw_answer.txt",
+                        "stored_score": 0.5625
+                    },
+                    "run-2": {
+                        "per_fact_score": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/per_fact_score.json",
+                        "scorer_output": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/scorer_output.json",
+                        "raw_answer": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/raw_answer.txt",
+                        "stored_score": 0.1875
+                    },
+                    "summary": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/summary.json"
+                }
+            },
+            "angular_active_item": "sequential_round-2",
+            "canonical_score": 0.5625,
+            "anchor_variance_caveat": "round-2 0.5625와 revalidation 0.1875는 서로 다른 solve 시도의 model variance(scorer flakiness 아님). 한계 섹션에 '앵커 task에서 약 3배 점수 swing'으로 명시.",
+            "historical_no_go_only": {
+                "label": "historical_no_go_only",
+                "path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/angular-main/attempt-1",
+                "note": "선택된 task 아님. scope 결정에 사용하지 않음. historical no-go evidence 참조용 라벨로만 기록."
+            },
+            "p0_score_match": "match",
+            "p0_notes": "round-2 디렉터리가 단일 run으로 평탄하게 구성됨. overall_score=0.5625 확인."
+        }
+    }
+}

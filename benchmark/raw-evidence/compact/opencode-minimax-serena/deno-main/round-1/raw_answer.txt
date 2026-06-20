@@ -1,0 +1,54 @@
+Let me explore the codebase to understand the packaging flow and resolution mechanism.
+
+Let me dig deeper into the codemap-search Rust app, as the question mentions a startup file from generated output and a helper module with a plain package import.
+
+Let me look at the mcp-server app more closely, as it might have the code generation aspect mentioned.
+
+Let me search for any bundling or packaging configurations and look for the "generated output" aspect.
+
+Let me search for any unusual package imports or cross-package dependencies that shouldn't work based on local manifests.
+
+Let me look at the dependency trees more carefully to understand transitive dependency resolution.
+
+Let me check the pnpm workspace configuration and understand the hoisting behavior.
+
+Let me search for any imports that might be accessing transitive dependencies and check the actual node_modules structure.
+
+Let me look at the .acp_bridge folder which might be relevant to the "helper module" and generated startup files.
+
+Let me examine what dependencies are actually installed and check for any transitive dependency issues.
+
+Let me check the dist folder structure to understand the generated output.
+
+Let me look more carefully at what packages might be transitive dependencies vs direct dependencies.
+
+Let me look for any shared or helper modules that might be used across apps.
+
+Let me check the Rust codemap-search app for any generated code or build scripts.
+
+Based on my analysis of this codebase, I can answer the question:
+
+## 해결 경로 (Resolution Path)
+
+**pnpm 워크스페이스의 `workspace:*` 프로토콜과 Node.js 모듈 해석**이 이 흐름을 가능하게 합니다.
+
+이 코드베이스에서:
+- `apps/scout`와 `apps/mcp-server` 모두 `zod@^4.4.3`을 직접 의존성으로 선언
+- `@modelcontextprotocol/sdk`는 `zod`를 peer 의존성(`^3.25 || ^4.0`)으로 요구
+- pnpm의 격리된 `nodeLinker: "isolated"` 모드가 각 패키지의 의존성을 분리
+
+그러나 **실제로 두 개의 `zod` 버전**이 시스템에 존재합니다:
+- `zod@3.25.76` (`.pnpm/zod@3.25.76/`) - `@modelcontextprotocol/inspector-cli@0.21.2`가 사용
+- `zod@4.4.3` (`.pnpm/zod@4.4.3/`) - SDK와 앱들이 사용
+
+## 잘못된 버전이 조용히 바인딩될 수 있는 경우
+
+**헬퍼 모듈이邻近 소스 트리(neighboring source tree)에서 가져와지고, 그 모듈이 로컬 매니페스트에 선언되지 않은 패키지를 임포트할 때** 발생합니다.
+
+예를 들어:
+1. 어떤 헬퍼가 `zod`를 임포트하지만 자신의 `package.json`에는 없음
+2. 다른 패키지가 해당 헬퍼를 `workspace:*`로 참조
+3. 전체 릴리스 어딘가에서 `zod@^4.4.3`이 이미 설치되어 있음
+4. 빌드는 성공하지만 **실제로는 `zod@3.25.76`이 바인딩될 수 있음** - `zod@3`과 `zod@4`는 API가 상당히 다르므로 런타임 오류 가능
+
+이것이 위험한 이유는 pnpm이 중첩된 `node_modules`를 격리하더라도, **번들링 도구(예: esbuild)가 단일 distributable을 만들 때** hoist된 버전을 사용하면 잘못된 버전이 포함될 수 있기 때문입니다.

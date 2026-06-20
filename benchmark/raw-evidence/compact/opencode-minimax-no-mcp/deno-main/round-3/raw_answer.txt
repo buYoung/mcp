@@ -1,0 +1,25 @@
+Let me explore the codebase to understand this packaging flow scenario.
+
+Let me look at the main buyong-mcp repo structure to understand this packaging scenario:
+
+Based on the codebase structure (pnpm monorepo with `apps/mcp-server`, `apps/scout`, `packages/typescript-config`), I can answer your question about the resolution mechanism:
+
+## Resolution Path That Keeps It Working
+
+**Workspace symlink resolution via Node module traversal.** When the helper module imports a package it doesn't declare, Node.js walks up the directory tree checking `node_modules`. In pnpm workspaces, packages are symlinked from `.pnpm/` store, so as long as *any* workspace package has declared that dependency, the resolution succeeds.
+
+For example in this repo:
+- `mcp-server` and `scout` both depend on `zod@^4.4.3` (and `@modelcontextprotocol/sdk` also brings in `zod@4.4.3`)
+- If a helper from `scout` (e.g., a shared config module) imported `zod` without declaring it in `scout`'s `package.json`, resolution would still succeed because `zod` exists in the workspace's symlinked dependency graph
+
+## Case Where It Quietly Binds the Wrong Version
+
+**When two packages in the workspace depend on different major/minor versions of the same package.**
+
+For instance:
+- `mcp-server`: `"zod": "^3.0.0"` 
+- `scout`: `"zod": "^4.0.0"`
+
+If a helper module in `scout` imports `zod` without declaring it, and that helper gets bundled into `mcp-server`'s release, it would silently resolve to `scout`'s `zod@4.x` even though `mcp-server` intended `zod@3.x`. The build succeeds, but runtime behavior may differ if the versions have breaking API changes.
+
+This is the classic "phantom dependency" problem in monorepos — the manifest doesn't capture the actual requirement, so resolution silently picks whatever version the workspace happens to provide.

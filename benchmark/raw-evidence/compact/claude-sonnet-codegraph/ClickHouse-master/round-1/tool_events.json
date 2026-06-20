@@ -1,0 +1,86 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01V7KhyXzRajRzAtZmksbNr8",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01V7KhyXzRajRzAtZmksbNr8",
+        "response_size_bytes": 75
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_018zGQ4HRLHznUhhxeCK5gp6",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_018zGQ4HRLHznUhhxeCK5gp6",
+        "response_size_bytes": 21216
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01NFLry37VZRw9CZexLcGQtr",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_01NFLry37VZRw9CZexLcGQtr",
+        "response_size_bytes": 25396
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_015qBqVVy1w52RwXowMnnySE",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__codegraph__codegraph_explore",
+        "call_id": "toolu_015qBqVVy1w52RwXowMnnySE",
+        "response_size_bytes": 20240
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01PTcWa5HPTLvtpEyWfyM2f8",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01PTcWa5HPTLvtpEyWfyM2f8",
+        "response_size_bytes": 11442
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01Dd3kMjmaLT1N4EmRdQ7FLk",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01Dd3kMjmaLT1N4EmRdQ7FLk",
+        "response_size_bytes": 8184
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01H8FuAdunY4yUuTwprz545f",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01H8FuAdunY4yUuTwprz545f",
+        "response_size_bytes": 16438
+    }
+]

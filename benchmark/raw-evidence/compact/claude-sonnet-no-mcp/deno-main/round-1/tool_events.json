@@ -1,0 +1,98 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "Glob",
+        "call_id": "toolu_01Qo2cBeuSowJPQq8hUVvJzW",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "call",
+        "tool_name": "Glob",
+        "call_id": "toolu_01FwQDiHaJ3p7yFaC1MBrxns",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Glob",
+        "call_id": "toolu_01Qo2cBeuSowJPQq8hUVvJzW",
+        "response_size_bytes": 681
+    },
+    {
+        "phase": "result",
+        "tool_name": "Glob",
+        "call_id": "toolu_01FwQDiHaJ3p7yFaC1MBrxns",
+        "response_size_bytes": 198
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_015es6oVU5w8GNCVnXpNe4Ms",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_015es6oVU5w8GNCVnXpNe4Ms",
+        "response_size_bytes": 7234
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01Fv4FTVwDPfcuAY7BD8jz8p",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01Fv4FTVwDPfcuAY7BD8jz8p",
+        "response_size_bytes": 1256
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01Q51zLns97Y3EPsbEgEQwKX",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01Q51zLns97Y3EPsbEgEQwKX",
+        "response_size_bytes": 8773
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_01XKNsJ1Fx37b1sPTnU7pkcn",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_01XKNsJ1Fx37b1sPTnU7pkcn",
+        "response_size_bytes": 278
+    },
+    {
+        "phase": "call",
+        "tool_name": "Grep",
+        "call_id": "toolu_01JthTNxDRz6i8Y2QWBTYvJ6",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Grep",
+        "call_id": "toolu_01JthTNxDRz6i8Y2QWBTYvJ6",
+        "response_size_bytes": 96
+    },
+    {
+        "phase": "call",
+        "tool_name": "Glob",
+        "call_id": "toolu_01F8RVhWcnztqvy2dz98zXim",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Glob",
+        "call_id": "toolu_01F8RVhWcnztqvy2dz98zXim",
+        "response_size_bytes": 14
+    }
+]

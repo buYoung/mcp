@@ -1,0 +1,60 @@
+{
+    "task_id": "angular-main",
+    "candidate_id": "angular-deferred-choice-reconciliation-v1",
+    "score": 0.25,
+    "per_fact_score": [
+        {
+            "fact_id": "F1",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F2",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F3",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F4",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F5",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F6",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F7",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F8",
+            "verdict": "partial",
+            "value": 0.5
+        }
+    ],
+    "scorer_output": {
+        "schema_version": "1.0"
+    },
+    "schema_version": "1.0",
+    "verdict": "fail",
+    "judge_model": "opus",
+    "judge_model_resolved": ["claude-haiku-4-5-20251001", "claude-opus-4-8"],
+    "fact_count_F": 8,
+    "reproduction_tolerance_band": 0.125,
+    "raw_answer_path": "<REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-03/phases/opencode-serena-episodes/out/opencode-minimax-serena/angular-main/round-2/raw_answer.txt",
+    "answer_sha256": "42009aa302f12dcec30606d0b2993a7f17f9219229a2f3e64d4fbb48ae42458d",
+    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
+    "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)"
+}

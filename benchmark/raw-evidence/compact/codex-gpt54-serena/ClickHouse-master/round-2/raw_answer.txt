@@ -1,0 +1,11 @@
+여기서는 “버려지는 필드”가 실제로 버려지지 않기 때문입니다. `tupleElement(dictGetOrDefault(...), N)` 같은 형태는 설정 `optimize_dictget_tuple_element`가 켜져 있으면 단일 속성 `dictGet...('b', ...)`로 바꾸려 시도하지만, 그 변환이 원래 식과 **완전히 같은 의미**일 때만 허용됩니다. 근거는 [DictGetTupleElementPass.cpp](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:163), [DictGetTupleElementPass.cpp](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:203), [Settings.cpp](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Core/Settings.cpp:5689)에 있습니다.
+
+첫째, `dictGetOrDefault`의 튜플 기본값은 선택된 원소만 따로 쓰는 게 아니라, 실행 시점에 **기본값 튜플 전체를 사전 속성 튜플 타입으로 캐스트**합니다. 그래서 안 읽는 슬롯에 엉뚱한 센티널 값을 넣어 두면, 그 슬롯이 `UInt64`로 캐스트되지 못하는 식으로 **예외를 여전히 일으킬 수 있습니다**. 이 때문에 패스는 “한 필드만 남기면 그 예외가 사라지는가”를 보고, 사라진다면 아예 최적화를 포기합니다. 주석이 그대로 그 점을 설명합니다: 선택되지 않은 원소에서도 throw 할 수 있고, 단일 속성으로 바꾸면 그 예외가 억제되므로 의미가 달라진다고 봅니다.
+
+둘째, 한 필드형은 타입도 바꿀 수 있습니다. 단일 속성 `dictGet`은 키 쪽의 `LowCardinality` 래퍼를 보존할 수 있지만, 튜플 속성 `dictGet`의 결과는 튜플이라 그런 래퍼를 유지하지 못합니다. 그래서 소비자가 결국 한 필드만 읽더라도, 플랜이 먼저 보는 것은 부모의 `tupleElement` 아래에 있는 **원래 자식 노드의 결과 타입**이고, 이 타입이 달라지면 주변 식 트리가 달라집니다. 그 점은 [DictGetTupleElementPass.cpp](<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master/src/Analyzer/Passes/DictGetTupleElementPass.cpp:245)에 적혀 있습니다.
+
+요약하면, 여기서는 fallback 필드가 “출력에서 안 보인다”와 “관측 불가능하다”가 같지 않습니다. 그 필드들은
+1. 전체 기본값 튜플 캐스트를 통해 예외 여부에 관여하고,
+2. 단일 속성으로 축소했을 때 결과 타입이 달라지는지에도 관여합니다.
+
+그래서 엔지니어가 “아무도 안 읽으니 센티널을 넣어도 된다”라고 가정하면 틀립니다.

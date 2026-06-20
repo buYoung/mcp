@@ -1,0 +1,54 @@
+Now I have the full picture. Let me trace both mechanisms precisely.
+
+---
+
+## Why discarded fallback fields remain observable
+
+The pattern is `tupleElement(dictGetOrDefault('dict', ('attr_a','attr_b'), key, (fallback_a, fallback_b)), 1)`. The consumer reads only `attr_a`. The "unused" `fallback_b` slot is assumed to be inert. Two independent mechanisms make that assumption false.
+
+---
+
+### Mechanism 1 — The default tuple is cast in its entirety at execution time
+
+`FunctionsExternalDictionaries.h:483`:
+```cpp
+auto result = castColumnAccurate(column_to_cast, result_type);
+```
+
+`executeImpl` receives the raw default argument (the whole `(fallback_a, fallback_b)` tuple) and calls `castColumnAccurate` against `result_type` — which is the dictionary's full attribute-pair type — **before the tuple is ever split into per-attribute columns**. That split only happens two lines later at lines 485–499, when the resulting `ColumnTuple` is broken apart via `getColumnsCopy()`.
+
+So if `fallback_b` is `'junk'` (a `String`) while `attr_b` is `UInt64`, `castColumnAccurate` attempts to convert the string to `UInt64` and throws — even though the calling query discards element 2 entirely. The supposedly dead slot participates in the cast and can kill the query.
+
+---
+
+### Mechanism 2 — The single-attribute form can surface a different type (`LowCardinality`)
+
+`FunctionsExternalDictionaries.h:404-414` — `getReturnTypeImpl`:
+```cpp
+if (attribute_types.size() > 1)
+    return std::make_shared<DataTypeTuple>(attribute_types, attribute_names); // tuple form
+// single-attribute form falls through:
+return attribute_types.front();   // or makeNullable(...)
+```
+
+A `Tuple` column can never be `LowCardinality`. So the multi-attribute form always strips any `LowCardinality` wrapper and returns a plain `DataTypeTuple`. The single-attribute form (`dictGet('dict', 'attr_a', key)`) goes through the standard `IFunction` execution path, where `useDefaultImplementationForLowCardinalityColumns()` is `true` by default. When the key column carries a `LowCardinality` wrapper, the function framework preserves it and the result type becomes `LowCardinality(T)` instead of bare `T`.
+
+`DictGetTupleElementPass` — the optimizer pass that rewrites `tupleElement(dictGet(..., ('a','b'), ...), 1)` down to `dictGet(..., 'a', ...)` — guards against exactly this at `DictGetTupleElementPass.cpp:250-251`:
+
+```cpp
+if (!new_dict_get_function.getResultType()->equals(*tuple_element_function->getResultType()))
+    return;   // bail — the rewrite would change the type visible to the parent
+```
+
+If the rewrite would silently change `T` (tuple path) to `LowCardinality(T)` (single-attribute path), the optimizer backs off entirely. The type the rest of the query plan observes depends on whether you wrote the two-attribute form or the one-attribute form, even when both logically deliver the same value.
+
+---
+
+### Summary
+
+| Mechanism | Where | Effect |
+|---|---|---|
+| Full default-tuple cast before column split | `executeImpl` → `castColumnAccurate(column_to_cast, result_type)` at line 483 | A type-mismatched value in any fallback slot throws, regardless of which element is read |
+| `LowCardinality` propagation in single-attribute path | `getReturnTypeImpl` lines 404–414 + IFunction LC machinery | Same dictionary attribute fetched via one-field form can have type `LowCardinality(T)`; via tuple form it has type `T` — different types visible downstream |
+
+The root cause for both is that the multi-attribute call is a single function invocation that operates on the full tuple as a unit — the illusion that "I only read slot N" means "slot M doesn't exist" is only true after the optimizer successfully collapses the expression, and both mechanisms are exactly the cases where that collapse is unsafe.

@@ -1,0 +1,62 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01CRMcBhEpwukt4HdbbY8zDD",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01CRMcBhEpwukt4HdbbY8zDD",
+        "response_size_bytes": 46
+    },
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01ThEFGCYZM8aU2s1DwEKfDX",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01ThEFGCYZM8aU2s1DwEKfDX",
+        "response_size_bytes": 52
+    },
+    {
+        "phase": "call",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01UTvrKRuN6e5qEnLFC3VVfn",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "ToolSearch",
+        "call_id": "toolu_01UTvrKRuN6e5qEnLFC3VVfn",
+        "response_size_bytes": 138
+    },
+    {
+        "phase": "call",
+        "tool_name": "mcp__serena__search_for_pattern",
+        "call_id": "toolu_01LnpsBGjGGKeHDCf7CbfxRQ",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "mcp__serena__search_for_pattern",
+        "call_id": "toolu_01LnpsBGjGGKeHDCf7CbfxRQ",
+        "response_size_bytes": 1643
+    },
+    {
+        "phase": "call",
+        "tool_name": "Read",
+        "call_id": "toolu_014cg3gGbq1rKycSchoHbtZK",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "Read",
+        "call_id": "toolu_014cg3gGbq1rKycSchoHbtZK",
+        "response_size_bytes": 10540
+    }
+]

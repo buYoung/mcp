@@ -1,0 +1,170 @@
+[
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_qdwxg0cfk6bi_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_qdwxg0cfk6bi_1",
+        "response_size_bytes": 10271
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_q1bog1vyox57_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_q1bog1vyox57_1",
+        "response_size_bytes": 24179
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_mpoyvry46zcd_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_mpoyvry46zcd_1",
+        "response_size_bytes": 16959
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_6v6bleonsny8_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_6v6bleonsny8_1",
+        "response_size_bytes": 18930
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_oskxbrmzxt6p_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_oskxbrmzxt6p_1",
+        "response_size_bytes": 38
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_bpyqqzi2389u_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_bpyqqzi2389u_1",
+        "response_size_bytes": 646
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_0x60shvrcs98_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_search",
+        "call_id": "call_function_0x60shvrcs98_1",
+        "response_size_bytes": 705
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_y6ii2v44hixo_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_y6ii2v44hixo_1",
+        "response_size_bytes": 20373
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_s05hfxrk58tw_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_explore",
+        "call_id": "call_function_s05hfxrk58tw_1",
+        "response_size_bytes": 24709
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_yonz3pnkd6us_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_yonz3pnkd6us_1",
+        "response_size_bytes": 1724
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_54ldeweczhiu_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_54ldeweczhiu_1",
+        "response_size_bytes": 1537
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_hayavl47hwak_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_hayavl47hwak_1",
+        "response_size_bytes": 4031
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_4bd3lc2fmle7_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_4bd3lc2fmle7_1",
+        "response_size_bytes": 1358
+    },
+    {
+        "phase": "call",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_1pxsfe1uzqhy_1",
+        "response_size_bytes": 0
+    },
+    {
+        "phase": "result",
+        "tool_name": "codegraph_codegraph_node",
+        "call_id": "call_function_1pxsfe1uzqhy_1",
+        "response_size_bytes": 1049
+    }
+]

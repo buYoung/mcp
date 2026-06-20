@@ -1,0 +1,33 @@
+{
+    "arm_id": "codex-gpt54-serena",
+    "runtime": "codex-gpt54",
+    "model": "gpt-5.4",
+    "model_label": "gpt-5.4",
+    "backend": "serena",
+    "codebase": "ClickHouse-master",
+    "round": 3,
+    "wall_time_s": 733.924,
+    "tokens": {
+        "input_tokens": 346208,
+        "output_tokens": 4426,
+        "cached_input_tokens": 299008
+    },
+    "tool_call_distribution": {},
+    "tool_result_bytes_by_tool": {},
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "c2e076451884f3dee26d28d87792458d7b71bd99c7fb547cea61c458fbea32af",
+    "scorer_score": 0.75,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 11,
+        "backends": {
+            "codemap": 4,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

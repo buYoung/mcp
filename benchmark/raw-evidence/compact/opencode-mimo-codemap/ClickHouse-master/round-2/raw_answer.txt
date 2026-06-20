@@ -1,0 +1,2 @@
+Let me explore the codebase to understand the query enrichment and fallback field behavior you're describing.
+Let me read the key files to pinpoint the exact mechanisms.

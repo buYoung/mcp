@@ -1,0 +1,60 @@
+{
+    "task_id": "deno-main",
+    "candidate_id": "deno-bundle-snapshot-fallback-v1",
+    "score": 0.3125,
+    "per_fact_score": [
+        {
+            "fact_id": "F1",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F2",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F3",
+            "verdict": "present",
+            "value": 1
+        },
+        {
+            "fact_id": "F4",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F5",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F6",
+            "verdict": "absent",
+            "value": 0
+        },
+        {
+            "fact_id": "F7",
+            "verdict": "partial",
+            "value": 0.5
+        },
+        {
+            "fact_id": "F8",
+            "verdict": "absent",
+            "value": 0
+        }
+    ],
+    "scorer_output": {
+        "schema_version": "1.0"
+    },
+    "schema_version": "1.0",
+    "verdict": "fail",
+    "judge_model": "opus",
+    "judge_model_resolved": ["claude-haiku-4-5-20251001", "claude-opus-4-8"],
+    "fact_count_F": 8,
+    "reproduction_tolerance_band": 0.125,
+    "raw_answer_path": "<REPO_ROOT>/.agents/orchestration/cms-official-benchmark-20260619-02/phases/solver-episodes/claude-sonnet-serena/deno-main/round-1/raw_answer.txt",
+    "answer_sha256": "7c04c8042a5c81fbc6ad4ad13f73675dd3ef40faa57a980ae6d4a1ab9b37d2b2",
+    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
+    "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)"
+}

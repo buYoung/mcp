@@ -1,0 +1,75 @@
+Now I have everything I need. Here is a precise account of both mechanisms.
+
+---
+
+## The gating rule: `_writeValueAfterRender` + `_queuedWrite`
+
+Every mutation path that can change what options exist funnels into one method: `_writeValueAfterRender()` (line 173). The rule it enforces is:
+
+> **Re-apply the model only once, after the entire current render cycle finishes — never synchronously, and never more than once per render turn.**
+
+The flag `_queuedWrite` (line 151) is the coalescing guard:
+
+```ts
+_writeValueAfterRender(): void {
+  if (this._queuedWrite || this.appRefInjector.destroyed) {
+    return;                        // already queued — this mutation is absorbed
+  }
+  this._queuedWrite = true;
+  afterNextRender(
+    { write: () => {
+        this._queuedWrite = false;
+        this.writeValue(this.value); // single pass after all DOM work is done
+    }},
+    { injector: this.appRefInjector },
+  );
+}
+```
+
+The three callers (lines 278, 289, 300) are:
+
+| Caller | Trigger |
+|---|---|
+| `NgSelectOption.ngValue` setter | an option's object binding changed or the option was created |
+| `NgSelectOption.value` setter | an option's primitive-string binding changed |
+| `NgSelectOption.ngOnDestroy` | an option was removed from the DOM |
+
+On the first call in a render turn `_queuedWrite` flips to `true` and an `afterNextRender` write callback is registered. Every subsequent call in the same turn sees `_queuedWrite === true` and returns immediately — no extra callback, no extra work.
+
+---
+
+## Why individual mutations must not trigger an immediate full re-selection pass
+
+The inline comment block (lines 154–170) documents three concrete bugs that motivated this design:
+
+### 1. Exponential `compareWith` calls — issue #41330
+
+`writeValue` resolves the current model value to a DOM option by calling `_getOptionId`, which iterates every entry in `_optionMap` and calls `_compareWith` on each:
+
+```ts
+_getOptionId(value: any): string | null {
+  for (const id of this._optionMap.keys()) {
+    if (this._compareWith(this._optionMap.get(id), value)) return id;
+  }
+  return null;
+}
+```
+
+If a list of *n* options is being rendered and `writeValue` were called synchronously for every option as it appeared, the total number of `_compareWith` invocations would be `1 + 2 + … + n = O(n²)`. Coalescing into one post-render call makes it O(n).
+
+### 2. Safari / IE 11 premature deselection — issue #14505
+
+When Angular writes to the `<select>` element's `value` property while an `<option>` element exists in the DOM but its **text node has not yet been appended**, some browsers fail to recognise the option as a valid selection target. The symptom was that the first option would remain selected even when it didn't match the model. Waiting until the render write phase guarantees all child text nodes are already in the DOM before `setProperty('value', …)` is called.
+
+### 3. Animation-delayed removal races — issue #18430
+
+When the animations module removes an option it does so asynchronously (the DOM node stays alive while the leave animation plays). If a selected option is removed and `writeValue` fires synchronously on `ngOnDestroy`, Angular sets the `<select>` value to the encoded string of the now-absent option. The browser then sees the option element disappear and silently moves the selection to whatever option is first — a value that does not match the model. Deferring the write until after the *next* render turn means the browser has already completed the DOM removal before Angular re-asserts its chosen value.
+
+---
+
+## The combined invariant
+
+The two invariants from your question map exactly to these two mechanisms:
+
+- **"Equality checks must not balloon"** → coalesced by `_queuedWrite`: O(n) comparisons total, not O(n²).
+- **"The browser must not drift onto some other remaining choice"** → deferred by `afterNextRender { write: … }`: the re-selection write only executes after all option additions, removals, and animation-driven DOM mutations have settled, so the browser never gets the chance to override Angular's choice with its own fallback behaviour.

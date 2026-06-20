@@ -1,0 +1,39 @@
+{
+    "arm_id": "opencode-minimax-codegraph",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "codegraph",
+    "codebase": "ClickHouse-master",
+    "round": 1,
+    "wall_time_s": 158.636,
+    "tokens": {
+        "input_tokens": 159,
+        "output_tokens": 223,
+        "cache_read_input_tokens": 69883,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "codegraph_codegraph_explore": 11,
+        "codegraph_codegraph_search": 2
+    },
+    "tool_result_bytes_by_tool": {
+        "codegraph_codegraph_explore": 239242,
+        "codegraph_codegraph_search": 798
+    },
+    "assigned_backend_tool_bytes": 240040,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "e20c9b7bbfe754327cbb5d11f05594aecb6264993978941ac9f84fdf782cc014",
+    "scorer_score": 0.125,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 6,
+        "backends": {
+            "codegraph": 4,
+            "serena": 2
+        }
+    },
+    "backend_process_group_cleaned": true
+}

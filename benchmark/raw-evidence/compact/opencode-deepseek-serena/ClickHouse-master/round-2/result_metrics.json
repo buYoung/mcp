@@ -1,0 +1,38 @@
+{
+    "arm_id": "opencode-deepseek-serena",
+    "runtime": "opencode-deepseek",
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "model_label": "deepseek-v4-flash",
+    "backend": "serena",
+    "codebase": "ClickHouse-master",
+    "round": 2,
+    "wall_time_s": 203.334,
+    "tokens": {
+        "input_tokens": 19899,
+        "output_tokens": 420,
+        "cache_read_input_tokens": 1024,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "read": 1,
+        "task": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "read": 7916,
+        "task": 19263
+    },
+    "assigned_backend_tool_bytes": 0,
+    "backend_exercised": false,
+    "extraction_status": "success",
+    "answer_sha256": "5d3f873aa04d9f4f40c5fc4388c291afa69f564f954641a4ef470275d8cb2367",
+    "scorer_score": 0,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 3,
+        "backends": {
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}

@@ -1,0 +1,44 @@
+{
+    "arm_id": "opencode-minimax-codegraph",
+    "runtime": "opencode-minimax",
+    "model": "openrouter/minimax/minimax-m2.7",
+    "model_label": "minimax-m2.7",
+    "backend": "codegraph",
+    "codebase": "angular-main",
+    "round": 2,
+    "wall_time_s": 151.701,
+    "tokens": {
+        "input_tokens": 7335,
+        "output_tokens": 396,
+        "cache_read_input_tokens": 25344,
+        "cache_creation_input_tokens": 0
+    },
+    "tool_call_distribution": {
+        "read": 17,
+        "codegraph_codegraph_search": 4,
+        "codegraph_codegraph_node": 1,
+        "codegraph_codegraph_explore": 1
+    },
+    "tool_result_bytes_by_tool": {
+        "read": 44386,
+        "codegraph_codegraph_search": 1212,
+        "codegraph_codegraph_node": 654,
+        "codegraph_codegraph_explore": 24901
+    },
+    "assigned_backend_tool_bytes": 26767,
+    "backend_exercised": true,
+    "extraction_status": "success",
+    "answer_sha256": "3b20a077a749f2ac87fa8ad376489574bf716907b478f717cac67435aef568e1",
+    "scorer_score": 0.6875,
+    "mutation_guard_status": "clean",
+    "harness_valid": true,
+    "co_tenancy": {
+        "count": 10,
+        "backends": {
+            "codemap": 3,
+            "codegraph": 4,
+            "serena": 3
+        }
+    },
+    "backend_process_group_cleaned": true
+}
