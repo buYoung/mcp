@@ -192,11 +192,14 @@ jobs:
           files: |
             codemap-search-${{ matrix.target }}.*
 
-  # crates.io publish runs as an independent job: it has NO `needs:` edge, so a
-  # publish failure cannot delete or void the GitHub Release binary assets the
-  # `release` matrix uploads.  Both jobs fire on the same `codemap-v*` tag.
+  # crates.io publish is gated on a green build matrix (`needs: release`) so a
+  # failed build never publishes the version to crates.io.  The dependency is
+  # one-directional: `release` does NOT depend on `publish-crate`, so a publish
+  # failure still cannot delete or void the GitHub Release binary assets the
+  # `release` matrix uploaded.  Both jobs fire on the same `codemap-v*` tag.
   publish-crate:
     name: Publish to crates.io
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

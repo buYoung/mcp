@@ -25,6 +25,13 @@ env:
 jobs:
   test:
     name: test
+    # Skip on the release commit. release-it pushes `chore(release): codemap-vX.Y.Z`
+    # to main (which matches this workflow's push/paths trigger), but the tagged
+    # codemap-search-release.yml already builds every target, so re-running CI here
+    # is redundant. The guard fires only for that exact commit-message prefix on
+    # push events; pull requests and every other main push still run normally. The
+    # job shows as "skipped" (no runner, no minutes) rather than a real run.
+    if: "${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release): codemap-v') }}"
     runs-on: ubuntu-latest
     # Run from the standalone crate so commands match local invocations.
     defaults:
@@ -41,6 +48,8 @@ jobs:
 
   build:
     name: release build (${{ matrix.os }})
+    # Same release-commit skip as `test` above.
+    if: "${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release): codemap-v') }}"
     runs-on: ${{ matrix.os }}
     defaults:
       run:
