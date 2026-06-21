@@ -27,10 +27,6 @@ jobs:
   build:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    # Best-effort legs (Windows) may fail without blocking the release: a failed
-    # best-effort leg simply omits its own asset, exactly as the old per-leg upload
-    # did. Critical legs (Linux, macOS) still fail the job and gate publishing.
-    continue-on-error: ${{ matrix.best_effort || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,12 +45,8 @@ jobs:
           # slice, already proven there for the ctags C build).
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: aarch64-apple-darwin, archive: tar.gz, macsign: true }
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: x86_64-apple-darwin,  archive: tar.gz, macsign: true }
-          # Windows: cross-compiled on Linux with cargo-xwin (clang-cl + lld-link,
-          # MSVC ABI preserved) — no Windows runner needed. Best-effort: a failure
-          # omits the Windows asset but, via continue-on-error, does not block the
-          # release. Both windows-msvc targets are validated to build this way.
-          - { os: ubuntu-latest, target: x86_64-pc-windows-msvc, archive: zip, xwin: true, best_effort: true }
-          - { os: ubuntu-latest, target: aarch64-pc-windows-msvc, archive: zip, xwin: true, best_effort: true }
+          # Windows targets are built separately in the `build-windows` job below
+          # (cross-compiled on Linux via cargo-xwin), so this matrix stays untouched.
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -82,27 +74,13 @@ jobs:
         with:
           tool: cross
 
-      # cargo-xwin cross-compiles the *-pc-windows-msvc targets on Linux: clang-cl
-      # compiles the vendored tree-sitter C/C++ grammars and links against the
-      # Windows CRT/SDK that cargo-xwin fetches, keeping the MSVC ABI. This replaces
-      # the native Windows runners. llvm/lld supply clang-cl, llvm-lib, and lld-link.
-      - name: Install LLVM for cargo-xwin
-        if: matrix.xwin
-        run: sudo apt-get update && sudo apt-get install -y clang llvm lld
-      - name: Install cargo-xwin
-        if: matrix.xwin
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-xwin
-
       - name: Build
-        # Every leg runs on Linux or macOS now (Windows is cross-built via xwin),
-        # so `shell: bash` is the default everywhere; it is kept explicit so the
-        # POSIX `"$MANIFEST"` reference always expands the same way.
+        # shell: bash so the POSIX `"$MANIFEST"` reference expands consistently on
+        # the Linux runners and the self-hosted macOS runners alike.
         shell: bash
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc
-        run: ${{ matrix.cross && 'cross' || matrix.xwin && 'cargo xwin' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
 
       # --- macOS Developer ID signing + notarization (apple-darwin legs only) ---
       # Runs on the shared self-hosted Mac (codemap-mac-1), which already holds the
@@ -185,18 +163,64 @@ jobs:
           tar -czf "${name}.tar.gz" -C "$dir" "$BIN"
           shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
 
-      # Windows targets are cross-built on Linux (cargo-xwin), so the zip is packaged
-      # here with the Linux `zip` tool, not pwsh Compress-Archive. `shasum -a 256`
-      # matches the `<hash>  <file>` format the unix tar.gz leg already emits.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codemap-search-${{ matrix.target }}
+          path: codemap-search-${{ matrix.target }}.*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Windows binaries are cross-compiled on Linux with cargo-xwin (clang-cl +
+  # lld-link, MSVC ABI preserved) — no Windows runner, no code signing. Kept as its
+  # own job so the `build` matrix above stays untouched. Best-effort: continue-on-
+  # error means a Windows failure omits only the Windows assets and never blocks the
+  # release, the other build legs, or crates.io.
+  build-windows:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc]
+    env:
+      # cargo-xwin downloads the Windows CRT/SDK splat here; cached across runs.
+      XWIN_CACHE_DIR: ${{ github.workspace }}/.xwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/codemap-search
+      # clang-cl, llvm-lib, and lld-link for cargo-xwin's MSVC cross-compile.
+      - name: Install LLVM
+        run: sudo apt-get update && sudo apt-get install -y clang llvm lld
+      - name: Install cargo-xwin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-xwin@0.23.0
+      # Cache the downloaded Windows SDK/CRT splat so releases do not re-fetch it
+      # from Microsoft's CDN every run. Per-target: the splat is arch-specific.
+      - name: Cache xwin Windows SDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.xwin
+          key: xwin-sdk-${{ matrix.target }}-v1
+      - name: Build
+        shell: bash
+        run: cargo xwin build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+      # Cross-built on Linux, so the zip is made with the Linux `zip` tool (not pwsh
+      # Compress-Archive). `shasum -a 256` matches the tar.gz leg's sha256 format.
       - name: Package (zip)
-        if: matrix.archive == 'zip'
         shell: bash
         run: |
           dir="apps/codemap-search/target/${{ matrix.target }}/release"
           name="${BIN}-${{ matrix.target }}"
           zip -j "${name}.zip" "$dir/${BIN}.exe"
           shasum -a 256 "${name}.zip" > "${name}.zip.sha256"
-
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -206,13 +230,13 @@ jobs:
           retention-days: 1
 
   # Publish phase: attach the built binaries to the GitHub Release and publish the
-  # crate to crates.io. Both gate on a green `build` (`needs: build`) and run in
-  # parallel with each other — neither depends on the other, so a crates.io failure
-  # cannot void the GitHub Release assets, nor vice versa. Both fire on the same
-  # `codemap-v*` tag.
+  # crate to crates.io. publish-release waits for both build jobs; publish-crate
+  # gates only on `build` (crates.io ships source, not the Windows binaries). The
+  # two run in parallel and neither depends on the other, so a crates.io failure
+  # cannot void the GitHub Release assets, nor vice versa.
   publish-release:
     name: Attach binaries to the GitHub Release
-    needs: build
+    needs: [build, build-windows]
     runs-on: ubuntu-latest
     steps:
       # Pull every per-target archive the build matrix stashed (merge-multiple
