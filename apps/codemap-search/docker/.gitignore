@@ -1,0 +1,3 @@
+# Verification artifacts produced by verify.sh — not source.
+out/
+*.log

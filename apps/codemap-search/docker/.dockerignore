@@ -1,0 +1,13 @@
+# Exclude large build artifacts and editor files from the Docker build context.
+# Without this, the existing `target/` directory (potentially gigabytes) would be
+# sent to the Docker daemon on every build, making each invocation extremely slow.
+
+target/
+.codemap/
+.codemap-index/
+docs/
+tests/fixtures/
+.git/
+*.md
+!README.md
+docker/
