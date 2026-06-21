@@ -55,7 +55,7 @@ and put it on your `PATH`.
 | Platform | Variant | Support level | Notes |
 |---|---|---|---|
 | **Linux x86_64** (Ubuntu 22.04 → 26.04) | `musl` (preferred) | Docker-verified (22.04, 24.04, 26.04) | Fully static; no glibc; also runs on Alpine, Debian, RHEL, Amazon Linux, etc. |
-| **Linux x86_64** (Ubuntu 24.04+) | `gnu` | Docker-verified (24.04, 26.04) | Requires glibc 2.39+; fails on 22.04 and older |
+| **Linux x86_64** (Ubuntu 22.04+) | `gnu` | Docker-verified (22.04, 24.04, 26.04) | Requires glibc 2.34+; fails on Ubuntu 20.04 and older (glibc < 2.34) |
 | **macOS Sequoia (15) or newer** | arm64, x86_64 | Stated baseline (not Docker-verifiable) | Both Apple Silicon and Intel; confirmed on real hardware |
 | **Windows 11 or newer** | x86_64 | Stated baseline, best-effort | Confirmed on real hardware |
 
@@ -73,10 +73,10 @@ others.
   newer kernel versions.
 - **No glibc requirement** — the fully static build works regardless of the host libc.
 
-A glibc build (`codemap-search-x86_64-unknown-linux-gnu`) is also published, but it
-requires a **recent glibc (2.39+, Ubuntu 24.04+)** and will not run on Ubuntu 22.04 or
-older distributions (`GLIBC_2.39 not found`, Docker-verified, exit 1). The gnu build is
-Docker-verified on Ubuntu 24.04 and 26.04 (exit 0).
+A glibc build (`codemap-search-x86_64-unknown-linux-gnu`) is also published. It requires
+**glibc 2.34+ (Ubuntu 22.04+)** and will not run on Ubuntu 20.04 or older distributions
+(`GLIBC_2.32/2.33/2.34 not found`, Docker-verified, exit 1). The gnu build is
+Docker-verified on Ubuntu 22.04, 24.04, and 26.04 (exit 0).
 **Prefer the `musl` binary unless you have a specific reason to use the glibc build.**
 
 ## Register with an MCP client
