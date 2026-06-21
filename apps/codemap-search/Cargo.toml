@@ -1,6 +1,6 @@
 [package]
 name = "codemap-search"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Buyong Lee"]
 description = "A self-contained MCP stdio server for coding agents: BM25 code search, an aider-style codemap, and embedded read/find/grep (ripgrep as a library)."
