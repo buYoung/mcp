@@ -27,6 +27,10 @@ jobs:
   build:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    # Best-effort legs (Windows) may fail without blocking the release: a failed
+    # best-effort leg just omits its own asset. Critical legs (Linux, macOS) still
+    # fail the job and gate publishing.
+    continue-on-error: ${{ matrix.best_effort || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -45,8 +49,12 @@ jobs:
           # slice, already proven there for the ctags C build).
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: aarch64-apple-darwin, archive: tar.gz, macsign: true }
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: x86_64-apple-darwin,  archive: tar.gz, macsign: true }
-          # Windows targets are built separately in the `build-windows` job below
-          # (cross-compiled on Linux via cargo-xwin), so this matrix stays untouched.
+          # Windows: native build on windows-latest. Best-effort — a failure omits
+          # the Windows asset but, via continue-on-error, does not block the release.
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip, best_effort: true }
+          # Windows arm64 is build-only: the x64 runner cannot execute the aarch64
+          # binary, so the archive ships unverified at runtime.
+          - { os: windows-latest, target: aarch64-pc-windows-msvc, archive: zip, best_effort: true }
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -169,70 +177,16 @@ jobs:
           tar -czf "${name}.tar.gz" -C "$dir" "$BIN"
           shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: codemap-search-${{ matrix.target }}
-          path: codemap-search-${{ matrix.target }}.*
-          if-no-files-found: error
-          retention-days: 1
-
-  # Windows binaries are cross-compiled on Linux with cargo-xwin (clang-cl +
-  # lld-link, MSVC ABI preserved) — no Windows runner, no code signing. Kept as its
-  # own job so the `build` matrix above stays untouched. Best-effort: continue-on-
-  # error means a Windows failure omits only the Windows assets and never blocks the
-  # release, the other build legs, or crates.io.
-  build-windows:
-    name: ${{ matrix.target }}
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc]
-    env:
-      # cargo-xwin downloads the Windows CRT/SDK splat here; cached across runs.
-      XWIN_CACHE_DIR: ${{ github.workspace }}/.xwin
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/codemap-search
-          # Per-target cache key. rust-cache's default key uses only the host triple,
-          # which is identical for ubuntu-22.04 (the gnu leg, glibc 2.35) and
-          # ubuntu-24.04 (every other Linux leg, glibc 2.39). Without this, caches
-          # cross-contaminate and the 22.04 gnu leg restores 24.04-built build-script
-          # binaries, dying at Build with `GLIBC_2.39 not found`.
-          key: ${{ matrix.target }}
-      # clang-cl, llvm-lib, and lld-link for cargo-xwin's MSVC cross-compile.
-      - name: Install LLVM
-        run: sudo apt-get update && sudo apt-get install -y clang llvm lld
-      - name: Install cargo-xwin
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-xwin@0.23.0
-      # Cache the downloaded Windows SDK/CRT splat so releases do not re-fetch it
-      # from Microsoft's CDN every run. Per-target: the splat is arch-specific.
-      - name: Cache xwin Windows SDK
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.xwin
-          key: xwin-sdk-${{ matrix.target }}-v1
-      - name: Build
-        shell: bash
-        run: cargo xwin build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
-      # Cross-built on Linux, so the zip is made with the Linux `zip` tool (not pwsh
-      # Compress-Archive). `shasum -a 256` matches the tar.gz leg's sha256 format.
-      - name: Package (zip)
-        shell: bash
+      - name: Package (windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
         run: |
-          dir="apps/codemap-search/target/${{ matrix.target }}/release"
-          name="${BIN}-${{ matrix.target }}"
-          zip -j "${name}.zip" "$dir/${BIN}.exe"
-          shasum -a 256 "${name}.zip" > "${name}.zip.sha256"
+          $dir = "apps/codemap-search/target/${{ matrix.target }}/release"
+          $name = "$env:BIN-${{ matrix.target }}"
+          Compress-Archive -Path "$dir/$env:BIN.exe" -DestinationPath "$name.zip"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -FilePath "$name.zip.sha256" -Encoding utf8NoBOM
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -242,13 +196,12 @@ jobs:
           retention-days: 1
 
   # Publish phase: attach the built binaries to the GitHub Release and publish the
-  # crate to crates.io. publish-release waits for both build jobs; publish-crate
-  # gates only on `build` (crates.io ships source, not the Windows binaries). The
-  # two run in parallel and neither depends on the other, so a crates.io failure
-  # cannot void the GitHub Release assets, nor vice versa.
+  # crate to crates.io. Both gate on a green `build` and run in parallel — neither
+  # depends on the other, so a crates.io failure cannot void the GitHub Release
+  # assets, nor vice versa.
   publish-release:
     name: Attach binaries to the GitHub Release
-    needs: [build, build-windows]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       # Pull every per-target archive the build matrix stashed (merge-multiple
