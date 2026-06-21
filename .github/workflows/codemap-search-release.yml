@@ -20,20 +20,17 @@ env:
   BIN: codemap-search
 
 jobs:
-  create-release:
-    name: Create release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          # No files here — just creates the release shell.
-
-  release:
+  # Build every target in parallel and stash each archive as a workflow artifact.
+  # The build no longer uploads anything itself — the separate publish jobs below
+  # consume these artifacts. This decouples building from publishing so the two
+  # publish targets (GitHub Release + crates.io) run as their own parallel phase.
+  build:
     name: ${{ matrix.target }}
-    needs: create-release
     runs-on: ${{ matrix.os }}
+    # Best-effort legs (Windows) may fail without blocking the release: a failed
+    # best-effort leg simply omits its own asset, exactly as the old per-leg upload
+    # did. Critical legs (Linux, macOS) still fail the job and gate publishing.
+    continue-on-error: ${{ matrix.best_effort || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,11 +49,12 @@ jobs:
           # slice, already proven there for the ctags C build).
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: aarch64-apple-darwin, archive: tar.gz, macsign: true }
           - { os: [self-hosted, macOS, arm64, codemap-mac], target: x86_64-apple-darwin,  archive: tar.gz, macsign: true }
-          # Windows is best-effort.
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
-          # Windows arm64 — build-only: the x64 windows runner cannot execute
-          # the aarch64 binary, so the archive ships unverified at runtime.
-          - { os: windows-latest, target: aarch64-pc-windows-msvc, archive: zip }
+          # Windows: cross-compiled on Linux with cargo-xwin (clang-cl + lld-link,
+          # MSVC ABI preserved) — no Windows runner needed. Best-effort: a failure
+          # omits the Windows asset but, via continue-on-error, does not block the
+          # release. Both windows-msvc targets are validated to build this way.
+          - { os: ubuntu-latest, target: x86_64-pc-windows-msvc, archive: zip, xwin: true, best_effort: true }
+          - { os: ubuntu-latest, target: aarch64-pc-windows-msvc, archive: zip, xwin: true, best_effort: true }
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -84,16 +82,27 @@ jobs:
         with:
           tool: cross
 
+      # cargo-xwin cross-compiles the *-pc-windows-msvc targets on Linux: clang-cl
+      # compiles the vendored tree-sitter C/C++ grammars and links against the
+      # Windows CRT/SDK that cargo-xwin fetches, keeping the MSVC ABI. This replaces
+      # the native Windows runners. llvm/lld supply clang-cl, llvm-lib, and lld-link.
+      - name: Install LLVM for cargo-xwin
+        if: matrix.xwin
+        run: sudo apt-get update && sudo apt-get install -y clang llvm lld
+      - name: Install cargo-xwin
+        if: matrix.xwin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-xwin
+
       - name: Build
-        # shell: bash on every leg so the POSIX `"$MANIFEST"` env reference
-        # expands consistently.  Without it the Windows runner uses pwsh, where
-        # `$MANIFEST` is empty (the env var is `$env:MANIFEST` there) and the
-        # build collapses to `--manifest-path ""`.  GitHub-hosted Windows runners
-        # ship Git Bash; the Package (unix) step already relies on `shell: bash`.
+        # Every leg runs on Linux or macOS now (Windows is cross-built via xwin),
+        # so `shell: bash` is the default everywhere; it is kept explicit so the
+        # POSIX `"$MANIFEST"` reference always expands the same way.
         shell: bash
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc
-        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+        run: ${{ matrix.cross && 'cross' || matrix.xwin && 'cargo xwin' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
 
       # --- macOS Developer ID signing + notarization (apple-darwin legs only) ---
       # Runs on the shared self-hosted Mac (codemap-mac-1), which already holds the
@@ -176,30 +185,55 @@ jobs:
           tar -czf "${name}.tar.gz" -C "$dir" "$BIN"
           shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
 
-      - name: Package (windows)
+      # Windows targets are cross-built on Linux (cargo-xwin), so the zip is packaged
+      # here with the Linux `zip` tool, not pwsh Compress-Archive. `shasum -a 256`
+      # matches the `<hash>  <file>` format the unix tar.gz leg already emits.
+      - name: Package (zip)
         if: matrix.archive == 'zip'
-        shell: pwsh
+        shell: bash
         run: |
-          $dir = "apps/codemap-search/target/${{ matrix.target }}/release"
-          $name = "$env:BIN-${{ matrix.target }}"
-          Compress-Archive -Path "$dir/$env:BIN.exe" -DestinationPath "$name.zip"
-          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
-          "$hash  $name.zip" | Out-File -FilePath "$name.zip.sha256" -Encoding utf8NoBOM
+          dir="apps/codemap-search/target/${{ matrix.target }}/release"
+          name="${BIN}-${{ matrix.target }}"
+          zip -j "${name}.zip" "$dir/${BIN}.exe"
+          shasum -a 256 "${name}.zip" > "${name}.zip.sha256"
 
-      - name: Upload to release
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codemap-search-${{ matrix.target }}
+          path: codemap-search-${{ matrix.target }}.*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Publish phase: attach the built binaries to the GitHub Release and publish the
+  # crate to crates.io. Both gate on a green `build` (`needs: build`) and run in
+  # parallel with each other — neither depends on the other, so a crates.io failure
+  # cannot void the GitHub Release assets, nor vice versa. Both fire on the same
+  # `codemap-v*` tag.
+  publish-release:
+    name: Attach binaries to the GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Pull every per-target archive the build matrix stashed (merge-multiple
+      # flattens them into one directory) and attach them to the tag's release in a
+      # single upload. A best-effort leg that failed simply has no artifact here.
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Attach binaries to the release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            codemap-search-${{ matrix.target }}.*
+          draft: false
+          prerelease: false
+          files: dist/*
+          fail_on_unmatched_files: true
 
-  # crates.io publish is gated on a green build matrix (`needs: release`) so a
-  # failed build never publishes the version to crates.io.  The dependency is
-  # one-directional: `release` does NOT depend on `publish-crate`, so a publish
-  # failure still cannot delete or void the GitHub Release binary assets the
-  # `release` matrix uploaded.  Both jobs fire on the same `codemap-v*` tag.
   publish-crate:
     name: Publish to crates.io
-    needs: release
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -220,9 +254,10 @@ jobs:
       # version yet), the guard falls through to `cargo publish`.  There cargo is
       # the final authority: an unpublished version uploads normally, while a
       # re-pushed already-published version errors — and that error reddens only
-      # THIS independent `publish-crate` job.  It has no `needs:` edge, so the
-      # GitHub Release binary assets are unaffected.  Hence "idempotent" here
-      # means "as long as the API answers 200", not unconditionally.
+      # THIS `publish-crate` job.  It shares `needs: build` with publish-release but
+      # does NOT depend on publish-release, so the GitHub Release binary assets are
+      # unaffected.  Hence "idempotent" here means "as long as the API answers 200",
+      # not unconditionally.
       - name: Publish codemap-search to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
