@@ -46,9 +46,26 @@ cargo build --release --manifest-path apps/codemap-search/Cargo.toml
 
 ### Prebuilt binaries
 
-Released on GitHub Releases for macOS (arm64/x64) and Linux (x64); Windows is
-best-effort. Download the archive for your platform, extract `codemap-search`, and put it
-on your `PATH`.
+Released on GitHub Releases for macOS (arm64/x64), Linux (x64, two variants — see below),
+and Windows (best-effort). Download the archive for your platform, extract `codemap-search`,
+and put it on your `PATH`.
+
+#### Linux (prebuilt binary)
+
+Download `codemap-search-x86_64-unknown-linux-musl`. It is a **fully static** binary (no
+glibc, no dynamic linker) and runs on **Ubuntu 22.04 or newer (Docker-verified)** and any
+other x86_64 Linux distribution — Debian, RHEL/CentOS/Rocky, Alpine, Amazon Linux, and
+others.
+
+- **Minimum: Ubuntu 22.04+** (Docker-verified: `ubuntu:22.04` image, exit 0). Because the
+  musl binary has no glibc dependency, it also works on musl-only systems (e.g. Alpine) and
+  other distributions at equivalent or newer kernel versions.
+- **No glibc requirement** — the fully static build works regardless of the host libc.
+
+A glibc build (`codemap-search-x86_64-unknown-linux-gnu`) is also published, but it
+requires a **recent glibc (2.39+, ~Ubuntu 24.04)** and will not run on Ubuntu 22.04 or
+older distributions (`GLIBC_2.39 not found`, Docker-verified, exit 1).
+**Prefer the `musl` binary unless you have a specific reason to use the glibc build.**
 
 ## Register with an MCP client
 

@@ -114,7 +114,7 @@ impl McpServer {
                     },
                     "serverInfo": {
                         "name": "codemap-search-server",
-                        "version": "0.1.0"
+                        "version": env!("CARGO_PKG_VERSION")
                     },
                     "instructions": crate::tools::instructions()
                 }))

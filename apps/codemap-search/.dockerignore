@@ -1,0 +1,13 @@
+# Excludes large build artifacts and editor files from the Docker build context.
+# Without this, the existing `target/` directory (potentially gigabytes) would be
+# sent to the Docker daemon on every build, making each invocation extremely slow.
+# NOTE: This file must live at apps/codemap-search/ (the build context root),
+# not inside docker/ — Docker reads .dockerignore from the build context root.
+
+target/
+.codemap/
+.codemap-index/
+docs/
+tests/fixtures/
+.git/
+docker/out/

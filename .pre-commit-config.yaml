@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt-codemap
+        name: cargo fmt (codemap-search)
+        entry: cargo fmt --manifest-path apps/codemap-search/Cargo.toml --check
+        language: system
+        pass_filenames: false
+        files: ^apps/codemap-search/.*\.rs$

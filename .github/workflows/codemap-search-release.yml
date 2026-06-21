@@ -1,12 +1,15 @@
 name: codemap-search Release
 
 # Tag the release commit `codemap-vX.Y.Z` to build and publish prebuilt binaries.
-# This is the only release trigger: pushes to branches never publish, and the tag
-# prefix is scoped to codemap-search so no other app can be released from here.
+# This is the only release trigger: pull requests and pushes to branches never
+# publish (no `branches`/`pull_request` triggers), and the tag must be an exact
+# three-part semantic version such as `codemap-v0.0.0` (e.g. `codemap-v1` or a
+# `-rc1` prerelease suffix will NOT match). The `codemap-` prefix scopes releases
+# to codemap-search so no other app can be released from here.
 on:
   push:
     tags:
-      - "codemap-v[0-9]*"
+      - "codemap-v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: write
@@ -17,14 +20,27 @@ env:
   BIN: codemap-search
 
 jobs:
+  create-release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          # No files here — just creates the release shell.
+
   release:
     name: ${{ matrix.target }}
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, archive: tar.gz }
+          # Static musl binary — no glibc, any x86_64 Linux distro, kernel 3.2+.
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, archive: tar.gz }
           - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
           - { os: macos-13, target: x86_64-apple-darwin, archive: tar.gz }
           # Windows is best-effort.
@@ -38,7 +54,17 @@ jobs:
         with:
           workspaces: apps/codemap-search
 
+      # musl-tools provides musl-gcc, which cc-rs uses to compile vendored
+      # tree-sitter C grammars when targeting x86_64-unknown-linux-musl on a
+      # glibc host.  The CC_x86_64_unknown_linux_musl env var is harmless on
+      # other targets because the variable name is target-scoped.
+      - name: Install musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - name: Build
+        env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
         run: cargo build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
 
       - name: Package (unix)
@@ -57,7 +83,8 @@ jobs:
           $dir = "apps/codemap-search/target/${{ matrix.target }}/release"
           $name = "$env:BIN-${{ matrix.target }}"
           Compress-Archive -Path "$dir/$env:BIN.exe" -DestinationPath "$name.zip"
-          (Get-FileHash "$name.zip" -Algorithm SHA256).Hash > "$name.zip.sha256"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -FilePath "$name.zip.sha256" -Encoding utf8NoBOM
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2

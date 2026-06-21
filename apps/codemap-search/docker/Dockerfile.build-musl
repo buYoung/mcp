@@ -1,0 +1,38 @@
+# Dockerfile.build-musl
+#
+# Builds codemap-search targeting x86_64-unknown-linux-musl (fully static binary).
+# Uses rust:alpine (musl-based) which avoids the complexity of cross-compiling
+# musl from a glibc host. Alpine's musl + build-base gives us a complete musl
+# toolchain without manual linker wiring.
+#
+# The crate has no system dynamic-link dependencies (no OpenSSL, no pkg-config
+# at runtime); tree-sitter C grammars are vendored and compiled via the `cc` crate.
+# This should produce a clean static binary that runs on any x86_64 Linux.
+#
+# IMPORTANT: Build with --platform linux/amd64 to produce an x86_64 binary.
+#
+# Usage (from apps/codemap-search/):
+#   docker build --platform linux/amd64 \
+#     -f docker/Dockerfile.build-musl \
+#     --output type=local,dest=docker/out \
+#     .
+
+FROM --platform=linux/amd64 rust:alpine
+
+# musl toolchain + C compiler for tree-sitter grammar vendored sources
+RUN apk add --no-cache build-base musl-dev
+
+# Add the musl target (may already be present on alpine rust image, but explicit is safe)
+RUN rustup target add x86_64-unknown-linux-musl
+
+WORKDIR /build
+
+# Copy the crate source (honoring .dockerignore)
+COPY . .
+
+# Build a fully static release binary
+RUN cargo build --release --target x86_64-unknown-linux-musl
+
+# Export stage
+FROM scratch AS export
+COPY --from=0 /build/target/x86_64-unknown-linux-musl/release/codemap-search /codemap-search-musl
