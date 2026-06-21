@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+# codemap-search WinGet version manifest (the entry point of the multi-file set).
+# DefaultLocale: en-US must match PackageLocale in the locale.en-US.yaml file.
+PackageIdentifier: com.livteam.codemap-search
+PackageVersion: 0.1.0
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.12.0

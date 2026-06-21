@@ -35,6 +35,56 @@ directive.
 
 ## Install
 
+Five co-equal channels: crates.io, WinGet, Homebrew, the `install.sh` one-liner, and direct
+GitHub Release binaries. Per-OS recommendations and per-channel maintainer/publish runbooks
+live in [docs/distribution/](./docs/distribution/index.md) (channel guides:
+[crates.io](./docs/distribution/crates-io.md), [WinGet](./docs/distribution/winget.md),
+[Homebrew](./docs/distribution/homebrew.md), [install.sh](./docs/distribution/curl-installer.md));
+the overall strategy is in
+[docs/release-distribution-strategy.md](./docs/release-distribution-strategy.md).
+
+### From crates.io
+
+```sh
+cargo install codemap-search
+```
+
+Builds and installs the published crate into `~/.cargo/bin` (make sure it is on your
+`PATH`). Same binary as the prebuilt archives below — pick whichever you prefer.
+
+### From WinGet (Windows)
+
+```powershell
+winget install com.livteam.codemap-search
+```
+
+Installs the prebuilt Windows binary (x64 or arm64) and puts `codemap-search` on your
+`PATH`. Final availability depends on Microsoft's review of the submitted manifest in
+`microsoft/winget-pkgs`. Before Microsoft merges it you can also install from the in-repo
+manifest with `winget install --manifest apps/codemap-search/packaging/winget`, subject to
+two conditions: (a) it only succeeds **after** the first `codemap-v0.1.0` release publishes
+the assets and the manifest's placeholder `sha256` are replaced with the real values
+(otherwise the download/hash check fails), and (b) the path is relative, so run it **from
+the repo root**. The arm64 build is shipped build-only (cross-built on an x64 runner, not
+runtime-verified on arm64 hardware).
+
+### From Homebrew (macOS)
+
+```sh
+brew install codemap-search
+```
+
+Installs the prebuilt darwin binary (Apple Silicon or Intel) and puts
+`codemap-search` on your `PATH`. **Availability is pending homebrew-core
+acceptance** — homebrew-core has a notability bar (stars/usage), so a fresh
+project's new-formula PR is likely held until the project is notable. Until it
+is accepted, use `cargo install codemap-search` (above), a direct GitHub Release
+download (below), or the `install.sh` one-liner as the macOS fallback. The
+formula lives in-repo at
+`apps/codemap-search/packaging/homebrew/codemap-search.rb`; its `sha256` values
+are filled from the release `.sha256` files once the first `codemap-v0.1.0`
+release publishes the darwin tarballs.
+
 ### From source
 
 ```sh
@@ -46,9 +96,34 @@ cargo build --release --manifest-path apps/codemap-search/Cargo.toml
 
 ### Prebuilt binaries
 
-Released on GitHub Releases for macOS (arm64/x64), Linux (x64, two variants — see below),
-and Windows (best-effort). Download the archive for your platform, extract `codemap-search`,
-and put it on your `PATH`.
+Released on GitHub Releases for macOS (arm64/x64), Linux (x64 in two variants — `musl`/`gnu`
+— plus arm64 `musl`; see below), and Windows (x64, plus arm64 build-only). Download the
+archive for your platform, extract `codemap-search`, and put it on your `PATH`.
+
+Or let `install.sh` do it for you. It detects your OS/arch, downloads the matching
+release archive, **verifies its `.sha256` before extracting**, and installs
+`codemap-search` to `~/.local/bin`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+```
+
+The installer needs only `curl` (or `wget`), `tar`, and `sha256sum`/`shasum` — no extra
+runtime. A checksum mismatch aborts with a non-zero exit and installs nothing. macOS and
+Linux only (on Windows, use the WinGet install above).
+
+- Pick a different install dir: `INSTALL_DIR=/usr/local/bin curl -fsSL …/install.sh | sh`
+  (sudo only if that dir needs it; the default `~/.local/bin` does not).
+- Pin a release: pass `--version` through `sh -s --` —
+  `curl -fsSL …/install.sh | sh -s -- --version codemap-v0.1.0`.
+- Generic Linux gets the static `musl` build by default; set `CODEMAP_LINUX_LIBC=gnu`
+  (x86_64 only) to pick the glibc build instead.
+- If the install dir is not on your `PATH`, the script prints the `export PATH=…` line
+  to add for the current session. To persist it, append that line to your shell profile
+  (zsh: `~/.zshrc`, bash: `~/.bashrc`) and restart your shell.
+
+> Note: the one-liner targets the latest GitHub Release. Pin a tag with `--version` for a
+> reproducible install.
 
 #### Supported platforms
 
@@ -56,8 +131,10 @@ and put it on your `PATH`.
 |---|---|---|---|
 | **Linux x86_64** (Ubuntu 22.04 → 26.04) | `musl` (preferred) | Docker-verified (22.04, 24.04, 26.04) | Fully static; no glibc; also runs on Alpine, Debian, RHEL, Amazon Linux, etc. |
 | **Linux x86_64** (Ubuntu 22.04+) | `gnu` | Docker-verified (22.04, 24.04, 26.04) | Requires glibc 2.34+; fails on Ubuntu 20.04 and older (glibc < 2.34) |
+| **Linux arm64 (aarch64)** | `musl` | Cross-built; not executed on arm64 | Fully static; cross-compiled via cross-rs. Should run on any arm64 Linux (Alpine, Debian, RHEL, Amazon Linux Graviton, etc.); not yet runtime-verified on arm64 hardware |
 | **macOS Sequoia (15) or newer** | arm64, x86_64 | Stated baseline (not Docker-verifiable) | Both Apple Silicon and Intel; confirmed on real hardware |
 | **Windows 11 or newer** | x86_64 | Stated baseline, best-effort | Confirmed on real hardware |
+| **Windows 11 arm64** | arm64 (aarch64) | Build-only; not executed | Cross-built on an x64 runner that cannot run the arm64 binary; ships unverified at runtime |
 
 #### Linux (prebuilt binary)
 
@@ -78,6 +155,12 @@ A glibc build (`codemap-search-x86_64-unknown-linux-gnu`) is also published. It 
 (`GLIBC_2.32/2.33/2.34 not found`, Docker-verified, exit 1). The gnu build is
 Docker-verified on Ubuntu 22.04, 24.04, and 26.04 (exit 0).
 **Prefer the `musl` binary unless you have a specific reason to use the glibc build.**
+
+For **arm64 (aarch64)** Linux, download `codemap-search-aarch64-unknown-linux-musl`. It is
+also a **fully static** `musl` binary (no glibc) and is the only Linux arm64 variant — there
+is no gnu arm64 asset. It is cross-compiled via cross-rs and is **not yet runtime-verified on
+arm64 hardware**; it should run on any arm64 Linux (Alpine, Debian, RHEL, Amazon Linux
+Graviton, etc.). On Linux, `cargo install codemap-search` is the recommended path.
 
 ## Register with an MCP client
 
