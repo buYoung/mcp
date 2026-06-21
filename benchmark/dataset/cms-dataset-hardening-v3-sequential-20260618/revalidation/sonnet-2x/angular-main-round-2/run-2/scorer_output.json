@@ -1,0 +1,12 @@
+{
+    "candidate_id": "angular-deferred-choice-reconciliation-v1",
+    "status": "accepted",
+    "score": 0.1875,
+    "threshold": 0.6,
+    "verdict": "sonnet-no-mcp mis-mapped the repository and recovered only shallow fragments of the Angular single-choice rule",
+    "reason": "The answer opens by declaring the repository non-Angular, then answers from generic framework knowledge with a wrong microtask-based mechanism. It keeps a small amount of comparator and batching intuition but misses the queued post-render rule, teardown injector choice, destruction guard, and multi-select contrast that make the candidate uniquely grounded.",
+    "notes": [
+        "This run is strong hardness evidence because Sonnet failed to enter the benchmark-data Angular code path and fell back to a knowledge answer instead.",
+        "No valid-but-unkeyed alternative facts were recovered."
+    ]
+}

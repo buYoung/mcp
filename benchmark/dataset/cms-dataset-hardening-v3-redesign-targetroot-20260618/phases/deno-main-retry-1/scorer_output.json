@@ -1,0 +1,12 @@
+{
+    "candidate_id": "deno-bundle-snapshot-fallback-v1",
+    "status": "accepted",
+    "scores": [0.125, 0.1875],
+    "threshold": 0.6,
+    "verdict": "two valid target-root sonnet no-MCP runs stayed below threshold because both answers followed the release/npm packaging decoy instead of the intended bundle snapshot fallback",
+    "reason": "Both runs explained generated-output copying, optionalDependencies, and a generic hoisting mismatch, but neither recovered the repo-local `op_bundle_resolve` rescue path, the bare-specifier-only gate, the managed-snapshot-only boundary, or the `name@*` multi-version limitation.",
+    "notes": [
+        "Both runs were valid target-root runs with empty MCP server lists.",
+        "No valid-but-unkeyed alternative replaced the intended answer key."
+    ]
+}

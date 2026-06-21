@@ -1,0 +1,44 @@
+[
+    {
+        "fact": "The hidden activity rule comes from `pathFromRoot` ancestry of stored detached handles, not only from the currently visible router tree.",
+        "weight": 0.28,
+        "score": 0.28,
+        "verdict": "full",
+        "notes": "The answer explicitly identifies `route_injector_cleanup.ts` collecting ancestors from `internalHandle.route.value.snapshot.pathFromRoot` into `activeRoutes`."
+    },
+    {
+        "fact": "The preserved state must include the live detached `route` tree inside the stored handle, not just serialized route metadata.",
+        "weight": 0.16,
+        "score": 0.16,
+        "verdict": "full",
+        "notes": "It correctly states that the handle retains the child's live `TreeNode<ActivatedRoute>` and explains why that preserved route still carries the needed ancestry."
+    },
+    {
+        "fact": "The detach/store fork is controlled by `shouldDetach(...)`, and that fork preserves `_localInjector` by skipping the normal deactivate path.",
+        "weight": 0.16,
+        "score": 0.16,
+        "verdict": "full",
+        "notes": "It accurately contrasts `detachAndStoreRouteSubtree` with `deactivateRouteAndOutlet` and ties preservation to the `shouldDetach(...)` fork."
+    },
+    {
+        "fact": "Later cleanup of route-config injectors is opt-in and runs from the router's `NavigationEnd` branch.",
+        "weight": 0.14,
+        "score": 0.14,
+        "verdict": "full",
+        "notes": "The answer explicitly calls out `withExperimentalAutoCleanupInjectors()` and the `NavigationEnd`-time `injectorCleanup` call."
+    },
+    {
+        "fact": "Route-config injector destruction also requires inactivity plus `shouldDestroyInjector(route)`, with descendant force-destroy propagation from a destroyed parent.",
+        "weight": 0.16,
+        "score": 0.04,
+        "verdict": "partial",
+        "notes": "The answer understands that cleanup depends on inactivity, but it never recovers the explicit `shouldDestroyInjector(route)` gate or the inherited descendant-force-destroy behavior."
+    },
+    {
+        "fact": "Full release happens only after the stored handle stops covering that ancestry and cleanup runs again, or when `destroyDetachedRouteHandle(...)` is called for the detached subtree.",
+        "weight": 0.1,
+        "score": 0.1,
+        "verdict": "full",
+        "notes": "It correctly describes handle removal plus later navigation, and it also includes explicit `destroyDetachedRouteHandle(...)` cleanup."
+    }
+]

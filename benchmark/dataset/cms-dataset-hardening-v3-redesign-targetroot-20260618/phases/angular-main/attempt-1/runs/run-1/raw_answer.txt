@@ -1,0 +1,88 @@
+Let me trace through Angular's router source to find the exact rule.
+Now let me look at what `_localInjector` is on `ActivatedRoute` and how `pathFromRoot` ties into the shell's injector lifecycle.
+Now let me check how the experimental injector cleanup feature is wired up, to get the full picture of when cleanup *can* and *cannot* occur.
+Now I have everything I need. Here is the precise answer.
+
+---
+
+## The exact internal rule
+
+The critical code is in two files that work together.
+
+### 1. `activate_routes.ts` — deactivation order
+
+When navigating away from the workspace entirely, `deactivateChildRoutes` walks the **future** tree first. The workspace shell is absent from the future tree, so the router eventually calls `deactivateRouteAndItsChildren` on the shell node. But before the shell itself is torn down, its children are processed recursively (`activate_routes.ts:104`):
+
+```typescript
+// detachAndStoreRouteSubtree, line 104-111
+for (const treeNode of Object.values(children)) {
+  this.deactivateRouteAndItsChildren(treeNode, contexts);  // children first
+}
+// then for the shell node itself:
+if (context && context.outlet) {
+  const componentRef = context.outlet.detach();
+  const contexts = context.children.onOutletDeactivated();
+  this.routeReuseStrategy.store(route.value.snapshot, {componentRef, route, contexts});
+}
+```
+
+The child check is in `deactivateRouteAndItsChildren` (`activate_routes.ts:83`):
+
+```typescript
+if (route.value.component && this.routeReuseStrategy.shouldDetach(route.value.snapshot)) {
+  this.detachAndStoreRouteSubtree(route, parentContexts);   // ← preserved, NOT destroyed
+} else {
+  this.deactivateRouteAndOutlet(route, parentContexts);     // ← destroyed, _localInjector killed
+}
+```
+
+When `shouldDetach` returns `true` for the deep child, that child's `TreeNode<ActivatedRoute>` — including its `snapshot` — is packed into a `DetachedRouteHandleInternal` and handed to the strategy's `store()`. The **shell's own component** is then destroyed via `deactivateRouteAndOutlet`, but its `Route` config object (`route.routeConfig`) is a separate, long-lived thing.
+
+---
+
+### 2. `route_injector_cleanup.ts` — the rule that keeps the shell's resources alive
+
+After every `NavigationEnd`, the router calls `injectorCleanup` (only when `withExperimentalAutoCleanupInjectors()` is opted into; otherwise nothing is ever cleaned up at all). The function builds a set of "still-active" route configs (`route_injector_cleanup.ts:33-53`):
+
+```typescript
+// source 1: current live router state
+collectDescendants(routerState.snapshot.root, activeRoutes);
+
+// source 2: ← THIS IS THE KEY PATH
+const storedHandles =
+  (routeReuseStrategy as ExperimentalRouteReuseStrategy).retrieveStoredRouteHandles?.() || [];
+for (const handle of storedHandles) {
+  for (const snapshot of internalHandle.route.value.snapshot.pathFromRoot) {
+    if (snapshot.routeConfig) {
+      activeRoutes.add(snapshot.routeConfig);   // walks UP to every ancestor
+    }
+  }
+}
+```
+
+`pathFromRoot` on the stored child's snapshot includes every ancestor snapshot up to the root — including the workspace shell's `ActivatedRouteSnapshot`. Its `.routeConfig` is the same `Route` object in the live config tree that carries `_injector` / `_loadedInjector` (the `EnvironmentInjector` Angular created for that route's `providers: []` or lazy-loaded module). Because it lands in `activeRoutes`, `destroyUnusedInjectors` (`route_injector_cleanup.ts:66`) skips it entirely and its services stay alive.
+
+---
+
+## The retained state that must exist
+
+For the shell to remain "active" in this sense, **all three** of the following must be true simultaneously:
+
+| What must exist | Where it lives |
+|---|---|
+| The custom strategy still holds a non-null `DetachedRouteHandleInternal` for the preserved child (i.e., `store(snap, null)` has not been called to clear it, and the engineer has not called `destroyDetachedRouteHandle`) | The strategy's own store (e.g., a `Map` keyed by route path) |
+| That handle's `route.value.snapshot` is the `ActivatedRouteSnapshot` captured at detach time, and its `pathFromRoot` still reaches the workspace shell snapshot | The `ActivatedRouteSnapshot` graph frozen at the moment `context.outlet.detach()` was called |
+| The workspace shell's `ActivatedRouteSnapshot.routeConfig` is the **same object reference** (not a re-created copy) as the `Route` in the current config tree, and that `Route` still carries a live `_injector` or `_loadedInjector` | The `Route` config object, set once when the route is first loaded |
+
+### What does NOT keep the shell alive
+
+- The shell's component view is gone: `context.outlet.deactivate()` ran normally.  
+- The shell's per-`ActivatedRoute` injector (`_localInjector`) is gone: `route.value._localInjector?.destroy()` ran in `deactivateRouteAndOutlet` (`activate_routes.ts:147`).  
+- What survives is only the `Route` config object's `EnvironmentInjector` — the one that backs workspace-scoped `providers: []` services.
+
+### When cleanup finally happens
+
+Cleanup occurs only in one of these ways:
+1. **The strategy drops the handle**: calling `store(snap, null)` clears its entry, so the next `NavigationEnd` no longer sees the child in `retrieveStoredRouteHandles()`, `pathFromRoot` no longer votes for the shell, and `destroyUnusedInjectors` destroys `_injector`/`_loadedInjector`.  
+2. **The engineer calls `destroyDetachedRouteHandle(handle)`** explicitly (`route_reuse_strategy.ts:48`), which destroys `componentRef` and `route.value._localInjector` immediately, then the injector cleanup pass on the next navigation finishes off the route config injector.  
+3. **`withExperimentalAutoCleanupInjectors()` was never opted into**: in that case `injectorCleanup` is `null` and nothing is ever destroyed after navigation — the shell's services accumulate forever regardless of stored handles.

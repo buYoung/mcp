@@ -1,0 +1,8 @@
+{
+    "candidate_id": "clickhouse-unused-fallback-slots-observable-v1",
+    "run_label": "clickhouse-round-3-run-1",
+    "status": "passed",
+    "score": 0.6,
+    "threshold": 0.6,
+    "reason": "Sonnet recovered the whole-tuple throw path and the LowCardinality type-visibility path, but it missed the tuple(...) side-effect contract and only partially pinned the exact full-tuple type-equality guard."
+}

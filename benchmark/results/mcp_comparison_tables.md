@@ -57,7 +57,7 @@ opencode-serena(deepseek/mimo/minimax × serena × 3 codebase × 3 round = 27 �
 
 > **[v3 헤드라인]** codex는 이제 MCP를 실제로 호출했으므로 **무의미(null)가 아닌 사용가능(usable)한 두 번째 비교**다. 단 backend별 입자도: codemap/codegraph = usable, serena = degraded(일부 에러). claude와 동급의 clean 비교는 아님 — 런타임 confound 유지.
 
-### ClickHouse-master  (task: .agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md)
+### ClickHouse-master  (task: benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md)
 
 | runtime | model | backend | round_scores | mean | median | IQR | SE | stdev | valid_n | off | inval | fail | Δ vs no-mcp | win/tie | confound | notable misses |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -82,7 +82,7 @@ opencode-serena(deepseek/mimo/minimax × serena × 3 codebase × 3 round = 27 �
 | opencode-minimax | minimax-m2.7 | codegraph | 0.125, 0.125, 0 | 0.0833 | 0.125 | 0.0625 | 0.034 | 0.0589 | 3 | 0 | 0 | 0 | -0.7084 | loss | — | F2(abs×3) F3(abs×3) F4(abs×3) |
 | opencode-minimax | minimax-m2.7 | serena | 0, 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 1 | 1 | -0.7917 | loss | — | — |
 
-### deno-main  (task: .agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md)
+### deno-main  (task: benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md)
 
 | runtime | model | backend | round_scores | mean | median | IQR | SE | stdev | valid_n | off | inval | fail | Δ vs no-mcp | win/tie | confound | notable misses |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -107,7 +107,7 @@ opencode-serena(deepseek/mimo/minimax × serena × 3 codebase × 3 round = 27 �
 | opencode-minimax | minimax-m2.7 | codegraph | 0.1875, 0.1875, 0.125 | 0.1667 | 0.1875 | 0.0313 | 0.017 | 0.0295 | 3 | 0 | 0 | 0 | -0.1875 | loss | — | F1(abs×3) F5(abs×3) F6(abs×3) |
 | opencode-minimax | minimax-m2.7 | serena | 0.1875, 0.1875, 0.1875 | 0.1875 | 0.1875 | 0 | 0 | 0 | 3 | 1 | 0 | 0 | -0.1667 ⚠partial(1/3) | loss | — | — |
 
-### angular-main  (task: .agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md)
+### angular-main  (task: benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md)
 
 | runtime | model | backend | round_scores | mean | median | IQR | SE | stdev | valid_n | off | inval | fail | Δ vs no-mcp | win/tie | confound | notable misses |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|

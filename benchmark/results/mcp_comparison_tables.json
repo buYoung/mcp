@@ -120,7 +120,7 @@
     "quality": [
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "no-mcp",
@@ -144,7 +144,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codemap",
@@ -168,7 +168,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codegraph",
@@ -192,7 +192,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "serena",
@@ -216,7 +216,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "no-mcp",
@@ -240,7 +240,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codemap",
@@ -264,7 +264,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codegraph",
@@ -288,7 +288,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "serena",
@@ -312,7 +312,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "no-mcp",
@@ -336,7 +336,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codemap",
@@ -360,7 +360,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codegraph",
@@ -384,7 +384,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "serena",
@@ -408,7 +408,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "no-mcp",
@@ -432,7 +432,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codemap",
@@ -456,7 +456,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codegraph",
@@ -480,7 +480,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "serena",
@@ -504,7 +504,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "no-mcp",
@@ -528,7 +528,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codemap",
@@ -552,7 +552,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codegraph",
@@ -576,7 +576,7 @@
         },
         {
             "codebase": "ClickHouse-master",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "serena",
@@ -600,7 +600,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "no-mcp",
@@ -624,7 +624,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codemap",
@@ -648,7 +648,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codegraph",
@@ -672,7 +672,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "serena",
@@ -696,7 +696,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "no-mcp",
@@ -720,7 +720,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codemap",
@@ -744,7 +744,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codegraph",
@@ -768,7 +768,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "serena",
@@ -792,7 +792,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "no-mcp",
@@ -816,7 +816,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codemap",
@@ -840,7 +840,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codegraph",
@@ -864,7 +864,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "serena",
@@ -888,7 +888,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "no-mcp",
@@ -912,7 +912,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codemap",
@@ -936,7 +936,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codegraph",
@@ -960,7 +960,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "serena",
@@ -984,7 +984,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "no-mcp",
@@ -1008,7 +1008,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codemap",
@@ -1032,7 +1032,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codegraph",
@@ -1056,7 +1056,7 @@
         },
         {
             "codebase": "deno-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "serena",
@@ -1080,7 +1080,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "no-mcp",
@@ -1104,7 +1104,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codemap",
@@ -1128,7 +1128,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "codegraph",
@@ -1152,7 +1152,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "claude-sonnet",
             "model_label": "sonnet",
             "backend": "serena",
@@ -1176,7 +1176,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "no-mcp",
@@ -1200,7 +1200,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codemap",
@@ -1224,7 +1224,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "codegraph",
@@ -1248,7 +1248,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "codex-gpt54",
             "model_label": "gpt-5.4",
             "backend": "serena",
@@ -1272,7 +1272,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "no-mcp",
@@ -1296,7 +1296,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codemap",
@@ -1320,7 +1320,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "codegraph",
@@ -1344,7 +1344,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-deepseek",
             "model_label": "deepseek-v4-flash",
             "backend": "serena",
@@ -1368,7 +1368,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "no-mcp",
@@ -1392,7 +1392,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codemap",
@@ -1416,7 +1416,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "codegraph",
@@ -1440,7 +1440,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-mimo",
             "model_label": "mimo-v2.5",
             "backend": "serena",
@@ -1464,7 +1464,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "no-mcp",
@@ -1488,7 +1488,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codemap",
@@ -1512,7 +1512,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "codegraph",
@@ -1536,7 +1536,7 @@
         },
         {
             "codebase": "angular-main",
-            "task_path": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
+            "task_path": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "runtime": "opencode-minimax",
             "model_label": "minimax-m2.7",
             "backend": "serena",

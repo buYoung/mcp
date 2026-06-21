@@ -1,0 +1,12 @@
+{
+    "status": "done",
+    "scores": [0.5625, 0.1875],
+    "run_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/.agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1",
+        "/Users/buyong/workspace/private/buyong-mcp/.agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2"
+    ],
+    "harness_failures": [
+        "A pre-Sonnet wrapper attempt for run 1 failed in zsh because shell quoting broke the command assembly; the actual validation call was rerun with bash before any Claude init event was reached."
+    ],
+    "one_line_reason": "1차는 Angular benchmark data까지 찾아가 핵심 지연 재동기화 규칙을 거의 회수했지만 주입기/teardown 대비를 놓쳤고, 2차는 저장소를 잘못 매핑해 지식 답변으로 후퇴했습니다."
+}

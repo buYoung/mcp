@@ -2,11 +2,11 @@
     "schema_version": "1.0",
     "task_id": "angular-main",
     "candidate_id": "angular-deferred-choice-reconciliation-v1",
-    "source_private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/private_answer_key.md",
+    "source_private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/private_answer_key.md",
     "source_per_fact_score": [
-        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/per_fact_score.json",
-        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/per_fact_score.json",
-        ".agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/per_fact_score.json"
+        "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/per_fact_score.json",
+        "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-1/per_fact_score.json",
+        "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/revalidation/sonnet-2x/angular-main-round-2/run-2/per_fact_score.json"
     ],
     "frozen_statement_source": "round-2/per_fact_score.json (canonical active item, canonical_score 0.5625). revalidation run-1/run-2는 동일 8-fact·동일 채점 구조의 추가 채점 인스턴스로 source에 포함하되, statement 텍스트는 canonical round-2 문구를 권위로 freeze함.",
     "facts": [

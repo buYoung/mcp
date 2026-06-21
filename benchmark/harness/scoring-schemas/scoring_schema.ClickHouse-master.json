@@ -2,10 +2,10 @@
     "schema_version": "1.0",
     "task_id": "ClickHouse-master",
     "candidate_id": "clickhouse-unused-fallback-slots-observable-v1",
-    "source_private_answer_key": ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/private_answer_key.md",
+    "source_private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/private_answer_key.md",
     "source_per_fact_score": [
-        ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/per_fact_score.json",
-        ".agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/per_fact_score.json"
+        "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-1/per_fact_score.json",
+        "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/run-2/per_fact_score.json"
     ],
     "facts": [
         {

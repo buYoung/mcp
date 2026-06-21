@@ -1,0 +1,11 @@
+{
+    "status": "valid",
+    "harness_invalid": false,
+    "target_root": "/Users/buyong/workspace/private/buyong-mcp/.agents/benchmark-data/deno-main",
+    "cwd_used": "/Users/buyong/workspace/private/buyong-mcp/.agents/benchmark-data/deno-main",
+    "notes": [
+        "Answer grounded itself in target-repository files under tools/release/npm.",
+        "No MCP servers were active, and the run stayed on the required target root.",
+        "The answer was wrong for scoring purposes, but it was not a wrong-root or out-of-repo response."
+    ]
+}

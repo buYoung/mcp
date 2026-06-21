@@ -1,0 +1,1 @@
+claude -p --model sonnet --setting-sources '' --strict-mcp-config --allowedTools Bash\,Read\,Glob\,Grep --disallowedTools Edit\,Write\,WebFetch\,WebSearch\,Task\,NotebookEdit\,TodoWrite\,Workflow\,Agent\,Skill --output-format stream-json --verbose Reply\ with\ exactly\ OK. 

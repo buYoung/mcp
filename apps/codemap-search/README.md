@@ -1,9 +1,13 @@
 # codemap-search
 
-A **self-contained MCP stdio server** for coding agents (Claude Code, Codex, opencode, …). One
-binary gives an agent a hierarchical *codemap*, BM25 keyword search over extracted
-symbols, and exact `read` / `find` / `grep` — with **ripgrep, tree-sitter, and tantivy
-all compiled in**. No system `rg`, no external runtime binaries.
+[한국어](./README.ko.md) | English
+
+A **self-contained MCP stdio server and CLI** for coding agents (Claude Code, Codex,
+opencode, ...). It lets an agent map a repository, search extracted symbols/docstrings/
+literals with BM25, and confirm exact file content with embedded `read` / `find` /
+`grep`. Everything is compiled into one Rust binary: ripgrep library crates,
+tree-sitter grammars, and Tantivy. No system `rg`, language server, or external runtime
+binary is required.
 
 The intended flow is hierarchical narrowing:
 
@@ -12,8 +16,46 @@ The intended flow is hierarchical narrowing:
    per-file details when few.
 3. **`read` / `find` / `grep`** — confirm exact content once the target is pinpointed.
 
-> Status: `0.1.0`. This ships the capabilities; it does **not** yet claim to beat an
-> agent's built-in Read/Grep — that comparison is a deferred, separate milestone.
+> For how it compares to an agent's built-in Read/Grep and to other code-navigation MCP
+> backends (serena, codegraph), see the [benchmark](../../benchmark/README.md): there is
+> **no single winning backend** (the best one depends on the codebase); codemap-search's
+> clearest *measured* wins are **index build speed** and **footprint** (see
+> [Indexing](#indexing) below). Full raw data, harness, and self-correction trail are published.
+
+## Quick start
+
+Install the binary:
+
+```sh
+cargo install codemap-search
+codemap-search --version
+```
+
+Then register it with an MCP client. The server indexes the process working directory, so
+the client should launch `codemap-search mcp` from the repository you want to inspect.
+
+Claude Code:
+
+```sh
+claude mcp add codemap-search -- codemap-search mcp
+```
+
+Codex (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.codemap-search]
+command = "codemap-search"
+args = ["mcp"]
+```
+
+After registration, ask the client to call `initial_instructions` once. That tool returns
+the recommended navigation flow for clients that do not surface server-level MCP
+instructions.
+
+## MCP surface
+
+`codemap-search` exposes MCP **tools** only. It does not register MCP resources or
+prompts. All tools are read-only over the configured filesystem scope.
 
 ## Supported languages
 
@@ -35,9 +77,11 @@ directive.
 
 ## Install
 
-Five co-equal channels: crates.io, WinGet, Homebrew, the `install.sh` one-liner, and direct
-GitHub Release binaries. Per-OS recommendations and per-channel maintainer/publish runbooks
-live in [docs/distribution/](./docs/distribution/index.md) (channel guides:
+Use the route that matches your machine. `cargo install` is the simplest path if you
+already have Rust; prebuilt binaries avoid a local compile. The supported channels are
+crates.io, WinGet, Homebrew, the `install.sh` one-liner, and direct GitHub Release
+binaries. Per-OS recommendations and per-channel maintainer/publish runbooks live in
+[docs/distribution/](./docs/distribution/index.md) (channel guides:
 [crates.io](./docs/distribution/crates-io.md), [WinGet](./docs/distribution/winget.md),
 [Homebrew](./docs/distribution/homebrew.md), [install.sh](./docs/distribution/curl-installer.md));
 the overall strategy is in
@@ -58,15 +102,14 @@ Builds and installs the published crate into `~/.cargo/bin` (make sure it is on 
 winget install com.livteam.codemap-search
 ```
 
-Installs the prebuilt Windows binary (x64 or arm64) and puts `codemap-search` on your
-`PATH`. Final availability depends on Microsoft's review of the submitted manifest in
-`microsoft/winget-pkgs`. Before Microsoft merges it you can also install from the in-repo
-manifest with `winget install --manifest apps/codemap-search/packaging/winget`, subject to
-two conditions: (a) it only succeeds **after** the first `codemap-v0.1.0` release publishes
-the assets and the manifest's placeholder `sha256` are replaced with the real values
-(otherwise the download/hash check fails), and (b) the path is relative, so run it **from
-the repo root**. The arm64 build is shipped build-only (cross-built on an x64 runner, not
-runtime-verified on arm64 hardware).
+When the package is available in `microsoft/winget-pkgs`, this installs the prebuilt
+Windows binary (x64 or arm64) and puts `codemap-search` on your `PATH`. Availability
+depends on Microsoft's review of the submitted manifest. Before that merge, the in-repo
+manifest can be used with `winget install --manifest apps/codemap-search/packaging/winget`,
+but only after release assets exist and the manifest's placeholder `sha256` values have
+been replaced with real values; otherwise the download/hash check fails. The path is
+relative, so run the command **from the repo root**. The arm64 build is shipped build-only
+(cross-built on an x64 runner, not runtime-verified on arm64 hardware).
 
 ### From Homebrew (macOS)
 
@@ -74,16 +117,14 @@ runtime-verified on arm64 hardware).
 brew install codemap-search
 ```
 
-Installs the prebuilt darwin binary (Apple Silicon or Intel) and puts
-`codemap-search` on your `PATH`. **Availability is pending homebrew-core
-acceptance** — homebrew-core has a notability bar (stars/usage), so a fresh
-project's new-formula PR is likely held until the project is notable. Until it
-is accepted, use `cargo install codemap-search` (above), a direct GitHub Release
-download (below), or the `install.sh` one-liner as the macOS fallback. The
-formula lives in-repo at
-`apps/codemap-search/packaging/homebrew/codemap-search.rb`; its `sha256` values
-are filled from the release `.sha256` files once the first `codemap-v0.1.0`
-release publishes the darwin tarballs.
+When accepted into `homebrew-core`, this installs the prebuilt darwin binary (Apple
+Silicon or Intel) and puts `codemap-search` on your `PATH`. **Availability is pending
+homebrew-core acceptance**; homebrew-core has a notability bar (stars/usage), so a fresh
+project's new-formula PR may be held until the project is notable. Until it is accepted,
+use `cargo install codemap-search` (above), a direct GitHub Release download (below), or
+the `install.sh` one-liner as the macOS fallback. The formula lives in-repo at
+`apps/codemap-search/packaging/homebrew/codemap-search.rb`; its `sha256` values are filled
+from the release `.sha256` files for the target tag.
 
 ### From source
 
@@ -115,7 +156,7 @@ Linux only (on Windows, use the WinGet install above).
 - Pick a different install dir: `INSTALL_DIR=/usr/local/bin curl -fsSL …/install.sh | sh`
   (sudo only if that dir needs it; the default `~/.local/bin` does not).
 - Pin a release: pass `--version` through `sh -s --` —
-  `curl -fsSL …/install.sh | sh -s -- --version codemap-v0.1.0`.
+  `curl -fsSL …/install.sh | sh -s -- --version codemap-v0.1.6`.
 - Generic Linux gets the static `musl` build by default; set `CODEMAP_LINUX_LIBC=gnu`
   (x86_64 only) to pick the glibc build instead.
 - If the install dir is not on your `PATH`, the script prints the `export PATH=…` line
@@ -229,10 +270,11 @@ server:
 }
 ```
 
-## Tools
+## MCP tools
 
 | Tool | Purpose | Key arguments |
 |---|---|---|
+| `initial_instructions` | Returns the recommended codemap-search navigation flow. Call once when the MCP client does not display server-level instructions. | none |
 | `overview` | Hierarchical codemap. Empty/omitted `path` → root overview; a folder path narrows; a file path shows that file's symbol details. | `path` (string), `format` (e.g. `"llms-txt"`) |
 | `search` | BM25 keyword search over symbols/docstrings/path tokens. ≤ threshold → file details; above → codemap overview. | `query` (string, required) |
 | `read` | Read a file with line numbers (`   N→content`). Pages large files. | `file_path` (required), `offset` (1-indexed), `limit` |
@@ -268,6 +310,23 @@ All keys, defaults, and the `.codemap/` directory layout are documented in
 controlling whether `read`, `find`, and `grep` stay workspace-only or may use configured
 external roots.
 
+No external account, API key, or paid service is required.
+
+Runtime environment variables:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `RUST_LOG` | No | Changes stderr diagnostics, e.g. `RUST_LOG=debug codemap-search mcp`. |
+| `CODEMAP_HOME` | No | Moves the global config directory. Default is `~/.codemap`. |
+
+Installer-only environment variables:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `INSTALL_DIR` | No | Changes the `install.sh` target directory. Default is `~/.local/bin`. |
+| `CODEMAP_VERSION` | No | Pins `install.sh` to a release tag such as `codemap-v0.1.6`. |
+| `CODEMAP_LINUX_LIBC` | No | Selects the Linux asset flavor for `install.sh`: `musl` by default, or `gnu` on x86_64. |
+
 ## Logging
 
 Diagnostics go to **stderr only** (stdout is the JSON-RPC stream). By default the log
@@ -277,6 +336,34 @@ per search) is suppressed. Raise it with `RUST_LOG`:
 ```sh
 RUST_LOG=debug codemap-search mcp     # full diagnostics
 ```
+
+## Indexing
+
+The MCP server **indexes the repository itself on startup** — no separate index step, no
+language servers, no external services. The index lives in a repo-local `.codemap/`
+directory (tens of MB) and is reused across launches.
+
+It stays fresh on its own. A `notify`-based filesystem watcher (Linux inotify / macOS
+FSEvents / Windows ReadDirectoryChanges) watches the repo root and debounces events
+(default 500 ms); ordinary edits become **path-scoped incremental updates** keyed on
+per-file **mtime** (only changed/added files are re-parsed; deleted files are dropped),
+while a git `HEAD` change or a bulk change escalates to a full walk. While the watcher is
+healthy, `search`/`overview` never trigger a tree walk; `read`/`find`/`grep` always read
+live disk, so just-edited files are visible immediately.
+
+Measured (Docker, native arm64; cold = empty `.codemap`, exact-SHA checkout):
+
+| Repo | Files | Cold full index | Incremental re-index (1–10 files) | Index on disk |
+|---|---|---|---|---|
+| angular | ~10.6k | ~4.6 s | ~0.15 s | 16 MB |
+| deno | ~13.5k | ~3.6 s | ~0.13 s | 9.8 MB |
+
+For context, the [benchmark](../../benchmark/README.md) measured the language-server and
+graph backends' cold index at ~41–62 s (serena) and ~80 s (codegraph, angular), with
+on-disk indexes of 150–280 MB (serena) and 200–450 MB (codegraph) — i.e. on the same
+arm64 architecture codemap-search builds its index roughly an order of magnitude faster
+and 10–30× smaller. (The CLI `index` incremental figure re-scans all paths; the live
+watcher is path-scoped, so real incremental cost is at or below the numbers above.)
 
 ## Known limits
 

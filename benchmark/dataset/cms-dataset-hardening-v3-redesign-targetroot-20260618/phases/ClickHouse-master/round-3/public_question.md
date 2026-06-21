@@ -1,0 +1,3 @@
+A query enriches rows from a reference source and the consumer only reads one returned field. Engineers therefore start stuffing sentinel junk into the other fallback fields, assuming those slots can never matter if nobody reads them.
+
+In this codebase that assumption is false: a supposedly unused fallback slot can still change whether the query throws, and a similar one-field form can surface a different type to the rest of the plan. Why do those discarded fallback fields remain observable here?

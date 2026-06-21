@@ -1,0 +1,47 @@
+{
+    "candidate_id": "angular-deferred-choice-reconciliation-v1",
+    "facts": [
+        {
+            "fact": "The single-choice object-backed path uses parent-owned id mapping plus comparator-backed id lookup, not direct object identity writes to the DOM.",
+            "score": 0.5,
+            "evidence": "Claude explains that `writeValue` calls `_getOptionId`, iterates `_optionMap`, and invokes `_compareWith`, but it does not pin the generated-id and synthesized DOM-value-string pieces that complete the mechanism."
+        },
+        {
+            "fact": "Child add/update/remove events only mutate bookkeeping and request delayed reconciliation rather than performing a full immediate rewrite.",
+            "score": 1.0,
+            "evidence": "Claude explicitly says every child mutation calls the parent deferred path instead of immediately calling `writeValue`."
+        },
+        {
+            "fact": "Reconciliation is coalesced with a queued flag and also gated against scheduling after the application injector is already destroyed.",
+            "score": 0.5,
+            "evidence": "Claude clearly explains `_queuedWrite` deduplication and includes the `appRefInjector.destroyed` guard in the cited code, but it does not explain the destroyed-app-injector gate in prose."
+        },
+        {
+            "fact": "The actual model-to-view rewrite runs in a one-shot post-render write phase rather than inside each child setter or destroy hook.",
+            "score": 1.0,
+            "evidence": "Claude centers the answer on `_writeValueAfterRender()` scheduling `afterNextRender` and calling `writeValue(this.value)` once after the render cycle."
+        },
+        {
+            "fact": "The scheduling uses the application injector because the node injector can already be destroyed during teardown, and the callback checks directive destruction before writing.",
+            "score": 0.0,
+            "evidence": "Claude repeats the callback code and mentions `destroyRef.destroyed`, but it never states why the application injector is chosen over the node injector during teardown."
+        },
+        {
+            "fact": "The hook is truly post-render and one-shot through shared after-render registration and cleanup semantics, not just an arbitrary delayed callback.",
+            "score": 0.5,
+            "evidence": "Claude correctly describes a single callback in the write phase after the cycle ends, but it does not pin the shared `afterNextRender` registration path or the one-shot manager cleanup behavior."
+        },
+        {
+            "fact": "The multiple-choice control path is intentionally different because it updates immediately per child mutation instead of using the queued post-render pass.",
+            "score": 0.0,
+            "evidence": "Claude never contrasts the single-choice behavior with the multiple-choice accessor implementation."
+        },
+        {
+            "fact": "The reasons for deferral include both cost and correctness: avoid repeated comparator scans, avoid premature browser state before child content is fully attached, and avoid wrong fallback selection during delayed removal.",
+            "score": 1.0,
+            "evidence": "Claude explains the comparison-cost issue, the early DOM-content issue, and the delayed-removal browser drift issue with source-aligned detail."
+        }
+    ],
+    "overall_score": 0.5625,
+    "summary": "Claude recovered the core deferred post-render single-choice reconciliation rule and the browser/performance motivations, but it missed the application-injector teardown rationale, the shared after-render registration semantics, and the multiple-choice contrast."
+}

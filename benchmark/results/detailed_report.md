@@ -29,9 +29,9 @@ run-id: `cms-official-benchmark-20260619-03` · judge: `opus`(=`claude-opus-4-8`
 - valid(harness_valid && !timed_out): **166**. invalid 14, timed_out 10.
 - backend_off: **24**(전부 opencode — deepseek 7개·mimo 12개·minimax 5개). codex 기여 0(교정 완료).
 - selected task 경로(repo당 1):
-  - ClickHouse-master(F=4): `.agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md`
-  - deno-main(F=8): `.agents/orchestration/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md`
-  - angular-main(F=8): `.agents/orchestration/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md`
+  - ClickHouse-master(F=4): `benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md`
+  - deno-main(F=8): `benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md`
+  - angular-main(F=8): `benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md`
 - scorer proof: frozen-judge(opus=`claude-opus-4-8`), per-fact verdict ∈ {present,partial,absent} → {1.0,0.5,0.0}, 가중평균 `Σ(weight×value)/Σ(weight)`. 재채점 없이 per_fact_score frozen schema 공식으로 검증 → formula_match=true, mismatch 0.
 - warmup proof: mutation_guard 전 전 episode `clean`(소스 파일 변경 0). serena cold reindex 실측(ClickHouse 62s clangd, angular 41s tsserver), codegraph angular cold init 80s.
 - tok_in 집계 기준: claude/opencode = input+cache_read+cache_creation; codex = input_tokens 그대로(캐시 포함, 이중계산 방지).

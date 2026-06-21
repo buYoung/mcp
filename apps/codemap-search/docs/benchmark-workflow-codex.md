@@ -1,136 +1,165 @@
-# codemap-search Codex 벤치마크 워크플로우
+# codemap-search Codex Benchmark Workflow / codemap-search Codex 벤치마크 워크플로우
 
-이 문서는 Claude Code 기준 문서의 모델명 치환본이 아니라, Codex 실행 경로와 사용량 스키마를 별도 통제하는 Codex 기준 사본이다. 절차·격리·지표의 원출처는 `benchmark-workflow.md`이고, Codex 성능 저하의 인과 기록은 `benchmark-evolution.md`와 `docs/briefs/2026-06-14-benchmark2-*.md`를 따른다.
+This is the Codex-specific execution contract for codemap-search benchmark work. It is not a model-name rewrite of the Claude Code workflow. It controls Codex execution paths, Codex usage-schema caveats, and the interpretation rules for Codex-vs-Codex comparisons.
 
-충돌 시 우선순위는 다음과 같다.
+한국어 요약: 이 문서는 Claude Code 기준 문서의 이름만 바꾼 사본이 아니라, Codex 실행 경로와 사용량 스키마를 별도로 통제하는 Codex 기준 문서다.
 
-1. 이 문서: Codex 기준 실행·해석 규칙
-2. `benchmark-workflow.md`: 공통 하니스·격리·메트릭 정의의 원출처
-3. `benchmark-evolution.md`: 인과·백로그·판정 기록의 원출처
-4. `docs/briefs/2026-06-14-benchmark2-*.md`: 세션 이관용 상태 기록
+## Source Priority and Evidence Status
 
-## 1. 목적과 측정 질문
+When sources conflict, use this order:
 
-목적은 사용자가 요청한 로컬 코드베이스에서 codemap-search MCP가 Codex 계열 모델의 탐색 효율을 개선하는지 확인하는 것이다. 기존 deno 4-way 결과에서는 Codex+MCP가 baseline 대비 tool call +20%, 입력 토큰 +10%로 악화했고, 도구 결과 바이트만 -85% 우위였다. 따라서 Codex용 측정은 정확도보다 효율과 행동 차이를 1급 지표로 둔다.
+1. This document: Codex-specific execution and interpretation rules
+2. `benchmark-workflow.md`: source of truth for shared harness, isolation, and metric definitions
+3. `benchmark-evolution.md`: source of truth for causal history, backlog, and judgment records
+4. `docs/briefs/2026-06-14-benchmark2-*.md`: session handoff state
 
-핵심 질문:
+Evidence status:
 
-- Codex `gpt-5.5` reasoning medium이 같은 과제를 baseline보다 적은 입력 토큰·도구 호출·탐색 단계로 푸는가?
-- Codex `gpt-5.4-mini` reasoning medium에서도 같은 방향이 재현되는가?
-- Claude `claude -p --model sonnet` MCP-only arm은 같은 제품 표면에서 어떤 참고 행동을 보이는가?
-- Codex의 반복 read·윈도 페이징이 제품 출력 문제인지, 모델 습관인지, 과제 설계 문제인지 분리 가능한가?
+- Confirmed from the source documents above: previous deno 4-way measurements showed Codex+MCP worse than baseline on tool calls and `input_tokens`, while tool-result bytes improved. Therefore Codex benchmark claims must focus on efficiency and behavior, not accuracy alone.
+- Confirmed from the source documents above: CLI-to-CLI token totals are not comparable. Promote only within-model comparisons, such as `codex-gpt55-base` vs `codex-gpt55-mcp`.
+- Must be confirmed in each run: local repository path, git SHA or snapshot mtime, isolated instruction files, available token fields, exact tool-call schema, and whether `answer_text` is stored verbatim.
+- Inferred until measured: whether a product change reduces Codex token cost, whether fewer response bytes reduce episode-level cost, and whether Claude behavior predicts Codex behavior.
 
-## 2. Arm 정의
+한국어 요약: 확인된 주장에는 출처를 붙이고, 실행마다 다시 확인해야 하는 값은 본문에서 분리한다. 특히 토큰 비교는 같은 모델의 baseline과 MCP arm 사이에서만 결론으로 승격한다.
 
-최소 매트릭스는 사용자가 지정한 로컬 코드베이스 하나를 기준으로 구성한다. 같은 과제·같은 스냅샷·같은 rubric을 유지하고, 모델과 도구 표면만 바꾼다.
+## 1. Purpose and Measurement Questions
 
-| arm | 목적 | 모델 | 허용 표면 | 비고 |
+The goal is to test whether codemap-search MCP improves exploration efficiency for Codex-family models on a user-selected local codebase. The benchmark should answer efficiency questions before accuracy questions, because prior runs often reached accuracy saturation while still showing meaningful differences in tool calls, read paging, and token use.
+
+Core questions:
+
+- Does Codex `gpt-5.5` reasoning medium solve the same tasks with fewer `input_tokens`, tool calls, and exploration steps than its baseline?
+- Does Codex `gpt-5.4-mini` reasoning medium show the same direction?
+- What reference behavior does Claude `claude -p --model sonnet` show on the same codemap-search MCP surface?
+- Can repeated Codex read calls and window paging be separated into product-output issues, model habit, or task-design issues?
+
+한국어 요약: 이 측정은 “정답을 맞혔는가”보다 “같은 정답을 더 적은 탐색 비용으로 얻었는가”를 먼저 본다.
+
+## 2. Arm Definitions
+
+Use one local codebase snapshot. Keep the tasks, expected answers, distractors, and rubric fixed. Change only the model and allowed tool surface.
+
+| arm | purpose | model | allowed surface | interpretation |
 |---|---|---|---|---|
-| `codex-gpt55-base` | Codex 주 기준선 | `gpt-5.5`, reasoning medium | MCP 없음, 읽기 전용 내장/셸 조회 | within-model 비교의 기준 |
-| `codex-gpt55-mcp` | Codex 주 실험군 | `gpt-5.5`, reasoning medium | codemap-search MCP only | baseline 대비 turns·tokens·read paging 비교 |
-| `codex-gpt54mini-base` | 소형 Codex 기준선 | `gpt-5.4-mini`, reasoning medium | MCP 없음, 읽기 전용 내장/셸 조회 | mini 가치를 말하려면 필수 |
-| `codex-gpt54mini-mcp` | 소형 Codex 실험군 | `gpt-5.4-mini`, reasoning medium | codemap-search MCP only | gpt-5.5 결과의 전이 확인 |
-| `claude-sonnet-mcp` | 교차 CLI 참고군 | `claude -p --model sonnet` | codemap-search MCP only | 제품 표면에 대한 참고 행동 |
+| `codex-gpt55-base` | primary Codex baseline | `gpt-5.5`, reasoning medium | no MCP, read-only built-in or shell lookup | baseline for within-model comparison |
+| `codex-gpt55-mcp` | primary Codex treatment | `gpt-5.5`, reasoning medium | codemap-search MCP only | compare against baseline on `turns`, tokens, and read paging |
+| `codex-gpt54mini-base` | small Codex baseline | `gpt-5.4-mini`, reasoning medium | no MCP, read-only built-in or shell lookup | required before claiming mini-model value |
+| `codex-gpt54mini-mcp` | small Codex treatment | `gpt-5.4-mini`, reasoning medium | codemap-search MCP only | checks whether `gpt-5.5` behavior transfers |
+| `claude-sonnet-mcp` | cross-CLI reference | `claude -p --model sonnet` | codemap-search MCP only | reference behavior on the same product surface |
 
-`claude-sonnet-base`는 Claude 내 효율을 주장할 때만 추가한다. Codex용 문서의 기본 결론은 Codex arm 내부 비교로만 낸다.
+Add `claude-sonnet-base` only when the report makes a Claude-internal efficiency claim. The default conclusion of this document is Codex-internal only.
 
-## 3. 실행 주체와 리뷰 게이트
+한국어 요약: Codex 결론은 Codex arm 내부 비교에서만 낸다. Claude arm은 같은 제품 표면에서의 참고 행동이지, Codex 토큰 결론의 근거가 아니다.
 
-실행과 판정은 분리한다. 메인 루프는 계획·브리프·게이트 판정·결과 종합만 맡고, 대량 조회와 검토는 하위 실행 단위에 위임한다.
+## 3. Execution Roles and Review Gates
 
-| 단계 | 주체 | 규칙 |
+Separate execution from judgment. The main loop owns planning, briefs, gate decisions, and final synthesis. Bulk lookup, contestant execution, and review should run in bounded worker phases.
+
+| phase | owner | rule |
 |---|---|---|
-| ground truth 수집 | 하위 에이전트 또는 로컬 `rg`/Read | codemap-search MCP 사용 금지 |
-| contestant 실행 | 고정 하니스 또는 하위 에이전트 | 프롬프트 재작성 금지, 파일 수정 금지 |
-| Codex MCP arm | Codex sub-agent `gpt-5.5 medium`, `gpt-5.4-mini medium` | codemap-search MCP만 허용 |
-| Claude MCP arm | `claude -p --model sonnet` | codemap-search MCP만 허용 |
-| 건전한 피드백 | sub-agent `gpt-5.5 xhigh` + `claude -p` default | `claude -p`는 Codex `gpt-5.5 medium` 하위 에이전트에서 CLI로 실행 |
-| 적대적 리뷰 | sub-agent `gpt-5.5 xhigh` + `claude -p` default | 측정 설계·누출·해석 비약을 공격하게 함 |
+| ground truth collection | worker agent or local `rg`/Read | do not use codemap-search MCP |
+| contestant execution | fixed harness or worker agent | do not rewrite prompts; do not edit files |
+| Codex MCP arm | Codex sub-agent `gpt-5.5 medium`, `gpt-5.4-mini medium` | allow only codemap-search MCP |
+| Claude MCP arm | `claude -p --model sonnet` | allow only codemap-search MCP |
+| friendly feedback | sub-agent `gpt-5.5 xhigh` + `claude -p` default | run `claude -p` from a Codex `gpt-5.5 medium` worker when needed |
+| adversarial review | sub-agent `gpt-5.5 xhigh` + `claude -p` default | attack measurement design, leaks, and over-interpretation |
 
-리뷰용 `claude -p` default 모델과 contestant용 `claude -p --model sonnet`은 구분한다. 리뷰는 설계 검토이고, contestant는 측정 대상이다.
+Do not merge review and contestant roles. Review `claude -p` default is a design reviewer. Contestant `claude -p --model sonnet` is a measured arm.
 
-## 4. 단계 구성
+한국어 요약: 실행자와 판정자를 분리한다. 리뷰 모델은 설계를 검토하고, contestant 모델은 측정 대상이다.
+
+## 4. Workflow
 
 ```text
 scope lock -> dataset -> warmup -> run -> verify -> score -> review -> report
 ```
 
-| 단계 | 완료 조건 |
+| phase | exit criteria |
 |---|---|
-| scope lock | 대상 로컬 코드베이스 경로, git SHA 또는 스냅샷 mtime, 제외할 로컬 지침 파일 목록 기록 |
-| dataset | 과제·정답·distractor·rubric 작성. ground truth는 MCP 없이 확정 |
-| warmup | 각 arm 1~2개 에피소드로 도구 노출, purity, 토큰 필드, answer_text 원문 보존, 스키마 환산 가능성 확인 |
-| run | 고정 프롬프트 그대로 실행. 에피소드별 원시 transcript와 metrics 저장 |
-| verify | MCP 호출 0/only, 오염 문자열, 수정 시도, harness_error, 토큰 이중계산 여부 검사 |
-| score | rubric 기계 적용. 정답률이 포화되면 효율 분석으로 피벗 |
-| review | 건전한 피드백과 적대적 리뷰를 sub-agent `gpt-5.5 xhigh` 및 `claude -p` default로 분리 수행 |
-| report | confirmed/inferred를 구분하고, within-model 비교만 결론으로 승격 |
+| scope lock | record local codebase path, git SHA or snapshot mtime, and instruction files excluded from the measurement copy |
+| dataset | write tasks, expected answers, distractors, and rubric; confirm ground truth without MCP |
+| warmup | run 1-2 episodes per arm to confirm tool exposure, purity, token fields, verbatim `answer_text`, and schema conversion |
+| run | execute fixed prompts unchanged; store raw transcript and metrics for every episode |
+| verify | check MCP zero/only constraints, contamination strings, edit attempts, `harness_error`, and token double counting |
+| score | apply rubric mechanically; pivot to efficiency analysis when accuracy saturates |
+| review | split friendly feedback and adversarial review across sub-agent `gpt-5.5 xhigh` and `claude -p` default |
+| report | separate confirmed and inferred claims; promote only within-model comparisons |
 
-## 5. 데이터셋 규칙
+Abort before the full run if warmup cannot recover tool-call order, tool arguments, final answer text, or a token metric or token proxy. A benchmark without those fields can still produce raw transcripts, but it cannot support the efficiency claims this document is designed to test.
 
-Codex용 데이터셋은 정답 이름을 프롬프트에 노출하지 않는다. 기존 deno 세트는 유도성 프롬프트가 정답률뿐 아니라 효율도 오염했으므로, 새 과제는 행위·증상·사용자 관찰만으로 묻는다.
+한국어 요약: warmup은 선택 단계가 아니다. 토큰, 도구 호출 순서, 최종 답변 전문을 환산하지 못하면 본실행에 들어가지 않는다.
 
-필수 항목:
+## 5. Dataset Rules
 
-- 과제 유형: 리터럴, 정의, 호출처, depth-2 흐름, 흩어진 N개 위치, 모호한 개념, distractor 분별
-- 각 과제마다 `expected`, `acceptable`, `distractors`, `wrong_if`, `line_tolerance` 기록
-- ground truth는 `rg`/Read로 확정하고 codemap-search MCP로 만들지 않음
-- baseline이 정답과 distractor를 모두 찾을 수 있는 과제를 별도로 포함
-- `first_answer_turn`은 단순 파일 등장보다 정답 줄 또는 정답 심볼 노출을 우선한다
+Codex tasks must not leak the answer name in the prompt. Prior deno task design showed that suggestive prompts can contaminate efficiency as well as accuracy. Ask from behavior, symptoms, or user-observable facts instead.
 
-deno B-deno-2의 교훈은 두 축으로 분리한다.
+Required task metadata:
 
-- 구조적 grep 사각: deno에서는 음성으로 닫힘. Codex xhigh가 후보 지렛대를 grep으로 깼다.
-- distractor 분별: 살아 있는 후보. baseline이 정답과 distractor를 모두 찾은 뒤 약한 모델이 고르는지 시험한다.
+- task type: literal, definition, callers, depth-2 flow, scattered N locations, ambiguous concept, distractor discrimination
+- per task: `expected`, `acceptable`, `distractors`, `wrong_if`, `line_tolerance`
+- ground truth confirmed with `rg`/Read, not codemap-search MCP
+- at least some tasks where the baseline can find both the expected answer and the distractor
+- `first_answer_turn` based on first exposure of the answer line or answer symbol, not mere file mention
 
-## 6. 격리와 purity
+Keep the deno B-deno-2 lesson split into two claims:
 
-측정 사본은 실행 전에 다음을 처리한다.
+- Structural grep blind spot: closed negative for deno. Codex xhigh broke the candidate lever with grep.
+- Distractor discrimination: still live. Test whether weaker models choose correctly after baseline finds both the expected answer and the distractor.
 
-- `AGENTS.md`, `CLAUDE.md`, `.claude`, `.cursorrules` 격리
-- baseline arm에서는 `.codemap`도 격리
-- MCP arm은 사전 인덱싱 후 소스 트리 무수정
-- Codex 실행은 stdin 대기 방지를 위해 `< /dev/null` 적용
-- `approval_policy=never`, 읽기 전용 sandbox, 사용자 설정 무시
+한국어 요약: 정답 이름을 프롬프트에 넣지 않는다. baseline이 정답과 함정을 모두 찾는 과제를 포함해야 “찾기”와 “고르기”를 분리할 수 있다.
 
-purity 검증:
+## 6. Isolation and Purity
 
-- baseline: transcript 안의 `mcp__codemap` 문자열 0, MCP tool-call 0
-- MCP-only: codemap-search MCP 외 파일/셸/웹 도구 사용 0
-- Claude: 허용 밖 도구 시도와 확장 도구 카탈로그를 분리해서 기록. pure의 정의는 "도구 목록이 비어 있음"이 아니라 "비허용 도구 사용 0"이다.
-- 모든 arm: 오염 문자열, 파일 수정 시도, harness_error 0
+Prepare the measurement copy before execution:
 
-## 7. 메트릭
+- quarantine `AGENTS.md`, `CLAUDE.md`, `.claude`, `.cursorrules`
+- also quarantine `.codemap` for baseline arms
+- pre-index MCP arms, then leave the source tree unchanged
+- apply `< /dev/null` to Codex runs to prevent stdin waits
+- use `approval_policy=never`, read-only sandboxing, and ignored user settings
 
-CLI 간 절대 토큰 비교는 금지한다. 결론은 같은 모델의 baseline과 MCP arm 사이에서만 낸다.
+Purity checks:
 
-| 필드 | 의미 |
+- baseline: zero `mcp__codemap` strings in transcript, zero MCP tool calls
+- MCP-only: zero file, shell, or web tools outside codemap-search MCP
+- Claude: record disallowed tool attempts separately from the expanded tool catalog. Pure means "zero disallowed tool use", not "empty tool list".
+- all arms: zero contamination strings, zero edit attempts, zero `harness_error`
+
+한국어 요약: 격리의 핵심은 도구 목록을 비우는 것이 아니라 비허용 도구 사용을 0으로 만드는 것이다.
+
+## 7. Metrics
+
+Do not compare absolute token totals across CLIs. Draw conclusions only between the baseline and MCP arm of the same model.
+
+| field | meaning |
 |---|---|
 | `score` | `correct|partial|wrong|n/a` |
-| `turns` | 하니스가 정의한 도구 호출 수. ToolSearch 같은 하니스 메커니즘은 제외 |
-| `first_answer_turn` | 정답 줄·정답 심볼이 처음 노출된 도구 호출 순번 |
-| `tool_calls` | 도구별 호출 수 |
-| `read_window_calls` | 같은 파일의 연속 범위 read 또는 윈도 페이징 수 |
-| `mcp_response_bytes_total` | MCP arm에서는 MCP 결과 바이트, baseline에서는 도구 결과 바이트 |
-| `input_tokens` | Codex는 cached 포함. Claude와 절대 비교 금지 |
-| `output_tokens` | 참고값 |
+| `turns` | harness-defined tool-call count; exclude harness mechanisms such as ToolSearch |
+| `first_answer_turn` | tool-call index where the answer line or answer symbol first appears |
+| `tool_calls` | calls per tool |
+| `read_window_calls` | sequential range reads or window paging on the same file |
+| `mcp_response_bytes_total` | MCP result bytes for MCP arms; tool-result bytes for baseline arms |
+| `input_tokens` | Codex includes cached tokens; do not compare absolutely with Claude |
+| `output_tokens` | reference value |
 | `duration_s` | wall clock |
-| `answer_text` | 최종 답변 전문. 요약 금지 |
-| `purity_violation` | 비허용 도구·MCP 누출·웹 사용·파일 수정 시도 |
+| `answer_text` | full final answer; do not summarize |
+| `purity_violation` | disallowed tool use, MCP leakage, web use, or edit attempt |
 
-Codex sub-agent 실행 결과가 기존 `codex exec --json`과 같은 구조화 이벤트를 제공하지 않을 수 있다. warmup에서 다음 세 가지가 환산되지 않으면 본실행에 들어가지 않는다.
+Codex sub-agent runs may not expose the same structured events as `codex exec --json`. Warmup must prove that these three items can be converted:
 
-1. 도구 호출 순서와 인자
-2. 최종 답변 전문
-3. 토큰 또는 토큰 대체 지표
+1. tool-call order and arguments
+2. full final answer
+3. tokens or a token proxy
 
-토큰이 추출되지 않으면 그 회차는 토큰 결론을 내지 않고, turns·도구 결과 바이트·read 페이징만 보고한다.
+If tokens cannot be extracted, do not make token conclusions for that episode. Report only `turns`, tool-result bytes, and read paging.
 
-## 8. 고정 실행 계약
+한국어 요약: 토큰 필드를 못 얻으면 토큰 결론을 내지 않는다. 대신 `turns`, 도구 결과 바이트, read 페이징만 보고한다.
 
-프롬프트는 tasks JSON에서 그대로 추출한다. baseline 변환은 MCP 접두 제거 같은 결정적 치환만 허용한다.
+## 8. Fixed Execution Contract
 
-Codex CLI형 MCP arm 예시:
+Extract prompts from tasks JSON unchanged. Baseline conversion may use only deterministic edits, such as removing the MCP prefix.
+
+Codex CLI-style MCP arm example:
 
 ```bash
 perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT_S" \
@@ -142,7 +171,7 @@ perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT_S" \
   --json "$PROMPT" < /dev/null > "$JSONL" 2> "$ERRLOG"
 ```
 
-Codex CLI형 baseline 예시:
+Codex CLI-style baseline example:
 
 ```bash
 perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT_S" \
@@ -152,7 +181,7 @@ perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT_S" \
   --json "$PROMPT" < /dev/null > "$JSONL" 2> "$ERRLOG"
 ```
 
-Claude contestant MCP arm 예시:
+Claude contestant MCP arm example:
 
 ```bash
 (cd "$REPO_PATH" && perl -e 'alarm shift @ARGV; exec @ARGV' "$TIMEOUT_S" \
@@ -163,33 +192,39 @@ Claude contestant MCP arm 예시:
   --output-format stream-json --verbose "$PROMPT") < /dev/null > "$JSONL" 2> "$ERRLOG"
 ```
 
-Sub-agent arm은 위 CLI 예시와 동등한 제약을 prompt와 도구 권한으로 구현한다. 단, 이벤트 스키마가 다르므로 warmup에서 metrics 환산 가능성을 먼저 확정한다.
+Sub-agent arms must implement equivalent constraints through prompt text and tool permissions. Because their event schema may differ from CLI runs, confirm metric conversion in warmup before the full run.
 
-## 9. 해석 규칙
+한국어 요약: 명령 예시는 실행 계약이다. 프롬프트를 다시 쓰지 말고, sub-agent 방식도 같은 제약을 도구 권한과 prompt로 구현한다.
 
-정답률이 100%에 가까우면 정확도 부가가치를 주장하지 않는다. 기존 deno 4-way와 django/strapi baseline은 baseline도 포화되어, codemap-search의 가치는 효율과 탐색 구조로만 판정할 수 있었다.
+## 9. Interpretation Rules
 
-Codex 회귀 판단은 다음 순서로 한다.
+Do not claim accuracy value when accuracy is near 100%. Prior deno 4-way and django/strapi baseline results saturated enough that codemap-search value had to be judged by efficiency and exploration structure.
 
-1. 같은 모델의 baseline 대비 MCP turns와 input tokens가 줄었는가?
-2. MCP 결과 바이트가 줄었더라도 read 페이징으로 입력 토큰이 늘지 않았는가?
-3. 회귀가 특정 과제 유형, 특정 파일 크기, 특정 도구 출력 형태에 집중되는가?
-4. Claude arm은 같은 제품 출력에서 read를 생략하는가?
-5. 제품 변경 가설이 Claude 응답 다이어트와 상충하지 않는가?
+Judge Codex regression in this order:
 
-B-deno-4 기준 판정은 유지한다. `lang/` 리팩터링은 Codex 회귀를 악화시키지 않았다. 다만 동일 HEAD의 turns가 회차마다 크게 흔들렸으므로 개선은 주장하지 않고, "악화 증거 없음"만 확정한다.
+1. Did MCP reduce `turns` and `input_tokens` compared with the same model's baseline?
+2. If MCP result bytes dropped, did read paging still increase `input_tokens`?
+3. Is the regression concentrated in a task type, file size, or tool-output shape?
+4. Does the Claude arm skip reads on the same product output?
+5. Does the product-change hypothesis conflict with the Claude response-diet results?
 
-## 10. 보고 형식
+Keep the B-deno-4 judgment: the `lang/` refactor did not worsen Codex regression. Because `turns` varied heavily between runs on the same HEAD, do not claim improvement from that evidence. The confirmed statement is only "악화 증거 없음".
 
-최종 보고는 아래 순서를 따른다.
+한국어 요약: 정확도가 포화되면 효율만 결론으로 남긴다. 개선 주장은 반복 측정이 받쳐야 하며, 단일 흔들림은 “악화 증거 없음” 이상으로 승격하지 않는다.
 
-1. 한 줄 판정
-2. 실행한 arm, 모델, 과제 수, 스냅샷
-3. purity와 warmup 결과
-4. within-model 표: baseline vs MCP
-5. Codex read 페이징·반복 read·first_answer_turn 분석
-6. Claude 참고군과의 행동 차이
-7. confirmed / inferred 구분
-8. 다음 결정: 제품 수정, 데이터셋 보강, 또는 측정 중단
+## 10. Report Format
 
-확인된 주장은 파일·라인·명령·산출물 경로를 붙인다. 추론은 무엇을 실행하면 확정되는지 함께 적는다.
+Write the final report in this order:
+
+1. one-line judgment
+2. arms, models, task count, and snapshot
+3. purity and warmup results
+4. within-model table: baseline vs MCP
+5. Codex read paging, repeated reads, and `first_answer_turn`
+6. behavior difference from the Claude reference arm
+7. confirmed / inferred separation
+8. next decision: product change, dataset hardening, or measurement stop
+
+Attach file, line, command, or artifact path to every confirmed claim. For every inference, state what run or artifact would confirm it.
+
+한국어 요약: 보고서는 결론보다 증거 상태가 먼저 읽히게 쓴다. 확인된 주장과 추론을 섞지 않는다.

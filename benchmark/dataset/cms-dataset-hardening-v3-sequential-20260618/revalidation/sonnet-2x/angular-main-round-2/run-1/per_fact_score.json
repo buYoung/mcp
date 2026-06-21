@@ -1,0 +1,47 @@
+{
+    "candidate_id": "angular-deferred-choice-reconciliation-v1",
+    "facts": [
+        {
+            "fact": "The single-choice object-backed path uses parent-owned id mapping plus comparator-based id lookup, not direct object identity writes to the DOM.",
+            "score": 1,
+            "evidence": "The answer explains that `writeValue(this.value)` resolves through `_optionMap` and `_getOptionId`, using `_compareWith` before writing the `<select>` value."
+        },
+        {
+            "fact": "Child add/update/remove events only mutate bookkeeping and request delayed reconciliation.",
+            "score": 0.5,
+            "evidence": "The answer correctly says option changes and destroy events call `_writeValueAfterRender()`, but it does not clearly pin the child path as parent-owned bookkeeping mutation plus delayed request rather than an immediate rewrite."
+        },
+        {
+            "fact": "Reconciliation is coalesced with a queued flag so repeated child churn collapses into one pass.",
+            "score": 1,
+            "evidence": "The answer centers on `_queuedWrite` as the once-per-render-cycle deduplication gate."
+        },
+        {
+            "fact": "The actual model-to-view rewrite runs in a one-shot post-render write phase.",
+            "score": 1,
+            "evidence": "The answer explicitly identifies `afterNextRender({ write: ... })` and says the real `writeValue(this.value)` call happens there."
+        },
+        {
+            "fact": "The scheduling is bound to the application injector because the node injector can already be destroyed during teardown.",
+            "score": 0,
+            "evidence": "The answer never mentions the application-injector choice or the teardown reason for avoiding the node injector."
+        },
+        {
+            "fact": "The callback checks directive destruction before attempting the write.",
+            "score": 0,
+            "evidence": "No `destroyRef.destroyed` guard is recovered."
+        },
+        {
+            "fact": "The multiple-choice control path is a contrast case because it updates immediately per child mutation.",
+            "score": 0,
+            "evidence": "The answer does not contrast the single-choice deferred path with the multiple-choice immediate-update path."
+        },
+        {
+            "fact": "The reasons include both correctness and cost: avoid excess comparator work, avoid premature browser selection behavior during late insertion, and avoid wrong fallback selection during delayed removal.",
+            "score": 1,
+            "evidence": "The answer recovers the O(n^2) comparator-cost reason, the early text-node/browser timing bug, and the delayed-removal fallback-selection bug."
+        }
+    ],
+    "overall_score": 0.5625,
+    "summary": "Run 1 recovered the deferred single-choice reconciliation rule and all three motivation branches, but it still missed the application-injector teardown detail, the destruction guard, and the multi-select contrast."
+}
