@@ -55,6 +55,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/codemap-search
+          # Per-target cache key. rust-cache's default key uses only the host triple,
+          # which is identical for ubuntu-22.04 (the gnu leg, glibc 2.35) and
+          # ubuntu-24.04 (every other Linux leg, glibc 2.39). Without this, caches
+          # cross-contaminate and the 22.04 gnu leg restores 24.04-built build-script
+          # binaries, dying at Build with `GLIBC_2.39 not found`.
+          key: ${{ matrix.target }}
 
       # musl-tools provides musl-gcc, which cc-rs uses to compile vendored
       # tree-sitter C grammars when targeting x86_64-unknown-linux-musl on a
@@ -195,6 +201,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/codemap-search
+          # Per-target cache key. rust-cache's default key uses only the host triple,
+          # which is identical for ubuntu-22.04 (the gnu leg, glibc 2.35) and
+          # ubuntu-24.04 (every other Linux leg, glibc 2.39). Without this, caches
+          # cross-contaminate and the 22.04 gnu leg restores 24.04-built build-script
+          # binaries, dying at Build with `GLIBC_2.39 not found`.
+          key: ${{ matrix.target }}
       # clang-cl, llvm-lib, and lld-link for cargo-xwin's MSVC cross-compile.
       - name: Install LLVM
         run: sudo apt-get update && sudo apt-get install -y clang llvm lld
