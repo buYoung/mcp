@@ -144,15 +144,33 @@ function todayIso() {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-function insertVersionSection(filePath, version, body) {
+// Keep a Changelog header with an [Unreleased] anchor, used to bootstrap a fresh
+// changelog on the first release (or for a brand-new crate). The intro language
+// follows the file's OUTPUT_LANGUAGE so CHANGELOG.md and CHANGELOG.ko.md stay
+// consistent with the bodies codex generates for each.
+function bootstrapChangelog(language) {
+    const intro =
+        language === "ko"
+            ? "codemap-search의 주요 변경 사항을 이 파일에 기록합니다.\n형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 따르며,\n[유의적 버전](https://semver.org/lang/ko/)을 준수합니다."
+            : "All notable changes to codemap-search are documented in this file.\n" +
+              "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),\n" +
+              "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).";
+    return `# Changelog\n\n${intro}\n\n## [Unreleased]\n`;
+}
+
+function insertVersionSection(filePath, version, body, language) {
     const date = todayIso();
     const newSectionHeader = `## [${version}] - ${date}`;
     const fresh = `## [Unreleased]\n\n${newSectionHeader}\n\n${body}\n`;
 
     let content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
 
+    // First release / new crate: no changelog yet. Seed a header that carries the
+    // [Unreleased] anchor so the insert below has somewhere to land, instead of
+    // aborting the release. A file that exists with content but no anchor is a
+    // different (corrupted) case and still fails via the guard below.
     if (!content.trim()) {
-        fail(`${path.relative(ROOT, filePath)} is missing or empty. Cannot insert section.`);
+        content = bootstrapChangelog(language);
     }
 
     const unreleasedRegex = /## \[Unreleased\]\s*\n*/i;
@@ -190,7 +208,7 @@ function main() {
         const prompt = buildPrompt({ template, version, previousTag: previousTagForGit, commits, sample, language });
         process.stdout.write(`[write-changelog] generating ${language} via codex exec...\n`);
         const body = runCodex(prompt);
-        insertVersionSection(file, version, body);
+        insertVersionSection(file, version, body, language);
         process.stdout.write(`[write-changelog] wrote ${path.relative(ROOT, file)}\n`);
     }
 
