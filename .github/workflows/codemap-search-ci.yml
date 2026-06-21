@@ -19,27 +19,23 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
 
+# fmt + clippy are NOT run here — they are enforced by the local prek hook
+# (.pre-commit-config.yaml). CI gates on `test` and a release `build`, which
+# run as two independent jobs (no `needs:` edge) so they execute in parallel.
 jobs:
-  lint-and-test:
-    name: fmt + clippy + test
+  test:
+    name: test
     runs-on: ubuntu-latest
-    # Run every step from the standalone crate, so the commands are byte-identical to
-    # what is verified locally (no --manifest-path form differences, esp. for cargo fmt).
+    # Run from the standalone crate so commands match local invocations.
     defaults:
       run:
         working-directory: apps/codemap-search
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/codemap-search
-      - name: fmt --check
-        run: cargo fmt --check
-      - name: clippy -D warnings
-        run: cargo clippy --all-targets -- -D warnings
       - name: test
         run: cargo test
 
@@ -51,8 +47,12 @@ jobs:
         working-directory: apps/codemap-search
     strategy:
       fail-fast: false
+      # All supported OSes get a release build: Linux, macOS, and Windows
+      # (each builds its native host target in release mode). Cross-arch
+      # variants (musl, arm64-linux, arm64-windows) are validated by the
+      # tag-triggered codemap-search-release.yml, not on every PR.
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

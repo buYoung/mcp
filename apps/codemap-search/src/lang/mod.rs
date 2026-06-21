@@ -20,6 +20,7 @@
 //! 3. Add one registry entry in [`spec_for_ext`] mapping the file extension(s) to a
 //!    `&'static <Name>Spec`, and one entry in [`ALL_SPECS`] so the new extensions join the
 //!    [`source_extensions`] allowlist.
+//!
 //! No edits to [`crate::parser`], `crate::callers`, or `crate::workspace` are needed: the
 //! generic walk resolves the spec from the registry and calls the hooks, the extension
 //! allowlist is derived from [`ALL_SPECS`], and `callers` delegates separators / import-line

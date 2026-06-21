@@ -21,7 +21,7 @@ fn directory_label(path: &str, file_count: usize, symbol_count: usize) -> String
 
 /// A directory is a leaf when it has no subdirectories.
 fn dir_is_leaf(children: &ChildMap, path: &str) -> bool {
-    children.get(path).map_or(true, |kids| kids.is_empty())
+    children.get(path).is_none_or(|kids| kids.is_empty())
 }
 
 /// "Deep" = has at least one non-leaf subdirectory (its subtree is ≥2 levels).
@@ -80,6 +80,7 @@ fn render_inline_child(children: &ChildMap, child: &DirectorySummary) -> String 
 /// - a `deep` child with *no* leaf child (a pure junction, e.g. `src/common/modules`)
 ///   gets no line — it is only bare-mentioned on its parent, and its subdirectories are
 ///   promoted to anchors instead.
+///
 /// The full repo `directories` slice is passed regardless of scope; only directories
 /// reachable from `scope` are seeded, so the rest never render. Output is bounded by
 /// `limit` emitted anchor lines and [`INLINE_CHILD_LIMIT`] inline children per anchor so a

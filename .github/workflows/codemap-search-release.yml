@@ -41,10 +41,22 @@ jobs:
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, archive: tar.gz }
           # Static musl binary — no glibc, any x86_64 Linux distro, kernel 3.2+.
           - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, archive: tar.gz }
-          - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
-          - { os: macos-13, target: x86_64-apple-darwin, archive: tar.gz }
+          # arm64 musl — cross-built (cross-rs Docker image ships the aarch64
+          # musl cross C compiler, so cc-rs links the vendored tree-sitter C
+          # grammars; apt musl-tools is x86_64-only and cannot do this).
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-musl, archive: tar.gz, cross: true }
+          # Signed + notarized on the shared self-hosted Mac (runner codemap-mac-1)
+          # that already holds the Developer ID identity in livteam-signing.keychain-db
+          # — same machine/keychain as zoetk-ctags-release. arm64 builds native;
+          # x86_64 cross-builds on the same arm64 host (Apple SDK ships the x86_64
+          # slice, already proven there for the ctags C build).
+          - { os: [self-hosted, macOS, arm64, codemap-mac], target: aarch64-apple-darwin, archive: tar.gz, macsign: true }
+          - { os: [self-hosted, macOS, arm64, codemap-mac], target: x86_64-apple-darwin,  archive: tar.gz, macsign: true }
           # Windows is best-effort.
           - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
+          # Windows arm64 — build-only: the x64 windows runner cannot execute
+          # the aarch64 binary, so the archive ships unverified at runtime.
+          - { os: windows-latest, target: aarch64-pc-windows-msvc, archive: zip }
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -62,10 +74,98 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
+      # cross (cross-rs) runs the build inside a Docker image that already
+      # carries the aarch64 musl cross C compiler, so cc-rs can link the
+      # vendored tree-sitter C grammars.  Only the aarch64 musl leg sets
+      # `cross: true`; every other target builds with plain cargo (below).
+      - name: Install cross
+        if: matrix.cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
       - name: Build
+        # shell: bash on every leg so the POSIX `"$MANIFEST"` env reference
+        # expands consistently.  Without it the Windows runner uses pwsh, where
+        # `$MANIFEST` is empty (the env var is `$env:MANIFEST` there) and the
+        # build collapses to `--manifest-path ""`.  GitHub-hosted Windows runners
+        # ship Git Bash; the Package (unix) step already relies on `shell: bash`.
+        shell: bash
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc
-        run: cargo build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+
+      # --- macOS Developer ID signing + notarization (apple-darwin legs only) ---
+      # Runs on the shared self-hosted Mac (codemap-mac-1), which already holds the
+      # Developer ID identity in livteam-signing.keychain-db.  Mirrors zoetk-ctags-
+      # release's sign-macos job, inlined here because codemap-search produces a
+      # single binary per arch (no multi-binary gather needed).
+      - name: Unlock signing keychain
+        if: matrix.macsign
+        shell: bash
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set -eu
+          KEYCHAIN_PATH="$HOME/Library/Keychains/livteam-signing.keychain-db"
+          [ -f "$KEYCHAIN_PATH" ] || { echo "signing keychain not found at $KEYCHAIN_PATH" >&2; exit 1; }
+          # codesign only searches the user keychain search list; a launchd-started
+          # runner may begin with a reduced list, so add ours if missing (idempotent).
+          if ! security list-keychains -d user | grep -Fq "livteam-signing.keychain-db"; then
+            existing=()
+            while IFS= read -r line; do kc="${line#*\"}"; kc="${kc%\"*}"; [ -n "$kc" ] && existing+=("$kc"); done \
+              < <(security list-keychains -d user)
+            security list-keychains -d user -s "$KEYCHAIN_PATH" "${existing[@]}"
+          fi
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          # Non-interactive key access; without it a headless runner fails with
+          # errSecInternalComponent / "User interaction is not allowed".
+          security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Codesign (Developer ID + hardened runtime)
+        if: matrix.macsign
+        shell: bash
+        env:
+          # Sign by SHA-1 fingerprint, NOT the friendly name (several Developer ID
+          # certs share the name on this Mac).  Same identity as zoetk-ctags-release.
+          # Not secret; rotate via `security find-identity -v -p codesigning <kc>`.
+          SIGNING_IDENTITY: "29288FE3B51E827A802682ED015D555EC037B19E"
+        run: |
+          set -eu
+          bin="apps/codemap-search/target/${{ matrix.target }}/release/$BIN"
+          case "${{ matrix.target }}" in
+            aarch64-apple-darwin) want=arm64 ;;
+            x86_64-apple-darwin)  want=x86_64 ;;
+            *) echo "unexpected target ${{ matrix.target }}" >&2; exit 1 ;;
+          esac
+          # Arch gate: never sign a Mach-O that isn't this leg's architecture.
+          lipo -archs "$bin" | grep -qw "$want" || { echo "$bin is not a $want Mach-O" >&2; exit 1; }
+          # Signing must be the last mutation; --timestamp (secure timestamp) and
+          # --options runtime (hardened runtime) are both required for notarization.
+          codesign --force --timestamp --options runtime --sign "$SIGNING_IDENTITY" "$bin"
+          codesign --verify --strict --verbose=2 "$bin"
+
+      - name: Notarize
+        if: matrix.macsign
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -eu
+          bin="apps/codemap-search/target/${{ matrix.target }}/release/$BIN"
+          # notarytool needs a zip/dmg/pkg container — a bare Mach-O is rejected.
+          ZIP="${RUNNER_TEMP}/${{ matrix.target }}-notarize.zip"
+          rm -f "$ZIP"
+          ditto -c -k "$bin" "$ZIP"
+          xcrun notarytool submit "$ZIP" \
+            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          # No `stapler staple`: a loose executable isn't a staple-able container;
+          # Gatekeeper validates online by cdhash on first run.
 
       - name: Package (unix)
         if: matrix.archive == 'tar.gz'
@@ -91,3 +191,47 @@ jobs:
         with:
           files: |
             codemap-search-${{ matrix.target }}.*
+
+  # crates.io publish runs as an independent job: it has NO `needs:` edge, so a
+  # publish failure cannot delete or void the GitHub Release binary assets the
+  # `release` matrix uploads.  Both jobs fire on the same `codemap-v*` tag.
+  publish-crate:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Idempotency guard: query the crates.io API for the exact version this
+      # manifest declares.  HTTP 200 means it is already published (a re-run or a
+      # re-pushed tag) → skip so the job stays green instead of failing on the
+      # "crate version already uploaded" error (crates.io forbids re-publishing a
+      # version).  Anything else (notably 404 = new) → publish; cargo remains the
+      # final authority and errors clearly if the version really does exist.
+      # A User-Agent header is mandatory: crates.io returns 403 to UA-less
+      # requests, so omitting it would wedge the guard at "never published".
+      #
+      # Scope of the idempotency: the skip is idempotent ONLY as long as the API
+      # returns 200.  On any non-200 (404 = genuinely new, but also a transient
+      # 5xx or post-publish index-propagation lag that hasn't surfaced the new
+      # version yet), the guard falls through to `cargo publish`.  There cargo is
+      # the final authority: an unpublished version uploads normally, while a
+      # re-pushed already-published version errors — and that error reddens only
+      # THIS independent `publish-crate` job.  It has no `needs:` edge, so the
+      # GitHub Release binary assets are unaffected.  Hence "idempotent" here
+      # means "as long as the API answers 200", not unconditionally.
+      - name: Publish codemap-search to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 --manifest-path "$MANIFEST" \
+            | jq -r '.packages[0].version')"
+          httpCode="$(curl -s -A "codemap-search-release-ci (github actions)" \
+            -o /dev/null -w '%{http_code}' \
+            "https://crates.io/api/v1/crates/${BIN}/${version}")"
+          if [ "$httpCode" = "200" ]; then
+            echo "codemap-search ${version} already on crates.io — skipping publish."
+            exit 0
+          fi
+          echo "codemap-search ${version} not on crates.io (HTTP ${httpCode}) — publishing."
+          cargo publish --manifest-path "$MANIFEST"

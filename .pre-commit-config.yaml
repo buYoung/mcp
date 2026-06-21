@@ -7,3 +7,9 @@ repos:
         language: system
         pass_filenames: false
         files: ^apps/codemap-search/.*\.rs$
+      - id: cargo-clippy-codemap
+        name: cargo clippy (codemap-search)
+        entry: cargo clippy --manifest-path apps/codemap-search/Cargo.toml --all-targets -- -D warnings
+        language: system
+        pass_filenames: false
+        files: ^apps/codemap-search/.*\.rs$

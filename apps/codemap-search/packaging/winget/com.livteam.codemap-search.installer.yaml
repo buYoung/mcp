@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+# codemap-search WinGet installer manifest.
+#
+# The released Windows assets are a bare `codemap-search.exe` packed at the ROOT of a
+# `.zip` (cm-dist-04). WinGet models this as a *portable nested installer*: the outer
+# archive is `InstallerType: zip`, and the single executable inside is declared as a
+# `NestedInstallerType: portable` with a `PortableCommandAlias` so `winget install`
+# places `codemap-search` on PATH.
+#
+# InstallerSha256 values below are PLACEHOLDERS (64 zeros — the schema requires a
+# 64-char hex string, so a text sentinel would fail validation). No `codemap-v0.1.0`
+# release exists yet, so the real `.zip` and its sibling `.sha256` do not exist.
+# After the first `codemap-v0.1.0` tag publishes the assets, replace each placeholder
+# with the lowercase hex from the matching sibling `.sha256` file:
+#   x64   -> codemap-search-x86_64-pc-windows-msvc.zip.sha256
+#   arm64 -> codemap-search-aarch64-pc-windows-msvc.zip.sha256
+# (Windows `.sha256` is produced by `Get-FileHash ... .ToLower()`, utf8NoBOM.)
+#
+# NOTE (arm64): the aarch64 asset is BUILD-ONLY — cross-built on an x64 runner and not
+# executed at runtime on arm64 hardware (cm-dist-04). It is published unverified.
+PackageIdentifier: com.livteam.codemap-search
+PackageVersion: 0.1.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: codemap-search.exe
+    PortableCommandAlias: codemap-search
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/buYoung/mcp/releases/download/codemap-v0.1.0/codemap-search-x86_64-pc-windows-msvc.zip
+    InstallerSha256: '0000000000000000000000000000000000000000000000000000000000000000' # placeholder — fill from codemap-search-x86_64-pc-windows-msvc.zip.sha256 after the first codemap-v0.1.0 release
+  - Architecture: arm64
+    InstallerUrl: https://github.com/buYoung/mcp/releases/download/codemap-v0.1.0/codemap-search-aarch64-pc-windows-msvc.zip
+    InstallerSha256: '0000000000000000000000000000000000000000000000000000000000000000' # placeholder — fill from codemap-search-aarch64-pc-windows-msvc.zip.sha256 after the first codemap-v0.1.0 release (arm64 is build-only, not runtime-verified)
+ManifestType: installer
+ManifestVersion: 1.12.0

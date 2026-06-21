@@ -69,6 +69,7 @@ pub(crate) fn name_for_cfn(
 ///   - `function_declarator` → `operator_name`  (C++ operator overload: `operator<`)
 ///   - `function_declarator` → `destructor_name`  (C++ destructor: `~Ops`)
 ///   - `function_declarator` → `parenthesized_declarator` → ... (typedef fn-ptr: `(*cb)(...)`)
+///
 /// Returns the innermost name string, or `None`.
 pub(crate) fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
     match node.kind() {

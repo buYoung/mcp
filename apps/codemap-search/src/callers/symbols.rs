@@ -61,10 +61,7 @@ pub(super) fn is_within_same_named_fn(hit: &ScanHit, name: &str, index: &SymbolI
 /// The innermost `fn`-scope symbol whose inclusive line range contains `line` in `file`.
 /// Smallest span wins (innermost nesting), tie-broken by `range_strictly_contains`. The
 /// inclusive test (`start <= line <= end`) keeps single-line callables attributable.
-pub(super) fn enclosing_fn<'a>(
-    file: &'a ExtractedFile,
-    line: usize,
-) -> Option<&'a ExtractedSymbol> {
+pub(super) fn enclosing_fn(file: &ExtractedFile, line: usize) -> Option<&ExtractedSymbol> {
     let mut best: Option<&ExtractedSymbol> = None;
     for sym in &file.symbols {
         if sym.kind != "fn" {

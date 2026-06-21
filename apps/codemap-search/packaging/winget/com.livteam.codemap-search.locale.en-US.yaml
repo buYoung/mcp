@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+# codemap-search WinGet default-locale (en-US) manifest.
+# Values are pulled from apps/codemap-search/Cargo.toml and README.md:
+#   Publisher       <- Cargo.toml authors = ["Buyong Lee"]
+#   License: MIT    <- Cargo.toml license = "MIT"
+#   ShortDescription<- ADAPTED from Cargo.toml description (NOT pasted verbatim):
+#                      the original colon (`: `) is replaced with ` - ` so the
+#                      value parses as an unquoted YAML plain scalar (a `: ` would
+#                      be read as a mapping key); this also brings it to 147 chars,
+#                      within the schema's 3–256 range.
+#   Moniker         <- Cargo.toml package name (short search alias)
+#   Tags            <- Cargo.toml keywords (verbatim, the 5 declared keywords)
+#   PackageUrl      <- Cargo.toml repository (the defaultLocale schema has no
+#                      `Repository` field; the project URL maps to `PackageUrl`)
+#   PublisherUrl /  <- Cargo.toml repository (the project's GitHub URL)
+#   PublisherSupportUrl
+#   LicenseUrl      <- the in-repo LICENSE file on the default branch
+PackageIdentifier: com.livteam.codemap-search
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: Buyong Lee
+PublisherUrl: https://github.com/buYoung/mcp
+PublisherSupportUrl: https://github.com/buYoung/mcp
+PackageName: codemap-search
+PackageUrl: https://github.com/buYoung/mcp
+License: MIT
+LicenseUrl: https://github.com/buYoung/mcp/blob/main/apps/codemap-search/LICENSE
+Moniker: codemap-search
+Tags:
+- mcp
+- code-search
+- tree-sitter
+- tantivy
+- ripgrep
+ShortDescription: A self-contained MCP stdio server for coding agents - BM25 code search, an aider-style codemap, and embedded read/find/grep (ripgrep as a library).
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0

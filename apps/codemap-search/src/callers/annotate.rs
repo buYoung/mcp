@@ -104,6 +104,7 @@ impl SymbolAnnotation {
 /// The caller block is returned UN-deduped (separated from the fixed prefix/suffix). The P2
 /// "same as above" collapse is deferred to [`SymbolAnnotation::render`] so it runs in the
 /// renderer's emission order over only the symbols actually emitted — see the type doc.
+#[allow(clippy::too_many_arguments)]
 fn render_symbol_annotation(
     sym: &ExtractedSymbol,
     file_path: &str,

@@ -78,7 +78,7 @@ impl CodeExtractor for TreeSitterExtractor {
 
             for capture in mat.captures {
                 let name_idx = capture.index as usize;
-                let name = &*query.capture_names()[name_idx];
+                let name = query.capture_names()[name_idx];
 
                 // `symbol.*` and `literal.*` both record `main_node`; the distinguishing
                 // capture name is carried in the tuple and branched on below. This is
