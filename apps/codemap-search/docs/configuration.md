@@ -16,8 +16,26 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 ## Loader behavior
 
 - **Never-exit:** a missing file, parse error, unknown key, or wrong-typed value warns to stderr and falls back to the default for that key. The server never crashes over config.
-- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created — every key commented out at its default, so the file changes nothing until you uncomment a line. An existing file is never overwritten.
+- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created — every key commented out at its default, so the file changes nothing until you uncomment a line. The file is stamped with a schema-version marker (see below).
+- **Incremental sync:** if the file already exists, it is instead kept in sync with the schema — when a release adds a new key, that key's commented block is appended to your existing file and the version marker is refreshed. The sync is strictly additive: your existing lines (set values and comments alike) are never edited, reordered, or removed, and a file already at the current version is left untouched.
 - **Validation:** numeric keys must be positive integers, `index_path` must be a non-empty string, arrays must contain strings, and filesystem permission policies must be `workspace`, `allowed_roots`, or `anywhere`. An invalid value warns and falls back to the default for that key.
+
+### Schema version and incremental updates
+
+The first line of a generated config file is a version marker — a comment, not a key, so it never affects parsing:
+
+```toml
+# codemap-config-version: 1
+```
+
+This marker lets `mcp` keep an existing config file current as the tool evolves. On startup:
+
+- If the file is **absent**, the commented template is written, stamped with the current version.
+- If the file's version is **older** than the tool's, each key introduced since that version is appended as a commented block (placed before the `[filesystem_permissions]` table so top-level keys keep their scope), and the marker is bumped. A key you have already added or uncommented is detected and never duplicated.
+- If the file is **already current**, it is left byte-for-byte unchanged.
+- A file with **no marker** (written before versioning existed) is treated as the baseline version and synced the same way; nothing is duplicated because every key it already carries is detected first.
+
+Because the sync edits your existing file in place, the change is visible in `git status` if you track `.codemap/`. The edits only add commented lines, so behavior is unchanged until you uncomment a key. Editing the marker yourself is unnecessary — the tool manages it; deleting it only causes the file to be re-synced from the baseline (still non-destructive). The global file (`$CODEMAP_HOME/config.toml`) is not auto-generated and is never synced; only the repo-local file is managed.
 
 ## Key reference
 

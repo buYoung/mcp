@@ -45,8 +45,13 @@ jobs:
           # musl cross C compiler, so cc-rs links the vendored tree-sitter C
           # grammars; apt musl-tools is x86_64-only and cannot do this).
           - { os: ubuntu-latest, target: aarch64-unknown-linux-musl, archive: tar.gz, cross: true }
-          - { os: macos-14, target: aarch64-apple-darwin, archive: tar.gz }
-          - { os: macos-13, target: x86_64-apple-darwin, archive: tar.gz }
+          # Signed + notarized on the shared self-hosted Mac (runner codemap-mac-1)
+          # that already holds the Developer ID identity in livteam-signing.keychain-db
+          # — same machine/keychain as zoetk-ctags-release. arm64 builds native;
+          # x86_64 cross-builds on the same arm64 host (Apple SDK ships the x86_64
+          # slice, already proven there for the ctags C build).
+          - { os: [self-hosted, macOS, arm64, codemap-mac], target: aarch64-apple-darwin, archive: tar.gz, macsign: true }
+          - { os: [self-hosted, macOS, arm64, codemap-mac], target: x86_64-apple-darwin,  archive: tar.gz, macsign: true }
           # Windows is best-effort.
           - { os: windows-latest, target: x86_64-pc-windows-msvc, archive: zip }
           # Windows arm64 — build-only: the x64 windows runner cannot execute
@@ -89,6 +94,78 @@ jobs:
         env:
           CC_x86_64_unknown_linux_musl: musl-gcc
         run: ${{ matrix.cross && 'cross' || 'cargo' }} build --manifest-path "$MANIFEST" --release --target ${{ matrix.target }}
+
+      # --- macOS Developer ID signing + notarization (apple-darwin legs only) ---
+      # Runs on the shared self-hosted Mac (codemap-mac-1), which already holds the
+      # Developer ID identity in livteam-signing.keychain-db.  Mirrors zoetk-ctags-
+      # release's sign-macos job, inlined here because codemap-search produces a
+      # single binary per arch (no multi-binary gather needed).
+      - name: Unlock signing keychain
+        if: matrix.macsign
+        shell: bash
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set -eu
+          KEYCHAIN_PATH="$HOME/Library/Keychains/livteam-signing.keychain-db"
+          [ -f "$KEYCHAIN_PATH" ] || { echo "signing keychain not found at $KEYCHAIN_PATH" >&2; exit 1; }
+          # codesign only searches the user keychain search list; a launchd-started
+          # runner may begin with a reduced list, so add ours if missing (idempotent).
+          if ! security list-keychains -d user | grep -Fq "livteam-signing.keychain-db"; then
+            existing=()
+            while IFS= read -r line; do kc="${line#*\"}"; kc="${kc%\"*}"; [ -n "$kc" ] && existing+=("$kc"); done \
+              < <(security list-keychains -d user)
+            security list-keychains -d user -s "$KEYCHAIN_PATH" "${existing[@]}"
+          fi
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          # Non-interactive key access; without it a headless runner fails with
+          # errSecInternalComponent / "User interaction is not allowed".
+          security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Codesign (Developer ID + hardened runtime)
+        if: matrix.macsign
+        shell: bash
+        env:
+          # Sign by SHA-1 fingerprint, NOT the friendly name (several Developer ID
+          # certs share the name on this Mac).  Same identity as zoetk-ctags-release.
+          # Not secret; rotate via `security find-identity -v -p codesigning <kc>`.
+          SIGNING_IDENTITY: "29288FE3B51E827A802682ED015D555EC037B19E"
+        run: |
+          set -eu
+          bin="apps/codemap-search/target/${{ matrix.target }}/release/$BIN"
+          case "${{ matrix.target }}" in
+            aarch64-apple-darwin) want=arm64 ;;
+            x86_64-apple-darwin)  want=x86_64 ;;
+            *) echo "unexpected target ${{ matrix.target }}" >&2; exit 1 ;;
+          esac
+          # Arch gate: never sign a Mach-O that isn't this leg's architecture.
+          lipo -archs "$bin" | grep -qw "$want" || { echo "$bin is not a $want Mach-O" >&2; exit 1; }
+          # Signing must be the last mutation; --timestamp (secure timestamp) and
+          # --options runtime (hardened runtime) are both required for notarization.
+          codesign --force --timestamp --options runtime --sign "$SIGNING_IDENTITY" "$bin"
+          codesign --verify --strict --verbose=2 "$bin"
+
+      - name: Notarize
+        if: matrix.macsign
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -eu
+          bin="apps/codemap-search/target/${{ matrix.target }}/release/$BIN"
+          # notarytool needs a zip/dmg/pkg container — a bare Mach-O is rejected.
+          ZIP="${RUNNER_TEMP}/${{ matrix.target }}-notarize.zip"
+          rm -f "$ZIP"
+          ditto -c -k "$bin" "$ZIP"
+          xcrun notarytool submit "$ZIP" \
+            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          # No `stapler staple`: a loose executable isn't a staple-able container;
+          # Gatekeeper validates online by cdhash on first run.
 
       - name: Package (unix)
         if: matrix.archive == 'tar.gz'

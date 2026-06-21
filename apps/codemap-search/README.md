@@ -258,7 +258,10 @@ behavior. TOML config is read from a repo layer (`<repo>/.codemap/config.toml`) 
 global layer (`$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`), merged per key
 as `repo > global > default`. On `mcp` startup, if the repo config is absent, a
 commented, no-op template is auto-created for discoverability — every key documented
-inline at its default.
+inline at its default, stamped with a schema-version marker. If the repo config already
+exists, it is incrementally synced instead: keys added by a newer release are appended as
+commented blocks (additive only — your existing lines are never edited or removed), and a
+file already current is left untouched.
 
 All keys, defaults, and the `.codemap/` directory layout are documented in
 [docs/configuration.md](./docs/configuration.md), including `[filesystem_permissions]` for

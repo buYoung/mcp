@@ -5,8 +5,8 @@
 # VERIFIES the sibling .sha256 BEFORE extracting, then installs the
 # `codemap-search` binary to a PATH directory (default ~/.local/bin).
 #
-# Pure POSIX sh — no bashisms. Needs only: curl OR wget, tar, uname, mktemp,
-# and sha256sum OR `shasum -a 256`. No sudo by default.
+# Pure POSIX sh — no bashisms. Needs only standard POSIX utilities plus
+# curl OR wget, and sha256sum OR `shasum -a 256`. No sudo by default.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
@@ -36,6 +36,11 @@ fail() {
 
 info() {
 	printf '%s\n' "$1" >&2
+}
+
+cleanup_install() {
+	[ -z "${tmpdir:-}" ] || rm -rf "$tmpdir"
+	[ -z "${install_tmpdir:-}" ] || rm -rf "$install_tmpdir"
 }
 
 # ---- platform detection ----------------------------------------------------
@@ -207,17 +212,19 @@ main() {
 		exit 0
 	fi
 
-	# Preflight: the header promises tar/uname/mktemp. curl/wget and
+	# Preflight: the header promises standard POSIX tools. curl/wget and
 	# sha256sum/shasum are checked at their call sites; check the remaining
 	# tools here, BEFORE any network call, so a missing one fails early with
 	# the real cause instead of a late, mis-attributed "could not extract".
-	for required_tool in tar mktemp uname; do
+	for required_tool in awk chmod cp mkdir mktemp mv rm tar uname; do
 		command -v "$required_tool" >/dev/null 2>&1 || fail "need $required_tool to install"
 	done
 
 	# Temp workspace, removed on any exit (success, failure, or signal).
 	tmpdir="$(mktemp -d)" || fail "could not create a temp directory"
-	trap 'rm -rf "$tmpdir"' EXIT INT TERM HUP
+	install_tmpdir=""
+	trap 'cleanup_install' EXIT
+	trap 'cleanup_install; exit 1' INT TERM HUP
 
 	archive="${tmpdir}/${asset}"
 	sha_file="${archive}.sha256"
@@ -232,13 +239,18 @@ main() {
 
 	# Only now, on a verified archive, extract the binary.
 	tar -xzf "$archive" -C "$tmpdir" "$BIN" || fail "could not extract $BIN from the archive"
-	[ -f "${tmpdir}/${BIN}" ] || fail "$BIN not found in the archive"
+	extracted_bin="${tmpdir}/${BIN}"
+	[ -f "$extracted_bin" ] || fail "$BIN not found in the archive"
+	[ ! -L "$extracted_bin" ] || fail "$BIN in the archive is a symlink — refusing to install"
 
 	install_dir="${INSTALL_DIR:-$HOME/.local/bin}"
 	mkdir -p "$install_dir" || fail "could not create install dir: $install_dir"
-	chmod +x "${tmpdir}/${BIN}"
-	# cp then rm (not mv) so a cross-filesystem tmpdir does not break install.
-	cp "${tmpdir}/${BIN}" "${install_dir}/${BIN}" || fail "could not install to ${install_dir}"
+	install_tmpdir="$(mktemp -d "${install_dir}/.${BIN}.tmp.XXXXXX")" || fail "could not create a temp install dir in ${install_dir}"
+	install_tmp="${install_tmpdir}/${BIN}"
+	cp "$extracted_bin" "$install_tmp" || fail "could not stage install in ${install_dir}"
+	chmod +x "$install_tmp" || fail "could not mark $BIN executable"
+	# Stage on the target filesystem, then atomically replace the installed path.
+	mv -f "$install_tmp" "${install_dir}/${BIN}" || fail "could not install to ${install_dir}"
 
 	info "installed ${BIN} to ${install_dir}/${BIN}"
 	warn_if_not_on_path "$install_dir"

@@ -9,11 +9,16 @@
 //! The global directory is injected (`CODEMAP_HOME`, else `~/.codemap`) so the loader is
 //! pure/unit-testable and tests stay hermetic (they never read the developer's real home).
 //! The loader ([`load`]) is itself pure and side-effect-free — it only reads. Separately,
-//! the `mcp` command calls [`ensure_repo_template`] once at startup to scaffold a commented,
-//! behavior-preserving `<repo>/.codemap/config.toml` when none exists (for discoverability).
-//! That writer never overwrites an existing file, never touches any git file, and warns
-//! rather than crashing on failure. Keeping `.codemap/` out of `git status` is the user's
-//! `.gitignore` choice.
+//! the `mcp` command calls [`ensure_repo_config`] once at startup. When no
+//! `<repo>/.codemap/config.toml` exists it scaffolds a commented, behavior-preserving file
+//! (stamped with the current schema [`CONFIG_VERSION`]) for discoverability. When one
+//! already exists it **incrementally syncs** it: for every key introduced since the file's
+//! stamped version it appends that key's commented block (presence-guarded so an existing
+//! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
+//! is strictly additive — it never edits, reorders, or removes a user's existing lines,
+//! never rewrites a file already at the current version, never touches any git file, and
+//! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
+//! user's `.gitignore` choice.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -65,11 +70,30 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 /// hermetic isolation; users may set it to relocate global config.
 const HOME_ENV: &str = "CODEMAP_HOME";
 
+/// Current config-template schema version. Stamped into every scaffolded file and used by
+/// [`ensure_repo_config`] to decide whether an existing file needs an incremental sync. Bump
+/// this whenever [`CONFIG_TEMPLATE`] grows a key, and add the matching [`MIGRATIONS`] entry so
+/// pre-existing repo files pick the key up (as a commented block) on their next `mcp` start.
+const CONFIG_VERSION: u32 = 1;
+/// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
+/// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
+/// (each presence-guarded) so it converges to the current schema without duplicating any key
+/// it already holds. It stays the lowest version forever, so the floor never drifts.
+const CONFIG_BASELINE_VERSION: u32 = 1;
+/// Leading text of the comment line that stamps a config file's schema version, e.g.
+/// `# codemap-config-version: 1`. Deliberately a comment, not a TOML key: the loader and
+/// [`normalize`] never see it (preserving the "every key commented → empty layer → zero
+/// warnings" invariant), and the migrator reads it with a plain string scan since the TOML
+/// parser drops comments.
+const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
+
 /// Commented, no-op scaffold written to a fresh repo on `mcp` start (see
-/// [`ensure_repo_template`]). Every key is commented out at its compiled-in default, so the
-/// file parses to an empty layer — zero keys, zero warnings — and reproduces the built-in
-/// behavior exactly until the user uncomments a line. Mirrors the key reference in
-/// `docs/configuration.md`; keep the two aligned when adding or renaming a key.
+/// [`ensure_repo_config`], which prepends the [`VERSION_MARKER_PREFIX`] line). Every key is
+/// commented out at its compiled-in default, so the file parses to an empty layer — zero
+/// keys, zero warnings — and reproduces the built-in behavior exactly until the user
+/// uncomments a line. Mirrors the key reference in `docs/configuration.md`; keep the two
+/// aligned when adding or renaming a key. When adding a key, also bump [`CONFIG_VERSION`] and
+/// add a [`MIGRATIONS`] entry so existing repo files pick it up incrementally.
 const CONFIG_TEMPLATE: &str = "\
 # codemap-search repo-local config. Optional: with every key commented out (the state
 # below), this file reproduces the built-in behavior exactly. Uncomment and edit a line to
@@ -658,26 +682,93 @@ pub fn get() -> &'static ResolvedConfig {
     CONFIG.get_or_init(ResolvedConfig::default)
 }
 
-/// Scaffold a commented, no-op `<repo_root>/.codemap/config.toml` from [`CONFIG_TEMPLATE`]
-/// when none exists, so a fresh repo gets a discoverable, self-documenting config on `mcp`
-/// start. Never-exit: an existing file is left untouched (protects user edits), and a
-/// directory-create or write failure warns to stderr and returns rather than crashing the
-/// server. The path matches exactly what [`load`] reads, so an uncommented key takes effect
-/// on the next run.
-pub fn ensure_repo_template(repo_root: &Path) {
+/// Where a key's commented block is inserted during an incremental sync. Placement is
+/// section-aware because TOML scopes every key after a `[table]` header to that table: a new
+/// top-level key dropped at end-of-file would silently fall under `[filesystem_permissions]`
+/// the moment a user uncomments both, so it must land *before* the first table header.
+///
+/// `allow(dead_code)`: the variants are only constructed by [`MIGRATIONS`] entries (none at
+/// the v1 baseline) and by the migration unit tests, so a release with an empty registry has
+/// no non-test constructor. They become live the moment the first key is added.
+#[derive(Clone, Copy)]
+#[allow(dead_code)]
+enum KeyPlacement {
+    /// A bare top-level key — inserted before the first `[table]` header (commented or not).
+    TopLevel,
+    /// A key under the named sub-table — inserted right after that table's header line.
+    Subtable(&'static str),
+}
+
+/// One additive schema change: the commented block for a key introduced at `version`.
+/// [`ensure_repo_config`] applies every entry newer than a file's stamped version, skipping
+/// any whose `key` the file already mentions (presence guard), then re-stamps the marker.
+///
+/// `allow(dead_code)`: like [`KeyPlacement`], instances exist only in [`MIGRATIONS`] (empty at
+/// v1) and the tests, so the fields have no non-test reader until the first migration ships.
+#[allow(dead_code)]
+struct Migration {
+    /// Schema version that introduced `key`. Applied to files stamped older than this.
+    version: u32,
+    /// Key name the presence guard scans for (top-level name, or the sub-table leaf key) so a
+    /// key the user already added or uncommented is never duplicated.
+    key: &'static str,
+    /// Section-aware insertion point for `block`.
+    placement: KeyPlacement,
+    /// The commented template block for the key, in [`CONFIG_TEMPLATE`]'s style (doc comment
+    /// line(s) then a `# key = default` line, no surrounding blank lines — the inserter spaces
+    /// it).
+    block: &'static str,
+}
+
+/// Ordered, additive migrations. Empty at v1 because v1 *is* the baseline — every key already
+/// lives in [`CONFIG_TEMPLATE`]. To introduce a key in a later release: add its commented
+/// block to [`CONFIG_TEMPLATE`] at its logical position, bump [`CONFIG_VERSION`] to N, then
+/// append a `Migration { version: N, key: "...", placement: ..., block: "..." }` entry here.
+///
+/// Existing repo files then gain the key (commented, before the first table header) and a
+/// refreshed version marker on their next `mcp` start, with their own edits untouched.
+const MIGRATIONS: &[Migration] = &[];
+
+/// `# codemap-config-version: <version>` — the stamp line written into every managed file.
+fn version_marker_line(version: u32) -> String {
+    format!("{VERSION_MARKER_PREFIX} {version}")
+}
+
+/// Scaffold or incrementally sync `<repo_root>/.codemap/config.toml` on `mcp` start.
+///
+/// - Absent → write the commented, no-op [`CONFIG_TEMPLATE`] stamped with [`CONFIG_VERSION`],
+///   so a fresh repo gets a discoverable, self-documenting, behavior-preserving config.
+/// - Present → run [`apply_migrations`]: append only the commented blocks for keys introduced
+///   since the file's stamped version (presence-guarded), re-stamp the marker, and rewrite.
+///   A file already at the current version is left byte-for-byte untouched.
+///
+/// Never-exit: a directory-create, read, or write failure warns to stderr and returns rather
+/// than crashing the server. The path matches exactly what [`load`] reads, so a newly added
+/// (commented) key is inert until uncommented and takes effect on a later run.
+pub fn ensure_repo_config(repo_root: &Path) {
     let dir = repo_root.join(CODEMAP_DIR_NAME);
     let path = dir.join(CONFIG_FILE_NAME);
-    if path.exists() {
-        return;
+    match std::fs::read_to_string(&path) {
+        Ok(existing) => migrate_existing(&path, &existing),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => scaffold_fresh(&dir, &path),
+        Err(e) => warn(&format!(
+            "config sync skipped: read {}: {e}",
+            path.display()
+        )),
     }
-    if let Err(e) = std::fs::create_dir_all(&dir) {
+}
+
+/// Write the version-stamped [`CONFIG_TEMPLATE`] for a repo that has no config file yet.
+fn scaffold_fresh(dir: &Path, path: &Path) {
+    if let Err(e) = std::fs::create_dir_all(dir) {
         warn(&format!(
             "config template skipped: create {}: {e}",
             dir.display()
         ));
         return;
     }
-    if let Err(e) = std::fs::write(&path, CONFIG_TEMPLATE) {
+    let body = format!("{}\n{CONFIG_TEMPLATE}", version_marker_line(CONFIG_VERSION));
+    if let Err(e) = std::fs::write(path, body) {
         warn(&format!(
             "config template skipped: write {}: {e}",
             path.display()
@@ -685,6 +776,165 @@ pub fn ensure_repo_template(repo_root: &Path) {
         return;
     }
     warn(&format!("created default config: {}", path.display()));
+}
+
+/// Incrementally sync an existing config file: stamp-gate, presence-guarded additive insert,
+/// re-stamp, rewrite. A no-op (no write) when the file is already at [`CONFIG_VERSION`].
+fn migrate_existing(path: &Path, existing: &str) {
+    let file_version = parse_version_marker(existing).unwrap_or(CONFIG_BASELINE_VERSION);
+    let Some(updated) = apply_migrations(existing, file_version, CONFIG_VERSION, MIGRATIONS) else {
+        return; // already current — never touch the user's file
+    };
+    if let Err(e) = std::fs::write(path, updated) {
+        warn(&format!(
+            "config sync skipped: write {}: {e}",
+            path.display()
+        ));
+        return;
+    }
+    warn(&format!(
+        "synced config to schema v{CONFIG_VERSION}: {}",
+        path.display()
+    ));
+}
+
+/// Read the schema version stamped by [`VERSION_MARKER_PREFIX`]. `None` when absent or the
+/// trailing token is not an integer (the caller then assumes [`CONFIG_BASELINE_VERSION`]).
+fn parse_version_marker(contents: &str) -> Option<u32> {
+    contents.lines().find_map(|line| {
+        line.trim_start()
+            .strip_prefix(VERSION_MARKER_PREFIX)
+            .and_then(|rest| rest.trim().parse::<u32>().ok())
+    })
+}
+
+/// Whether `contents` already assigns `key` (commented or live). Matches a line that, after an
+/// optional leading `#`, begins with `key` followed by `=` — so it accepts `key = x` and
+/// `# key = x` but not a longer name that merely starts with `key` (e.g. `watch` vs
+/// `watch_debounce_ms`). The presence guard: errs toward NOT inserting, never duplicating.
+fn file_mentions_key(contents: &str, key: &str) -> bool {
+    contents.lines().any(|line| {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        body.strip_prefix(key)
+            .is_some_and(|rest| rest.trim_start().starts_with('='))
+    })
+}
+
+/// Apply the additive migrations newer than `file_version` (up to `target_version`) to
+/// `contents`. Each unseen key's block is inserted section-aware; the version marker is then
+/// stamped to `target_version`. Returns `Some(new_contents)` when a sync is due, or `None`
+/// when the file is already at/ahead of the target (so the caller writes nothing).
+fn apply_migrations(
+    contents: &str,
+    file_version: u32,
+    target_version: u32,
+    migrations: &[Migration],
+) -> Option<String> {
+    if file_version >= target_version {
+        return None;
+    }
+    let mut out = contents.to_string();
+    for migration in migrations
+        .iter()
+        .filter(|m| m.version > file_version && m.version <= target_version)
+    {
+        if file_mentions_key(&out, migration.key) {
+            continue; // presence guard — already there, never duplicate
+        }
+        out = match migration.placement {
+            KeyPlacement::TopLevel => insert_top_level(&out, migration.block),
+            KeyPlacement::Subtable(table) => insert_subtable(&out, table, migration.block),
+        };
+    }
+    // `file_version < target_version` here, so the marker always advances → always a change.
+    Some(set_version_marker(&out, target_version))
+}
+
+/// Byte offset of the first line that opens a TOML table (`[...]`), honoring an optional
+/// leading `# ` so it also anchors before a *commented* `# [filesystem_permissions]`. `None`
+/// when the file has no table header.
+fn first_table_header_offset(contents: &str) -> Option<usize> {
+    let mut offset = 0;
+    for line in contents.split_inclusive('\n') {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        if body.starts_with('[') {
+            return Some(offset);
+        }
+        offset += line.len();
+    }
+    None
+}
+
+/// Insert a top-level key's `block` before the first table header (a blank line after it), or
+/// append it at end-of-file when there is no table. Keeps top-level keys out of any table's
+/// scope no matter what the user later uncomments.
+fn insert_top_level(contents: &str, block: &str) -> String {
+    match first_table_header_offset(contents) {
+        Some(at) => {
+            let mut out = String::with_capacity(contents.len() + block.len() + 2);
+            out.push_str(&contents[..at]);
+            out.push_str(block);
+            out.push_str("\n\n");
+            out.push_str(&contents[at..]);
+            out
+        }
+        None => {
+            let mut out = contents.to_string();
+            if !out.ends_with('\n') {
+                out.push('\n');
+            }
+            out.push('\n');
+            out.push_str(block);
+            out.push('\n');
+            out
+        }
+    }
+}
+
+/// Insert a sub-table key's `block` right after the `[table]` header line. Falls back to
+/// top-level placement when the header is absent (degraded but never destructive).
+fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
+    let header = format!("[{table}]");
+    let mut offset = 0;
+    for line in contents.split_inclusive('\n') {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        if body.starts_with(&header) {
+            let at = offset + line.len(); // immediately after the header line
+            let mut out = String::with_capacity(contents.len() + block.len() + 1);
+            out.push_str(&contents[..at]);
+            out.push_str(block);
+            out.push('\n');
+            out.push_str(&contents[at..]);
+            return out;
+        }
+        offset += line.len();
+    }
+    insert_top_level(contents, block)
+}
+
+/// Replace the existing [`VERSION_MARKER_PREFIX`] line's value with `version`, or prepend a
+/// fresh marker line when the file has none.
+fn set_version_marker(contents: &str, version: u32) -> String {
+    let marker = version_marker_line(version);
+    let mut offset = 0;
+    for line in contents.split_inclusive('\n') {
+        if line.trim_start().starts_with(VERSION_MARKER_PREFIX) {
+            let line_end = offset + line.len();
+            let mut out = String::with_capacity(contents.len() + marker.len());
+            out.push_str(&contents[..offset]);
+            out.push_str(&marker);
+            if line.ends_with('\n') {
+                out.push('\n');
+            }
+            out.push_str(&contents[line_end..]);
+            return out;
+        }
+        offset += line.len();
+    }
+    format!("{marker}\n{contents}")
 }
 
 // --- value validators (warn + drop on mismatch) ----------------------------------------
@@ -949,6 +1199,186 @@ mod tests {
         assert_eq!(
             cfg.result_threshold, 5,
             "bad-typed key must fall back to default"
+        );
+    }
+
+    // --- version marker + incremental sync ---------------------------------------------
+
+    #[test]
+    fn test_parse_version_marker() {
+        assert_eq!(
+            parse_version_marker("# codemap-config-version: 3\nfoo = 1\n"),
+            Some(3)
+        );
+        // the marker need not be the first line
+        assert_eq!(
+            parse_version_marker("foo = 1\n# codemap-config-version: 7"),
+            Some(7)
+        );
+        // absent → None (caller assumes the baseline)
+        assert_eq!(parse_version_marker("foo = 1\n"), None);
+        // non-integer trailing token → None
+        assert_eq!(
+            parse_version_marker("# codemap-config-version: vNext\n"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_file_mentions_key_guards_prefix_collisions() {
+        // commented, live, and tightly-spaced forms all count as present
+        assert!(file_mentions_key(
+            "# result_threshold = 5\n",
+            "result_threshold"
+        ));
+        assert!(file_mentions_key(
+            "result_threshold = 3\n",
+            "result_threshold"
+        ));
+        assert!(file_mentions_key(
+            "#result_threshold=3\n",
+            "result_threshold"
+        ));
+        // a longer key that merely starts with the name must NOT match
+        assert!(!file_mentions_key("watch_debounce_ms = 500\n", "watch"));
+        assert!(!file_mentions_key(
+            "nothing relevant here\n",
+            "result_threshold"
+        ));
+    }
+
+    #[test]
+    fn test_apply_migrations_noop_when_already_current() {
+        let body = "# codemap-config-version: 2\nfoo = 1\n";
+        // equal version → no sync due
+        assert!(apply_migrations(body, 2, 2, &[]).is_none());
+        // file ahead of target → also a no-op (never downgrade)
+        assert!(apply_migrations(body, 3, 2, &[]).is_none());
+    }
+
+    #[test]
+    fn test_apply_migrations_inserts_top_level_before_table() {
+        let migrations = &[Migration {
+            version: 2,
+            key: "new_key",
+            placement: KeyPlacement::TopLevel,
+            block: "# New key doc.\n# new_key = 7",
+        }];
+        let body = "# codemap-config-version: 1\n# index doc\n# index_path = \".codemap/index\"\n\n# [filesystem_permissions]\n# find = \"workspace\"\n";
+        let out = apply_migrations(body, 1, 2, migrations).expect("a sync is due");
+        // section-aware: the new top-level key precedes the table header so it can never be
+        // captured by the table when both are later uncommented.
+        let key_pos = out.find("new_key").unwrap();
+        let table_pos = out.find("[filesystem_permissions]").unwrap();
+        assert!(
+            key_pos < table_pos,
+            "new top-level key must precede the table header: {out:?}"
+        );
+        // marker advanced, user content preserved
+        assert!(out.contains("# codemap-config-version: 2"));
+        assert!(!out.contains("version: 1"));
+        assert!(out.contains("# index_path = \".codemap/index\""));
+    }
+
+    #[test]
+    fn test_apply_migrations_presence_guard_skips_existing_key() {
+        let migrations = &[Migration {
+            version: 2,
+            key: "already_here",
+            placement: KeyPlacement::TopLevel,
+            block: "# dup doc.\n# already_here = 1",
+        }];
+        // the user already has the key (commented). It must not be duplicated, but the marker
+        // still advances so the file is not re-scanned every run.
+        let body = "# codemap-config-version: 1\n# already_here = 99\n";
+        let out = apply_migrations(body, 1, 2, migrations).expect("marker still advances");
+        assert_eq!(
+            out.matches("already_here").count(),
+            1,
+            "presence guard must not duplicate an existing key: {out:?}"
+        );
+        assert!(out.contains("# codemap-config-version: 2"));
+    }
+
+    #[test]
+    fn test_apply_migrations_premarker_file_runs_from_baseline() {
+        // A file with no marker is treated as CONFIG_BASELINE_VERSION, so a later migration
+        // applies and the user's existing content is preserved verbatim.
+        let migrations = &[Migration {
+            version: 2,
+            key: "added_in_v2",
+            placement: KeyPlacement::TopLevel,
+            block: "# v2 key.\n# added_in_v2 = 1",
+        }];
+        let body = "result_threshold = 3\n";
+        assert_eq!(parse_version_marker(body), None, "fixture has no marker");
+        let out = apply_migrations(body, CONFIG_BASELINE_VERSION, 2, migrations).unwrap();
+        assert!(out.contains("added_in_v2"), "v2 key inserted: {out:?}");
+        assert!(
+            out.contains("# codemap-config-version: 2"),
+            "marker stamped: {out:?}"
+        );
+        assert!(
+            out.contains("result_threshold = 3"),
+            "user content preserved: {out:?}"
+        );
+    }
+
+    #[test]
+    fn test_insert_subtable_places_key_under_header() {
+        let body =
+            "# codemap-config-version: 1\n# [filesystem_permissions]\n# find = \"workspace\"\n";
+        let out = insert_subtable(body, "filesystem_permissions", "# new_perm = \"x\"");
+        let header_pos = out.find("[filesystem_permissions]").unwrap();
+        let key_pos = out.find("new_perm").unwrap();
+        assert!(
+            header_pos < key_pos,
+            "a sub-table key must follow its header: {out:?}"
+        );
+    }
+
+    #[test]
+    fn test_set_version_marker_replaces_or_prepends() {
+        // replace an existing marker in place
+        let replaced = set_version_marker("# codemap-config-version: 1\nfoo = 1\n", 5);
+        assert!(replaced.contains("# codemap-config-version: 5"));
+        assert!(!replaced.contains("version: 1"));
+        assert!(replaced.contains("foo = 1"));
+        // prepend when none exists
+        let prepended = set_version_marker("foo = 1\n", 3);
+        assert!(prepended.starts_with("# codemap-config-version: 3\n"));
+        assert!(prepended.contains("foo = 1"));
+    }
+
+    #[test]
+    fn test_ensure_repo_config_scaffolds_with_version_marker() {
+        let repo = tempdir().unwrap();
+        ensure_repo_config(repo.path());
+        let path = repo.path().join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+        let body = fs::read_to_string(&path).unwrap();
+        assert!(
+            body.starts_with(&format!("# codemap-config-version: {CONFIG_VERSION}\n")),
+            "scaffold must be stamped with the current schema version: {body:?}"
+        );
+        // still a no-op layer: every key commented → parsing yields the defaults
+        let global = tempdir().unwrap();
+        assert_eq!(load(repo.path(), global.path()).result_threshold, 5);
+    }
+
+    #[test]
+    fn test_ensure_repo_config_is_idempotent() {
+        // A freshly scaffolded file is already current, so the next run must not rewrite it
+        // (preserves the "never touch a current file" guarantee end-to-end with the real
+        // registry, independent of CONFIG_VERSION's value).
+        let repo = tempdir().unwrap();
+        ensure_repo_config(repo.path());
+        let path = repo.path().join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+        let after_scaffold = fs::read_to_string(&path).unwrap();
+        ensure_repo_config(repo.path());
+        let after_second = fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            after_scaffold, after_second,
+            "a current config file must not be rewritten on a later run"
         );
     }
 }

@@ -165,7 +165,7 @@ fn match_reason(res: &crate::index::SearchResult) -> String {
 /// the cross-path scan can match the legacy literal to its exec definition site.
 fn qualified_name_leaf(qualified: &str) -> String {
     qualified
-        .rsplit(|c| c == ':' || c == '.')
+        .rsplit([':', '.'])
         .find(|seg| !seg.is_empty())
         .unwrap_or(qualified)
         .to_lowercase()

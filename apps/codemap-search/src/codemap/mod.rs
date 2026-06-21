@@ -457,10 +457,10 @@ mod tests {
     /// shapes on one tree:
     ///  - `leafA`        — a leaf directory → inlined bare on its parent's line.
     ///  - `group`        — a terminal-group (all children leaves) → inlined with its
-    ///                     children in braces: `group (..): {leaf1 (..), leaf2 (..)}`.
+    ///    children in braces: `group (..): {leaf1 (..), leaf2 (..)}`.
     ///  - `junction`     — deep with NO leaf child of its own → gets no line; it is only
-    ///                     bare-mentioned on `top`, and its grandchild `sub` (which has a
-    ///                     leaf child) is promoted to its own anchor line.
+    ///    bare-mentioned on `top`, and its grandchild `sub` (which has a
+    ///    leaf child) is promoted to its own anchor line.
     #[test]
     fn test_root_codemap_recursive_inlining() {
         let files = vec![
