@@ -1,1 +1,1 @@
-codemap-search: six read-only code-navigation tools (search, grep, overview, read, find). Before using them, call the `initial_instructions` tool once with no arguments to load the usage rules and navigation flow.
+codemap-search: six read-only code-navigation tools — `initial_instructions` plus five navigation tools (`search`, `grep`, `overview`, `read`, `find`). Call `initial_instructions` once with no arguments before the navigation tools to load the usage rules and navigation flow. Some clients hide or compress these server instructions, so do not rely on them alone.
