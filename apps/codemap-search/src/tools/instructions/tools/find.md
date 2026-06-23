@@ -1,0 +1,1 @@
+Locate files by glob, e.g. '**/*.rs', to confirm exact files exist. Results are mtime-sorted and capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without slash, e.g. '*rpc*', matches filenames only, never directory segments. To match a path component, use '**/*rpc*' or '**/rpc/**'.

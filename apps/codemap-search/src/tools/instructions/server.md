@@ -1,0 +1,1 @@
+codemap-search: six read-only code-navigation tools (search, grep, overview, read, find). Before using them, call the `initial_instructions` tool once with no arguments to load the usage rules and navigation flow.

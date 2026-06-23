@@ -1,0 +1,1 @@
+Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar. Get ranges from search read_suggestion or overview, then read that window. No-limit reads of large files are refused with a narrower-window error. Do not read a whole large file just to find one symbol.

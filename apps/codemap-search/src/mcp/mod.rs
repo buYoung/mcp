@@ -116,7 +116,7 @@ impl McpServer {
                         "name": "codemap-search-server",
                         "version": env!("CARGO_PKG_VERSION")
                     },
-                    "instructions": crate::tools::instructions()
+                    "instructions": crate::tools::server_instructions()
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
