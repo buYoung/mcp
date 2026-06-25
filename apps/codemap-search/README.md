@@ -24,20 +24,26 @@ The intended flow is hierarchical narrowing:
 
 ## Quick start
 
-Install the binary:
+Install the binary from crates.io (released):
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
+Or install from your local checkout of this repo (builds your local HEAD / working tree):
+
+```sh
+cargo install --path apps/codemap-search
+```
+
 Then register it with an MCP client. The server indexes the process working directory, so
 the client should launch `codemap-search mcp` from the repository you want to inspect.
 
-Claude Code:
+Claude Code (user scope — registers globally, available in every project):
 
 ```sh
-claude mcp add codemap-search -- codemap-search mcp
+claude mcp add -s user codemap-search -- codemap-search mcp
 ```
 
 Codex (`~/.codex/config.toml`):

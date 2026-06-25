@@ -14,19 +14,25 @@
 
 ## 빠른 시작
 
-바이너리를 설치합니다.
+crates.io 릴리스 버전을 설치합니다.
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
-그다음 MCP 클라이언트에 등록합니다. 서버는 실행된 작업 디렉터리를 인덱싱하므로, 클라이언트가 분석하려는 저장소에서 `codemap-search mcp`를 실행해야 합니다.
-
-Claude Code:
+또는 이 저장소의 로컬 체크아웃에서 설치합니다(로컬 HEAD/작업 트리를 빌드).
 
 ```sh
-claude mcp add codemap-search -- codemap-search mcp
+cargo install --path apps/codemap-search
+```
+
+그다음 MCP 클라이언트에 등록합니다. 서버는 실행된 작업 디렉터리를 인덱싱하므로, 클라이언트가 분석하려는 저장소에서 `codemap-search mcp`를 실행해야 합니다.
+
+Claude Code (전역 등록 — user 스코프, 모든 프로젝트에 적용):
+
+```sh
+claude mcp add -s user codemap-search -- codemap-search mcp
 ```
 
 Codex (`~/.codex/config.toml`):
