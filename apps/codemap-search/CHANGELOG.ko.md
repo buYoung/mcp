@@ -6,6 +6,18 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+
+### 추가
+- codemap-search에 Tree-sitter 기반 정밀 호출자·호출 대상 추적 추가
+- navigation_context_default, navigation_callsite_budget 등 네비게이션 컨텍스트 설정 추가
+
+### 개선
+- 검색 쿼리에서 언어·파일 확장자 힌트를 반영한 랭킹과 필터링 개선
+- Tree-sitter tags.scm 기반 정의·참조 태깅으로 검색 결과 품질 개선
+- codemap-search 초기 안내와 툴 설명 문서 개선
+- codemap-search README에 crates.io·로컬 체크아웃 설치 옵션과 Claude Code -s user 등록 안내 개선
+
 ## [0.1.6] - 2026-06-22
 
 - 사용자에게 직접 보이는 변경 사항은 없습니다.

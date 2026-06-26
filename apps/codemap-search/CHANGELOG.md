@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+
+### Added
+- Added Tree-sitter based caller and callee tracking for more precise code navigation.
+- Added navigation context settings, including `navigation_context_default` and `navigation_callsite_budget`.
+
+### Improved
+- Improved search ranking with language and file extension hints.
+- Improved definition and reference tagging through Tree-sitter `tags.scm` queries.
+- Improved `codemap-search` README install guidance for crates.io, local checkout, and Claude Code user-scope setup.
+
 ## [0.1.6] - 2026-06-22
 
 - No user-facing changes in this release.
