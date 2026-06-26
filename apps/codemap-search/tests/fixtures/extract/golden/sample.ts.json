@@ -172,5 +172,53 @@
     "Fetch the current user.",
     "@deprecated use fetch instead",
     "An exported free function."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "describe",
+        "range": {
+          "startLine": 28,
+          "startCol": 1,
+          "endLine": 32,
+          "endCol": 3
+        }
+      },
+      {
+        "name": "it",
+        "range": {
+          "startLine": 29,
+          "startCol": 3,
+          "endLine": 31,
+          "endCol": 5
+        },
+        "scopeId": 2800032
+      },
+      {
+        "name": "fetch",
+        "receiver": "new UserService()",
+        "range": {
+          "startLine": 30,
+          "startCol": 5,
+          "endLine": 30,
+          "endCol": 30
+        },
+        "scopeId": 2900031
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "endpoint",
+        "range": {
+          "startLine": 7,
+          "startCol": 11,
+          "endLine": 7,
+          "endCol": 52
+        },
+        "scopeId": 600009
+      }
+    ],
+    "imports": []
+  }
 }

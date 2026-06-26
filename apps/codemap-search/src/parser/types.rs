@@ -47,6 +47,73 @@ pub struct ExtractedLiteral {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct CallSite {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receiver: Option<String>,
+    pub range: CodeRange,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope_id: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferenceSite {
+    pub name: String,
+    pub range: CodeRange,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope_id: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalBinding {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_type: Option<String>,
+    pub range: CodeRange,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope_id: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ImportKind {
+    Named,
+    Default,
+    Namespace,
+    Glob,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportEntry {
+    pub local_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub imported_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    pub kind: ImportKind,
+    pub range: CodeRange,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationFile {
+    #[serde(default)]
+    pub calls: Vec<CallSite>,
+    #[serde(default)]
+    pub references: Vec<ReferenceSite>,
+    #[serde(default)]
+    pub local_bindings: Vec<LocalBinding>,
+    #[serde(default)]
+    pub imports: Vec<ImportEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedFile {
     pub file_path: String,
     #[serde(default)]
@@ -54,6 +121,8 @@ pub struct ExtractedFile {
     pub symbols: Vec<ExtractedSymbol>,
     pub literals: Vec<ExtractedLiteral>,
     pub docstrings: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub navigation: Option<NavigationFile>,
 }
 
 /// `outer` strictly contains `inner` when `inner`'s line span sits inside

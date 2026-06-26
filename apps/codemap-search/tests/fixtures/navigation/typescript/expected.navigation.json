@@ -1,0 +1,98 @@
+{
+  "calls": [
+    {
+      "name": "save",
+      "receiver": "user",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 16
+      },
+      "scopeId": 400009
+    },
+    {
+      "name": "persist",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 18
+      },
+      "scopeId": 400009
+    },
+    {
+      "name": "flush",
+      "receiver": "Cache",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 18
+      },
+      "scopeId": 400009
+    },
+    {
+      "name": "run",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 13,
+        "endCol": 14
+      },
+      "scopeId": 1200014
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "user",
+      "typeName": "UserService",
+      "valueType": "UserService",
+      "range": {
+        "startLine": 5,
+        "startCol": 11,
+        "endLine": 5,
+        "endCol": 48
+      },
+      "scopeId": 400009
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Cache",
+      "source": "./cache",
+      "kind": "default",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 29
+      }
+    },
+    {
+      "localName": "persist",
+      "importedName": "save",
+      "source": "./user",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 55
+      }
+    },
+    {
+      "localName": "UserService",
+      "importedName": "UserService",
+      "source": "./user",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 55
+      }
+    }
+  ]
+}

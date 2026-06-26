@@ -1,0 +1,85 @@
+{
+  "calls": [
+    {
+      "name": "save",
+      "range": {
+        "startLine": 14,
+        "startCol": 5,
+        "endLine": 14,
+        "endCol": 16
+      },
+      "scopeId": 1100017
+    },
+    {
+      "name": "save",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 15,
+        "endCol": 20
+      },
+      "scopeId": 1100017
+    },
+    {
+      "name": "free_function",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 16,
+        "endCol": 20
+      },
+      "scopeId": 1100017
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "User",
+      "typeName": "User",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 15
+      },
+      "scopeId": 1100017
+    },
+    {
+      "name": "User",
+      "typeName": "User",
+      "range": {
+        "startLine": 13,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 27
+      },
+      "scopeId": 1100017
+    }
+  ],
+  "imports": [
+    {
+      "localName": "hpp",
+      "importedName": "hpp",
+      "source": "user.hpp",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "vector",
+      "importedName": "vector",
+      "source": "vector",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    }
+  ]
+}

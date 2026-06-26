@@ -172,5 +172,53 @@
     "Read a value.",
     "@deprecated use read instead",
     "An exported free function."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "describe",
+        "range": {
+          "startLine": 28,
+          "startCol": 1,
+          "endLine": 32,
+          "endCol": 3
+        }
+      },
+      {
+        "name": "it",
+        "range": {
+          "startLine": 29,
+          "startCol": 3,
+          "endLine": 31,
+          "endCol": 5
+        },
+        "scopeId": 2800032
+      },
+      {
+        "name": "read",
+        "receiver": "new Cache()",
+        "range": {
+          "startLine": 30,
+          "startCol": 5,
+          "endLine": 30,
+          "endCol": 23
+        },
+        "scopeId": 2900031
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "key",
+        "range": {
+          "startLine": 7,
+          "startCol": 11,
+          "endLine": 7,
+          "endCol": 28
+        },
+        "scopeId": 600009
+      }
+    ],
+    "imports": []
+  }
 }

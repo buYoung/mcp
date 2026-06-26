@@ -132,5 +132,45 @@
     "Build a default configuration.",
     "Old loader.",
     "An internal helper that is not exported."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "load",
+        "receiver": "Config",
+        "range": {
+          "startLine": 29,
+          "startCol": 13,
+          "endLine": 29,
+          "endCol": 27
+        },
+        "scopeId": 2800030
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "label",
+        "range": {
+          "startLine": 11,
+          "startCol": 9,
+          "endLine": 11,
+          "endCol": 38
+        },
+        "scopeId": 1000013
+      },
+      {
+        "name": "Config",
+        "valueType": "load",
+        "range": {
+          "startLine": 29,
+          "startCol": 5,
+          "endLine": 29,
+          "endCol": 28
+        },
+        "scopeId": 2800030
+      }
+    ],
+    "imports": []
+  }
 }

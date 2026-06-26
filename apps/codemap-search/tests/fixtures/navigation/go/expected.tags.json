@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "UserService struct{}",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 5,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "name",
+    "text": "UserService",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 5,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "func (service *UserService) Save() {}",
+    "range": {
+      "startLine": 7,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Save",
+    "range": {
+      "startLine": 7,
+      "startCol": 29,
+      "endLine": 7,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "func run() {\n\tservice := &UserService{}\n\tservice.Save()\n\tfmt.Println(\"ok\")\n}",
+    "range": {
+      "startLine": 9,
+      "startCol": 1,
+      "endLine": 13,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 9,
+      "startCol": 6,
+      "endLine": 9,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.Save()",
+    "range": {
+      "startLine": 11,
+      "startCol": 2,
+      "endLine": 11,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "fmt.Println(\"ok\")",
+    "range": {
+      "startLine": 12,
+      "startCol": 2,
+      "endLine": 12,
+      "endCol": 19
+    }
+  }
+]

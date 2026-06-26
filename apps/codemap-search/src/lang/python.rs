@@ -5,25 +5,11 @@ use tree_sitter::{Language, Node, Query};
 
 use super::{contains_case_insensitive, generic_find_owner, strip_quotes, LanguageSpec};
 
-const PYTHON_QUERY_STR: &str = r#"
-;; Class Definitions
-(class_definition
-  name: (identifier) @symbol.name) @symbol.class
-
-;; Function and Method Definitions
-(function_definition
-  name: (identifier) @symbol.name) @symbol.fn
-
-;; Assignments (Variables)
-(assignment
-  left: (identifier) @symbol.name) @symbol.variable
-
-;; Literals
-(string) @literal.string
-(integer) @literal.number
-(float) @literal.number
-[(true) (false)] @literal.boolean
-"#;
+const PYTHON_QUERY_STR: &str = concat!(
+    include_str!("../../queries/python/symbols.scm"),
+    "\n",
+    include_str!("../../queries/python/navigation.scm")
+);
 
 fn get_python_query() -> &'static Query {
     static PYTHON_QUERY: OnceLock<Query> = OnceLock::new();
@@ -82,6 +68,10 @@ impl LanguageSpec for PythonSpec {
 
     fn extensions(&self) -> &'static [&'static str] {
         &["py"]
+    }
+
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        true
     }
 
     fn is_import_line(&self, line: &str) -> bool {

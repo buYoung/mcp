@@ -74,7 +74,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// [`ensure_repo_config`] to decide whether an existing file needs an incremental sync. Bump
 /// this whenever [`CONFIG_TEMPLATE`] grows a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a commented block) on their next `mcp` start.
-const CONFIG_VERSION: u32 = 1;
+const CONFIG_VERSION: u32 = 2;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -181,6 +181,12 @@ const CONFIG_TEMPLATE: &str = "\
 # caller_context=false per call) to disable.
 # caller_context_default = true
 
+# Tree-sitter navigation attribution controls. The first implementation keeps precise
+# navigation opt-in by default while the fallback name-match annotations remain on.
+# navigation_context_default = false
+# navigation_callsite_budget = 1000
+# navigation_store_references = false
+
 # Caps for the caller/callee annotation (all output-size / cost bounds, tunable).
 # scan_cap = 500               # hit budget for the combined-regex walk, split across scanned names (floor 25/name)
 # caller_list_cap = 5          # max callers (or non-call references) rendered per symbol
@@ -272,6 +278,14 @@ pub struct ResolvedConfig {
     /// `caller_context` parameter, when supplied, always overrides this; the key only
     /// decides the default when the parameter is omitted.
     pub caller_context_default: bool,
+    /// Repo-level default for navigation-based precise attribution (default false). Caller
+    /// context still renders via the existing name-match fallback when this is off.
+    pub navigation_context_default: bool,
+    /// Max navigation call sites resolved in one annotation pass before falling back
+    /// (default 1000).
+    pub navigation_callsite_budget: usize,
+    /// Whether extraction stores reference sites in `NavigationFile` (default false).
+    pub navigation_store_references: bool,
     /// Max call sites collected across the single combined-regex caller scan (default 500).
     /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
     pub scan_cap: usize,
@@ -321,6 +335,9 @@ impl Default for ResolvedConfig {
             search_literal_limit: 10,
             search_anchor_snippet_limit: 3,
             caller_context_default: true,
+            navigation_context_default: false,
+            navigation_callsite_budget: 1000,
+            navigation_store_references: false,
             scan_cap: 500,
             caller_list_cap: 5,
             callee_list_cap: 5,
@@ -356,6 +373,9 @@ struct ConfigLayer {
     search_literal_limit: Option<usize>,
     search_anchor_snippet_limit: Option<usize>,
     caller_context_default: Option<bool>,
+    navigation_context_default: Option<bool>,
+    navigation_callsite_budget: Option<usize>,
+    navigation_store_references: Option<bool>,
     scan_cap: Option<usize>,
     caller_list_cap: Option<usize>,
     callee_list_cap: Option<usize>,
@@ -461,6 +481,15 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
                 layer.search_anchor_snippet_limit = as_positive_usize(&v, &key, path)
             }
             "caller_context_default" => layer.caller_context_default = as_bool(&v, &key, path),
+            "navigation_context_default" => {
+                layer.navigation_context_default = as_bool(&v, &key, path)
+            }
+            "navigation_callsite_budget" => {
+                layer.navigation_callsite_budget = as_positive_usize(&v, &key, path)
+            }
+            "navigation_store_references" => {
+                layer.navigation_store_references = as_bool(&v, &key, path)
+            }
             "scan_cap" => layer.scan_cap = as_positive_usize(&v, &key, path),
             "caller_list_cap" => layer.caller_list_cap = as_positive_usize(&v, &key, path),
             "callee_list_cap" => layer.callee_list_cap = as_positive_usize(&v, &key, path),
@@ -566,6 +595,18 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .caller_context_default
             .or(global.caller_context_default)
             .unwrap_or(defaults.caller_context_default),
+        navigation_context_default: repo
+            .navigation_context_default
+            .or(global.navigation_context_default)
+            .unwrap_or(defaults.navigation_context_default),
+        navigation_callsite_budget: repo
+            .navigation_callsite_budget
+            .or(global.navigation_callsite_budget)
+            .unwrap_or(defaults.navigation_callsite_budget),
+        navigation_store_references: repo
+            .navigation_store_references
+            .or(global.navigation_store_references)
+            .unwrap_or(defaults.navigation_store_references),
         scan_cap: repo
             .scan_cap
             .or(global.scan_cap)
@@ -720,14 +761,33 @@ struct Migration {
     block: &'static str,
 }
 
-/// Ordered, additive migrations. Empty at v1 because v1 *is* the baseline — every key already
-/// lives in [`CONFIG_TEMPLATE`]. To introduce a key in a later release: add its commented
+/// Ordered, additive migrations. v1 is the baseline; later entries add commented blocks for
+/// keys introduced after that baseline. To introduce a key in a later release: add its commented
 /// block to [`CONFIG_TEMPLATE`] at its logical position, bump [`CONFIG_VERSION`] to N, then
 /// append a `Migration { version: N, key: "...", placement: ..., block: "..." }` entry here.
 ///
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
-const MIGRATIONS: &[Migration] = &[];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 2,
+        key: "navigation_context_default",
+        placement: KeyPlacement::TopLevel,
+        block: "# Tree-sitter navigation attribution controls. The first implementation keeps precise\n# navigation opt-in by default while the fallback name-match annotations remain on.\n# navigation_context_default = false",
+    },
+    Migration {
+        version: 2,
+        key: "navigation_callsite_budget",
+        placement: KeyPlacement::TopLevel,
+        block: "# navigation_callsite_budget = 1000",
+    },
+    Migration {
+        version: 2,
+        key: "navigation_store_references",
+        placement: KeyPlacement::TopLevel,
+        block: "# navigation_store_references = false",
+    },
+];
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
 fn version_marker_line(version: u32) -> String {

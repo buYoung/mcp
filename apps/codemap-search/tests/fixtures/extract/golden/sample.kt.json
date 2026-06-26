@@ -152,5 +152,33 @@
     "Fetch a record.",
     "Old fetcher.",
     "An exported top-level function."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "fetch",
+        "range": {
+          "startLine": 22,
+          "startCol": 9,
+          "endLine": 22,
+          "endCol": 16
+        },
+        "scopeId": 2000023
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "query",
+        "range": {
+          "startLine": 6,
+          "startCol": 9,
+          "endLine": 6,
+          "endCol": 42
+        },
+        "scopeId": 500008
+      }
+    ],
+    "imports": []
+  }
 }

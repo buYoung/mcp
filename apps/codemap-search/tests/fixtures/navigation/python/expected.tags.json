@@ -1,0 +1,112 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "def run():\n    user = UserService()\n    user.save()\n    print(os.getcwd())",
+    "range": {
+      "startLine": 5,
+      "startCol": 1,
+      "endLine": 8,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 5,
+      "startCol": 5,
+      "endLine": 5,
+      "endCol": 8
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "UserService()",
+    "range": {
+      "startLine": 6,
+      "startCol": 12,
+      "endLine": 6,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "user.save()",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "print(os.getcwd())",
+    "range": {
+      "startLine": 8,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "os.getcwd()",
+    "range": {
+      "startLine": 8,
+      "startCol": 11,
+      "endLine": 8,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "class Controller:\n    def handle(self):\n        run()",
+    "range": {
+      "startLine": 11,
+      "startCol": 1,
+      "endLine": 13,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Controller",
+    "range": {
+      "startLine": 11,
+      "startCol": 7,
+      "endLine": 11,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def handle(self):\n        run()",
+    "range": {
+      "startLine": 12,
+      "startCol": 5,
+      "endLine": 13,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 12,
+      "startCol": 9,
+      "endLine": 12,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "run()",
+    "range": {
+      "startLine": 13,
+      "startCol": 9,
+      "endLine": 13,
+      "endCol": 14
+    }
+  }
+]

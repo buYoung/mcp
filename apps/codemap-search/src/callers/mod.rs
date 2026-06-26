@@ -9,12 +9,13 @@
 //! by intersecting the matched symbol's own body with the snapshot's global `fn`-name
 //! set, and renders the result as a markdown annotation block.
 //!
-//! Everything here is **approximate by construction** — a name-match scan with no type
-//! resolution. Every rendered line says so. Qualified names (`Type::method` /
-//! `Class.method`) are read DIRECTLY off the Phase-A `ExtractedSymbol::owner` field; no
-//! on-demand owner source scan is performed. The decorator/attribute entry-point label
-//! is the one remaining on-demand source re-read (the lines above a symbol's range fall
-//! outside its recorded span).
+//! The default path remains approximate by construction — a name-match scan with no type
+//! resolution. When `navigation_context_default` is enabled and the tree-sitter navigation
+//! data confirms exactly one target, individual caller/callee lines may be marked precise.
+//! Qualified names (`Type::method` / `Class.method`) are read DIRECTLY off the Phase-A
+//! `ExtractedSymbol::owner` field; no on-demand owner source scan is performed. The
+//! decorator/attribute entry-point label is the one remaining on-demand source re-read
+//! (the lines above a symbol's range fall outside its recorded span).
 //!
 //! Failure isolation: any IO/regex/scan error makes the whole annotation degrade to
 //! `None`, so the caller emits the un-annotated search result. The feature never fails
@@ -37,8 +38,8 @@ mod scan;
 mod symbols;
 
 pub use annotate::{
-    annotate_results, AnnotationRequest, CallerBlockDedup, DetailAnnotations, PreparedAnnotation,
-    ANNOTATION_OMITTED_MARKER,
+    annotate_results, annotate_results_with_state, AnnotationRequest, CallerBlockDedup,
+    DetailAnnotations, PreparedAnnotation, ANNOTATION_OMITTED_MARKER,
 };
 
 use crate::lang::spec_for_ext;
@@ -72,6 +73,25 @@ pub struct CallerConfig {
     /// Files larger than this (bytes) are skipped by the scan, matching the indexer's
     /// `collect_index_entry` size filter (config `max_file_size`).
     pub max_file_size: u64,
+    /// Whether navigation-based precise attribution is enabled by default for caller context.
+    pub navigation_context_default: bool,
+    /// Maximum navigation call sites inspected in one annotation pass before falling back.
+    pub navigation_callsite_budget: usize,
+    /// Whether reference sites are stored in extracted navigation data.
+    pub navigation_store_references: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct AnnotationRuntimeState {
+    pub is_warming: bool,
+    pub has_refresh_error: bool,
+    pub is_dead_or_stale: bool,
+}
+
+impl AnnotationRuntimeState {
+    pub(crate) fn suppresses_navigation(&self) -> bool {
+        self.is_warming || self.has_refresh_error || self.is_dead_or_stale
+    }
 }
 
 /// Render a symbol's display name, prefixed by its `owner` when present:
@@ -248,6 +268,7 @@ pub(super) mod fixtures {
             symbols,
             literals: vec![],
             docstrings: vec![],
+            navigation: None,
         }
     }
 
@@ -260,6 +281,9 @@ pub(super) mod fixtures {
             common_name_threshold: 2,
             caller_omit_def_threshold: 5,
             max_file_size: 1_048_576,
+            navigation_context_default: false,
+            navigation_callsite_budget: 1000,
+            navigation_store_references: false,
         }
     }
 

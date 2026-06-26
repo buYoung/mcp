@@ -120,7 +120,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// indexed-content change with NO new tantivy schema field — `Index::open_or_create` would
 /// happily reuse a v6 index without re-emitting the owner tokens — so the bump is what forces
 /// the one-time reindex that populates them. Each bump rebuilds exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v7-owner-tokens-indexed";
+const EXTRACTION_FORMAT_VERSION: &str = "v8-navigation-file";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {

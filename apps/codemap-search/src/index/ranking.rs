@@ -325,6 +325,7 @@ fn candidate_from_doc(
             symbols: Vec::new(),
             literals: Vec::new(),
             docstrings: Vec::new(),
+            navigation: None,
         });
 
     Ok(CandidateFile {

@@ -65,6 +65,13 @@ pub(crate) trait LanguageSpec: Sync {
     /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.
     fn extensions(&self) -> &'static [&'static str];
 
+    /// Whether this spec's runtime query includes `@nav.*` / `@local.*` captures. `false`
+    /// means `ExtractedFile.navigation` stays `None`; `true` means extraction ran and may
+    /// produce `Some(NavigationFile { calls: vec![], .. })`.
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        false
+    }
+
     /// The separator between an owning type and a member in a qualified symbol name
     /// (`callers` annotation display). Default `"."` matches every class-nested language;
     /// only Rust overrides to `"::"`.

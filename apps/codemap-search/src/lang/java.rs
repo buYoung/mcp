@@ -5,35 +5,11 @@ use tree_sitter::{Language, Node, Query};
 
 use super::{generic_find_owner, has_annotation, LanguageSpec};
 
-const JAVA_QUERY_STR: &str = r#"
-;; Type declarations
-(class_declaration
-  name: (identifier) @symbol.name) @symbol.class
-(interface_declaration
-  name: (identifier) @symbol.name) @symbol.interface
-(enum_declaration
-  name: (identifier) @symbol.name) @symbol.enum
-(record_declaration
-  name: (identifier) @symbol.name) @symbol.record
-
-;; Enum constants
-(enum_constant
-  name: (identifier) @symbol.name) @symbol.variant
-
-;; Methods and constructors
-(method_declaration
-  name: (identifier) @symbol.name) @symbol.method
-(constructor_declaration
-  name: (identifier) @symbol.name) @symbol.method
-
-;; Fields
-(field_declaration
-  declarator: (variable_declarator
-    name: (identifier) @symbol.name)) @symbol.field
-
-;; Literals
-(string_literal) @literal.string
-"#;
+const JAVA_QUERY_STR: &str = concat!(
+    include_str!("../../queries/java/symbols.scm"),
+    "\n",
+    include_str!("../../queries/java/navigation.scm")
+);
 
 fn get_java_query() -> &'static Query {
     static JAVA_QUERY: OnceLock<Query> = OnceLock::new();
@@ -83,6 +59,10 @@ impl LanguageSpec for JavaSpec {
 
     fn extensions(&self) -> &'static [&'static str] {
         &["java"]
+    }
+
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        true
     }
 
     fn is_import_line(&self, line: &str) -> bool {

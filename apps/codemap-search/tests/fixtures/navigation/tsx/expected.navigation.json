@@ -1,0 +1,54 @@
+{
+  "calls": [
+    {
+      "name": "open",
+      "receiver": "panel",
+      "range": {
+        "startLine": 6,
+        "startCol": 46,
+        "endLine": 6,
+        "endCol": 58
+      },
+      "scopeId": 600006
+    },
+    {
+      "name": "title",
+      "receiver": "Panel",
+      "range": {
+        "startLine": 7,
+        "startCol": 14,
+        "endLine": 7,
+        "endCol": 27
+      },
+      "scopeId": 300010
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "panel",
+      "valueType": "Panel",
+      "range": {
+        "startLine": 4,
+        "startCol": 11,
+        "endLine": 4,
+        "endCol": 30
+      },
+      "scopeId": 300010
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Panel",
+      "importedName": "Panel",
+      "source": "./panel",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 33
+      }
+    }
+  ]
+}

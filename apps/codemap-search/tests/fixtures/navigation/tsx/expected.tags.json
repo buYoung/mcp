@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function View() {\n    const panel = new Panel();\n    return (\n        <button type=\"button\" onClick={() => panel.open()}>\n            {Panel.title()}\n        </button>\n    );\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 8,
+      "endLine": 10,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "View",
+    "range": {
+      "startLine": 3,
+      "startCol": 17,
+      "endLine": 3,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "panel.open()",
+    "range": {
+      "startLine": 6,
+      "startCol": 46,
+      "endLine": 6,
+      "endCol": 58
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Panel.title()",
+    "range": {
+      "startLine": 7,
+      "startCol": 14,
+      "endLine": 7,
+      "endCol": 27
+    }
+  }
+]

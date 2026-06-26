@@ -171,5 +171,23 @@
     "Out-of-line definition: owner is Widget.",
     "An exported free function.",
     "@deprecated use makeWidget instead"
-  ]
+  ],
+  "navigation": {
+    "calls": [],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "label",
+        "typeName": "char",
+        "range": {
+          "startLine": 15,
+          "startCol": 5,
+          "endLine": 15,
+          "endCol": 40
+        },
+        "scopeId": 1400017
+      }
+    ],
+    "imports": []
+  }
 }

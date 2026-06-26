@@ -11,33 +11,11 @@ use super::{
 // Kotlin: `class` and `interface` share the `class_declaration` node; the concrete
 // kind is resolved in code from the presence of an `interface` keyword child (see the
 // `symbol.ktclass` arm).
-const KOTLIN_QUERY_STR: &str = r#"
-;; Classes / interfaces (disambiguated in code) and objects
-(class_declaration
-  name: (identifier) @symbol.name) @symbol.ktclass
-(object_declaration
-  name: (identifier) @symbol.name) @symbol.object
-
-;; Enum entries
-(enum_entry
-  (identifier) @symbol.name) @symbol.variant
-
-;; Functions
-(function_declaration
-  name: (identifier) @symbol.name) @symbol.fn
-
-;; Properties
-(property_declaration
-  (variable_declaration
-    (identifier) @symbol.name)) @symbol.property
-
-;; Type aliases
-(type_alias
-  (identifier) @symbol.name) @symbol.type
-
-;; Literals
-(string_literal) @literal.string
-"#;
+const KOTLIN_QUERY_STR: &str = concat!(
+    include_str!("../../queries/kotlin/symbols.scm"),
+    "\n",
+    include_str!("../../queries/kotlin/navigation.scm")
+);
 
 fn get_kotlin_query() -> &'static Query {
     static KOTLIN_QUERY: OnceLock<Query> = OnceLock::new();
@@ -118,6 +96,10 @@ impl LanguageSpec for KotlinSpec {
 
     fn extensions(&self) -> &'static [&'static str] {
         &["kt", "kts"]
+    }
+
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        true
     }
 
     fn is_import_line(&self, line: &str) -> bool {

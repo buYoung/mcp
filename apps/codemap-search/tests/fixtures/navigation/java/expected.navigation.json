@@ -1,0 +1,54 @@
+{
+  "calls": [
+    {
+      "name": "UserService",
+      "range": {
+        "startLine": 5,
+        "startCol": 35,
+        "endLine": 5,
+        "endCol": 52
+      },
+      "scopeId": 400007
+    },
+    {
+      "name": "save",
+      "receiver": "userService",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 27
+      },
+      "scopeId": 400007
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "userService",
+      "typeName": "UserService",
+      "valueType": "UserService",
+      "range": {
+        "startLine": 5,
+        "startCol": 9,
+        "endLine": 5,
+        "endCol": 53
+      },
+      "scopeId": 400007
+    }
+  ],
+  "imports": [
+    {
+      "localName": "UserService",
+      "importedName": "UserService",
+      "source": "com.example",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 32
+      }
+    }
+  ]
+}

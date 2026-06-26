@@ -115,5 +115,45 @@
     "Fixture exercising Java branch-sensitive extraction.",
     "Fetch the current value.",
     "Old fetcher."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "fetch",
+        "receiver": "new Sample()",
+        "range": {
+          "startLine": 22,
+          "startCol": 9,
+          "endLine": 22,
+          "endCol": 29
+        },
+        "scopeId": 2000023
+      },
+      {
+        "name": "Sample",
+        "range": {
+          "startLine": 22,
+          "startCol": 9,
+          "endLine": 22,
+          "endCol": 21
+        },
+        "scopeId": 2000023
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "label",
+        "typeName": "String",
+        "range": {
+          "startLine": 6,
+          "startCol": 9,
+          "endLine": 6,
+          "endCol": 40
+        },
+        "scopeId": 500008
+      }
+    ],
+    "imports": []
+  }
 }

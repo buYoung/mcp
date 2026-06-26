@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "void save(struct User *user) {}",
+    "range": {
+      "startLine": 8,
+      "startCol": 1,
+      "endLine": 8,
+      "endCol": 32
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "void run(void) {\n    struct User user;\n    save(&user);\n    printf(\"ok\");\n}",
+    "range": {
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 14,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "save(&user)",
+    "range": {
+      "startLine": 12,
+      "startCol": 5,
+      "endLine": 12,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "printf(\"ok\")",
+    "range": {
+      "startLine": 13,
+      "startCol": 5,
+      "endLine": 13,
+      "endCol": 17
+    }
+  }
+]

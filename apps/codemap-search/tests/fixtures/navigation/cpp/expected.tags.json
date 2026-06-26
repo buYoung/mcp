@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "void save() {}",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "void free_function() {}",
+    "range": {
+      "startLine": 9,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "void run() {\n    User user;\n    User *pointer = &user;\n    user.save();\n    pointer->save();\n    free_function();\n}",
+    "range": {
+      "startLine": 11,
+      "startCol": 1,
+      "endLine": 17,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "user.save()",
+    "range": {
+      "startLine": 14,
+      "startCol": 5,
+      "endLine": 14,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "pointer->save()",
+    "range": {
+      "startLine": 15,
+      "startCol": 5,
+      "endLine": 15,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "free_function()",
+    "range": {
+      "startLine": 16,
+      "startCol": 5,
+      "endLine": 16,
+      "endCol": 20
+    }
+  }
+]

@@ -9,37 +9,11 @@ use super::{contains_case_insensitive, generic_find_owner, is_inside_function, L
 // code from the `type:` child (see the `symbol.gotype` arm) to avoid referencing
 // type-expression node kinds the grammar may or may not expose (an unknown kind makes
 // `Query::new` return Err -> the `.expect()` panics on first use).
-const GO_QUERY_STR: &str = r#"
-;; Functions and methods
-(function_declaration
-  name: (identifier) @symbol.name) @symbol.fn
-(method_declaration
-  name: (field_identifier) @symbol.name) @symbol.fn
-
-;; Named types (struct / interface / alias resolved in code)
-(type_spec
-  name: (type_identifier) @symbol.name) @symbol.gotype
-(type_alias
-  name: (type_identifier) @symbol.name) @symbol.type
-
-;; Struct fields
-(field_declaration
-  name: (field_identifier) @symbol.name) @symbol.field
-
-;; Interface methods
-(method_elem
-  name: (field_identifier) @symbol.name) @symbol.fn
-
-;; Package-level constants and variables
-(const_spec
-  name: (identifier) @symbol.name) @symbol.const
-(var_spec
-  name: (identifier) @symbol.name) @symbol.variable
-
-;; Literals (only strings are kept downstream)
-(interpreted_string_literal) @literal.string
-(raw_string_literal) @literal.string
-"#;
+const GO_QUERY_STR: &str = concat!(
+    include_str!("../../queries/go/symbols.scm"),
+    "\n",
+    include_str!("../../queries/go/navigation.scm")
+);
 
 fn get_go_query() -> &'static Query {
     static GO_QUERY: OnceLock<Query> = OnceLock::new();
@@ -165,6 +139,10 @@ impl LanguageSpec for GoSpec {
 
     fn extensions(&self) -> &'static [&'static str] {
         &["go"]
+    }
+
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        true
     }
 
     fn is_import_line(&self, line: &str) -> bool {

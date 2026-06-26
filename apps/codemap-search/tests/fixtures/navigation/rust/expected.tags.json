@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.struct",
+    "text": "pub struct UserService;",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 4,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "name",
+    "text": "UserService",
+    "range": {
+      "startLine": 4,
+      "startCol": 12,
+      "endLine": 4,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub fn save(&self) {}",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "name",
+    "text": "save",
+    "range": {
+      "startLine": 7,
+      "startCol": 12,
+      "endLine": 7,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub fn run() {\n    let service: Service = Service::new();\n    service.save();\n    UserService::save(&service);\n}",
+    "range": {
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 14,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 10,
+      "startCol": 8,
+      "endLine": 10,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Service::new()",
+    "range": {
+      "startLine": 11,
+      "startCol": 28,
+      "endLine": 11,
+      "endCol": 42
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.save()",
+    "range": {
+      "startLine": 12,
+      "startCol": 5,
+      "endLine": 12,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "UserService::save(&service)",
+    "range": {
+      "startLine": 13,
+      "startCol": 5,
+      "endLine": 13,
+      "endCol": 32
+    }
+  }
+]

@@ -148,5 +148,34 @@
     "PublicHelper is an exported free function.",
     "privateHelper is unexported.",
     "TestServerStart is a Go test entry point."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "Start",
+        "receiver": "(&Server{})",
+        "range": {
+          "startLine": 34,
+          "startCol": 6,
+          "endLine": 34,
+          "endCol": 25
+        },
+        "scopeId": 3300035
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "endpoint",
+        "range": {
+          "startLine": 11,
+          "startCol": 2,
+          "endLine": 11,
+          "endCol": 30
+        },
+        "scopeId": 1000013
+      }
+    ],
+    "imports": []
+  }
 }

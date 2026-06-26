@@ -1,0 +1,64 @@
+{
+  "calls": [
+    {
+      "name": "save",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 16
+      },
+      "scopeId": 1000014
+    },
+    {
+      "name": "printf",
+      "range": {
+        "startLine": 13,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 17
+      },
+      "scopeId": 1000014
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "User",
+      "typeName": "struct User",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 22
+      },
+      "scopeId": 1000014
+    }
+  ],
+  "imports": [
+    {
+      "localName": "h",
+      "importedName": "h",
+      "source": "user.h",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "h",
+      "importedName": "h",
+      "source": "stdio.h",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    }
+  ]
+}

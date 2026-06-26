@@ -184,5 +184,44 @@
     "Fetch a record.",
     "Deprecated fetcher.",
     "A free function."
-  ]
+  ],
+  "navigation": {
+    "calls": [
+      {
+        "name": "fetch",
+        "receiver": "Repository()",
+        "range": {
+          "startLine": 31,
+          "startCol": 5,
+          "endLine": 31,
+          "endCol": 25
+        },
+        "scopeId": 3000031
+      },
+      {
+        "name": "Repository",
+        "range": {
+          "startLine": 31,
+          "startCol": 5,
+          "endLine": 31,
+          "endCol": 17
+        },
+        "scopeId": 3000031
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "query",
+        "range": {
+          "startLine": 9,
+          "startCol": 9,
+          "endLine": 9,
+          "endCol": 38
+        },
+        "scopeId": 700010
+      }
+    ],
+    "imports": []
+  }
 }

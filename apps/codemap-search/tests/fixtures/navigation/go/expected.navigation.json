@@ -1,0 +1,55 @@
+{
+  "calls": [
+    {
+      "name": "Save",
+      "receiver": "service",
+      "range": {
+        "startLine": 11,
+        "startCol": 2,
+        "endLine": 11,
+        "endCol": 16
+      },
+      "scopeId": 900013
+    },
+    {
+      "name": "Println",
+      "receiver": "fmt",
+      "range": {
+        "startLine": 12,
+        "startCol": 2,
+        "endLine": 12,
+        "endCol": 19
+      },
+      "scopeId": 900013
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "service",
+      "typeName": "UserService",
+      "valueType": "UserService",
+      "range": {
+        "startLine": 10,
+        "startCol": 2,
+        "endLine": 10,
+        "endCol": 27
+      },
+      "scopeId": 900013
+    }
+  ],
+  "imports": [
+    {
+      "localName": "fmt",
+      "importedName": "fmt",
+      "source": "fmt",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 13
+      }
+    }
+  ]
+}

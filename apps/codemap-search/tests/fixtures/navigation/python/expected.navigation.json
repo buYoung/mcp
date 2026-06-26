@@ -1,0 +1,94 @@
+{
+  "calls": [
+    {
+      "name": "UserService",
+      "range": {
+        "startLine": 6,
+        "startCol": 12,
+        "endLine": 6,
+        "endCol": 25
+      },
+      "scopeId": 500008
+    },
+    {
+      "name": "save",
+      "receiver": "user",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 16
+      },
+      "scopeId": 500008
+    },
+    {
+      "name": "print",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 23
+      },
+      "scopeId": 500008
+    },
+    {
+      "name": "getcwd",
+      "receiver": "os",
+      "range": {
+        "startLine": 8,
+        "startCol": 11,
+        "endLine": 8,
+        "endCol": 22
+      },
+      "scopeId": 500008
+    },
+    {
+      "name": "run",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 13,
+        "endCol": 14
+      },
+      "scopeId": 1200013
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "user",
+      "valueType": "UserService",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 25
+      },
+      "scopeId": 500008
+    }
+  ],
+  "imports": [
+    {
+      "localName": "UserService",
+      "importedName": "UserService",
+      "source": "services.user",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 38
+      }
+    },
+    {
+      "localName": "os",
+      "kind": "default",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 10
+      }
+    }
+  ]
+}

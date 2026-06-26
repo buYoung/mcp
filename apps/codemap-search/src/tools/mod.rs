@@ -250,7 +250,7 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string" },
-                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees (approximate, name-match only). Detail view only; on by default (config caller_context_default) — pass false to disable." }
+                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." }
                             },
                             "required": ["query"]
                         }

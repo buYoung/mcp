@@ -107,5 +107,23 @@
     "A connection record.",
     "Open a connection and return a status message.",
     "@deprecated use connection_open instead"
-  ]
+  ],
+  "navigation": {
+    "calls": [],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "status",
+        "typeName": "char",
+        "range": {
+          "startLine": 12,
+          "startCol": 5,
+          "endLine": 12,
+          "endCol": 46
+        },
+        "scopeId": 1100014
+      }
+    ],
+    "imports": []
+  }
 }

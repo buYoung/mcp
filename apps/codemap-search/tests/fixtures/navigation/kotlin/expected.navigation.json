@@ -1,0 +1,53 @@
+{
+  "calls": [
+    {
+      "name": "UserAlias",
+      "range": {
+        "startLine": 12,
+        "startCol": 22,
+        "endLine": 12,
+        "endCol": 33
+      },
+      "scopeId": 1100014
+    },
+    {
+      "name": "save",
+      "receiver": "user",
+      "range": {
+        "startLine": 13,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 16
+      },
+      "scopeId": 1100014
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "user",
+      "valueType": "UserAlias",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 33
+      },
+      "scopeId": 1100014
+    }
+  ],
+  "imports": [
+    {
+      "localName": "UserAlias",
+      "importedName": "User",
+      "source": "com.example",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 37
+      }
+    }
+  ]
+}

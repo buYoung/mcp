@@ -18,23 +18,7 @@ use super::{LanguageSpec, NameDecision};
 //     `string` child confirmed in node-types.json. Captured as `@literal.string` for BM25.
 // Export detection: a label is exported iff its name appears in a preceding `.globl`/`.global`
 // meta directive anywhere in the file (pre-pass via `collect_asm_globl_names`).
-const ASM_QUERY_STR: &str = r#"
-;; Labels: branch targets and function entry points.
-(label) @symbol.asmfn
-
-;; Macro definitions: `.macro name`.
-(meta
-  kind: (meta_ident) @meta_kind) @symbol.asmfn
-
-;; Const assignments: `NAME = VALUE` (tree-sitter-asm `const` node).
-(const
-  name: (word) @symbol.name) @symbol.const
-
-;; String data directives: `.asciz "hello"` / `.ascii "..."` / `.string "..."` —
-;; the `string` node is a direct child of the `meta` node (node-types.json confirmed).
-(meta
-  (string) @literal.string)
-"#;
+const ASM_QUERY_STR: &str = include_str!("../../queries/asm/symbols.scm");
 
 fn get_asm_query() -> &'static Query {
     static ASM_QUERY: OnceLock<Query> = OnceLock::new();

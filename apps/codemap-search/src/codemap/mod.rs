@@ -411,6 +411,7 @@ mod tests {
             symbols,
             literals: vec![],
             docstrings: vec![],
+            navigation: None,
         }
     }
 
@@ -658,6 +659,7 @@ mod tests {
                 line: 1,
             }],
             docstrings: vec!["A check function\nwith multiple lines".to_string()],
+            navigation: None,
         };
 
         let details = CodemapGenerator::generate_detail_view(&file);

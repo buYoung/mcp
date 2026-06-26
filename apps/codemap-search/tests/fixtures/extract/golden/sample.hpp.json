@@ -127,5 +127,11 @@
     "A service with a public and a private member.",
     "Start the service.",
     "@deprecated use start instead"
-  ]
+  ],
+  "navigation": {
+    "calls": [],
+    "references": [],
+    "localBindings": [],
+    "imports": []
+  }
 }

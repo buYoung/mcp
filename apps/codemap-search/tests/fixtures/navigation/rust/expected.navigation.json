@@ -1,0 +1,76 @@
+{
+  "calls": [
+    {
+      "name": "new",
+      "receiver": "Service",
+      "range": {
+        "startLine": 11,
+        "startCol": 28,
+        "endLine": 11,
+        "endCol": 42
+      },
+      "scopeId": 1000014
+    },
+    {
+      "name": "save",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 19
+      },
+      "scopeId": 1000014
+    },
+    {
+      "name": "save",
+      "receiver": "UserService",
+      "range": {
+        "startLine": 13,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 32
+      },
+      "scopeId": 1000014
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "service",
+      "typeName": "Service",
+      "valueType": "Service",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 43
+      },
+      "scopeId": 1000014
+    }
+  ],
+  "imports": [
+    {
+      "localName": "*",
+      "source": "crate::prelude::*",
+      "kind": "glob",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 23
+      }
+    },
+    {
+      "localName": "Service",
+      "importedName": "UserService",
+      "source": "crate::user::UserService",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 41
+      }
+    }
+  ]
+}

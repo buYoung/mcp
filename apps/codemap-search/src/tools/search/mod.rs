@@ -456,10 +456,25 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                 common_name_threshold: cfg.common_name_threshold,
                 caller_omit_def_threshold: cfg.caller_omit_def_threshold,
                 max_file_size: cfg.max_file_size,
+                navigation_context_default: cfg.navigation_context_default,
+                navigation_callsite_budget: cfg.navigation_callsite_budget,
+                navigation_store_references: cfg.navigation_store_references,
+            };
+            let runtime_state = crate::callers::AnnotationRuntimeState {
+                is_warming: ctx.engine.is_warming(),
+                has_refresh_error: ctx.engine.last_error().is_some(),
+                is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
             };
             let available = byte_cap.saturating_sub(text.len());
             let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-            crate::callers::annotate_results(&requests, &snapshot, &caller_cfg, available, &root)
+            crate::callers::annotate_results_with_state(
+                &requests,
+                &snapshot,
+                &caller_cfg,
+                available,
+                &root,
+                runtime_state,
+            )
         } else {
             None
         };

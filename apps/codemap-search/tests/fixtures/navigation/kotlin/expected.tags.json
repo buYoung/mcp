@@ -1,0 +1,122 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class User {\n    fun save() {}\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "User",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "fun save() {}",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 4,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "name",
+    "text": "save",
+    "range": {
+      "startLine": 4,
+      "startCol": 9,
+      "endLine": 4,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "interface Saver {\n    fun save()\n}",
+    "range": {
+      "startLine": 7,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Saver",
+    "range": {
+      "startLine": 7,
+      "startCol": 11,
+      "endLine": 7,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "fun save()",
+    "range": {
+      "startLine": 8,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "name",
+    "text": "save",
+    "range": {
+      "startLine": 8,
+      "startCol": 9,
+      "endLine": 8,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "fun run() {\n    val user: User = UserAlias()\n    user.save()\n}",
+    "range": {
+      "startLine": 11,
+      "startCol": 1,
+      "endLine": 14,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 11,
+      "endCol": 8
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "UserAlias()",
+    "range": {
+      "startLine": 12,
+      "startCol": 22,
+      "endLine": 12,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "user.save()",
+    "range": {
+      "startLine": 13,
+      "startCol": 5,
+      "endLine": 13,
+      "endCol": 16
+    }
+  }
+]

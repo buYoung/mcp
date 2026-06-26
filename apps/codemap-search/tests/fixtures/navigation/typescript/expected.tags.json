@@ -1,0 +1,102 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function run() {\n    const user: UserService = new UserService();\n    user.save();\n    persist(user);\n    Cache.flush();\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 8,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 4,
+      "startCol": 17,
+      "endLine": 4,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "user.save()",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "persist(user)",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Cache.flush()",
+    "range": {
+      "startLine": 8,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "class Controller {\n    handle() {\n        run();\n    }\n}",
+    "range": {
+      "startLine": 11,
+      "startCol": 8,
+      "endLine": 15,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Controller",
+    "range": {
+      "startLine": 11,
+      "startCol": 14,
+      "endLine": 11,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "handle() {\n        run();\n    }",
+    "range": {
+      "startLine": 12,
+      "startCol": 5,
+      "endLine": 14,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 12,
+      "startCol": 5,
+      "endLine": 12,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "run()",
+    "range": {
+      "startLine": 13,
+      "startCol": 9,
+      "endLine": 13,
+      "endCol": 14
+    }
+  }
+]

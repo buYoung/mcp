@@ -74,6 +74,9 @@ Use this table as the source of truth for supported keys, accepted types, and de
 | `search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
 | `search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
 | `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
+| `navigation_context_default` | bool | `false` | Enable tree-sitter precise caller/callee attribution when the structural navigation data confirms exactly one target |
+| `navigation_callsite_budget` | integer | `1000` | Max navigation call sites inspected in one annotation pass before falling back to approximate annotations |
+| `navigation_store_references` | bool | `false` | Store reference-site observations in `NavigationFile` when reference extraction is enabled |
 | `scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
 | `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
 | `callee_list_cap` | integer | `5` | Max callees rendered per symbol |
@@ -87,7 +90,7 @@ Use this table as the source of truth for supported keys, accepted types, and de
 - 검색 결과 크기: `result_threshold`, `search_overview_file_limit`, `search_detail_snippet_max_lines`, `search_detail_symbol_limit`, `search_detail_byte_cap`, `search_literal_max_len`, `search_literal_limit`, `search_anchor_snippet_limit`
 - 실시간 파일 도구 제한: `grep_max_columns`, `read_output_byte_cap`, `[filesystem_permissions]`
 - 색인 최신성: `watch`, `watch_debounce_ms`, `index_staleness_ms`, `indexer_auto_restart`
-- 호출자/호출 대상 주석: `caller_context_default`, `scan_cap`, `caller_list_cap`, `callee_list_cap`, `annotation_sub_budget`, `common_name_threshold`, `caller_omit_def_threshold`
+- 호출자/호출 대상 주석: `caller_context_default`, `navigation_context_default`, `navigation_callsite_budget`, `navigation_store_references`, `scan_cap`, `caller_list_cap`, `callee_list_cap`, `annotation_sub_budget`, `common_name_threshold`, `caller_omit_def_threshold`
 
 ### Indexing
 
@@ -131,14 +134,17 @@ Use this table as the source of truth for supported keys, accepted types, and de
 
 ### Caller/callee context
 
-- **`caller_context_default`** — whether `search`'s detail view annotates each matched function with its depth-1 callers and callees (approximate, name-match only) when the per-call `caller_context` parameter is omitted. Default `true`; an explicit per-call parameter always wins over this key.
+- **`caller_context_default`** — whether `search`'s detail view annotates each matched function with its depth-1 callers and callees when the per-call `caller_context` parameter is omitted. Default `true`; an explicit per-call parameter always wins over this key.
+- **`navigation_context_default`** — whether caller/callee annotations may use tree-sitter navigation observations for precise attribution. Default `false`: structural calls may still feed conservative approximate output, but `(precise)` labels and import/source/receiver narrowing stay disabled unless this is enabled.
+- **`navigation_callsite_budget`** — max navigation call sites inspected in one annotation pass before the navigation path falls back to the existing approximate scan path. Default `1000`.
+- **`navigation_store_references`** — whether extracted `NavigationFile` values store non-call reference observations. Default `false`; the first navigation layer uses calls/imports/local bindings for attribution.
 - **`scan_cap`** — overall hit-collection budget for the single combined-regex workspace scan behind one annotation pass, distributed across the scanned names (per-name cap = `scan_cap / names`, floored at 25) so one hot name cannot starve the others; a name exhausting its share marks its own caller list as truncated.
 - **`caller_list_cap` / `callee_list_cap`** — per-symbol render caps; overflow becomes a "… N more not shown" note. Output-size only — safe to tune.
 - **`annotation_sub_budget`** — byte budget for all annotations in one response, counted WITHIN `search_detail_byte_cap` (snippets keep priority). An annotation that cannot fit degrades to a one-line omission marker rather than disappearing silently.
 - **`common_name_threshold`** — a function name with at least this many definitions in the index gets its caller list and callee entries labeled attribution-ambiguous (a name-match scan cannot tell which definition a site targets); the lists are still rendered, never suppressed.
 - **`caller_omit_def_threshold`** — stricter than `common_name_threshold`: a matched function name with at least this many definitions has its caller list *suppressed*, not just labeled — a name-match scan cannot attribute call sites among that many same-named definitions, so a one-line omission note (with the def count and a `grep "name("` pointer) replaces it. Callees are unaffected; the scan itself is unchanged.
 
-한국어 요약: 호출자/호출 대상 주석은 이름 기반 근사치입니다. 같은 이름의 정의가 많을수록 귀속이 모호해지므로, 임계값은 “더 많이 보여줄지”보다 “혼동될 정보를 얼마나 줄일지”를 정하는 설정입니다.
+한국어 요약: 호출자/호출 대상 주석은 기본적으로 보수적 근사치입니다. `navigation_context_default`를 켜면 tree-sitter 구조, import/source 해석, receiver 힌트가 단일 대상만 확정할 때만 정밀 표시를 붙입니다. 같은 이름의 정의가 많을수록 귀속이 모호해지므로, 임계값은 “더 많이 보여줄지”보다 “혼동될 정보를 얼마나 줄일지”를 정하는 설정입니다.
 
 ### Ignore handling
 
@@ -182,6 +188,10 @@ search_detail_byte_cap = 32768            # 32 KiB
 search_literal_max_len = 200
 search_literal_limit = 10
 search_anchor_snippet_limit = 3
+caller_context_default = true
+navigation_context_default = false
+navigation_callsite_budget = 1000
+navigation_store_references = false
 
 [filesystem_permissions]
 find = "workspace"

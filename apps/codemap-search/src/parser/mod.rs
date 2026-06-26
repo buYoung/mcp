@@ -4,6 +4,7 @@ mod types;
 pub use tokenize::{split_identifier, QueryTokens};
 pub use types::*;
 
+use std::collections::HashSet;
 use std::path::Path;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Parser, QueryCursor};
@@ -30,6 +31,508 @@ impl TreeSitterExtractor {
     }
 }
 
+fn range_for_node(node: Node) -> CodeRange {
+    let start = node.start_position();
+    let end = node.end_position();
+    CodeRange {
+        start_line: start.row + 1,
+        start_col: start.column + 1,
+        end_line: end.row + 1,
+        end_col: end.column + 1,
+    }
+}
+
+fn node_text(node: Node, source: &[u8]) -> Option<String> {
+    node.utf8_text(source)
+        .ok()
+        .map(|text| text.trim().to_string())
+}
+
+fn string_literal_value(text: &str) -> String {
+    strip_quotes(text.trim().trim_end_matches(';').trim())
+}
+
+fn clean_type_text(text: &str) -> Option<String> {
+    let cleaned = text
+        .trim()
+        .trim_start_matches(':')
+        .trim_start_matches("new ")
+        .trim()
+        .trim_end_matches(';')
+        .trim()
+        .to_string();
+    if cleaned.is_empty() {
+        None
+    } else {
+        Some(cleaned)
+    }
+}
+
+fn base_name_from_text(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let without_args = trimmed
+        .split(['<', '(', '['])
+        .next()
+        .unwrap_or(trimmed)
+        .trim();
+    let name = without_args
+        .rsplit(['.', ':', '/', '\\', ' '])
+        .find(|part| !part.is_empty())
+        .unwrap_or(without_args)
+        .trim_matches(['*', '&']);
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
+    }
+}
+
+fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
+    if kinds.contains(&node.kind()) {
+        return Some(node);
+    }
+    for child_index in 0..node.child_count() {
+        let child = node.child(child_index as u32).unwrap();
+        if let Some(found) = first_descendant_kind(child, kinds) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn field_or_descendant_name(node: Node, source: &[u8]) -> Option<String> {
+    if let Some(name) = node.child_by_field_name("name") {
+        return node_text(name, source);
+    }
+    if let Some(declarator) = first_descendant_kind(node, &["variable_declarator"]) {
+        if let Some(name) = declarator.child_by_field_name("name") {
+            return node_text(name, source);
+        }
+    }
+    first_descendant_kind(
+        node,
+        &[
+            "identifier",
+            "field_identifier",
+            "property_identifier",
+            "type_identifier",
+        ],
+    )
+    .and_then(|name| node_text(name, source))
+}
+
+fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String, Option<String>)> {
+    match function_node.kind() {
+        "identifier"
+        | "field_identifier"
+        | "property_identifier"
+        | "type_identifier"
+        | "namespace_identifier" => node_text(function_node, source).map(|name| (name, None)),
+        "member_expression" | "field_expression" | "selector_expression" | "attribute" => {
+            let name_node = function_node
+                .child_by_field_name("property")
+                .or_else(|| function_node.child_by_field_name("field"))
+                .or_else(|| function_node.child_by_field_name("attribute"))
+                .or_else(|| function_node.child_by_field_name("name"))?;
+            let receiver = function_node
+                .child_by_field_name("object")
+                .or_else(|| function_node.child_by_field_name("operand"))
+                .or_else(|| function_node.child_by_field_name("receiver"))
+                .and_then(|node| node_text(node, source));
+            node_text(name_node, source).map(|name| (name, receiver))
+        }
+        "scoped_identifier" | "qualified_identifier" | "qualified_type" => {
+            let name_node = function_node.child_by_field_name("name")?;
+            let receiver = function_node
+                .child_by_field_name("scope")
+                .or_else(|| function_node.child_by_field_name("path"))
+                .and_then(|node| node_text(node, source));
+            node_text(name_node, source).map(|name| (name, receiver))
+        }
+        "navigation_expression" => {
+            let text = node_text(function_node, source)?;
+            if let Some((receiver, name)) = text.rsplit_once('.') {
+                let name = base_name_from_text(name)?;
+                let receiver = receiver.trim();
+                return Some((
+                    name,
+                    if receiver.is_empty() {
+                        None
+                    } else {
+                        Some(receiver.to_string())
+                    },
+                ));
+            }
+            find_name(function_node, source).map(|name| (name, None))
+        }
+        "parenthesized_expression" | "parenthesized_declarator" => {
+            for child_index in 0..function_node.child_count() {
+                let child = function_node.child(child_index as u32).unwrap();
+                if child.is_named() {
+                    return call_name_and_receiver(child, source);
+                }
+            }
+            None
+        }
+        _ => find_name(function_node, source).map(|name| (name, None)),
+    }
+}
+
+fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
+    let (name, receiver) = match node.kind() {
+        "method_invocation" => {
+            let name = node
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source))?;
+            let receiver = node
+                .child_by_field_name("object")
+                .or_else(|| node.child_by_field_name("receiver"))
+                .and_then(|receiver| node_text(receiver, source));
+            (name, receiver)
+        }
+        "object_creation_expression" => {
+            let type_node = node
+                .child_by_field_name("type")
+                .or_else(|| first_descendant_kind(node, &["type_identifier", "identifier"]))?;
+            let name = node_text(type_node, source).and_then(|text| base_name_from_text(&text))?;
+            (name, None)
+        }
+        "method_call_expression" => {
+            let name = node
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source))?;
+            let receiver = node
+                .child_by_field_name("receiver")
+                .and_then(|receiver| node_text(receiver, source));
+            (name, receiver)
+        }
+        "navigation_expression" => {
+            let text = node_text(node, source)?;
+            let name = base_name_from_text(&text)?;
+            let receiver = text
+                .rsplit_once('.')
+                .map(|(left, _)| left.trim().to_string());
+            (name, receiver)
+        }
+        _ => {
+            let function_node = node
+                .child_by_field_name("function")
+                .or_else(|| node.child_by_field_name("operator"))
+                .or_else(|| node.child_by_field_name("name"))
+                .or_else(|| {
+                    (0..node.child_count())
+                        .map(|index| node.child(index as u32).unwrap())
+                        .find(|child| child.is_named())
+                })?;
+            call_name_and_receiver(function_node, source)?
+        }
+    };
+    if name.is_empty() {
+        return None;
+    }
+    Some(CallSite {
+        name,
+        receiver,
+        range: range_for_node(node),
+        scope_id: scope_id_for_node(node),
+    })
+}
+
+fn value_type_from_initializer(value_node: Node, source: &[u8]) -> Option<String> {
+    if matches!(value_node.kind(), "call_expression" | "call") {
+        if let Some(function_node) = value_node
+            .child_by_field_name("function")
+            .or_else(|| value_node.child_by_field_name("name"))
+        {
+            if let Some((name, Some(receiver))) = call_name_and_receiver(function_node, source) {
+                if matches!(name.as_str(), "new" | "default") {
+                    return base_name_from_text(&receiver);
+                }
+            }
+            return node_text(function_node, source).and_then(|text| base_name_from_text(&text));
+        }
+    }
+
+    value_node
+        .child_by_field_name("constructor")
+        .or_else(|| value_node.child_by_field_name("type"))
+        .or_else(|| value_node.child_by_field_name("function"))
+        .or_else(|| first_descendant_kind(value_node, &["type_identifier", "identifier"]))
+        .and_then(|value_node| node_text(value_node, source))
+        .and_then(|text| base_name_from_text(&text))
+}
+
+fn scope_id_for_node(node: Node) -> Option<usize> {
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if matches!(
+            ancestor.kind(),
+            "function_declaration"
+                | "function_definition"
+                | "method_definition"
+                | "method_declaration"
+                | "constructor_declaration"
+                | "arrow_function"
+                | "function_item"
+        ) {
+            let range = range_for_node(ancestor);
+            return Some(range.start_line.saturating_mul(100_000) + range.end_line);
+        }
+        current = ancestor.parent();
+    }
+    None
+}
+
+fn local_binding_from_node(node: Node, source: &[u8]) -> Option<LocalBinding> {
+    let name = field_or_descendant_name(node, source)?;
+    let type_name = node
+        .child_by_field_name("type")
+        .and_then(|type_node| node_text(type_node, source))
+        .and_then(|text| clean_type_text(&text))
+        .or_else(|| {
+            first_descendant_kind(node, &["type_annotation", "type_identifier"])
+                .and_then(|type_node| node_text(type_node, source))
+                .and_then(|text| clean_type_text(&text))
+        });
+    let value_type = first_descendant_kind(
+        node,
+        &[
+            "new_expression",
+            "object_creation_expression",
+            "composite_literal",
+            "call_expression",
+            "call",
+        ],
+    )
+    .and_then(|value_node| value_type_from_initializer(value_node, source));
+
+    Some(LocalBinding {
+        name,
+        type_name,
+        value_type,
+        range: range_for_node(node),
+        scope_id: scope_id_for_node(node),
+    })
+}
+
+fn quoted_source_after_from(text: &str) -> Option<String> {
+    let source_part = text
+        .rsplit_once(" from ")
+        .map(|(_, right)| right)
+        .unwrap_or(text);
+    let quote_start = source_part.find(['"', '\''])?;
+    let quote = source_part.as_bytes()[quote_start] as char;
+    let rest = &source_part[quote_start + 1..];
+    let quote_end = rest.find(quote)?;
+    Some(rest[..quote_end].to_string())
+}
+
+fn push_named_imports(
+    entries: &mut Vec<ImportEntry>,
+    named_clause: &str,
+    source: Option<String>,
+    range: &CodeRange,
+) {
+    for part in named_clause.split(',') {
+        let trimmed = part.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let mut pieces = trimmed.split_whitespace();
+        let imported = pieces.next().unwrap_or("").trim();
+        if imported.is_empty() {
+            continue;
+        }
+        let local = match (pieces.next(), pieces.next()) {
+            (Some("as"), Some(alias)) => alias,
+            _ => imported,
+        };
+        entries.push(ImportEntry {
+            local_name: local.to_string(),
+            imported_name: Some(imported.to_string()),
+            source: source.clone(),
+            kind: ImportKind::Named,
+            range: range.clone(),
+        });
+    }
+}
+
+fn dotted_import_entry(path: &str, alias: Option<&str>, range: CodeRange) -> Option<ImportEntry> {
+    let cleaned_path = path.trim().trim_end_matches(';').trim();
+    if cleaned_path.is_empty() {
+        return None;
+    }
+    let imported_name = base_name_from_text(cleaned_path)?;
+    let local_name = alias
+        .map(str::trim)
+        .filter(|alias| !alias.is_empty())
+        .unwrap_or(&imported_name)
+        .to_string();
+    let source = cleaned_path
+        .rsplit_once('.')
+        .map(|(package, _)| package.to_string())
+        .unwrap_or_else(|| cleaned_path.to_string());
+    Some(ImportEntry {
+        local_name,
+        imported_name: Some(imported_name),
+        source: Some(source),
+        kind: ImportKind::Named,
+        range,
+    })
+}
+
+fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
+    let trimmed = text.trim().trim_end_matches(';').trim();
+    let mut entries = Vec::new();
+    if let Some(rest) = trimmed.strip_prefix("import ") {
+        let source = quoted_source_after_from(trimmed);
+        let clause = rest
+            .split_once(" from ")
+            .map(|(left, _)| left)
+            .unwrap_or(rest)
+            .trim()
+            .trim_start_matches("type ")
+            .trim();
+        if clause.starts_with('"') || clause.starts_with('\'') {
+            if let Some(source) = source {
+                if !source.starts_with('.') {
+                    if let Some(name) = base_name_from_text(&source) {
+                        entries.push(ImportEntry {
+                            local_name: name.clone(),
+                            imported_name: Some(name),
+                            source: Some(source),
+                            kind: ImportKind::Named,
+                            range,
+                        });
+                    }
+                }
+            }
+            return entries;
+        }
+        if source.is_none() && (clause.contains('.') || clause.contains(" as ")) {
+            let (path, alias) = clause
+                .split_once(" as ")
+                .map(|(path, alias)| (path, Some(alias)))
+                .unwrap_or((clause, None));
+            if let Some(entry) = dotted_import_entry(path, alias, range) {
+                entries.push(entry);
+            }
+            return entries;
+        }
+        if let Some(namespace) = clause.strip_prefix("* as ") {
+            let local = namespace.trim();
+            if !local.is_empty() {
+                entries.push(ImportEntry {
+                    local_name: local.to_string(),
+                    imported_name: None,
+                    source,
+                    kind: ImportKind::Namespace,
+                    range,
+                });
+            }
+            return entries;
+        }
+        if let Some(open) = clause.find('{') {
+            let default_clause = clause[..open].trim().trim_end_matches(',').trim();
+            if !default_clause.is_empty() {
+                entries.push(ImportEntry {
+                    local_name: default_clause.to_string(),
+                    imported_name: None,
+                    source: source.clone(),
+                    kind: ImportKind::Default,
+                    range: range.clone(),
+                });
+            }
+            if let Some(close) = clause[open + 1..].find('}') {
+                let named = &clause[open + 1..open + 1 + close];
+                push_named_imports(&mut entries, named, source, &range);
+            }
+            return entries;
+        }
+        if !clause.is_empty() {
+            entries.push(ImportEntry {
+                local_name: clause.to_string(),
+                imported_name: None,
+                source,
+                kind: ImportKind::Default,
+                range,
+            });
+        }
+        return entries;
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("from ") {
+        let (module, names) = rest.split_once(" import ").unwrap_or((rest, ""));
+        let source = Some(module.trim().to_string());
+        push_named_imports(&mut entries, names, source, &range);
+        return entries;
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("use ") {
+        let path = rest.trim().trim_end_matches(';');
+        if path.ends_with("::*") || path.ends_with(".*") {
+            entries.push(ImportEntry {
+                local_name: "*".to_string(),
+                imported_name: None,
+                source: Some(path.to_string()),
+                kind: ImportKind::Glob,
+                range,
+            });
+        } else if let Some((path, alias)) = path.split_once(" as ") {
+            if let Some(imported_name) = base_name_from_text(path) {
+                let local_name = alias.trim();
+                if !local_name.is_empty() {
+                    entries.push(ImportEntry {
+                        local_name: local_name.to_string(),
+                        imported_name: Some(imported_name),
+                        source: Some(path.trim().to_string()),
+                        kind: ImportKind::Named,
+                        range,
+                    });
+                }
+            }
+        } else if let Some(name) = base_name_from_text(path) {
+            entries.push(ImportEntry {
+                local_name: name.clone(),
+                imported_name: Some(name),
+                source: Some(path.to_string()),
+                kind: ImportKind::Named,
+                range,
+            });
+        }
+        return entries;
+    }
+
+    if trimmed.starts_with("import") || trimmed.starts_with("#include") {
+        if let Some(source) = quoted_source_after_from(trimmed).or_else(|| {
+            trimmed
+                .split_whitespace()
+                .last()
+                .map(|part| string_literal_value(part.trim_matches(['<', '>'])))
+        }) {
+            if let Some(name) = base_name_from_text(&source) {
+                entries.push(ImportEntry {
+                    local_name: name.clone(),
+                    imported_name: Some(name),
+                    source: Some(source),
+                    kind: ImportKind::Named,
+                    range,
+                });
+            }
+        }
+    }
+    entries
+}
+
+fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
+    node_text(node, source)
+        .map(|text| import_entries_from_text(&text, range_for_node(node)))
+        .unwrap_or_default()
+}
+
 impl CodeExtractor for TreeSitterExtractor {
     fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
         let path = Path::new(file_path);
@@ -44,12 +547,16 @@ impl CodeExtractor for TreeSitterExtractor {
                 symbols: Vec::new(),
                 literals: Vec::new(),
                 docstrings: Vec::new(),
+                navigation: None,
             });
         };
 
         let mut parser = Parser::new();
         let lang = spec.grammar(ext);
         let query = spec.query(ext);
+        let navigation_enabled = spec.navigation_enabled(ext);
+        let navigation_store_references =
+            navigation_enabled && crate::config::get().navigation_store_references;
 
         parser.set_language(&lang).map_err(|e| e.to_string())?;
         let tree = parser
@@ -58,6 +565,11 @@ impl CodeExtractor for TreeSitterExtractor {
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
+        let mut navigation = NavigationFile::default();
+        let mut seen_calls: HashSet<String> = HashSet::new();
+        let mut seen_imports: HashSet<String> = HashSet::new();
+        let mut seen_local_bindings: HashSet<String> = HashSet::new();
+        let mut seen_references: HashSet<String> = HashSet::new();
         let source = file_content.as_bytes();
 
         // Per-language file-wide pre-pass collecting exported symbol names (TS `export {...}`
@@ -75,6 +587,10 @@ impl CodeExtractor for TreeSitterExtractor {
             // ASM query: tracks the `.macro` directive kind so we know whether a `meta`
             // node should be emitted (only `.macro` definitions are captured as symbols).
             let mut asm_meta_kind_text: Option<String> = None;
+            let mut nav_call_node: Option<Node> = None;
+            let mut nav_import_node: Option<Node> = None;
+            let mut local_scope_node: Option<Node> = None;
+            let mut local_reference_node: Option<Node> = None;
 
             for capture in mat.captures {
                 let name_idx = capture.index as usize;
@@ -103,6 +619,83 @@ impl CodeExtractor for TreeSitterExtractor {
                     // ASM query: capture the kind text so we can filter to `.macro` only.
                     if let Ok(text) = capture.node.utf8_text(source) {
                         asm_meta_kind_text = Some(text.trim().to_ascii_lowercase());
+                    }
+                } else if navigation_enabled && name == "nav.call" {
+                    nav_call_node = Some(capture.node);
+                } else if navigation_enabled && name == "nav.import" {
+                    nav_import_node = Some(capture.node);
+                } else if navigation_enabled && name == "local.scope" {
+                    local_scope_node = Some(capture.node);
+                } else if navigation_store_references && name == "local.reference" {
+                    local_reference_node = Some(capture.node);
+                }
+            }
+
+            if let Some(node) = nav_call_node {
+                if let Some(call) = call_site_from_node(node, source) {
+                    let key = format!(
+                        "{}:{}:{}:{}:{}",
+                        call.name,
+                        call.receiver.as_deref().unwrap_or(""),
+                        call.range.start_line,
+                        call.range.start_col,
+                        call.range.end_line
+                    );
+                    if seen_calls.insert(key) {
+                        navigation.calls.push(call);
+                    }
+                }
+            }
+            if let Some(node) = nav_import_node {
+                for entry in import_entries_from_node(node, source) {
+                    let key = format!(
+                        "{}:{}:{:?}:{}:{}",
+                        entry.local_name,
+                        entry.source.as_deref().unwrap_or(""),
+                        &entry.kind,
+                        entry.range.start_line,
+                        entry.range.start_col
+                    );
+                    if seen_imports.insert(key) {
+                        navigation.imports.push(entry);
+                    }
+                }
+            }
+            if let Some(node) = local_scope_node {
+                if let Some(binding) = local_binding_from_node(node, source) {
+                    let scope_key = binding
+                        .scope_id
+                        .map(|scope_id| scope_id.to_string())
+                        .unwrap_or_default();
+                    let key = format!(
+                        "{}:{}:{}:{}",
+                        binding.name, binding.range.start_line, binding.range.start_col, scope_key
+                    );
+                    if seen_local_bindings.insert(key) {
+                        navigation.local_bindings.push(binding);
+                    }
+                }
+            }
+            if let Some(node) = local_reference_node {
+                if let Some(name) = node_text(node, source) {
+                    let reference = ReferenceSite {
+                        name,
+                        range: range_for_node(node),
+                        scope_id: scope_id_for_node(node),
+                    };
+                    let scope_key = reference
+                        .scope_id
+                        .map(|scope_id| scope_id.to_string())
+                        .unwrap_or_default();
+                    let key = format!(
+                        "{}:{}:{}:{}",
+                        reference.name,
+                        reference.range.start_line,
+                        reference.range.start_col,
+                        scope_key
+                    );
+                    if seen_references.insert(key) {
+                        navigation.references.push(reference);
                     }
                 }
             }
@@ -165,14 +758,7 @@ impl CodeExtractor for TreeSitterExtractor {
                         }
 
                         if !name.is_empty() {
-                            let start = node.start_position();
-                            let end = node.end_position();
-                            let range = CodeRange {
-                                start_line: start.row + 1,
-                                start_col: start.column + 1,
-                                end_line: end.row + 1,
-                                end_col: end.column + 1,
-                            };
+                            let range = range_for_node(node);
 
                             // Associated comments proximity search. The per-language anchor
                             // adjusts the start node (Python `decorated_definition`, TS
@@ -277,6 +863,11 @@ impl CodeExtractor for TreeSitterExtractor {
         }
 
         let docstrings = symbols.iter().filter_map(|s| s.docstring.clone()).collect();
+        let navigation = if navigation_enabled {
+            Some(navigation)
+        } else {
+            None
+        };
 
         Ok(ExtractedFile {
             file_path: file_path.to_string(),
@@ -284,6 +875,7 @@ impl CodeExtractor for TreeSitterExtractor {
             symbols,
             literals,
             docstrings,
+            navigation,
         })
     }
 }
@@ -538,6 +1130,56 @@ class Calculator:
         let file = extractor.extract(content, "tests/parser_test.ts").unwrap();
         let sym = file.symbols.iter().find(|s| s.name == "helper").unwrap();
         assert!(sym.flags.is_test);
+    }
+
+    #[test]
+    fn test_ts_navigation_extracts_calls_imports_locals_and_ignores_strings() {
+        let content = r#"
+            import { save as persist } from "./user";
+            const user: User = new User();
+            export function run() {
+                persist();
+                user.save();
+                const text = "fakeCall()";
+                // commentCall()
+            }
+        "#;
+        let extractor = TreeSitterExtractor::new();
+        let file = extractor.extract(content, "nav.ts").unwrap();
+        let navigation = file.navigation.expect("typescript navigation should run");
+
+        assert!(navigation.imports.iter().any(|entry| {
+            entry.local_name == "persist"
+                && entry.imported_name.as_deref() == Some("save")
+                && entry.source.as_deref() == Some("./user")
+        }));
+        assert!(navigation.local_bindings.iter().any(|binding| {
+            binding.name == "user"
+                && binding.type_name.as_deref() == Some("User")
+                && binding.value_type.as_deref() == Some("User")
+        }));
+        assert!(navigation
+            .calls
+            .iter()
+            .any(|call| call.name == "persist" && call.scope_id.is_some()));
+        assert!(navigation
+            .calls
+            .iter()
+            .any(|call| call.name == "save" && call.receiver.as_deref() == Some("user")));
+        assert!(!navigation.calls.iter().any(|call| call.name == "fakeCall"));
+        assert!(!navigation
+            .calls
+            .iter()
+            .any(|call| call.name == "commentCall"));
+    }
+
+    #[test]
+    fn test_ts_navigation_scope_ids_are_stable() {
+        let content = "function run() { const item = makeItem(); item.save(); }";
+        let extractor = TreeSitterExtractor::new();
+        let first = extractor.extract(content, "stable.ts").unwrap();
+        let second = extractor.extract(content, "stable.ts").unwrap();
+        assert_eq!(first.navigation, second.navigation);
     }
 
     // --- Owner (enclosing type) Tests (Phase A) ---

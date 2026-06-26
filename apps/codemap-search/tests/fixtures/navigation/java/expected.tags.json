@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class Controller {\n    void run() {\n        UserService userService = new UserService();\n        userService.save();\n    }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 8,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Controller",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "void run() {\n        UserService userService = new UserService();\n        userService.save();\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 4,
+      "startCol": 10,
+      "endLine": 4,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "userService.save()",
+    "range": {
+      "startLine": 6,
+      "startCol": 9,
+      "endLine": 6,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "class UserService {\n    void save() {}\n}",
+    "range": {
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 12,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "UserService",
+    "range": {
+      "startLine": 10,
+      "startCol": 7,
+      "endLine": 10,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "void save() {}",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 11,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "name",
+    "text": "save",
+    "range": {
+      "startLine": 11,
+      "startCol": 10,
+      "endLine": 11,
+      "endCol": 14
+    }
+  }
+]
