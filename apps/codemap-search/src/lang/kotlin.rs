@@ -17,11 +17,24 @@ const KOTLIN_QUERY_STR: &str = concat!(
     include_str!("../../queries/kotlin/navigation.scm")
 );
 
+const KOTLIN_TAGS_QUERY_STR: &str = include_str!("../../queries/kotlin/tags.scm");
+
 fn get_kotlin_query() -> &'static Query {
     static KOTLIN_QUERY: OnceLock<Query> = OnceLock::new();
     KOTLIN_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_kotlin_ng::LANGUAGE.into(), KOTLIN_QUERY_STR)
             .expect("Failed to compile Kotlin query")
+    })
+}
+
+fn get_kotlin_tags_query() -> &'static Query {
+    static KOTLIN_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    KOTLIN_TAGS_QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_kotlin_ng::LANGUAGE.into(),
+            KOTLIN_TAGS_QUERY_STR,
+        )
+        .expect("Failed to compile Kotlin tags query")
     })
 }
 
@@ -92,6 +105,10 @@ impl LanguageSpec for KotlinSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_kotlin_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_kotlin_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

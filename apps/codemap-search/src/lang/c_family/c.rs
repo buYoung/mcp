@@ -24,10 +24,20 @@ const C_QUERY_STR: &str = concat!(
     include_str!("../../../queries/c/navigation.scm")
 );
 
+const C_TAGS_QUERY_STR: &str = include_str!("../../../queries/c/tags.scm");
+
 fn get_c_query() -> &'static Query {
     static C_QUERY: OnceLock<Query> = OnceLock::new();
     C_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_c::LANGUAGE.into(), C_QUERY_STR).expect("Failed to compile C query")
+    })
+}
+
+fn get_c_tags_query() -> &'static Query {
+    static C_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    C_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_c::LANGUAGE.into(), C_TAGS_QUERY_STR)
+            .expect("Failed to compile C tags query")
     })
 }
 
@@ -40,6 +50,10 @@ impl LanguageSpec for CSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_c_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_c_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

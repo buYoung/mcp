@@ -13,6 +13,8 @@ const TS_QUERY_STR: &str = concat!(
     include_str!("../../queries/typescript/navigation.scm")
 );
 
+const TS_TAGS_QUERY_STR: &str = include_str!("../../queries/typescript/tags.scm");
+
 fn get_ts_query() -> &'static Query {
     static TS_QUERY: OnceLock<Query> = OnceLock::new();
     TS_QUERY.get_or_init(|| {
@@ -29,6 +31,28 @@ fn get_tsx_query() -> &'static Query {
     TSX_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_typescript::LANGUAGE_TSX.into(), TS_QUERY_STR)
             .expect("Failed to compile TSX query")
+    })
+}
+
+fn get_ts_tags_query() -> &'static Query {
+    static TS_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    TS_TAGS_QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            TS_TAGS_QUERY_STR,
+        )
+        .expect("Failed to compile TS tags query")
+    })
+}
+
+fn get_tsx_tags_query() -> &'static Query {
+    static TSX_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    TSX_TAGS_QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_typescript::LANGUAGE_TSX.into(),
+            TS_TAGS_QUERY_STR,
+        )
+        .expect("Failed to compile TSX tags query")
     })
 }
 
@@ -89,6 +113,13 @@ impl LanguageSpec for TypeScriptSpec {
             // "ts" | "js"
             _ => get_ts_query(),
         }
+    }
+
+    fn tags_query(&self, ext: &str) -> Option<&'static Query> {
+        Some(match ext {
+            "tsx" | "jsx" => get_tsx_tags_query(),
+            _ => get_ts_tags_query(),
+        })
     }
 
     fn extensions(&self) -> &'static [&'static str] {

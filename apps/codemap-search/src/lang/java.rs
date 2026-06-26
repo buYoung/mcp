@@ -11,11 +11,21 @@ const JAVA_QUERY_STR: &str = concat!(
     include_str!("../../queries/java/navigation.scm")
 );
 
+const JAVA_TAGS_QUERY_STR: &str = include_str!("../../queries/java/tags.scm");
+
 fn get_java_query() -> &'static Query {
     static JAVA_QUERY: OnceLock<Query> = OnceLock::new();
     JAVA_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_java::LANGUAGE.into(), JAVA_QUERY_STR)
             .expect("Failed to compile Java query")
+    })
+}
+
+fn get_java_tags_query() -> &'static Query {
+    static JAVA_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    JAVA_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_java::LANGUAGE.into(), JAVA_TAGS_QUERY_STR)
+            .expect("Failed to compile Java tags query")
     })
 }
 
@@ -55,6 +65,10 @@ impl LanguageSpec for JavaSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_java_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_java_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

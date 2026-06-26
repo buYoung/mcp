@@ -27,11 +27,21 @@ const CPP_QUERY_STR: &str = concat!(
     include_str!("../../../queries/cpp/navigation.scm")
 );
 
+const CPP_TAGS_QUERY_STR: &str = include_str!("../../../queries/cpp/tags.scm");
+
 fn get_cpp_query() -> &'static Query {
     static CPP_QUERY: OnceLock<Query> = OnceLock::new();
     CPP_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_cpp::LANGUAGE.into(), CPP_QUERY_STR)
             .expect("Failed to compile C++ query")
+    })
+}
+
+fn get_cpp_tags_query() -> &'static Query {
+    static CPP_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    CPP_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_cpp::LANGUAGE.into(), CPP_TAGS_QUERY_STR)
+            .expect("Failed to compile C++ tags query")
     })
 }
 
@@ -178,6 +188,10 @@ impl LanguageSpec for CppSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_cpp_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_cpp_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

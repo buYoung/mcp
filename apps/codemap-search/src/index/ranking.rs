@@ -1,6 +1,7 @@
-use super::{SearchRankingSignal, SearchResult, SearcherHandle};
+use super::{SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle};
 use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, QueryTokens};
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::Value;
@@ -45,6 +46,14 @@ const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
 /// BELOW `EXACT_NAME_SCORE_BOOST` (3.0) so a symbol-exact exec member always ranks first. Gated to
 /// qualified (`::`/`.`) forms so a bare common word in a literal can't earn it.
 const QUALIFIED_LITERAL_SCORE_BOOST: f32 = 1.6;
+const DEFINITION_BODY_SCORE_BOOST: f32 = 0.75;
+const REFERENCE_SCORE_BOOST: f32 = 1.5;
+/// Language/extension hints are an additive prior applied after the existing exact-symbol,
+/// symbol-evidence, and test-path adjustments. Keeping it additive makes the hint a tie-breaker
+/// for close lexical matches while preserving exact-symbol dominance (`EXACT_NAME_SCORE_BOOST`).
+const SAME_LANGUAGE_SCORE_BONUS: f32 = 2.0;
+const CROSS_LANGUAGE_SCORE_PENALTY: f32 = 1.5;
+const SAME_EXTENSION_SCORE_BONUS: f32 = 0.75;
 /// Gates ONLY the qualified-literal score lift (#1) below. Held off pending Lever-B validation
 /// (run cms-perf-improve-20260615): the lift's co-exposure mechanism is proven safe but its
 /// weak-model payoff is unconfirmed. `qualified_literal_hit` is still computed and carried, so the
@@ -88,6 +97,27 @@ struct SymbolMatch<'a> {
     path_match_count: usize,
     signal_score: f32,
     symbol: &'a ExtractedSymbol,
+}
+
+#[derive(Debug, Clone, Default)]
+struct NormalizedSearchQueryContext {
+    language_hint: Option<&'static str>,
+    extension_hint: Option<String>,
+}
+
+impl NormalizedSearchQueryContext {
+    fn from_context(context: &SearchQueryContext) -> Self {
+        Self {
+            language_hint: context
+                .language_hint
+                .as_deref()
+                .and_then(crate::lang::normalize_language_hint),
+            extension_hint: context
+                .extension_hint
+                .as_deref()
+                .and_then(crate::lang::normalize_extension_hint),
+        }
+    }
 }
 
 /// A name specific enough that exact equality with a query term means intent: multi-token
@@ -223,6 +253,35 @@ fn symbol_name_frequencies(candidates: &[CandidateFile]) -> HashMap<String, usiz
         }
     }
     frequencies
+}
+
+fn language_prior_adjustment(file_path: &str, context: &NormalizedSearchQueryContext) -> f32 {
+    let candidate_extension = Path::new(file_path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| value.to_ascii_lowercase());
+    let candidate_language = candidate_extension
+        .as_deref()
+        .and_then(crate::lang::language_name_for_extension);
+
+    let mut adjustment = 0.0;
+    if let Some(language_hint) = context.language_hint {
+        match candidate_language {
+            Some(candidate_language) if candidate_language == language_hint => {
+                adjustment += SAME_LANGUAGE_SCORE_BONUS;
+            }
+            Some(_) => {
+                adjustment -= CROSS_LANGUAGE_SCORE_PENALTY;
+            }
+            None => {}
+        }
+    }
+    if let Some(extension_hint) = context.extension_hint.as_deref() {
+        if candidate_extension.as_deref() == Some(extension_hint) {
+            adjustment += SAME_EXTENSION_SCORE_BONUS;
+        }
+    }
+    adjustment
 }
 
 fn score_symbol_match<'a>(
@@ -407,10 +466,20 @@ impl SearcherHandle {
     /// BM25 search over the committed index snapshot. Reads index/reader/field handles
     /// only — moved verbatim from the former `TantivySearchEngine::search`.
     pub fn search(&self, query_str: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
+        self.search_with_context(query_str, limit, &SearchQueryContext::default())
+    }
+
+    pub fn search_with_context(
+        &self,
+        query_str: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+    ) -> Result<Vec<SearchResult>, String> {
         if query_str.len() > 10000 {
             return Err("Query too long".to_string());
         }
         let searcher = self.reader.searcher();
+        let normalized_context = NormalizedSearchQueryContext::from_context(context);
 
         let mut query_parser = QueryParser::for_index(
             &self.index,
@@ -419,6 +488,8 @@ impl SearcherHandle {
                 self.docstring_field,
                 self.file_path_parts_field,
                 self.literal_field,
+                self.definition_body_field,
+                self.reference_field,
             ],
         );
 
@@ -428,6 +499,8 @@ impl SearcherHandle {
         // Lowest tier: a literal hit ranks a file in, but never outvotes a symbol or
         // docstring match for the same terms.
         query_parser.set_field_boost(self.literal_field, 1.0);
+        query_parser.set_field_boost(self.definition_body_field, DEFINITION_BODY_SCORE_BOOST);
+        query_parser.set_field_boost(self.reference_field, REFERENCE_SCORE_BOOST);
 
         if query_str.trim().is_empty() {
             return Ok(Vec::new());
@@ -596,6 +669,7 @@ impl SearcherHandle {
             if is_test_like_path(&candidate.file_path) {
                 adjusted_score *= TEST_PATH_SCORE_WEIGHT;
             }
+            adjusted_score += language_prior_adjustment(&candidate.file_path, &normalized_context);
             let mut matched_symbols: Vec<ExtractedSymbol> = scored_symbols
                 .into_iter()
                 .map(|scored| scored.symbol.clone())

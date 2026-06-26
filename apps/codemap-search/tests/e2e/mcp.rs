@@ -479,6 +479,90 @@ async fn test_caller_context_schema_is_optional() {
     );
 }
 
+#[tokio::test]
+async fn test_search_hint_schema_is_optional() {
+    let temp = create_mock_repo(&[("src/a.rs", "pub fn x() {}")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response = client
+        .send_request("tools/list", serde_json::json!({}))
+        .await
+        .unwrap();
+    let tools = response["result"]["tools"].as_array().unwrap();
+    let search = tools
+        .iter()
+        .find(|tool| tool["name"] == "search")
+        .expect("search tool present");
+    let props = &search["inputSchema"]["properties"];
+    assert!(
+        props.get("language_hint").is_some(),
+        "language_hint advertised: {props:?}"
+    );
+    assert!(
+        props.get("extension_hint").is_some(),
+        "extension_hint advertised: {props:?}"
+    );
+    let required = search["inputSchema"]["required"].as_array().unwrap();
+    assert!(
+        required.iter().all(|field| field != "language_hint"),
+        "language_hint must be optional"
+    );
+    assert!(
+        required.iter().all(|field| field != "extension_hint"),
+        "extension_hint must be optional"
+    );
+}
+
+#[tokio::test]
+async fn test_search_hint_is_applied_by_mcp() {
+    let temp = create_mock_repo(&[
+        (
+            "src/policy.rs",
+            "/// policy policy policy policy\npub fn policy() {}\npub fn policy_helper() { policy(); }\n",
+        ),
+        ("src/policy.ts", "export function policy() { return true; }\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let no_hint = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "search",
+                "arguments": { "query": "policy" }
+            }),
+        )
+        .await
+        .unwrap();
+    let no_hint_text = no_hint["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        no_hint_text.find("### File: src/policy.rs").unwrap()
+            < no_hint_text.find("### File: src/policy.ts").unwrap(),
+        "baseline fixture should put the Rust file first: {no_hint_text:?}"
+    );
+
+    let hinted = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "search",
+                "arguments": {
+                    "query": "policy",
+                    "language_hint": "typescript",
+                    "extension_hint": "ts"
+                }
+            }),
+        )
+        .await
+        .unwrap();
+    let hinted_text = hinted["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        hinted_text.find("### File: src/policy.ts").unwrap()
+            < hinted_text.find("### File: src/policy.rs").unwrap(),
+        "MCP search should pass language/extension hints into ranking: {hinted_text:?}"
+    );
+}
+
 /// The built-in default is ON: an omitted `caller_context` parameter annotates the detail
 /// view without any repo config.
 #[tokio::test]

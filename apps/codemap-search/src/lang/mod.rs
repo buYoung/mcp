@@ -60,6 +60,13 @@ pub(crate) trait LanguageSpec: Sync {
     /// The compiled query for `ext` (lazy, compiled once per grammar via `OnceLock`).
     fn query(&self, ext: &str) -> &'static Query;
 
+    /// Optional tags-only auxiliary query for `ext`, compiled against the same grammar as
+    /// [`Self::query`]. `None` keeps indexing auxiliary text empty for languages that do
+    /// not ship a `queries/<lang>/tags.scm` hook.
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        None
+    }
+
     /// The source-file extensions this spec serves (no leading dot). Unioned across all
     /// specs in [`ALL_SPECS`] to derive the source-extension allowlist
     /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.
@@ -226,6 +233,50 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
         _ => None,
+    }
+}
+
+pub(crate) fn language_name_for_extension(ext: &str) -> Option<&'static str> {
+    match ext.to_ascii_lowercase().as_str() {
+        "rs" => Some("rust"),
+        "py" => Some("python"),
+        "ts" | "tsx" | "js" | "jsx" => Some("typescript"),
+        "go" => Some("go"),
+        "java" => Some("java"),
+        "kt" | "kts" => Some("kotlin"),
+        "c" => Some("c"),
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
+        "s" | "asm" => Some("asm"),
+        _ => None,
+    }
+}
+
+pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
+    match hint
+        .trim()
+        .trim_start_matches('.')
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "rust" | "rs" => Some("rust"),
+        "python" | "py" => Some("python"),
+        "typescript" | "javascript" | "ts" | "tsx" | "js" | "jsx" => Some("typescript"),
+        "go" => Some("go"),
+        "java" => Some("java"),
+        "kotlin" | "kt" | "kts" => Some("kotlin"),
+        "c" => Some("c"),
+        "cpp" | "c++" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
+        "asm" | "s" => Some("asm"),
+        _ => None,
+    }
+}
+
+pub(crate) fn normalize_extension_hint(hint: &str) -> Option<String> {
+    let normalized = hint.trim().trim_start_matches('.').to_ascii_lowercase();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
     }
 }
 

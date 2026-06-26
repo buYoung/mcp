@@ -369,10 +369,22 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         .get("caller_context")
         .and_then(|v| v.as_bool())
         .unwrap_or_else(|| crate::config::get().caller_context_default);
+    let search_context = crate::index::SearchQueryContext {
+        language_hint: ctx
+            .arguments
+            .get("language_hint")
+            .and_then(|value| value.as_str())
+            .map(ToString::to_string),
+        extension_hint: ctx
+            .arguments
+            .get("extension_hint")
+            .and_then(|value| value.as_str())
+            .map(ToString::to_string),
+    };
 
     let results = ctx
         .engine
-        .search(query, 100)
+        .search_with_context(query, 100, &search_context)
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
 
     // Result-branch threshold: at or below it, return file details;

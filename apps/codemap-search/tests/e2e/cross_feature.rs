@@ -12,8 +12,13 @@ async fn test_cross_bm25_mcp_branching() {
         ("src/d.rs", "fn query_func() {}"),
         ("src/e.rs", "fn query_func() {}"),
         ("src/f.rs", "fn query_func() {}"),
-        // Near-zero debounce so a post-edit refresh is triggered on the next poll.
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        // This test checks the search renderer's branching threshold, not watcher
+        // behavior. Keep request-triggered refreshes active so delete reflection is
+        // deterministic.
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
 
@@ -35,17 +40,21 @@ async fn test_cross_bm25_mcp_branching() {
     assert_eq!(text_large.matches("### File:").count(), 5);
     assert!(text_large.contains("fn query_func")); // detail sections carry source
 
-    // 3. Remove files to make < 5 matches
+    // 3. Remove files to make < 5 matches.
     fs::remove_file(temp.path().join("src/e.rs")).unwrap();
     fs::remove_file(temp.path().join("src/f.rs")).unwrap();
 
     // 4. Call search again via MCP (4 matches ≤ threshold -> all-detail, no tail). Poll
-    //    until the deletions are reflected by a background refresh (the tail disappears).
+    //    until both deletions are reflected by a request-triggered refresh.
     let res_small = client
         .send_tool_until(
             "search",
             serde_json::json!({ "query": "query_func" }),
-            |t| !t.contains("Other matches") && t.contains("fn query_func"),
+            |t| {
+                !t.contains("Other matches")
+                    && t.contains("fn query_func")
+                    && t.matches("### File:").count() == 4
+            },
         )
         .await
         .unwrap();
@@ -85,7 +94,10 @@ fn test_cross_extraction_codemaps() {
 async fn test_cross_indexing_mcp_realtime() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn find_me() {}"),
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
 
@@ -136,7 +148,10 @@ async fn test_cross_mcp_codemap_reflects_modify() {
     // is gone. (Sub-second mtime resolution ensures a same-second edit still reindexes.)
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn before_symbol() {}"),
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -182,7 +197,10 @@ async fn test_cross_mcp_codemap_reflects_modify() {
 async fn test_cross_mcp_overview_accepts_slash_and_backslash_file_paths() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn overview_path_symbol() {}"),
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -224,7 +242,10 @@ async fn test_cross_mcp_overview_accepts_slash_and_backslash_file_paths() {
 async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn searchable_path_symbol() {}\n"),
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -294,7 +315,10 @@ fn test_cross_benchmark_indexing() {
 async fn test_cross_mcp_codemaps_dynamic() {
     let temp = create_mock_repo(&[
         ("src/nested/file.rs", "pub fn old_symbol() {}"),
-        (".codemap/config.toml", "index_staleness_ms = 1\n"),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
     ])
     .unwrap();
 

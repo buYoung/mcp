@@ -15,11 +15,21 @@ const GO_QUERY_STR: &str = concat!(
     include_str!("../../queries/go/navigation.scm")
 );
 
+const GO_TAGS_QUERY_STR: &str = include_str!("../../queries/go/tags.scm");
+
 fn get_go_query() -> &'static Query {
     static GO_QUERY: OnceLock<Query> = OnceLock::new();
     GO_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_go::LANGUAGE.into(), GO_QUERY_STR)
             .expect("Failed to compile Go query")
+    })
+}
+
+fn get_go_tags_query() -> &'static Query {
+    static GO_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    GO_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_go::LANGUAGE.into(), GO_TAGS_QUERY_STR)
+            .expect("Failed to compile Go tags query")
     })
 }
 
@@ -135,6 +145,10 @@ impl LanguageSpec for GoSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_go_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_go_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

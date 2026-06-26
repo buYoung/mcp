@@ -250,7 +250,9 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string" },
-                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." }
+                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
+                                "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },
+                                "extension_hint": { "type": "string", "description": "Optional query-extension hint for same-extension ranking prior (examples: 'ts', '.rs'). Omit to keep existing behavior." }
                             },
                             "required": ["query"]
                         }

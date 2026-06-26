@@ -13,7 +13,8 @@ mod supervisor;
 mod watcher;
 
 pub use engine::{
-    SearchEngine, SearchRankingSignal, SearchResult, SearcherHandle, TantivySearchEngine,
+    SearchEngine, SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle,
+    TantivySearchEngine,
 };
 pub use indexer::{spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus};
 pub use supervisor::EngineSupervisor;

@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use codemap_search::codemap::CodemapGenerator;
-use codemap_search::index::SearchEngine;
+use codemap_search::index::{SearchEngine, SearchQueryContext};
 use codemap_search::parser::{CodeExtractor, TreeSitterExtractor};
 use codemap_search::{benchmark, index, mcp, parser};
 use std::path::Path;
@@ -46,6 +46,10 @@ enum Commands {
         query: String,
         #[arg(short, long, default_value = "10")]
         limit: usize,
+        #[arg(long)]
+        language_hint: Option<String>,
+        #[arg(long)]
+        extension_hint: Option<String>,
     },
 
     /// Index files in a directory
@@ -206,10 +210,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             server.run().await?;
             // server drop → EngineSupervisor drop → watcher field drop → indexer field drop.
         }
-        Commands::Search { query, limit } => {
+        Commands::Search {
+            query,
+            limit,
+            language_hint,
+            extension_hint,
+        } => {
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
-            let results = engine.search(query, *limit)?;
+            let search_context = SearchQueryContext {
+                language_hint: language_hint.clone(),
+                extension_hint: extension_hint.clone(),
+            };
+            let results = engine.search_with_context(query, *limit, &search_context)?;
             for result in results {
                 println!("{}", result.file_path);
             }

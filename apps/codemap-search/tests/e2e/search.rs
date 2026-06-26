@@ -42,6 +42,38 @@ fn test_bm25_field_weighting() {
 }
 
 #[test]
+fn test_bm25_language_hint_reduces_cross_language_top1_misrank() {
+    let temp = create_mock_repo(&[
+        (
+            "src/policy.rs",
+            "/// policy policy policy policy\npub fn policy() {}\npub fn policy_helper() { policy(); }\n",
+        ),
+        ("src/policy.ts", "export function policy() { return true; }\n"),
+    ])
+    .unwrap();
+
+    run_cli(&["index"], temp.path()).success();
+
+    run_cli(&["search", "policy"], temp.path())
+        .success()
+        .stdout(predicates::str::starts_with("src/policy.rs"));
+
+    run_cli(
+        &[
+            "search",
+            "policy",
+            "--language-hint",
+            "typescript",
+            "--extension-hint",
+            "ts",
+        ],
+        temp.path(),
+    )
+    .success()
+    .stdout(predicates::str::starts_with("src/policy.ts"));
+}
+
+#[test]
 fn test_bm25_incremental_no_change() {
     let temp = create_mock_repo(&[("src/lib.rs", "pub fn hello() {}")]).unwrap();
 

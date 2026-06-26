@@ -11,11 +11,21 @@ const RUST_QUERY_STR: &str = concat!(
     include_str!("../../queries/rust/navigation.scm")
 );
 
+const RUST_TAGS_QUERY_STR: &str = include_str!("../../queries/rust/tags.scm");
+
 fn get_rust_query() -> &'static Query {
     static RUST_QUERY: OnceLock<Query> = OnceLock::new();
     RUST_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_rust::LANGUAGE.into(), RUST_QUERY_STR)
             .expect("Failed to compile Rust query")
+    })
+}
+
+fn get_rust_tags_query() -> &'static Query {
+    static RUST_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    RUST_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_rust::LANGUAGE.into(), RUST_TAGS_QUERY_STR)
+            .expect("Failed to compile Rust tags query")
     })
 }
 
@@ -83,6 +93,10 @@ impl LanguageSpec for RustSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_rust_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_rust_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

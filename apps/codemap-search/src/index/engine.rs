@@ -1,4 +1,4 @@
-use crate::parser::{CodeExtractor, ExtractedFile, ExtractedLiteral, ExtractedSymbol};
+use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tantivy::collector::DocSetCollector;
@@ -43,6 +43,12 @@ pub struct SearchResult {
     pub qualified_literal_hit: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SearchQueryContext {
+    pub language_hint: Option<String>,
+    pub extension_hint: Option<String>,
+}
+
 pub trait SearchEngine {
     fn index_files(&mut self, paths: &[&str]) -> Result<(), String>;
     fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>, String>;
@@ -61,6 +67,8 @@ pub struct SearcherHandle {
     pub(super) symbol_field: Field,
     pub(super) docstring_field: Field,
     pub(super) literal_field: Field,
+    pub(super) definition_body_field: Field,
+    pub(super) reference_field: Field,
     pub(super) extracted_json_field: Field,
 }
 
@@ -76,6 +84,8 @@ pub struct TantivySearchEngine {
     pub symbol_field: Field,
     pub docstring_field: Field,
     pub literal_field: Field,
+    pub definition_body_field: Field,
+    pub reference_field: Field,
     pub extracted_json_field: Field,
     pub mtime_field: Field,
 
@@ -119,8 +129,11 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// surfacing the class declaration or a same-named member of another type. This is an
 /// indexed-content change with NO new tantivy schema field — `Index::open_or_create` would
 /// happily reuse a v6 index without re-emitting the owner tokens — so the bump is what forces
-/// the one-time reindex that populates them. Each bump rebuilds exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v8-navigation-file";
+/// the one-time reindex that populates them. `v9` adds two indexed auxiliary fields
+/// (`definition_body`, `reference`) populated from optional per-language `tags.scm` hooks,
+/// while keeping the stored `ExtractedFile` JSON contract unchanged. Each bump rebuilds
+/// exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v9-search-auxiliary";
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
@@ -134,6 +147,8 @@ impl TantivySearchEngine {
         // stay in `extracted_json` for the detail view; `grep` remains the exact-match
         // tool (no index lag, regex).
         let literal_field = schema_builder.add_text_field("literal", TEXT);
+        let definition_body_field = schema_builder.add_text_field("definition_body", TEXT);
+        let reference_field = schema_builder.add_text_field("reference", TEXT);
         let extracted_json_field = schema_builder.add_text_field("extracted_json", STORED);
         let mtime_field = schema_builder.add_u64_field("mtime", STORED);
         let schema = schema_builder.build();
@@ -216,6 +231,8 @@ impl TantivySearchEngine {
             symbol_field,
             docstring_field,
             literal_field,
+            definition_body_field,
+            reference_field,
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
@@ -454,8 +471,8 @@ impl TantivySearchEngine {
                     continue;
                 }
             };
-            let extracted = match extractor.extract(&content, &rel_path) {
-                Ok(ext) => ext,
+            let (extracted, auxiliary) = match extractor.extract_for_index(&content, &rel_path) {
+                Ok(extracted_parts) => extracted_parts,
                 Err(e) => {
                     eprintln!(
                         "Warning: Failed to parse file {}: {}",
@@ -525,6 +542,12 @@ impl TantivySearchEngine {
                 } else {
                     doc.add_text(self.literal_field, &literal.text);
                 }
+            }
+            for definition_body in &auxiliary.definition_body {
+                doc.add_text(self.definition_body_field, definition_body);
+            }
+            for reference in &auxiliary.reference {
+                doc.add_text(self.reference_field, reference);
             }
 
             match writer.add_document(doc) {
@@ -697,8 +720,20 @@ impl TantivySearchEngine {
             symbol_field: self.symbol_field,
             docstring_field: self.docstring_field,
             literal_field: self.literal_field,
+            definition_body_field: self.definition_body_field,
+            reference_field: self.reference_field,
             extracted_json_field: self.extracted_json_field,
         }
+    }
+
+    pub fn search_with_context(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+    ) -> Result<Vec<SearchResult>, String> {
+        self.searcher_handle()
+            .search_with_context(query, limit, context)
     }
 
     /// Rebuild the codemap snapshot from the stored `extracted_json` docs (one AllQuery,
@@ -836,6 +871,35 @@ mod tests {
         assert!(res[2].symbol_fallback);
         assert_eq!(res[2].matched_literals.len(), 1);
         assert_eq!(res[2].matched_literals[0].text, "QueryTerm");
+    }
+
+    #[test]
+    fn test_engine_reference_auxiliary_surfaces_call_site_query() {
+        let temp = tempdir().unwrap();
+        let index_dir = temp.path().join("index");
+        let src_dir = temp.path().join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+
+        let file_ts = src_dir.join("worker.ts");
+        fs::write(
+            &file_ts,
+            "export function dispatchOrder() {\n  submitOrder();\n}\n",
+        )
+        .unwrap();
+
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+
+        let results = engine.search("submitOrder", 10).unwrap();
+        assert!(
+            results
+                .first()
+                .is_some_and(|result| result.file_path.contains("worker.ts")),
+            "reference auxiliary should surface the call-site file: {:?}",
+            results
+        );
     }
 
     #[test]

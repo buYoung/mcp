@@ -7,7 +7,7 @@ pub use types::*;
 use std::collections::HashSet;
 use std::path::Path;
 use streaming_iterator::StreamingIterator;
-use tree_sitter::{Node, Parser, QueryCursor};
+use tree_sitter::{Node, Parser, Query, QueryCursor, Tree};
 
 use crate::lang::{
     clean_docstring, contains_case_insensitive, find_name, spec_for_ext, strip_quotes, NameDecision,
@@ -19,6 +19,14 @@ pub trait CodeExtractor {
 
 pub struct TreeSitterExtractor;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct IndexAuxiliary {
+    pub definition_body: Vec<String>,
+    pub reference: Vec<String>,
+}
+
+const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
+
 impl Default for TreeSitterExtractor {
     fn default() -> Self {
         Self::new()
@@ -28,6 +36,96 @@ impl Default for TreeSitterExtractor {
 impl TreeSitterExtractor {
     pub fn new() -> Self {
         Self
+    }
+
+    pub(crate) fn extract_for_index(
+        &self,
+        file_content: &str,
+        file_path: &str,
+    ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
+        self.extract_parts(file_content, file_path, true)
+    }
+}
+
+/// Standalone index-only auxiliary collection over optional `queries/<lang>/tags.scm` hooks.
+/// The normal indexing path uses `TreeSitterExtractor::extract_for_index` to reuse the same
+/// parse tree as extraction; this entry point is kept only to cross-check parser tests.
+#[cfg(test)]
+pub(crate) fn collect_index_auxiliary(
+    file_content: &str,
+    file_path: &str,
+) -> Result<IndexAuxiliary, String> {
+    let ext = Path::new(file_path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    let Some(spec) = spec_for_ext(ext) else {
+        return Ok(IndexAuxiliary::default());
+    };
+    let Some(tags_query) = spec.tags_query(ext) else {
+        return Ok(IndexAuxiliary::default());
+    };
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(&spec.grammar(ext))
+        .map_err(|error| error.to_string())?;
+    let tree = parser
+        .parse(file_content, None)
+        .ok_or_else(|| format!("Failed to parse file content for auxiliary tags: {file_path}"))?;
+    let source = file_content.as_bytes();
+
+    Ok(collect_index_auxiliary_from_tree(tags_query, &tree, source))
+}
+
+fn collect_index_auxiliary_from_tree(
+    tags_query: &Query,
+    tree: &Tree,
+    source: &[u8],
+) -> IndexAuxiliary {
+    let mut auxiliary = IndexAuxiliary::default();
+    let mut seen_definition_body = HashSet::new();
+    let mut seen_reference = HashSet::new();
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(tags_query, tree.root_node(), source);
+    while let Some(query_match) = matches.next() {
+        for capture in query_match.captures {
+            let capture_name = tags_query.capture_names()[capture.index as usize];
+            let Some(text) = node_text(capture.node, source) else {
+                continue;
+            };
+            if text.is_empty() {
+                continue;
+            }
+            match capture_name {
+                name if name.starts_with("definition.") => push_index_auxiliary_text(
+                    &mut auxiliary.definition_body,
+                    &mut seen_definition_body,
+                    text,
+                ),
+                name if name.starts_with("reference.") => {
+                    push_index_auxiliary_text(&mut auxiliary.reference, &mut seen_reference, text)
+                }
+                _ => {}
+            }
+        }
+    }
+
+    auxiliary
+}
+
+fn push_index_auxiliary_text(out: &mut Vec<String>, seen: &mut HashSet<String>, text: String) {
+    let normalized = normalize_navigation_text(text);
+    if normalized.is_empty() {
+        return;
+    }
+    let capped = if normalized.chars().count() > INDEX_AUXILIARY_MAX_CHARS {
+        normalized.chars().take(INDEX_AUXILIARY_MAX_CHARS).collect()
+    } else {
+        normalized
+    };
+    if seen.insert(capped.clone()) {
+        out.push(capped);
     }
 }
 
@@ -771,22 +869,30 @@ fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
         .unwrap_or_default()
 }
 
-impl CodeExtractor for TreeSitterExtractor {
-    fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
+impl TreeSitterExtractor {
+    fn extract_parts(
+        &self,
+        file_content: &str,
+        file_path: &str,
+        collect_auxiliary: bool,
+    ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
         let path = Path::new(file_path);
         let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
 
         // Resolve the per-language spec from the registry. An unsupported extension yields an
         // empty `ExtractedFile`, preserving the prior unknown-extension behavior exactly.
         let Some(spec) = spec_for_ext(ext) else {
-            return Ok(ExtractedFile {
-                file_path: file_path.to_string(),
-                total_lines: file_content.lines().count(),
-                symbols: Vec::new(),
-                literals: Vec::new(),
-                docstrings: Vec::new(),
-                navigation: None,
-            });
+            return Ok((
+                ExtractedFile {
+                    file_path: file_path.to_string(),
+                    total_lines: file_content.lines().count(),
+                    symbols: Vec::new(),
+                    literals: Vec::new(),
+                    docstrings: Vec::new(),
+                    navigation: None,
+                },
+                IndexAuxiliary::default(),
+            ));
         };
 
         let mut parser = Parser::new();
@@ -809,6 +915,13 @@ impl CodeExtractor for TreeSitterExtractor {
         let mut seen_local_bindings: HashSet<String> = HashSet::new();
         let mut seen_references: HashSet<String> = HashSet::new();
         let source = file_content.as_bytes();
+        let auxiliary = if collect_auxiliary {
+            spec.tags_query(ext)
+                .map(|tags_query| collect_index_auxiliary_from_tree(tags_query, &tree, source))
+                .unwrap_or_default()
+        } else {
+            IndexAuxiliary::default()
+        };
 
         // Per-language file-wide pre-pass collecting exported symbol names (TS `export {...}`
         // specifiers; ASM `.globl`/`.global` directives). No-op for languages without one.
@@ -1107,14 +1220,24 @@ impl CodeExtractor for TreeSitterExtractor {
             None
         };
 
-        Ok(ExtractedFile {
-            file_path: file_path.to_string(),
-            total_lines: file_content.lines().count(),
-            symbols,
-            literals,
-            docstrings,
-            navigation,
-        })
+        Ok((
+            ExtractedFile {
+                file_path: file_path.to_string(),
+                total_lines: file_content.lines().count(),
+                symbols,
+                literals,
+                docstrings,
+                navigation,
+            },
+            auxiliary,
+        ))
+    }
+}
+
+impl CodeExtractor for TreeSitterExtractor {
+    fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
+        self.extract_parts(file_content, file_path, false)
+            .map(|(extracted, _)| extracted)
     }
 }
 
@@ -1418,6 +1541,42 @@ class Calculator:
         let first = extractor.extract(content, "stable.ts").unwrap();
         let second = extractor.extract(content, "stable.ts").unwrap();
         assert_eq!(first.navigation, second.navigation);
+    }
+
+    #[test]
+    fn test_index_auxiliary_collects_bounded_deduped_tags() {
+        let repeated_call = "expensiveLookup();\n".repeat(300);
+        let content = format!(
+            "function reconcileInvoice() {{\n{repeated_call}}}\n\
+             function sendNotice() {{\nreconcileInvoice();\nreconcileInvoice();\n}}\n"
+        );
+
+        let extractor = TreeSitterExtractor::new();
+        let (file, auxiliary) = extractor.extract_for_index(&content, "billing.ts").unwrap();
+        let standalone_auxiliary = collect_index_auxiliary(&content, "billing.ts").unwrap();
+
+        assert!(file
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name == "reconcileInvoice"));
+        assert_eq!(standalone_auxiliary, auxiliary);
+        assert!(auxiliary
+            .definition_body
+            .iter()
+            .any(|text| text.contains("reconcileInvoice")));
+        assert!(auxiliary
+            .definition_body
+            .iter()
+            .all(|text| text.chars().count() <= INDEX_AUXILIARY_MAX_CHARS));
+        assert_eq!(
+            auxiliary
+                .reference
+                .iter()
+                .filter(|text| text.as_str() == "reconcileInvoice()")
+                .count(),
+            1,
+            "duplicate call-expression captures should be indexed once per file"
+        );
     }
 
     // --- Owner (enclosing type) Tests (Phase A) ---

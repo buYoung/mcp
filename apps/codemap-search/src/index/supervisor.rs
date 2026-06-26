@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use super::{spawn_indexer, spawn_watcher, CodemapSnapshot, TantivySearchEngine};
-use super::{IndexerHandle, SearchResult, SearcherHandle, WatcherHandle, WatcherStatus};
+use super::{
+    IndexerHandle, SearchQueryContext, SearchResult, SearcherHandle, WatcherHandle, WatcherStatus,
+};
 
 /// Cap on automatic indexer restarts per server process: enough to absorb sporadic
 /// failures, finite so a deterministically-crashing pass (e.g. a parser bug tripped by
@@ -138,6 +140,15 @@ impl EngineSupervisor {
     /// BM25 search over the current committed index snapshot (read-only).
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
         self.searcher.search(query, limit)
+    }
+
+    pub fn search_with_context(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+    ) -> Result<Vec<SearchResult>, String> {
+        self.searcher.search_with_context(query, limit, context)
     }
 
     /// The current codemap snapshot the indexer publishes (cheap `Arc` clone).

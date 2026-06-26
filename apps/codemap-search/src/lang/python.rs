@@ -11,11 +11,21 @@ const PYTHON_QUERY_STR: &str = concat!(
     include_str!("../../queries/python/navigation.scm")
 );
 
+const PYTHON_TAGS_QUERY_STR: &str = include_str!("../../queries/python/tags.scm");
+
 fn get_python_query() -> &'static Query {
     static PYTHON_QUERY: OnceLock<Query> = OnceLock::new();
     PYTHON_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_python::LANGUAGE.into(), PYTHON_QUERY_STR)
             .expect("Failed to compile Python query")
+    })
+}
+
+fn get_python_tags_query() -> &'static Query {
+    static PYTHON_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
+    PYTHON_TAGS_QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_python::LANGUAGE.into(), PYTHON_TAGS_QUERY_STR)
+            .expect("Failed to compile Python tags query")
     })
 }
 
@@ -64,6 +74,10 @@ impl LanguageSpec for PythonSpec {
 
     fn query(&self, _ext: &str) -> &'static Query {
         get_python_query()
+    }
+
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_python_tags_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {
