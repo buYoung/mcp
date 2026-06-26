@@ -230,6 +230,87 @@ fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
     canonicalize_path_lenient(&resolved)
 }
 
+fn apply_ignore_settings(builder: &mut ignore::WalkBuilder, respect: bool) {
+    let use_git_exclude = respect && crate::config::get().use_git_exclude;
+    builder
+        .hidden(false)
+        .git_ignore(respect)
+        .git_global(respect)
+        .git_exclude(use_git_exclude)
+        .ignore(respect)
+        .parents(respect)
+        // Honor `.gitignore` even outside an initialized git repo (no `.git` needed).
+        .require_git(false);
+    if respect {
+        builder.add_custom_ignore_filename(CODEMAP_IGNORE_FILENAME);
+    }
+}
+
+fn entry_allowed_by_excluded_dirs(entry: &ignore::DirEntry, respect: bool) -> bool {
+    if !entry.file_type().is_some_and(|ft| ft.is_dir()) {
+        return true;
+    }
+    let Some(name) = entry.file_name().to_str() else {
+        return true;
+    };
+    // VCS/index dirs are skipped unconditionally — even with include_ignored.
+    if ALWAYS_EXCLUDED_DIRS.contains(&name) {
+        return false;
+    }
+    // The configurable junk-dir set (built-ins unioned with config, Child 05)
+    // applies only while ignore rules are respected; include_ignored bypasses
+    // it so those names stay reachable when they hold real source.
+    if respect {
+        return !crate::config::get()
+            .excluded_directories
+            .iter()
+            .any(|d| d == name);
+    }
+    true
+}
+
+fn same_path(left: &Path, right: &Path) -> bool {
+    left == right
+        || left
+            .canonicalize()
+            .map(|left| left == right)
+            .unwrap_or(false)
+}
+
+fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
+    let mut builder = ignore::WalkBuilder::new(root);
+    apply_ignore_settings(&mut builder, respect);
+    builder.filter_entry(move |entry| entry_allowed_by_excluded_dirs(entry, respect));
+    builder
+}
+
+fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
+    let target = canonicalize_path_lenient(root);
+    let workspace_root = match std::env::current_dir() {
+        Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
+        Err(_) => return true,
+    };
+    let rel = match target.strip_prefix(&workspace_root) {
+        Ok(rel) => rel.to_path_buf(),
+        Err(_) => return true,
+    };
+
+    let mut current = workspace_root;
+    for component in rel.components() {
+        let next = current.join(component);
+        let is_visible = build_base_walker(&current, respect)
+            .max_depth(Some(1))
+            .build()
+            .filter_map(|entry| entry.ok())
+            .any(|entry| same_path(entry.path(), &next));
+        if !is_visible {
+            return false;
+        }
+        current = next;
+    }
+    true
+}
+
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects
 /// `.gitignore` (and global/exclude), the repo-local `.codemapignore`, and parent
 /// ignore files, and skips [`EXCLUDED_DIRS`]. When `include_ignored` is true the ignore
@@ -244,39 +325,13 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     // alone — when false, that one source is ignored while `.gitignore`/global/
     // `.codemapignore` stay honored (Child 05).
     let respect = !include_ignored;
-    let use_git_exclude = respect && crate::config::get().use_git_exclude;
-    let mut builder = ignore::WalkBuilder::new(root);
-    builder
-        .hidden(false)
-        .git_ignore(respect)
-        .git_global(respect)
-        .git_exclude(use_git_exclude)
-        .ignore(respect)
-        .parents(respect)
-        // Honor `.gitignore` even outside an initialized git repo (no `.git` needed).
-        .require_git(false);
-    if respect {
-        builder.add_custom_ignore_filename(CODEMAP_IGNORE_FILENAME);
-    }
+    let root_is_visible = walk_root_is_visible(root, respect);
+    let mut builder = build_base_walker(root, respect);
     builder.filter_entry(move |entry| {
-        if entry.file_type().is_some_and(|ft| ft.is_dir()) {
-            if let Some(name) = entry.file_name().to_str() {
-                // VCS/index dirs are skipped unconditionally — even with include_ignored.
-                if ALWAYS_EXCLUDED_DIRS.contains(&name) {
-                    return false;
-                }
-                // The configurable junk-dir set (built-ins unioned with config, Child 05)
-                // applies only while ignore rules are respected; include_ignored bypasses
-                // it so those names stay reachable when they hold real source.
-                if respect {
-                    return !crate::config::get()
-                        .excluded_directories
-                        .iter()
-                        .any(|d| d == name);
-                }
-            }
+        if !root_is_visible {
+            return false;
         }
-        true
+        entry_allowed_by_excluded_dirs(entry, respect)
     });
     builder
 }

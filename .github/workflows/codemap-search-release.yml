@@ -237,28 +237,60 @@ jobs:
       # A User-Agent header is mandatory: crates.io returns 403 to UA-less
       # requests, so omitting it would wedge the guard at "never published".
       #
-      # Scope of the idempotency: the skip is idempotent ONLY as long as the API
-      # returns 200.  On any non-200 (404 = genuinely new, but also a transient
-      # 5xx or post-publish index-propagation lag that hasn't surfaced the new
-      # version yet), the guard falls through to `cargo publish`.  There cargo is
-      # the final authority: an unpublished version uploads normally, while a
-      # re-pushed already-published version errors — and that error reddens only
-      # THIS `publish-crate` job.  It shares `needs: build` with publish-release but
-      # does NOT depend on publish-release, so the GitHub Release binary assets are
-      # unaffected.  Hence "idempotent" here means "as long as the API answers 200",
-      # not unconditionally.
+      # Scope of the idempotency: an initial API 200 skips immediately.  On any
+      # non-200 (404 = genuinely new, but also transient 5xx/network failures or
+      # post-publish propagation lag), the guard falls through to `cargo publish`.
+      # If cargo exits non-zero after upload, the job re-checks this exact version:
+      # API 200 means the upload landed and the job succeeds; anything else keeps
+      # the original cargo failure.  This failure only reddens THIS `publish-crate`
+      # job.  It shares `needs: build` with publish-release but does NOT depend on
+      # publish-release, so the GitHub Release binary assets are unaffected.
       - name: Publish codemap-search to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
+          set -euo pipefail
+
           version="$(cargo metadata --no-deps --format-version 1 --manifest-path "$MANIFEST" \
             | jq -r '.packages[0].version')"
-          httpCode="$(curl -s -A "codemap-search-release-ci (github actions)" \
-            -o /dev/null -w '%{http_code}' \
-            "https://crates.io/api/v1/crates/${BIN}/${version}")"
+          crateVersionUrl="https://crates.io/api/v1/crates/${BIN}/${version}"
+          userAgent="codemap-search-release-ci (github actions)"
+
+          crate_version_http_code() {
+            local httpCode
+            httpCode="$(curl -sS --retry 3 --retry-delay 2 --retry-all-errors \
+              -A "$userAgent" \
+              -o /dev/null -w '%{http_code}' \
+              "$crateVersionUrl" || true)"
+            printf '%s' "${httpCode:-000}"
+          }
+
+          httpCode="$(crate_version_http_code)"
           if [ "$httpCode" = "200" ]; then
             echo "codemap-search ${version} already on crates.io — skipping publish."
             exit 0
           fi
+
           echo "codemap-search ${version} not on crates.io (HTTP ${httpCode}) — publishing."
+          set +e
           cargo publish --manifest-path "$MANIFEST"
+          publishStatus=$?
+          set -e
+
+          if [ "$publishStatus" -eq 0 ]; then
+            exit 0
+          fi
+
+          echo "::warning::cargo publish exited ${publishStatus}; checking whether codemap-search ${version} was uploaded."
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            httpCode="$(crate_version_http_code)"
+            if [ "$httpCode" = "200" ]; then
+              echo "::warning::cargo publish exited ${publishStatus}, but codemap-search ${version} is visible on crates.io; treating publish as successful."
+              exit 0
+            fi
+            echo "codemap-search ${version} not visible yet after publish failure (HTTP ${httpCode}, attempt ${attempt}/10)."
+            sleep 15
+          done
+
+          echo "::error::cargo publish failed and codemap-search ${version} was not confirmed on crates.io."
+          exit "$publishStatus"
