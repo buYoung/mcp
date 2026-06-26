@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function OrderTable({\n  items,\n  onSelect,\n}: {\n  items: LineItem[];\n  onSelect(id: string): void;\n}) {\n  const rows = useMemo(\n    () =>\n      items.map((item) => ({\n        id: item.id,\n        label: formatMoney(item.amount),\n      })),\n    [items],\n  );\n\n  return (\n    <section>\n      {rows.map((row) => (\n        <button key={row.id} onClick={() => onSelect(row.id)}>\n          {row.label}\n        </button>\n      ))}\n    </section>\n  );\n}",
+    "range": {
+      "startLine": 6,
+      "startCol": 8,
+      "endLine": 31,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderTable",
+    "range": {
+      "startLine": 6,
+      "startCol": 17,
+      "endLine": 6,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "useMemo(\n    () =>\n      items.map((item) => ({\n        id: item.id,\n        label: formatMoney(item.amount),\n      })),\n    [items],\n  )",
+    "range": {
+      "startLine": 13,
+      "startCol": 16,
+      "endLine": 20,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "items.map((item) => ({\n        id: item.id,\n        label: formatMoney(item.amount),\n      }))",
+    "range": {
+      "startLine": 15,
+      "startCol": 7,
+      "endLine": 18,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "formatMoney(item.amount)",
+    "range": {
+      "startLine": 17,
+      "startCol": 16,
+      "endLine": 17,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rows.map((row) => (\n        <button key={row.id} onClick={() => onSelect(row.id)}>\n          {row.label}\n        </button>\n      ))",
+    "range": {
+      "startLine": 24,
+      "startCol": 8,
+      "endLine": 28,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "onSelect(row.id)",
+    "range": {
+      "startLine": 25,
+      "startCol": 45,
+      "endLine": 25,
+      "endCol": 61
+    }
+  }
+]

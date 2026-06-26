@@ -1,0 +1,109 @@
+{
+  "calls": [
+    {
+      "name": "toList",
+      "receiver": "rules.stream().filter(rule -> !rule.check(order)).map(Rule::name)",
+      "range": {
+        "startLine": 11,
+        "startCol": 33,
+        "endLine": 14,
+        "endCol": 26
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "map",
+      "receiver": "rules.stream().filter(rule -> !rule.check(order))",
+      "range": {
+        "startLine": 11,
+        "startCol": 33,
+        "endLine": 13,
+        "endCol": 33
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "filter",
+      "receiver": "rules.stream()",
+      "range": {
+        "startLine": 11,
+        "startCol": 33,
+        "endLine": 12,
+        "endCol": 52
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "stream",
+      "receiver": "rules",
+      "range": {
+        "startLine": 11,
+        "startCol": 33,
+        "endLine": 11,
+        "endCol": 47
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 12,
+        "startCol": 34,
+        "endLine": 12,
+        "endCol": 51
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "isEmpty",
+      "receiver": "failures",
+      "range": {
+        "startLine": 15,
+        "startCol": 13,
+        "endLine": 15,
+        "endCol": 31
+      },
+      "scopeId": 1000019
+    },
+    {
+      "name": "of",
+      "receiver": "List",
+      "range": {
+        "startLine": 16,
+        "startCol": 20,
+        "endLine": 16,
+        "endCol": 29
+      },
+      "scopeId": 1000019
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "List<String>",
+      "range": {
+        "startLine": 11,
+        "startCol": 9,
+        "endLine": 14,
+        "endCol": 27
+      },
+      "scopeId": 1000019
+    }
+  ],
+  "imports": [
+    {
+      "localName": "List",
+      "importedName": "List",
+      "source": "java.util",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 23
+      }
+    }
+  ]
+}

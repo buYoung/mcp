@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "void worker_tick(struct job_queue *queue, struct processor *processor) {\n    struct job job = queue_next(queue);\n    if (!job.valid) {\n        log_warn(\"no job\");\n        return;\n    }\n\n    struct receipt receipt = process_job(processor, &job);\n    queue_ack(queue, receipt.id);\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 12,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue_next(queue)",
+    "range": {
+      "startLine": 4,
+      "startCol": 22,
+      "endLine": 4,
+      "endCol": 39
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "log_warn(\"no job\")",
+    "range": {
+      "startLine": 6,
+      "startCol": 9,
+      "endLine": 6,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "process_job(processor, &job)",
+    "range": {
+      "startLine": 10,
+      "startCol": 30,
+      "endLine": 10,
+      "endCol": 58
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue_ack(queue, receipt.id)",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 11,
+      "endCol": 33
+    }
+  }
+]

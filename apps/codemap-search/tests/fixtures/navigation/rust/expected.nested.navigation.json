@@ -1,0 +1,118 @@
+{
+  "calls": [
+    {
+      "name": "map",
+      "receiver": "self.mapper",
+      "range": {
+        "startLine": 35,
+        "startCol": 29,
+        "endLine": 35,
+        "endCol": 51
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "audit_event",
+      "range": {
+        "startLine": 36,
+        "startCol": 21,
+        "endLine": 36,
+        "endCol": 57
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "reserve",
+      "receiver": "self.inventory",
+      "range": {
+        "startLine": 38,
+        "startCol": 9,
+        "endLine": 38,
+        "endCol": 38
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "save",
+      "receiver": "self.repo",
+      "range": {
+        "startLine": 39,
+        "startCol": 9,
+        "endLine": 39,
+        "endCol": 29
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "finish",
+      "receiver": "audit",
+      "range": {
+        "startLine": 40,
+        "startCol": 9,
+        "endLine": 40,
+        "endCol": 23
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "Ok",
+      "range": {
+        "startLine": 41,
+        "startCol": 9,
+        "endLine": 41,
+        "endCol": 16
+      },
+      "scopeId": 3400042
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "typeName": "OrderDto",
+      "valueType": "map",
+      "range": {
+        "startLine": 35,
+        "startCol": 9,
+        "endLine": 35,
+        "endCol": 52
+      },
+      "scopeId": 3400042
+    },
+    {
+      "name": "audit",
+      "range": {
+        "startLine": 36,
+        "startCol": 9,
+        "endLine": 36,
+        "endCol": 58
+      },
+      "scopeId": 3400042
+    }
+  ],
+  "imports": [
+    {
+      "localName": "*",
+      "source": "crate::audit::*",
+      "kind": "glob",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 21
+      }
+    },
+    {
+      "localName": "OrderRepo",
+      "importedName": "OrderRepo",
+      "source": "crate::repo::OrderRepo",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 28
+      }
+    }
+  ]
+}

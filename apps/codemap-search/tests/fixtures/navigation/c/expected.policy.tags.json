@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "int evaluate_policy(struct order *order, struct rule *rules, int count) {\n    struct failure_list failures = {0};\n    int passed = 1;\n\n    for (int i = 0; i < count; i++) {\n        if (!rule_check(&rules[i], order)) {\n            append_failure(&failures, rules[i].name);\n            passed = 0;\n        }\n    }\n\n    return passed && failure_count(&failures) == 0;\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 15,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule_check(&rules[i], order)",
+    "range": {
+      "startLine": 8,
+      "startCol": 14,
+      "endLine": 8,
+      "endCol": 42
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "append_failure(&failures, rules[i].name)",
+    "range": {
+      "startLine": 9,
+      "startCol": 13,
+      "endLine": 9,
+      "endCol": 53
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failure_count(&failures)",
+    "range": {
+      "startLine": 14,
+      "startCol": 22,
+      "endLine": 14,
+      "endCol": 46
+    }
+  }
+]

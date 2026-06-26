@@ -1,0 +1,76 @@
+{
+  "calls": [
+    {
+      "name": "parse",
+      "receiver": "parser",
+      "range": {
+        "startLine": 9,
+        "startCol": 23,
+        "endLine": 9,
+        "endCol": 41
+      },
+      "scopeId": 700012
+    },
+    {
+      "name": "submit",
+      "receiver": "service",
+      "range": {
+        "startLine": 10,
+        "startCol": 23,
+        "endLine": 10,
+        "endCol": 46
+      },
+      "scopeId": 700012
+    },
+    {
+      "name": "ok",
+      "receiver": "ResponseEntity",
+      "range": {
+        "startLine": 11,
+        "startCol": 16,
+        "endLine": 11,
+        "endCol": 42
+      },
+      "scopeId": 700012
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "request",
+      "valueType": "parser",
+      "range": {
+        "startLine": 9,
+        "startCol": 9,
+        "endLine": 9,
+        "endCol": 41
+      },
+      "scopeId": 700012
+    },
+    {
+      "name": "receipt",
+      "valueType": "service",
+      "range": {
+        "startLine": 10,
+        "startCol": 9,
+        "endLine": 10,
+        "endCol": 46
+      },
+      "scopeId": 700012
+    }
+  ],
+  "imports": [
+    {
+      "localName": "PostMapping",
+      "importedName": "PostMapping",
+      "source": "org.springframework.web.bind.annotation",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 59
+      }
+    }
+  ]
+}

@@ -24,7 +24,7 @@
   "references": [],
   "localBindings": [
     {
-      "name": "User",
+      "name": "user",
       "typeName": "struct User",
       "range": {
         "startLine": 11,
@@ -37,8 +37,8 @@
   ],
   "imports": [
     {
-      "localName": "h",
-      "importedName": "h",
+      "localName": "user",
+      "importedName": "user",
       "source": "user.h",
       "kind": "named",
       "range": {
@@ -49,8 +49,8 @@
       }
     },
     {
-      "localName": "h",
-      "importedName": "h",
+      "localName": "stdio",
+      "importedName": "stdio",
       "source": "stdio.h",
       "kind": "named",
       "range": {

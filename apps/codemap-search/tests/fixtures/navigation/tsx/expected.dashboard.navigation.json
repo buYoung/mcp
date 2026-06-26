@@ -1,0 +1,120 @@
+{
+  "calls": [
+    {
+      "name": "useState",
+      "range": {
+        "startLine": 4,
+        "startCol": 31,
+        "endLine": 4,
+        "endCol": 59
+      },
+      "scopeId": 300017
+    },
+    {
+      "name": "useEffect",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 8,
+        "endCol": 15
+      },
+      "scopeId": 300017
+    },
+    {
+      "name": "then",
+      "receiver": "client.load()",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 52
+      },
+      "scopeId": 600008
+    },
+    {
+      "name": "load",
+      "receiver": "client",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 18
+      },
+      "scopeId": 600008
+    },
+    {
+      "name": "setOrders",
+      "range": {
+        "startLine": 7,
+        "startCol": 35,
+        "endLine": 7,
+        "endCol": 51
+      },
+      "scopeId": 700007
+    },
+    {
+      "name": "map",
+      "receiver": "orders",
+      "range": {
+        "startLine": 12,
+        "startCol": 8,
+        "endLine": 14,
+        "endCol": 9
+      },
+      "scopeId": 300017
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "orders",
+      "typeName": "OrderSummary",
+      "valueType": "useState",
+      "range": {
+        "startLine": 4,
+        "startCol": 9,
+        "endLine": 4,
+        "endCol": 59
+      },
+      "scopeId": 300017
+    },
+    {
+      "name": "setOrders",
+      "typeName": "OrderSummary",
+      "valueType": "useState",
+      "range": {
+        "startLine": 4,
+        "startCol": 9,
+        "endLine": 4,
+        "endCol": 59
+      },
+      "scopeId": 300017
+    }
+  ],
+  "imports": [
+    {
+      "localName": "useEffect",
+      "importedName": "useEffect",
+      "source": "react",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 45
+      }
+    },
+    {
+      "localName": "useState",
+      "importedName": "useState",
+      "source": "react",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 45
+      }
+    }
+  ]
+}

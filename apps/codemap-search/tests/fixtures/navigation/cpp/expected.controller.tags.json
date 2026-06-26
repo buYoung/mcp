@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "Response post(const Request &raw) {\n        auto request = parser_.parse(raw);\n        auto receipt = service_.submit(request);\n        return Response::ok(receipt);\n    }",
+    "range": {
+      "startLine": 5,
+      "startCol": 5,
+      "endLine": 9,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parser_.parse(raw)",
+    "range": {
+      "startLine": 6,
+      "startCol": 24,
+      "endLine": 6,
+      "endCol": 42
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service_.submit(request)",
+    "range": {
+      "startLine": 7,
+      "startCol": 24,
+      "endLine": 7,
+      "endCol": 48
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Response::ok(receipt)",
+    "range": {
+      "startLine": 8,
+      "startCol": 16,
+      "endLine": 8,
+      "endCol": 37
+    }
+  }
+]

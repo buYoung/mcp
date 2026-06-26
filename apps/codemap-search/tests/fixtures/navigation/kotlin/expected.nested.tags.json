@@ -1,0 +1,142 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "@Service\nclass CheckoutService(\n    private val repository: OrderRepository,\n    private val inventory: Inventory,\n    private val mapper: OrderMapper,\n) {\n    @Transactional\n    fun submit(lines: List<OrderLine>): Receipt {\n        val dto: OrderDto = mapper.map(lines)\n        val event = AuditEvent.audit(\"checkout.submit\", dto.total)\n\n        inventory.reserve(lines)\n        repository.save(dto)\n        event.commit()\n        return Receipt.from(dto)\n    }\n\n    companion object {\n        fun empty(): Receipt = Receipt.from(OrderDto(0))\n    }\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 24,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 5,
+      "startCol": 7,
+      "endLine": 5,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "@Transactional\n    fun submit(lines: List<OrderLine>): Receipt {\n        val dto: OrderDto = mapper.map(lines)\n        val event = AuditEvent.audit(\"checkout.submit\", dto.total)\n\n        inventory.reserve(lines)\n        repository.save(dto)\n        event.commit()\n        return Receipt.from(dto)\n    }",
+    "range": {
+      "startLine": 10,
+      "startCol": 5,
+      "endLine": 19,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "submit",
+    "range": {
+      "startLine": 11,
+      "startCol": 9,
+      "endLine": 11,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "mapper.map(lines)",
+    "range": {
+      "startLine": 12,
+      "startCol": 29,
+      "endLine": 12,
+      "endCol": 46
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "AuditEvent.audit(\"checkout.submit\", dto.total)",
+    "range": {
+      "startLine": 13,
+      "startCol": 21,
+      "endLine": 13,
+      "endCol": 67
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "inventory.reserve(lines)",
+    "range": {
+      "startLine": 15,
+      "startCol": 9,
+      "endLine": 15,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "repository.save(dto)",
+    "range": {
+      "startLine": 16,
+      "startCol": 9,
+      "endLine": 16,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "event.commit()",
+    "range": {
+      "startLine": 17,
+      "startCol": 9,
+      "endLine": 17,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Receipt.from(dto)",
+    "range": {
+      "startLine": 18,
+      "startCol": 16,
+      "endLine": 18,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "fun empty(): Receipt = Receipt.from(OrderDto(0))",
+    "range": {
+      "startLine": 22,
+      "startCol": 9,
+      "endLine": 22,
+      "endCol": 57
+    }
+  },
+  {
+    "capture": "name",
+    "text": "empty",
+    "range": {
+      "startLine": 22,
+      "startCol": 13,
+      "endLine": 22,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Receipt.from(OrderDto(0))",
+    "range": {
+      "startLine": 22,
+      "startCol": 32,
+      "endLine": 22,
+      "endCol": 57
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "OrderDto(0)",
+    "range": {
+      "startLine": 22,
+      "startCol": 45,
+      "endLine": 22,
+      "endCol": 56
+    }
+  }
+]

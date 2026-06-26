@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "static struct order_dto map_order(const struct order_line *lines, int count) {\n    struct order_dto dto = {0};\n    for (int i = 0; i < count; i++) {\n        dto.total += lines[i].price * lines[i].quantity;\n    }\n    return dto;\n}",
+    "range": {
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 16,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "bool checkout_submit(struct order_repo *repo, const struct order_line *lines, int count) {\n    struct order_dto dto = map_order(lines, count);\n    bool saved = false;\n\n    reserve_inventory(lines, count);\n    saved = repo_save(repo, &dto);\n    TRACE_ORDER(\"checkout.submit\", dto);\n    return saved;\n}",
+    "range": {
+      "startLine": 18,
+      "startCol": 1,
+      "endLine": 26,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "map_order(lines, count)",
+    "range": {
+      "startLine": 19,
+      "startCol": 28,
+      "endLine": 19,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "reserve_inventory(lines, count)",
+    "range": {
+      "startLine": 22,
+      "startCol": 5,
+      "endLine": 22,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "repo_save(repo, &dto)",
+    "range": {
+      "startLine": 23,
+      "startCol": 13,
+      "endLine": 23,
+      "endCol": 34
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "TRACE_ORDER(\"checkout.submit\", dto)",
+    "range": {
+      "startLine": 24,
+      "startCol": 5,
+      "endLine": 24,
+      "endCol": 40
+    }
+  }
+]

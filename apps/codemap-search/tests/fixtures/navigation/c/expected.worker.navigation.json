@@ -1,0 +1,85 @@
+{
+  "calls": [
+    {
+      "name": "queue_next",
+      "range": {
+        "startLine": 4,
+        "startCol": 22,
+        "endLine": 4,
+        "endCol": 39
+      },
+      "scopeId": 300012
+    },
+    {
+      "name": "log_warn",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 27
+      },
+      "scopeId": 300012
+    },
+    {
+      "name": "process_job",
+      "range": {
+        "startLine": 10,
+        "startCol": 30,
+        "endLine": 10,
+        "endCol": 58
+      },
+      "scopeId": 300012
+    },
+    {
+      "name": "queue_ack",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 33
+      },
+      "scopeId": 300012
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "job",
+      "typeName": "struct job",
+      "valueType": "queue_next",
+      "range": {
+        "startLine": 4,
+        "startCol": 5,
+        "endLine": 4,
+        "endCol": 40
+      },
+      "scopeId": 300012
+    },
+    {
+      "name": "receipt",
+      "typeName": "struct receipt",
+      "valueType": "process_job",
+      "range": {
+        "startLine": 10,
+        "startCol": 5,
+        "endLine": 10,
+        "endCol": 59
+      },
+      "scopeId": 300012
+    }
+  ],
+  "imports": [
+    {
+      "localName": "worker",
+      "importedName": "worker",
+      "source": "worker.h",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    }
+  ]
+}

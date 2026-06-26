@@ -1,0 +1,166 @@
+{
+  "calls": [
+    {
+      "name": "NewDecoder",
+      "receiver": "json",
+      "range": {
+        "startLine": 13,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 36
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "Decode",
+      "receiver": "decoder",
+      "range": {
+        "startLine": 15,
+        "startCol": 12,
+        "endLine": 15,
+        "endCol": 36
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "WriteHeader",
+      "receiver": "w",
+      "range": {
+        "startLine": 16,
+        "startCol": 3,
+        "endLine": 16,
+        "endCol": 39
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "Submit",
+      "receiver": "h.service",
+      "range": {
+        "startLine": 20,
+        "startCol": 18,
+        "endLine": 20,
+        "endCol": 56
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "Context",
+      "receiver": "r",
+      "range": {
+        "startLine": 20,
+        "startCol": 35,
+        "endLine": 20,
+        "endCol": 46
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "WriteHeader",
+      "receiver": "w",
+      "range": {
+        "startLine": 22,
+        "startCol": 3,
+        "endLine": 22,
+        "endCol": 48
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "Encode",
+      "receiver": "json.NewEncoder(w)",
+      "range": {
+        "startLine": 26,
+        "startCol": 2,
+        "endLine": 26,
+        "endCol": 36
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "NewEncoder",
+      "receiver": "json",
+      "range": {
+        "startLine": 26,
+        "startCol": 2,
+        "endLine": 26,
+        "endCol": 20
+      },
+      "scopeId": 1200027
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "decoder",
+      "valueType": "NewDecoder",
+      "range": {
+        "startLine": 13,
+        "startCol": 2,
+        "endLine": 13,
+        "endCol": 36
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "request",
+      "typeName": "SubmitRequest",
+      "valueType": "SubmitRequest",
+      "range": {
+        "startLine": 14,
+        "startCol": 2,
+        "endLine": 14,
+        "endCol": 28
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "err",
+      "valueType": "Decode",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 15,
+        "endCol": 36
+      },
+      "scopeId": 1200027
+    },
+    {
+      "name": "receipt",
+      "valueType": "Submit",
+      "range": {
+        "startLine": 20,
+        "startCol": 2,
+        "endLine": 20,
+        "endCol": 56
+      },
+      "scopeId": 1200027
+    }
+  ],
+  "imports": [
+    {
+      "localName": "json",
+      "importedName": "json",
+      "source": "encoding/json",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 6,
+        "endCol": 2
+      }
+    },
+    {
+      "localName": "http",
+      "importedName": "http",
+      "source": "net/http",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 6,
+        "endCol": 2
+      }
+    }
+  ]
+}

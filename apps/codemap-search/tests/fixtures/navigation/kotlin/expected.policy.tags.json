@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class OrderPolicy(private val rules: List<Rule>) {\n    fun evaluate(order: Order): List<String> {\n        val failures = rules.filter { rule -> !rule.check(order) }\n        val names = failures.map { rule -> rule.name }\n        if (failures.isEmpty()) {\n            return emptyList()\n        }\n        return names\n    }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 12,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderPolicy",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "fun evaluate(order: Order): List<String> {\n        val failures = rules.filter { rule -> !rule.check(order) }\n        val names = failures.map { rule -> rule.name }\n        if (failures.isEmpty()) {\n            return emptyList()\n        }\n        return names\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 11,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "evaluate",
+    "range": {
+      "startLine": 4,
+      "startCol": 9,
+      "endLine": 4,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rules.filter { rule -> !rule.check(order) }",
+    "range": {
+      "startLine": 5,
+      "startCol": 24,
+      "endLine": 5,
+      "endCol": 67
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "!rule.check(order)",
+    "range": {
+      "startLine": 5,
+      "startCol": 47,
+      "endLine": 5,
+      "endCol": 65
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.map { rule -> rule.name }",
+    "range": {
+      "startLine": 6,
+      "startCol": 21,
+      "endLine": 6,
+      "endCol": 55
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.isEmpty()",
+    "range": {
+      "startLine": 7,
+      "startCol": 13,
+      "endLine": 7,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "emptyList()",
+    "range": {
+      "startLine": 8,
+      "startCol": 20,
+      "endLine": 8,
+      "endCol": 31
+    }
+  }
+]

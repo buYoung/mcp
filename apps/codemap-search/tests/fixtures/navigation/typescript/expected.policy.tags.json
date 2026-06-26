@@ -1,0 +1,102 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class OrderPolicy<T extends Rule> {\n  constructor(private readonly rules: readonly T[]) {}\n\n  evaluate(order: Order): RuleResult<T>[] {\n    const active = this.rules.filter((rule) => rule.check(order));\n    const names = active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule as T & {\n        severity?: string;\n      };\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    });\n    return names as RuleResult<T>[];\n  }\n}",
+    "range": {
+      "startLine": 5,
+      "startCol": 8,
+      "endLine": 18,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderPolicy",
+    "range": {
+      "startLine": 5,
+      "startCol": 14,
+      "endLine": 5,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "constructor(private readonly rules: readonly T[]) {}",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 55
+    }
+  },
+  {
+    "capture": "name",
+    "text": "constructor",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "evaluate(order: Order): RuleResult<T>[] {\n    const active = this.rules.filter((rule) => rule.check(order));\n    const names = active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule as T & {\n        severity?: string;\n      };\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    });\n    return names as RuleResult<T>[];\n  }",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 17,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "evaluate",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.rules.filter((rule) => rule.check(order))",
+    "range": {
+      "startLine": 9,
+      "startCol": 20,
+      "endLine": 9,
+      "endCol": 66
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 9,
+      "startCol": 48,
+      "endLine": 9,
+      "endCol": 65
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule as T & {\n        severity?: string;\n      };\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    })",
+    "range": {
+      "startLine": 10,
+      "startCol": 19,
+      "endLine": 15,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Object.keys(metadata)",
+    "range": {
+      "startLine": 14,
+      "startCol": 41,
+      "endLine": 14,
+      "endCol": 62
+    }
+  }
+]

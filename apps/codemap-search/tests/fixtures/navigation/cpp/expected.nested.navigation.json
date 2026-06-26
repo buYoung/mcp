@@ -1,0 +1,124 @@
+{
+  "calls": [
+    {
+      "name": "map",
+      "receiver": "mapper_",
+      "range": {
+        "startLine": 13,
+        "startCol": 20,
+        "endLine": 13,
+        "endCol": 38
+      },
+      "scopeId": 1200020
+    },
+    {
+      "name": "audit",
+      "receiver": "AuditEvent",
+      "range": {
+        "startLine": 14,
+        "startCol": 22,
+        "endLine": 14,
+        "endCol": 69
+      },
+      "scopeId": 1200020
+    },
+    {
+      "name": "reserve",
+      "receiver": "inventory_",
+      "range": {
+        "startLine": 16,
+        "startCol": 9,
+        "endLine": 16,
+        "endCol": 34
+      },
+      "scopeId": 1200020
+    },
+    {
+      "name": "save",
+      "receiver": "repo_",
+      "range": {
+        "startLine": 17,
+        "startCol": 9,
+        "endLine": 17,
+        "endCol": 24
+      },
+      "scopeId": 1200020
+    },
+    {
+      "name": "commit",
+      "receiver": "audit",
+      "range": {
+        "startLine": 18,
+        "startCol": 9,
+        "endLine": 18,
+        "endCol": 23
+      },
+      "scopeId": 1200020
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "typeName": "auto",
+      "valueType": "map",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 13,
+        "endCol": 39
+      },
+      "scopeId": 1200020
+    },
+    {
+      "name": "audit",
+      "typeName": "auto",
+      "valueType": "audit",
+      "range": {
+        "startLine": 14,
+        "startCol": 9,
+        "endLine": 14,
+        "endCol": 70
+      },
+      "scopeId": 1200020
+    }
+  ],
+  "imports": [
+    {
+      "localName": "order",
+      "importedName": "order",
+      "source": "order.hpp",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "memory",
+      "importedName": "memory",
+      "source": "memory",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "vector",
+      "importedName": "vector",
+      "source": "vector",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 4,
+        "endCol": 1
+      }
+    }
+  ]
+}

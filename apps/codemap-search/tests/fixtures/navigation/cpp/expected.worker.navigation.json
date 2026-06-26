@@ -1,0 +1,111 @@
+{
+  "calls": [
+    {
+      "name": "next",
+      "receiver": "queue_",
+      "range": {
+        "startLine": 6,
+        "startCol": 20,
+        "endLine": 6,
+        "endCol": 33
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "valid",
+      "receiver": "job",
+      "range": {
+        "startLine": 7,
+        "startCol": 14,
+        "endLine": 7,
+        "endCol": 25
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "warn",
+      "receiver": "logger_",
+      "range": {
+        "startLine": 8,
+        "startCol": 13,
+        "endLine": 8,
+        "endCol": 35
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "process",
+      "receiver": "processor_",
+      "range": {
+        "startLine": 12,
+        "startCol": 24,
+        "endLine": 12,
+        "endCol": 47
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "ack",
+      "receiver": "queue_",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 13,
+        "endCol": 33
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "id",
+      "receiver": "receipt",
+      "range": {
+        "startLine": 13,
+        "startCol": 20,
+        "endLine": 13,
+        "endCol": 32
+      },
+      "scopeId": 500014
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "job",
+      "typeName": "auto",
+      "valueType": "next",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 34
+      },
+      "scopeId": 500014
+    },
+    {
+      "name": "receipt",
+      "typeName": "auto",
+      "valueType": "process",
+      "range": {
+        "startLine": 12,
+        "startCol": 9,
+        "endLine": 12,
+        "endCol": 48
+      },
+      "scopeId": 500014
+    }
+  ],
+  "imports": [
+    {
+      "localName": "worker",
+      "importedName": "worker",
+      "source": "worker.hpp",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    }
+  ]
+}

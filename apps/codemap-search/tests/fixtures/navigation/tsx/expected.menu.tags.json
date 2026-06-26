@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function ActionMenu({\n  items,\n  onChoose,\n}: {\n  items: MenuItem[];\n  onChoose(id: string): void;\n}) {\n  const visible = useMemo(() => items.filter((item) => item.enabled), [items]);\n\n  return (\n    <nav>\n      {visible.map((item) => (\n        <button key={item.id} onClick={() => onChoose(item.id)}>\n          {item.label}\n        </button>\n      ))}\n    </nav>\n  );\n}",
+    "range": {
+      "startLine": 5,
+      "startCol": 8,
+      "endLine": 23,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "ActionMenu",
+    "range": {
+      "startLine": 5,
+      "startCol": 17,
+      "endLine": 5,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "useMemo(() => items.filter((item) => item.enabled), [items])",
+    "range": {
+      "startLine": 12,
+      "startCol": 19,
+      "endLine": 12,
+      "endCol": 79
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "items.filter((item) => item.enabled)",
+    "range": {
+      "startLine": 12,
+      "startCol": 33,
+      "endLine": 12,
+      "endCol": 69
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "visible.map((item) => (\n        <button key={item.id} onClick={() => onChoose(item.id)}>\n          {item.label}\n        </button>\n      ))",
+    "range": {
+      "startLine": 16,
+      "startCol": 8,
+      "endLine": 20,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "onChoose(item.id)",
+    "range": {
+      "startLine": 17,
+      "startCol": 46,
+      "endLine": 17,
+      "endCol": 63
+    }
+  }
+]

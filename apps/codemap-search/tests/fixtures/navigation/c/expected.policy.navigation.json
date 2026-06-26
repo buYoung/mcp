@@ -1,0 +1,84 @@
+{
+  "calls": [
+    {
+      "name": "rule_check",
+      "range": {
+        "startLine": 8,
+        "startCol": 14,
+        "endLine": 8,
+        "endCol": 42
+      },
+      "scopeId": 300015
+    },
+    {
+      "name": "append_failure",
+      "range": {
+        "startLine": 9,
+        "startCol": 13,
+        "endLine": 9,
+        "endCol": 53
+      },
+      "scopeId": 300015
+    },
+    {
+      "name": "failure_count",
+      "range": {
+        "startLine": 14,
+        "startCol": 22,
+        "endLine": 14,
+        "endCol": 46
+      },
+      "scopeId": 300015
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "struct failure_list",
+      "range": {
+        "startLine": 4,
+        "startCol": 5,
+        "endLine": 4,
+        "endCol": 40
+      },
+      "scopeId": 300015
+    },
+    {
+      "name": "passed",
+      "typeName": "int",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 20
+      },
+      "scopeId": 300015
+    },
+    {
+      "name": "i",
+      "typeName": "int",
+      "range": {
+        "startLine": 7,
+        "startCol": 10,
+        "endLine": 7,
+        "endCol": 20
+      },
+      "scopeId": 300015
+    }
+  ],
+  "imports": [
+    {
+      "localName": "policy",
+      "importedName": "policy",
+      "source": "policy.h",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    }
+  ]
+}

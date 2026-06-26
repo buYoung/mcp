@@ -1,0 +1,112 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class OrderPolicy {\n    private final List<Rule> rules;\n\n    OrderPolicy(List<Rule> rules) {\n        this.rules = rules;\n    }\n\n    List<String> evaluate(Order order) {\n        List<String> failures = rules.stream()\n                .filter(rule -> !rule.check(order))\n                .map(Rule::name)\n                .toList();\n        if (failures.isEmpty()) {\n            return List.of();\n        }\n        return failures;\n    }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 20,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderPolicy",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "List<String> evaluate(Order order) {\n        List<String> failures = rules.stream()\n                .filter(rule -> !rule.check(order))\n                .map(Rule::name)\n                .toList();\n        if (failures.isEmpty()) {\n            return List.of();\n        }\n        return failures;\n    }",
+    "range": {
+      "startLine": 10,
+      "startCol": 5,
+      "endLine": 19,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "evaluate",
+    "range": {
+      "startLine": 10,
+      "startCol": 18,
+      "endLine": 10,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rules.stream()\n                .filter(rule -> !rule.check(order))\n                .map(Rule::name)\n                .toList()",
+    "range": {
+      "startLine": 11,
+      "startCol": 33,
+      "endLine": 14,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rules.stream()\n                .filter(rule -> !rule.check(order))\n                .map(Rule::name)",
+    "range": {
+      "startLine": 11,
+      "startCol": 33,
+      "endLine": 13,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rules.stream()\n                .filter(rule -> !rule.check(order))",
+    "range": {
+      "startLine": 11,
+      "startCol": 33,
+      "endLine": 12,
+      "endCol": 52
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rules.stream()",
+    "range": {
+      "startLine": 11,
+      "startCol": 33,
+      "endLine": 11,
+      "endCol": 47
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 12,
+      "startCol": 34,
+      "endLine": 12,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.isEmpty()",
+    "range": {
+      "startLine": 15,
+      "startCol": 13,
+      "endLine": 15,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "List.of()",
+    "range": {
+      "startLine": 16,
+      "startCol": 20,
+      "endLine": 16,
+      "endCol": 29
+    }
+  }
+]

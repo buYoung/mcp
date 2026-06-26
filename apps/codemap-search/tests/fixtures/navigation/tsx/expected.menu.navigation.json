@@ -1,0 +1,74 @@
+{
+  "calls": [
+    {
+      "name": "useMemo",
+      "range": {
+        "startLine": 12,
+        "startCol": 19,
+        "endLine": 12,
+        "endCol": 79
+      },
+      "scopeId": 500023
+    },
+    {
+      "name": "filter",
+      "receiver": "items",
+      "range": {
+        "startLine": 12,
+        "startCol": 33,
+        "endLine": 12,
+        "endCol": 69
+      },
+      "scopeId": 1200012
+    },
+    {
+      "name": "map",
+      "receiver": "visible",
+      "range": {
+        "startLine": 16,
+        "startCol": 8,
+        "endLine": 20,
+        "endCol": 9
+      },
+      "scopeId": 500023
+    },
+    {
+      "name": "onChoose",
+      "range": {
+        "startLine": 17,
+        "startCol": 46,
+        "endLine": 17,
+        "endCol": 63
+      },
+      "scopeId": 1700017
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "visible",
+      "valueType": "useMemo",
+      "range": {
+        "startLine": 12,
+        "startCol": 9,
+        "endLine": 12,
+        "endCol": 79
+      },
+      "scopeId": 500023
+    }
+  ],
+  "imports": [
+    {
+      "localName": "useMemo",
+      "importedName": "useMemo",
+      "source": "react",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 33
+      }
+    }
+  ]
+}

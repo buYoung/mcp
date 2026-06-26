@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutController {\n    private final CheckoutService service;\n    private final OrderParser parser;\n\n    CheckoutController(CheckoutService service, OrderParser parser) {\n        this.service = service;\n        this.parser = parser;\n    }\n\n    @PostMapping(\"/checkout\")\n    ResponseEntity<Receipt> post(String body) {\n        SubmitRequest request = parser.parse(body);\n        Receipt receipt = service.submit(request);\n        return ResponseEntity.ok(receipt);\n    }\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 19,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutController",
+    "range": {
+      "startLine": 4,
+      "startCol": 7,
+      "endLine": 4,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "@PostMapping(\"/checkout\")\n    ResponseEntity<Receipt> post(String body) {\n        SubmitRequest request = parser.parse(body);\n        Receipt receipt = service.submit(request);\n        return ResponseEntity.ok(receipt);\n    }",
+    "range": {
+      "startLine": 13,
+      "startCol": 5,
+      "endLine": 18,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "post",
+    "range": {
+      "startLine": 14,
+      "startCol": 29,
+      "endLine": 14,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parser.parse(body)",
+    "range": {
+      "startLine": 15,
+      "startCol": 33,
+      "endLine": 15,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.submit(request)",
+    "range": {
+      "startLine": 16,
+      "startCol": 27,
+      "endLine": 16,
+      "endCol": 50
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "ResponseEntity.ok(receipt)",
+    "range": {
+      "startLine": 17,
+      "startCol": 16,
+      "endLine": 17,
+      "endCol": 42
+    }
+  }
+]

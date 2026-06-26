@@ -1,0 +1,75 @@
+{
+  "calls": [
+    {
+      "name": "parse_order",
+      "range": {
+        "startLine": 4,
+        "startCol": 37,
+        "endLine": 4,
+        "endCol": 53
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "checkout_submit",
+      "range": {
+        "startLine": 5,
+        "startCol": 30,
+        "endLine": 5,
+        "endCol": 55
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "write_response",
+      "range": {
+        "startLine": 6,
+        "startCol": 12,
+        "endLine": 6,
+        "endCol": 41
+      },
+      "scopeId": 300007
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "request",
+      "typeName": "struct submit_request",
+      "valueType": "parse_order",
+      "range": {
+        "startLine": 4,
+        "startCol": 5,
+        "endLine": 4,
+        "endCol": 54
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "receipt",
+      "typeName": "struct receipt",
+      "valueType": "checkout_submit",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 56
+      },
+      "scopeId": 300007
+    }
+  ],
+  "imports": [
+    {
+      "localName": "handler",
+      "importedName": "handler",
+      "source": "handler.h",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutWorker {\n  constructor(\n    private readonly queue: JobQueue,\n    private readonly processor: JobProcessor,\n    private readonly logger: Logger,\n  ) {}\n\n  async tick() {\n    for (const queuedJob of this.queue.pending()) {\n      this.logger.warn(queuedJob.id);\n    }\n\n    const job = await this.queue.next();\n    if (!job) {\n      this.logger.warn(\"no job\");\n      return;\n    }\n\n    try {\n      const receipt = await this.processor.process(job);\n      await this.queue.ack(receipt.id);\n    } catch (error) {\n      this.logger.warn(error);\n    }\n  }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 8,
+      "endLine": 28,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutWorker",
+    "range": {
+      "startLine": 3,
+      "startCol": 14,
+      "endLine": 3,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "constructor(\n    private readonly queue: JobQueue,\n    private readonly processor: JobProcessor,\n    private readonly logger: Logger,\n  ) {}",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "name",
+    "text": "constructor",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "async tick() {\n    for (const queuedJob of this.queue.pending()) {\n      this.logger.warn(queuedJob.id);\n    }\n\n    const job = await this.queue.next();\n    if (!job) {\n      this.logger.warn(\"no job\");\n      return;\n    }\n\n    try {\n      const receipt = await this.processor.process(job);\n      await this.queue.ack(receipt.id);\n    } catch (error) {\n      this.logger.warn(error);\n    }\n  }",
+    "range": {
+      "startLine": 10,
+      "startCol": 3,
+      "endLine": 27,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "tick",
+    "range": {
+      "startLine": 10,
+      "startCol": 9,
+      "endLine": 10,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.queue.pending()",
+    "range": {
+      "startLine": 11,
+      "startCol": 29,
+      "endLine": 11,
+      "endCol": 49
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.logger.warn(queuedJob.id)",
+    "range": {
+      "startLine": 12,
+      "startCol": 7,
+      "endLine": 12,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.queue.next()",
+    "range": {
+      "startLine": 15,
+      "startCol": 23,
+      "endLine": 15,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.logger.warn(\"no job\")",
+    "range": {
+      "startLine": 17,
+      "startCol": 7,
+      "endLine": 17,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.processor.process(job)",
+    "range": {
+      "startLine": 22,
+      "startCol": 29,
+      "endLine": 22,
+      "endCol": 56
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.queue.ack(receipt.id)",
+    "range": {
+      "startLine": 23,
+      "startCol": 13,
+      "endLine": 23,
+      "endCol": 39
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.logger.warn(error)",
+    "range": {
+      "startLine": 25,
+      "startCol": 7,
+      "endLine": 25,
+      "endCol": 30
+    }
+  }
+]

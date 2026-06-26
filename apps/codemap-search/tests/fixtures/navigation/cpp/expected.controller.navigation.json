@@ -1,0 +1,78 @@
+{
+  "calls": [
+    {
+      "name": "parse",
+      "receiver": "parser_",
+      "range": {
+        "startLine": 6,
+        "startCol": 24,
+        "endLine": 6,
+        "endCol": 42
+      },
+      "scopeId": 500009
+    },
+    {
+      "name": "submit",
+      "receiver": "service_",
+      "range": {
+        "startLine": 7,
+        "startCol": 24,
+        "endLine": 7,
+        "endCol": 48
+      },
+      "scopeId": 500009
+    },
+    {
+      "name": "ok",
+      "receiver": "Response",
+      "range": {
+        "startLine": 8,
+        "startCol": 16,
+        "endLine": 8,
+        "endCol": 37
+      },
+      "scopeId": 500009
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "request",
+      "typeName": "auto",
+      "valueType": "parse",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 43
+      },
+      "scopeId": 500009
+    },
+    {
+      "name": "receipt",
+      "typeName": "auto",
+      "valueType": "submit",
+      "range": {
+        "startLine": 7,
+        "startCol": 9,
+        "endLine": 7,
+        "endCol": 49
+      },
+      "scopeId": 500009
+    }
+  ],
+  "imports": [
+    {
+      "localName": "controller",
+      "importedName": "controller",
+      "source": "controller.hpp",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    }
+  ]
+}

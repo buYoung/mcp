@@ -1,0 +1,87 @@
+{
+  "calls": [
+    {
+      "name": "next",
+      "receiver": "queue",
+      "range": {
+        "startLine": 10,
+        "startCol": 19,
+        "endLine": 10,
+        "endCol": 31
+      },
+      "scopeId": 800018
+    },
+    {
+      "name": "warn",
+      "receiver": "logger",
+      "range": {
+        "startLine": 12,
+        "startCol": 13,
+        "endLine": 12,
+        "endCol": 34
+      },
+      "scopeId": 800018
+    },
+    {
+      "name": "process",
+      "receiver": "processor",
+      "range": {
+        "startLine": 16,
+        "startCol": 23,
+        "endLine": 16,
+        "endCol": 45
+      },
+      "scopeId": 800018
+    },
+    {
+      "name": "ack",
+      "receiver": "queue",
+      "range": {
+        "startLine": 17,
+        "startCol": 9,
+        "endLine": 17,
+        "endCol": 30
+      },
+      "scopeId": 800018
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "job",
+      "valueType": "queue",
+      "range": {
+        "startLine": 10,
+        "startCol": 9,
+        "endLine": 10,
+        "endCol": 31
+      },
+      "scopeId": 800018
+    },
+    {
+      "name": "receipt",
+      "valueType": "processor",
+      "range": {
+        "startLine": 16,
+        "startCol": 9,
+        "endLine": 16,
+        "endCol": 45
+      },
+      "scopeId": 800018
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Scheduled",
+      "importedName": "Scheduled",
+      "source": "org.springframework.scheduling.annotation",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 59
+      }
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "calls": [
+    {
+      "name": "parse_order",
+      "range": {
+        "startLine": 12,
+        "startCol": 23,
+        "endLine": 12,
+        "endCol": 40
+      },
+      "scopeId": 1100015
+    },
+    {
+      "name": "submit",
+      "receiver": "self.service",
+      "range": {
+        "startLine": 13,
+        "startCol": 23,
+        "endLine": 13,
+        "endCol": 51
+      },
+      "scopeId": 1100015
+    },
+    {
+      "name": "Ok",
+      "range": {
+        "startLine": 14,
+        "startCol": 9,
+        "endLine": 14,
+        "endCol": 34
+      },
+      "scopeId": 1100015
+    },
+    {
+      "name": "ok",
+      "receiver": "Response",
+      "range": {
+        "startLine": 14,
+        "startCol": 12,
+        "endLine": 14,
+        "endCol": 33
+      },
+      "scopeId": 1100015
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "payload",
+      "valueType": "parse_order",
+      "range": {
+        "startLine": 12,
+        "startCol": 9,
+        "endLine": 12,
+        "endCol": 42
+      },
+      "scopeId": 1100015
+    },
+    {
+      "name": "receipt",
+      "valueType": "submit",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 13,
+        "endCol": 59
+      },
+      "scopeId": 1100015
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Response",
+      "importedName": "Response",
+      "source": "crate::http::Response",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 27
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "logging.getLogger(__name__)",
+    "range": {
+      "startLine": 4,
+      "startCol": 10,
+      "endLine": 4,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def tick(queue, processor):\n    job = queue.next_job()\n    if job is None:\n        logger.warning(\"no job\")\n        return None\n\n    receipt = processor.process(job)\n    queue.ack(receipt.id)\n    return receipt",
+    "range": {
+      "startLine": 7,
+      "startCol": 1,
+      "endLine": 15,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "name",
+    "text": "tick",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.next_job()",
+    "range": {
+      "startLine": 8,
+      "startCol": 11,
+      "endLine": 8,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "logger.warning(\"no job\")",
+    "range": {
+      "startLine": 10,
+      "startCol": 9,
+      "endLine": 10,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor.process(job)",
+    "range": {
+      "startLine": 13,
+      "startCol": 15,
+      "endLine": 13,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.ack(receipt.id)",
+    "range": {
+      "startLine": 14,
+      "startCol": 5,
+      "endLine": 14,
+      "endCol": 26
+    }
+  }
+]

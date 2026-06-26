@@ -1,0 +1,140 @@
+{
+  "calls": [
+    {
+      "name": "pending",
+      "receiver": "this.queue",
+      "range": {
+        "startLine": 11,
+        "startCol": 29,
+        "endLine": 11,
+        "endCol": 49
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "warn",
+      "receiver": "this.logger",
+      "range": {
+        "startLine": 12,
+        "startCol": 7,
+        "endLine": 12,
+        "endCol": 37
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "next",
+      "receiver": "this.queue",
+      "range": {
+        "startLine": 15,
+        "startCol": 23,
+        "endLine": 15,
+        "endCol": 40
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "warn",
+      "receiver": "this.logger",
+      "range": {
+        "startLine": 17,
+        "startCol": 7,
+        "endLine": 17,
+        "endCol": 33
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "process",
+      "receiver": "this.processor",
+      "range": {
+        "startLine": 22,
+        "startCol": 29,
+        "endLine": 22,
+        "endCol": 56
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "ack",
+      "receiver": "this.queue",
+      "range": {
+        "startLine": 23,
+        "startCol": 13,
+        "endLine": 23,
+        "endCol": 39
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "warn",
+      "receiver": "this.logger",
+      "range": {
+        "startLine": 25,
+        "startCol": 7,
+        "endLine": 25,
+        "endCol": 30
+      },
+      "scopeId": 1000027
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "queuedJob",
+      "range": {
+        "startLine": 11,
+        "startCol": 16,
+        "endLine": 11,
+        "endCol": 25
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "job",
+      "valueType": "next",
+      "range": {
+        "startLine": 15,
+        "startCol": 11,
+        "endLine": 15,
+        "endCol": 40
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "receipt",
+      "valueType": "process",
+      "range": {
+        "startLine": 22,
+        "startCol": 13,
+        "endLine": 22,
+        "endCol": 56
+      },
+      "scopeId": 1000027
+    },
+    {
+      "name": "error",
+      "range": {
+        "startLine": 24,
+        "startCol": 14,
+        "endLine": 24,
+        "endCol": 19
+      },
+      "scopeId": 1000027
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Logger",
+      "importedName": "Logger",
+      "source": "./logger",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 40
+      }
+    }
+  ]
+}

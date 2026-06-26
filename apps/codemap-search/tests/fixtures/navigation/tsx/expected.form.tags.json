@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function CheckoutForm(props: Props) {\n  const [errors, setErrors] = useState<string[]>([]);\n\n  async function handleSubmit(input: OrderInput) {\n    const nextErrors = props.validator.validate(input);\n    if (nextErrors.length > 0) {\n      setErrors(nextErrors);\n      return;\n    }\n\n    await props.service.submit(input);\n  }\n\n  return <button onClick={() => handleSubmit({})}>{errors.length}</button>;\n}",
+    "range": {
+      "startLine": 8,
+      "startCol": 8,
+      "endLine": 22,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutForm",
+    "range": {
+      "startLine": 8,
+      "startCol": 17,
+      "endLine": 8,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "useState<string[]>([])",
+    "range": {
+      "startLine": 9,
+      "startCol": 31,
+      "endLine": 9,
+      "endCol": 53
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "async function handleSubmit(input: OrderInput) {\n    const nextErrors = props.validator.validate(input);\n    if (nextErrors.length > 0) {\n      setErrors(nextErrors);\n      return;\n    }\n\n    await props.service.submit(input);\n  }",
+    "range": {
+      "startLine": 11,
+      "startCol": 3,
+      "endLine": 19,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handleSubmit",
+    "range": {
+      "startLine": 11,
+      "startCol": 18,
+      "endLine": 11,
+      "endCol": 30
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "props.validator.validate(input)",
+    "range": {
+      "startLine": 12,
+      "startCol": 24,
+      "endLine": 12,
+      "endCol": 55
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "setErrors(nextErrors)",
+    "range": {
+      "startLine": 14,
+      "startCol": 7,
+      "endLine": 14,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "props.service.submit(input)",
+    "range": {
+      "startLine": 18,
+      "startCol": 11,
+      "endLine": 18,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "handleSubmit({})",
+    "range": {
+      "startLine": 21,
+      "startCol": 33,
+      "endLine": 21,
+      "endCol": 49
+    }
+  }
+]

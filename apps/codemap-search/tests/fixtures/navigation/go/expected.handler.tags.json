@@ -1,0 +1,122 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "Handler struct {\n\tservice ServicePort\n}",
+    "range": {
+      "startLine": 8,
+      "startCol": 6,
+      "endLine": 10,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Handler",
+    "range": {
+      "startLine": 8,
+      "startCol": 6,
+      "endLine": 8,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {\n\tdecoder := json.NewDecoder(r.Body)\n\trequest := SubmitRequest{}\n\tif err := decoder.Decode(&request); err != nil {\n\t\tw.WriteHeader(http.StatusBadRequest)\n\t\treturn\n\t}\n\n\treceipt, err := h.service.Submit(r.Context(), request)\n\tif err != nil {\n\t\tw.WriteHeader(http.StatusInternalServerError)\n\t\treturn\n\t}\n\n\tjson.NewEncoder(w).Encode(receipt)\n}",
+    "range": {
+      "startLine": 12,
+      "startCol": 1,
+      "endLine": 27,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "ServeHTTP",
+    "range": {
+      "startLine": 12,
+      "startCol": 18,
+      "endLine": 12,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "json.NewDecoder(r.Body)",
+    "range": {
+      "startLine": 13,
+      "startCol": 13,
+      "endLine": 13,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "decoder.Decode(&request)",
+    "range": {
+      "startLine": 15,
+      "startCol": 12,
+      "endLine": 15,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.WriteHeader(http.StatusBadRequest)",
+    "range": {
+      "startLine": 16,
+      "startCol": 3,
+      "endLine": 16,
+      "endCol": 39
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "h.service.Submit(r.Context(), request)",
+    "range": {
+      "startLine": 20,
+      "startCol": 18,
+      "endLine": 20,
+      "endCol": 56
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "r.Context()",
+    "range": {
+      "startLine": 20,
+      "startCol": 35,
+      "endLine": 20,
+      "endCol": 46
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.WriteHeader(http.StatusInternalServerError)",
+    "range": {
+      "startLine": 22,
+      "startCol": 3,
+      "endLine": 22,
+      "endCol": 48
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "json.NewEncoder(w).Encode(receipt)",
+    "range": {
+      "startLine": 26,
+      "startCol": 2,
+      "endLine": 26,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "json.NewEncoder(w)",
+    "range": {
+      "startLine": 26,
+      "startCol": 2,
+      "endLine": 26,
+      "endCol": 20
+    }
+  }
+]

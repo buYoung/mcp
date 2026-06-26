@@ -1,0 +1,152 @@
+[
+  {
+    "capture": "definition.struct",
+    "text": "pub struct OrderLine {\n    price: i64,\n    quantity: i64,\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderLine",
+    "range": {
+      "startLine": 4,
+      "startCol": 12,
+      "endLine": 4,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "definition.struct",
+    "text": "pub struct OrderDto {\n    total: i64,\n}",
+    "range": {
+      "startLine": 9,
+      "startCol": 1,
+      "endLine": 11,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderDto",
+    "range": {
+      "startLine": 9,
+      "startCol": 12,
+      "endLine": 9,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "definition.trait",
+    "text": "pub trait Mapper {\n    fn map(&self, lines: &[OrderLine]) -> OrderDto;\n}",
+    "range": {
+      "startLine": 13,
+      "startCol": 1,
+      "endLine": 15,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Mapper",
+    "range": {
+      "startLine": 13,
+      "startCol": 11,
+      "endLine": 13,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.struct",
+    "text": "pub struct CheckoutService<M, I> {\n    mapper: M,\n    repo: OrderRepo,\n    inventory: I,\n}",
+    "range": {
+      "startLine": 23,
+      "startCol": 1,
+      "endLine": 27,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 23,
+      "startCol": 12,
+      "endLine": 23,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub fn submit(&self, lines: &[OrderLine]) -> Result<OrderDto, String> {\n        let dto: OrderDto = self.mapper.map(lines);\n        let audit = audit_event!(\"checkout.submit\", dto);\n\n        self.inventory.reserve(lines)?;\n        self.repo.save(&dto)?;\n        audit.finish();\n        Ok(dto)\n    }",
+    "range": {
+      "startLine": 34,
+      "startCol": 5,
+      "endLine": 42,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "submit",
+    "range": {
+      "startLine": 34,
+      "startCol": 12,
+      "endLine": 34,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.mapper.map(lines)",
+    "range": {
+      "startLine": 35,
+      "startCol": 29,
+      "endLine": 35,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.inventory.reserve(lines)",
+    "range": {
+      "startLine": 38,
+      "startCol": 9,
+      "endLine": 38,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.repo.save(&dto)",
+    "range": {
+      "startLine": 39,
+      "startCol": 9,
+      "endLine": 39,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "audit.finish()",
+    "range": {
+      "startLine": 40,
+      "startCol": 9,
+      "endLine": 40,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Ok(dto)",
+    "range": {
+      "startLine": 41,
+      "startCol": 9,
+      "endLine": 41,
+      "endCol": 16
+    }
+  }
+]

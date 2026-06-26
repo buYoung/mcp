@@ -1,0 +1,102 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class Rule(Protocol):\n    def check(self, order) -> bool: ...",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Rule",
+    "range": {
+      "startLine": 4,
+      "startCol": 7,
+      "endLine": 4,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def check(self, order) -> bool: ...",
+    "range": {
+      "startLine": 5,
+      "startCol": 5,
+      "endLine": 5,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "name",
+    "text": "check",
+    "range": {
+      "startLine": 5,
+      "startCol": 9,
+      "endLine": 5,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def evaluate(order, rules: list[Rule]) -> list[str]:\n    failures: list[str] = []\n    for rule in rules:\n        passed = rule.check(order)\n        if not passed:\n            failures.append(rule.__class__.__name__)\n\n    all(rule.check(order) for rule in rules)\n    return failures",
+    "range": {
+      "startLine": 8,
+      "startCol": 1,
+      "endLine": 16,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "name",
+    "text": "evaluate",
+    "range": {
+      "startLine": 8,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 11,
+      "startCol": 18,
+      "endLine": 11,
+      "endCol": 35
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.append(rule.__class__.__name__)",
+    "range": {
+      "startLine": 13,
+      "startCol": 13,
+      "endLine": 13,
+      "endCol": 53
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "all(rule.check(order) for rule in rules)",
+    "range": {
+      "startLine": 15,
+      "startCol": 5,
+      "endLine": 15,
+      "endCol": 45
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 15,
+      "startCol": 9,
+      "endLine": 15,
+      "endCol": 26
+    }
+  }
+]

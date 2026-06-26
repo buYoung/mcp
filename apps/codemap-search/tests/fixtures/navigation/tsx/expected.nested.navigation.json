@@ -1,0 +1,96 @@
+{
+  "calls": [
+    {
+      "name": "useMemo",
+      "range": {
+        "startLine": 13,
+        "startCol": 16,
+        "endLine": 20,
+        "endCol": 4
+      },
+      "scopeId": 600031
+    },
+    {
+      "name": "map",
+      "receiver": "items",
+      "range": {
+        "startLine": 15,
+        "startCol": 7,
+        "endLine": 18,
+        "endCol": 10
+      },
+      "scopeId": 1400018
+    },
+    {
+      "name": "formatMoney",
+      "range": {
+        "startLine": 17,
+        "startCol": 16,
+        "endLine": 17,
+        "endCol": 40
+      },
+      "scopeId": 1500018
+    },
+    {
+      "name": "map",
+      "receiver": "rows",
+      "range": {
+        "startLine": 24,
+        "startCol": 8,
+        "endLine": 28,
+        "endCol": 9
+      },
+      "scopeId": 600031
+    },
+    {
+      "name": "onSelect",
+      "range": {
+        "startLine": 25,
+        "startCol": 45,
+        "endLine": 25,
+        "endCol": 61
+      },
+      "scopeId": 2500025
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "rows",
+      "valueType": "useMemo",
+      "range": {
+        "startLine": 13,
+        "startCol": 9,
+        "endLine": 20,
+        "endCol": 4
+      },
+      "scopeId": 600031
+    }
+  ],
+  "imports": [
+    {
+      "localName": "useMemo",
+      "importedName": "useMemo",
+      "source": "react",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 33
+      }
+    },
+    {
+      "localName": "formatMoney",
+      "importedName": "formatMoney",
+      "source": "../money",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 40
+      }
+    }
+  ]
+}

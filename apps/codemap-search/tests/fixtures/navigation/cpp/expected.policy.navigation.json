@@ -1,0 +1,88 @@
+{
+  "calls": [
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 9,
+        "startCol": 18,
+        "endLine": 9,
+        "endCol": 35
+      },
+      "scopeId": 600017
+    },
+    {
+      "name": "push_back",
+      "receiver": "failures",
+      "range": {
+        "startLine": 10,
+        "startCol": 17,
+        "endLine": 10,
+        "endCol": 48
+      },
+      "scopeId": 600017
+    },
+    {
+      "name": "name",
+      "receiver": "rule",
+      "range": {
+        "startLine": 10,
+        "startCol": 36,
+        "endLine": 10,
+        "endCol": 47
+      },
+      "scopeId": 600017
+    },
+    {
+      "name": "empty",
+      "receiver": "failures",
+      "range": {
+        "startLine": 13,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 29
+      },
+      "scopeId": 600017
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "std::vector<std::string>",
+      "range": {
+        "startLine": 7,
+        "startCol": 9,
+        "endLine": 7,
+        "endCol": 43
+      },
+      "scopeId": 600017
+    }
+  ],
+  "imports": [
+    {
+      "localName": "policy",
+      "importedName": "policy",
+      "source": "policy.hpp",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "vector",
+      "importedName": "vector",
+      "source": "vector",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "calls": [
+    {
+      "name": "next",
+      "receiver": "self.queue",
+      "range": {
+        "startLine": 14,
+        "startCol": 25,
+        "endLine": 14,
+        "endCol": 42
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "warn",
+      "range": {
+        "startLine": 15,
+        "startCol": 13,
+        "endLine": 15,
+        "endCol": 28
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "Ok",
+      "range": {
+        "startLine": 16,
+        "startCol": 20,
+        "endLine": 16,
+        "endCol": 26
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "retry_hint",
+      "receiver": "self.queue",
+      "range": {
+        "startLine": 19,
+        "startCol": 30,
+        "endLine": 19,
+        "endCol": 53
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "warn",
+      "range": {
+        "startLine": 20,
+        "startCol": 13,
+        "endLine": 20,
+        "endCol": 38
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "process",
+      "receiver": "self.processor",
+      "range": {
+        "startLine": 23,
+        "startCol": 23,
+        "endLine": 23,
+        "endCol": 50
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "ack",
+      "receiver": "self.queue",
+      "range": {
+        "startLine": 24,
+        "startCol": 9,
+        "endLine": 24,
+        "endCol": 35
+      },
+      "scopeId": 1300025
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "job",
+      "valueType": "next",
+      "range": {
+        "startLine": 14,
+        "startCol": 9,
+        "endLine": 17,
+        "endCol": 11
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "retry",
+      "typeName": "Some",
+      "range": {
+        "startLine": 19,
+        "startCol": 16,
+        "endLine": 19,
+        "endCol": 27
+      },
+      "scopeId": 1300025
+    },
+    {
+      "name": "receipt",
+      "valueType": "process",
+      "range": {
+        "startLine": 23,
+        "startCol": 9,
+        "endLine": 23,
+        "endCol": 58
+      },
+      "scopeId": 1300025
+    }
+  ],
+  "imports": [
+    {
+      "localName": "warn",
+      "importedName": "warn",
+      "source": "tracing::warn",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 19
+      }
+    }
+  ]
+}

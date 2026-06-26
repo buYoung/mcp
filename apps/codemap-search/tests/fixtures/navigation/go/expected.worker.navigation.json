@@ -1,0 +1,87 @@
+{
+  "calls": [
+    {
+      "name": "Next",
+      "receiver": "w.queue",
+      "range": {
+        "startLine": 12,
+        "startCol": 13,
+        "endLine": 12,
+        "endCol": 30
+      },
+      "scopeId": 1100023
+    },
+    {
+      "name": "Warn",
+      "receiver": "w.logger",
+      "range": {
+        "startLine": 14,
+        "startCol": 3,
+        "endLine": 14,
+        "endCol": 26
+      },
+      "scopeId": 1100023
+    },
+    {
+      "name": "Process",
+      "receiver": "w.processor",
+      "range": {
+        "startLine": 18,
+        "startCol": 18,
+        "endLine": 18,
+        "endCol": 47
+      },
+      "scopeId": 1100023
+    },
+    {
+      "name": "Ack",
+      "receiver": "w.queue",
+      "range": {
+        "startLine": 22,
+        "startCol": 9,
+        "endLine": 22,
+        "endCol": 37
+      },
+      "scopeId": 1100023
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "job",
+      "valueType": "Next",
+      "range": {
+        "startLine": 12,
+        "startCol": 2,
+        "endLine": 12,
+        "endCol": 30
+      },
+      "scopeId": 1100023
+    },
+    {
+      "name": "receipt",
+      "valueType": "Process",
+      "range": {
+        "startLine": 18,
+        "startCol": 2,
+        "endLine": 18,
+        "endCol": 47
+      },
+      "scopeId": 1100023
+    }
+  ],
+  "imports": [
+    {
+      "localName": "context",
+      "importedName": "context",
+      "source": "context",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 17
+      }
+    }
+  ]
+}

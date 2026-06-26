@@ -1,0 +1,192 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "OrderLine struct {\n\tPrice    int\n\tQuantity int\n}",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 8,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderLine",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 5,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.type",
+    "text": "OrderDTO struct {\n\tTotal int\n}",
+    "range": {
+      "startLine": 10,
+      "startCol": 6,
+      "endLine": 12,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderDTO",
+    "range": {
+      "startLine": 10,
+      "startCol": 6,
+      "endLine": 10,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.type",
+    "text": "Mapper interface {\n\tMapOrder([]OrderLine) OrderDTO\n}",
+    "range": {
+      "startLine": 14,
+      "startCol": 6,
+      "endLine": 16,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Mapper",
+    "range": {
+      "startLine": 14,
+      "startCol": 6,
+      "endLine": 14,
+      "endCol": 12
+    }
+  },
+  {
+    "capture": "definition.type",
+    "text": "Repository interface {\n\tSave(context.Context, OrderDTO) error\n}",
+    "range": {
+      "startLine": 18,
+      "startCol": 6,
+      "endLine": 20,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Repository",
+    "range": {
+      "startLine": 18,
+      "startCol": 6,
+      "endLine": 18,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "definition.type",
+    "text": "Inventory interface {\n\tReserve(context.Context, []OrderLine) error\n}",
+    "range": {
+      "startLine": 22,
+      "startCol": 6,
+      "endLine": 24,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Inventory",
+    "range": {
+      "startLine": 22,
+      "startCol": 6,
+      "endLine": 22,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.type",
+    "text": "Service struct {\n\tmapper    Mapper\n\trepo      Repository\n\tinventory Inventory\n}",
+    "range": {
+      "startLine": 26,
+      "startCol": 6,
+      "endLine": 30,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Service",
+    "range": {
+      "startLine": 26,
+      "startCol": 6,
+      "endLine": 26,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "func (s *Service) Submit(ctx context.Context, lines []OrderLine) error {\n\tdto := s.mapper.MapOrder(lines)\n\taudit := Trace(ctx, \"checkout.submit\")\n\n\tif err := s.inventory.Reserve(ctx, lines); err != nil {\n\t\treturn err\n\t}\n\tif err := s.repo.Save(ctx, dto); err != nil {\n\t\treturn err\n\t}\n\taudit.Done()\n\treturn nil\n}",
+    "range": {
+      "startLine": 32,
+      "startCol": 1,
+      "endLine": 44,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Submit",
+    "range": {
+      "startLine": 32,
+      "startCol": 19,
+      "endLine": 32,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "s.mapper.MapOrder(lines)",
+    "range": {
+      "startLine": 33,
+      "startCol": 9,
+      "endLine": 33,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Trace(ctx, \"checkout.submit\")",
+    "range": {
+      "startLine": 34,
+      "startCol": 11,
+      "endLine": 34,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "s.inventory.Reserve(ctx, lines)",
+    "range": {
+      "startLine": 36,
+      "startCol": 12,
+      "endLine": 36,
+      "endCol": 43
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "s.repo.Save(ctx, dto)",
+    "range": {
+      "startLine": 39,
+      "startCol": 12,
+      "endLine": 39,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "audit.Done()",
+    "range": {
+      "startLine": 42,
+      "startCol": 2,
+      "endLine": 42,
+      "endCol": 14
+    }
+  }
+]

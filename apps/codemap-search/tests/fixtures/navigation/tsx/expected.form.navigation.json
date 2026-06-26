@@ -1,0 +1,106 @@
+{
+  "calls": [
+    {
+      "name": "useState",
+      "range": {
+        "startLine": 9,
+        "startCol": 31,
+        "endLine": 9,
+        "endCol": 53
+      },
+      "scopeId": 800022
+    },
+    {
+      "name": "validate",
+      "receiver": "props.validator",
+      "range": {
+        "startLine": 12,
+        "startCol": 24,
+        "endLine": 12,
+        "endCol": 55
+      },
+      "scopeId": 1100019
+    },
+    {
+      "name": "setErrors",
+      "range": {
+        "startLine": 14,
+        "startCol": 7,
+        "endLine": 14,
+        "endCol": 28
+      },
+      "scopeId": 1100019
+    },
+    {
+      "name": "submit",
+      "receiver": "props.service",
+      "range": {
+        "startLine": 18,
+        "startCol": 11,
+        "endLine": 18,
+        "endCol": 38
+      },
+      "scopeId": 1100019
+    },
+    {
+      "name": "handleSubmit",
+      "range": {
+        "startLine": 21,
+        "startCol": 33,
+        "endLine": 21,
+        "endCol": 49
+      },
+      "scopeId": 2100021
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "errors",
+      "valueType": "useState",
+      "range": {
+        "startLine": 9,
+        "startCol": 9,
+        "endLine": 9,
+        "endCol": 53
+      },
+      "scopeId": 800022
+    },
+    {
+      "name": "setErrors",
+      "valueType": "useState",
+      "range": {
+        "startLine": 9,
+        "startCol": 9,
+        "endLine": 9,
+        "endCol": 53
+      },
+      "scopeId": 800022
+    },
+    {
+      "name": "nextErrors",
+      "valueType": "validate",
+      "range": {
+        "startLine": 12,
+        "startCol": 11,
+        "endLine": 12,
+        "endCol": 55
+      },
+      "scopeId": 1100019
+    }
+  ],
+  "imports": [
+    {
+      "localName": "useState",
+      "importedName": "useState",
+      "source": "react",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 34
+      }
+    }
+  ]
+}

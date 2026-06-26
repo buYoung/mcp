@@ -1,0 +1,150 @@
+{
+  "calls": [
+    {
+      "name": "reduce",
+      "receiver": "lines",
+      "range": {
+        "startLine": 13,
+        "startCol": 19,
+        "endLine": 13,
+        "endCol": 91
+      },
+      "scopeId": 1200015
+    },
+    {
+      "name": "Number",
+      "range": {
+        "startLine": 13,
+        "startCol": 53,
+        "endLine": 13,
+        "endCol": 71
+      },
+      "scopeId": 1300013
+    },
+    {
+      "name": "Trace",
+      "range": {
+        "startLine": 24,
+        "startCol": 4,
+        "endLine": 24,
+        "endCol": 11
+      }
+    },
+    {
+      "name": "mapOrder",
+      "receiver": "this.mapper",
+      "range": {
+        "startLine": 26,
+        "startCol": 17,
+        "endLine": 26,
+        "endCol": 44
+      },
+      "scopeId": 2500031
+    },
+    {
+      "name": "createAudit",
+      "range": {
+        "startLine": 27,
+        "startCol": 19,
+        "endLine": 27,
+        "endCol": 41
+      },
+      "scopeId": 2500031
+    },
+    {
+      "name": "persist",
+      "receiver": "this.repo",
+      "range": {
+        "startLine": 29,
+        "startCol": 11,
+        "endLine": 29,
+        "endCol": 45
+      },
+      "scopeId": 2500031
+    },
+    {
+      "name": "toDto",
+      "receiver": "this",
+      "range": {
+        "startLine": 29,
+        "startCol": 29,
+        "endLine": 29,
+        "endCol": 44
+      },
+      "scopeId": 2500031
+    },
+    {
+      "name": "track",
+      "receiver": "audit",
+      "range": {
+        "startLine": 30,
+        "startCol": 5,
+        "endLine": 30,
+        "endCol": 38
+      },
+      "scopeId": 2500031
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "total",
+      "valueType": "reduce",
+      "range": {
+        "startLine": 13,
+        "startCol": 11,
+        "endLine": 13,
+        "endCol": 91
+      },
+      "scopeId": 1200015
+    },
+    {
+      "name": "dto",
+      "valueType": "mapOrder",
+      "range": {
+        "startLine": 26,
+        "startCol": 11,
+        "endLine": 26,
+        "endCol": 44
+      },
+      "scopeId": 2500031
+    },
+    {
+      "name": "audit",
+      "valueType": "createAudit",
+      "range": {
+        "startLine": 27,
+        "startCol": 11,
+        "endLine": 27,
+        "endCol": 41
+      },
+      "scopeId": 2500031
+    }
+  ],
+  "imports": [
+    {
+      "localName": "OrderRepository",
+      "importedName": "OrderRepository",
+      "source": "./repository",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 48
+      }
+    },
+    {
+      "localName": "createAudit",
+      "importedName": "createAudit",
+      "source": "./audit",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 39
+      }
+    }
+  ]
+}

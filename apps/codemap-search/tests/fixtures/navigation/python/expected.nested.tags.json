@@ -1,0 +1,222 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "dataclass(frozen=True)",
+    "range": {
+      "startLine": 5,
+      "startCol": 2,
+      "endLine": 5,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "class OrderDto:\n    total: Decimal",
+    "range": {
+      "startLine": 6,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderDto",
+    "range": {
+      "startLine": 6,
+      "startCol": 7,
+      "endLine": 6,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def traced(name: str):\n    def decorate(fn):\n        return fn\n\n    return decorate",
+    "range": {
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 14,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "name",
+    "text": "traced",
+    "range": {
+      "startLine": 10,
+      "startCol": 5,
+      "endLine": 10,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def decorate(fn):\n        return fn",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 12,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "name",
+    "text": "decorate",
+    "range": {
+      "startLine": 11,
+      "startCol": 9,
+      "endLine": 11,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutService:\n    def __init__(self, repo, inventory, policy):\n        self.repo = repo\n        self.inventory = inventory\n        self.policy = policy\n\n    @traced(\"checkout.submit\")\n    def submit(self, lines: list[dict[str, Decimal]]) -> OrderDto:\n        def line_total(line: dict[str, Decimal]) -> Decimal:\n            return line[\"price\"] * line[\"quantity\"]\n\n        total = sum(line_total(line) for line in lines)\n        dto = OrderDto(total=total)\n\n        self.policy.validate(dto)\n        self.inventory.reserve(lines)\n        self.repo.persist(dto)\n        return dto",
+    "range": {
+      "startLine": 17,
+      "startCol": 1,
+      "endLine": 34,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 17,
+      "startCol": 7,
+      "endLine": 17,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def __init__(self, repo, inventory, policy):\n        self.repo = repo\n        self.inventory = inventory\n        self.policy = policy",
+    "range": {
+      "startLine": 18,
+      "startCol": 5,
+      "endLine": 21,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "name",
+    "text": "__init__",
+    "range": {
+      "startLine": 18,
+      "startCol": 9,
+      "endLine": 18,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "traced(\"checkout.submit\")",
+    "range": {
+      "startLine": 23,
+      "startCol": 6,
+      "endLine": 23,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def submit(self, lines: list[dict[str, Decimal]]) -> OrderDto:\n        def line_total(line: dict[str, Decimal]) -> Decimal:\n            return line[\"price\"] * line[\"quantity\"]\n\n        total = sum(line_total(line) for line in lines)\n        dto = OrderDto(total=total)\n\n        self.policy.validate(dto)\n        self.inventory.reserve(lines)\n        self.repo.persist(dto)\n        return dto",
+    "range": {
+      "startLine": 24,
+      "startCol": 5,
+      "endLine": 34,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "name",
+    "text": "submit",
+    "range": {
+      "startLine": 24,
+      "startCol": 9,
+      "endLine": 24,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "def line_total(line: dict[str, Decimal]) -> Decimal:\n            return line[\"price\"] * line[\"quantity\"]",
+    "range": {
+      "startLine": 25,
+      "startCol": 9,
+      "endLine": 26,
+      "endCol": 52
+    }
+  },
+  {
+    "capture": "name",
+    "text": "line_total",
+    "range": {
+      "startLine": 25,
+      "startCol": 13,
+      "endLine": 25,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "sum(line_total(line) for line in lines)",
+    "range": {
+      "startLine": 28,
+      "startCol": 17,
+      "endLine": 28,
+      "endCol": 56
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "line_total(line)",
+    "range": {
+      "startLine": 28,
+      "startCol": 21,
+      "endLine": 28,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "OrderDto(total=total)",
+    "range": {
+      "startLine": 29,
+      "startCol": 15,
+      "endLine": 29,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.policy.validate(dto)",
+    "range": {
+      "startLine": 31,
+      "startCol": 9,
+      "endLine": 31,
+      "endCol": 34
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.inventory.reserve(lines)",
+    "range": {
+      "startLine": 32,
+      "startCol": 9,
+      "endLine": 32,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.repo.persist(dto)",
+    "range": {
+      "startLine": 33,
+      "startCol": 9,
+      "endLine": 33,
+      "endCol": 31
+    }
+  }
+]

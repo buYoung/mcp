@@ -1,0 +1,121 @@
+{
+  "calls": [
+    {
+      "name": "filter",
+      "receiver": "this.rules",
+      "range": {
+        "startLine": 9,
+        "startCol": 20,
+        "endLine": 9,
+        "endCol": 66
+      },
+      "scopeId": 800017
+    },
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 9,
+        "startCol": 48,
+        "endLine": 9,
+        "endCol": 65
+      },
+      "scopeId": 900009
+    },
+    {
+      "name": "map",
+      "receiver": "active",
+      "range": {
+        "startLine": 10,
+        "startCol": 19,
+        "endLine": 15,
+        "endCol": 7
+      },
+      "scopeId": 800017
+    },
+    {
+      "name": "keys",
+      "receiver": "Object",
+      "range": {
+        "startLine": 14,
+        "startCol": 41,
+        "endLine": 14,
+        "endCol": 62
+      },
+      "scopeId": 1000015
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "active",
+      "valueType": "filter",
+      "range": {
+        "startLine": 9,
+        "startCol": 11,
+        "endLine": 9,
+        "endCol": 66
+      },
+      "scopeId": 800017
+    },
+    {
+      "name": "names",
+      "typeName": "T",
+      "valueType": "map",
+      "range": {
+        "startLine": 10,
+        "startCol": 11,
+        "endLine": 15,
+        "endCol": 7
+      },
+      "scopeId": 800017
+    },
+    {
+      "name": "ruleName",
+      "typeName": "T",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 8
+      },
+      "scopeId": 1000015
+    },
+    {
+      "name": "severity",
+      "typeName": "T",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 8
+      },
+      "scopeId": 1000015
+    },
+    {
+      "name": "metadata",
+      "typeName": "T",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 8
+      },
+      "scopeId": 1000015
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Rule",
+      "importedName": "Rule",
+      "source": "./rules",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 37
+      }
+    }
+  ]
+}

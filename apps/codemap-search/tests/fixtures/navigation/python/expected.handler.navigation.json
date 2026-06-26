@@ -1,0 +1,96 @@
+{
+  "calls": [
+    {
+      "name": "parse_order",
+      "range": {
+        "startLine": 7,
+        "startCol": 15,
+        "endLine": 7,
+        "endCol": 52
+      },
+      "scopeId": 600009
+    },
+    {
+      "name": "loads",
+      "receiver": "json",
+      "range": {
+        "startLine": 7,
+        "startCol": 27,
+        "endLine": 7,
+        "endCol": 51
+      },
+      "scopeId": 600009
+    },
+    {
+      "name": "submit",
+      "receiver": "service",
+      "range": {
+        "startLine": 8,
+        "startCol": 14,
+        "endLine": 8,
+        "endCol": 37
+      },
+      "scopeId": 600009
+    },
+    {
+      "name": "json",
+      "receiver": "response",
+      "range": {
+        "startLine": 9,
+        "startCol": 12,
+        "endLine": 9,
+        "endCol": 33
+      },
+      "scopeId": 600009
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "payload",
+      "valueType": "parse_order",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 52
+      },
+      "scopeId": 600009
+    },
+    {
+      "name": "result",
+      "valueType": "submit",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 37
+      },
+      "scopeId": 600009
+    }
+  ],
+  "imports": [
+    {
+      "localName": "json",
+      "kind": "default",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 12
+      }
+    },
+    {
+      "localName": "parse_order",
+      "importedName": "parse_order",
+      "source": "checkout.parser",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 40
+      }
+    }
+  ]
+}

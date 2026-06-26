@@ -1,0 +1,97 @@
+{
+  "calls": [
+    {
+      "name": "filter",
+      "receiver": "rules",
+      "range": {
+        "startLine": 5,
+        "startCol": 24,
+        "endLine": 5,
+        "endCol": 67
+      },
+      "scopeId": 400011
+    },
+    {
+      "name": "check",
+      "receiver": "!rule",
+      "range": {
+        "startLine": 5,
+        "startCol": 47,
+        "endLine": 5,
+        "endCol": 65
+      },
+      "scopeId": 400011
+    },
+    {
+      "name": "map",
+      "receiver": "failures",
+      "range": {
+        "startLine": 6,
+        "startCol": 21,
+        "endLine": 6,
+        "endCol": 55
+      },
+      "scopeId": 400011
+    },
+    {
+      "name": "isEmpty",
+      "receiver": "failures",
+      "range": {
+        "startLine": 7,
+        "startCol": 13,
+        "endLine": 7,
+        "endCol": 31
+      },
+      "scopeId": 400011
+    },
+    {
+      "name": "emptyList",
+      "range": {
+        "startLine": 8,
+        "startCol": 20,
+        "endLine": 8,
+        "endCol": 31
+      },
+      "scopeId": 400011
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "valueType": "rules",
+      "range": {
+        "startLine": 5,
+        "startCol": 9,
+        "endLine": 5,
+        "endCol": 67
+      },
+      "scopeId": 400011
+    },
+    {
+      "name": "names",
+      "valueType": "failures",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 55
+      },
+      "scopeId": 400011
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Rule",
+      "importedName": "Rule",
+      "source": "com.example",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 24
+      }
+    }
+  ]
+}

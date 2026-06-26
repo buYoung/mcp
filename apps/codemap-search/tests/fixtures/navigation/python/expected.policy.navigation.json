@@ -1,0 +1,86 @@
+{
+  "calls": [
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 11,
+        "startCol": 18,
+        "endLine": 11,
+        "endCol": 35
+      },
+      "scopeId": 800016
+    },
+    {
+      "name": "append",
+      "receiver": "failures",
+      "range": {
+        "startLine": 13,
+        "startCol": 13,
+        "endLine": 13,
+        "endCol": 53
+      },
+      "scopeId": 800016
+    },
+    {
+      "name": "all",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 15,
+        "endCol": 45
+      },
+      "scopeId": 800016
+    },
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 15,
+        "startCol": 9,
+        "endLine": 15,
+        "endCol": 26
+      },
+      "scopeId": 800016
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "list[str]",
+      "range": {
+        "startLine": 9,
+        "startCol": 5,
+        "endLine": 9,
+        "endCol": 29
+      },
+      "scopeId": 800016
+    },
+    {
+      "name": "passed",
+      "valueType": "check",
+      "range": {
+        "startLine": 11,
+        "startCol": 9,
+        "endLine": 11,
+        "endCol": 35
+      },
+      "scopeId": 800016
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Protocol",
+      "importedName": "Protocol",
+      "source": "typing",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 28
+      }
+    }
+  ]
+}

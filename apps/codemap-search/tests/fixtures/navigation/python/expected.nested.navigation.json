@@ -1,0 +1,176 @@
+{
+  "calls": [
+    {
+      "name": "dataclass",
+      "range": {
+        "startLine": 5,
+        "startCol": 2,
+        "endLine": 5,
+        "endCol": 24
+      }
+    },
+    {
+      "name": "traced",
+      "range": {
+        "startLine": 23,
+        "startCol": 6,
+        "endLine": 23,
+        "endCol": 31
+      }
+    },
+    {
+      "name": "sum",
+      "range": {
+        "startLine": 28,
+        "startCol": 17,
+        "endLine": 28,
+        "endCol": 56
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "line_total",
+      "range": {
+        "startLine": 28,
+        "startCol": 21,
+        "endLine": 28,
+        "endCol": 37
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "OrderDto",
+      "range": {
+        "startLine": 29,
+        "startCol": 15,
+        "endLine": 29,
+        "endCol": 36
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "validate",
+      "receiver": "self.policy",
+      "range": {
+        "startLine": 31,
+        "startCol": 9,
+        "endLine": 31,
+        "endCol": 34
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "reserve",
+      "receiver": "self.inventory",
+      "range": {
+        "startLine": 32,
+        "startCol": 9,
+        "endLine": 32,
+        "endCol": 38
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "persist",
+      "receiver": "self.repo",
+      "range": {
+        "startLine": 33,
+        "startCol": 9,
+        "endLine": 33,
+        "endCol": 31
+      },
+      "scopeId": 2400034
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "total",
+      "typeName": "Decimal",
+      "range": {
+        "startLine": 7,
+        "startCol": 5,
+        "endLine": 7,
+        "endCol": 19
+      }
+    },
+    {
+      "name": "self",
+      "range": {
+        "startLine": 19,
+        "startCol": 9,
+        "endLine": 19,
+        "endCol": 25
+      },
+      "scopeId": 1800021
+    },
+    {
+      "name": "self",
+      "range": {
+        "startLine": 20,
+        "startCol": 9,
+        "endLine": 20,
+        "endCol": 35
+      },
+      "scopeId": 1800021
+    },
+    {
+      "name": "self",
+      "range": {
+        "startLine": 21,
+        "startCol": 9,
+        "endLine": 21,
+        "endCol": 29
+      },
+      "scopeId": 1800021
+    },
+    {
+      "name": "total",
+      "valueType": "sum",
+      "range": {
+        "startLine": 28,
+        "startCol": 9,
+        "endLine": 28,
+        "endCol": 56
+      },
+      "scopeId": 2400034
+    },
+    {
+      "name": "dto",
+      "valueType": "OrderDto",
+      "range": {
+        "startLine": 29,
+        "startCol": 9,
+        "endLine": 29,
+        "endCol": 36
+      },
+      "scopeId": 2400034
+    }
+  ],
+  "imports": [
+    {
+      "localName": "dataclass",
+      "importedName": "dataclass",
+      "source": "dataclasses",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 34
+      }
+    },
+    {
+      "localName": "Decimal",
+      "importedName": "Decimal",
+      "source": "decimal",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 28
+      }
+    }
+  ]
+}

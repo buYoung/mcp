@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "Rule interface {\n\tCheck(OrderDTO) bool\n}",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 7,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Rule",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 5,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "func Evaluate(order OrderDTO, rules []Rule) error {\n\tfailures := []string{}\n\tfor _, rule := range rules {\n\t\tif !rule.Check(order) {\n\t\t\tfailures = append(failures, \"failed\")\n\t\t}\n\t}\n\tif len(failures) > 0 {\n\t\treturn errors.New(\"policy failed\")\n\t}\n\treturn nil\n}",
+    "range": {
+      "startLine": 9,
+      "startCol": 1,
+      "endLine": 20,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Evaluate",
+    "range": {
+      "startLine": 9,
+      "startCol": 6,
+      "endLine": 9,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.Check(order)",
+    "range": {
+      "startLine": 12,
+      "startCol": 7,
+      "endLine": 12,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "append(failures, \"failed\")",
+    "range": {
+      "startLine": 13,
+      "startCol": 15,
+      "endLine": 13,
+      "endCol": 41
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "len(failures)",
+    "range": {
+      "startLine": 16,
+      "startCol": 5,
+      "endLine": 16,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "errors.New(\"policy failed\")",
+    "range": {
+      "startLine": 17,
+      "startCol": 10,
+      "endLine": 17,
+      "endCol": 37
+    }
+  }
+]

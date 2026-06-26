@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutController {\n  constructor(private readonly service: CheckoutService) {}\n\n  async post(request: RequestBody) {\n    const payload = parseOrder(request.body);\n    const result = await this.service.submit(payload);\n    return Response.ok(result);\n  }\n}",
+    "range": {
+      "startLine": 6,
+      "startCol": 8,
+      "endLine": 14,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutController",
+    "range": {
+      "startLine": 6,
+      "startCol": 14,
+      "endLine": 6,
+      "endCol": 32
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "constructor(private readonly service: CheckoutService) {}",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 60
+    }
+  },
+  {
+    "capture": "name",
+    "text": "constructor",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "async post(request: RequestBody) {\n    const payload = parseOrder(request.body);\n    const result = await this.service.submit(payload);\n    return Response.ok(result);\n  }",
+    "range": {
+      "startLine": 9,
+      "startCol": 3,
+      "endLine": 13,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "post",
+    "range": {
+      "startLine": 9,
+      "startCol": 9,
+      "endLine": 9,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parseOrder(request.body)",
+    "range": {
+      "startLine": 10,
+      "startCol": 21,
+      "endLine": 10,
+      "endCol": 45
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.service.submit(payload)",
+    "range": {
+      "startLine": 11,
+      "startCol": 26,
+      "endLine": 11,
+      "endCol": 54
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Response.ok(result)",
+    "range": {
+      "startLine": 12,
+      "startCol": 12,
+      "endLine": 12,
+      "endCol": 31
+    }
+  }
+]

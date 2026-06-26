@@ -1,0 +1,164 @@
+{
+  "calls": [
+    {
+      "name": "collect",
+      "receiver": "self.rules.iter().filter(|rule| !rule.check(order))",
+      "range": {
+        "startLine": 12,
+        "startCol": 32,
+        "endLine": 16,
+        "endCol": 23
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "filter",
+      "receiver": "self.rules.iter()",
+      "range": {
+        "startLine": 12,
+        "startCol": 32,
+        "endLine": 15,
+        "endCol": 47
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "iter",
+      "receiver": "self.rules",
+      "range": {
+        "startLine": 12,
+        "startCol": 32,
+        "endLine": 14,
+        "endCol": 20
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 15,
+        "startCol": 29,
+        "endLine": 15,
+        "endCol": 46
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "is_empty",
+      "receiver": "failures",
+      "range": {
+        "startLine": 18,
+        "startCol": 12,
+        "endLine": 18,
+        "endCol": 31
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "new",
+      "receiver": "HashMap",
+      "range": {
+        "startLine": 19,
+        "startCol": 20,
+        "endLine": 19,
+        "endCol": 34
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "new",
+      "receiver": "HashMap",
+      "range": {
+        "startLine": 22,
+        "startCol": 28,
+        "endLine": 22,
+        "endCol": 42
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "insert",
+      "receiver": "outcomes",
+      "range": {
+        "startLine": 24,
+        "startCol": 13,
+        "endLine": 24,
+        "endCol": 63
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "to_string",
+      "receiver": "failure.name()",
+      "range": {
+        "startLine": 24,
+        "startCol": 29,
+        "endLine": 24,
+        "endCol": 55
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "name",
+      "receiver": "failure",
+      "range": {
+        "startLine": 24,
+        "startCol": 29,
+        "endLine": 24,
+        "endCol": 43
+      },
+      "scopeId": 1100027
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "Vec<_>",
+      "valueType": "iter",
+      "range": {
+        "startLine": 12,
+        "startCol": 9,
+        "endLine": 16,
+        "endCol": 24
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "outcomes",
+      "valueType": "HashMap",
+      "range": {
+        "startLine": 22,
+        "startCol": 9,
+        "endLine": 22,
+        "endCol": 43
+      },
+      "scopeId": 1100027
+    },
+    {
+      "name": "failure",
+      "range": {
+        "startLine": 23,
+        "startCol": 13,
+        "endLine": 23,
+        "endCol": 20
+      },
+      "scopeId": 1100027
+    }
+  ],
+  "imports": [
+    {
+      "localName": "HashMap",
+      "importedName": "HashMap",
+      "source": "std::collections::HashMap",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 31
+      }
+    }
+  ]
+}

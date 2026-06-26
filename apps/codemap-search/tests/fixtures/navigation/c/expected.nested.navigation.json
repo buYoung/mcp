@@ -1,0 +1,118 @@
+{
+  "calls": [
+    {
+      "name": "map_order",
+      "range": {
+        "startLine": 19,
+        "startCol": 28,
+        "endLine": 19,
+        "endCol": 51
+      },
+      "scopeId": 1800026
+    },
+    {
+      "name": "reserve_inventory",
+      "range": {
+        "startLine": 22,
+        "startCol": 5,
+        "endLine": 22,
+        "endCol": 36
+      },
+      "scopeId": 1800026
+    },
+    {
+      "name": "repo_save",
+      "range": {
+        "startLine": 23,
+        "startCol": 13,
+        "endLine": 23,
+        "endCol": 34
+      },
+      "scopeId": 1800026
+    },
+    {
+      "name": "TRACE_ORDER",
+      "range": {
+        "startLine": 24,
+        "startCol": 5,
+        "endLine": 24,
+        "endCol": 40
+      },
+      "scopeId": 1800026
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "typeName": "struct order_dto",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 32
+      },
+      "scopeId": 1000016
+    },
+    {
+      "name": "i",
+      "typeName": "int",
+      "range": {
+        "startLine": 12,
+        "startCol": 10,
+        "endLine": 12,
+        "endCol": 20
+      },
+      "scopeId": 1000016
+    },
+    {
+      "name": "dto",
+      "typeName": "struct order_dto",
+      "valueType": "map_order",
+      "range": {
+        "startLine": 19,
+        "startCol": 5,
+        "endLine": 19,
+        "endCol": 52
+      },
+      "scopeId": 1800026
+    },
+    {
+      "name": "saved",
+      "typeName": "bool",
+      "range": {
+        "startLine": 20,
+        "startCol": 5,
+        "endLine": 20,
+        "endCol": 24
+      },
+      "scopeId": 1800026
+    }
+  ],
+  "imports": [
+    {
+      "localName": "order",
+      "importedName": "order",
+      "source": "order.h",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      }
+    },
+    {
+      "localName": "stdbool",
+      "importedName": "stdbool",
+      "source": "stdbool.h",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "calls": [
+    {
+      "name": "getLogger",
+      "receiver": "logging",
+      "range": {
+        "startLine": 4,
+        "startCol": 10,
+        "endLine": 4,
+        "endCol": 37
+      }
+    },
+    {
+      "name": "next_job",
+      "receiver": "queue",
+      "range": {
+        "startLine": 8,
+        "startCol": 11,
+        "endLine": 8,
+        "endCol": 27
+      },
+      "scopeId": 700015
+    },
+    {
+      "name": "warning",
+      "receiver": "logger",
+      "range": {
+        "startLine": 10,
+        "startCol": 9,
+        "endLine": 10,
+        "endCol": 33
+      },
+      "scopeId": 700015
+    },
+    {
+      "name": "process",
+      "receiver": "processor",
+      "range": {
+        "startLine": 13,
+        "startCol": 15,
+        "endLine": 13,
+        "endCol": 37
+      },
+      "scopeId": 700015
+    },
+    {
+      "name": "ack",
+      "receiver": "queue",
+      "range": {
+        "startLine": 14,
+        "startCol": 5,
+        "endLine": 14,
+        "endCol": 26
+      },
+      "scopeId": 700015
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "logger",
+      "valueType": "getLogger",
+      "range": {
+        "startLine": 4,
+        "startCol": 1,
+        "endLine": 4,
+        "endCol": 37
+      }
+    },
+    {
+      "name": "job",
+      "valueType": "next_job",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 27
+      },
+      "scopeId": 700015
+    },
+    {
+      "name": "receipt",
+      "valueType": "process",
+      "range": {
+        "startLine": 13,
+        "startCol": 5,
+        "endLine": 13,
+        "endCol": 37
+      },
+      "scopeId": 700015
+    }
+  ],
+  "imports": [
+    {
+      "localName": "logging",
+      "kind": "default",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 15
+      }
+    }
+  ]
+}

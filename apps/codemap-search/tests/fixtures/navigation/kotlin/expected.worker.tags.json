@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutWorker(\n    private val queue: JobQueue,\n    private val processor: JobProcessor,\n    private val logger: Logger,\n) {\n    @Scheduled(fixedDelay = 1000)\n    fun tick() {\n        val job = queue.next()\n        if (job == null) {\n            logger.warn(\"no job\")\n            return\n        }\n\n        val receipt = processor.process(job)\n        queue.ack(receipt.id)\n    }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 19,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutWorker",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "@Scheduled(fixedDelay = 1000)\n    fun tick() {\n        val job = queue.next()\n        if (job == null) {\n            logger.warn(\"no job\")\n            return\n        }\n\n        val receipt = processor.process(job)\n        queue.ack(receipt.id)\n    }",
+    "range": {
+      "startLine": 8,
+      "startCol": 5,
+      "endLine": 18,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "tick",
+    "range": {
+      "startLine": 9,
+      "startCol": 9,
+      "endLine": 9,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.next()",
+    "range": {
+      "startLine": 10,
+      "startCol": 19,
+      "endLine": 10,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "logger.warn(\"no job\")",
+    "range": {
+      "startLine": 12,
+      "startCol": 13,
+      "endLine": 12,
+      "endCol": 34
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor.process(job)",
+    "range": {
+      "startLine": 16,
+      "startCol": 23,
+      "endLine": 16,
+      "endCol": 45
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.ack(receipt.id)",
+    "range": {
+      "startLine": 17,
+      "startCol": 9,
+      "endLine": 17,
+      "endCol": 30
+    }
+  }
+]

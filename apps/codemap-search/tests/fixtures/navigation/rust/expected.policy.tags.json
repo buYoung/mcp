@@ -1,0 +1,142 @@
+[
+  {
+    "capture": "definition.struct",
+    "text": "pub struct Policy<R> {\n    rules: Vec<R>,\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Policy",
+    "range": {
+      "startLine": 3,
+      "startCol": 12,
+      "endLine": 3,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub fn evaluate(&self, order: &Order) -> HashMap<String, bool> {\n        let failures: Vec<_> = self\n            .rules\n            .iter()\n            .filter(|rule| !rule.check(order))\n            .collect();\n\n        if failures.is_empty() {\n            return HashMap::new();\n        }\n\n        let mut outcomes = HashMap::new();\n        for failure in &failures {\n            outcomes.insert(failure.name().to_string(), false);\n        }\n        outcomes\n    }",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 27,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "evaluate",
+    "range": {
+      "startLine": 11,
+      "startCol": 12,
+      "endLine": 11,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self\n            .rules\n            .iter()\n            .filter(|rule| !rule.check(order))\n            .collect()",
+    "range": {
+      "startLine": 12,
+      "startCol": 32,
+      "endLine": 16,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self\n            .rules\n            .iter()\n            .filter(|rule| !rule.check(order))",
+    "range": {
+      "startLine": 12,
+      "startCol": 32,
+      "endLine": 15,
+      "endCol": 47
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self\n            .rules\n            .iter()",
+    "range": {
+      "startLine": 12,
+      "startCol": 32,
+      "endLine": 14,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 15,
+      "startCol": 29,
+      "endLine": 15,
+      "endCol": 46
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.is_empty()",
+    "range": {
+      "startLine": 18,
+      "startCol": 12,
+      "endLine": 18,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "HashMap::new()",
+    "range": {
+      "startLine": 19,
+      "startCol": 20,
+      "endLine": 19,
+      "endCol": 34
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "HashMap::new()",
+    "range": {
+      "startLine": 22,
+      "startCol": 28,
+      "endLine": 22,
+      "endCol": 42
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "outcomes.insert(failure.name().to_string(), false)",
+    "range": {
+      "startLine": 24,
+      "startCol": 13,
+      "endLine": 24,
+      "endCol": 63
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failure.name().to_string()",
+    "range": {
+      "startLine": 24,
+      "startCol": 29,
+      "endLine": 24,
+      "endCol": 55
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failure.name()",
+    "range": {
+      "startLine": 24,
+      "startCol": 29,
+      "endLine": 24,
+      "endCol": 43
+    }
+  }
+]

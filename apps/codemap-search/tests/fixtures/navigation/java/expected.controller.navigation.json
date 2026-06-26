@@ -1,0 +1,88 @@
+{
+  "calls": [
+    {
+      "name": "parse",
+      "receiver": "parser",
+      "range": {
+        "startLine": 15,
+        "startCol": 33,
+        "endLine": 15,
+        "endCol": 51
+      },
+      "scopeId": 1300018
+    },
+    {
+      "name": "submit",
+      "receiver": "service",
+      "range": {
+        "startLine": 16,
+        "startCol": 27,
+        "endLine": 16,
+        "endCol": 50
+      },
+      "scopeId": 1300018
+    },
+    {
+      "name": "ok",
+      "receiver": "ResponseEntity",
+      "range": {
+        "startLine": 17,
+        "startCol": 16,
+        "endLine": 17,
+        "endCol": 42
+      },
+      "scopeId": 1300018
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "request",
+      "typeName": "SubmitRequest",
+      "range": {
+        "startLine": 15,
+        "startCol": 9,
+        "endLine": 15,
+        "endCol": 52
+      },
+      "scopeId": 1300018
+    },
+    {
+      "name": "receipt",
+      "typeName": "Receipt",
+      "range": {
+        "startLine": 16,
+        "startCol": 9,
+        "endLine": 16,
+        "endCol": 51
+      },
+      "scopeId": 1300018
+    }
+  ],
+  "imports": [
+    {
+      "localName": "PostMapping",
+      "importedName": "PostMapping",
+      "source": "org.springframework.web.bind.annotation",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 60
+      }
+    },
+    {
+      "localName": "ResponseEntity",
+      "importedName": "ResponseEntity",
+      "source": "org.springframework.http",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 48
+      }
+    }
+  ]
+}

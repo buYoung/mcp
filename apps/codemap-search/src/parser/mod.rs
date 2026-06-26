@@ -48,6 +48,23 @@ fn node_text(node: Node, source: &[u8]) -> Option<String> {
         .map(|text| text.trim().to_string())
 }
 
+fn normalize_navigation_text(text: String) -> String {
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace(" .", ".")
+        .replace(". ", ".")
+        .replace(" ::", "::")
+        .replace(":: ", "::")
+        .replace(" (", "(")
+        .replace("( ", "(")
+        .replace(" )", ")")
+}
+
+fn receiver_text(node: Node, source: &[u8]) -> Option<String> {
+    node_text(node, source).map(normalize_navigation_text)
+}
+
 fn string_literal_value(text: &str) -> String {
     strip_quotes(text.trim().trim_end_matches(';').trim())
 }
@@ -103,9 +120,31 @@ fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>>
     None
 }
 
+fn declarator_name(node: Node, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "identifier" | "field_identifier" | "property_identifier" | "type_identifier" => {
+            node_text(node, source)
+        }
+        "init_declarator"
+        | "pointer_declarator"
+        | "array_declarator"
+        | "function_declarator"
+        | "parenthesized_declarator"
+        | "attributed_declarator" => node
+            .child_by_field_name("declarator")
+            .and_then(|declarator| declarator_name(declarator, source)),
+        _ => None,
+    }
+}
+
 fn field_or_descendant_name(node: Node, source: &[u8]) -> Option<String> {
     if let Some(name) = node.child_by_field_name("name") {
         return node_text(name, source);
+    }
+    if let Some(declarator) = node.child_by_field_name("declarator") {
+        if let Some(name) = declarator_name(declarator, source) {
+            return Some(name);
+        }
     }
     if let Some(declarator) = first_descendant_kind(node, &["variable_declarator"]) {
         if let Some(name) = declarator.child_by_field_name("name") {
@@ -141,7 +180,9 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
                 .child_by_field_name("object")
                 .or_else(|| function_node.child_by_field_name("operand"))
                 .or_else(|| function_node.child_by_field_name("receiver"))
-                .and_then(|node| node_text(node, source));
+                .or_else(|| function_node.child_by_field_name("value"))
+                .or_else(|| function_node.child_by_field_name("argument"))
+                .and_then(|node| receiver_text(node, source));
             node_text(name_node, source).map(|name| (name, receiver))
         }
         "scoped_identifier" | "qualified_identifier" | "qualified_type" => {
@@ -149,11 +190,11 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
             let receiver = function_node
                 .child_by_field_name("scope")
                 .or_else(|| function_node.child_by_field_name("path"))
-                .and_then(|node| node_text(node, source));
+                .and_then(|node| receiver_text(node, source));
             node_text(name_node, source).map(|name| (name, receiver))
         }
         "navigation_expression" => {
-            let text = node_text(function_node, source)?;
+            let text = receiver_text(function_node, source)?;
             if let Some((receiver, name)) = text.rsplit_once('.') {
                 let name = base_name_from_text(name)?;
                 let receiver = receiver.trim();
@@ -190,7 +231,7 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
             let receiver = node
                 .child_by_field_name("object")
                 .or_else(|| node.child_by_field_name("receiver"))
-                .and_then(|receiver| node_text(receiver, source));
+                .and_then(|receiver| receiver_text(receiver, source));
             (name, receiver)
         }
         "object_creation_expression" => {
@@ -206,11 +247,16 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
                 .and_then(|name| node_text(name, source))?;
             let receiver = node
                 .child_by_field_name("receiver")
-                .and_then(|receiver| node_text(receiver, source));
+                .and_then(|receiver| receiver_text(receiver, source));
+            (name, receiver)
+        }
+        "macro_invocation" => {
+            let macro_node = node.child_by_field_name("macro")?;
+            let (name, receiver) = call_name_and_receiver(macro_node, source)?;
             (name, receiver)
         }
         "navigation_expression" => {
-            let text = node_text(node, source)?;
+            let text = receiver_text(node, source)?;
             let name = base_name_from_text(&text)?;
             let receiver = text
                 .rsplit_once('.')
@@ -286,8 +332,129 @@ fn scope_id_for_node(node: Node) -> Option<usize> {
     None
 }
 
-fn local_binding_from_node(node: Node, source: &[u8]) -> Option<LocalBinding> {
-    let name = field_or_descendant_name(node, source)?;
+fn push_binding_name(names: &mut Vec<String>, name: String) {
+    if !names.iter().any(|existing| existing == &name) {
+        names.push(name);
+    }
+}
+
+fn binding_names_from_pattern(node: Node, source: &[u8]) -> Vec<String> {
+    match node.kind() {
+        "identifier"
+        | "field_identifier"
+        | "property_identifier"
+        | "type_identifier"
+        | "shorthand_field_identifier"
+        | "shorthand_property_identifier_pattern" => node_text(node, source).into_iter().collect(),
+        "pair_pattern" => node
+            .child_by_field_name("value")
+            .or_else(|| node.child_by_field_name("pattern"))
+            .map(|value| binding_names_from_pattern(value, source))
+            .unwrap_or_default(),
+        "object_assignment_pattern" => node
+            .child_by_field_name("left")
+            .map(|left| binding_names_from_pattern(left, source))
+            .unwrap_or_default(),
+        "field_pattern" => node
+            .child_by_field_name("pattern")
+            .or_else(|| node.child_by_field_name("value"))
+            .or_else(|| node.child_by_field_name("name"))
+            .map(|pattern| binding_names_from_pattern(pattern, source))
+            .unwrap_or_default(),
+        "tuple_struct_pattern" | "struct_pattern" => {
+            let mut names = Vec::new();
+            let mut skipped_constructor = false;
+            for child_index in 0..node.child_count() {
+                let child = node.child(child_index as u32).unwrap();
+                if !child.is_named() {
+                    continue;
+                }
+                if !skipped_constructor
+                    && matches!(
+                        child.kind(),
+                        "identifier"
+                            | "field_identifier"
+                            | "type_identifier"
+                            | "scoped_identifier"
+                            | "qualified_identifier"
+                    )
+                {
+                    skipped_constructor = true;
+                    continue;
+                }
+                for name in binding_names_from_pattern(child, source) {
+                    push_binding_name(&mut names, name);
+                }
+            }
+            names
+        }
+        "assignment_pattern" => node
+            .child_by_field_name("left")
+            .or_else(|| node.child_by_field_name("name"))
+            .map(|left| binding_names_from_pattern(left, source))
+            .unwrap_or_default(),
+        "rest_pattern" => node
+            .child_by_field_name("argument")
+            .or_else(|| node.child_by_field_name("value"))
+            .or_else(|| {
+                (0..node.child_count())
+                    .map(|index| node.child(index as u32).unwrap())
+                    .find(|child| child.is_named())
+            })
+            .map(|argument| binding_names_from_pattern(argument, source))
+            .unwrap_or_default(),
+        "array_pattern" | "object_pattern" | "tuple_pattern" | "list_pattern" => {
+            let mut names = Vec::new();
+            for child_index in 0..node.child_count() {
+                let child = node.child(child_index as u32).unwrap();
+                if child.is_named() {
+                    for name in binding_names_from_pattern(child, source) {
+                        push_binding_name(&mut names, name);
+                    }
+                }
+            }
+            names
+        }
+        kind if kind.ends_with("_pattern") => {
+            let mut names = Vec::new();
+            for child_index in 0..node.child_count() {
+                let child = node.child(child_index as u32).unwrap();
+                if child.is_named() {
+                    for name in binding_names_from_pattern(child, source) {
+                        push_binding_name(&mut names, name);
+                    }
+                }
+            }
+            names
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn local_binding_names_from_node(node: Node, source: &[u8]) -> Vec<String> {
+    for field_name in ["name", "pattern"] {
+        if let Some(pattern_node) = node.child_by_field_name(field_name) {
+            let names = binding_names_from_pattern(pattern_node, source);
+            if !names.is_empty() {
+                return names;
+            }
+        }
+    }
+
+    let names = binding_names_from_pattern(node, source);
+    if !names.is_empty() {
+        return names;
+    }
+
+    field_or_descendant_name(node, source).into_iter().collect()
+}
+
+fn local_bindings_from_node(node: Node, source: &[u8]) -> Vec<LocalBinding> {
+    let names = local_binding_names_from_node(node, source);
+    if names.is_empty() {
+        return Vec::new();
+    }
+
     let type_name = node
         .child_by_field_name("type")
         .and_then(|type_node| node_text(type_node, source))
@@ -309,13 +476,16 @@ fn local_binding_from_node(node: Node, source: &[u8]) -> Option<LocalBinding> {
     )
     .and_then(|value_node| value_type_from_initializer(value_node, source));
 
-    Some(LocalBinding {
-        name,
-        type_name,
-        value_type,
-        range: range_for_node(node),
-        scope_id: scope_id_for_node(node),
-    })
+    names
+        .into_iter()
+        .map(|name| LocalBinding {
+            name,
+            type_name: type_name.clone(),
+            value_type: value_type.clone(),
+            range: range_for_node(node),
+            scope_id: scope_id_for_node(node),
+        })
+        .collect()
 }
 
 fn quoted_source_after_from(text: &str) -> Option<String> {
@@ -384,6 +554,60 @@ fn dotted_import_entry(path: &str, alias: Option<&str>, range: CodeRange) -> Opt
     })
 }
 
+fn push_go_import_spec(entries: &mut Vec<ImportEntry>, spec: &str, range: &CodeRange) {
+    let import_spec = spec.split_once("//").map(|(left, _)| left).unwrap_or(spec);
+    let import_spec = import_spec.trim();
+    if import_spec.is_empty() {
+        return;
+    }
+
+    let mut parts = import_spec.split_whitespace();
+    let Some(first) = parts.next() else {
+        return;
+    };
+    let (alias, path_part) = match parts.next() {
+        Some(path_part) => (Some(first), path_part),
+        None => (None, first),
+    };
+    let source = string_literal_value(path_part);
+    if source.is_empty() {
+        return;
+    }
+    let Some(imported_name) = base_name_from_text(&source) else {
+        return;
+    };
+    let local_name = alias
+        .filter(|alias| !matches!(*alias, "_" | "."))
+        .unwrap_or(&imported_name)
+        .to_string();
+
+    entries.push(ImportEntry {
+        local_name,
+        imported_name: Some(imported_name),
+        source: Some(source),
+        kind: ImportKind::Named,
+        range: range.clone(),
+    });
+}
+
+fn include_name_from_source(source: &str) -> Option<String> {
+    let file_name = source
+        .rsplit(['/', '\\'])
+        .find(|part| !part.is_empty())
+        .unwrap_or(source)
+        .trim();
+    let stem = file_name
+        .rsplit_once('.')
+        .map(|(left, _)| left)
+        .unwrap_or(file_name)
+        .trim();
+    if stem.is_empty() {
+        None
+    } else {
+        Some(stem.to_string())
+    }
+}
+
 fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
     let trimmed = text.trim().trim_end_matches(';').trim();
     let mut entries = Vec::new();
@@ -396,6 +620,15 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
             .trim()
             .trim_start_matches("type ")
             .trim();
+        if let Some(group_body) = clause
+            .strip_prefix('(')
+            .and_then(|body| body.trim().strip_suffix(')'))
+        {
+            for import_spec in group_body.lines() {
+                push_go_import_spec(&mut entries, import_spec, &range);
+            }
+            return entries;
+        }
         if clause.starts_with('"') || clause.starts_with('\'') {
             if let Some(source) = source {
                 if !source.starts_with('.') {
@@ -513,7 +746,12 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
                 .last()
                 .map(|part| string_literal_value(part.trim_matches(['<', '>'])))
         }) {
-            if let Some(name) = base_name_from_text(&source) {
+            let name = if trimmed.starts_with("#include") {
+                include_name_from_source(&source)
+            } else {
+                base_name_from_text(&source)
+            };
+            if let Some(name) = name {
                 entries.push(ImportEntry {
                     local_name: name.clone(),
                     imported_name: Some(name),
@@ -662,7 +900,7 @@ impl CodeExtractor for TreeSitterExtractor {
                 }
             }
             if let Some(node) = local_scope_node {
-                if let Some(binding) = local_binding_from_node(node, source) {
+                for binding in local_bindings_from_node(node, source) {
                     let scope_key = binding
                         .scope_id
                         .map(|scope_id| scope_id.to_string())

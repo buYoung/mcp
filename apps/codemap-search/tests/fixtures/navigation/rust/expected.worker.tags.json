@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.struct",
+    "text": "pub struct Worker<Q, P> {\n    queue: Q,\n    processor: P,\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 6,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Worker",
+    "range": {
+      "startLine": 3,
+      "startCol": 12,
+      "endLine": 3,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub async fn tick(&self) -> Result<(), Error> {\n        let Some(job) = self.queue.next().await? else {\n            warn!(\"no job\");\n            return Ok(());\n        };\n\n        if let Some(retry) = self.queue.retry_hint().await? {\n            warn!(\"retrying {retry}\");\n        }\n\n        let receipt = self.processor.process(job).await?;\n        self.queue.ack(receipt.id).await\n    }",
+    "range": {
+      "startLine": 13,
+      "startCol": 5,
+      "endLine": 25,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "tick",
+    "range": {
+      "startLine": 13,
+      "startCol": 18,
+      "endLine": 13,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.queue.next()",
+    "range": {
+      "startLine": 14,
+      "startCol": 25,
+      "endLine": 14,
+      "endCol": 42
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Ok(())",
+    "range": {
+      "startLine": 16,
+      "startCol": 20,
+      "endLine": 16,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.queue.retry_hint()",
+    "range": {
+      "startLine": 19,
+      "startCol": 30,
+      "endLine": 19,
+      "endCol": 53
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.processor.process(job)",
+    "range": {
+      "startLine": 23,
+      "startCol": 23,
+      "endLine": 23,
+      "endCol": 50
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.queue.ack(receipt.id)",
+    "range": {
+      "startLine": 24,
+      "startCol": 9,
+      "endLine": 24,
+      "endCol": 35
+    }
+  }
+]

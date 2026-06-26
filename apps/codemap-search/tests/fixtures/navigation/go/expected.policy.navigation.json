@@ -1,0 +1,74 @@
+{
+  "calls": [
+    {
+      "name": "Check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 12,
+        "startCol": 7,
+        "endLine": 12,
+        "endCol": 24
+      },
+      "scopeId": 900020
+    },
+    {
+      "name": "append",
+      "range": {
+        "startLine": 13,
+        "startCol": 15,
+        "endLine": 13,
+        "endCol": 41
+      },
+      "scopeId": 900020
+    },
+    {
+      "name": "len",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 16,
+        "endCol": 18
+      },
+      "scopeId": 900020
+    },
+    {
+      "name": "New",
+      "receiver": "errors",
+      "range": {
+        "startLine": 17,
+        "startCol": 10,
+        "endLine": 17,
+        "endCol": 37
+      },
+      "scopeId": 900020
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "failures",
+      "typeName": "string",
+      "range": {
+        "startLine": 10,
+        "startCol": 2,
+        "endLine": 10,
+        "endCol": 24
+      },
+      "scopeId": 900020
+    }
+  ],
+  "imports": [
+    {
+      "localName": "errors",
+      "importedName": "errors",
+      "source": "errors",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 16
+      }
+    }
+  ]
+}

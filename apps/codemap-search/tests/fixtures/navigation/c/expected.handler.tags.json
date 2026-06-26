@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "int handle_checkout(struct http_request *raw, struct http_response *out) {\n    struct submit_request request = parse_order(raw);\n    struct receipt receipt = checkout_submit(&request);\n    return write_response(out, &receipt);\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parse_order(raw)",
+    "range": {
+      "startLine": 4,
+      "startCol": 37,
+      "endLine": 4,
+      "endCol": 53
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "checkout_submit(&request)",
+    "range": {
+      "startLine": 5,
+      "startCol": 30,
+      "endLine": 5,
+      "endCol": 55
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "write_response(out, &receipt)",
+    "range": {
+      "startLine": 6,
+      "startCol": 12,
+      "endLine": 6,
+      "endCol": 41
+    }
+  }
+]

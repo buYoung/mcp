@@ -1,0 +1,152 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "@Service\nclass CheckoutService {\n    private final OrderRepository repository;\n    private final Inventory inventory;\n    private final OrderMapper mapper;\n\n    CheckoutService(OrderRepository repository, Inventory inventory, OrderMapper mapper) {\n        this.repository = repository;\n        this.inventory = inventory;\n        this.mapper = mapper;\n    }\n\n    @Transactional\n    Receipt submit(List<OrderLine> lines) {\n        OrderDto dto = mapper.map(lines);\n        AuditEvent event = AuditEvent.audit(\"checkout.submit\", dto.total());\n\n        inventory.reserve(lines);\n        repository.save(dto);\n        event.commit();\n        return Receipt.from(dto);\n    }\n\n    static final class Receipt {\n        static Receipt from(OrderDto dto) {\n            return new Receipt();\n        }\n    }\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 32,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 5,
+      "startCol": 7,
+      "endLine": 5,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "@Transactional\n    Receipt submit(List<OrderLine> lines) {\n        OrderDto dto = mapper.map(lines);\n        AuditEvent event = AuditEvent.audit(\"checkout.submit\", dto.total());\n\n        inventory.reserve(lines);\n        repository.save(dto);\n        event.commit();\n        return Receipt.from(dto);\n    }",
+    "range": {
+      "startLine": 16,
+      "startCol": 5,
+      "endLine": 25,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "submit",
+    "range": {
+      "startLine": 17,
+      "startCol": 13,
+      "endLine": 17,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "mapper.map(lines)",
+    "range": {
+      "startLine": 18,
+      "startCol": 24,
+      "endLine": 18,
+      "endCol": 41
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "AuditEvent.audit(\"checkout.submit\", dto.total())",
+    "range": {
+      "startLine": 19,
+      "startCol": 28,
+      "endLine": 19,
+      "endCol": 76
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "dto.total()",
+    "range": {
+      "startLine": 19,
+      "startCol": 64,
+      "endLine": 19,
+      "endCol": 75
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "inventory.reserve(lines)",
+    "range": {
+      "startLine": 21,
+      "startCol": 9,
+      "endLine": 21,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "repository.save(dto)",
+    "range": {
+      "startLine": 22,
+      "startCol": 9,
+      "endLine": 22,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "event.commit()",
+    "range": {
+      "startLine": 23,
+      "startCol": 9,
+      "endLine": 23,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Receipt.from(dto)",
+    "range": {
+      "startLine": 24,
+      "startCol": 16,
+      "endLine": 24,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "static final class Receipt {\n        static Receipt from(OrderDto dto) {\n            return new Receipt();\n        }\n    }",
+    "range": {
+      "startLine": 27,
+      "startCol": 5,
+      "endLine": 31,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Receipt",
+    "range": {
+      "startLine": 27,
+      "startCol": 24,
+      "endLine": 27,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "static Receipt from(OrderDto dto) {\n            return new Receipt();\n        }",
+    "range": {
+      "startLine": 28,
+      "startCol": 9,
+      "endLine": 30,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "name",
+    "text": "from",
+    "range": {
+      "startLine": 28,
+      "startCol": 24,
+      "endLine": 28,
+      "endCol": 28
+    }
+  }
+]

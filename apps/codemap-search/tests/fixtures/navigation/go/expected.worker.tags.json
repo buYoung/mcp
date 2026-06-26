@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "Worker struct {\n\tqueue     JobQueue\n\tprocessor Processor\n\tlogger    Logger\n}",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Worker",
+    "range": {
+      "startLine": 5,
+      "startCol": 6,
+      "endLine": 5,
+      "endCol": 12
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "func (w Worker) Tick(ctx context.Context) error {\n\tjob, ok := w.queue.Next(ctx)\n\tif !ok {\n\t\tw.logger.Warn(\"no job\")\n\t\treturn nil\n\t}\n\n\treceipt, err := w.processor.Process(ctx, job)\n\tif err != nil {\n\t\treturn err\n\t}\n\treturn w.queue.Ack(ctx, receipt.ID)\n}",
+    "range": {
+      "startLine": 11,
+      "startCol": 1,
+      "endLine": 23,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Tick",
+    "range": {
+      "startLine": 11,
+      "startCol": 17,
+      "endLine": 11,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.queue.Next(ctx)",
+    "range": {
+      "startLine": 12,
+      "startCol": 13,
+      "endLine": 12,
+      "endCol": 30
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.logger.Warn(\"no job\")",
+    "range": {
+      "startLine": 14,
+      "startCol": 3,
+      "endLine": 14,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.processor.Process(ctx, job)",
+    "range": {
+      "startLine": 18,
+      "startCol": 18,
+      "endLine": 18,
+      "endCol": 47
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "w.queue.Ack(ctx, receipt.ID)",
+    "range": {
+      "startLine": 22,
+      "startCol": 9,
+      "endLine": 22,
+      "endCol": 37
+    }
+  }
+]

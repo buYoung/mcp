@@ -1,0 +1,119 @@
+{
+  "calls": [
+    {
+      "name": "MapOrder",
+      "receiver": "s.mapper",
+      "range": {
+        "startLine": 33,
+        "startCol": 9,
+        "endLine": 33,
+        "endCol": 33
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "Trace",
+      "range": {
+        "startLine": 34,
+        "startCol": 11,
+        "endLine": 34,
+        "endCol": 40
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "Reserve",
+      "receiver": "s.inventory",
+      "range": {
+        "startLine": 36,
+        "startCol": 12,
+        "endLine": 36,
+        "endCol": 43
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "Save",
+      "receiver": "s.repo",
+      "range": {
+        "startLine": 39,
+        "startCol": 12,
+        "endLine": 39,
+        "endCol": 33
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "Done",
+      "receiver": "audit",
+      "range": {
+        "startLine": 42,
+        "startCol": 2,
+        "endLine": 42,
+        "endCol": 14
+      },
+      "scopeId": 3200044
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "valueType": "MapOrder",
+      "range": {
+        "startLine": 33,
+        "startCol": 2,
+        "endLine": 33,
+        "endCol": 33
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "audit",
+      "valueType": "Trace",
+      "range": {
+        "startLine": 34,
+        "startCol": 2,
+        "endLine": 34,
+        "endCol": 40
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "err",
+      "valueType": "Reserve",
+      "range": {
+        "startLine": 36,
+        "startCol": 5,
+        "endLine": 36,
+        "endCol": 43
+      },
+      "scopeId": 3200044
+    },
+    {
+      "name": "err",
+      "valueType": "Save",
+      "range": {
+        "startLine": 39,
+        "startCol": 5,
+        "endLine": 39,
+        "endCol": 33
+      },
+      "scopeId": 3200044
+    }
+  ],
+  "imports": [
+    {
+      "localName": "context",
+      "importedName": "context",
+      "source": "context",
+      "kind": "named",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 17
+      }
+    }
+  ]
+}

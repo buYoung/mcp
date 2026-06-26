@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function OrderDashboard({ client }: { client: OrderClient }) {\n  const [orders, setOrders] = useState<OrderSummary[]>([]);\n\n  useEffect(() => {\n    client.load().then((items) => setOrders(items));\n  }, [client]);\n\n  return (\n    <ul>\n      {orders.map((order) => (\n        <li key={order.id}>{order.status}</li>\n      ))}\n    </ul>\n  );\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 8,
+      "endLine": 17,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "OrderDashboard",
+    "range": {
+      "startLine": 3,
+      "startCol": 17,
+      "endLine": 3,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "useState<OrderSummary[]>([])",
+    "range": {
+      "startLine": 4,
+      "startCol": 31,
+      "endLine": 4,
+      "endCol": 59
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "useEffect(() => {\n    client.load().then((items) => setOrders(items));\n  }, [client])",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "client.load().then((items) => setOrders(items))",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 52
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "client.load()",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "setOrders(items)",
+    "range": {
+      "startLine": 7,
+      "startCol": 35,
+      "endLine": 7,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "orders.map((order) => (\n        <li key={order.id}>{order.status}</li>\n      ))",
+    "range": {
+      "startLine": 12,
+      "startCol": 8,
+      "endLine": 14,
+      "endCol": 9
+    }
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "def handle(request, service, response):\n    payload = parse_order(json.loads(request.body))\n    result = service.submit(payload)\n    return response.json(result)",
+    "range": {
+      "startLine": 6,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parse_order(json.loads(request.body))",
+    "range": {
+      "startLine": 7,
+      "startCol": 15,
+      "endLine": 7,
+      "endCol": 52
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "json.loads(request.body)",
+    "range": {
+      "startLine": 7,
+      "startCol": 27,
+      "endLine": 7,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.submit(payload)",
+    "range": {
+      "startLine": 8,
+      "startCol": 14,
+      "endLine": 8,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "response.json(result)",
+    "range": {
+      "startLine": 9,
+      "startCol": 12,
+      "endLine": 9,
+      "endCol": 33
+    }
+  }
+]

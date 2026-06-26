@@ -1,0 +1,87 @@
+{
+  "calls": [
+    {
+      "name": "parseOrder",
+      "range": {
+        "startLine": 10,
+        "startCol": 21,
+        "endLine": 10,
+        "endCol": 45
+      },
+      "scopeId": 900013
+    },
+    {
+      "name": "submit",
+      "receiver": "this.service",
+      "range": {
+        "startLine": 11,
+        "startCol": 26,
+        "endLine": 11,
+        "endCol": 54
+      },
+      "scopeId": 900013
+    },
+    {
+      "name": "ok",
+      "receiver": "Response",
+      "range": {
+        "startLine": 12,
+        "startCol": 12,
+        "endLine": 12,
+        "endCol": 31
+      },
+      "scopeId": 900013
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "payload",
+      "valueType": "parseOrder",
+      "range": {
+        "startLine": 10,
+        "startCol": 11,
+        "endLine": 10,
+        "endCol": 45
+      },
+      "scopeId": 900013
+    },
+    {
+      "name": "result",
+      "valueType": "submit",
+      "range": {
+        "startLine": 11,
+        "startCol": 11,
+        "endLine": 11,
+        "endCol": 54
+      },
+      "scopeId": 900013
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Response",
+      "importedName": "Response",
+      "source": "./http",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 35
+      }
+    },
+    {
+      "localName": "parseOrder",
+      "importedName": "parseOrder",
+      "source": "./parser",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 39
+      }
+    }
+  ]
+}

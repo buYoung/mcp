@@ -1,0 +1,142 @@
+{
+  "calls": [
+    {
+      "name": "map",
+      "receiver": "mapper",
+      "range": {
+        "startLine": 18,
+        "startCol": 24,
+        "endLine": 18,
+        "endCol": 41
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "audit",
+      "receiver": "AuditEvent",
+      "range": {
+        "startLine": 19,
+        "startCol": 28,
+        "endLine": 19,
+        "endCol": 76
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "total",
+      "receiver": "dto",
+      "range": {
+        "startLine": 19,
+        "startCol": 64,
+        "endLine": 19,
+        "endCol": 75
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "reserve",
+      "receiver": "inventory",
+      "range": {
+        "startLine": 21,
+        "startCol": 9,
+        "endLine": 21,
+        "endCol": 33
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "save",
+      "receiver": "repository",
+      "range": {
+        "startLine": 22,
+        "startCol": 9,
+        "endLine": 22,
+        "endCol": 29
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "commit",
+      "receiver": "event",
+      "range": {
+        "startLine": 23,
+        "startCol": 9,
+        "endLine": 23,
+        "endCol": 23
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "from",
+      "receiver": "Receipt",
+      "range": {
+        "startLine": 24,
+        "startCol": 16,
+        "endLine": 24,
+        "endCol": 33
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "Receipt",
+      "range": {
+        "startLine": 29,
+        "startCol": 20,
+        "endLine": 29,
+        "endCol": 33
+      },
+      "scopeId": 2800030
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "typeName": "OrderDto",
+      "range": {
+        "startLine": 18,
+        "startCol": 9,
+        "endLine": 18,
+        "endCol": 42
+      },
+      "scopeId": 1600025
+    },
+    {
+      "name": "event",
+      "typeName": "AuditEvent",
+      "range": {
+        "startLine": 19,
+        "startCol": 9,
+        "endLine": 19,
+        "endCol": 77
+      },
+      "scopeId": 1600025
+    }
+  ],
+  "imports": [
+    {
+      "localName": "List",
+      "importedName": "List",
+      "source": "java.util",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 23
+      }
+    },
+    {
+      "localName": "Service",
+      "importedName": "Service",
+      "source": "org.springframework.stereotype",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 47
+      }
+    }
+  ]
+}

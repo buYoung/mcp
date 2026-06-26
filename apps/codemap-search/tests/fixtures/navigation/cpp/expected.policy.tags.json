@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "std::vector<std::string> evaluate(const Order &order) const {\n        std::vector<std::string> failures;\n        for (const auto &rule : rules_) {\n            if (!rule.check(order)) {\n                failures.push_back(rule.name());\n            }\n        }\n        if (failures.empty()) {\n            return {};\n        }\n        return failures;\n    }",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 17,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 9,
+      "startCol": 18,
+      "endLine": 9,
+      "endCol": 35
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.push_back(rule.name())",
+    "range": {
+      "startLine": 10,
+      "startCol": 17,
+      "endLine": 10,
+      "endCol": 48
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.name()",
+    "range": {
+      "startLine": 10,
+      "startCol": 36,
+      "endLine": 10,
+      "endCol": 47
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "failures.empty()",
+    "range": {
+      "startLine": 13,
+      "startCol": 13,
+      "endLine": 13,
+      "endCol": 29
+    }
+  }
+]

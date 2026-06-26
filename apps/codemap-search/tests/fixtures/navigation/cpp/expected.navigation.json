@@ -2,6 +2,7 @@
   "calls": [
     {
       "name": "save",
+      "receiver": "user",
       "range": {
         "startLine": 14,
         "startCol": 5,
@@ -12,6 +13,7 @@
     },
     {
       "name": "save",
+      "receiver": "pointer",
       "range": {
         "startLine": 15,
         "startCol": 5,
@@ -34,7 +36,7 @@
   "references": [],
   "localBindings": [
     {
-      "name": "User",
+      "name": "user",
       "typeName": "User",
       "range": {
         "startLine": 12,
@@ -45,7 +47,7 @@
       "scopeId": 1100017
     },
     {
-      "name": "User",
+      "name": "pointer",
       "typeName": "User",
       "range": {
         "startLine": 13,
@@ -58,8 +60,8 @@
   ],
   "imports": [
     {
-      "localName": "hpp",
-      "importedName": "hpp",
+      "localName": "user",
+      "importedName": "user",
       "source": "user.hpp",
       "kind": "named",
       "range": {

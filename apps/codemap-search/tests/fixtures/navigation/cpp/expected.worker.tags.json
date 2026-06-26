@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "void tick() {\n        auto job = queue_.next();\n        if (!job.valid()) {\n            logger_.warn(\"no job\");\n            return;\n        }\n\n        auto receipt = processor_.process(job);\n        queue_.ack(receipt.id());\n    }",
+    "range": {
+      "startLine": 5,
+      "startCol": 5,
+      "endLine": 14,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue_.next()",
+    "range": {
+      "startLine": 6,
+      "startCol": 20,
+      "endLine": 6,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "job.valid()",
+    "range": {
+      "startLine": 7,
+      "startCol": 14,
+      "endLine": 7,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "logger_.warn(\"no job\")",
+    "range": {
+      "startLine": 8,
+      "startCol": 13,
+      "endLine": 8,
+      "endCol": 35
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor_.process(job)",
+    "range": {
+      "startLine": 12,
+      "startCol": 24,
+      "endLine": 12,
+      "endCol": 47
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue_.ack(receipt.id())",
+    "range": {
+      "startLine": 13,
+      "startCol": 9,
+      "endLine": 13,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "receipt.id()",
+    "range": {
+      "startLine": 13,
+      "startCol": 20,
+      "endLine": 13,
+      "endCol": 32
+    }
+  }
+]

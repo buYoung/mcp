@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "definition.struct",
+    "text": "pub struct CheckoutHandler<S> {\n    service: S,\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "CheckoutHandler",
+    "range": {
+      "startLine": 3,
+      "startCol": 12,
+      "endLine": 3,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "pub async fn post(&self, body: Bytes) -> Result<Response, Error> {\n        let payload = parse_order(body)?;\n        let receipt = self.service.submit(payload).await?;\n        Ok(Response::ok(receipt))\n    }",
+    "range": {
+      "startLine": 11,
+      "startCol": 5,
+      "endLine": 15,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "post",
+    "range": {
+      "startLine": 11,
+      "startCol": 18,
+      "endLine": 11,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "parse_order(body)",
+    "range": {
+      "startLine": 12,
+      "startCol": 23,
+      "endLine": 12,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "self.service.submit(payload)",
+    "range": {
+      "startLine": 13,
+      "startCol": 23,
+      "endLine": 13,
+      "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Ok(Response::ok(receipt))",
+    "range": {
+      "startLine": 14,
+      "startCol": 9,
+      "endLine": 14,
+      "endCol": 34
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Response::ok(receipt)",
+    "range": {
+      "startLine": 14,
+      "startCol": 12,
+      "endLine": 14,
+      "endCol": 33
+    }
+  }
+]
