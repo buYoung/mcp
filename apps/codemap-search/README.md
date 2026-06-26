@@ -304,12 +304,14 @@ turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use 
 Configuration is **optional** — with no config file, defaults reproduce the built-in
 behavior. TOML config is read from a repo layer (`<repo>/.codemap/config.toml`) and a
 global layer (`$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`), merged per key
-as `repo > global > default`. On `mcp` startup, if the repo config is absent, a
-commented, no-op template is auto-created for discoverability — every key documented
-inline at its default, stamped with a schema-version marker. If the repo config already
+as `repo > global > default`. On `mcp` startup, if the repo config is absent, an
+explicit-default template is auto-created for discoverability — every key documented
+inline and active at its default, stamped with a schema-version marker. Comment or delete a
+repo key when you want that key to inherit the global value. If the repo config already
 exists, it is incrementally synced instead: keys added by a newer release are appended as
 commented blocks (additive only — your existing lines are never edited or removed), and a
-file already current is left untouched.
+file already current is left untouched. Set `[update].config_auto_update = false` to disable
+repo config creation and schema-sync writes; existing config files are still read.
 
 All keys, defaults, and the `.codemap/` directory layout are documented in
 [docs/configuration.md](./docs/configuration.md), including `[filesystem_permissions]` for

@@ -10,7 +10,7 @@
 //! pure/unit-testable and tests stay hermetic (they never read the developer's real home).
 //! The loader ([`load`]) is itself pure and side-effect-free — it only reads. Separately,
 //! the `mcp` command calls [`ensure_repo_config`] once at startup. When no
-//! `<repo>/.codemap/config.toml` exists it scaffolds a commented, behavior-preserving file
+//! `<repo>/.codemap/config.toml` exists it scaffolds an explicit-default file
 //! (stamped with the current schema [`CONFIG_VERSION`]) for discoverability. When one
 //! already exists it **incrementally syncs** it: for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
@@ -70,11 +70,11 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 /// hermetic isolation; users may set it to relocate global config.
 const HOME_ENV: &str = "CODEMAP_HOME";
 
-/// Current config-template schema version. Stamped into every scaffolded file and used by
+/// Current config-template schema version. Stamped in [`CONFIG_TEMPLATE`] and used by
 /// [`ensure_repo_config`] to decide whether an existing file needs an incremental sync. Bump
 /// this whenever [`CONFIG_TEMPLATE`] grows a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a commented block) on their next `mcp` start.
-const CONFIG_VERSION: u32 = 2;
+const CONFIG_VERSION: u32 = 3;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -82,25 +82,27 @@ const CONFIG_VERSION: u32 = 2;
 const CONFIG_BASELINE_VERSION: u32 = 1;
 /// Leading text of the comment line that stamps a config file's schema version, e.g.
 /// `# codemap-config-version: 1`. Deliberately a comment, not a TOML key: the loader and
-/// [`normalize`] never see it (preserving the "every key commented → empty layer → zero
-/// warnings" invariant), and the migrator reads it with a plain string scan since the TOML
-/// parser drops comments.
+/// [`normalize`] never see it, and the migrator reads it with a plain string scan since the
+/// TOML parser drops comments.
 const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
-/// Commented, no-op scaffold written to a fresh repo on `mcp` start (see
-/// [`ensure_repo_config`], which prepends the [`VERSION_MARKER_PREFIX`] line). Every key is
-/// commented out at its compiled-in default. Section headers are live TOML tables, but they
-/// are inert while every setting line stays commented, so the file resolves to defaults with
-/// zero warnings until the user uncomments a setting. Mirrors the key reference in
+/// Explicit-default scaffold written to a fresh repo on `mcp` start (see
+/// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
+/// and every key is
+/// live at its compiled-in default, so a generated repo config pins the default values above a
+/// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
-/// key, update `config_template.toml`, bump [`CONFIG_VERSION`], and add a [`MIGRATIONS`] entry
-/// so existing repo files pick it up incrementally.
+/// key, update `config_template.toml`, bump [`CONFIG_VERSION`], and add a commented
+/// [`MIGRATIONS`] entry so existing repo files pick it up incrementally without behavior
+/// changes.
 const CONFIG_TEMPLATE: &str = include_str!("config_template.toml");
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
+    /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
+    pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
     /// Number of top-ranked files `search` renders as details before remaining matches
@@ -213,6 +215,7 @@ pub struct ResolvedConfig {
 impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
+            config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             result_threshold: 5,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
@@ -254,6 +257,7 @@ impl Default for ResolvedConfig {
 /// (warn + ignore) during normalization so they also delegate.
 #[derive(Default)]
 struct ConfigLayer {
+    config_auto_update: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
     max_file_size: Option<u64>,
@@ -345,7 +349,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let mut section_values = Vec::new();
     for (key, value) in table {
         match key.as_str() {
-            "index" | "refresh" | "search" | "tool_output" | "caller_context" => {
+            "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context" => {
                 section_values.push((key, value));
             }
             "filesystem_permissions" => {
@@ -400,6 +404,7 @@ fn normalize_config_section(
 
 fn section_accepts_key(section: &str, key: &str) -> bool {
     match section {
+        "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
             "index_path" | "max_file_size" | "excluded_directories" | "use_git_exclude"
@@ -445,6 +450,7 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
+        "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
         "max_file_size" => layer.max_file_size = as_positive_u64(value, key_display, path),
@@ -521,6 +527,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         None => defaults.excluded_directories,
     };
     ResolvedConfig {
+        config_auto_update: repo
+            .config_auto_update
+            .or(global.config_auto_update)
+            .unwrap_or(defaults.config_auto_update),
         index_path: repo
             .index_path
             .or(global.index_path)
@@ -756,9 +766,8 @@ struct Migration {
     key: &'static str,
     /// Section-aware insertion point for `block`.
     placement: KeyPlacement,
-    /// The commented template block for the key, in [`CONFIG_TEMPLATE`]'s style (doc comment
-    /// line(s) then a `# key = default` line, no surrounding blank lines — the inserter spaces
-    /// it).
+    /// The commented migration block for the key (doc comment line(s) then a
+    /// `# key = default` line, no surrounding blank lines — the inserter spaces it).
     block: &'static str,
 }
 
@@ -772,21 +781,27 @@ struct Migration {
 const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 2,
-        key: "navigation_context_default",
-        placement: KeyPlacement::TopLevel,
-        block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
+        key: "navigation_store_references",
+        placement: KeyPlacement::Subtable("caller_context"),
+        block: "# navigation_store_references = false",
     },
     Migration {
         version: 2,
         key: "navigation_callsite_budget",
-        placement: KeyPlacement::TopLevel,
+        placement: KeyPlacement::Subtable("caller_context"),
         block: "# navigation_callsite_budget = 1000",
     },
     Migration {
         version: 2,
-        key: "navigation_store_references",
+        key: "navigation_context_default",
+        placement: KeyPlacement::Subtable("caller_context"),
+        block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
+    },
+    Migration {
+        version: 3,
+        key: "config_auto_update",
         placement: KeyPlacement::TopLevel,
-        block: "# navigation_store_references = false",
+        block: "# Automatic repo config file creation and schema sync on `mcp` startup.\n# true: create missing `.codemap/config.toml` and append commented blocks for new settings.\n# false: never writes `.codemap/config.toml` automatically; existing config is still read.\n# Existing-file schema sync adds new settings as commented blocks, not active values.\n# [update]\n# config_auto_update = true",
     },
 ];
 
@@ -797,16 +812,24 @@ fn version_marker_line(version: u32) -> String {
 
 /// Scaffold or incrementally sync `<repo_root>/.codemap/config.toml` on `mcp` start.
 ///
-/// - Absent → write the commented, no-op [`CONFIG_TEMPLATE`] stamped with [`CONFIG_VERSION`],
-///   so a fresh repo gets a discoverable, self-documenting, behavior-preserving config.
+/// - Absent → write the explicit-default [`CONFIG_TEMPLATE`], whose first line is the
+///   [`CONFIG_VERSION`] marker, so a fresh repo gets a discoverable, self-documenting config
+///   whose keys are live.
 /// - Present → run [`apply_migrations`]: append only the commented blocks for keys introduced
 ///   since the file's stamped version (presence-guarded), re-stamp the marker, and rewrite.
 ///   A file already at the current version is left byte-for-byte untouched.
 ///
 /// Never-exit: a directory-create, read, or write failure warns to stderr and returns rather
-/// than crashing the server. The path matches exactly what [`load`] reads, so a newly added
-/// (commented) key is inert until uncommented and takes effect on a later run.
+/// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
+/// keys are still commented so syncing an existing config stays behavior-preserving.
 pub fn ensure_repo_config(repo_root: &Path) {
+    ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
+}
+
+fn ensure_repo_config_with_auto_update(repo_root: &Path, config_auto_update: bool) {
+    if !config_auto_update {
+        return;
+    }
     let dir = repo_root.join(CODEMAP_DIR_NAME);
     let path = dir.join(CONFIG_FILE_NAME);
     match std::fs::read_to_string(&path) {
@@ -828,8 +851,7 @@ fn scaffold_fresh(dir: &Path, path: &Path) {
         ));
         return;
     }
-    let body = format!("{}\n{CONFIG_TEMPLATE}", version_marker_line(CONFIG_VERSION));
-    if let Err(e) = std::fs::write(path, body) {
+    if let Err(e) = std::fs::write(path, CONFIG_TEMPLATE) {
         warn(&format!(
             "config template skipped: write {}: {e}",
             path.display()
@@ -1152,6 +1174,7 @@ mod tests {
         let global = tempdir().unwrap();
         let cfg = load(repo.path(), global.path());
         let defaults = ResolvedConfig::default();
+        assert!(cfg.config_auto_update);
         assert_eq!(cfg.index_path, defaults.index_path);
         assert_eq!(cfg.result_threshold, 5);
         assert_eq!(cfg.max_file_size, crate::workspace::MAX_INDEXED_FILE_BYTES);
@@ -1185,6 +1208,18 @@ mod tests {
         // Untouched keys keep their defaults.
         assert_eq!(cfg.caller_list_cap, 5);
         assert_eq!(cfg.annotation_sub_budget, 8192);
+    }
+
+    #[test]
+    fn test_update_config_auto_update_overrides() {
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        write_repo_config(repo.path(), "[update]\nconfig_auto_update = false\n");
+        let cfg = load(repo.path(), global.path());
+        assert!(
+            !cfg.config_auto_update,
+            "repo config can disable automatic config writes"
+        );
     }
 
     #[test]
@@ -1264,6 +1299,20 @@ mod tests {
     }
 
     // --- version marker + incremental sync ---------------------------------------------
+
+    #[test]
+    fn test_config_template_version_marker_matches_config_version() {
+        assert_eq!(
+            parse_version_marker(CONFIG_TEMPLATE),
+            Some(CONFIG_VERSION),
+            "config_template.toml must carry the current schema version marker"
+        );
+        assert_eq!(
+            CONFIG_TEMPLATE.matches(VERSION_MARKER_PREFIX).count(),
+            1,
+            "config_template.toml must contain exactly one schema version marker"
+        );
+    }
 
     #[test]
     fn test_parse_version_marker() {
@@ -1399,6 +1448,50 @@ mod tests {
     }
 
     #[test]
+    fn test_v2_migrations_insert_navigation_keys_under_caller_context() {
+        let body = "# codemap-config-version: 1\n\n[caller_context]\n# caller_context_default = true\n\n[tool_output]\n# grep_max_columns = 500\n";
+        let out = apply_migrations(body, 1, 2, MIGRATIONS).expect("v2 sync is due");
+        let header_pos = out.find("[caller_context]").unwrap();
+        let navigation_context_pos = out.find("navigation_context_default").unwrap();
+        let navigation_budget_pos = out.find("navigation_callsite_budget").unwrap();
+        let navigation_store_pos = out.find("navigation_store_references").unwrap();
+        let next_table_pos = out.find("[tool_output]").unwrap();
+        assert!(
+            header_pos < navigation_context_pos && navigation_store_pos < next_table_pos,
+            "navigation keys must be inserted inside [caller_context]: {out:?}"
+        );
+        assert!(
+            navigation_context_pos < navigation_budget_pos
+                && navigation_budget_pos < navigation_store_pos,
+            "navigation migration keys must keep template order: {out:?}"
+        );
+        assert_eq!(
+            out.matches("navigation_context_default").count(),
+            1,
+            "migration must not duplicate the v2 navigation key: {out:?}"
+        );
+        assert!(out.contains("# codemap-config-version: 2"));
+    }
+
+    #[test]
+    fn test_v3_migration_adds_commented_update_section_before_tables() {
+        let body = "# codemap-config-version: 2\n\n[index]\nindex_path = \".codemap/index\"\n";
+        let out = apply_migrations(body, 2, 3, MIGRATIONS).expect("v3 sync is due");
+        let update_pos = out.find("# [update]").unwrap();
+        let key_pos = out.find("# config_auto_update = true").unwrap();
+        let index_pos = out.find("[index]").unwrap();
+        assert!(
+            update_pos < key_pos && key_pos < index_pos,
+            "update migration block must be commented and precede the first table: {out:?}"
+        );
+        assert!(
+            out.contains("append commented blocks for new settings"),
+            "migration block should explain that auto-update adds commented settings: {out:?}"
+        );
+        assert!(out.contains("# codemap-config-version: 3"));
+    }
+
+    #[test]
     fn test_set_version_marker_replaces_or_prepends() {
         // replace an existing marker in place
         let replaced = set_version_marker("# codemap-config-version: 1\nfoo = 1\n", 5);
@@ -1421,9 +1514,20 @@ mod tests {
             body.starts_with(&format!("# codemap-config-version: {CONFIG_VERSION}\n")),
             "scaffold must be stamped with the current schema version: {body:?}"
         );
-        // still a no-op layer: every key commented → parsing yields the defaults
+        // Explicit scaffolded defaults still resolve to the compiled-in defaults.
         let global = tempdir().unwrap();
         assert_eq!(load(repo.path(), global.path()).result_threshold, 5);
+    }
+
+    #[test]
+    fn test_ensure_repo_config_skips_when_auto_update_disabled() {
+        let repo = tempdir().unwrap();
+        ensure_repo_config_with_auto_update(repo.path(), false);
+        let path = repo.path().join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+        assert!(
+            !path.exists(),
+            "disabled config auto-update must not create a repo config"
+        );
     }
 
     #[test]

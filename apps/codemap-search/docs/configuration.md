@@ -20,11 +20,11 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 ## Loader behavior
 
 - **Never-exit:** a missing file, parse error, unknown key, or wrong-typed value warns to stderr and falls back for that key. The server does not exit because of config.
-- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created. The generated file uses TOML sections (`[index]`, `[search]`, etc.); section headers are live, but every setting is commented out at its default, so the file changes nothing until you uncomment a setting. The file is stamped with a schema-version marker (see below).
-- **Incremental sync:** if the file already exists, it is kept in sync with the schema. When a release adds a new key, that key's commented block is appended to your existing file and the version marker is refreshed. The sync is strictly additive: your existing lines (set values and comments alike) are never edited, reordered, or removed, and a file already at the current version is left untouched.
+- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent and `[update].config_auto_update` is true, an explicit-default template is created. The generated file uses TOML sections (`[update]`, `[index]`, `[search]`, etc.) and live default values, so the repo file pins those defaults above the global config until you delete or comment out a setting. The file is stamped with a schema-version marker (see below).
+- **Incremental sync:** if the file already exists and `[update].config_auto_update` is true, it is kept in sync with the schema. When a release adds a new key, that key's commented block is appended to your existing file and the version marker is refreshed. The sync is strictly additive: your existing lines (set values and comments alike) are never edited, reordered, or removed, and a file already at the current version is left untouched.
 - **Validation:** most numeric keys must be positive integers; `grep_max_columns` also accepts `0` to disable its column cap. `index_path` must be a non-empty string, arrays must contain strings, and filesystem permission policies must be `workspace`, `allowed_roots`, or `anywhere`. An invalid value warns and falls back for that key.
 
-한국어 요약: 설정 오류는 서버 종료로 이어지지 않습니다. 잘못된 키나 값은 stderr 경고를 내고 해당 키만 기본값으로 돌아갑니다. 저장소 설정 파일 자동 동기화는 주석 줄 추가만 수행하며 기존 값은 바꾸지 않습니다.
+한국어 요약: 설정 오류는 서버 종료로 이어지지 않습니다. 잘못된 키나 값은 stderr 경고를 내고 해당 키만 기본값으로 돌아갑니다. 저장소 설정 파일 자동 생성/동기화는 `[update].config_auto_update`로 끄고 켤 수 있습니다. 자동 동기화가 켜져 있어도 기존 파일에는 새 설정이 주석 블록으로만 추가되어 기존 값은 바꾸지 않습니다.
 
 ### Schema version and incremental updates
 
@@ -34,16 +34,18 @@ The first line of a generated config file is a version marker — a comment, not
 # codemap-config-version: 1
 ```
 
-This marker lets `mcp` keep an existing config file current as the tool evolves. On startup:
+This marker lets `mcp` keep an existing config file current as the tool evolves. On startup, when `[update].config_auto_update` resolves to `true`:
 
-- If the file is **absent**, the commented template is written, stamped with the current version.
+- If the file is **absent**, the explicit-default template is written, stamped with the current version.
 - If the file's version is **older** than the tool's, each key introduced since that version is appended as a commented block at its schema-defined placement, and the marker is bumped. A key you have already added or uncommented is detected and never duplicated.
 - If the file is **already current**, it is left byte-for-byte unchanged.
 - A file with **no marker** (written before versioning existed) is treated as the baseline version and synced the same way; nothing is duplicated because every key it already carries is detected first.
 
-Because the sync edits your existing file in place, the change is visible in `git status` if you track `.codemap/`. The edits only add commented lines, so behavior is unchanged until you uncomment a setting. Editing the marker yourself is unnecessary — the tool manages it; deleting it only causes the file to be re-synced from the baseline (still non-destructive). The global file (`$CODEMAP_HOME/config.toml`) is not auto-generated and is never synced; only the repo-local file is managed.
+Because the sync edits your existing file in place, the change is visible in `git status` if you track `.codemap/`. Incremental syncs only add commented lines, so existing files keep their behavior until you uncomment a newly added setting. Editing the marker yourself is unnecessary — the tool manages it; deleting it only causes the file to be re-synced from the baseline (still non-destructive). The global file (`$CODEMAP_HOME/config.toml`) is not auto-generated and is never synced; only the repo-local file is managed.
 
-한국어 참고: 버전 마커는 설정 키가 아니라 주석입니다. 저장소 파일에 새 키가 주석으로 추가되어도, 사용자가 해당 줄을 직접 활성화하기 전까지 동작은 바뀌지 않습니다.
+Set `[update].config_auto_update = false` to prevent codemap-search from creating or rewriting the repo-local config file. Existing repo and global config files are still read; only the automatic write path is disabled.
+
+한국어 참고: 버전 마커는 설정 키가 아니라 주석입니다. 저장소 파일에 새 키가 주석으로 추가되어도, 사용자가 해당 줄을 직접 활성화하기 전까지 동작은 바뀌지 않습니다. `[update].config_auto_update = false`로 설정하면 저장소 설정 파일 자동 생성과 자동 동기화 쓰기만 멈추고, 기존 설정 파일 읽기는 계속 동작합니다.
 
 ## Key reference
 
@@ -51,6 +53,7 @@ Use this table as the source of truth for supported keys, accepted types, and de
 
 | Key | Type | Default | Summary |
 |---|---|---|---|
+| `[update].config_auto_update` | bool | `true` | Create missing repo config and append commented schema-sync blocks on `mcp` startup |
 | `[index].index_path` | string | `".codemap/index"` | Where the tantivy index lives (relative to the repo root) |
 | `[index].max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
 | `[index].excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
@@ -87,10 +90,17 @@ Use this table as the source of truth for supported keys, accepted types, and de
 ### Korean key guide
 
 - 색인 위치와 범위: `[index]`
+- 설정 파일 자동 생성/동기화: `[update]`
 - 색인 최신성: `[refresh]`
 - 검색 결과 크기: `[search]`
 - 실시간 파일 도구 제한: `[tool_output]`, `[filesystem_permissions]`
 - 호출자/호출 대상 주석: `[caller_context]`
+
+### Config file updates
+
+- **`config_auto_update`** — controls only automatic writes to the repo-local `.codemap/config.toml` on `mcp` startup. When `true`, a missing repo config is created from the explicit-default template, and an older repo config receives newly introduced settings as commented blocks. When `false`, codemap-search does not create or rewrite the repo config; existing repo/global settings are still read normally.
+
+한국어 요약: 자동 업데이트가 켜져 있으면 기존 설정 파일에는 새 키가 주석으로 추가됩니다. 바로 활성화되지는 않으며, 사용자가 주석을 해제해야 동작이 바뀝니다. 끄면 자동 생성과 자동 동기화 쓰기만 멈춥니다.
 
 ### Indexing
 
@@ -169,6 +179,9 @@ The example below is intentionally explicit. In a real file, you can keep only t
 
 ```toml
 # Every setting is optional; omitted settings use the defaults above.
+
+[update]
+config_auto_update = true
 
 [index]
 index_path = ".codemap/index"

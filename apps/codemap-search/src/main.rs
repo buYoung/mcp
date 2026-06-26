@@ -181,10 +181,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Mcp => {
-            // Scaffold a commented, no-op `.codemap/config.toml` when absent, else
-            // incrementally sync it to the current schema version (additive, presence-guarded,
-            // a no-op when already current) — `mcp` only, never on parse/search/etc.
-            // Never-exit: a read/write failure warns and the server still boots.
+            // When `[update].config_auto_update` is true, scaffold `.codemap/config.toml`
+            // when absent, else incrementally sync it to the current schema version
+            // (additive, presence-guarded, a no-op when already current) — `mcp` only,
+            // never on parse/search/etc. Never-exit: a read/write failure warns and the
+            // server still boots.
             codemap_search::config::ensure_repo_config(&cwd);
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;

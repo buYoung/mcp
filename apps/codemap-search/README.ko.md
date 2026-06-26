@@ -242,7 +242,7 @@ codemap-search benchmark --queries <json> [--dir D]
 
 설정은 선택 사항입니다. 설정 파일이 없으면 내장 기본값으로 동작합니다. TOML 설정은 저장소 레이어(`<repo>/.codemap/config.toml`)와 전역 레이어(`$CODEMAP_HOME/config.toml`, 없으면 `~/.codemap/config.toml`)에서 읽고, 키별로 `repo > global > default` 우선순위로 병합합니다.
 
-`mcp` 시작 시 저장소 설정 파일이 없으면 동작을 바꾸지 않는 주석 템플릿을 자동 생성합니다. 파일이 이미 있으면 새 릴리스에서 추가된 키만 주석 블록으로 덧붙입니다. 기존 줄은 수정하거나 삭제하지 않습니다.
+`mcp` 시작 시 저장소 설정 파일이 없으면 기본값이 활성화된 템플릿을 자동 생성합니다. 이 저장소 파일은 전역 설정보다 우선하므로, 특정 키에서 전역 설정을 상속하려면 해당 키를 삭제하거나 주석 처리하세요. 파일이 이미 있으면 새 릴리스에서 추가된 키만 주석 블록으로 덧붙입니다. 기존 줄은 수정하거나 삭제하지 않습니다. `[update].config_auto_update = false`로 설정하면 저장소 설정 파일 자동 생성과 스키마 동기화 쓰기를 끌 수 있고, 기존 설정 파일 읽기는 계속 동작합니다.
 
 모든 키, 기본값, `.codemap/` 디렉터리 구조는 [docs/configuration.md](./docs/configuration.md)에 있습니다. `read`, `find`, `grep`을 작업공간 안으로 제한할지, 허용된 외부 루트를 열지, 전체 디스크 접근을 허용할지는 `[filesystem_permissions]`에서 제어합니다.
 
