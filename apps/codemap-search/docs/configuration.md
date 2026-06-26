@@ -1,6 +1,6 @@
 # Configuration
 
-codemap-search configuration is **optional**. If no TOML file exists, compiled-in defaults reproduce the built-in behavior exactly. Add a key only when you want to override one part of that behavior.
+codemap-search configuration is **optional**. If no TOML file exists, compiled-in defaults reproduce the built-in behavior exactly. Add a setting only when you want to override one part of that behavior.
 
 한국어 요약: 설정 파일은 없어도 됩니다. 값을 바꾸고 싶은 키만 TOML 파일에 적으면 되고, 나머지는 기본값이나 더 낮은 우선순위 설정에서 그대로 이어받습니다.
 
@@ -13,14 +13,14 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 | Repo | `<repo>/.codemap/config.toml` |
 | Global | `$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml` |
 
-"Per key" means a repo file that sets only `result_threshold` still inherits every other key from the global file (if set there) or the default. Layers are not all-or-nothing.
+"Per key" means a repo file that sets only `[search].result_threshold` still inherits every other setting from the global file (if set there) or the default. Layers are not all-or-nothing.
 
-한국어 참고: 저장소 설정은 그 저장소 안에서만 우선합니다. 예를 들어 저장소 파일에 `result_threshold`만 있으면 다른 키는 전역 설정이나 기본값을 계속 사용합니다.
+한국어 참고: 저장소 설정은 그 저장소 안에서만 우선합니다. 예를 들어 저장소 파일에 `[search].result_threshold`만 있으면 다른 설정 항목은 전역 설정이나 기본값을 계속 사용합니다.
 
 ## Loader behavior
 
 - **Never-exit:** a missing file, parse error, unknown key, or wrong-typed value warns to stderr and falls back for that key. The server does not exit because of config.
-- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created. Every key is commented out at its default, so the file changes nothing until you uncomment a line. The file is stamped with a schema-version marker (see below).
+- **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent, a commented, no-op template is created. The generated file uses TOML sections (`[index]`, `[search]`, etc.); section headers are live, but every setting is commented out at its default, so the file changes nothing until you uncomment a setting. The file is stamped with a schema-version marker (see below).
 - **Incremental sync:** if the file already exists, it is kept in sync with the schema. When a release adds a new key, that key's commented block is appended to your existing file and the version marker is refreshed. The sync is strictly additive: your existing lines (set values and comments alike) are never edited, reordered, or removed, and a file already at the current version is left untouched.
 - **Validation:** most numeric keys must be positive integers; `grep_max_columns` also accepts `0` to disable its column cap. `index_path` must be a non-empty string, arrays must contain strings, and filesystem permission policies must be `workspace`, `allowed_roots`, or `anywhere`. An invalid value warns and falls back for that key.
 
@@ -37,60 +37,60 @@ The first line of a generated config file is a version marker — a comment, not
 This marker lets `mcp` keep an existing config file current as the tool evolves. On startup:
 
 - If the file is **absent**, the commented template is written, stamped with the current version.
-- If the file's version is **older** than the tool's, each key introduced since that version is appended as a commented block (placed before the `[filesystem_permissions]` table so top-level keys keep their scope), and the marker is bumped. A key you have already added or uncommented is detected and never duplicated.
+- If the file's version is **older** than the tool's, each key introduced since that version is appended as a commented block at its schema-defined placement, and the marker is bumped. A key you have already added or uncommented is detected and never duplicated.
 - If the file is **already current**, it is left byte-for-byte unchanged.
 - A file with **no marker** (written before versioning existed) is treated as the baseline version and synced the same way; nothing is duplicated because every key it already carries is detected first.
 
-Because the sync edits your existing file in place, the change is visible in `git status` if you track `.codemap/`. The edits only add commented lines, so behavior is unchanged until you uncomment a key. Editing the marker yourself is unnecessary — the tool manages it; deleting it only causes the file to be re-synced from the baseline (still non-destructive). The global file (`$CODEMAP_HOME/config.toml`) is not auto-generated and is never synced; only the repo-local file is managed.
+Because the sync edits your existing file in place, the change is visible in `git status` if you track `.codemap/`. The edits only add commented lines, so behavior is unchanged until you uncomment a setting. Editing the marker yourself is unnecessary — the tool manages it; deleting it only causes the file to be re-synced from the baseline (still non-destructive). The global file (`$CODEMAP_HOME/config.toml`) is not auto-generated and is never synced; only the repo-local file is managed.
 
 한국어 참고: 버전 마커는 설정 키가 아니라 주석입니다. 저장소 파일에 새 키가 주석으로 추가되어도, 사용자가 해당 줄을 직접 활성화하기 전까지 동작은 바뀌지 않습니다.
 
 ## Key reference
 
-Use this table as the source of truth for supported keys, accepted types, and defaults. Detailed notes below group the same keys by operational purpose.
+Use this table as the source of truth for supported keys, accepted types, and defaults. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `result_threshold = 5`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
 
 | Key | Type | Default | Summary |
 |---|---|---|---|
-| `index_path` | string | `".codemap/index"` | Where the tantivy index lives (relative to the repo root) |
-| `result_threshold` | integer | `5` | Number of top-ranked files `search` renders as details before the ranked tail |
-| `max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
-| `excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
-| `use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
-| `index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
-| `search_overview_file_limit` | integer | `12` | Max file headers in `search`'s compact ranked tail |
-| `watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
-| `watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
-| `indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
+| `[index].index_path` | string | `".codemap/index"` | Where the tantivy index lives (relative to the repo root) |
+| `[index].max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
+| `[index].excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
+| `[index].use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
+| `[refresh].watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
+| `[refresh].watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
+| `[refresh].index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
+| `[refresh].indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
+| `[search].result_threshold` | integer | `5` | Number of top-ranked files `search` renders as details before the ranked tail |
+| `[search].search_overview_file_limit` | integer | `12` | Max file headers in `search`'s compact ranked tail |
+| `[search].search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
+| `[search].search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
+| `[search].search_detail_byte_cap` | integer (bytes) | `32768` | Hard byte ceiling for one `search` response, including the partial-output footer |
+| `[search].search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
+| `[search].search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
+| `[search].search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
+| `[tool_output].grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
+| `[tool_output].read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | Canonicalized external roots available to tools set to `allowed_roots` |
-| `grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
-| `read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
-| `search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
-| `search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
-| `search_detail_byte_cap` | integer (bytes) | `32768` | Hard byte ceiling for one `search` response, including the partial-output footer |
-| `search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
-| `search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
-| `search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
-| `caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
-| `navigation_context_default` | bool | `false` | Enable tree-sitter precise caller/callee attribution when the structural navigation data confirms exactly one target |
-| `navigation_callsite_budget` | integer | `1000` | Max navigation call sites inspected in one annotation pass before falling back to approximate annotations |
-| `navigation_store_references` | bool | `false` | Store reference-site observations in `NavigationFile` when reference extraction is enabled |
-| `scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
-| `caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
-| `callee_list_cap` | integer | `5` | Max callees rendered per symbol |
-| `annotation_sub_budget` | integer (bytes) | `8192` | Annotation byte budget within `search_detail_byte_cap` |
-| `common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
-| `caller_omit_def_threshold` | integer | `5` | Defs-per-name count at which a matched function's caller list is omitted (attribution unresolvable; a `grep` pointer is emitted instead). Callees unaffected |
+| `[caller_context].caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
+| `[caller_context].navigation_context_default` | bool | `false` | Enable tree-sitter precise caller/callee attribution when the structural navigation data confirms exactly one target |
+| `[caller_context].navigation_callsite_budget` | integer | `1000` | Max navigation call sites inspected in one annotation pass before falling back to approximate annotations |
+| `[caller_context].navigation_store_references` | bool | `false` | Store reference-site observations in `NavigationFile` when reference extraction is enabled |
+| `[caller_context].scan_cap` | integer | `500` | Hit budget per caller-annotation scan, split across scanned names (floor 25/name) |
+| `[caller_context].caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
+| `[caller_context].callee_list_cap` | integer | `5` | Max callees rendered per symbol |
+| `[caller_context].annotation_sub_budget` | integer (bytes) | `8192` | Annotation byte budget within `search_detail_byte_cap` |
+| `[caller_context].common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
+| `[caller_context].caller_omit_def_threshold` | integer | `5` | Defs-per-name count at which a matched function's caller list is omitted (attribution unresolvable; a `grep` pointer is emitted instead). Callees unaffected |
 
 ### Korean key guide
 
-- 색인 위치와 범위: `index_path`, `max_file_size`, `excluded_directories`, `use_git_exclude`
-- 검색 결과 크기: `result_threshold`, `search_overview_file_limit`, `search_detail_snippet_max_lines`, `search_detail_symbol_limit`, `search_detail_byte_cap`, `search_literal_max_len`, `search_literal_limit`, `search_anchor_snippet_limit`
-- 실시간 파일 도구 제한: `grep_max_columns`, `read_output_byte_cap`, `[filesystem_permissions]`
-- 색인 최신성: `watch`, `watch_debounce_ms`, `index_staleness_ms`, `indexer_auto_restart`
-- 호출자/호출 대상 주석: `caller_context_default`, `navigation_context_default`, `navigation_callsite_budget`, `navigation_store_references`, `scan_cap`, `caller_list_cap`, `callee_list_cap`, `annotation_sub_budget`, `common_name_threshold`, `caller_omit_def_threshold`
+- 색인 위치와 범위: `[index]`
+- 색인 최신성: `[refresh]`
+- 검색 결과 크기: `[search]`
+- 실시간 파일 도구 제한: `[tool_output]`, `[filesystem_permissions]`
+- 호출자/호출 대상 주석: `[caller_context]`
 
 ### Indexing
 
@@ -163,41 +163,56 @@ Use this table as the source of truth for supported keys, accepted types, and de
 
 ## Example `config.toml`
 
-The example below is intentionally explicit. In a real file, you can keep only the keys you want to override.
+The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 한국어 참고: 실제 설정 파일에는 바꿀 키만 남겨도 됩니다. 생략한 키는 전역 설정이나 기본값을 사용합니다.
 
 ```toml
-# Every key is optional; omitted keys use the defaults above.
+# Every setting is optional; omitted settings use the defaults above.
 
+[index]
 index_path = ".codemap/index"
-result_threshold = 5
 max_file_size = 1048576   # 1 MiB
 excluded_directories = ["__pycache__", ".next", "coverage"]
 use_git_exclude = true
-index_staleness_ms = 5000
-search_overview_file_limit = 12
+
+[refresh]
 watch = true
 watch_debounce_ms = 500
+index_staleness_ms = 5000
 indexer_auto_restart = true
-grep_max_columns = 500
-read_output_byte_cap = 102400             # 100 KiB
+
+[search]
+result_threshold = 5
+search_overview_file_limit = 12
 search_detail_snippet_max_lines = 80
 search_detail_symbol_limit = 20
 search_detail_byte_cap = 32768            # 32 KiB
 search_literal_max_len = 200
 search_literal_limit = 10
 search_anchor_snippet_limit = 3
-caller_context_default = true
-navigation_context_default = false
-navigation_callsite_budget = 1000
-navigation_store_references = false
+
+[tool_output]
+grep_max_columns = 500
+read_output_byte_cap = 102400             # 100 KiB
 
 [filesystem_permissions]
 find = "workspace"
 grep = "workspace"
 read = "workspace"
 allowed_roots = []
+
+[caller_context]
+caller_context_default = true
+navigation_context_default = false
+navigation_callsite_budget = 1000
+navigation_store_references = false
+scan_cap = 500
+caller_list_cap = 5
+callee_list_cap = 5
+annotation_sub_budget = 8192
+common_name_threshold = 2
+caller_omit_def_threshold = 5
 ```
 
 ### Default workspace-only permissions

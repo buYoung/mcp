@@ -6,11 +6,13 @@
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`,
 //! so it never needs `&mut` access to the engine.
 
+mod monorepo;
 pub mod render;
 
 use crate::tools::ToolContext;
 
 const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
+pub(crate) const DEFAULT_SEARCH_LIMIT: usize = 100;
 
 fn truncate_to_char_boundary(text: &mut String, max_len: usize) {
     if text.len() <= max_len {
@@ -354,6 +356,17 @@ fn diversified_order(
 /// Run the `search` tool and return the rendered detail/tail text. The MCP dispatch arm wraps
 /// the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    if monorepo::should_use(ctx) {
+        return monorepo::run(ctx);
+    }
+    run_inner(ctx, None, DEFAULT_SEARCH_LIMIT)
+}
+
+pub(crate) fn run_inner(
+    ctx: &ToolContext,
+    workspace_scope: Option<&str>,
+    search_limit: usize,
+) -> Result<String, (i64, String)> {
     let query = ctx
         .arguments
         .get("query")
@@ -382,10 +395,14 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             .map(ToString::to_string),
     };
 
-    let results = ctx
+    let mut results = ctx
         .engine
-        .search_with_context(query, 100, &search_context)
+        .search_with_context(query, search_limit, &search_context)
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
+    if let Some(scope) = workspace_scope {
+        results.retain(|result| monorepo::result_is_under_scope(result, scope));
+        results.truncate(DEFAULT_SEARCH_LIMIT);
+    }
 
     // Result-branch threshold: at or below it, return file details;
     // above it, return a codemap overview. Config-driven (Child 05),
@@ -407,6 +424,21 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         text.push_str(&format!(
             "_Last background index refresh failed: {err} — results may be stale._\n\n"
         ));
+    }
+    if let Some(scope) = workspace_scope {
+        text.push_str(&format!(
+            "_Workspace scope: `{scope}`. Pass `workspace_scope: \"all\"` for repo-wide search._\n\n"
+        ));
+    }
+    if results.is_empty() {
+        if let Some(scope) = workspace_scope {
+            text.push_str(&format!(
+                "No indexed matches for `{query}` inside workspace scope `{scope}`."
+            ));
+        } else {
+            text.push_str(&format!("No indexed matches for `{query}`."));
+        }
+        return Ok(text);
     }
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
     // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so

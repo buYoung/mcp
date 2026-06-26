@@ -4,6 +4,8 @@
 //! The dispatch arm (`crate::mcp`) calls `EngineSupervisor::ensure_alive`/`trigger_refresh`
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`.
 
+mod monorepo;
+
 use crate::tools::ToolContext;
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
@@ -14,11 +16,24 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
     // An empty or "." path means the repo root overview, not a folder
     // named "" — normalize so it renders the root view (Child 03).
-    let path = ["path", "file_path", "file", "query"]
+    let raw_path = ["path", "file_path", "file", "query"]
         .iter()
         .find_map(|key| ctx.arguments.get(*key).and_then(|v| v.as_str()))
         .filter(|p| !p.is_empty() && *p != ".");
     let format = ctx.arguments.get("format").and_then(|v| v.as_str());
+
+    let cwd = std::env::current_dir()
+        .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
+
+    let snapshot = ctx.engine.codemap_snapshot();
+    let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
+
+    let workspace_resolved_path = monorepo::resolve_path(raw_path, extracted_files);
+    let path = if monorepo::is_root_alias(raw_path) {
+        None
+    } else {
+        workspace_resolved_path.as_deref().or(raw_path)
+    };
 
     let resolved_path = match path {
         Some(p) => Some(
@@ -27,12 +42,6 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ),
         None => None,
     };
-
-    let cwd = std::env::current_dir()
-        .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
-
-    let snapshot = ctx.engine.codemap_snapshot();
-    let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
 
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
@@ -70,6 +79,8 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     } else {
         if format == Some("llms-txt") {
             crate::codemap::CodemapGenerator::generate_llms_txt_view(extracted_files)
+        } else if let Some(text) = monorepo::root_view(extracted_files) {
+            text
         } else {
             crate::codemap::CodemapGenerator::generate_root_view(extracted_files).to_markdown()
         }

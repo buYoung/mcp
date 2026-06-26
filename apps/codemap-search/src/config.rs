@@ -89,112 +89,13 @@ const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
 /// Commented, no-op scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`], which prepends the [`VERSION_MARKER_PREFIX`] line). Every key is
-/// commented out at its compiled-in default, so the file parses to an empty layer — zero
-/// keys, zero warnings — and reproduces the built-in behavior exactly until the user
-/// uncomments a line. Mirrors the key reference in `docs/configuration.md`; keep the two
-/// aligned when adding or renaming a key. When adding a key, also bump [`CONFIG_VERSION`] and
-/// add a [`MIGRATIONS`] entry so existing repo files pick it up incrementally.
-const CONFIG_TEMPLATE: &str = "\
-# codemap-search repo-local config. Optional: with every key commented out (the state
-# below), this file reproduces the built-in behavior exactly. Uncomment and edit a line to
-# override its default. Resolution precedence is per key: repo > global > built-in default.
-
-# Where the tantivy index lives (relative to the repo root).
-# index_path = \".codemap/index\"
-
-# `search` renders this many top-ranked files as details; the rest become ranked tail rows.
-# result_threshold = 5
-
-# Files larger than this many bytes are skipped before parse/index (minified/generated blobs).
-# max_file_size = 1048576   # 1 MiB
-
-# Directory names to exclude, ADDED to the built-ins (node_modules, target, dist, build,
-# vendor, .git, …). Built-ins can't be removed — this augments, it does not replace.
-# excluded_directories = [\"__pycache__\", \".next\", \"coverage\"]
-
-# Dedicated toggle for `.git/info/exclude` ONLY. Set false to let index/codemap/find/grep
-# see files hidden solely by `.git/info/exclude` (e.g. local personal excludes) while
-# `.gitignore`, the global gitignore, and `.codemapignore` stay honored.
-# use_git_exclude = true
-
-# Debounce window (milliseconds) for background index/codemap refreshes triggered by
-# search/overview: within this window repeated calls enqueue at most one background refresh,
-# and each call answers immediately from the committed snapshot. read/find/grep always read
-# live disk, so brief search staleness is corrected by the follow-up read. (default 5000)
-# index_staleness_ms = 5000
-
-# Max file headers `search` emits in the ranked tail after the top result_threshold
-# detail files. Caps the context a broad query can spend. (default 12)
-# search_overview_file_limit = 12
-
-# Filesystem watcher: when true (the default), file changes refresh the index in the
-# background on their own and search/overview never trigger a tree walk. Set false to
-# fall back to the request-triggered lazy refresh (debounced by index_staleness_ms).
-# watch = true
-
-# Debounce window (milliseconds) for watcher events: changes arriving within this window
-# are batched into one incremental refresh. (default 500)
-# watch_debounce_ms = 500
-
-# Automatic recovery when the background indexer thread dies: the next search/overview
-# rebuilds the index engine, respawns the indexer, and re-attaches the watcher (capped
-# per server run so a deterministic crash cannot respawn-loop). Set false to serve
-# results frozen at the last commit until the server is restarted instead.
-# indexer_auto_restart = true
-
-# Filesystem permissions for live disk tools. Defaults keep all tools workspace-confined.
-# Policies: \"workspace\" (repo only), \"allowed_roots\" (repo plus allowed_roots), \"anywhere\"
-# (full disk access for that tool).
-# [filesystem_permissions]
-# find = \"workspace\"
-# grep = \"workspace\"
-# read = \"workspace\"
-# allowed_roots = []
-
-# `grep` content-mode column cap: a matched line longer than this many columns is replaced
-# with `[Omitted long matching line]` instead of being dumped in full (Claude Code passes
-# `--max-columns 500`). 0 disables the cap. (default 500)
-# grep_max_columns = 500
-
-# `read` always-applied output ceiling (bytes): even with `offset`/`limit` set, a `read`
-# whose rendered output would exceed this throws rather than emitting an unbounded blob
-# (approximates Claude Code's ~25,000-token cap). Measured on the RENDERED output including
-# the `     N→` line-number prefixes (~7 bytes/line). Separate from the 256 KiB whole-file
-# cap that applies only when `limit` is omitted. (default 102400 ≈ 100 KiB)
-# read_output_byte_cap = 102400
-
-# `search` detail-view caps for the top result_threshold files. These bound the total
-# search response so a query matching a few large files can't dump tens of thousands
-# of lines. Output-size only.
-# search_detail_snippet_max_lines = 80   # per-symbol snippet line cap; over-long bodies elide
-# search_detail_symbol_limit = 20        # max symbols rendered per file; rest summarized
-# search_detail_byte_cap = 32768         # hard search response ceiling (32 KiB), including footer
-# search_literal_max_len = 200           # matched-literal truncation length (chars)
-# search_literal_limit = 10              # max matched literals rendered per file
-# search_anchor_snippet_limit = 3        # max anchor symbols given a FULL snippet per file; further
-                                          # anchors (ranked lower) degrade to a ≤3-line signature
-
-# Caller/callee context for the `search` detail view. When the `caller_context` request
-# parameter is omitted, this key decides the default; an explicit parameter always wins.
-# The feature annotates each matched `fn` symbol's snippet with its depth-1 callers and
-# callees (name-match only, approximate). Default on; set false (or pass
-# caller_context=false per call) to disable.
-# caller_context_default = true
-
-# Tree-sitter navigation attribution controls. The first implementation keeps precise
-# navigation opt-in by default while the fallback name-match annotations remain on.
-# navigation_context_default = false
-# navigation_callsite_budget = 1000
-# navigation_store_references = false
-
-# Caps for the caller/callee annotation (all output-size / cost bounds, tunable).
-# scan_cap = 500               # hit budget for the combined-regex walk, split across scanned names (floor 25/name)
-# caller_list_cap = 5          # max callers (or non-call references) rendered per symbol
-# callee_list_cap = 5          # max callees rendered per symbol
-# annotation_sub_budget = 8192 # annotation byte budget WITHIN search_detail_byte_cap (not added on top)
-# common_name_threshold = 2    # a name with ≥ this many fn defs gets its callers/callees labeled ambiguous
-# caller_omit_def_threshold = 5 # a matched fn name with ≥ this many defs omits its caller list (attribution unresolvable; grep pointer emitted instead)
-";
+/// commented out at its compiled-in default. Section headers are live TOML tables, but they
+/// are inert while every setting line stays commented, so the file resolves to defaults with
+/// zero warnings until the user uncomments a setting. Mirrors the key reference in
+/// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
+/// key, update `config_template.toml`, bump [`CONFIG_VERSION`], and add a [`MIGRATIONS`] entry
+/// so existing repo files pick it up incrementally.
+const CONFIG_TEMPLATE: &str = include_str!("config_template.toml");
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
@@ -441,74 +342,174 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             return layer;
         }
     };
-    for (key, v) in table {
+    let mut section_values = Vec::new();
+    for (key, value) in table {
         match key.as_str() {
-            "index_path" => layer.index_path = as_nonempty_string(&v, &key, path),
-            "result_threshold" => layer.result_threshold = as_positive_usize(&v, &key, path),
-            "max_file_size" => layer.max_file_size = as_positive_u64(&v, &key, path),
-            "excluded_directories" => layer.excluded_directories = as_string_array(&v, &key, path),
-            "use_git_exclude" => layer.use_git_exclude = as_bool(&v, &key, path),
-            "index_staleness_ms" => layer.index_staleness_ms = as_positive_u64(&v, &key, path),
-            "search_overview_file_limit" => {
-                layer.search_overview_file_limit = as_positive_usize(&v, &key, path)
+            "index" | "refresh" | "search" | "tool_output" | "caller_context" => {
+                section_values.push((key, value));
             }
-            "watch" => layer.watch = as_bool(&v, &key, path),
-            "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(&v, &key, path),
-            "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(&v, &key, path),
             "filesystem_permissions" => {
-                layer.filesystem_permissions = normalize_filesystem_permissions(&v, path)
+                layer.filesystem_permissions = normalize_filesystem_permissions(&value, path)
             }
-            "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(&v, &key, path),
-            "read_output_byte_cap" => {
-                layer.read_output_byte_cap = as_positive_usize(&v, &key, path)
+            other => {
+                if !assign_config_key(&mut layer, other, &value, other, path) {
+                    warn(&format!(
+                        "unknown config key '{other}': {} — ignored",
+                        path.display()
+                    ));
+                }
             }
-            "search_detail_snippet_max_lines" => {
-                layer.search_detail_snippet_max_lines = as_positive_usize(&v, &key, path)
-            }
-            "search_detail_symbol_limit" => {
-                layer.search_detail_symbol_limit = as_positive_usize(&v, &key, path)
-            }
-            "search_detail_byte_cap" => {
-                layer.search_detail_byte_cap = as_positive_usize(&v, &key, path)
-            }
-            "search_literal_max_len" => {
-                layer.search_literal_max_len = as_positive_usize(&v, &key, path)
-            }
-            "search_literal_limit" => {
-                layer.search_literal_limit = as_positive_usize(&v, &key, path)
-            }
-            "search_anchor_snippet_limit" => {
-                layer.search_anchor_snippet_limit = as_positive_usize(&v, &key, path)
-            }
-            "caller_context_default" => layer.caller_context_default = as_bool(&v, &key, path),
-            "navigation_context_default" => {
-                layer.navigation_context_default = as_bool(&v, &key, path)
-            }
-            "navigation_callsite_budget" => {
-                layer.navigation_callsite_budget = as_positive_usize(&v, &key, path)
-            }
-            "navigation_store_references" => {
-                layer.navigation_store_references = as_bool(&v, &key, path)
-            }
-            "scan_cap" => layer.scan_cap = as_positive_usize(&v, &key, path),
-            "caller_list_cap" => layer.caller_list_cap = as_positive_usize(&v, &key, path),
-            "callee_list_cap" => layer.callee_list_cap = as_positive_usize(&v, &key, path),
-            "annotation_sub_budget" => {
-                layer.annotation_sub_budget = as_positive_usize(&v, &key, path)
-            }
-            "common_name_threshold" => {
-                layer.common_name_threshold = as_positive_usize(&v, &key, path)
-            }
-            "caller_omit_def_threshold" => {
-                layer.caller_omit_def_threshold = as_positive_usize(&v, &key, path)
-            }
-            other => warn(&format!(
-                "unknown config key '{other}': {} — ignored",
-                path.display()
-            )),
         }
     }
+    for (section, value) in section_values {
+        normalize_config_section(&mut layer, &section, &value, path);
+    }
     layer
+}
+
+fn normalize_config_section(
+    layer: &mut ConfigLayer,
+    section: &str,
+    value: &toml::Value,
+    path: &Path,
+) {
+    let table = match value.as_table() {
+        Some(table) => table,
+        None => {
+            warn(&format!(
+                "config '{section}' must be a table: {} — ignored",
+                path.display()
+            ));
+            return;
+        }
+    };
+
+    for (key, value) in table {
+        let key_display = format!("{section}.{key}");
+        if section_accepts_key(section, key)
+            && assign_config_key(layer, key, value, &key_display, path)
+        {
+            continue;
+        }
+        warn(&format!(
+            "unknown config key '{key_display}': {} — ignored",
+            path.display()
+        ));
+    }
+}
+
+fn section_accepts_key(section: &str, key: &str) -> bool {
+    match section {
+        "index" => matches!(
+            key,
+            "index_path" | "max_file_size" | "excluded_directories" | "use_git_exclude"
+        ),
+        "refresh" => matches!(
+            key,
+            "watch" | "watch_debounce_ms" | "index_staleness_ms" | "indexer_auto_restart"
+        ),
+        "search" => matches!(
+            key,
+            "result_threshold"
+                | "search_overview_file_limit"
+                | "search_detail_snippet_max_lines"
+                | "search_detail_symbol_limit"
+                | "search_detail_byte_cap"
+                | "search_literal_max_len"
+                | "search_literal_limit"
+                | "search_anchor_snippet_limit"
+        ),
+        "tool_output" => matches!(key, "grep_max_columns" | "read_output_byte_cap"),
+        "caller_context" => matches!(
+            key,
+            "caller_context_default"
+                | "navigation_context_default"
+                | "navigation_callsite_budget"
+                | "navigation_store_references"
+                | "scan_cap"
+                | "caller_list_cap"
+                | "callee_list_cap"
+                | "annotation_sub_budget"
+                | "common_name_threshold"
+                | "caller_omit_def_threshold"
+        ),
+        _ => false,
+    }
+}
+
+fn assign_config_key(
+    layer: &mut ConfigLayer,
+    key: &str,
+    value: &toml::Value,
+    key_display: &str,
+    path: &Path,
+) -> bool {
+    match key {
+        "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
+        "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
+        "max_file_size" => layer.max_file_size = as_positive_u64(value, key_display, path),
+        "excluded_directories" => {
+            layer.excluded_directories = as_string_array(value, key_display, path)
+        }
+        "use_git_exclude" => layer.use_git_exclude = as_bool(value, key_display, path),
+        "index_staleness_ms" => {
+            layer.index_staleness_ms = as_positive_u64(value, key_display, path)
+        }
+        "search_overview_file_limit" => {
+            layer.search_overview_file_limit = as_positive_usize(value, key_display, path)
+        }
+        "watch" => layer.watch = as_bool(value, key_display, path),
+        "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(value, key_display, path),
+        "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(value, key_display, path),
+        "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
+        "read_output_byte_cap" => {
+            layer.read_output_byte_cap = as_positive_usize(value, key_display, path)
+        }
+        "search_detail_snippet_max_lines" => {
+            layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
+        }
+        "search_detail_symbol_limit" => {
+            layer.search_detail_symbol_limit = as_positive_usize(value, key_display, path)
+        }
+        "search_detail_byte_cap" => {
+            layer.search_detail_byte_cap = as_positive_usize(value, key_display, path)
+        }
+        "search_literal_max_len" => {
+            layer.search_literal_max_len = as_positive_usize(value, key_display, path)
+        }
+        "search_literal_limit" => {
+            layer.search_literal_limit = as_positive_usize(value, key_display, path)
+        }
+        "search_anchor_snippet_limit" => {
+            layer.search_anchor_snippet_limit = as_positive_usize(value, key_display, path)
+        }
+        "caller_context_default" => {
+            layer.caller_context_default = as_bool(value, key_display, path)
+        }
+        "navigation_context_default" => {
+            layer.navigation_context_default = as_bool(value, key_display, path)
+        }
+        "navigation_callsite_budget" => {
+            layer.navigation_callsite_budget = as_positive_usize(value, key_display, path)
+        }
+        "navigation_store_references" => {
+            layer.navigation_store_references = as_bool(value, key_display, path)
+        }
+        "scan_cap" => layer.scan_cap = as_positive_usize(value, key_display, path),
+        "caller_list_cap" => layer.caller_list_cap = as_positive_usize(value, key_display, path),
+        "callee_list_cap" => layer.callee_list_cap = as_positive_usize(value, key_display, path),
+        "annotation_sub_budget" => {
+            layer.annotation_sub_budget = as_positive_usize(value, key_display, path)
+        }
+        "common_name_threshold" => {
+            layer.common_name_threshold = as_positive_usize(value, key_display, path)
+        }
+        "caller_omit_def_threshold" => {
+            layer.caller_omit_def_threshold = as_positive_usize(value, key_display, path)
+        }
+        _ => return false,
+    }
+    true
 }
 
 /// Per-key `repo > global > default` merge. Array keys take the winning layer's list and
@@ -773,7 +774,7 @@ const MIGRATIONS: &[Migration] = &[
         version: 2,
         key: "navigation_context_default",
         placement: KeyPlacement::TopLevel,
-        block: "# Tree-sitter navigation attribution controls. The first implementation keeps precise\n# navigation opt-in by default while the fallback name-match annotations remain on.\n# navigation_context_default = false",
+        block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
     },
     Migration {
         version: 2,

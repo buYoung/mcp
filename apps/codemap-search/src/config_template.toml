@@ -1,0 +1,70 @@
+# codemap-search config for this repo. Leave a setting commented to use the global setting
+# or built-in default; uncomment only the settings you want to override here.
+# Precedence is per setting: repo > global > built-in default.
+
+[index]
+# Storage and indexing scope. Large files are skipped from the symbol index, but still
+# available through read/find/grep.
+# index_path = ".codemap/index"
+# max_file_size = 1048576   # 1 MiB
+# excluded_directories = ["__pycache__", ".next", "coverage"]
+
+# Honor `.git/info/exclude`. Set false when local-only excludes are hiding files you still
+# want codemap-search to see. `.gitignore`, global gitignore, and `.codemapignore` still apply.
+# use_git_exclude = true
+
+[refresh]
+# Watch files and refresh the index in the background. Set `watch = false` for filesystems
+# where watching is unreliable; search/overview then use `index_staleness_ms`.
+# watch = true
+# watch_debounce_ms = 500
+# index_staleness_ms = 5000
+# indexer_auto_restart = true
+
+[search]
+# Search result shape and detail budgets. These affect output size, not index contents.
+# Raise when useful context is truncated; lower when broad searches are too noisy.
+# result_threshold = 5
+# search_overview_file_limit = 12
+# search_detail_snippet_max_lines = 80
+# search_detail_symbol_limit = 20
+# search_detail_byte_cap = 32768         # 32 KiB
+# search_literal_max_len = 200
+# search_literal_limit = 10
+# search_anchor_snippet_limit = 3
+
+[tool_output]
+# Live read/grep output safety. Set `grep_max_columns = 0` only if full minified/generated
+# matching lines are useful.
+# grep_max_columns = 500
+# read_output_byte_cap = 102400
+
+[filesystem_permissions]
+# Live filesystem tool access. Keep `workspace` unless read/find/grep should inspect
+# external source trees. Prefer `allowed_roots` over `anywhere`.
+# Policies: "workspace" = repo only, "allowed_roots" = repo plus listed roots,
+# "anywhere" = full disk access for that tool.
+# find = "workspace"
+# grep = "workspace"
+# read = "workspace"
+# allowed_roots = []
+
+[caller_context]
+# Caller/callee annotations in search details. Keep on when call context helps; set false
+# if broad searches become noisy or slower. Per-call `caller_context` always wins.
+# caller_context_default = true
+
+# Precise caller/callee attribution. When false, annotations use conservative name matching.
+# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.
+# navigation_context_default = false
+# navigation_callsite_budget = 1000
+# navigation_store_references = false
+
+# Caller/callee annotation budgets. Raise when annotation lists are truncated; lower when
+# common names dominate search output.
+# scan_cap = 500
+# caller_list_cap = 5
+# callee_list_cap = 5
+# annotation_sub_budget = 8192
+# common_name_threshold = 2
+# caller_omit_def_threshold = 5

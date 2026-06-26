@@ -24,6 +24,7 @@ use std::path::Path;
 pub struct ToolContext<'a> {
     pub engine: &'a EngineSupervisor,
     pub arguments: &'a Value,
+    pub active_workspace_scope: Option<&'a str>,
 }
 
 // --- Shared gitignore-style glob matching (find + grep) --------------------------------
@@ -206,8 +207,13 @@ pub fn server_instructions() -> &'static str {
 /// lives in `instructions/navigation.md` (kept beside the per-tool description files under
 /// `instructions/`), embedded with `include_str!` so prose and tool schemas stay in sync
 /// in one directory; `trim_end` drops the file's trailing newline.
-pub fn instructions() -> &'static str {
-    include_str!("instructions/navigation.md").trim_end()
+pub fn instructions() -> String {
+    let text = if crate::codemap::looks_like_monorepo_workspace() {
+        include_str!("instructions/navigation.monorepo.md")
+    } else {
+        include_str!("instructions/navigation.md")
+    };
+    text.trim_end().to_string()
 }
 
 /// The MCP `tools/list` result: the six tool schemas (name, description, read-only
@@ -218,6 +224,34 @@ pub fn instructions() -> &'static str {
 /// usage guidance; the cross-tool flow lives in [`instructions`] and the
 /// `initial_instructions` tool result.
 pub fn list_tools() -> Value {
+    let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
+    let overview_description = if is_monorepo {
+        include_str!("instructions/tools/overview.monorepo.md").trim_end()
+    } else {
+        include_str!("instructions/tools/overview.md").trim_end()
+    };
+    let search_description = if is_monorepo {
+        include_str!("instructions/tools/search.monorepo.md").trim_end()
+    } else {
+        include_str!("instructions/tools/search.md").trim_end()
+    };
+    let mut search_properties = serde_json::json!({
+        "query": { "type": "string" },
+        "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
+        "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },
+        "extension_hint": { "type": "string", "description": "Optional query-extension hint for same-extension ranking prior (examples: 'ts', '.rs'). Omit to keep existing behavior." }
+    });
+    if is_monorepo {
+        if let Some(properties) = search_properties.as_object_mut() {
+            properties.insert(
+                "workspace_scope".to_string(),
+                serde_json::json!({
+                    "type": "string",
+                    "description": "Optional monorepo scope such as 'apps/api' or unique basename 'api'. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
+                }),
+            );
+        }
+    }
     serde_json::json!({
                 "tools": [
                     {
@@ -228,7 +262,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": overview_description,
                         // All five tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
@@ -244,16 +278,11 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
+                        "description": search_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
-                            "properties": {
-                                "query": { "type": "string" },
-                                "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
-                                "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },
-                                "extension_hint": { "type": "string", "description": "Optional query-extension hint for same-extension ranking prior (examples: 'ts', '.rs'). Omit to keep existing behavior." }
-                            },
+                            "properties": search_properties,
                             "required": ["query"]
                         }
                     },

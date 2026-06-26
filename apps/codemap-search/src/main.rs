@@ -170,6 +170,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if format.as_deref() == Some("llms-txt") {
                     let view = CodemapGenerator::generate_llms_txt_view(&extracted_files);
                     println!("{}", view);
+                } else if let Some(view) =
+                    codemap_search::codemap::generate_monorepo_root_view(&extracted_files)
+                {
+                    println!("{}", view);
                 } else {
                     let view = CodemapGenerator::generate_root_view(&extracted_files);
                     println!("{}", view);

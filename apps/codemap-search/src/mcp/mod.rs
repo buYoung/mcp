@@ -18,11 +18,34 @@ pub struct McpServer {
     // server calls `ensure_alive()`/`trigger_refresh()` on it at the search/overview
     // dispatch sites and reads the committed snapshot through its accessors.
     engine: EngineSupervisor,
+    active_workspace_scope: Option<String>,
 }
 
 impl McpServer {
     pub fn new(engine: EngineSupervisor) -> Self {
-        Self { engine }
+        Self {
+            engine,
+            active_workspace_scope: None,
+        }
+    }
+
+    fn overview_path_argument(arguments: &Value) -> Option<&str> {
+        ["path", "file_path", "file", "query"]
+            .iter()
+            .find_map(|key| crate::tools::get_arg(arguments, key).and_then(|value| value.as_str()))
+    }
+
+    fn update_active_workspace_scope_from_overview(&mut self, arguments: &Value) {
+        let Some(path) = Self::overview_path_argument(arguments) else {
+            self.active_workspace_scope = None;
+            return;
+        };
+        if crate::codemap::is_all_workspace_scope_input(path) {
+            self.active_workspace_scope = None;
+            return;
+        }
+        let snapshot = self.engine.codemap_snapshot();
+        self.active_workspace_scope = crate::codemap::workspace_scope_for_input(&snapshot, path);
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
@@ -144,6 +167,7 @@ impl McpServer {
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
+                            active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let text = crate::tools::search::run(&ctx)?;
                         Ok(serde_json::json!({
@@ -167,8 +191,10 @@ impl McpServer {
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
+                            active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let text = crate::tools::overview::run(&ctx)?;
+                        self.update_active_workspace_scope_from_overview(arguments);
                         Ok(serde_json::json!({
                             "content": [
                                 {
