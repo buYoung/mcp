@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-30
+
+### Added
+- Added workspace-scoped MCP search so requests stay within the active workspace range.
+- Added monorepo workspace detection for search and file exploration.
+- Added `[update].config_auto_update` to control automatic `config.toml` creation and sync.
+
+### Improved
+- Improved file discovery with expanded workspace filters and better parent-child path handling.
+- Improved search results and summaries by showing the active workspace scope.
+- Improved `config.toml` docs for monorepo and workspace scope settings.
+
+### Fixed
+- Fixed repository config templates overriding global settings during config generation or sync.
+
+### Internal
+- Improved crates.io publishing reliability with retry and error handling.
+
 ## [0.2.0] - 2026-06-26
 
 ### Added
