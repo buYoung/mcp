@@ -187,6 +187,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // never on parse/search/etc. Never-exit: a read/write failure warns and the
             // server still boots.
             codemap_search::config::ensure_repo_config(&cwd);
+            codemap_search::config::reload(&cwd);
+            let _config_watcher = codemap_search::config::spawn_config_watcher(&cwd);
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             // Read-only search handle for the request loop; the engine (the single tantivy

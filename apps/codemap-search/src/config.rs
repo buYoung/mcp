@@ -20,8 +20,14 @@
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
 //! user's `.gitignore` choice.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError};
+use std::sync::{Arc, OnceLock, RwLock};
+use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
+
+use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 /// Permission policy for a live filesystem tool (`find`, `grep`, `read`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -707,8 +713,6 @@ fn merge_filesystem_permissions(
 
 // --- Process-wide resolved config ------------------------------------------------------
 
-static CONFIG: OnceLock<ResolvedConfig> = OnceLock::new();
-
 /// Resolve the global config directory: `$CODEMAP_HOME`, else `~/.codemap`
 /// (`$HOME`/`$USERPROFILE`), else a bare `.codemap` as a last resort.
 fn global_dir() -> PathBuf {
@@ -722,16 +726,190 @@ fn global_dir() -> PathBuf {
 }
 
 /// Load config from `repo_root` + the resolved global dir and store it process-wide.
-/// Call once at startup, before any [`get`]. A second call is a no-op.
+/// Call at startup, before any [`get`].
 pub fn init(repo_root: &Path) {
-    let resolved = load(repo_root, &global_dir());
-    let _ = CONFIG.set(resolved);
+    reload(repo_root);
 }
 
-/// The resolved config. Falls back to defaults if [`init`] was never called (e.g. unit
-/// tests that exercise the walker directly without booting the server).
-pub fn get() -> &'static ResolvedConfig {
-    CONFIG.get_or_init(ResolvedConfig::default)
+/// The resolved in-memory config snapshot. This never reads disk; [`reload`] and the
+/// config watcher replace the snapshot only after `config.toml` changes.
+pub fn get() -> Arc<ResolvedConfig> {
+    match config_lock().read() {
+        Ok(config) => Arc::clone(&config),
+        Err(poisoned) => {
+            warn("config lock poisoned while reading — using latest in-memory value");
+            Arc::clone(&poisoned.into_inner())
+        }
+    }
+}
+
+/// Re-read repo/global config and replace the process-wide in-memory snapshot.
+pub fn reload(repo_root: &Path) {
+    let global = global_dir();
+    reload_from_paths(repo_root, &global);
+}
+
+fn reload_from_paths(repo_root: &Path, global: &Path) {
+    let resolved = load(repo_root, global);
+    match config_lock().write() {
+        Ok(mut config) => *config = Arc::new(resolved),
+        Err(poisoned) => {
+            warn("config lock poisoned while reloading — replacing latest in-memory value");
+            *poisoned.into_inner() = Arc::new(resolved);
+        }
+    }
+}
+
+fn config_lock() -> &'static RwLock<Arc<ResolvedConfig>> {
+    CONFIG.get_or_init(|| RwLock::new(Arc::new(ResolvedConfig::default())))
+}
+
+static CONFIG: OnceLock<RwLock<Arc<ResolvedConfig>>> = OnceLock::new();
+
+const CONFIG_WATCH_DEBOUNCE_MS: u64 = 1_000;
+
+/// Owner of the config file watcher. Dropping it stops notify events, then joins the
+/// debounce thread before MCP shutdown continues.
+pub struct ConfigWatcherHandle {
+    watcher: Option<RecommendedWatcher>,
+    join_handle: Option<JoinHandle<()>>,
+}
+
+impl Drop for ConfigWatcherHandle {
+    fn drop(&mut self) {
+        drop(self.watcher.take());
+        if let Some(handle) = self.join_handle.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+/// Watch repo/global `config.toml` files and refresh the in-memory config after a fixed
+/// one-second debounce window. This is independent of the index watcher and runs even when
+/// `[indexing].watch` is disabled.
+pub fn spawn_config_watcher(repo_root: &Path) -> Option<ConfigWatcherHandle> {
+    let repo_root = repo_root
+        .canonicalize()
+        .unwrap_or_else(|_| repo_root.to_path_buf());
+    let global = global_dir();
+    let config_paths = watched_config_paths(&repo_root, &global);
+    let watch_dirs = config_paths
+        .iter()
+        .filter_map(|path| {
+            path.parent()
+                .map(crate::workspace::canonicalize_path_lenient)
+        })
+        .filter(|dir| dir.is_dir())
+        .collect::<BTreeSet<_>>();
+    if watch_dirs.is_empty() {
+        tracing::warn!("config watcher skipped: no config directories exist");
+        return None;
+    }
+
+    let (event_sender, event_receiver) = channel();
+    let mut watcher = match notify::recommended_watcher(event_sender) {
+        Ok(watcher) => watcher,
+        Err(e) => {
+            tracing::warn!("config watcher creation failed: {e}");
+            return None;
+        }
+    };
+    let mut registered_watch_count = 0;
+    for dir in &watch_dirs {
+        if let Err(e) = watcher.watch(dir, RecursiveMode::NonRecursive) {
+            tracing::warn!(
+                "config watch registration failed for {}: {e}",
+                dir.display()
+            );
+        } else {
+            registered_watch_count += 1;
+        }
+    }
+    if registered_watch_count == 0 {
+        tracing::warn!("config watcher skipped: no config directories could be watched");
+        return None;
+    }
+
+    let debounce = Duration::from_millis(CONFIG_WATCH_DEBOUNCE_MS);
+    let join_handle = match std::thread::Builder::new()
+        .name("codemap-config-watcher".to_string())
+        .spawn(move || {
+            run_config_watch_loop(event_receiver, repo_root, global, config_paths, debounce)
+        }) {
+        Ok(handle) => handle,
+        Err(e) => {
+            tracing::warn!("config watcher thread spawn failed: {e}");
+            return None;
+        }
+    };
+
+    Some(ConfigWatcherHandle {
+        watcher: Some(watcher),
+        join_handle: Some(join_handle),
+    })
+}
+
+fn watched_config_paths(repo_root: &Path, global: &Path) -> BTreeSet<PathBuf> {
+    [
+        repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME),
+        global.join(CONFIG_FILE_NAME),
+    ]
+    .into_iter()
+    .map(|path| crate::workspace::canonicalize_path_lenient(&path))
+    .collect()
+}
+
+fn run_config_watch_loop(
+    events: Receiver<Result<notify::Event, notify::Error>>,
+    repo_root: PathBuf,
+    global: PathBuf,
+    config_paths: BTreeSet<PathBuf>,
+    debounce: Duration,
+) {
+    loop {
+        let first = match events.recv() {
+            Ok(event) => event,
+            Err(_) => return,
+        };
+        let mut should_reload = is_config_event(first, &config_paths);
+        let deadline = Instant::now() + debounce;
+
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            match events.recv_timeout(remaining) {
+                Ok(event) => should_reload |= is_config_event(event, &config_paths),
+                Err(RecvTimeoutError::Timeout) => break,
+                Err(RecvTimeoutError::Disconnected) => return,
+            }
+        }
+
+        if should_reload {
+            reload_from_paths(&repo_root, &global);
+        }
+    }
+}
+
+fn is_config_event(
+    event: Result<notify::Event, notify::Error>,
+    config_paths: &BTreeSet<PathBuf>,
+) -> bool {
+    let event = match event {
+        Ok(event) => event,
+        Err(e) => {
+            tracing::warn!("config watcher backend error: {e} — reloading config");
+            return true;
+        }
+    };
+    if matches!(event.kind, EventKind::Access(_)) {
+        return false;
+    }
+    event.paths.iter().any(|path| {
+        let path = crate::workspace::canonicalize_path_lenient(path);
+        config_paths.contains(&path)
+    })
 }
 
 /// Where a key's commented block is inserted during an incremental sync. Placement is

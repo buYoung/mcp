@@ -178,7 +178,8 @@ pub(crate) fn resolve_for_filesystem_tool(
         return Ok(resolved_canonical);
     }
 
-    let permissions = &crate::config::get().filesystem_permissions;
+    let config = crate::config::get();
+    let permissions = &config.filesystem_permissions;
     let policy = match tool {
         FilesystemTool::Find => permissions.find,
         FilesystemTool::Grep => permissions.grep,

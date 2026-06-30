@@ -1,0 +1,173 @@
+# codemap-config-version: 3
+# codemap-search config for this repo.
+# These values are the built-in defaults, written explicitly for discoverability.
+# Repo config wins over global config per setting: repo > global > built-in default.
+# To inherit a global setting for one key, delete or comment out that key.
+
+[update]
+# Automatic repo config file creation and schema sync on `mcp` startup.
+# true: create missing `.codemap/config.toml` and append commented blocks for new settings.
+# false: never writes `.codemap/config.toml` automatically; existing config is still read.
+# Existing-file schema sync adds new settings as commented blocks, not active values.
+config_auto_update = true
+
+[index]
+# Tantivy index directory.
+# Default keeps generated index data inside the repo-local `.codemap/` directory.
+# Use an absolute path or a path relative to the workspace root.
+index_path = ".codemap/index"
+
+# Maximum file size, in bytes, included in the symbol/search index.
+# Higher: indexes larger source files, but uses more CPU, memory, and disk.
+# Lower: skips more large files; read/find/grep can still inspect them live.
+max_file_size = 1048576 # 1 MiB
+
+# Directory names excluded from indexing and filesystem walks, added to built-in junk dirs.
+# More entries: faster and quieter scans, but hidden directories will not appear in codemap/search.
+# Fewer entries: broader coverage, but generated/vendor output may add noise and cost.
+excluded_directories = ["__pycache__", ".next", "coverage"]
+
+# Honor `.git/info/exclude` in addition to `.gitignore`, global gitignore, and `.codemapignore`.
+# true: local-only excludes hide files from codemap-search.
+# false: files hidden only by `.git/info/exclude` are visible to index/find/grep.
+use_git_exclude = true
+
+[refresh]
+# Watch the filesystem and refresh the index in the background.
+# true: fresher search/overview after edits, with watcher overhead.
+# false: no watcher; search/overview refresh lazily using `index_staleness_ms`.
+watch = true
+
+# Debounce window for watcher events, in milliseconds.
+# Higher: batches more edit bursts, fewer refreshes, slightly slower freshness.
+# Lower: reacts faster, but can refresh more often during saves/checkouts.
+watch_debounce_ms = 500
+
+# Minimum age before request-triggered lazy refreshes, in milliseconds.
+# Higher: fewer background refreshes from repeated search/overview calls, more possible staleness.
+# Lower: fresher search/overview, more frequent background work.
+index_staleness_ms = 5000
+
+# Restart the background indexer if it dies.
+# true: next search/overview attempts bounded recovery.
+# false: search results stay frozen until server restart; read/find/grep remain live.
+indexer_auto_restart = true
+
+[search]
+# Number of top-ranked files rendered with detailed snippets before the compact tail.
+# Higher: more detailed files per search, larger responses.
+# Lower: shorter responses, but more follow-up reads may be needed.
+result_threshold = 5
+
+# Maximum files shown in the compact ranked tail.
+# Higher: broader result visibility for ambiguous queries.
+# Lower: shorter broad-query output.
+search_overview_file_limit = 12
+
+# Maximum snippet lines per matched symbol in search details.
+# Higher: more surrounding implementation context, larger output.
+# Lower: tighter snippets, less body context.
+search_detail_snippet_max_lines = 80
+
+# Maximum symbols rendered per detailed file.
+# Higher: more symbols visible in dense files.
+# Lower: shorter file sections, fewer secondary symbols.
+search_detail_symbol_limit = 20
+
+# Hard byte cap for one search response.
+# Higher: allows more detail before partial-output truncation.
+# Lower: protects clients from large responses, but truncates sooner.
+search_detail_byte_cap = 32768 # 32 KiB
+
+# Maximum displayed length of a matched string literal.
+# Higher: preserves longer literals in results.
+# Lower: keeps generated/long strings compact.
+search_literal_max_len = 200
+
+# Maximum matched string literals shown per file.
+# Higher: shows more literal matches.
+# Lower: reduces repeated literal noise.
+search_literal_limit = 10
+
+# Maximum anchor symbols per file that get full snippets.
+# Higher: more full snippets for common-name matches, larger output.
+# Lower: lower-ranked anchors degrade to short signatures sooner.
+search_anchor_snippet_limit = 3
+
+[caller_context]
+# Default caller/callee annotations in search details.
+# true: adds call context by default; per-call `caller_context = false` can disable it.
+# false: leaner search output unless the call requests caller context.
+caller_context_default = true
+
+# Enable tree-sitter navigation data for precise caller/callee attribution when available.
+# true: may mark unambiguous references as precise; requires stored navigation references.
+# false: uses conservative name matching only.
+navigation_context_default = false
+
+# Maximum navigation call sites inspected in one annotation pass.
+# Higher: more precise-context coverage in large projects, more work per annotated search.
+# Lower: falls back sooner, reducing annotation cost.
+navigation_callsite_budget = 1000
+
+# Store reference-site observations in navigation data.
+# true: enables precise attribution data, with larger index/storage cost.
+# false: smaller index; precise navigation attribution is unavailable.
+navigation_store_references = false
+
+# Maximum call-site hits collected across one caller scan.
+# Higher: more caller candidates for common names, larger/slower annotations.
+# Lower: truncates caller lists sooner.
+scan_cap = 500
+
+# Maximum callers or non-call references rendered per symbol.
+# Higher: more caller context per symbol.
+# Lower: shorter annotations.
+caller_list_cap = 5
+
+# Maximum callees rendered per symbol.
+# Higher: more outgoing-call context per symbol.
+# Lower: shorter annotations.
+callee_list_cap = 5
+
+# Byte budget for annotations within `search_detail_byte_cap`.
+# Higher: annotations can use more of the search response.
+# Lower: snippets keep more room; annotations truncate sooner.
+annotation_sub_budget = 8192
+
+# Definition count at which a name is treated as attribution-ambiguous.
+# Higher: fewer ambiguity labels, but more possible over-confident attribution.
+# Lower: labels common names as ambiguous sooner.
+common_name_threshold = 2
+
+# Definition count at which caller lists are omitted for a matched function name.
+# Higher: attempts caller lists for more common names, with more noise/cost.
+# Lower: omits unresolved caller lists sooner and points to grep instead.
+caller_omit_def_threshold = 5
+
+[tool_output]
+# Maximum columns shown for a grep content-mode matching line.
+# Higher: preserves longer lines; 0 disables the column cap.
+# Lower: omits more long/minified lines as `[Omitted long matching line]`.
+grep_max_columns = 500
+
+# Maximum rendered bytes returned by read.
+# Higher: larger read windows can succeed.
+# Lower: forces narrower reads sooner and protects clients from large output.
+read_output_byte_cap = 102400
+
+[filesystem_permissions]
+# Valid values for find/grep/read:
+# - "workspace": allow paths inside the current workspace only.
+# - "allowed_roots": allow workspace paths plus paths under `allowed_roots`.
+# - "anywhere": allow any filesystem path reachable by the process.
+# Prefer "workspace"; use "allowed_roots" for specific external source trees.
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+
+# External roots used only by tools set to "allowed_roots".
+# Values must be non-empty strings. Relative paths resolve from the current workspace root.
+# Absolute paths are allowed. Existing path prefixes are canonicalized, so symlinks are resolved
+# where possible while not-yet-existing suffixes are preserved.
+allowed_roots = []

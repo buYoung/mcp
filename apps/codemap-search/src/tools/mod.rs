@@ -198,7 +198,7 @@ pub(crate) fn arg_required_str<'a>(
 /// clients that hide or compress `initialize` instructions (e.g. Codex), since they read
 /// tool descriptions and call the tool. The prose lives in `instructions/server.md`,
 /// embedded at compile time so the binary stays self-contained; `trim_end` drops the
-/// file's trailing newline to keep the emitted string byte-identical to the old literal.
+/// file's trailing newline.
 pub fn server_instructions() -> &'static str {
     include_str!("instructions/server.md").trim_end()
 }
@@ -216,14 +216,42 @@ pub fn instructions() -> String {
     text.trim_end().to_string()
 }
 
+fn filesystem_tool_description(
+    base_description: &str,
+    policy: crate::config::FilesystemPermissionPolicy,
+    allowed_roots: &[std::path::PathBuf],
+) -> String {
+    let mut description = format!(
+        "{base_description}\n\nCurrent permission: {}.",
+        policy.as_str()
+    );
+    if matches!(
+        policy,
+        crate::config::FilesystemPermissionPolicy::AllowedRoots
+    ) && !allowed_roots.is_empty()
+    {
+        let allowed_roots_list = allowed_roots
+            .iter()
+            .map(|root| root.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        description.push_str(" Allowed roots: ");
+        description.push_str(&allowed_roots_list);
+        description.push('.');
+    }
+    description
+}
+
 /// The MCP `tools/list` result: the six tool schemas (name, description, read-only
-/// annotations, and input schema), including `initial_instructions`. Each tool's
-/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`
-/// (`trim_end` drops the trailing newline), while the input-schema property descriptions
-/// stay inline beside their property. Tool descriptions intentionally carry imperative
-/// usage guidance; the cross-tool flow lives in [`instructions`] and the
-/// `initial_instructions` tool result.
+/// annotations, and input schema), including `initial_instructions`. Base tool
+/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`;
+/// live filesystem tools append their currently configured permission policy. The
+/// input-schema property descriptions stay inline beside their property. Tool descriptions
+/// intentionally carry imperative usage guidance; the cross-tool flow lives in
+/// [`instructions`] and the `initial_instructions` tool result.
 pub fn list_tools() -> Value {
+    let config = crate::config::get();
+    let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
     let overview_description = if is_monorepo {
         include_str!("instructions/tools/overview.monorepo.md").trim_end()
@@ -235,6 +263,21 @@ pub fn list_tools() -> Value {
     } else {
         include_str!("instructions/tools/search.md").trim_end()
     };
+    let read_description = filesystem_tool_description(
+        include_str!("instructions/tools/read.md").trim_end(),
+        permissions.read,
+        &permissions.allowed_roots,
+    );
+    let find_description = filesystem_tool_description(
+        include_str!("instructions/tools/find.md").trim_end(),
+        permissions.find,
+        &permissions.allowed_roots,
+    );
+    let grep_description = filesystem_tool_description(
+        include_str!("instructions/tools/grep.md").trim_end(),
+        permissions.grep,
+        &permissions.allowed_roots,
+    );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
         "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
@@ -288,7 +331,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "read",
-                        "description": include_str!("instructions/tools/read.md").trim_end(),
+                        "description": read_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -302,7 +345,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "find",
-                        "description": include_str!("instructions/tools/find.md").trim_end(),
+                        "description": find_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -316,7 +359,7 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "grep",
-                        "description": include_str!("instructions/tools/grep.md").trim_end(),
+                        "description": grep_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
