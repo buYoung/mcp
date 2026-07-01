@@ -1,0 +1,173 @@
+# codemap-config-version: 3
+# 이 저장소의 codemap-search 설정입니다.
+# 아래 값들은 확인하기 쉽도록 명시한 내장 기본값입니다.
+# 저장소 설정은 항목별로 전역 설정보다 우선합니다: repo > global > built-in default.
+# 한 키에서 전역 설정을 상속하려면 해당 키를 삭제하거나 주석 처리하세요.
+
+[update]
+# `mcp` 시작 시 저장소 설정 파일 생성과 스키마 동기화를 자동으로 수행합니다.
+# true: 누락된 `.codemap/config.toml`을 만들고 새 설정의 주석 블록을 추가합니다.
+# false: `.codemap/config.toml`을 자동으로 쓰지 않습니다. 기존 설정은 계속 읽습니다.
+# 기존 파일의 스키마 동기화는 새 설정을 활성 값이 아닌 주석 블록으로 추가합니다.
+config_auto_update = true
+
+[index]
+# Tantivy 색인 디렉터리입니다.
+# 기본값은 생성된 색인 데이터를 저장소 안의 `.codemap/` 디렉터리에 둡니다.
+# 절대 경로나 작업공간 루트 기준 상대 경로를 사용할 수 있습니다.
+index_path = ".codemap/index"
+
+# 심볼/검색 색인에 포함할 최대 파일 크기입니다. 단위는 바이트입니다.
+# 높을수록 더 큰 소스 파일을 색인하지만 CPU, 메모리, 디스크를 더 사용합니다.
+# 낮을수록 큰 파일을 더 많이 건너뜁니다. read/find/grep은 여전히 직접 확인할 수 있습니다.
+max_file_size = 1048576 # 1 MiB
+
+# 색인과 파일 시스템 탐색에서 제외할 디렉터리 이름입니다. 내장 제외 목록에 추가됩니다.
+# 항목이 많을수록 스캔이 빠르고 조용하지만 숨겨진 디렉터리는 codemap/search에 나오지 않습니다.
+# 항목이 적을수록 범위가 넓어지지만 생성물이나 vendor 출력이 잡음과 비용을 늘릴 수 있습니다.
+excluded_directories = ["__pycache__", ".next", "coverage"]
+
+# `.gitignore`, 전역 gitignore, `.codemapignore`에 더해 `.git/info/exclude`도 존중합니다.
+# true: 로컬 전용 제외 규칙이 codemap-search에서 파일을 숨깁니다.
+# false: `.git/info/exclude`만으로 숨겨진 파일은 index/find/grep에 표시됩니다.
+use_git_exclude = true
+
+[refresh]
+# 파일 시스템을 감시하고 백그라운드에서 색인을 갱신합니다.
+# true: 편집 후 search/overview가 더 최신 상태가 되지만 watcher 비용이 있습니다.
+# false: watcher를 쓰지 않고 search/overview가 `index_staleness_ms`로 지연 갱신합니다.
+watch = true
+
+# watcher 이벤트 디바운스 창입니다. 단위는 밀리초입니다.
+# 높을수록 편집 묶음을 더 많이 합쳐 갱신 횟수가 줄지만 최신성이 조금 늦어집니다.
+# 낮을수록 더 빨리 반응하지만 저장/체크아웃 중 갱신이 더 자주 일어날 수 있습니다.
+watch_debounce_ms = 500
+
+# 요청으로 촉발되는 지연 갱신의 최소 간격입니다. 단위는 밀리초입니다.
+# 높을수록 반복 search/overview 호출에서 백그라운드 갱신이 줄지만 오래된 결과가 나올 수 있습니다.
+# 낮을수록 search/overview가 더 최신 상태가 되지만 백그라운드 작업이 더 자주 일어납니다.
+index_staleness_ms = 5000
+
+# 백그라운드 indexer가 종료되면 다시 시작합니다.
+# true: 다음 search/overview에서 제한된 복구를 시도합니다.
+# false: 서버 재시작 전까지 검색 결과가 고정됩니다. read/find/grep은 계속 실제 파일을 읽습니다.
+indexer_auto_restart = true
+
+[search]
+# 상위 순위 파일 몇 개를 상세 스니펫으로 렌더링한 뒤 나머지를 간략 목록으로 보낼지 정합니다.
+# 높을수록 검색마다 더 많은 상세 파일을 보여 주지만 응답이 커집니다.
+# 낮을수록 응답이 짧아지지만 후속 read가 더 필요할 수 있습니다.
+result_threshold = 5
+
+# 간략 순위 목록에 표시할 최대 파일 수입니다.
+# 높을수록 모호한 질의에서 더 넓은 결과를 볼 수 있습니다.
+# 낮을수록 넓은 질의의 출력이 짧아집니다.
+search_overview_file_limit = 12
+
+# 검색 상세에서 매칭된 심볼마다 보여 줄 최대 스니펫 줄 수입니다.
+# 높을수록 구현 주변 문맥이 늘지만 출력이 커집니다.
+# 낮을수록 스니펫이 더 간결하고 본문 문맥이 줄어듭니다.
+search_detail_snippet_max_lines = 80
+
+# 상세 파일 하나에서 렌더링할 최대 심볼 수입니다.
+# 높을수록 밀도 높은 파일에서 더 많은 심볼을 볼 수 있습니다.
+# 낮을수록 파일 섹션이 짧아지고 보조 심볼이 줄어듭니다.
+search_detail_symbol_limit = 20
+
+# 검색 응답 하나의 엄격한 바이트 상한입니다.
+# 높을수록 부분 출력으로 잘리기 전 더 많은 상세 정보를 허용합니다.
+# 낮을수록 클라이언트를 큰 응답에서 보호하지만 더 빨리 잘립니다.
+search_detail_byte_cap = 32768 # 32 KiB
+
+# 매칭된 문자열 리터럴의 최대 표시 길이입니다.
+# 높을수록 결과에서 더 긴 리터럴을 보존합니다.
+# 낮을수록 생성된 문자열이나 긴 문자열을 간결하게 유지합니다.
+search_literal_max_len = 200
+
+# 파일마다 보여 줄 매칭 문자열 리터럴의 최대 개수입니다.
+# 높을수록 더 많은 리터럴 매치를 보여 줍니다.
+# 낮을수록 반복 리터럴 잡음이 줄어듭니다.
+search_literal_limit = 10
+
+# 파일마다 전체 스니펫을 받을 최대 앵커 심볼 수입니다.
+# 높을수록 흔한 이름 매치에서 전체 스니펫이 늘고 출력이 커집니다.
+# 낮을수록 낮은 순위 앵커가 더 빨리 짧은 시그니처로 축약됩니다.
+search_anchor_snippet_limit = 3
+
+[caller_context]
+# 검색 상세에서 호출자/호출 대상 주석을 기본으로 표시할지 정합니다.
+# true: 기본으로 호출 문맥을 추가합니다. 호출별 `caller_context = false`로 끌 수 있습니다.
+# false: 호출에서 요청하지 않으면 더 간결한 검색 출력을 냅니다.
+caller_context_default = true
+
+# 가능할 때 tree-sitter 탐색 데이터를 사용해 호출자/호출 대상 귀속을 정밀하게 표시합니다.
+# true: 저장된 탐색 참조가 있으면 모호하지 않은 줄을 precise로 표시할 수 있습니다.
+# false: 보수적인 이름 매칭만 사용합니다.
+navigation_context_default = false
+
+# 주석 처리 한 번에서 검사할 최대 navigation call site 수입니다.
+# 높을수록 큰 프로젝트에서 정밀 문맥 범위가 넓어지지만 주석 처리 작업이 늘어납니다.
+# 낮을수록 더 빨리 fallback하여 주석 비용을 줄입니다.
+navigation_callsite_budget = 1000
+
+# navigation 데이터에 참조 위치 관찰값을 저장합니다.
+# true: 정밀 귀속 데이터를 활성화하지만 색인/저장 비용이 커집니다.
+# false: 색인이 작아지고 정밀 navigation 귀속을 사용할 수 없습니다.
+navigation_store_references = false
+
+# 호출자 스캔 한 번에서 수집할 최대 call-site hit 수입니다.
+# 높을수록 흔한 이름에서 호출자 후보가 늘지만 주석이 더 크고 느려집니다.
+# 낮을수록 호출자 목록이 더 빨리 잘립니다.
+scan_cap = 500
+
+# 심볼마다 렌더링할 최대 호출자 또는 호출이 아닌 참조 수입니다.
+# 높을수록 심볼마다 호출자 문맥이 늘어납니다.
+# 낮을수록 주석이 짧아집니다.
+caller_list_cap = 5
+
+# 심볼마다 렌더링할 최대 호출 대상 수입니다.
+# 높을수록 심볼마다 나가는 호출 문맥이 늘어납니다.
+# 낮을수록 주석이 짧아집니다.
+callee_list_cap = 5
+
+# `search_detail_byte_cap` 안에서 주석이 사용할 바이트 예산입니다.
+# 높을수록 주석이 검색 응답을 더 많이 사용할 수 있습니다.
+# 낮을수록 스니펫 공간이 늘고 주석은 더 빨리 잘립니다.
+annotation_sub_budget = 8192
+
+# 이름이 귀속 모호성으로 취급되는 정의 개수입니다.
+# 높을수록 모호성 표시가 줄지만 과신한 귀속이 늘 수 있습니다.
+# 낮을수록 흔한 이름에 더 빨리 모호성 표시를 붙입니다.
+common_name_threshold = 2
+
+# 매칭된 함수 이름의 호출자 목록을 생략하기 시작하는 정의 개수입니다.
+# 높을수록 더 흔한 이름에도 호출자 목록을 시도하지만 잡음과 비용이 늘어납니다.
+# 낮을수록 해결되지 않은 호출자 목록을 더 빨리 생략하고 grep을 안내합니다.
+caller_omit_def_threshold = 5
+
+[tool_output]
+# grep content 모드에서 매칭 줄에 표시할 최대 열 수입니다.
+# 높을수록 긴 줄을 더 보존합니다. 0은 열 상한을 비활성화합니다.
+# 낮을수록 긴 줄이나 minified 줄이 `[Omitted long matching line]`으로 더 많이 생략됩니다.
+grep_max_columns = 500
+
+# read가 반환할 최대 렌더링 바이트 수입니다.
+# 높을수록 더 큰 read 창을 허용합니다.
+# 낮을수록 더 좁은 read를 빨리 요구하고 큰 출력에서 클라이언트를 보호합니다.
+read_output_byte_cap = 102400
+
+[filesystem_permissions]
+# find/grep/read에 허용되는 값:
+# - "workspace": 현재 작업공간 안의 경로만 허용합니다.
+# - "allowed_roots": 작업공간 경로와 `allowed_roots` 아래 경로를 허용합니다.
+# - "anywhere": 프로세스가 접근 가능한 모든 파일 시스템 경로를 허용합니다.
+# "workspace"를 우선 사용하세요. 특정 외부 소스 트리에는 "allowed_roots"를 사용하세요.
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+
+# "allowed_roots"로 설정된 도구에서만 사용하는 외부 루트입니다.
+# 값은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 현재 작업공간 루트에서 해석됩니다.
+# 절대 경로도 허용됩니다. 기존 경로 접두사는 canonicalize되어 symlink가 가능하면 해소되고
+# 아직 존재하지 않는 접미사는 보존됩니다.
+allowed_roots = []

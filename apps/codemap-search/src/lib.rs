@@ -2,6 +2,7 @@ pub mod benchmark;
 pub mod callers;
 pub mod codemap;
 pub mod config;
+mod config_locale;
 pub mod index;
 pub mod lang;
 pub mod mcp;

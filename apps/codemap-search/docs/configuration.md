@@ -21,10 +21,11 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 - **Never-exit:** a missing file, parse error, unknown key, or wrong-typed value warns to stderr and falls back for that key. The server does not exit because of config.
 - **Auto-generated template:** on `mcp` startup, if `<repo>/.codemap/config.toml` is absent and `[update].config_auto_update` is true, an explicit-default template is created. The generated file uses TOML sections (`[update]`, `[index]`, `[search]`, etc.) and live default values, so the repo file pins those defaults above the global config until you delete or comment out a setting. The file is stamped with a schema-version marker (see below).
+- **Generated comment language:** the generated repo template and future commented schema-sync blocks use Korean comments when the OS preferred locale is Korean (`ko`, `ko-KR`, `ko_KR`, etc.). English is used for every other locale, unknown locale, provider failure, `C`, `POSIX`, and unsupported platforms. Only comments change; TOML keys, values, parsing, precedence, and schema version stay the same.
 - **Incremental sync:** if the file already exists and `[update].config_auto_update` is true, it is kept in sync with the schema. When a release adds a new key, that key's commented block is appended to your existing file and the version marker is refreshed. The sync is strictly additive: your existing lines (set values and comments alike) are never edited, reordered, or removed, and a file already at the current version is left untouched.
 - **Validation:** most numeric keys must be positive integers; `grep_max_columns` also accepts `0` to disable its column cap. `index_path` must be a non-empty string, arrays must contain strings, and filesystem permission policies must be `workspace`, `allowed_roots`, or `anywhere`. An invalid value warns and falls back for that key.
 
-한국어 요약: 설정 오류는 서버 종료로 이어지지 않습니다. 잘못된 키나 값은 stderr 경고를 내고 해당 키만 기본값으로 돌아갑니다. 저장소 설정 파일 자동 생성/동기화는 `[update].config_auto_update`로 끄고 켤 수 있습니다. 자동 동기화가 켜져 있어도 기존 파일에는 새 설정이 주석 블록으로만 추가되어 기존 값은 바꾸지 않습니다.
+한국어 요약: 설정 오류는 서버 종료로 이어지지 않습니다. 잘못된 키나 값은 stderr 경고를 내고 해당 키만 기본값으로 돌아갑니다. 저장소 설정 파일 자동 생성/동기화는 `[update].config_auto_update`로 끄고 켤 수 있습니다. 한국어 로케일에서는 생성되는 설명 주석만 한국어가 되며, 설정 키와 값의 의미는 그대로입니다. 자동 동기화가 켜져 있어도 기존 파일에는 새 설정이 주석 블록으로만 추가되어 기존 값은 바꾸지 않습니다.
 
 ### Schema version and incremental updates
 

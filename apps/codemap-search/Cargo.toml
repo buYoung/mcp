@@ -84,6 +84,19 @@ notify = "8.2.0"
 # `parser.rs`. Tracks the same 0.1.x line `tree-sitter` itself depends on.
 streaming-iterator = "0.1.9"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# CoreFoundation API bindings used only on macOS for generated config comment language.
+core-foundation = "0.10.1"
+core-foundation-sys = "0.8.7"
+
+[target.'cfg(windows)'.dependencies]
+# Win32 Globalization bindings used only on Windows for generated config comment language.
+windows-sys = { version = "0.61.2", features = ["Win32_Globalization"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Linux locale parsing is delegated to sys-locale instead of hand-rolled env parsing.
+sys-locale = "0.3.2"
+
 [dev-dependencies]
 assert_cmd = "2.2"
 predicates = "3.1"

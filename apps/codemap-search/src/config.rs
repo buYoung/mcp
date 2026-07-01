@@ -29,6 +29,8 @@ use std::time::{Duration, Instant};
 
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
+use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
+
 /// Permission policy for a live filesystem tool (`find`, `grep`, `read`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilesystemPermissionPolicy {
@@ -76,10 +78,11 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 /// hermetic isolation; users may set it to relocate global config.
 const HOME_ENV: &str = "CODEMAP_HOME";
 
-/// Current config-template schema version. Stamped in [`CONFIG_TEMPLATE`] and used by
+/// Current config-template schema version. Stamped in generated config templates and used by
 /// [`ensure_repo_config`] to decide whether an existing file needs an incremental sync. Bump
-/// this whenever [`CONFIG_TEMPLATE`] grows a key, and add the matching [`MIGRATIONS`] entry so
-/// pre-existing repo files pick the key up (as a commented block) on their next `mcp` start.
+/// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
+/// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
+/// start. Comment-only localization does not bump this version.
 const CONFIG_VERSION: u32 = 3;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
@@ -92,16 +95,21 @@ const CONFIG_BASELINE_VERSION: u32 = 1;
 /// TOML parser drops comments.
 const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
-/// Explicit-default scaffold written to a fresh repo on `mcp` start (see
+/// English explicit-default scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
 /// and every key is
 /// live at its compiled-in default, so a generated repo config pins the default values above a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
-/// key, update `config_template.toml`, bump [`CONFIG_VERSION`], and add a commented
-/// [`MIGRATIONS`] entry so existing repo files pick it up incrementally without behavior
+/// key, update every config template, bump [`CONFIG_VERSION`], and add localized commented
+/// [`MIGRATIONS`] entries so existing repo files pick it up incrementally without behavior
 /// changes.
 const CONFIG_TEMPLATE: &str = include_str!("config_template.toml");
+const CONFIG_TEMPLATE_KO: &str = include_str!("config_template.ko.toml");
+
+fn config_template(language: ConfigCommentLanguage) -> &'static str {
+    language.select(CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO)
+}
 
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
@@ -942,17 +950,26 @@ struct Migration {
     /// Key name the presence guard scans for (top-level name, or the sub-table leaf key) so a
     /// key the user already added or uncommented is never duplicated.
     key: &'static str,
-    /// Section-aware insertion point for `block`.
+    /// Section-aware insertion point for the migration block.
     placement: KeyPlacement,
-    /// The commented migration block for the key (doc comment line(s) then a
+    /// The English commented migration block for the key (doc comment line(s) then a
     /// `# key = default` line, no surrounding blank lines — the inserter spaces it).
-    block: &'static str,
+    english_block: &'static str,
+    /// The Korean commented migration block for the same key. TOML section, key, and value text
+    /// must match the English block; only comment prose may differ.
+    korean_block: &'static str,
+}
+
+impl Migration {
+    fn block(&self, language: ConfigCommentLanguage) -> &'static str {
+        language.select(self.english_block, self.korean_block)
+    }
 }
 
 /// Ordered, additive migrations. v1 is the baseline; later entries add commented blocks for
 /// keys introduced after that baseline. To introduce a key in a later release: add its commented
-/// block to [`CONFIG_TEMPLATE`] at its logical position, bump [`CONFIG_VERSION`] to N, then
-/// append a `Migration { version: N, key: "...", placement: ..., block: "..." }` entry here.
+/// block to each config template at its logical position, bump [`CONFIG_VERSION`] to N, then
+/// append a localized `Migration` entry here.
 ///
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
@@ -961,25 +978,29 @@ const MIGRATIONS: &[Migration] = &[
         version: 2,
         key: "navigation_store_references",
         placement: KeyPlacement::Subtable("caller_context"),
-        block: "# navigation_store_references = false",
+        english_block: "# navigation_store_references = false",
+        korean_block: "# navigation_store_references = false",
     },
     Migration {
         version: 2,
         key: "navigation_callsite_budget",
         placement: KeyPlacement::Subtable("caller_context"),
-        block: "# navigation_callsite_budget = 1000",
+        english_block: "# navigation_callsite_budget = 1000",
+        korean_block: "# navigation_callsite_budget = 1000",
     },
     Migration {
         version: 2,
         key: "navigation_context_default",
         placement: KeyPlacement::Subtable("caller_context"),
-        block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
+        english_block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
+        korean_block: "# 호출자/호출 대상 귀속을 정밀하게 표시합니다. false이면 주석은 보수적인 이름 매칭을 사용합니다.\n# tree-sitter navigation 데이터가 모호하지 않은 줄을 precise로 표시할 수 있게 하려면 true로 설정하세요.\n# navigation_context_default = false",
     },
     Migration {
         version: 3,
         key: "config_auto_update",
         placement: KeyPlacement::TopLevel,
-        block: "# Automatic repo config file creation and schema sync on `mcp` startup.\n# true: create missing `.codemap/config.toml` and append commented blocks for new settings.\n# false: never writes `.codemap/config.toml` automatically; existing config is still read.\n# Existing-file schema sync adds new settings as commented blocks, not active values.\n# [update]\n# config_auto_update = true",
+        english_block: "# Automatic repo config file creation and schema sync on `mcp` startup.\n# true: create missing `.codemap/config.toml` and append commented blocks for new settings.\n# false: never writes `.codemap/config.toml` automatically; existing config is still read.\n# Existing-file schema sync adds new settings as commented blocks, not active values.\n# [update]\n# config_auto_update = true",
+        korean_block: "# `mcp` 시작 시 저장소 설정 파일 생성과 스키마 동기화를 자동으로 수행합니다.\n# true: 누락된 `.codemap/config.toml`을 만들고 새 설정의 주석 블록을 추가합니다.\n# false: `.codemap/config.toml`을 자동으로 쓰지 않습니다. 기존 설정은 계속 읽습니다.\n# 기존 파일의 스키마 동기화는 새 설정을 활성 값이 아닌 주석 블록으로 추가합니다.\n# [update]\n# config_auto_update = true",
     },
 ];
 
@@ -990,10 +1011,9 @@ fn version_marker_line(version: u32) -> String {
 
 /// Scaffold or incrementally sync `<repo_root>/.codemap/config.toml` on `mcp` start.
 ///
-/// - Absent → write the explicit-default [`CONFIG_TEMPLATE`], whose first line is the
-///   [`CONFIG_VERSION`] marker, so a fresh repo gets a discoverable, self-documenting config
-///   whose keys are live.
-/// - Present → run [`apply_migrations`]: append only the commented blocks for keys introduced
+/// - Absent → write the localized explicit-default template, whose first line is the
+///   [`CONFIG_VERSION`] marker, so a fresh repo gets a discoverable config whose keys are live.
+/// - Present → run migration sync: append only the commented blocks for keys introduced
 ///   since the file's stamped version (presence-guarded), re-stamp the marker, and rewrite.
 ///   A file already at the current version is left byte-for-byte untouched.
 ///
@@ -1020,7 +1040,7 @@ fn ensure_repo_config_with_auto_update(repo_root: &Path, config_auto_update: boo
     }
 }
 
-/// Write the version-stamped [`CONFIG_TEMPLATE`] for a repo that has no config file yet.
+/// Write the version-stamped localized template for a repo that has no config file yet.
 fn scaffold_fresh(dir: &Path, path: &Path) {
     if let Err(e) = std::fs::create_dir_all(dir) {
         warn(&format!(
@@ -1029,7 +1049,8 @@ fn scaffold_fresh(dir: &Path, path: &Path) {
         ));
         return;
     }
-    if let Err(e) = std::fs::write(path, CONFIG_TEMPLATE) {
+    let template = config_template(config_comment_language());
+    if let Err(e) = std::fs::write(path, template) {
         warn(&format!(
             "config template skipped: write {}: {e}",
             path.display()
@@ -1043,7 +1064,16 @@ fn scaffold_fresh(dir: &Path, path: &Path) {
 /// re-stamp, rewrite. A no-op (no write) when the file is already at [`CONFIG_VERSION`].
 fn migrate_existing(path: &Path, existing: &str) {
     let file_version = parse_version_marker(existing).unwrap_or(CONFIG_BASELINE_VERSION);
-    let Some(updated) = apply_migrations(existing, file_version, CONFIG_VERSION, MIGRATIONS) else {
+    if file_version >= CONFIG_VERSION {
+        return; // already current — never touch the user's file
+    }
+    let Some(updated) = apply_migrations_with_language(
+        existing,
+        file_version,
+        CONFIG_VERSION,
+        MIGRATIONS,
+        config_comment_language(),
+    ) else {
         return; // already current — never touch the user's file
     };
     if let Err(e) = std::fs::write(path, updated) {
@@ -1086,11 +1116,28 @@ fn file_mentions_key(contents: &str, key: &str) -> bool {
 /// `contents`. Each unseen key's block is inserted section-aware; the version marker is then
 /// stamped to `target_version`. Returns `Some(new_contents)` when a sync is due, or `None`
 /// when the file is already at/ahead of the target (so the caller writes nothing).
+#[cfg(test)]
 fn apply_migrations(
     contents: &str,
     file_version: u32,
     target_version: u32,
     migrations: &[Migration],
+) -> Option<String> {
+    apply_migrations_with_language(
+        contents,
+        file_version,
+        target_version,
+        migrations,
+        ConfigCommentLanguage::English,
+    )
+}
+
+fn apply_migrations_with_language(
+    contents: &str,
+    file_version: u32,
+    target_version: u32,
+    migrations: &[Migration],
+    language: ConfigCommentLanguage,
 ) -> Option<String> {
     if file_version >= target_version {
         return None;
@@ -1103,9 +1150,10 @@ fn apply_migrations(
         if file_mentions_key(&out, migration.key) {
             continue; // presence guard — already there, never duplicate
         }
+        let block = migration.block(language);
         out = match migration.placement {
-            KeyPlacement::TopLevel => insert_top_level(&out, migration.block),
-            KeyPlacement::Subtable(table) => insert_subtable(&out, table, migration.block),
+            KeyPlacement::TopLevel => insert_top_level(&out, block),
+            KeyPlacement::Subtable(table) => insert_subtable(&out, table, block),
         };
     }
     // `file_version < target_version` here, so the marker always advances → always a change.
@@ -1550,7 +1598,8 @@ mod tests {
             version: 2,
             key: "new_key",
             placement: KeyPlacement::TopLevel,
-            block: "# New key doc.\n# new_key = 7",
+            english_block: "# New key doc.\n# new_key = 7",
+            korean_block: "# New key doc.\n# new_key = 7",
         }];
         let body = "# codemap-config-version: 1\n# index doc\n# index_path = \".codemap/index\"\n\n# [filesystem_permissions]\n# find = \"workspace\"\n";
         let out = apply_migrations(body, 1, 2, migrations).expect("a sync is due");
@@ -1574,7 +1623,8 @@ mod tests {
             version: 2,
             key: "already_here",
             placement: KeyPlacement::TopLevel,
-            block: "# dup doc.\n# already_here = 1",
+            english_block: "# dup doc.\n# already_here = 1",
+            korean_block: "# dup doc.\n# already_here = 1",
         }];
         // the user already has the key (commented). It must not be duplicated, but the marker
         // still advances so the file is not re-scanned every run.
@@ -1596,7 +1646,8 @@ mod tests {
             version: 2,
             key: "added_in_v2",
             placement: KeyPlacement::TopLevel,
-            block: "# v2 key.\n# added_in_v2 = 1",
+            english_block: "# v2 key.\n# added_in_v2 = 1",
+            korean_block: "# v2 key.\n# added_in_v2 = 1",
         }];
         let body = "result_threshold = 3\n";
         assert_eq!(parse_version_marker(body), None, "fixture has no marker");
