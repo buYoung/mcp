@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-01
+
+### Added
+- Added live `config.toml` watching so config changes sync without restarting.
+- Added Korean and English `config.toml` comments selected from the OS locale.
+- Added permission-aware filesystem tool descriptions that show the active access policy.
+
+### Improved
+- Improved config syncing with debounce handling for rapid `config.toml` edits.
+- Improved filesystem permission docs with clearer policy and auto-sync guidance.
+
 ## [0.3.0] - 2026-06-30
 
 ### Added
