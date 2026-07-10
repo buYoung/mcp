@@ -2,49 +2,44 @@
 
 ## 1. Overview
 
-`@buyong-mcp/scout` is a stdio MCP server that exposes local code-navigation primitives backed by zoekt, Universal Ctags, and direct filesystem reads.
+`@buyong-mcp/scout` is a stdio MCP server that exposes local code-navigation primitives backed by direct filesystem reads, zoekt text search, and Universal Ctags symbol lookup. It is designed to start in degraded mode when external binaries are missing and recover through a managed install tool.
 
-## 2. Folder Structure
+## 2. Ownership Map
 
-- `DESIGN.md`: authoritative design reference for tool semantics, lifecycle decisions, and accepted divergences from Claude Code primitives.
-- `src/index.ts`: composition root; loads config, unions `.gitignore` directory names, builds read/glob providers unconditionally, lazily resolves zoekt/ctags-backed providers, wires install coalescing, and owns shutdown hooks.
-- `src/tools/`: high-level `McpServer.registerTool` surface for `install_binaries`, `search_text`, `read_file`, `find_files`, and `lookup_symbol`.
-- `src/config/`: settings and constants.
-    - `scout-config.ts`: repo/global/default TOML loader with per-key precedence and never-exit warning behavior.
-    - `gitignore-excludes.ts`: extracts directory-name entries from `.gitignore` for index exclusions.
-    - `defaults.ts`: server identity, binary names, release tag/URL, output defaults, timeouts, and fixed directory names.
-- `src/startup/`: binary discovery and managed installation.
-    - `ensure-required-binaries.ts`: resolves zoekt and Universal Ctags without exiting and builds shared guidance text.
-    - `binary-installer.ts`: downloads, verifies, extracts, and atomically swaps managed binaries.
-    - `binary-availability.ts`, `binary-release.ts`, `managed-bin-storage.ts`: PATH/go-bin/managed-bin resolution, platform asset mapping, and managed storage paths.
-- `src/providers/`: implementation backends.
-    - `read/`: `read_file` and `find_files`, direct filesystem access, line numbering, and read-state dedup.
-    - `symbol/`: ctags file collection, fingerprint cache, and symbol rendering.
-    - `text-search/`: zoekt index lifecycle, query builder, HTTP client, result renderer, and webserver lifecycle.
-- `src/security/`: path normalization, root containment, readable-file gates, and blocked device/binary handling.
+### Stable Ownership Boundaries
+
+- **Composition and provider boundary**: Start in `src/index.ts` when changing startup, provider wiring, binary recovery, or shutdown behavior. It owns config loading, `.gitignore` exclude unioning, direct read providers, lazy search/symbol provider resolution, install coalescing, and child-process cleanup; verify through package type-check and the provider-specific tests when present.
+- **Tool contract boundary**: Start in `src/tools/index.ts` when changing MCP schemas, descriptions, or tool response behavior. It owns `install_binaries`, `search_text`, `read_file`, `find_files`, and `lookup_symbol` registration with `z.strictObject`, snake_case tool inputs, degraded missing-binary guidance, and text envelopes.
+- **Search lifecycle boundary**: Start in `src/providers/text-search/text-search-provider.ts`, `index-lifecycle.ts`, and `zoekt-webserver-lifecycle.ts` when changing `search_text`. These files own working-tree fingerprinting, shard rebuilds, warm webserver reuse, one retry after `WebserverUnreachableError`, and cleanup of the child process.
+- **Filesystem safety boundary**: Start in `src/security/path-guard.ts`, `src/security/read-guard.ts`, and `src/providers/read/` when changing path handling. They own root containment, readable-file gates, blocked binary/device checks, glob rejection, and line-numbered read output; preserve consistent user-visible error text.
+- **Binary installation boundary**: Start in `src/startup/` when changing managed zoekt/ctags discovery or download. It owns PATH/go-bin/managed-bin resolution, platform asset mapping, checksum verification, atomic replacement, and install guidance.
+
+### Active Change Routes
+
+- **Degraded recovery route**: Within **Composition and provider boundary**, start in `src/index.ts` and `src/startup/ensure-required-binaries.ts` when changing missing-binary behavior. Recent changes cluster around boot guidance, provider reconstruction, and managed install; keep `search_text` and `lookup_symbol` degradation explicit rather than fatal.
+- **Strict schema route**: Within **Tool contract boundary**, start in `src/tools/index.ts` when changing any MCP argument. `z.strictObject` is intentional because unknown keys must be rejected instead of stripped; update descriptions and provider input mapping together.
 
 ## 3. Core Behaviors & Patterns
 
-- **Provider boundary by dependency**: `read_file` and `find_files` are direct filesystem tools and must work before any index or external binary is available. `lookup_symbol` needs only Universal Ctags; `search_text` needs zoekt-index, zoekt-webserver, and Ctags.
-- **Degraded boot plus explicit recovery**: missing binaries do not abort startup. The server emits guidance, `search_text`/`lookup_symbol` return guidance when their dependency is missing, and `install_binaries` performs the user-approved managed install path.
-- **Install coalescing and provider rebuild**: concurrent `install_binaries` calls share one `installInFlight` promise. Before replacing managed binaries, `index.ts` shuts down the old `TextSearchProvider`; after install it re-resolves binaries and rebuilds the provider.
-- **Never-exit config loading**: `loadScoutConfig` creates only the global commented template, reads repo and global TOML layers, drops unknown or mistyped keys with Korean stderr warnings, and merges each key as `repo > global > default`.
-- **Index freshness as optimization**: `IndexLifecycle` computes a cheap working-tree fingerprint, clears stale shards before rebuild, coalesces concurrent builds behind `buildPromise`, and skips unchanged trees inside the staleness window.
-- **Webserver lifecycle and recovery**: `WebserverLifecycle` starts zoekt-webserver lazily on loopback with an ephemeral port, health-polls before use, keeps it warm across queries, and restarts once after `WebserverUnreachableError`.
-- **Symbol lookup cache**: `SymbolProvider` is long-lived because it owns a `(scope, language) -> fingerprint/tags` cache. `index.ts` recreates it only when the resolved ctags path changes.
-- **Root containment**: every file/path input normalizes through shared path guards before provider use. `find_files` also rejects dangerous glob patterns before `globby` and rechecks returned absolute paths against the repository root.
-- **Deterministic shutdown**: `index.ts` handles signals, process exit, transport close, and stdin `end`/`close` so a zoekt-webserver child is not left running after MCP clients close stdio.
+- **Provider boundary by dependency**: `read_file` and `find_files` are direct filesystem tools and must work without external binaries or an index. `lookup_symbol` requires only Universal Ctags; `search_text` requires zoekt-index, zoekt-webserver, and ctags.
+- **Degraded boot with explicit recovery**: Missing binaries do not abort startup. Startup prints installation guidance, search/symbol tools return guidance when unavailable, and `install_binaries` performs the managed install path after user approval.
+- **Install coalescing and provider rebuild**: Concurrent installs share one `installInFlight` promise. Before replacing managed binaries, `index.ts` detaches and shuts down the old `TextSearchProvider`; after install it re-resolves binaries and rebuilds providers.
+- **Never-exit config loading**: `loadScoutConfig` creates only the global commented template, reads repo and global layers, warns in Korean for invalid tables/keys/types, and merges each key as `repo > global > default`.
+- **Index freshness as optimization**: `IndexLifecycle` uses a working-tree fingerprint, stale-shard cleanup, and a single `buildPromise` to avoid duplicate builds. The staleness window skips unchanged trees without treating the index as authoritative for direct read tools.
+- **Webserver recovery**: `TextSearchProvider` starts zoekt-webserver lazily on loopback with an ephemeral port, health-polls before use, keeps it warm across queries, and restarts once after a connection failure.
+- **Long-lived symbol cache**: `SymbolProvider` is reused while the ctags path stays the same because it owns a `(scope, language) -> fingerprint/tags` cache. Recreate it only when the resolved ctags executable changes.
+- **Deterministic shutdown**: Signal handlers, process exit, transport close, and stdin `end`/`close` all shut down the zoekt-webserver child so MCP clients closing stdio do not leave a process running.
 
 ## 4. Conventions
 
-- **Naming**: TypeScript uses `camelCase` values/functions, `PascalCase` types/classes, and `UPPER_SNAKE_CASE` constants in `defaults.ts`. MCP tool names and schema keys are `snake_case`; provider inputs are `camelCase`.
-- **Files and imports**: source filenames are kebab-case `.ts` files with ESM `.js` import extensions. Backend-specific code stays under `providers/read`, `providers/symbol`, or `providers/text-search`.
-- **Tool schemas**: register tools with `McpServer.registerTool` and `z.strictObject` schemas so unknown keys are rejected instead of stripped. Descriptions are Korean and should guide the calling agent's tool choice.
-- **Configuration shape**: TOML keys are `snake_case` under `[output]`, `[index]`, and `[limits]`; `ResolvedScoutConfig` exposes normalized `camelCase` fields. Arrays replace per key, except `.gitignore` directory names are unioned after load.
-- **Constants over literals**: timeouts, byte caps, output modes, release names, binary names, and default config values live in `config/defaults.ts`.
-- **Error handling**: provider boundaries return user-visible text for tool failures; long-running/lifecycle failures use named errors where recovery decisions depend on type, such as `WebserverUnreachableError`.
-- **Comments**: exported or non-obvious code uses concise JSDoc or inline Korean comments explaining why a behavior exists, especially when it mirrors `DESIGN.md`.
-- **Copied helpers stay local**: path/binary/config patterns adapted from `mcp-server` are intentionally copied rather than shared; do not introduce cross-app imports unless the task explicitly changes that boundary.
+- **Naming**: TypeScript values/functions use `camelCase`, classes/types use `PascalCase`, and constants in `config/defaults.ts` use `UPPER_SNAKE_CASE`. MCP tool names and schema keys stay `snake_case`; provider inputs use `camelCase`.
+- **Files and imports**: Source files are kebab-case `.ts` files with ESM `.js` import extensions. Backend-specific logic stays under `providers/read`, `providers/symbol`, or `providers/text-search`.
+- **Tool schemas and descriptions**: Register MCP tools with `McpServer.registerTool` and `z.strictObject`. Descriptions are Korean and should guide agent tool choice, including when a tool requires external binaries.
+- **Configuration shape**: TOML keys are `snake_case` under `[output]`, `[index]`, and `[limits]`; `ResolvedScoutConfig` exposes normalized `camelCase` fields. Arrays replace per key, while `.gitignore` directory names are unioned after load.
+- **Constants over literals**: Timeouts, byte caps, release names, binary names, output modes, and default config values belong in `src/config/defaults.ts`.
+- **Provider errors**: Tool boundaries return user-visible text for expected failures. Use named errors only when recovery decisions depend on type, such as `WebserverUnreachableError`.
+- **Comments**: Keep concise Korean comments for operational rationale, especially when behavior exists to satisfy `DESIGN.md`, avoid install races, or prevent orphaned child processes.
+- **App-local duplication**: Security, binary, and config helpers adapted from other apps remain local. Do not introduce cross-app imports unless the task explicitly changes monorepo boundaries.
 
 ## 5. Working Agreements
 

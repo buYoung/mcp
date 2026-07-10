@@ -2,25 +2,27 @@
 
 ## 1. Overview
 
-`@repo/typescript-config` is a configuration-only workspace package that centralizes TypeScript compiler presets used by the TypeScript MCP apps.
+`@repo/typescript-config` is a configuration-only workspace package that centralizes TypeScript compiler presets for the TypeScript MCP apps. It has no runtime entry point and affects consumers only through `tsconfig` inheritance.
 
-## 2. Folder Structure
+## 2. Ownership Map
 
-- `package.json`: package identity and publishing metadata only; no runtime entrypoint, scripts, or source files.
-- `base.json`: shared strict compiler baseline, including NodeNext modules, declaration output, ES2022 target/lib, `strict`, `isolatedModules`, and `noUncheckedIndexedAccess`.
-- `node.json`: Node app preset extending `base.json` with `outDir`, `rootDir`, source maps, and Node types.
+### Stable Ownership Boundaries
+
+- **Strict baseline preset**: Start in `base.json` when changing compiler behavior that should apply to all TypeScript apps. It owns NodeNext module settings, ES2022 target/lib, declaration output, strict mode, isolated modules, JSON module resolution, and `noUncheckedIndexedAccess`; verify through the root TypeScript type-check because both apps consume the preset.
+- **Node app preset**: Start in `node.json` when changing Node-specific app defaults. It extends `base.json` and owns `outDir`, `rootDir`, source maps, and Node types; preserve package-level overrides in consuming app `tsconfig.json` files.
 
 ## 3. Core Behaviors & Patterns
 
-- **Layered presets**: `node.json` extends `base.json`; app `tsconfig.json` files extend `@repo/typescript-config/node.json` and override package-local paths such as `outDir`, `rootDir`, `include`, and `exclude`.
-- **Configuration-only boundary**: this package has no `src`, runtime exports, generated output, or app logic. Changes should stay limited to JSON compiler options and package metadata.
-- **Strict defaults propagate outward**: `strict`, `isolatedModules`, `moduleResolution: "NodeNext"`, `noUncheckedIndexedAccess`, declaration output, and ES2022 defaults affect every TypeScript app that extends the preset.
+- **Layered presets**: `node.json` extends `base.json`; `apps/mcp-server/tsconfig.json` and `apps/scout/tsconfig.json` extend `@repo/typescript-config/node.json` and override package-local include/exclude and path settings.
+- **Configuration-only boundary**: This package has no `src`, runtime exports, generated output, tests, or package scripts. Changes should stay limited to strict JSON compiler presets and package metadata.
+- **Strict defaults propagate outward**: Changes to `strict`, `isolatedModules`, `moduleResolution: "NodeNext"`, `noUncheckedIndexedAccess`, declaration output, or ES2022 defaults can break both TypeScript apps even when this package itself has no source lines.
 
 ## 4. Conventions
 
-- **File shape**: keep presets as small strict JSON files with `$schema` first, then `extends` when present, then `compilerOptions`.
-- **Scope discipline**: put broadly applicable TypeScript defaults in `base.json`; put Node-specific `src`/`dist`/types behavior in `node.json`; leave package-specific include/exclude paths in consuming app configs.
-- **Compiler options**: use canonical TypeScript option names and JSON values. Do not add comments because these files are strict JSON, not JSONC.
+- **File shape**: Keep presets as small strict JSON files. Put `$schema` first, then `extends` when present, then `compilerOptions`.
+- **Scope discipline**: Put broadly applicable TypeScript defaults in `base.json`; put Node app behavior in `node.json`; leave app-specific include/exclude and source/output paths in consuming package configs.
+- **Compiler options**: Use canonical TypeScript option names and JSON values. Do not add comments because these files are JSON, not JSONC.
+- **Package metadata**: Keep `package.json` focused on package identity and publishing metadata; do not add runtime entry points unless the package stops being configuration-only.
 
 ## 5. Working Agreements
 
