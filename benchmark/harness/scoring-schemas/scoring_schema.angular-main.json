@@ -17,7 +17,7 @@
         },
         {
             "fact_id": "F2",
-            "statement": "Child add/update/remove events only mutate bookkeeping and request delayed reconciliation rather than performing a full immediate rewrite.",
+            "statement": "Child add/update/remove events update parent bookkeeping and explicitly request a separate delayed reconciliation instead of performing a full immediate rewrite.",
             "weight": 0.125
         },
         {
@@ -54,7 +54,7 @@
     "fact_count_F": 8,
     "weights": [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
     "weight_sum": 1.0,
-    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
+    "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}. For Angular F2, present requires both parent bookkeeping and an explicit separate delayed reconciliation request; exactly one is partial; neither, or a statement that rejects scheduling/delays, is absent. General batching language alone does not satisfy the delayed-request clause.",
     "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)",
     "weights_uniform": true,
     "reproduction_tolerance_band": 0.125,

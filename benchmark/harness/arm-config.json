@@ -1,9 +1,9 @@
 {
     "run_id": "cms-official-benchmark-20260619-02",
-    "arm_count": 20,
+    "arm_count": 21,
     "authority": "run_local",
     "created_at": "2026-06-19",
-    "description": "20-arm (5 runtime × 4 backend) 정식 벤치마크 config. 16-arm 참고 config(bench/protocol/arm-config.4way.json)에서 shell/builtin/MCP 정책 패턴을 가져오고 minimax 4-arm을 추가.",
+    "description": "21-arm (5 runtime × 4 backend + Ollama Cloud DeepSeek codemap) 정식 벤치마크 config. 16-arm 참고 config(bench/protocol/arm-config.4way.json)에서 shell/builtin/MCP 정책 패턴을 가져오고 minimax 4-arm과 Ollama Cloud DeepSeek codemap arm을 추가.",
     "source_reference": "bench/protocol/arm-config.4way.json",
     "p7b_fairness_note": {
         "summary": "no-mcp cell의 shell(쓰기) 능력 비대칭 — confound로 명시(P7b가 기록, 균등화하지 않음).",
@@ -147,6 +147,19 @@
             "mcp_config_policy": "per-run XDG_CONFIG_HOME opencode.jsonc {type:local, command:[codemap-bin,mcp], enabled:true}",
             "concurrency_group": "non_claude_capped",
             "notes": "bash/grep/glob 차단, read 허용. codemap MCP XDG_CONFIG_HOME 격리."
+        },
+        {
+            "arm_id": "opencode-ollama-cloud-deepseek-codemap",
+            "runtime": "opencode-deepseek",
+            "command": "opencode run --dir <root> --model ollama-cloud/deepseek-v4-flash",
+            "model": "ollama-cloud/deepseek-v4-flash",
+            "model_label": "deepseek-v4-flash",
+            "backend": "codemap",
+            "shell_policy": "disabled (bash:false in opencode config)",
+            "builtin_read_policy": "allowed (read:true in opencode config)",
+            "mcp_config_policy": "per-run XDG_CONFIG_HOME opencode.jsonc {type:local, command:[codemap-bin,mcp], enabled:true, cwd:<canonical-root>}; permission.external_directory:deny",
+            "concurrency_group": "non_claude_capped",
+            "notes": "bash/grep/glob 차단, read 허용. OpenCode run은 canonical target root를 --dir와 cwd에 함께 명시하고 external_directory는 deny다. codemap MCP XDG_CONFIG_HOME 격리."
         },
         {
             "arm_id": "opencode-deepseek-serena",

@@ -23,7 +23,7 @@ The obvious "it just compares objects on every child update" explanation is wron
 ## Pinned Facts
 
 - The single-choice object-backed path uses parent-owned id mapping plus comparator-based id lookup, not direct object identity writes to the DOM.
-- Child add/update/remove events only mutate bookkeeping and request delayed reconciliation.
+- Child add/update/remove events update parent bookkeeping and explicitly request a separate delayed reconciliation. For F2, both clauses are required for present; exactly one is partial; neither, or an explicit rejection of scheduling/delay, is absent.
 - Reconciliation is coalesced with a queued flag so repeated child churn collapses into one pass.
 - The actual model-to-view rewrite runs in a one-shot post-render write phase.
 - The scheduling is bound to the application injector because the node injector can already be destroyed during teardown.

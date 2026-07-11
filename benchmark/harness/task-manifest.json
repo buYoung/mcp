@@ -9,6 +9,12 @@
         "ClickHouse-master": {
             "task_id": "ClickHouse-master",
             "code_root": "<REPO_ROOT>/.agents/benchmark-data/ClickHouse-master",
+            "fixture": {
+                "expected_git_commit": "215ff2543f8b19ca39ac6707fc5cad6195c57880",
+                "sentinel_paths": ["src/Functions/FunctionsExternalDictionaries.h", "src/Analyzer/Passes/DictGetTupleElementPass.cpp"],
+                "representative_read_path": "src/Analyzer/Passes/DictGetTupleElementPass.cpp",
+                "codemap_query": "DictGetTupleElementPass"
+            },
             "candidate_root": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3",
             "public_question": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/public_question.md",
             "private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/ClickHouse-master/round-3/private_answer_key.md",
@@ -35,6 +41,12 @@
         "deno-main": {
             "task_id": "deno-main",
             "code_root": "<REPO_ROOT>/.agents/benchmark-data/deno-main",
+            "fixture": {
+                "expected_git_commit": "9f066b87ca674fbf43ce3109a2d061fcc428220e",
+                "sentinel_paths": ["libs/resolver/graph.rs"],
+                "representative_read_path": "libs/resolver/graph.rs",
+                "codemap_query": "deno compile bundle"
+            },
             "candidate_root": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1",
             "public_question": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/public_question.md",
             "private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/private_answer_key.md",
@@ -61,6 +73,12 @@
         "angular-main": {
             "task_id": "angular-main",
             "code_root": "<REPO_ROOT>/.agents/benchmark-data/angular-main",
+            "fixture": {
+                "expected_git_commit": "302dd0f7c606c3fefede7c2e4b815f8579cc5b28",
+                "sentinel_paths": ["packages/forms/src/directives/select_control_value_accessor.ts", "packages/core/src/render3/after_render/hooks.ts"],
+                "representative_read_path": "packages/forms/src/directives/select_control_value_accessor.ts",
+                "codemap_query": "_writeValueAfterRender"
+            },
             "candidate_root": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2",
             "public_question": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/public_question.md",
             "private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-sequential-20260618/phases/angular-main/round-2/private_answer_key.md",

@@ -10,7 +10,7 @@
  *   - per-episode 1800s wall-time timeout (인자 --timeout-s로 조정; 측정 max 896.9s 근거)
  *   - claude = stream-json 추출 / codex = --output-last-message 추출 / opencode = stdout 추출
  *   - target-root mutation guard: find mtime+size manifest 비교 (pre/post episode)
- *   - scorer.mjs end-to-end 호출 → scorer_output.json, result_metrics.json 생성
+ *   - --skip-scorer 지정 시 외부 judge를 호출하지 않고 풀이 기록만 보존
  *
  * 사용법:
  *   node runner.mjs --episodes <json-file-or-inline-json>
@@ -20,7 +20,9 @@
  *                   --scorer <path>
  *                   --out-root <dir>
  *                   [--timeout-s 1800]
- *                   [--judge-model opus]
+ *                   --codemap-bin <absolute-path>
+ *                   [--workspace-root <dir>]
+ *                   [--judge-model opus] [--skip-scorer]
  *                   [--print-cmd]
  *
  * episodes 형식: [{arm_id, codebase, round}]
@@ -28,16 +30,17 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, copyFileSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // ============================================================
 // 상수 / 경로
 // ============================================================
 
-const WORKSPACE_ROOT = "<REPO_ROOT>";
-const CODEMAP_BIN = "<HOME>/.cargo/bin/codemap-search";
+const REPO_ROOT_PLACEHOLDER = "<REPO_ROOT>";
+const DEFAULT_WORKSPACE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CLAUDE_BIN = "claude";
 
 // ============================================================
@@ -70,6 +73,35 @@ function readJson(filePath) {
     return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
+function resolveManifestPlaceholders(value, workspaceRoot) {
+    if (typeof value === "string") return value.replaceAll(REPO_ROOT_PLACEHOLDER, workspaceRoot);
+    if (Array.isArray(value)) return value.map((item) => resolveManifestPlaceholders(item, workspaceRoot));
+    if (value && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveManifestPlaceholders(item, workspaceRoot)]));
+    }
+    return value;
+}
+
+function resolveWorkspacePath(value, workspaceRoot) {
+    if (typeof value !== "string" || value.length === 0) {
+        throw new Error(`[runner:path] expected a non-empty path, received: ${JSON.stringify(value)}`);
+    }
+    const placeholderResolved = value.replaceAll(REPO_ROOT_PLACEHOLDER, workspaceRoot);
+    return path.isAbsolute(placeholderResolved) ? path.normalize(placeholderResolved) : path.resolve(workspaceRoot, placeholderResolved);
+}
+
+function requireDirectory(label, resolvedPath) {
+    if (!existsSync(resolvedPath) || !statSync(resolvedPath).isDirectory()) {
+        throw new Error(`[runner:path] ${label} directory does not exist: ${resolvedPath}`);
+    }
+}
+
+function requireFile(label, resolvedPath) {
+    if (!existsSync(resolvedPath) || !statSync(resolvedPath).isFile()) {
+        throw new Error(`[runner:path] ${label} file does not exist: ${resolvedPath}`);
+    }
+}
+
 function writeJson(filePath, value) {
     mkdirSync(path.dirname(filePath), { recursive: true });
     writeFileSync(filePath, JSON.stringify(value, null, 2) + "\n");
@@ -80,8 +112,428 @@ function writeText(filePath, text) {
     writeFileSync(filePath, String(text ?? ""));
 }
 
-function sha256(text) {
-    return createHash("sha256").update(String(text), "utf8").digest("hex");
+function appendAttemptLedger(outRoot, event) {
+    const ledgerPath = path.join(outRoot, "attempt-ledger.jsonl");
+    mkdirSync(path.dirname(ledgerPath), { recursive: true });
+    // One JSONL record is appended with O_APPEND and flushed before a solver can start.
+    // Never put command lines, environments, prompts, or model output in this ledger.
+    const fd = openSync(ledgerPath, "a");
+    try {
+        appendFileSync(fd, JSON.stringify(event) + "\n", { encoding: "utf8" });
+        fsyncSync(fd);
+    } finally {
+        closeSync(fd);
+    }
+    return ledgerPath;
+}
+
+function episodeClaimPath(outRoot, identitySha256) {
+    return path.join(outRoot, "claims", `${identitySha256}.claim`);
+}
+
+function acquireEpisodeClaim(outRoot, identitySha256) {
+    const claimPath = episodeClaimPath(outRoot, identitySha256);
+    mkdirSync(path.dirname(claimPath), { recursive: true });
+    let fd;
+    try {
+        fd = openSync(claimPath, "wx");
+        writeFileSync(fd, JSON.stringify({ pid: process.pid, claimed_at: new Date().toISOString(), identity_sha256: identitySha256 }) + "\n");
+        fsyncSync(fd);
+    } catch (error) {
+        if (error?.code === "EEXIST") throw new Error(`[runner:claim] identity already claimed; refusing automatic retry: ${identitySha256}`);
+        throw error;
+    } finally {
+        if (fd != null) closeSync(fd);
+    }
+    return claimPath;
+}
+
+function releaseEpisodeClaim(claimPath) {
+    try { unlinkSync(claimPath); } catch (error) { if (error?.code !== "ENOENT") throw error; }
+}
+
+const TERMINAL_LEDGER_EVENTS = new Set(["completed", "terminal_success", "terminal_failure"]);
+const SOLVER_REUSABLE_ARTIFACTS = ["stdout.txt", "stderr.txt", "raw_answer.txt", "tool_events.json", "process_result.json", "mutation_guard_before.json", "mutation_guard_after.json", "mutation_guard.json"];
+const SUCCESSFUL_TERMINAL_EVENTS = new Set(["completed", "terminal_success"]);
+
+function artifactCorruption(message) {
+    throw new Error(`[runner:artifact_corruption] ${message}`);
+}
+
+function ledgerCorruption(message) {
+    throw new Error(`[runner:ledger_corruption] ${message}`);
+}
+
+function ledgerEventsForIdentity(outRoot, solverIdentitySha256) {
+    const ledgerPath = path.join(outRoot, "attempt-ledger.jsonl");
+    if (!existsSync(ledgerPath)) return [];
+    return readFileSync(ledgerPath, "utf8").split("\n").flatMap((line, index) => {
+        if (!line.trim()) return [];
+        let value;
+        try { value = JSON.parse(line); } catch { ledgerCorruption(`invalid JSONL at ${ledgerPath}:${index + 1}`); }
+        if (!value || typeof value !== "object") ledgerCorruption(`non-object event at ${ledgerPath}:${index + 1}`);
+        return value.solver_identity_sha256 === solverIdentitySha256 ? [value] : [];
+    });
+}
+
+function validatedTerminalEvents(outRoot, solverIdentitySha256) {
+    const events = ledgerEventsForIdentity(outRoot, solverIdentitySha256);
+    const eventsByAttempt = new Map();
+    const terminalsByAttempt = new Map();
+    for (const event of events) {
+        if (typeof event.attempt_id === "string" && event.attempt_id.length > 0) {
+            const attemptEvents = eventsByAttempt.get(event.attempt_id) ?? [];
+            attemptEvents.push(event);
+            eventsByAttempt.set(event.attempt_id, attemptEvents);
+        }
+        if (!TERMINAL_LEDGER_EVENTS.has(event.event)) continue;
+        if (typeof event.attempt_id !== "string" || event.attempt_id.length === 0) {
+            ledgerCorruption(`terminal event without attempt_id for solver identity: ${solverIdentitySha256}`);
+        }
+        const terminals = terminalsByAttempt.get(event.attempt_id) ?? [];
+        terminals.push(event);
+        terminalsByAttempt.set(event.attempt_id, terminals);
+    }
+    for (const [attemptId, terminals] of terminalsByAttempt) {
+        if (terminals.length > 1) {
+            ledgerCorruption(`multiple terminal events for attempt ${attemptId}; refusing ambiguous ledger`);
+        }
+    }
+    const successful = [...terminalsByAttempt.values()].flat().filter((event) => SUCCESSFUL_TERMINAL_EVENTS.has(event.event));
+    const solverSuccesses = successful.filter((event) => !(eventsByAttempt.get(event.attempt_id) ?? []).some((attemptEvent) => attemptEvent.event === "scorer_started"));
+    if (solverSuccesses.length > 1) {
+        ledgerCorruption(`multiple successful attempts for solver identity; refusing arbitrary reuse: ${solverIdentitySha256}`);
+    }
+    const reusable = events.filter((event) => event.event === "solver_reusable");
+    if (reusable.length > 1) ledgerCorruption(`multiple reusable solver records for solver identity; refusing arbitrary reuse: ${solverIdentitySha256}`);
+    return { successful, solverSuccesses, reusable };
+}
+
+function hasPriorTerminalOrStartedAttempt(outRoot, solverIdentitySha256) {
+    const events = ledgerEventsForIdentity(outRoot, solverIdentitySha256);
+    const byAttempt = new Map();
+    for (const event of events) byAttempt.set(event.attempt_id, event.event);
+    return [...byAttempt.values()].some((event) => event === "started" || event === "terminal_failure");
+}
+
+function sha256(value) {
+    return createHash("sha256").update(value).digest("hex");
+}
+
+const IDENTITY_SCHEMA_VERSION = 2;
+
+function canonicalRound(round) {
+    if (typeof round === "number" && Number.isSafeInteger(round) && round >= 0) return round;
+    if (typeof round === "string" && /^(?:0|[1-9]\d*)$/.test(round)) {
+        const value = Number(round);
+        if (Number.isSafeInteger(value)) return value;
+    }
+    throw new Error(`[runner:identity] round must be a non-negative safe integer or its canonical decimal string: ${JSON.stringify(round)}`);
+}
+
+function assertLedgerIdentitySchema(outRoot) {
+    const ledgerPath = path.join(outRoot, "attempt-ledger.jsonl");
+    if (!existsSync(ledgerPath)) return;
+    for (const [index, line] of readFileSync(ledgerPath, "utf8").split("\n").entries()) {
+        if (!line.trim()) continue;
+        let event;
+        try { event = JSON.parse(line); } catch { ledgerCorruption(`invalid JSONL at ${ledgerPath}:${index + 1}`); }
+        if (event?.solver_identity_sha256 && event.identity_schema_version !== IDENTITY_SCHEMA_VERSION) {
+            throw new Error(`[runner:identity] legacy ledger identity at ${ledgerPath}:${index + 1} cannot be safely compared with schema v${IDENTITY_SCHEMA_VERSION}; use a fresh --out-root`);
+        }
+    }
+}
+
+function fileDigest(filePath) {
+    if (!existsSync(filePath)) return { exists: false, sha256: null, bytes: null };
+    const content = readFileSync(filePath);
+    return { exists: true, sha256: sha256(content), bytes: content.length };
+}
+
+function realpathInside(root, candidate, label) {
+    const rootReal = realpathSync(root);
+    const candidateReal = realpathSync(candidate);
+    if (candidateReal !== rootReal && !candidateReal.startsWith(rootReal + path.sep)) {
+        throw new Error(`[fixture] ${label} escapes target root: ${candidate}`);
+    }
+    return { rootReal, candidateReal };
+}
+
+function gitOutput(targetRoot, args) {
+    const result = spawnSync("git", ["-C", targetRoot, ...args], { encoding: "utf8", timeout: 15_000 });
+    return result.status === 0 ? String(result.stdout).trim() : null;
+}
+
+function targetIdentity(targetRoot) {
+    const realpath = realpathSync(targetRoot);
+    const gitRoot = gitOutput(realpath, ["rev-parse", "--show-toplevel"]);
+    const head = gitOutput(realpath, ["rev-parse", "HEAD"]);
+    const tree = gitOutput(realpath, ["ls-tree", "-r", "--full-tree", "HEAD"]);
+    const dirty = gitOutput(realpath, ["diff", "--no-ext-diff", "--binary", "HEAD"]);
+    return { realpath, git_root: gitRoot ? path.resolve(gitRoot) : null, head, tree_sha256: tree == null ? null : sha256(tree), dirty_tracked_sha256: dirty == null ? null : sha256(dirty), source_file_count: sourceFileCount(realpath) };
+}
+
+function runtimeIdentity(runtime) {
+    const command = runtime === "claude-sonnet" ? "claude" : runtime === "codex-gpt54" ? "codex" : "opencode";
+    const located = spawnSync("which", [command], { encoding: "utf8", timeout: 5_000 });
+    const executable = located.status === 0 ? String(located.stdout).trim() : null;
+    if (!executable || !existsSync(executable)) throw new Error(`[runner:runtime] executable not found for ${runtime}: ${command}`);
+    const canonicalPath = realpathSync(executable);
+    return { command, path: canonicalPath, version: commandVersion(canonicalPath), file: fileDigest(canonicalPath) };
+}
+
+function sourceFileCount(targetRoot) {
+    const tracked = gitOutput(targetRoot, ["ls-files"]);
+    if (tracked == null) return 0;
+    const sourcePattern = /\.(?:[cm]?[jt]sx?|rs|cpp|cc|cxx|h|hpp|py|go|java|kt|swift|cs|php|rb|scala|sql)$/i;
+    // git index membership is the intended source inventory. Avoid per-file stat fan-out;
+    // sentinel and representative-read checks below establish on-disk availability.
+    return tracked.split("\n").filter((relativePath) => relativePath && !relativePath.startsWith(".codemap/") && sourcePattern.test(relativePath)).length;
+}
+
+async function callCodemapMcp(codemapBin, targetRoot, request) {
+    return await new Promise((resolve, reject) => {
+        const child = spawn(codemapBin, ["mcp"], { cwd: targetRoot, stdio: ["pipe", "pipe", "pipe"] });
+        let stderr = ""; let buffer = ""; let settled = false;
+        const finish = (error, value) => {
+            if (settled) return; settled = true; clearTimeout(timer);
+            try { child.kill("SIGTERM"); } catch {}
+            error ? reject(error) : resolve(value);
+        };
+        const timer = setTimeout(() => finish(new Error("[fixture] codemap MCP probe timed out")), 30_000);
+        child.on("error", (error) => finish(new Error(`[fixture] codemap MCP spawn failed: ${error.message}`)));
+        child.stderr.on("data", (chunk) => { stderr += String(chunk).slice(0, 2000); });
+        child.stdout.on("data", (chunk) => {
+            buffer += String(chunk);
+            let newline;
+            while ((newline = buffer.indexOf("\n")) >= 0) {
+                const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);
+                let response; try { response = JSON.parse(line); } catch { continue; }
+                if (response.id === request.id) {
+                    if (response.error) finish(new Error(`[fixture] codemap MCP ${request.method} failed: ${response.error.message}`));
+                    else finish(null, response.result);
+                }
+            }
+        });
+        child.on("close", (code) => { if (!settled) finish(new Error(`[fixture] codemap MCP exited before response: ${code}; ${stderr}`)); });
+        const initialize = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "benchmark-preflight", version: "1" } } };
+        child.stdin.write(JSON.stringify(initialize) + "\n");
+        child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized", params: {} }) + "\n");
+        child.stdin.write(JSON.stringify(request) + "\n");
+    });
+}
+
+function mcpText(result) {
+    return result?.content?.filter((item) => item?.type === "text").map((item) => item.text).join("\n") ?? "";
+}
+
+async function preflightFixture({ taskDef, taskId, targetRoot, armDef, codemapBin, identity: suppliedIdentity = null }) {
+    const fixture = taskDef.fixture;
+    if (!fixture) throw new Error(`[fixture] missing fixture declaration for ${taskId}`);
+    const identity = suppliedIdentity ?? targetIdentity(targetRoot);
+    if (identity.git_root !== identity.realpath) throw new Error(`[fixture] target root is not an independent Git worktree: ${targetRoot}; git_root=${identity.git_root}`);
+    if (identity.head !== fixture.expected_git_commit) throw new Error(`[fixture] git identity mismatch: expected ${fixture.expected_git_commit}, observed ${identity.head}; tree=${identity.tree_sha256}`);
+    const count = identity.source_file_count;
+    if (count < 1) throw new Error(`[fixture] no non-backend source files under ${identity.realpath}`);
+    const sentinels = [];
+    for (const relativePath of fixture.sentinel_paths || []) {
+        const candidate = path.join(identity.realpath, relativePath);
+        if (!existsSync(candidate) || !lstatSync(candidate).isFile()) throw new Error(`[fixture] sentinel missing for ${taskId}: ${relativePath}`);
+        sentinels.push({ path: realpathInside(identity.realpath, candidate, "sentinel").candidateReal, sha256: fileDigest(candidate).sha256 });
+    }
+    const readRelativePath = fixture.representative_read_path || fixture.sentinel_paths?.[0];
+    const readPath = path.join(identity.realpath, readRelativePath || "");
+    if (!readRelativePath || !existsSync(readPath)) throw new Error(`[fixture] representative read missing: ${readPath}`);
+    const readRealpath = realpathInside(identity.realpath, readPath, "representative read").candidateReal;
+    const proof = { target_root_realpath: identity.realpath, source_file_count: count, sentinel_paths: sentinels, git_head: identity.head, git_tree_sha256: identity.tree_sha256, dirty_tracked_sha256: identity.dirty_tracked_sha256, read_path: readRealpath, read_sha256: fileDigest(readPath).sha256, backend: armDef.backend, arm_id: armDef.arm_id };
+    if (armDef.backend === "codemap") {
+        const indexPath = path.join(identity.realpath, ".codemap");
+        // A symlinked index can make an unrelated stale cache look valid. The root itself and
+        // every visible index entry must resolve under the target worktree.
+        if (!existsSync(indexPath) || !lstatSync(indexPath).isDirectory()) throw new Error(`[fixture] codemap index not ready: ${indexPath}`);
+        if (lstatSync(indexPath).isSymbolicLink()) throw new Error(`[fixture] codemap index symlink is not allowed: ${indexPath}`);
+        const indexEntries = readdirSync(indexPath);
+        if (indexEntries.length === 0) throw new Error(`[fixture] codemap index not ready: ${indexPath}`);
+        for (const entry of indexEntries) {
+            const entryPath = path.join(indexPath, entry);
+            if (lstatSync(entryPath).isSymbolicLink()) throw new Error(`[fixture] codemap index symlink is not allowed: ${entryPath}`);
+            realpathInside(identity.realpath, entryPath, "codemap index entry");
+        }
+        const searchResult = await callCodemapMcp(codemapBin, identity.realpath, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "search", arguments: { query: fixture.codemap_query, limit: 10 } } });
+        const searchText = mcpText(searchResult);
+        const match = searchText.match(/^### File: (.+?) \(\d+ lines\)$/m);
+        if (!match || /No indexed matches/i.test(searchText)) throw new Error(`[fixture] codemap MCP search produced no in-root match: query=${fixture.codemap_query}`);
+        const matchPath = realpathInside(identity.realpath, path.join(identity.realpath, match[1]), "codemap MCP search match").candidateReal;
+        const readResult = await callCodemapMcp(codemapBin, identity.realpath, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "read", arguments: { file_path: readRelativePath, offset: 1, limit: 40 } } });
+        const readText = mcpText(readResult);
+        if (!readText.trim()) throw new Error(`[fixture] codemap MCP read returned empty content: ${readRelativePath}`);
+        proof.index_path = realpathInside(identity.realpath, indexPath, "codemap index").candidateReal;
+        proof.search_query = fixture.codemap_query;
+        proof.search_match_path = matchPath;
+        proof.search_response_sha256 = sha256(searchText);
+        proof.read_response_sha256 = sha256(readText);
+        proof.mcp_read_path = readRealpath;
+    }
+    return { identity, proof };
+}
+
+function commandVersion(command) {
+    const result = spawnSync(command, ["--version"], { encoding: "utf8", timeout: 5_000 });
+    return result.status === 0 ? String(result.stdout).trim() || String(result.stderr).trim() : null;
+}
+
+function codemapBinaryIdentity(codemapBin) {
+    const digest = fileDigest(codemapBin);
+    if (!digest.exists || !statSync(codemapBin).isFile()) {
+        throw new Error(`--codemap-bin must name an existing file: ${codemapBin}`);
+    }
+    const version = commandVersion(codemapBin); if (!version) throw new Error(`--codemap-bin must support --version: ${codemapBin}`);
+    return { path: codemapBin, ...digest, version };
+}
+
+function scoringContract({ scorerPath, schemaPath, privateAnswerKeyPath, judgeModel, printCmd }) {
+    return {
+        scorer: { path: scorerPath, ...fileDigest(scorerPath) },
+        schema: { path: schemaPath, ...fileDigest(schemaPath) },
+        private_answer_key: { path: privateAnswerKeyPath, ...fileDigest(privateAnswerKeyPath) },
+        judge_model: judgeModel, print_command: printCmd,
+    };
+}
+
+function fixtureContract(taskDef, taskId, armDef, codemapIdentity) {
+    const fixture = taskDef.fixture ?? {};
+    return {
+        task_id: taskId,
+        arm_id: armDef.arm_id,
+        backend: armDef.backend,
+        effective_codemap_usage: armDef.backend === "codemap",
+        codemap_binary: armDef.backend === "codemap" ? codemapIdentity : null,
+        expected_git_commit: fixture.expected_git_commit ?? null,
+        sentinel_paths: [...(fixture.sentinel_paths ?? [])].sort(),
+        representative_read_path: fixture.representative_read_path ?? fixture.sentinel_paths?.[0] ?? null,
+        codemap_query: armDef.backend === "codemap" ? fixture.codemap_query ?? null : null,
+    };
+}
+
+function cachedIdentity(config, cacheName, key, compute) {
+    const cache = config[cacheName] ?? (config[cacheName] = new Map());
+    let promise = cache.get(key);
+    if (!promise) {
+        promise = Promise.resolve().then(compute);
+        cache.set(key, promise);
+        promise.catch(() => { if (cache.get(key) === promise) cache.delete(key); });
+    }
+    return promise;
+}
+
+function buildResumeIdentity({ armDef, promptPath, prompt, config, contract, fixtureIdentity, runtime, episode }) {
+    const solverValue = {
+        identity_schema_version: IDENTITY_SCHEMA_VERSION,
+        episode,
+        task: { code_root: fixtureIdentity, prompt: { path: promptPath, ...fileDigest(promptPath), sha256: sha256(prompt) } },
+        solver: { runtime, command: armDef.command, model: armDef.model, backend: armDef.backend, permissions: { shell_policy: armDef.shell_policy, builtin_read_policy: armDef.builtin_read_policy, mcp_config_policy: armDef.mcp_config_policy }, codemap_binary: armDef.backend === "codemap" ? config.codemapBinary : null, timeout_ms: config.timeoutMs },
+        runner: fileDigest(config.paths.runnerPath),
+    };
+    const finalValue = {
+        identity_schema_version: IDENTITY_SCHEMA_VERSION,
+        solver_identity: sha256(JSON.stringify(solverValue)),
+        skip_scorer: config.skipScorer,
+        scoring_contract: contract,
+    };
+    return { sha256: sha256(JSON.stringify(finalValue)), value: finalValue, solver_identity: { sha256: finalValue.solver_identity, value: solverValue } };
+}
+
+function buildArtifactSeal(episodeDir, artifactNames) {
+    return Object.fromEntries(artifactNames.map((name) => [name, fileDigest(path.join(episodeDir, name))]));
+}
+
+function validScorerOutput(value, schema = null, taskId = null, rawAnswerSha256 = null) {
+    if (!value || typeof value !== "object" || !Number.isFinite(value.score) || value.score < 0 || value.score > 1) return false;
+    if (!schema) return true;
+    if (
+        typeof value.schema_version !== "string" ||
+        !value.scorer_output ||
+        typeof value.scorer_output !== "object" ||
+        typeof value.scorer_output.schema_version !== "string" ||
+        value.task_id !== taskId ||
+        value.candidate_id !== schema.candidate_id ||
+        value.schema_version !== schema.schema_version ||
+        value.scorer_output.schema_version !== schema.schema_version ||
+        value.answer_sha256 !== rawAnswerSha256
+    ) return false;
+    if (!Array.isArray(value.per_fact_score) || value.per_fact_score.length !== schema.facts.length) return false;
+    const facts = new Map(schema.facts.map((fact) => [fact.fact_id, fact]));
+    let numerator = 0; let denominator = 0;
+    for (const item of value.per_fact_score) {
+        const fact = facts.get(item?.fact_id);
+        const verdictValue = { present: 1, partial: 0.5, absent: 0 }[item?.verdict];
+        if (!fact || verdictValue === undefined || item.value !== verdictValue) return false;
+        facts.delete(item.fact_id); numerator += fact.weight * verdictValue; denominator += fact.weight;
+    }
+    return facts.size === 0 && denominator > 0 && value.score === Number((numerator / denominator).toFixed(6)) && value.fact_count_F === schema.facts.length && (value.verdict === "pass" || value.verdict === "fail");
+}
+
+const REQUIRED_ARTIFACTS = ["stdout.txt", "stderr.txt", "raw_answer.txt", "tool_events.json", "process_result.json", "mutation_guard_before.json", "mutation_guard_after.json", "mutation_guard.json", "harness_judgment.json", "result_metrics.json", "scorer_output.json"];
+
+function readCanonicalTerminal(outRoot, solverIdentitySha256, finalIdentitySha256 = null) {
+    const terminals = validatedTerminalEvents(outRoot, solverIdentitySha256).successful.filter((event) => !finalIdentitySha256 || event.final_identity_sha256 === finalIdentitySha256);
+    if (terminals.length > 1) ledgerCorruption(`multiple successful terminal events for final identity; refusing arbitrary selection: ${solverIdentitySha256}`);
+    const terminal = terminals[0] ?? null;
+    if (terminal && (!terminal.canonical_artifacts || !terminal.attempt_dir)) {
+        artifactCorruption(`successful terminal event lacks canonical artifacts: ${terminal.attempt_id}`);
+    }
+    return terminal;
+}
+
+function validateCompletedArtifacts(attemptDir, terminal, resumeIdentity, skipScorer, schemaPath, taskId, completedEpisodeDir = attemptDir) {
+    if (!terminal || terminal.final_identity_sha256 !== resumeIdentity.sha256) return null;
+    for (const artifactDir of new Set([attemptDir, completedEpisodeDir])) {
+        for (const name of REQUIRED_ARTIFACTS) {
+            const expected = terminal.canonical_artifacts?.[name]; const observed = fileDigest(path.join(artifactDir, name));
+            if (!expected?.exists || expected.sha256 !== observed.sha256 || expected.bytes !== observed.bytes) artifactCorruption(`canonical artifact mismatch for ${terminal.attempt_id}: ${name}`);
+        }
+    }
+    try {
+        if (terminal.artifact_manifest_sha256 !== fileDigest(path.join(attemptDir, "artifact_manifest.json")).sha256 || terminal.metadata_sha256 !== fileDigest(path.join(attemptDir, "episode_metadata.json")).sha256 || terminal.artifact_manifest_sha256 !== fileDigest(path.join(completedEpisodeDir, "artifact_manifest.json")).sha256 || terminal.metadata_sha256 !== fileDigest(path.join(completedEpisodeDir, "episode_metadata.json")).sha256) {
+            artifactCorruption(`canonical manifest or metadata mismatch for ${terminal.attempt_id}`);
+        }
+        const metrics = readJson(path.join(attemptDir, "result_metrics.json"));
+        const judgment = readJson(path.join(attemptDir, "harness_judgment.json"));
+        const metadata = readJson(path.join(attemptDir, "episode_metadata.json"));
+        const answerHash = fileDigest(path.join(attemptDir, "raw_answer.txt")).sha256;
+        if (metrics.harness_valid !== true || judgment.harness_valid !== true || metrics.answer_sha256 !== answerHash || judgment.answer_sha256 !== answerHash || metrics.episode_id !== terminal.episode_id || judgment.episode_id !== terminal.episode_id || metadata?.resume_identity?.sha256 !== resumeIdentity.sha256) artifactCorruption(`answer or episode cross-check failed for ${terminal.attempt_id}`);
+        for (const name of REQUIRED_ARTIFACTS) {
+            const expected = metadata?.artifact_seal?.[name]; const observed = fileDigest(path.join(attemptDir, name));
+            if (!expected?.exists || expected.sha256 !== observed.sha256 || expected.bytes !== observed.bytes) artifactCorruption(`episode seal mismatch for ${terminal.attempt_id}: ${name}`);
+        }
+        const scorer = readJson(path.join(attemptDir, "scorer_output.json"));
+        if (skipScorer ? scorer.status !== "skipped" : !validScorerOutput(scorer, readJson(schemaPath), taskId, answerHash)) artifactCorruption(`scorer cross-check failed for ${terminal.attempt_id}`);
+        return metrics;
+    } catch (error) {
+        if (String(error?.message ?? error).includes("[runner:artifact_corruption]")) throw error;
+        artifactCorruption(`unreadable canonical artifact set for ${terminal.attempt_id}`);
+    }
+}
+
+function findReusableSolverAttempt(outRoot, solverIdentitySha256) {
+    const candidates = validatedTerminalEvents(outRoot, solverIdentitySha256).reusable;
+    if (candidates.length === 0) return null;
+    const candidate = candidates[0];
+    if (!candidate.canonical_solver_artifacts || !candidate.attempt_dir) artifactCorruption(`reusable solver artifact inventory is incomplete: ${candidate.attempt_id}`);
+    try {
+        const metrics = readJson(path.join(candidate.attempt_dir, "result_metrics.json"));
+        const judgment = readJson(path.join(candidate.attempt_dir, "harness_judgment.json"));
+        const answerHash = fileDigest(path.join(candidate.attempt_dir, "raw_answer.txt")).sha256;
+        if (candidate.solver_identity_sha256 !== solverIdentitySha256 || metrics.harness_valid !== true || judgment.harness_valid !== true || metrics.answer_sha256 !== answerHash || judgment.answer_sha256 !== answerHash) artifactCorruption(`solver answer cross-check failed for ${candidate.attempt_id}`);
+        for (const name of SOLVER_REUSABLE_ARTIFACTS) {
+            const expected = candidate.canonical_solver_artifacts[name]; const observed = fileDigest(path.join(candidate.attempt_dir, name));
+            if (!expected?.exists || expected.sha256 !== observed.sha256 || expected.bytes !== observed.bytes) artifactCorruption(`solver artifact seal mismatch for ${candidate.attempt_id}: ${name}`);
+        }
+        return candidate;
+    } catch (error) {
+        if (String(error?.message ?? error).includes("[runner:artifact_corruption]")) throw error;
+        artifactCorruption(`unreadable reusable solver artifact set for ${candidate.attempt_id}`);
+    }
 }
 
 function shQuote(value) {
@@ -413,9 +865,12 @@ function extractCodexOutput(stdoutText, lastMessagePath) {
 function extractOpencodeJsonOutput(stdoutText) {
     const textParts = [];
     const toolEvents = [];
-    let tokens = null;
-
-    for (const event of jsonLines(stdoutText)) {
+    const stepTokens = [];
+    let parsedEventIndex = 0;
+    for (const [rawLineIndex, rawLine] of String(stdoutText).split(/\r?\n/).entries()) {
+        const event = maybeJson(rawLine.trim());
+        if (event === null) continue;
+        const eventPosition = { raw_line_number: rawLineIndex + 1, parsed_event_index: parsedEventIndex++ };
         const type = event.type;
         const part = event.part || {};
         if (type === "text" && typeof part.text === "string") {
@@ -425,7 +880,13 @@ function extractOpencodeJsonOutput(stdoutText) {
             const callId = part.callID || part.id || null;
             const state = part.state || {};
             // call 이벤트
-            toolEvents.push({ phase: "call", tool_name: name, call_id: callId, response_size_bytes: 0 });
+            toolEvents.push({
+                phase: "call",
+                tool_name: name,
+                call_id: callId,
+                response_size_bytes: 0,
+                ...eventPosition,
+            });
             // result 이벤트 (output 바이트 — truncated면 outputPath 파일 크기 우선)
             let bytes = 0;
             const meta = state.metadata || {};
@@ -438,19 +899,39 @@ function extractOpencodeJsonOutput(stdoutText) {
             } else {
                 bytes = byteLength(state.output);
             }
-            toolEvents.push({ phase: "result", tool_name: name, call_id: callId, response_size_bytes: bytes });
+            toolEvents.push({
+                phase: "result",
+                tool_name: name,
+                call_id: callId,
+                response_size_bytes: bytes,
+                ...eventPosition,
+            });
         } else if (type === "step_finish" && part.tokens) {
             const t = part.tokens;
-            tokens = {
+            stepTokens.push({
+                ...eventPosition,
                 input_tokens: t.input ?? null,
                 output_tokens: t.output ?? null,
                 cache_read_input_tokens: (t.cache && t.cache.read) ?? null,
                 cache_creation_input_tokens: (t.cache && t.cache.write) ?? null,
-            };
+            });
         }
     }
-
-    return { rawAnswer: textParts.join("\n").trim(), tokens, toolEvents };
+    const sum = (field) => {
+        const values = stepTokens.map((tokens) => tokens[field]).filter((value) => typeof value === "number");
+        return values.length === 0 ? null : values.reduce((total, value) => total + value, 0);
+    };
+    return {
+        rawAnswer: textParts.join("\n").trim(),
+        tokens: stepTokens.length === 0 ? null : {
+            input_tokens: sum("input_tokens"),
+            output_tokens: sum("output_tokens"),
+            cache_read_input_tokens: sum("cache_read_input_tokens"),
+            cache_creation_input_tokens: sum("cache_creation_input_tokens"),
+        },
+        stepTokens,
+        toolEvents,
+    };
 }
 
 // ============================================================
@@ -522,13 +1003,13 @@ function calcBackendExercised(backend, toolCallDistribution) {
 // MCP config 파일 생성 (claude codemap arm용)
 // ============================================================
 
-function buildMcpConfigForArm(arm, targetRoot, episodeDir) {
+function buildMcpConfigForArm(arm, targetRoot, episodeDir, codemapBin) {
     const mcpConfigPath = path.join(episodeDir, "mcp_config.json");
     if (arm.backend === "codemap") {
         writeJson(mcpConfigPath, {
             mcpServers: {
                 "codemap-search": {
-                    command: CODEMAP_BIN,
+                    command: codemapBin,
                     args: ["mcp"],
                     cwd: targetRoot,
                 },
@@ -561,7 +1042,7 @@ function buildMcpConfigForArm(arm, targetRoot, episodeDir) {
 // opencode XDG_CONFIG_HOME config 생성
 // ============================================================
 
-function buildOpencodeXdgConfig(arm, targetRoot, episodeDir) {
+function buildOpencodeXdgConfig(arm, targetRoot, episodeDir, codemapBin) {
     const xdgHome = path.join(episodeDir, "opencode-xdg");
     const opencodeConfigDir = path.join(xdgHome, "opencode");
     mkdirSync(opencodeConfigDir, { recursive: true });
@@ -594,12 +1075,17 @@ function buildOpencodeXdgConfig(arm, targetRoot, episodeDir) {
         webfetch: "deny",
         websearch: "deny",
     };
+    // run07: the Ollama Cloud codemap arm keeps builtin read, but must not resolve a
+    // parent-workspace path when OpenCode receives an absolute file path.
+    if (arm.arm_id === "opencode-ollama-cloud-deepseek-codemap") {
+        permissionConfig.external_directory = "deny";
+    }
 
     const mcpSection = {};
     if (arm.backend === "codemap") {
         mcpSection["codemap-search"] = {
             type: "local",
-            command: [CODEMAP_BIN, "mcp"],
+            command: [codemapBin, "mcp"],
             enabled: true,
             cwd: targetRoot,
         };
@@ -623,8 +1109,9 @@ function buildOpencodeXdgConfig(arm, targetRoot, episodeDir) {
         permission: permissionConfig,
         mcp: mcpSection,
     };
-    writeFileSync(path.join(opencodeConfigDir, "opencode.jsonc"), JSON.stringify(config, null, 2));
-    return xdgHome;
+    const configPath = path.join(opencodeConfigDir, "opencode.jsonc");
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+    return { xdgHome, configPath };
 }
 
 // ============================================================
@@ -635,7 +1122,7 @@ function buildOpencodeXdgConfig(arm, targetRoot, episodeDir) {
  * arm 설정과 episode 정보로 실행 명령을 빌드한다.
  * Returns: { command, args, env, cwd, lastMessagePath? }
  */
-function buildEpisodeCommand(arm, targetRoot, prompt, episodeDir) {
+function buildEpisodeCommand(arm, targetRoot, prompt, episodeDir, codemapBin) {
     const runtime = arm.runtime;
 
     if (runtime === "claude-sonnet") {
@@ -649,7 +1136,7 @@ function buildEpisodeCommand(arm, targetRoot, prompt, episodeDir) {
                 "Edit,Write,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,Workflow,Agent,Skill",
             );
         } else {
-            const mcpConfigPath = buildMcpConfigForArm(arm, targetRoot, episodeDir);
+            const mcpConfigPath = buildMcpConfigForArm(arm, targetRoot, episodeDir, codemapBin);
             args.push("--mcp-config", mcpConfigPath);
             // arm config의 allowedTools/disallowedTools를 그대로 사용
             // arm.command에서 추출하거나 arm_config의 직접 필드를 사용
@@ -695,7 +1182,7 @@ function buildEpisodeCommand(arm, targetRoot, prompt, episodeDir) {
             if (arm.backend === "codemap") {
                 args.push(
                     "-c",
-                    `mcp_servers.codemap-search.command=${CODEMAP_BIN}`,
+                    `mcp_servers.codemap-search.command=${codemapBin}`,
                     "-c",
                     'mcp_servers.codemap-search.args=["mcp"]',
                     "-c",
@@ -733,18 +1220,26 @@ function buildEpisodeCommand(arm, targetRoot, prompt, episodeDir) {
     }
 
     if (runtime.startsWith("opencode-")) {
-        const xdgHome = buildOpencodeXdgConfig(arm, targetRoot, episodeDir);
+        // OpenCode 1.17.18 uses --dir as the client/session directory.  The runner's
+        // spawn cwd alone previously allowed a parent-workspace session to be selected.
+        // Restrict this run07 repair to the affected Ollama Cloud codemap arm.
+        const isRun07OllamaCodemapArm = arm.arm_id === "opencode-ollama-cloud-deepseek-codemap";
+        const canonicalTargetRoot = isRun07OllamaCodemapArm ? realpathSync(targetRoot) : targetRoot;
+        const { xdgHome, configPath } = buildOpencodeXdgConfig(arm, canonicalTargetRoot, episodeDir, codemapBin);
         // --format json: JSONL events(tool_use/text/step_finish) → 견고한 answer/tool/token 추출.
         // 기존 ANSI stdout 파싱은 fragile했고 tool_events/tokens를 못 얻었음.
-        const args = ["run", "--model", arm.model, "--format", "json"];
+        const args = isRun07OllamaCodemapArm
+            ? ["run", "--dir", canonicalTargetRoot, "--model", arm.model, "--format", "json"]
+            : ["run", "--model", arm.model, "--format", "json"];
 
         return {
             command: "opencode",
             args,
             env: { ...process.env, XDG_CONFIG_HOME: xdgHome },
-            cwd: targetRoot,
+            cwd: canonicalTargetRoot,
             stdin: prompt,
             lastMessagePath: null,
+            opencodeConfigPath: configPath,
         };
     }
 
@@ -802,22 +1297,47 @@ function deriveClaudeDisallowedTools(arm) {
  *
  * @returns process 결과 + groupKilled(그룹 정리 시도 여부)
  */
-function runProcess(plan, timeoutMs) {
-    return new Promise((resolve) => {
+function runProcess(plan, timeoutMs, streamPaths = null, abortSignal = null) {
+    return new Promise((resolve, reject) => {
         const startedAt = Date.now();
         let timedOut = false;
-        let stdout = "";
-        let stderr = "";
+        const stdoutChunks = [];
+        const stderrChunks = [];
         let spawnError = null;
+        let settled = false;
+        let stdoutFd = null;
+        let stderrFd = null;
 
-        const child = spawn(plan.command, plan.args, {
-            cwd: plan.cwd,
-            env: plan.env,
-            stdio: ["pipe", "pipe", "pipe"],
-            // detached:true → 자식이 새 프로세스 그룹의 리더가 됨(pgid == child.pid).
-            // 런타임이 spawn한 MCP/언어서버 손자도 같은 그룹에 들어가 그룹 kill로 함께 정리된다.
-            detached: true,
-        });
+        // Streaming destinations are opened before the solver starts. A write failure is
+        // therefore reported through the same promise boundary as a spawn/timeout failure.
+        try {
+            if (streamPaths?.stdout) stdoutFd = openSync(streamPaths.stdout, "a");
+            if (streamPaths?.stderr) stderrFd = openSync(streamPaths.stderr, "a");
+        } catch (error) {
+            for (const fd of [stdoutFd, stderrFd]) {
+                if (fd != null) try { closeSync(fd); } catch {}
+            }
+            reject(error);
+            return;
+        }
+
+        let child;
+        try {
+            child = spawn(plan.command, plan.args, {
+                cwd: plan.cwd,
+                env: plan.env,
+                stdio: ["pipe", "pipe", "pipe"],
+                // detached:true → 자식이 새 프로세스 그룹의 리더가 됨(pgid == child.pid).
+                // 런타임이 spawn한 MCP/언어서버 손자도 같은 그룹에 들어가 그룹 kill로 함께 정리된다.
+                detached: true,
+            });
+        } catch (error) {
+            for (const fd of [stdoutFd, stderrFd]) {
+                if (fd != null) try { closeSync(fd); } catch {}
+            }
+            reject(error);
+            return;
+        }
 
         const childPid = child.pid;
 
@@ -847,6 +1367,45 @@ function runProcess(plan, timeoutMs) {
             }, 2000).unref();
         }
 
+        function closeStreamFds() {
+            for (const fd of [stdoutFd, stderrFd]) {
+                if (fd == null) continue;
+                try { fsyncSync(fd); } catch {}
+                try { closeSync(fd); } catch {}
+            }
+            stdoutFd = null;
+            stderrFd = null;
+        }
+        function settle(error, value) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            abortSignal?.removeEventListener("abort", abortProcess);
+            child.stdout.off("data", onStdout);
+            child.stderr.off("data", onStderr);
+            cleanupBackendProcesses();
+            closeStreamFds();
+            if (error) reject(error); else resolve(value);
+        }
+        function failStreamWrite(error) {
+            cleanupBackendProcesses();
+            settle(new Error(`[runner:stream_write] ${error?.message ?? error}`));
+        }
+        function abortProcess() {
+            killProcessGroup("SIGTERM");
+            setTimeout(() => killProcessGroup("SIGKILL"), 2000).unref();
+        }
+        function onStdout(chunk) {
+            const bytes = Buffer.from(chunk);
+            stdoutChunks.push(bytes);
+            try { if (stdoutFd != null) writeFileSync(stdoutFd, bytes); } catch (error) { failStreamWrite(error); }
+        }
+        function onStderr(chunk) {
+            const bytes = Buffer.from(chunk);
+            stderrChunks.push(bytes);
+            try { if (stderrFd != null) writeFileSync(stderrFd, bytes); } catch (error) { failStreamWrite(error); }
+        }
+
         if (plan.stdin) {
             child.stdin.write(plan.stdin, "utf8");
             child.stdin.end();
@@ -854,15 +1413,9 @@ function runProcess(plan, timeoutMs) {
             child.stdin.end();
         }
 
-        child.on("error", (err) => {
-            spawnError = err;
-        });
-        child.stdout.on("data", (chunk) => {
-            stdout += chunk.toString();
-        });
-        child.stderr.on("data", (chunk) => {
-            stderr += chunk.toString();
-        });
+        child.on("error", (err) => { spawnError = err; });
+        child.stdout.on("data", onStdout);
+        child.stderr.on("data", onStderr);
 
         const timer = setTimeout(() => {
             timedOut = true;
@@ -872,15 +1425,22 @@ function runProcess(plan, timeoutMs) {
                 killProcessGroup("SIGKILL");
             }, 5000).unref();
         }, timeoutMs);
+        if (abortSignal) {
+            if (abortSignal.aborted) abortProcess();
+            else abortSignal.addEventListener("abort", abortProcess, { once: true });
+        }
 
-        child.on("close", (code) => {
-            clearTimeout(timer);
-            // 정상/비정상 종료 모두에서 백엔드 손자 프로세스를 정리(누적 방지).
-            cleanupBackendProcesses();
-            resolve({
+        child.on("close", (code, signal) => {
+            const stdoutBytes = Buffer.concat(stdoutChunks);
+            const stderrBytes = Buffer.concat(stderrChunks);
+            settle(null, {
                 exitCode: spawnError ? null : code,
-                stdout,
-                stderr,
+                signal: signal ?? null,
+                spawn_attempted: true,
+                stdout: stdoutBytes.toString("utf8"),
+                stderr: stderrBytes.toString("utf8"),
+                stdoutBytes,
+                stderrBytes,
                 timedOut,
                 spawnError: spawnError ? String(spawnError) : null,
                 elapsedMs: Date.now() - startedAt,
@@ -1031,15 +1591,28 @@ async function waitForMemoryBeforeHeavyEpisode(pollIntervalMs = 5000, maxWaitMs 
  *   done-marker로 적합하다. timeout/partial episode는 이 파일이 없거나 불완전 → 재실행.
  * @returns {object|null} 완료 시 기존 result_metrics(요약 필드), 아니면 null.
  */
-function loadCompletedEpisode(episodeDir) {
+function loadCompletedEpisode(episodeDir, resumeIdentity, skipScorer, outRoot = null, schemaPath = null, taskId = null) {
+    if (outRoot && schemaPath && taskId) {
+        // Even when a later scored attempt can be skipped, its underlying solver artifact
+        // remains the canonical source. Verify it first so a corrupted prior solver result
+        // cannot be hidden behind the later scorer-only terminal record.
+        findReusableSolverAttempt(outRoot, resumeIdentity.solver_identity.sha256);
+        const terminal = readCanonicalTerminal(outRoot, resumeIdentity.solver_identity.sha256, resumeIdentity.sha256);
+        const trustedMetrics = terminal && validateCompletedArtifacts(terminal.attempt_dir, terminal, resumeIdentity, skipScorer, schemaPath, taskId, episodeDir);
+        if (!trustedMetrics) return null;
+        return trustedMetrics;
+    }
     const metricsPath = path.join(episodeDir, "result_metrics.json");
     const judgmentPath = path.join(episodeDir, "harness_judgment.json");
-    if (!existsSync(metricsPath) || !existsSync(judgmentPath)) return null;
+    const metadataPath = path.join(episodeDir, "episode_metadata.json");
+    if (!existsSync(metricsPath) || !existsSync(judgmentPath) || !existsSync(metadataPath)) return null;
     let metrics;
     let judgment;
+    let metadata;
     try {
         metrics = readJson(metricsPath);
         judgment = readJson(judgmentPath);
+        metadata = readJson(metadataPath);
     } catch {
         return null; // 파싱 실패 → 불완전 → 재실행
     }
@@ -1048,13 +1621,80 @@ function loadCompletedEpisode(episodeDir) {
         metrics == null ||
         typeof metrics.arm_id !== "string" ||
         typeof metrics.extraction_status !== "string" ||
-        typeof metrics.harness_valid !== "boolean" ||
+        metrics.harness_valid !== true ||
+        metrics.extraction_status !== "success" ||
+        metrics.mutation_guard_status !== "clean" ||
         judgment == null ||
-        typeof judgment.episode_id !== "string"
+        typeof judgment.episode_id !== "string" ||
+        metadata?.resume_identity?.sha256 !== resumeIdentity?.sha256 ||
+        metadata?.scoring?.skip_scorer !== skipScorer ||
+        (skipScorer ? metadata?.scoring?.status !== "skipped" : metadata?.scoring?.status !== "completed") ||
+        !metadata?.process?.stdout?.exists || !metadata?.process?.stderr?.exists ||
+        fileDigest(path.join(episodeDir, "stdout.txt")).sha256 !== metadata.process.stdout.sha256 ||
+        fileDigest(path.join(episodeDir, "stderr.txt")).sha256 !== metadata.process.stderr.sha256 ||
+        !existsSync(path.join(episodeDir, "raw_answer.txt")) ||
+        !existsSync(path.join(episodeDir, "tool_events.json")) ||
+        !existsSync(path.join(episodeDir, "scorer_output.json")) ||
+        !metadata?.artifact_seal
     ) {
         return null;
     }
+    for (const [artifactName, expected] of Object.entries(metadata.artifact_seal)) {
+        const observed = fileDigest(path.join(episodeDir, artifactName));
+        if (!expected?.exists || observed.sha256 !== expected.sha256 || observed.bytes !== expected.bytes) return null;
+    }
+    const scorerOutput = readJson(path.join(episodeDir, "scorer_output.json"));
+    const answerHash = fileDigest(path.join(episodeDir, "raw_answer.txt")).sha256;
+    if (metrics.answer_sha256 !== answerHash || judgment.answer_sha256 !== answerHash || metrics.episode_id !== judgment.episode_id) return null;
+    if (!skipScorer && (!validScorerOutput(scorerOutput, schemaPath ? readJson(schemaPath) : null, taskId, answerHash) || metrics.scorer_score !== scorerOutput.score || judgment.scorer_score !== scorerOutput.score)) return null;
+    if (skipScorer && scorerOutput?.status !== "skipped") return null;
     return metrics;
+}
+
+async function prepareEpisodeForResume(ep, config) {
+    const preflightCache = config.preflightCache ?? (config.preflightCache = new Map());
+    const preflightSemaphore = config.preflightSemaphore ?? (config.preflightSemaphore = new Semaphore(4));
+    const arm = ep.arm_id ?? ep.arm;
+    const round = canonicalRound(ep.round);
+    const armDef = config.armConfig.arms.find((candidate) => candidate.arm_id === arm);
+    if (!armDef) throw new Error(`arm_id not found: ${arm}`);
+    const taskDef = config.manifest.tasks[ep.codebase];
+    if (!taskDef) throw new Error(`codebase not found in manifest: ${ep.codebase}`);
+    const targetRoot = resolveWorkspacePath(taskDef.code_root, config.workspaceRoot);
+    const publicQuestionPath = resolveWorkspacePath(taskDef.public_question, config.workspaceRoot);
+    const privateAnswerKeyPath = resolveWorkspacePath(taskDef.private_answer_key, config.workspaceRoot);
+    const schemaPath = path.join(config.schemaDir, `scoring_schema.${ep.codebase}.json`);
+    requireDirectory("target root", targetRoot);
+    requireFile("public question", publicQuestionPath);
+    requireFile("private answer key", privateAnswerKeyPath);
+    requireFile("scoring schema", schemaPath);
+    if (!config.skipScorer) requireFile("scorer", config.scorerPath);
+    const targetRootRealpath = realpathSync(targetRoot);
+    const runtime = await cachedIdentity(config, "runtimeIdentityCache", armDef.runtime, () => runtimeIdentity(armDef.runtime));
+    const fixtureIdentity = await cachedIdentity(config, "targetIdentityCache", targetRootRealpath, () => targetIdentity(targetRootRealpath));
+    const codemapIdentity = armDef.backend === "codemap" ? config.codemapBinary : null;
+    const fixtureContractValue = fixtureContract(taskDef, ep.codebase, armDef, codemapIdentity);
+    const fixtureContractSha256 = sha256(JSON.stringify(fixtureContractValue));
+    const preflightKey = JSON.stringify({ root: fixtureIdentity.realpath, runtime, codemap: codemapIdentity, fixture_contract_sha256: fixtureContractSha256 });
+    let preflight = preflightCache.get(preflightKey);
+    if (!preflight) {
+        preflight = (async () => {
+            await preflightSemaphore.acquire();
+            try {
+                return await preflightFixture({ taskDef, taskId: ep.codebase, targetRoot, armDef, codemapBin: config.codemapBin, identity: fixtureIdentity });
+            } finally {
+                preflightSemaphore.release();
+            }
+        })();
+        preflightCache.set(preflightKey, preflight);
+        preflight.catch(() => { if (preflightCache.get(preflightKey) === preflight) preflightCache.delete(preflightKey); });
+    }
+    const fixture = await preflight;
+    const contract = scoringContract({ scorerPath: config.scorerPath, schemaPath, privateAnswerKeyPath, judgeModel: config.judgeModel, printCmd: config.printCmd });
+    const prompt = readFileSync(publicQuestionPath, "utf8");
+    const resumeIdentity = buildResumeIdentity({ armDef, promptPath: publicQuestionPath, prompt, config, contract, fixtureIdentity: fixture.identity, runtime, episode: { arm_id: arm, codebase: ep.codebase, round } });
+    const episodeDir = path.join(config.outRoot, arm, ep.codebase, `round-${round}`);
+    return { armDef, episodeDir, resumeIdentity, fixture, runtime, targetRoot, publicQuestionPath, privateAnswerKeyPath, schemaPath };
 }
 
 // ============================================================
@@ -1073,11 +1713,12 @@ function loadCompletedEpisode(episodeDir) {
  */
 async function runEpisode(ep, config, hooks = {}) {
     // episodes.json은 arm_id 또는 arm 필드를 허용
-    const { arm: armField, arm_id, codebase, round } = ep;
+    const { arm: armField, arm_id, codebase, round: roundInput, sequence_ordinal: sequenceOrdinal = null } = ep;
     const arm = arm_id ?? armField;
+    const round = canonicalRound(roundInput);
     const releaseSlots = typeof hooks.releaseSlots === "function" ? hooks.releaseSlots : () => {};
     const coTenancySnapshot = typeof hooks.coTenancySnapshot === "function" ? hooks.coTenancySnapshot : () => null;
-    const { armConfig, manifest, scorerPath, schemaDir, outRoot, timeoutMs, judgeModel, printCmd } = config;
+    const { armConfig, manifest, scorerPath, schemaDir, outRoot, timeoutMs, judgeModel, printCmd, skipScorer, codemapBin, workspaceRoot } = config;
 
     const armDef = armConfig.arms.find((a) => a.arm_id === arm);
     if (!armDef) throw new Error(`arm_id not found: ${arm}`);
@@ -1085,18 +1726,32 @@ async function runEpisode(ep, config, hooks = {}) {
     const taskDef = manifest.tasks[codebase];
     if (!taskDef) throw new Error(`codebase not found in manifest: ${codebase}`);
 
-    const targetRoot = taskDef.code_root;
-    const publicQuestionPath = path.join(WORKSPACE_ROOT, taskDef.public_question);
-    const privateAnswerKeyPath = path.join(WORKSPACE_ROOT, taskDef.private_answer_key);
+    const targetRoot = resolveWorkspacePath(taskDef.code_root, workspaceRoot);
+    const publicQuestionPath = resolveWorkspacePath(taskDef.public_question, workspaceRoot);
+    const privateAnswerKeyPath = resolveWorkspacePath(taskDef.private_answer_key, workspaceRoot);
     const schemaPath = path.join(schemaDir, `scoring_schema.${codebase}.json`);
+
+    console.log(
+        `[runner:paths] workspace_root=${workspaceRoot} target_root=${targetRoot} public_question=${publicQuestionPath} private_answer_key=${privateAnswerKeyPath} schema=${schemaPath}`,
+    );
+    requireDirectory("target root", targetRoot);
+    requireFile("public question", publicQuestionPath);
+    requireFile("private answer key", privateAnswerKeyPath);
+    requireFile("scoring schema", schemaPath);
+    if (!skipScorer) requireFile("scorer", scorerPath);
 
     const prompt = readFileSync(publicQuestionPath, "utf8");
     const episodeId = `${arm}__${codebase}__round-${round}`;
     const episodeDir = path.join(outRoot, arm, codebase, `round-${round}`);
+    const contract = scoringContract({ scorerPath, schemaPath, privateAnswerKeyPath, judgeModel, printCmd });
+    const prepared = hooks.prepared ?? await prepareEpisodeForResume(ep, config);
+    const fixture = prepared.fixture;
+    const solverRuntime = prepared.runtime;
+    const resumeIdentity = prepared.resumeIdentity;
 
     // --- resume-skip: 완료된 episode면 재실행 없이 건너뛴다 (P9 6~10시간 중단·재개 대비) ---
     if (!config.force) {
-        const completed = loadCompletedEpisode(episodeDir);
+        const completed = loadCompletedEpisode(episodeDir, resumeIdentity, skipScorer, outRoot, schemaPath, codebase);
         if (completed) {
             console.log(`[episode:skip] ${episodeId} (already complete; --force로 재실행)`);
             return {
@@ -1115,6 +1770,31 @@ async function runEpisode(ep, config, hooks = {}) {
         }
     }
 
+    // A sealed solver result is immutable even when its first scorer failed. Later scored
+    // invocations must reuse it; retry only applies when no reusable solver exists.
+    const reusableSolver = findReusableSolverAttempt(outRoot, resumeIdentity.solver_identity.sha256);
+    if (config.force) {
+        const completed = loadCompletedEpisode(episodeDir, resumeIdentity, skipScorer, outRoot, schemaPath, codebase);
+        if (completed) {
+            throw new Error(`[runner:force] ${episodeId} already has a valid successful final identity; choose a fresh --out-root/run id instead of appending duplicate evidence`);
+        }
+    }
+    if (skipScorer && reusableSolver) {
+        throw new Error(`[runner:reuse] ${episodeId} already has a sealed solver artifact; --skip-scorer cannot append a duplicate solver success`);
+    }
+    const reusableSolverAttempt = !skipScorer ? reusableSolver : null;
+    // The solver identity is single-use by default: a prior started record (including a
+    // crash with no terminal record) or a terminal failure must be explicitly investigated,
+    // never silently retried by a resumed benchmark invocation.
+    if (!reusableSolverAttempt && !config.allowRetry && hasPriorTerminalOrStartedAttempt(outRoot, resumeIdentity.solver_identity.sha256)) {
+        throw new Error(`[runner:retry] solver identity already attempted; --allow-retry is required: ${resumeIdentity.solver_identity.sha256}`);
+    }
+    const claimPath = acquireEpisodeClaim(outRoot, resumeIdentity.solver_identity.sha256);
+    let terminalAppended = false;
+    let terminalLedgerBase = null;
+    let terminalAttemptId = null;
+    try {
+
     mkdirSync(episodeDir, { recursive: true });
 
     // --- co-tenancy: 이 episode 실행 시작 시점의 동시 실행 구성 스냅샷 ---
@@ -1128,7 +1808,7 @@ async function runEpisode(ep, config, hooks = {}) {
     writeJson(path.join(episodeDir, "mutation_guard_before.json"), snapshotBefore);
 
     // --- 명령 빌드 ---
-    const plan = buildEpisodeCommand(armDef, targetRoot, prompt, episodeDir);
+    const plan = buildEpisodeCommand(armDef, targetRoot, prompt, episodeDir, codemapBin);
     const exactCommandStr = commandLine(plan.command, plan.args);
     writeText(path.join(episodeDir, "exact_command.txt"), exactCommandStr + "\n");
     writeJson(path.join(episodeDir, "exact_command.json"), {
@@ -1147,17 +1827,56 @@ async function runEpisode(ep, config, hooks = {}) {
     }
 
     // --- 실행 ---
-    const processResult = await runProcess(plan, timeoutMs);
+    const attemptId = randomUUID();
+    terminalAttemptId = attemptId;
+    const attemptDir = path.join(outRoot, "attempts", attemptId);
+    mkdirSync(attemptDir, { recursive: true });
+    const attemptStdoutPath = path.join(attemptDir, "stdout.txt");
+    const attemptStderrPath = path.join(attemptDir, "stderr.txt");
+    writeFileSync(attemptStdoutPath, "");
+    writeFileSync(attemptStderrPath, "");
+    const ledgerBase = {
+        identity_schema_version: IDENTITY_SCHEMA_VERSION,
+        attempt_id: attemptId,
+        attempt_dir: attemptDir,
+        episode_id: episodeId,
+        arm_id: arm,
+        codebase,
+        round,
+        sequence_ordinal: sequenceOrdinal,
+        provider: armDef.model?.split("/")[0] ?? null,
+        model: armDef.model,
+        command_sha256: sha256(exactCommandStr),
+        runtime: solverRuntime,
+        repository: fixture.identity,
+        solver_identity_sha256: resumeIdentity.solver_identity.sha256,
+        final_identity_sha256: resumeIdentity.sha256,
+    };
+    terminalLedgerBase = ledgerBase;
+    appendAttemptLedger(outRoot, { ...ledgerBase, event: reusableSolverAttempt ? "scorer_started" : "started", timestamp: new Date().toISOString(), reused_solver_attempt_id: reusableSolverAttempt?.attempt_id ?? null });
+    writeJson(path.join(attemptDir, "attempt_metadata.json"), { ...ledgerBase, fixture_proof: fixture.proof, resume_identity: resumeIdentity });
+    const solveStartedAt = new Date();
+    const processResult = reusableSolverAttempt
+        ? (() => {
+            const prior = readJson(path.join(reusableSolverAttempt.attempt_dir, "process_result.json"));
+            copyFileSync(path.join(reusableSolverAttempt.attempt_dir, "stdout.txt"), attemptStdoutPath);
+            copyFileSync(path.join(reusableSolverAttempt.attempt_dir, "stderr.txt"), attemptStderrPath);
+            return { exitCode: prior.exitCode, signal: prior.signal, timedOut: prior.timedOut, spawnError: prior.spawnError, elapsedMs: prior.elapsedMs, wall_time_s: prior.wall_time_s, spawn_attempted: false, reused_solver_attempt_id: reusableSolverAttempt.attempt_id, stdout: readFileSync(attemptStdoutPath, "utf8"), stderr: readFileSync(attemptStderrPath, "utf8"), stdoutBytes: readFileSync(attemptStdoutPath), stderrBytes: readFileSync(attemptStderrPath), backend_process_group_cleaned: prior.backend_process_group_cleaned ?? false };
+        })()
+        : await runProcess(plan, timeoutMs, { stdout: attemptStdoutPath, stderr: attemptStderrPath }, hooks.abortSignal ?? null);
+    const solveFinishedAt = new Date();
+    const solveElapsedMs = processResult.elapsedMs;
     const wallTimeS = processResult.elapsedMs / 1000;
 
     console.log(
         `[episode:done] ${episodeId} exit=${processResult.exitCode} wall_time_s=${wallTimeS.toFixed(1)} timed_out=${processResult.timedOut}`,
     );
 
-    writeText(path.join(episodeDir, "stdout.txt"), processResult.stdout);
-    writeText(path.join(episodeDir, "stderr.txt"), processResult.stderr);
+    copyFileSync(attemptStdoutPath, path.join(episodeDir, "stdout.txt"));
+    copyFileSync(attemptStderrPath, path.join(episodeDir, "stderr.txt"));
     writeJson(path.join(episodeDir, "process_result.json"), {
         exitCode: processResult.exitCode,
+        signal: processResult.signal,
         timedOut: processResult.timedOut,
         spawnError: processResult.spawnError,
         elapsedMs: processResult.elapsedMs,
@@ -1192,6 +1911,7 @@ async function runEpisode(ep, config, hooks = {}) {
     // --- runtime별 답변 추출 ---
     let rawAnswer = "";
     let tokens = null;
+    let tokenSteps = [];
     let toolEvents = [];
     let extractionStatus = "unknown";
 
@@ -1214,6 +1934,7 @@ async function runEpisode(ep, config, hooks = {}) {
         rawAnswer = extracted.rawAnswer ?? "";
         toolEvents = extracted.toolEvents;
         tokens = extracted.tokens;
+        tokenSteps = extracted.stepTokens;
         extractionStatus = rawAnswer.length > 0 ? "success" : "empty";
     } else {
         extractionStatus = "unsupported_runtime";
@@ -1233,6 +1954,23 @@ async function runEpisode(ep, config, hooks = {}) {
 
     writeJson(path.join(episodeDir, "tool_events.json"), toolEvents);
 
+    // Seal the solver stage before scoring. This record is intentionally independent of the
+    // final terminal: scorer process/parse/contract failures can be recovered by scorer-only
+    // resume without another solver spawn.
+    const solverReusable = !reusableSolverAttempt &&
+        !processResult.timedOut && processResult.exitCode === 0 &&
+        mutationGuardStatus === "clean" && extractionStatus === "success" && rawAnswer.trim().length > 0;
+    if (solverReusable) {
+        const canonicalSolverArtifacts = buildArtifactSeal(episodeDir, SOLVER_REUSABLE_ARTIFACTS);
+        appendAttemptLedger(outRoot, {
+            ...ledgerBase,
+            event: "solver_reusable",
+            timestamp: new Date().toISOString(),
+            answer_sha256: sha256(rawAnswer),
+            canonical_solver_artifacts: canonicalSolverArtifacts,
+        });
+    }
+
     // --- 채점 잠금 밖 실행: solver 답변 추출이 끝났으므로 codebase 락·백엔드 세마포어·전역 슬롯을
     //     먼저 release한다. scorer(judge)는 target-root에 접근하지 않으므로 무거운 슬롯을
     //     점유하지 않고 이 밖에서 실행된다. releaseSlots는 호출부에서 멱등 처리됨(중복 release 방지). ---
@@ -1241,8 +1979,14 @@ async function runEpisode(ep, config, hooks = {}) {
     // --- scorer.mjs 호출 (잠금 밖) ---
     let scorerOutput = null;
     let scorerScore = null;
+    let judgeStatus = skipScorer ? "skipped" : "not_started";
+    let judgeStartedAt = null; let judgeFinishedAt = null;
+    let judgeElapsedMs = null;
 
-    if (
+    if (skipScorer) {
+        scorerOutput = { status: judgeStatus, reason: existsSync(scorerPath) ? "skip_scorer" : "scorer_missing" };
+        writeJson(path.join(episodeDir, "scorer_output.json"), scorerOutput);
+    } else if (
         extractionStatus === "success" &&
         rawAnswer.trim().length > 0 &&
         existsSync(schemaPath) &&
@@ -1264,20 +2008,31 @@ async function runEpisode(ep, config, hooks = {}) {
         ];
         if (printCmd) scorerArgs.push("--print-cmd");
 
+        judgeStartedAt = new Date();
         console.log(`[scorer:start] ${episodeId}`);
         const scorerResult = spawnSync("node", scorerArgs, {
             encoding: "utf8",
             maxBuffer: 32 * 1024 * 1024,
             timeout: 300_000, // scorer(judge) 5분 상한
         });
+        judgeFinishedAt = new Date();
+        judgeElapsedMs = judgeFinishedAt.getTime() - judgeStartedAt.getTime();
 
         if (scorerResult.status === 0 && existsSync(scorerOutPath)) {
             try {
                 scorerOutput = readJson(scorerOutPath);
                 scorerScore = scorerOutput.score ?? null;
-                console.log(`[scorer:done] ${episodeId} score=${scorerScore}`);
+                if (!validScorerOutput(scorerOutput, readJson(schemaPath), codebase, sha256(rawAnswer))) {
+                    judgeStatus = "result_contract_error";
+                    scorerScore = null;
+                    console.error(`[scorer:contract_error] ${episodeId}`);
+                } else {
+                    judgeStatus = "completed";
+                    console.log(`[scorer:done] ${episodeId} score=${scorerScore}`);
+                }
             } catch {
                 console.error(`[scorer:parse_error] ${episodeId}`);
+                judgeStatus = "result_parse_error";
             }
         } else {
             console.error(
@@ -1288,6 +2043,7 @@ async function runEpisode(ep, config, hooks = {}) {
                 exit_code: scorerResult.status,
                 stderr: (scorerResult.stderr || "").slice(0, 800),
             };
+            judgeStatus = "scorer_failed";
             writeJson(path.join(episodeDir, "scorer_output.json"), scorerOutput);
         }
     } else {
@@ -1298,6 +2054,7 @@ async function runEpisode(ep, config, hooks = {}) {
                     ? `extraction_status=${extractionStatus}`
                     : "schema_or_answer_key_missing",
         };
+        judgeStatus = "not_run_solver_or_inputs_unavailable";
         writeJson(path.join(episodeDir, "scorer_output.json"), scorerOutput);
     }
 
@@ -1319,21 +2076,24 @@ async function runEpisode(ep, config, hooks = {}) {
         timed_out: processResult.timedOut,
         spawn_error: processResult.spawnError,
         wall_time_s: wallTimeS,
+        judge_status: judgeStatus,
         extraction_status: extractionStatus,
         mutation_guard_status: mutationGuardStatus,
         mutation_violations_count: mutationViolations.length,
         scorer_score: scorerScore,
+        answer_sha256: sha256(rawAnswer),
         backend_exercised: backendExercised,
         assigned_backend_tool_bytes: assignedBackendToolBytes,
         contains_bare: plan.args.includes("--bare"),
         cwd: plan.cwd,
-        cwd_is_target_root: path.resolve(plan.cwd) === path.resolve(targetRoot),
+        cwd_is_target_root: realpathSync(plan.cwd) === fixture.identity.realpath,
     };
     writeJson(path.join(episodeDir, "harness_judgment.json"), harnessJudgment);
 
     // --- result_metrics.json ---
     const answerSha256 = sha256(rawAnswer);
     const resultMetrics = {
+        episode_id: episodeId,
         arm_id: arm,
         runtime: armDef.runtime,
         model: armDef.model,
@@ -1342,6 +2102,7 @@ async function runEpisode(ep, config, hooks = {}) {
         codebase,
         round,
         wall_time_s: wallTimeS,
+        judge_status: judgeStatus,
         tokens,
         tool_call_distribution: toolCallDistribution,
         tool_result_bytes_by_tool: toolResultBytesByTool,
@@ -1360,6 +2121,66 @@ async function runEpisode(ep, config, hooks = {}) {
         backend_process_group_cleaned: processResult.backend_process_group_cleaned ?? false,
     };
     writeJson(path.join(episodeDir, "result_metrics.json"), resultMetrics);
+    const sealedArtifacts = REQUIRED_ARTIFACTS;
+    const artifactSeal = buildArtifactSeal(episodeDir, sealedArtifacts);
+    writeJson(path.join(episodeDir, "artifact_manifest.json"), { version: 1, artifacts: artifactSeal });
+    const episodeMetadata = {
+        recorded_at: new Date().toISOString(),
+        attempt: { attempt_id: attemptId, attempt_dir: attemptDir },
+        resume_identity: resumeIdentity,
+        task: { codebase, public_question: { path: publicQuestionPath, ...fileDigest(publicQuestionPath) }, fixture_proof: fixture.proof },
+        solver: {
+            arm_id: arm,
+            model: armDef.model,
+            runtime: armDef.runtime,
+            runtime_identity: solverRuntime,
+            backend: armDef.backend,
+            timeout_ms: timeoutMs,
+            command: { command: plan.command, args: plan.args, cwd: plan.cwd },
+            codemap_binary: config.codemapBinary,
+            opencode_config: plan.opencodeConfigPath ? { path: plan.opencodeConfigPath, ...fileDigest(plan.opencodeConfigPath) } : null,
+        },
+        scoring: {
+            skip_scorer: skipScorer,
+            status: judgeStatus,
+            contract,
+            started_at: judgeStartedAt?.toISOString() ?? null,
+            finished_at: judgeFinishedAt?.toISOString() ?? null,
+            elapsed_ms: judgeElapsedMs,
+        },
+        process: {
+            runner_started_at: config.runnerStartedAt,
+            solve_started_at: solveStartedAt.toISOString(),
+            solve_finished_at: solveFinishedAt.toISOString(),
+            elapsed_ms: solveElapsedMs,
+            spawn_attempted: processResult.spawn_attempted,
+            reused_solver_attempt_id: processResult.reused_solver_attempt_id ?? null,
+            exit_code: processResult.exitCode,
+            signal: processResult.signal,
+            timed_out: processResult.timedOut,
+            spawn_error: processResult.spawnError,
+            stdout: fileDigest(path.join(episodeDir, "stdout.txt")),
+            stderr: fileDigest(path.join(episodeDir, "stderr.txt")),
+        },
+        token_accounting: armDef.runtime.startsWith("opencode-")
+            ? { source: "stdout.txt", contract: "opencode JSON step_finish tokens are per-step values; sum each field", step_tokens: tokenSteps, aggregate: tokens }
+            : { source: armDef.runtime, aggregate: tokens },
+        artifact_seal: artifactSeal,
+    };
+    writeJson(path.join(episodeDir, "episode_metadata.json"), episodeMetadata);
+    for (const artifactName of [...sealedArtifacts, "artifact_manifest.json", "episode_metadata.json"]) {
+        const artifactPath = path.join(episodeDir, artifactName);
+        if (existsSync(artifactPath)) copyFileSync(artifactPath, path.join(attemptDir, artifactName));
+    }
+    const terminalEvent = harnessValid && (skipScorer || judgeStatus === "completed") ? "completed" : "terminal_failure";
+    const attemptTerminalEvents = ledgerEventsForIdentity(outRoot, resumeIdentity.solver_identity.sha256).filter((event) => event.attempt_id === attemptId && (event.event === "completed" || event.event === "terminal_failure"));
+    if (attemptTerminalEvents.length !== 0) throw new Error(`[runner:ledger] duplicate terminal event refused: ${attemptId}`);
+    const canonicalArtifacts = buildArtifactSeal(attemptDir, REQUIRED_ARTIFACTS);
+    appendAttemptLedger(outRoot, { ...ledgerBase, event: terminalEvent, timestamp: new Date().toISOString(), exit_code: processResult.exitCode, timed_out: processResult.timedOut, extraction_status: extractionStatus, harness_valid: harnessValid, scoring_status: judgeStatus, answer_sha256: answerSha256, canonical_artifacts: canonicalArtifacts, artifact_manifest_sha256: fileDigest(path.join(attemptDir, "artifact_manifest.json")).sha256, metadata_sha256: fileDigest(path.join(attemptDir, "episode_metadata.json")).sha256 });
+    terminalAppended = true;
+    if (terminalEvent === "terminal_failure") {
+        throw new Error(`[runner:terminal_failure] ${episodeId} scoring_status=${judgeStatus}`);
+    }
 
     return {
         arm_id: arm,
@@ -1374,6 +2195,19 @@ async function runEpisode(ep, config, hooks = {}) {
         episode_dir: episodeDir,
         skipped: false,
     };
+    } catch (error) {
+        if (terminalLedgerBase && !terminalAppended) {
+            try {
+                appendAttemptLedger(outRoot, { ...terminalLedgerBase, event: "terminal_failure", timestamp: new Date().toISOString(), failure_kind: "runner_exception", failure_message: String(error).slice(0, 400), attempt_id: terminalAttemptId ?? terminalLedgerBase.attempt_id });
+                terminalAppended = true;
+            } catch (ledgerError) {
+                console.error(`[runner:ledger_failure] ${String(ledgerError).slice(0, 400)}`);
+            }
+        }
+        throw error;
+    } finally {
+        releaseEpisodeClaim(claimPath);
+    }
 }
 
 // ============================================================
@@ -1435,6 +2269,13 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
 
     // mock seam: 테스트가 가짜 실행 구현을 주입할 수 있게 한다(무거운 실행 없이 스케줄러 단위 검증).
     const runImpl = typeof config.runEpisodeImpl === "function" ? config.runEpisodeImpl : runEpisode;
+    const batchAbortController = new AbortController();
+    function abortedResult(ep, armDef, error) {
+        return { arm_id: ep.arm_id ?? ep.arm, runtime: armDef?.runtime ?? "unknown", codebase: ep.codebase, round: ep.round, wall_time_s: null, extraction_status: "runner_error", scorer_score: null, mutation_guard_status: "unknown", harness_valid: false, episode_dir: null, skipped: false, error: String(error) };
+    }
+    function throwIfBatchAborted() {
+        if (batchAbortController.signal.aborted) throw new Error("[runner:batch_aborted] a peer episode failed before this episode could start");
+    }
 
     // co-tenancy 레지스트리: 현재 in-flight인 episode의 백엔드 구성을 추적.
     // 각 episode 실행 시작 시점 스냅샷을 result_metrics에 기록(wall_time 부풀림 보정용).
@@ -1445,7 +2286,7 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
         return { count: activeBackends.size, backends };
     }
 
-    const tasks = episodes.map((ep) => {
+    const tasks = episodes.map((ep, sequenceOrdinal) => {
         const armDef = armConfigArms.find((a) => a.arm_id === ep.arm_id);
         const backend = backendOf(armDef, ep);
         const isSerena = backend === "serena";
@@ -1455,30 +2296,36 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
         const backendSem = isSerena ? serenaSem : isCodegraph ? codegraphSem : null;
 
         return async () => {
-            // resume-skip 빠른 경로: 이미 완료된 episode면 어떤 락도 잡지 않고 즉시 건너뛴다
-            // (특히 serena의 메모리 가드 대기/codebase 락을 skip 대상에 낭비하지 않음).
-            // disk 마커(loadCompletedEpisode) 기반이라 runImpl과 무관하게 동작 — 단위 테스트 가능.
-            if (config.force !== true && config.outRoot) {
-                const episodeDirForSkip = path.join(config.outRoot, ep.arm_id, ep.codebase, `round-${ep.round}`);
-                const completed = loadCompletedEpisode(episodeDirForSkip);
+            // Fast skip remains outside execution slots, but expensive preflight is shared
+            // by canonical root/head/runtime/binary and bounded by preflightSemaphore.
+            let prepared;
+            try {
+                throwIfBatchAborted();
+                prepared = runImpl === runEpisode ? await prepareEpisodeForResume(ep, config) : null;
+                throwIfBatchAborted();
+            } catch (error) {
+                batchAbortController.abort(error);
+                return abortedResult(ep, armDef, error);
+            }
+            if (!config.force && prepared) {
+                const completed = loadCompletedEpisode(prepared.episodeDir, prepared.resumeIdentity, config.skipScorer, config.outRoot, path.join(config.schemaDir, `scoring_schema.${ep.codebase}.json`), ep.codebase);
                 if (completed) {
                     console.log(`[episode:skip] ${episodeId} (already complete; --force로 재실행)`);
                     return {
-                        arm_id: ep.arm_id,
-                        runtime: armDef?.runtime ?? completed.runtime ?? "unknown",
+                        arm_id: ep.arm_id ?? ep.arm,
+                        runtime: prepared.armDef.runtime,
                         codebase: ep.codebase,
                         round: ep.round,
                         wall_time_s: completed.wall_time_s ?? null,
                         extraction_status: completed.extraction_status,
                         scorer_score: completed.scorer_score ?? null,
-                        mutation_guard_status: completed.mutation_guard_status ?? "unknown",
-                        harness_valid: completed.harness_valid,
-                        episode_dir: episodeDirForSkip,
+                        mutation_guard_status: completed.mutation_guard_status,
+                        harness_valid: true,
+                        episode_dir: prepared.episodeDir,
                         skipped: true,
                     };
                 }
             }
-
             // 락 획득 순서(전 episode 단일 total order → 데드락 없음):
             //   1) serena codebase 락 (serena만)
             //   2) backend 세마포어 (serena=3 / codegraph=4)
@@ -1502,16 +2349,19 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
             if (codebaseLock) {
                 await codebaseLock.acquire();
                 acquiredCodebase = true;
+                if (batchAbortController.signal.aborted) { releaseSlots(); return abortedResult(ep, armDef, "[runner:batch_aborted] before backend slot"); }
             }
             if (backendSem) {
                 await backendSem.acquire();
                 acquiredBackend = true;
+                if (batchAbortController.signal.aborted) { releaseSlots(); return abortedResult(ep, armDef, "[runner:batch_aborted] before global slot"); }
             }
 
             // 메모리 가드: serena(무거운) episode 신규 실행 전 메모리 확인(전역 슬롯 잡기 전).
             let memoryGuard = null;
             if (isSerena && config.memoryGuardEnabled !== false) {
                 memoryGuard = await waitForMemoryBeforeHeavyEpisode();
+                if (batchAbortController.signal.aborted) { releaseSlots(); return abortedResult(ep, armDef, "[runner:batch_aborted] during memory guard"); }
                 if (memoryGuard.waited) {
                     console.log(`[memory-guard:resume] ${episodeId} waited_ms=${memoryGuard.waitedMs}`);
                 }
@@ -1519,13 +2369,14 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
 
             await globalSem.acquire();
             acquiredGlobal = true;
+            try { throwIfBatchAborted(); } catch (error) { releaseSlots(); return abortedResult(ep, armDef, error); }
 
             // co-tenancy: 실행 중으로 등록(스냅샷에 잡히도록).
             activeBackends.set(episodeId, backend);
 
             let result;
             try {
-                result = await runImpl(ep, config, { releaseSlots, coTenancySnapshot });
+                result = await runImpl({ ...ep, sequence_ordinal: ep.sequence_ordinal ?? sequenceOrdinal + 1 }, config, { releaseSlots, coTenancySnapshot, prepared, abortSignal: batchAbortController.signal });
             } catch (err) {
                 console.error(`[episode:error] ${ep.arm_id}/${ep.codebase}/round-${ep.round}: ${err}`);
                 result = {
@@ -1547,12 +2398,14 @@ async function runBatch(episodes, config, _legacyNonClaudeCap) {
                 // 멱등 release: runImpl이 scorer 전에 이미 release했으면 no-op.
                 releaseSlots();
             }
+            if (result?.error) batchAbortController.abort(new Error(result.error));
             return result;
         };
     });
 
     // 모든 episode를 병렬로 시작 (세마포어가 동시성 제한)
-    const results = await Promise.all(tasks.map((t) => t()));
+    const settled = await Promise.allSettled(tasks.map((t) => t()));
+    const results = settled.map((entry, index) => entry.status === "fulfilled" ? entry.value : abortedResult(episodes[index], armConfigArms.find((arm) => arm.arm_id === (episodes[index].arm_id ?? episodes[index].arm)), entry.reason));
     return results;
 }
 
@@ -1568,22 +2421,25 @@ async function main() {
         if (!args[k]) {
             console.error(`[runner] missing required arg --${k}`);
             console.error(
-                "usage: runner.mjs --arm-config <path> --manifest <path> --scorer <path> --schema-dir <dir> --out-root <dir> [--episodes <json>] [--timeout-s 1800] [--judge-model opus]",
+                "usage: runner.mjs --arm-config <path> --manifest <path> --scorer <path> --schema-dir <dir> --out-root <dir> --codemap-bin <absolute-path> [--workspace-root <dir>] [--episodes <json>] [--timeout-s 1800] [--judge-model opus] [--skip-scorer] [--force] (--force refuses an already-successful identity; use a fresh --out-root/run id)",
             );
             process.exit(2);
         }
     }
 
+    const workspaceRoot = path.resolve(args["workspace-root"] || DEFAULT_WORKSPACE_ROOT);
+    requireDirectory("workspace root", workspaceRoot);
     const armConfig = readJson(args["arm-config"]);
-    const manifest = readJson(args["manifest"]);
+    const manifest = resolveManifestPlaceholders(readJson(args["manifest"]), workspaceRoot);
     const scorerPath = path.resolve(args["scorer"]);
     const schemaDir = path.resolve(args["schema-dir"]);
     const outRoot = path.resolve(args["out-root"]);
     const timeoutMs = parseInt(args["timeout-s"] || "1800", 10) * 1000;
     const judgeModel = args["judge-model"] || "opus";
     const printCmd = Boolean(args["print-cmd"]);
-    const force = Boolean(args["force"]); // resume-skip 무시하고 모든 episode 재실행
-
+    const force = Boolean(args["force"]); // incomplete episode만 재시도; 성공 identity는 fresh out-root가 필요
+    const allowRetry = Boolean(args["allow-retry"]); // default false; run06 never enables this
+    const skipScorer = Boolean(args["skip-scorer"]);
     mkdirSync(outRoot, { recursive: true });
 
     // episodes 파싱
@@ -1603,6 +2459,22 @@ async function main() {
         console.error("[runner] episodes가 비어있음");
         process.exit(2);
     }
+    const episodeKeys = new Set();
+    for (const episode of episodes) {
+        const round = canonicalRound(episode.round);
+        episode.round = round;
+        const key = `${episode.arm_id ?? episode.arm}__${episode.codebase}__round-${round}`;
+        if (episodeKeys.has(key)) throw new Error(`[runner] duplicate episode input rejected: ${key}`);
+        episodeKeys.add(key);
+    }
+
+    const selectedArms = episodes.map((episode) => armConfig.arms.find((arm) => arm.arm_id === (episode.arm_id ?? episode.arm)));
+    if (selectedArms.some((arm) => !arm)) throw new Error("[runner] episode references an unknown arm");
+    const needsCodemap = selectedArms.some((arm) => arm.backend === "codemap");
+    if (needsCodemap && !args["codemap-bin"]) throw new Error("[runner] --codemap-bin is required when an episode uses the codemap backend");
+    const codemapBin = needsCodemap ? path.resolve(args["codemap-bin"]) : null;
+    const codemapBinary = needsCodemap ? codemapBinaryIdentity(codemapBin) : null;
+    assertLedgerIdentitySchema(outRoot);
 
     const config = {
         armConfig,
@@ -1614,10 +2486,28 @@ async function main() {
         judgeModel,
         printCmd,
         force,
+        allowRetry,
+        skipScorer,
+        codemapBin,
+        codemapBinary,
+        workspaceRoot,
+        runnerStartedAt: new Date().toISOString(),
+        preflightCache: new Map(),
+        targetIdentityCache: new Map(),
+        runtimeIdentityCache: new Map(),
+        preflightSemaphore: new Semaphore(4),
+        preflightConcurrencyCap: 4,
+        paths: {
+            runnerPath: path.resolve(process.argv[1]),
+            manifestPath: path.resolve(args["manifest"]),
+            armConfigPath: path.resolve(args["arm-config"]),
+            outRoot,
+            workspaceRoot,
+        },
     };
 
     console.log(
-        `[runner:start] episodes=${episodes.length} timeout_s=${timeoutMs / 1000} judge_model=${judgeModel} global_cap=${CONCURRENCY.GLOBAL_CAP} serena=${CONCURRENCY.SERENA_GLOBAL}+codebase${CONCURRENCY.SERENA_PER_CODEBASE} codegraph=${CONCURRENCY.CODEGRAPH_GLOBAL} force=${force}`,
+        `[runner:start] episodes=${episodes.length} timeout_s=${timeoutMs / 1000} judge_model=${judgeModel} skip_scorer=${skipScorer} codemap_bin=${codemapBin ?? "not-required"} global_cap=${CONCURRENCY.GLOBAL_CAP} preflight_cap=${config.preflightConcurrencyCap} serena=${CONCURRENCY.SERENA_GLOBAL}+codebase${CONCURRENCY.SERENA_PER_CODEBASE} codegraph=${CONCURRENCY.CODEGRAPH_GLOBAL} force=${force}`,
     );
 
     const results = await runBatch(episodes, config);
@@ -1631,6 +2521,7 @@ async function main() {
         executed_count: episodes.length - skippedCount,
         skipped_count: skippedCount,
         force,
+        skip_scorer: skipScorer,
         results,
         concurrency_enforced: {
             global_cap: CONCURRENCY.GLOBAL_CAP,
@@ -1640,10 +2531,15 @@ async function main() {
             claude: "parallel", // claude_serial 제거
             scorer_out_of_lock: true,
             per_episode_backend_cleanup: true,
+            preflight: { cap: config.preflightConcurrencyCap, cache: "canonical root/runtime/binary identity + deterministic fixture contract hash" },
             memory_guard: "serena: free+inactive<8GB or pressure>=warn → wait",
         },
     });
 
+    const failedResults = results.filter((result) => result?.error);
+    if (failedResults.length > 0) {
+        throw new Error(`[runner:batch] ${failedResults.length} episode(s) failed; see ${summaryPath}`);
+    }
     console.log(`[runner:done] results=${results.length} summary=${summaryPath}`);
     return results;
 }
