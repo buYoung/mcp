@@ -220,6 +220,18 @@ function sha256(value) {
     return createHash("sha256").update(value).digest("hex");
 }
 
+function canonicalJson(value) {
+    if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+    if (value && typeof value === "object") {
+        return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
+function evaluationContractSha256(evaluationContract) {
+    return evaluationContract ? sha256(canonicalJson(evaluationContract)) : null;
+}
+
 const IDENTITY_SCHEMA_VERSION = 2;
 
 function canonicalRound(round) {
@@ -260,7 +272,10 @@ function realpathInside(root, candidate, label) {
 }
 
 function gitOutput(targetRoot, args) {
-    const result = spawnSync("git", ["-C", targetRoot, ...args], { encoding: "utf8", timeout: 15_000 });
+    // Large fixtures such as ClickHouse have more than 1 MiB of tracked paths. Node's default
+    // spawnSync buffer otherwise terminates `git ls-files` with ENOBUFS and makes preflight
+    // misclassify a valid fixture as having zero source files.
+    const result = spawnSync("git", ["-C", targetRoot, ...args], { encoding: "utf8", timeout: 15_000, maxBuffer: 16 * 1024 * 1024 });
     return result.status === 0 ? String(result.stdout).trim() : null;
 }
 
@@ -426,11 +441,15 @@ function cachedIdentity(config, cacheName, key, compute) {
     return promise;
 }
 
-function buildResumeIdentity({ armDef, promptPath, prompt, config, contract, fixtureIdentity, runtime, episode }) {
+function buildResumeIdentity({ armDef, promptPath, prompt, config, contract, fixtureIdentity, evaluationContract, runtime, episode }) {
     const solverValue = {
         identity_schema_version: IDENTITY_SCHEMA_VERSION,
         episode,
-        task: { code_root: fixtureIdentity, prompt: { path: promptPath, ...fileDigest(promptPath), sha256: sha256(prompt) } },
+        task: {
+            code_root: fixtureIdentity,
+            prompt: { path: promptPath, ...fileDigest(promptPath), sha256: sha256(prompt) },
+            evaluation_contract_sha256: evaluationContractSha256(evaluationContract),
+        },
         solver: { runtime, command: armDef.command, model: armDef.model, backend: armDef.backend, permissions: { shell_policy: armDef.shell_policy, builtin_read_policy: armDef.builtin_read_policy, mcp_config_policy: armDef.mcp_config_policy }, codemap_binary: armDef.backend === "codemap" ? config.codemapBinary : null, timeout_ms: config.timeoutMs },
         runner: fileDigest(config.paths.runnerPath),
     };
@@ -879,12 +898,16 @@ function extractOpencodeJsonOutput(stdoutText) {
             const name = part.tool || part.name || "unknown";
             const callId = part.callID || part.id || null;
             const state = part.state || {};
+            const time = state.time || {};
+            const toolInput = state.input && typeof state.input === "object" ? state.input : null;
             // call 이벤트
             toolEvents.push({
                 phase: "call",
                 tool_name: name,
                 call_id: callId,
                 response_size_bytes: 0,
+                input: toolInput,
+                started_at_epoch_ms: typeof time.start === "number" ? time.start : null,
                 ...eventPosition,
             });
             // result 이벤트 (output 바이트 — truncated면 outputPath 파일 크기 우선)
@@ -904,6 +927,13 @@ function extractOpencodeJsonOutput(stdoutText) {
                 tool_name: name,
                 call_id: callId,
                 response_size_bytes: bytes,
+                input: toolInput,
+                status: typeof state.status === "string" ? state.status : null,
+                started_at_epoch_ms: typeof time.start === "number" ? time.start : null,
+                finished_at_epoch_ms: typeof time.end === "number" ? time.end : null,
+                duration_ms: typeof time.start === "number" && typeof time.end === "number" ? Math.max(0, time.end - time.start) : null,
+                output_truncated: meta.truncated === true,
+                ranked_results: /codemap[-_]search_search/i.test(name) ? extractCodemapRankedResults(state.output) : null,
                 ...eventPosition,
             });
         } else if (type === "step_finish" && part.tokens) {
@@ -931,6 +961,79 @@ function extractOpencodeJsonOutput(stdoutText) {
         },
         stepTokens,
         toolEvents,
+    };
+}
+
+function extractCodemapRankedResults(output) {
+    const ranked = [];
+    const seen = new Set();
+    for (const line of String(output ?? "").split(/\r?\n/)) {
+        const detail = line.match(/^### File: (.+?) \(\d+ lines\)$/);
+        const tail = line.match(/^- (?!read )([^`].+?) \(\d+ lines\)(?: —|$)/);
+        const filePath = (detail?.[1] ?? tail?.[1] ?? "").replace(/^\.\//, "");
+        if (!filePath || seen.has(filePath)) continue;
+        seen.add(filePath);
+        ranked.push({ rank: ranked.length + 1, path: filePath });
+    }
+    return ranked;
+}
+
+function percentile95(values) {
+    const sorted = values.filter((value) => typeof value === "number").sort((a, b) => a - b);
+    return sorted.length === 0 ? null : sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+}
+
+function buildEvaluationObservation({ evaluation, toolEvents, solveStartedAt, backendExercised, processResult, judgeStatus, scorerScore, scorerOutput, schemaPath }) {
+    if (!evaluation) return { schema_version: "1.0", status: "unconfigured", excluded_reason: "missing_evaluation_contract" };
+    const canonicalPaths = new Set((evaluation.canonical_paths || []).map((value) => String(value).replace(/^\.\//, "")));
+    const searchResults = toolEvents.filter((event) => event.phase === "result" && Array.isArray(event.ranked_results));
+    const observations = searchResults.map((event, index) => {
+        const rankedResults = event.ranked_results.map((result) => ({ ...result, relevant: canonicalPaths.has(result.path) }));
+        const firstRelevant = rankedResults.find((result) => result.relevant) ?? null;
+        return {
+            observation_id: `${evaluation.query_id}:search-${index + 1}`,
+            query: typeof event.input?.query === "string" ? event.input.query : null,
+            duration_ms: event.duration_ms,
+            finished_at_epoch_ms: event.finished_at_epoch_ms,
+            output_truncated: event.output_truncated,
+            ranked_results: rankedResults,
+            first_relevant_rank: firstRelevant?.rank ?? null,
+            recall_at_5: firstRelevant && firstRelevant.rank <= 5 ? 1 : 0,
+        };
+    });
+    const searchHits = observations
+        .filter((item) => item.first_relevant_rank !== null && typeof item.finished_at_epoch_ms === "number")
+        .map((item) => ({ finished_at_epoch_ms: item.finished_at_epoch_ms, source: "search_result" }));
+    const readHits = toolEvents
+        .filter((event) => event.phase === "result" && /codemap[-_]search_read/i.test(event.tool_name) && typeof event.finished_at_epoch_ms === "number")
+        .filter((event) => canonicalPaths.has(String(event.input?.file_path ?? event.input?.path ?? "").replace(/^\.\//, "")))
+        .map((event) => ({ finished_at_epoch_ms: event.finished_at_epoch_ms, source: "read_result" }));
+    const firstHit = [...searchHits, ...readHits].sort((a, b) => a.finished_at_epoch_ms - b.finished_at_epoch_ms)[0] ?? null;
+    const recallValues = observations.map((item) => item.recall_at_5);
+    const schema = readJson(schemaPath);
+    const perFact = Array.isArray(scorerOutput?.per_fact_score) ? scorerOutput.per_fact_score : [];
+    return {
+        schema_version: "1.0",
+        status: processResult.timedOut || processResult.exitCode !== 0 ? "failed" : backendExercised ? "observed" : "unobserved",
+        query_id: evaluation.query_id,
+        difficulty_tier: evaluation.difficulty_tier,
+        relevance_contract_sha256: evaluationContractSha256(evaluation),
+        canonical_path_count: canonicalPaths.size,
+        search_observations: observations,
+        search_observation_count: observations.length,
+        recall_at_5: recallValues.length === 0 ? null : recallValues.reduce((sum, value) => sum + value, 0) / recallValues.length,
+        first_correct_evidence_ms: firstHit ? Math.max(0, firstHit.finished_at_epoch_ms - solveStartedAt.getTime()) : null,
+        first_correct_evidence_status: firstHit?.source ?? (observations.length === 0 ? "unobservable" : "not_found"),
+        search_latency_samples_ms: observations.map((item) => item.duration_ms).filter((value) => typeof value === "number"),
+        search_latency_p95_ms: percentile95(observations.map((item) => item.duration_ms)),
+        scorer_quality: {
+            status: judgeStatus,
+            contract_valid: judgeStatus === "completed",
+            score: scorerScore,
+            fact_count_expected: schema.facts.length,
+            fact_count_observed: perFact.length,
+            scorer_output_sha256: scorerOutput ? sha256(JSON.stringify(scorerOutput)) : null,
+        },
     };
 }
 
@@ -1692,7 +1795,7 @@ async function prepareEpisodeForResume(ep, config) {
     const fixture = await preflight;
     const contract = scoringContract({ scorerPath: config.scorerPath, schemaPath, privateAnswerKeyPath, judgeModel: config.judgeModel, printCmd: config.printCmd });
     const prompt = readFileSync(publicQuestionPath, "utf8");
-    const resumeIdentity = buildResumeIdentity({ armDef, promptPath: publicQuestionPath, prompt, config, contract, fixtureIdentity: fixture.identity, runtime, episode: { arm_id: arm, codebase: ep.codebase, round } });
+    const resumeIdentity = buildResumeIdentity({ armDef, promptPath: publicQuestionPath, prompt, config, contract, fixtureIdentity: fixture.identity, evaluationContract: taskDef.evaluation, runtime, episode: { arm_id: arm, codebase: ep.codebase, round } });
     const episodeDir = path.join(config.outRoot, arm, ep.codebase, `round-${round}`);
     return { armDef, episodeDir, resumeIdentity, fixture, runtime, targetRoot, publicQuestionPath, privateAnswerKeyPath, schemaPath };
 }
@@ -2064,6 +2167,20 @@ async function runEpisode(ep, config, hooks = {}) {
         processResult.exitCode === 0 &&
         mutationGuardStatus === "clean" &&
         extractionStatus === "success";
+    const backendStatus = processResult.timedOut || processResult.exitCode !== 0
+        ? "failed"
+        : backendExercised ? "exercised" : "unobserved";
+    const evaluationObservation = buildEvaluationObservation({
+        evaluation: taskDef.evaluation,
+        toolEvents,
+        solveStartedAt,
+        backendExercised,
+        processResult,
+        judgeStatus,
+        scorerScore,
+        scorerOutput,
+        schemaPath,
+    });
 
     const harnessJudgment = {
         episode_id: episodeId,
@@ -2083,6 +2200,7 @@ async function runEpisode(ep, config, hooks = {}) {
         scorer_score: scorerScore,
         answer_sha256: sha256(rawAnswer),
         backend_exercised: backendExercised,
+        backend_status: backendStatus,
         assigned_backend_tool_bytes: assignedBackendToolBytes,
         contains_bare: plan.args.includes("--bare"),
         cwd: plan.cwd,
@@ -2108,6 +2226,8 @@ async function runEpisode(ep, config, hooks = {}) {
         tool_result_bytes_by_tool: toolResultBytesByTool,
         assigned_backend_tool_bytes: assignedBackendToolBytes,
         backend_exercised: backendExercised,
+        backend_status: backendStatus,
+        evaluation_observation: evaluationObservation,
         extraction_status: extractionStatus,
         answer_sha256: answerSha256,
         scorer_score: scorerScore,
@@ -2128,7 +2248,12 @@ async function runEpisode(ep, config, hooks = {}) {
         recorded_at: new Date().toISOString(),
         attempt: { attempt_id: attemptId, attempt_dir: attemptDir },
         resume_identity: resumeIdentity,
-        task: { codebase, public_question: { path: publicQuestionPath, ...fileDigest(publicQuestionPath) }, fixture_proof: fixture.proof },
+        task: {
+            codebase,
+            public_question: { path: publicQuestionPath, ...fileDigest(publicQuestionPath) },
+            fixture_proof: fixture.proof,
+            evaluation_contract: taskDef.evaluation ? { value: taskDef.evaluation, sha256: evaluationContractSha256(taskDef.evaluation) } : null,
+        },
         solver: {
             arm_id: arm,
             model: armDef.model,
@@ -2550,9 +2675,11 @@ async function main() {
 
 export {
     backendOf,
+    canonicalJson,
     CONCURRENCY,
     calcBackendExercised,
     diffSnapshots,
+    evaluationContractSha256,
     extractOpencodeJsonOutput,
     isBackendArtifactPath,
     isBackendToolName,

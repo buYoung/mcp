@@ -1,62 +1,44 @@
 {
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "task_id": "deno-main",
-    "candidate_id": "deno-bundle-snapshot-fallback-v1",
+    "candidate_id": "deno-compile-graph-eszip-v2",
     "source_private_answer_key": "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/private_answer_key.md",
-    "source_per_fact_score": [
-        "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-1/per_fact_score.json",
-        "benchmark/dataset/cms-dataset-hardening-v3-redesign-targetroot-20260618/phases/deno-main-retry-1/run-2/per_fact_score.json"
-    ],
+    "source_per_fact_score": [],
     "facts": [
         {
             "fact_id": "F1",
-            "statement": "The decisive mechanism is a bundler fallback after normal graph resolution fails.",
-            "weight": 0.125
+            "statement": "Command dispatch enters `compile`, which validates the entrypoint before delegating to `compile_eszip`.",
+            "weight": 0.2
         },
         {
             "fact_id": "F2",
-            "statement": "The fallback is restricted to plain package imports rather than arbitrary specifiers.",
-            "weight": 0.125
+            "statement": "`compile_eszip` constructs the module graph through `create_graph_with_options`.",
+            "weight": 0.2
         },
         {
             "fact_id": "F3",
-            "statement": "The repo-local reason for the fallback is compile/bundle reaching modules outside the entrypoint's package scope.",
-            "weight": 0.125
+            "statement": "The graph builder applies npm resolution/build options and lockfile state before packaging.",
+            "weight": 0.2
         },
         {
             "fact_id": "F4",
-            "statement": "The fallback ignores whether the referrer's own `package.json` declared the dependency and instead uses the build-wide managed snapshot.",
-            "weight": 0.125
+            "statement": "The completed graph is passed to `create_compile_binary_writer` and written as an ESZip-backed executable.",
+            "weight": 0.2
         },
         {
             "fact_id": "F5",
-            "statement": "The implementation synthesizes `npm:{raw_specifier}` and resolves through the managed npm resolver.",
-            "weight": 0.125
-        },
-        {
-            "fact_id": "F6",
-            "statement": "The fallback returns `None` unless npm resolution is managed and the package exists in the snapshot.",
-            "weight": 0.125
-        },
-        {
-            "fact_id": "F7",
-            "statement": "The important risk is name-only multi-version ambiguity inside the snapshot, not ordinary nearest-manifest lookup.",
-            "weight": 0.125
-        },
-        {
-            "fact_id": "F8",
-            "statement": "Shipping the helper file in the artifact is a separate transport step, not the reason the package import resolves.",
-            "weight": 0.125
+            "statement": "Unsupported npm entrypoint resolution is rejected before graph packaging with `UnsupportedNpmSpecifierEntrypointResolutionWay`.",
+            "weight": 0.2
         }
     ],
-    "fact_count_F": 8,
-    "weights": [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],
+    "fact_count_F": 5,
+    "weights": [0.2, 0.2, 0.2, 0.2, 0.2],
     "weight_sum": 1.0,
     "partial_credit_rule": "per-fact ∈ {0, 0.5, 1.0}",
     "score_formula": "weighted average = Σ(weight_i × fact_score_i) / Σ(weight_i)",
     "weights_uniform": true,
-    "reproduction_tolerance_band": 0.125,
-    "band_derivation": "F=8, weights uniform (각 1/8=0.125, weight_sum=1.0). per_fact_score.json은 객체 구조(candidate_id/facts/overall_score)로 명시 weight 키가 없으나, overall_score == facts[].score 산술평균임을 검증함(run-1: 합 1.0/8=0.125, run-2: 합 1.5/8=0.1875). 따라서 weight는 추출이 아니라 균일 1/8로 유도. Uniform이므로 밴드 = 1/F = 1/8 = 0.125. 단일 fact 한 단계 오판의 weight_step swing은 0.0625이나, §5.5는 밴드를 fact 1개 전체 폭(±1/F=±0.125)으로 정의하므로 0.125 사용.",
+    "reproduction_tolerance_band": 0.2,
+    "band_derivation": "New fixture-local task with five uniform pinned facts; tolerance is one full fact (1/5).",
     "band_caveat": null,
     "user_surface_required": false
 }
