@@ -10,6 +10,7 @@ mod monorepo;
 pub mod render;
 
 use crate::tools::ToolContext;
+use std::collections::{BTreeSet, HashSet};
 
 const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
 pub(crate) const DEFAULT_SEARCH_LIMIT: usize = 100;
@@ -282,6 +283,159 @@ fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
         .map(|literal| format_read_suggestion(&res.file_path, literal.line, 1))
 }
 
+#[derive(Debug)]
+struct AnchorMapEntry {
+    label: String,
+    line: usize,
+    covered_tokens: BTreeSet<String>,
+}
+
+fn covered_query_tokens(text: &str, query: &crate::parser::QueryTokens) -> BTreeSet<String> {
+    let evidence = crate::parser::QueryTokens::parse(text);
+    query
+        .tokens()
+        .iter()
+        .filter(|token| evidence.contains_token(token))
+        .cloned()
+        .collect()
+}
+
+/// Add a compact map when different parts of a query are supported by evidence more than
+/// twenty lines apart in one file. This does not change ranking or the primary read range.
+fn anchor_map(
+    result: &crate::index::SearchResult,
+    query: &crate::parser::QueryTokens,
+) -> Option<String> {
+    if query.is_empty() {
+        return None;
+    }
+
+    let mut anchors = Vec::new();
+    for symbol in &result.matched_symbols {
+        let mut evidence = symbol.name.clone();
+        if let Some(owner) = &symbol.owner {
+            evidence.push(' ');
+            evidence.push_str(owner);
+        }
+        if let Some(docstring) = &symbol.docstring {
+            evidence.push(' ');
+            evidence.push_str(docstring);
+        }
+        let covered_tokens = covered_query_tokens(&evidence, query);
+        if !covered_tokens.is_empty() {
+            let label = symbol
+                .owner
+                .as_deref()
+                .filter(|owner| !owner.is_empty())
+                .map(|owner| format!("{owner}.{}", symbol.name))
+                .unwrap_or_else(|| symbol.name.clone());
+            anchors.push(AnchorMapEntry {
+                label: format!("symbol `{label}`"),
+                line: symbol.range.start_line,
+                covered_tokens,
+            });
+        }
+    }
+    for literal in &result.matched_literals {
+        let covered_tokens = covered_query_tokens(&literal.text, query);
+        if !covered_tokens.is_empty() {
+            let escaped: String = literal.text.escape_debug().collect();
+            let label = render::truncate_literal(&escaped, 48);
+            anchors.push(AnchorMapEntry {
+                label: format!("literal `{label}`"),
+                line: literal.line,
+                covered_tokens,
+            });
+        }
+    }
+
+    anchors.sort_by(|left, right| {
+        left.line
+            .cmp(&right.line)
+            .then(left.label.cmp(&right.label))
+    });
+    anchors.dedup_by(|left, right| left.line == right.line && left.label == right.label);
+    if anchors.len() < 2 {
+        return None;
+    }
+
+    let mut selected_indices = None;
+    'pair: for left in 0..anchors.len() {
+        for right in (left + 1)..anchors.len() {
+            if anchors[right].line.saturating_sub(anchors[left].line) > 20
+                && anchors[left].covered_tokens != anchors[right].covered_tokens
+            {
+                selected_indices = Some(vec![left, right]);
+                break 'pair;
+            }
+        }
+    }
+    let mut selected_indices = selected_indices?;
+    let mut selected_tokens = anchors[selected_indices[0]].covered_tokens.clone();
+    selected_tokens.extend(anchors[selected_indices[1]].covered_tokens.iter().cloned());
+    if let Some(third) = (0..anchors.len()).find(|index| {
+        !selected_indices.contains(index)
+            && anchors[*index]
+                .covered_tokens
+                .iter()
+                .any(|token| !selected_tokens.contains(token))
+    }) {
+        selected_indices.push(third);
+        selected_indices.sort_unstable_by_key(|index| anchors[*index].line);
+    }
+    let total_token_count = query.tokens().len();
+    let entries = selected_indices
+        .into_iter()
+        .map(|index| {
+            let anchor = &anchors[index];
+            format!(
+                "{} @ L{} coverage {}/{}",
+                anchor.label,
+                anchor.line,
+                anchor.covered_tokens.len(),
+                total_token_count
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    Some(format!("- anchor map: {entries}\n"))
+}
+
+pub struct SearchOutput {
+    pub text: String,
+}
+
+fn append_static_collection_relations(
+    results: &[crate::index::SearchResult],
+    snapshot: std::sync::Arc<crate::index::PublishedIndexSnapshot>,
+    mut primary_output: String,
+    workspace_scope: Option<&str>,
+) -> SearchOutput {
+    let byte_cap = crate::config::get().search_detail_byte_cap;
+    let available_bytes = byte_cap.saturating_sub(primary_output.len());
+    if available_bytes == 0 {
+        return SearchOutput {
+            text: primary_output,
+        };
+    }
+    let result_paths: HashSet<&str> = results
+        .iter()
+        .map(|result| result.file_path.as_str())
+        .collect();
+    let records = snapshot.records_for_result_paths(&result_paths);
+    let annotation = render::render_static_collection_edges(
+        &result_paths,
+        &snapshot,
+        records,
+        workspace_scope,
+        available_bytes,
+    );
+    primary_output.push_str(&annotation);
+    SearchOutput {
+        text: primary_output,
+    }
+}
+
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
 /// top-level file. The diversity unit for the detail-head reorder.
 fn parent_dir(file_path: &str) -> &str {
@@ -356,17 +510,21 @@ fn diversified_order(
 /// Run the `search` tool and return the rendered detail/tail text. The MCP dispatch arm wraps
 /// the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
-    if monorepo::should_use(ctx) {
-        return monorepo::run(ctx);
-    }
-    run_inner(ctx, None, DEFAULT_SEARCH_LIMIT)
+    run_with_metadata(ctx).map(|output| output.text)
 }
 
-pub(crate) fn run_inner(
+pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String)> {
+    if monorepo::should_use(ctx) {
+        return monorepo::run_with_metadata(ctx);
+    }
+    run_inner_with_metadata(ctx, None, DEFAULT_SEARCH_LIMIT)
+}
+
+pub(crate) fn run_inner_with_metadata(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
-) -> Result<String, (i64, String)> {
+) -> Result<SearchOutput, (i64, String)> {
     let query = ctx
         .arguments
         .get("query")
@@ -395,9 +553,9 @@ pub(crate) fn run_inner(
             .map(ToString::to_string),
     };
 
-    let mut results = ctx
+    let (mut results, published_snapshot) = ctx
         .engine
-        .search_with_context(query, search_limit, &search_context)
+        .search_with_context_and_snapshot(query, search_limit, &search_context)
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
     if let Some(scope) = workspace_scope {
         results.retain(|result| monorepo::result_is_under_scope(result, scope));
@@ -438,7 +596,7 @@ pub(crate) fn run_inner(
         } else {
             text.push_str(&format!("No indexed matches for `{query}`."));
         }
-        return Ok(text);
+        return Ok(SearchOutput { text });
     }
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
     // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so
@@ -528,6 +686,13 @@ pub(crate) fn run_inner(
         // ranking consumes, so rendering and ranking interpret punctuation
         // and identifier boundaries identically.
         let query_tokens = crate::parser::QueryTokens::parse(query);
+        let anchor_maps_enabled = !(query.split_whitespace().count() == 1
+            && results.iter().any(|result| {
+                result
+                    .ranking_signal
+                    .as_ref()
+                    .is_some_and(|signal| signal.exact_name_hit)
+            }));
 
         let detail_result_count = detail_results.len();
         let mut rendered_detail_count = 0usize;
@@ -559,6 +724,13 @@ pub(crate) fn run_inner(
             }
             if text.len() + hints.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
                 text.push_str(&hints);
+            }
+            if anchor_maps_enabled {
+                if let Some(anchor_map) = anchor_map(res, &query_tokens) {
+                    if text.len() + anchor_map.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
+                        text.push_str(&anchor_map);
+                    }
+                }
             }
 
             if res.symbol_fallback {
@@ -795,5 +967,11 @@ pub(crate) fn run_inner(
     }
 
     let is_partial = output_was_capped || text.len() > byte_cap;
-    Ok(finish_search_output(text, byte_cap, is_partial))
+    let text = finish_search_output(text, byte_cap, is_partial);
+    Ok(append_static_collection_relations(
+        &results,
+        published_snapshot,
+        text,
+        workspace_scope,
+    ))
 }

@@ -67,6 +67,11 @@ pub(crate) trait LanguageSpec: Sync {
         None
     }
 
+    /// Optional query for statically identifiable collection write/read endpoints.
+    fn static_collection_query(&self, _ext: &str) -> Option<&'static Query> {
+        None
+    }
+
     /// The source-file extensions this spec serves (no leading dot). Unioned across all
     /// specs in [`ALL_SPECS`] to derive the source-extension allowlist
     /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.

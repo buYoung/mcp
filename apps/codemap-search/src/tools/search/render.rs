@@ -111,6 +111,254 @@ pub(super) fn symbol_is_tier1(
     query.contains_word(&symbol_name) || query.contains_raw_word(&symbol_name)
 }
 
+const STATIC_RELATION_MAX_BYTES: usize = 1536;
+const STATIC_RELATION_MAX_GROUPS: usize = 4;
+const STATIC_RELATION_HEADER: &str =
+    "\n\n## Related write/read paths (static hint)\n\n_Inferred from direct, typed collection identity; confirm in source._\n";
+
+fn static_relation_inline(text: &str, max_chars: usize) -> String {
+    let normalized = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace('`', "'");
+    if normalized.chars().count() > max_chars {
+        format!(
+            "{}…",
+            normalized.chars().take(max_chars).collect::<String>()
+        )
+    } else {
+        normalized
+    }
+}
+
+fn static_relation_context(edge: &crate::parser::StaticCollectionEdge) -> String {
+    match (&edge.source_owner, &edge.source_symbol) {
+        (Some(owner), Some(symbol)) => format!("{owner}.{symbol}"),
+        (Some(owner), None) => owner.clone(),
+        (None, Some(symbol)) => symbol.clone(),
+        (None, None) => "<file scope>".to_string(),
+    }
+}
+
+fn has_static_owner_connection(
+    snapshot: &crate::index::PublishedIndexSnapshot,
+    producer: &crate::index::StaticCollectionRecord,
+    consumer: &crate::index::StaticCollectionRecord,
+) -> bool {
+    let producer_is_self = matches!(producer.edge.owner_expression.as_str(), "self" | "this");
+    let consumer_is_self = matches!(consumer.edge.owner_expression.as_str(), "self" | "this");
+    let same_lexical_owner = producer_is_self
+        && consumer_is_self
+        && producer.file_path == consumer.file_path
+        && producer.edge.source_owner == consumer.edge.source_owner
+        && producer.edge.source_owner_range.is_some()
+        && producer.edge.source_owner_range == consumer.edge.source_owner_range
+        && producer.edge.collection_owner_type == consumer.edge.collection_owner_type;
+    if same_lexical_owner {
+        return true;
+    }
+
+    // Cross-file lexical-self joins are safe only for an indexed owner name with a single
+    // declaration. A qualified external type never has that local declaration evidence.
+    if producer_is_self
+        && consumer_is_self
+        && producer.edge.source_owner == consumer.edge.source_owner
+        && producer.edge.collection_owner_type == consumer.edge.collection_owner_type
+    {
+        return producer.edge.source_owner_range.is_some()
+            && consumer.edge.source_owner_range.is_some()
+            && snapshot.type_declaration_count(&producer.edge.collection_owner_type) == 1;
+    }
+
+    // A non-self receiver (parameter/member) is never joined by name alone. It must name a
+    // type declared in the receiver's file and meet a lexical-self endpoint for that same type.
+    let (typed, lexical) = if producer_is_self && !consumer_is_self {
+        (consumer, producer)
+    } else if !producer_is_self && consumer_is_self {
+        (producer, consumer)
+    } else {
+        return false;
+    };
+    typed.file_path == lexical.file_path
+        && snapshot.unique_type_declaration_range_in_path(
+            &typed.file_path,
+            &typed.edge.collection_owner_type,
+        ) == lexical.edge.source_owner_range.as_ref()
+        && lexical.edge.source_owner.as_deref() == Some(typed.edge.collection_owner_type.as_str())
+}
+
+/// Render resolved producer-to-consumer pairs in bytes left after the ranked result body.
+pub(super) fn render_static_collection_edges(
+    result_paths: &std::collections::HashSet<&str>,
+    snapshot: &crate::index::PublishedIndexSnapshot,
+    records: Vec<&crate::index::StaticCollectionRecord>,
+    workspace_scope: Option<&str>,
+    available_bytes: usize,
+) -> String {
+    use crate::parser::StaticCollectionEdgeKind;
+
+    let section_cap = available_bytes.min(STATIC_RELATION_MAX_BYTES);
+    if section_cap <= STATIC_RELATION_HEADER.len() {
+        return String::new();
+    }
+
+    let mut producers: Vec<_> = records
+        .iter()
+        .filter(|record| record.edge.kind == StaticCollectionEdgeKind::Producer)
+        .collect();
+    // Prioritize endpoints in the ranked result paths. The deterministic record order still
+    // resolves ties, but irrelevant counterparts can no longer consume the pair budget first.
+    producers.sort_by_key(|record| !result_paths.contains(record.file_path.as_str()));
+    let mut consumers_by_collection = std::collections::HashMap::new();
+    for record in records
+        .iter()
+        .filter(|record| record.edge.kind == StaticCollectionEdgeKind::Consumer)
+    {
+        let edge = &record.edge;
+        consumers_by_collection
+            .entry((
+                edge.collection_owner_type.as_str(),
+                edge.collection_field.as_str(),
+            ))
+            .or_insert_with(Vec::new)
+            .push(record);
+    }
+    for consumers in consumers_by_collection.values_mut() {
+        consumers.sort_by_key(|record| !result_paths.contains(record.file_path.as_str()));
+    }
+    let mut seen_edges = std::collections::HashSet::new();
+    let mut group_order = Vec::new();
+    let mut resolved = Vec::new();
+
+    const STATIC_RELATION_PAIR_MAX_PER_GROUP: usize = 64;
+    let mut accepted_pairs_by_group = std::collections::HashMap::new();
+    let mut has_more_edges = false;
+    for producer in producers {
+        let Some(consumers) = consumers_by_collection.get(&(
+            producer.edge.collection_owner_type.as_str(),
+            producer.edge.collection_field.as_str(),
+        )) else {
+            continue;
+        };
+        for consumer in consumers {
+            if !result_paths.contains(producer.file_path.as_str())
+                && !result_paths.contains(consumer.file_path.as_str())
+            {
+                continue;
+            }
+            if workspace_scope.is_some_and(|scope| {
+                !super::monorepo::path_is_under_scope(&producer.file_path, scope)
+                    || !super::monorepo::path_is_under_scope(&consumer.file_path, scope)
+            }) || !has_static_owner_connection(snapshot, producer, consumer)
+            {
+                continue;
+            }
+            let collection = format!(
+                "{}.{}",
+                producer.edge.collection_owner_type, producer.edge.collection_field
+            );
+            let accepted_pairs = accepted_pairs_by_group
+                .entry(collection.clone())
+                .or_insert(0usize);
+            if *accepted_pairs >= STATIC_RELATION_PAIR_MAX_PER_GROUP {
+                has_more_edges = true;
+                continue;
+            }
+            let dedup_key = format!(
+                "{}:{}:{}:{}:{}:{}",
+                producer.file_path,
+                producer.edge.range.start_line,
+                consumer.file_path,
+                consumer.edge.range.start_line,
+                producer.edge.collection_owner_type,
+                producer.edge.collection_field
+            );
+            if !seen_edges.insert(dedup_key) {
+                continue;
+            }
+            *accepted_pairs += 1;
+            if !group_order.contains(&collection) {
+                group_order.push(collection.clone());
+            }
+            resolved.push((collection, producer, consumer));
+        }
+    }
+    if resolved.is_empty() {
+        return String::new();
+    }
+
+    let has_more_groups = group_order.len() > STATIC_RELATION_MAX_GROUPS;
+    let selected_groups: Vec<String> = group_order
+        .into_iter()
+        .take(STATIC_RELATION_MAX_GROUPS)
+        .collect();
+    let mut lines = Vec::new();
+    for collection in &selected_groups {
+        let members: Vec<_> = resolved
+            .iter()
+            .filter(|(name, ..)| name == collection)
+            .collect();
+        let (_, producer, consumer) = members[0];
+        let producer_sites: std::collections::HashSet<_> = members
+            .iter()
+            .map(|(_, record, ..)| (record.file_path.as_str(), record.edge.range.start_line))
+            .collect();
+        let consumer_sites: std::collections::HashSet<_> = members
+            .iter()
+            .map(|(_, _, record)| (record.file_path.as_str(), record.edge.range.start_line))
+            .collect();
+        let extras = match (producer_sites.len() - 1, consumer_sites.len() - 1) {
+            (0, 0) => String::new(),
+            (producer_count, consumer_count) => {
+                format!(" (+{producer_count} write sites, +{consumer_count} read sites)")
+            }
+        };
+        lines.push(format!(
+            "- `{}`: `{}` at `{}:{}` → `{}` at `{}:{}`{}\n",
+            static_relation_inline(collection, 100),
+            static_relation_inline(&static_relation_context(&producer.edge), 100),
+            static_relation_inline(&producer.file_path, 180),
+            producer.edge.range.start_line,
+            static_relation_inline(&static_relation_context(&consumer.edge), 100),
+            static_relation_inline(&consumer.file_path, 180),
+            consumer.edge.range.start_line,
+            extras,
+        ));
+    }
+
+    const OMITTED: &str = "- _More relation groups omitted._\n";
+    const OMITTED_SHORT: &str = "- _More edges omitted._\n";
+    let mut output = String::from(STATIC_RELATION_HEADER);
+    let mut shown = 0usize;
+    for (index, line) in lines.iter().enumerate() {
+        let will_have_more = has_more_groups || has_more_edges || index + 1 < lines.len();
+        let reserved_marker_bytes = if will_have_more {
+            OMITTED_SHORT.len()
+        } else {
+            0
+        };
+        if output.len() + line.len() + reserved_marker_bytes > section_cap {
+            break;
+        }
+        output.push_str(line);
+        shown += 1;
+    }
+    if shown == 0 {
+        return String::new();
+    }
+    if has_more_groups || has_more_edges || shown < lines.len() {
+        if output.len() + OMITTED.len() <= section_cap {
+            output.push_str(OMITTED);
+        } else if output.len() + OMITTED_SHORT.len() <= section_cap {
+            output.push_str(OMITTED_SHORT);
+        } else {
+            return String::new();
+        }
+    }
+    output
+}
+
 /// A compact 2-line declaration summary for a CONTAINER whose member matched (P1 §4): the
 /// container's first source lines, line-numbered like [`get_code_snippet`], so the agent sees
 /// the class/impl header (and often its opening docstring) without the whole body being dumped.

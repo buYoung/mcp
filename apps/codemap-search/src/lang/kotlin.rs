@@ -18,6 +18,8 @@ const KOTLIN_QUERY_STR: &str = concat!(
 );
 
 const KOTLIN_TAGS_QUERY_STR: &str = include_str!("../../queries/kotlin/tags.scm");
+const KOTLIN_STATIC_COLLECTION_QUERY_STR: &str =
+    include_str!("../../queries/kotlin/static_collection_edges.scm");
 
 fn get_kotlin_query() -> &'static Query {
     static KOTLIN_QUERY: OnceLock<Query> = OnceLock::new();
@@ -35,6 +37,17 @@ fn get_kotlin_tags_query() -> &'static Query {
             KOTLIN_TAGS_QUERY_STR,
         )
         .expect("Failed to compile Kotlin tags query")
+    })
+}
+
+fn get_kotlin_static_collection_query() -> &'static Query {
+    static QUERY: OnceLock<Query> = OnceLock::new();
+    QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_kotlin_ng::LANGUAGE.into(),
+            KOTLIN_STATIC_COLLECTION_QUERY_STR,
+        )
+        .expect("Failed to compile Kotlin static collection query")
     })
 }
 
@@ -109,6 +122,10 @@ impl LanguageSpec for KotlinSpec {
 
     fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
         Some(get_kotlin_tags_query())
+    }
+
+    fn static_collection_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_kotlin_static_collection_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

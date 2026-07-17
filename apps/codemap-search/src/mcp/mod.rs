@@ -169,12 +169,12 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let text = crate::tools::search::run(&ctx)?;
+                        let output = crate::tools::search::run_with_metadata(&ctx)?;
                         Ok(serde_json::json!({
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": text
+                                    "text": output.text
                                 }
                             ]
                         }))

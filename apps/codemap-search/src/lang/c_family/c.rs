@@ -25,6 +25,8 @@ const C_QUERY_STR: &str = concat!(
 );
 
 const C_TAGS_QUERY_STR: &str = include_str!("../../../queries/c/tags.scm");
+const C_STATIC_COLLECTION_QUERY_STR: &str =
+    include_str!("../../../queries/c/static_collection_edges.scm");
 
 fn get_c_query() -> &'static Query {
     static C_QUERY: OnceLock<Query> = OnceLock::new();
@@ -41,6 +43,17 @@ fn get_c_tags_query() -> &'static Query {
     })
 }
 
+fn get_c_static_collection_query() -> &'static Query {
+    static QUERY: OnceLock<Query> = OnceLock::new();
+    QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_c::LANGUAGE.into(),
+            C_STATIC_COLLECTION_QUERY_STR,
+        )
+        .expect("Failed to compile C static collection query")
+    })
+}
+
 pub(crate) struct CSpec;
 
 impl LanguageSpec for CSpec {
@@ -54,6 +67,10 @@ impl LanguageSpec for CSpec {
 
     fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
         Some(get_c_tags_query())
+    }
+
+    fn static_collection_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_c_static_collection_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {

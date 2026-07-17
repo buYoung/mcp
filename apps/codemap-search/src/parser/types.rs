@@ -45,6 +45,36 @@ pub struct ExtractedLiteral {
     pub line: usize,
 }
 
+/// One statically identifiable write or read endpoint for a typed collection.
+/// Endpoints are joined only when both the resolved owning type and the
+/// statically named field match; this is navigation evidence, not a runtime guarantee.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum StaticCollectionEdgeKind {
+    Producer,
+    Consumer,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct StaticCollectionEdge {
+    pub kind: StaticCollectionEdgeKind,
+    pub collection_owner_type: String,
+    pub collection_field: String,
+    pub owner_expression: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_owner: Option<String>,
+    /// Exact lexical declaration span for `source_owner`, when syntax proves it. This keeps
+    /// same-named nested types in one file from being treated as a single owner.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_owner_range: Option<CodeRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_symbol: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    pub range: CodeRange,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CallSite {

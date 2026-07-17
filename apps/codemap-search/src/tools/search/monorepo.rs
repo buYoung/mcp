@@ -9,7 +9,11 @@ pub(crate) fn should_use(ctx: &ToolContext) -> bool {
 }
 
 pub(crate) fn result_is_under_scope(result: &crate::index::SearchResult, scope: &str) -> bool {
-    result.file_path == scope || result.file_path.starts_with(&format!("{scope}/"))
+    path_is_under_scope(&result.file_path, scope)
+}
+
+pub(crate) fn path_is_under_scope(path: &str, scope: &str) -> bool {
+    path == scope || path.starts_with(&format!("{scope}/"))
 }
 
 fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, String)> {
@@ -34,10 +38,10 @@ fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, 
     }
 }
 
-pub(crate) fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+pub(crate) fn run_with_metadata(ctx: &ToolContext) -> Result<super::SearchOutput, (i64, String)> {
     let workspace_scope = requested_workspace_scope(ctx)?;
     match workspace_scope {
-        Some(scope) => super::run_inner(ctx, Some(&scope), SCOPED_SEARCH_LIMIT),
-        None => super::run_inner(ctx, None, super::DEFAULT_SEARCH_LIMIT),
+        Some(scope) => super::run_inner_with_metadata(ctx, Some(&scope), SCOPED_SEARCH_LIMIT),
+        None => super::run_inner_with_metadata(ctx, None, super::DEFAULT_SEARCH_LIMIT),
     }
 }

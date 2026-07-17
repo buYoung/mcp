@@ -151,6 +151,24 @@ impl EngineSupervisor {
         self.searcher.search_with_context(query, limit, context)
     }
 
+    /// Read BM25 hits and their relation evidence while the indexer holds the generation gate
+    /// closed, so a response never combines different committed index generations.
+    pub fn search_with_context_and_snapshot(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+    ) -> Result<(Vec<SearchResult>, Arc<super::PublishedIndexSnapshot>), String> {
+        self.indexer
+            .search_with_context(&self.searcher, query, limit, context)
+    }
+
+    /// The current immutable index generation. Relation rendering reads this alongside its
+    /// declaration evidence, so refreshes cannot mix codemap and edge generations.
+    pub fn published_snapshot(&self) -> Arc<super::PublishedIndexSnapshot> {
+        self.indexer.published_snapshot()
+    }
+
     /// The current codemap snapshot the indexer publishes (cheap `Arc` clone).
     pub fn codemap_snapshot(&self) -> CodemapSnapshot {
         self.indexer.codemap_snapshot()

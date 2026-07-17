@@ -23,6 +23,7 @@ pub struct TreeSitterExtractor;
 pub(crate) struct IndexAuxiliary {
     pub definition_body: Vec<String>,
     pub reference: Vec<String>,
+    pub static_collection_edges: Vec<StaticCollectionEdge>,
 }
 
 const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
@@ -205,6 +206,92 @@ fn base_name_from_text(text: &str) -> Option<String> {
     }
 }
 
+/// Normalize a collection-owner type without discarding namespace qualification. This is
+/// intentionally narrower than `base_name_from_text`: generic arguments and pointer/reference
+/// wrappers do not identify an owner, while package/module/namespace segments do. Any shape that
+/// can name multiple owners is omitted rather than guessed.
+fn normalized_collection_owner_type(text: &str) -> Option<String> {
+    let mut value = clean_type_text(text)?;
+    loop {
+        if let Some(stripped) = value.strip_prefix('&').or_else(|| value.strip_prefix('*')) {
+            value = stripped.trim().to_string();
+            // Rust permits a lifetime between `&` and `mut`/the referent. It is a
+            // reference wrapper, not part of the collection owner's identity.
+            if let Some(lifetime) = value.strip_prefix('\'') {
+                let lifetime_end = lifetime.find(char::is_whitespace).filter(|end| *end > 0)?;
+                if !lifetime[..lifetime_end]
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || character == '_')
+                {
+                    return None;
+                }
+                value = lifetime[lifetime_end..].trim().to_string();
+            }
+            continue;
+        }
+        if let Some(stripped) = value
+            .strip_prefix("const ")
+            .or_else(|| value.strip_prefix("mut "))
+            .or_else(|| value.strip_prefix("ref "))
+        {
+            value = stripped.trim().to_string();
+            continue;
+        }
+        break;
+    }
+    for elaborated_type_keyword in ["struct ", "class ", "enum ", "union "] {
+        if let Some(stripped) = value.strip_prefix(elaborated_type_keyword) {
+            value = stripped.trim().to_string();
+            break;
+        }
+    }
+    while let Some(stripped) = value.strip_suffix('&').or_else(|| value.strip_suffix('*')) {
+        value = stripped.trim().to_string();
+    }
+    value = value.trim_end_matches(['?', '!']).trim().to_string();
+    if value.contains('|') || value.contains('&') || value.contains("->") {
+        return None;
+    }
+
+    let mut head_end = value.len();
+    if let Some(generic_start) = value.find('<') {
+        let mut depth = 0usize;
+        let mut close = None;
+        for (index, character) in value
+            .char_indices()
+            .skip_while(|(index, _)| *index < generic_start)
+        {
+            match character {
+                '<' => depth += 1,
+                '>' => {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        close = Some(index);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if close.is_none() || !value[close? + 1..].trim().is_empty() {
+            return None;
+        }
+        head_end = generic_start;
+    } else if value.contains('>') {
+        return None;
+    }
+
+    let head = value[..head_end].trim();
+    if head.is_empty()
+        || !head.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '_' | '.' | ':')
+        })
+    {
+        return None;
+    }
+    Some(head.to_string())
+}
+
 fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
     if kinds.contains(&node.kind()) {
         return Some(node);
@@ -231,6 +318,13 @@ fn declarator_name(node: Node, source: &[u8]) -> Option<String> {
         | "attributed_declarator" => node
             .child_by_field_name("declarator")
             .and_then(|declarator| declarator_name(declarator, source)),
+        "reference_declarator" => {
+            let mut cursor = node.walk();
+            let name = node
+                .named_children(&mut cursor)
+                .find_map(|child| declarator_name(child, source));
+            name
+        }
         _ => None,
     }
 }
@@ -869,6 +963,817 @@ fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
         .unwrap_or_default()
 }
 
+fn enclosing_typescript_class(mut node: Node) -> Option<Node> {
+    while let Some(parent) = node.parent() {
+        if matches!(
+            parent.kind(),
+            "class_declaration" | "abstract_class_declaration"
+        ) {
+            return Some(parent);
+        }
+        node = parent;
+    }
+    None
+}
+
+fn typescript_class_name(class_node: Node, source: &[u8]) -> Option<String> {
+    class_node
+        .child_by_field_name("name")
+        .and_then(|name| node_text(name, source))
+}
+
+fn typescript_class_member_type(
+    class_node: Node,
+    member_name: &str,
+    source: &[u8],
+) -> Option<String> {
+    fn parameter_type(node: Node, member_name: &str, source: &[u8]) -> Option<String> {
+        if matches!(
+            node.kind(),
+            "required_parameter" | "optional_parameter" | "formal_parameter"
+        ) && field_or_descendant_name(node, source).as_deref() == Some(member_name)
+        {
+            let type_node = node
+                .child_by_field_name("type")
+                .or_else(|| first_descendant_kind(node, &["type_annotation"]));
+            return type_node.and_then(|type_node| typescript_outer_named_type(type_node, source));
+        }
+        named_children(node).find_map(|child| parameter_type(child, member_name, source))
+    }
+
+    let body = class_node.child_by_field_name("body")?;
+    for child_index in 0..body.child_count() {
+        let child = body.child(child_index as u32).unwrap();
+        if !child.is_named() {
+            continue;
+        }
+        let Some(name_node) = child.child_by_field_name("name") else {
+            continue;
+        };
+        if node_text(name_node, source).as_deref() != Some(member_name) {
+            continue;
+        }
+        let Some(type_node) = child
+            .child_by_field_name("type")
+            .or_else(|| first_descendant_kind(child, &["type_annotation"]))
+        else {
+            continue;
+        };
+        return typescript_outer_named_type(type_node, source);
+    }
+    for child in named_children(body) {
+        let is_constructor = child.kind() == "constructor_declaration"
+            || child
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source))
+                .as_deref()
+                == Some("constructor");
+        if !is_constructor {
+            continue;
+        }
+        let parameters = child
+            .child_by_field_name("parameters")
+            .or_else(|| first_descendant_kind(child, &["formal_parameters"]))?;
+        if let Some(type_name) = parameter_type(parameters, member_name, source) {
+            return Some(type_name);
+        }
+    }
+    None
+}
+
+fn typescript_outer_named_type(mut node: Node, source: &[u8]) -> Option<String> {
+    while matches!(node.kind(), "type_annotation" | "parenthesized_type") {
+        node = named_children(node).next()?;
+    }
+    match node.kind() {
+        "type_identifier" => node_text(node, source),
+        "generic_type" => node
+            .child_by_field_name("name")
+            .or_else(|| named_children(node).next())
+            .filter(|head| head.kind() == "type_identifier")
+            .and_then(|head| node_text(head, source)),
+        _ => None,
+    }
+}
+
+/// Resolve only identities explicit in the syntax. `this` means the enclosing class;
+/// `this.member` is accepted only when that member has one concrete named type.
+fn typescript_collection_owner_type(
+    owner_node: Node,
+    site_node: Node,
+    source: &[u8],
+) -> Option<String> {
+    let class_node = enclosing_typescript_class(site_node)?;
+    match owner_node.kind() {
+        "this" => typescript_class_name(class_node, source),
+        "member_expression" => {
+            let root = owner_node.child_by_field_name("object")?;
+            if root.kind() != "this" {
+                return None;
+            }
+            let member = owner_node.child_by_field_name("property")?;
+            if !matches!(
+                member.kind(),
+                "property_identifier" | "private_property_identifier"
+            ) {
+                return None;
+            }
+            let member_name = node_text(member, source)?;
+            typescript_class_member_type(class_node, &member_name, source)
+        }
+        _ => None,
+    }
+}
+
+fn typescript_source_context(
+    mut node: Node,
+    source: &[u8],
+) -> (Option<String>, Option<String>, Option<CodeRange>) {
+    let mut source_owner = None;
+    let mut source_symbol = None;
+    let mut source_owner_range = None;
+    while let Some(parent) = node.parent() {
+        if source_symbol.is_none()
+            && matches!(parent.kind(), "method_definition" | "function_declaration")
+        {
+            source_symbol = parent
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source));
+        }
+        if source_owner.is_none()
+            && matches!(
+                parent.kind(),
+                "class_declaration" | "abstract_class_declaration"
+            )
+        {
+            source_owner = typescript_class_name(parent, source);
+            source_owner_range = source_owner.as_ref().map(|_| range_for_node(parent));
+        }
+        if source_owner.is_some() && source_symbol.is_some() {
+            break;
+        }
+        node = parent;
+    }
+    (source_owner, source_symbol, source_owner_range)
+}
+
+fn enclosing_callable(mut node: Node) -> Option<Node> {
+    while let Some(parent) = node.parent() {
+        if matches!(
+            parent.kind(),
+            "function_declaration"
+                | "function_definition"
+                | "method_definition"
+                | "method_declaration"
+                | "constructor_declaration"
+                | "function_item"
+        ) {
+            return Some(parent);
+        }
+        node = parent;
+    }
+    None
+}
+
+fn callable_name(node: Node, source: &[u8]) -> Option<String> {
+    node.child_by_field_name("name")
+        .and_then(|name| node_text(name, source))
+        .or_else(|| {
+            node.child_by_field_name("declarator")
+                .and_then(|declarator| declarator_name(declarator, source))
+        })
+}
+
+fn static_collection_source_context(
+    spec: &dyn crate::lang::LanguageSpec,
+    ext: &str,
+    site_node: Node,
+    source: &[u8],
+) -> (Option<String>, Option<String>, Option<CodeRange>) {
+    let Some(callable) = enclosing_callable(site_node) else {
+        return (None, None, None);
+    };
+    let source_owner = spec.find_owner(callable, ext, source);
+    let source_owner_range = source_owner.as_ref().and_then(|owner| {
+        let mut node = site_node;
+        while let Some(parent) = node.parent() {
+            if node_declares_type(parent, owner, source) {
+                return Some(range_for_node(parent));
+            }
+            node = parent;
+        }
+        let mut root = site_node;
+        while let Some(parent) = root.parent() {
+            root = parent;
+        }
+        unique_type_declaration_range(root, owner, source)
+    });
+    (
+        source_owner,
+        callable_name(callable, source),
+        source_owner_range,
+    )
+}
+
+fn named_children(node: Node) -> impl Iterator<Item = Node> {
+    (0..node.child_count())
+        .filter_map(move |index| node.child(index as u32))
+        .filter(|child| child.is_named())
+}
+
+fn unwrap_collection_expression(mut node: Node) -> Node {
+    loop {
+        let should_unwrap = matches!(
+            node.kind(),
+            "expression_list"
+                | "reference_expression"
+                | "parenthesized_expression"
+                | "pointer_expression"
+        );
+        if !should_unwrap {
+            return node;
+        }
+        let mut children = named_children(node);
+        let Some(first) = children.next() else {
+            return node;
+        };
+        if children.next().is_some() {
+            return node;
+        }
+        node = first;
+    }
+}
+
+fn parameter_type_for_name(node: Node, name: &str, source: &[u8]) -> Option<String> {
+    if matches!(
+        node.kind(),
+        "block" | "compound_statement" | "function_body"
+    ) {
+        return None;
+    }
+    if matches!(
+        node.kind(),
+        "parameter_declaration" | "formal_parameter" | "parameter"
+    ) {
+        let parameter_name = node
+            .child_by_field_name("name")
+            .and_then(|name_node| node_text(name_node, source))
+            .or_else(|| {
+                node.child_by_field_name("declarator")
+                    .and_then(|declarator| declarator_name(declarator, source))
+            })
+            .or_else(|| field_or_descendant_name(node, source));
+        if parameter_name.as_deref() == Some(name) {
+            return node
+                .child_by_field_name("type")
+                .or_else(|| {
+                    first_descendant_kind(
+                        node,
+                        &[
+                            "type_identifier",
+                            "user_type",
+                            "struct_specifier",
+                            "class_specifier",
+                        ],
+                    )
+                })
+                .and_then(|type_node| node_text(type_node, source))
+                .and_then(|text| normalized_collection_owner_type(&text));
+        }
+    }
+    for child in named_children(node) {
+        if let Some(type_name) = parameter_type_for_name(child, name, source) {
+            return Some(type_name);
+        }
+    }
+    None
+}
+
+fn callable_has_local_binding(node: Node, name: &str, source: &[u8]) -> bool {
+    if matches!(
+        node.kind(),
+        "parameter_declaration"
+            | "formal_parameter"
+            | "parameter"
+            | "local_variable_declaration"
+            | "property_declaration"
+            | "let_declaration"
+            | "declaration"
+    ) && field_or_descendant_name(node, source).as_deref() == Some(name)
+    {
+        return true;
+    }
+    for child in named_children(node) {
+        if matches!(
+            child.kind(),
+            "function_declaration"
+                | "function_definition"
+                | "method_definition"
+                | "method_declaration"
+                | "constructor_declaration"
+                | "function_item"
+        ) {
+            continue;
+        }
+        if callable_has_local_binding(child, name, source) {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_type_declaration_node(node: Node) -> bool {
+    matches!(
+        node.kind(),
+        "class_definition"
+            | "class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration"
+            | "object_declaration"
+            | "struct_item"
+            | "type_spec"
+            | "class_specifier"
+            | "struct_specifier"
+            | "union_specifier"
+    )
+}
+
+fn node_declares_type(node: Node, type_name: &str, source: &[u8]) -> bool {
+    if !is_type_declaration_node(node) {
+        return false;
+    }
+    node.child_by_field_name("name")
+        .and_then(|name| node_text(name, source))
+        .as_deref()
+        == Some(type_name)
+}
+
+fn unique_type_declaration_range(root: Node, type_name: &str, source: &[u8]) -> Option<CodeRange> {
+    fn collect(node: Node, type_name: &str, source: &[u8], ranges: &mut Vec<CodeRange>) {
+        if node_declares_type(node, type_name, source) {
+            ranges.push(range_for_node(node));
+        }
+        for child in named_children(node) {
+            collect(child, type_name, source, ranges);
+        }
+    }
+
+    let mut ranges = Vec::new();
+    collect(root, type_name, source, &mut ranges);
+    (ranges.len() == 1).then(|| ranges.remove(0))
+}
+
+fn declaration_name_and_type(node: Node, source: &[u8]) -> Option<(String, Option<String>)> {
+    if !matches!(
+        node.kind(),
+        "field_declaration" | "property_declaration" | "assignment"
+    ) {
+        return None;
+    }
+    let name = field_or_descendant_name(node, source)?;
+    let type_name = node
+        .child_by_field_name("type")
+        .or_else(|| first_descendant_kind(node, &["user_type", "type_identifier"]))
+        .and_then(|type_node| node_text(type_node, source))
+        .and_then(|text| normalized_collection_owner_type(&text));
+    Some((name, type_name))
+}
+
+fn type_field_type(
+    root: Node,
+    owner_type: &str,
+    owner_range: Option<&CodeRange>,
+    field_name: &str,
+    source: &[u8],
+) -> Option<Option<String>> {
+    fn visit(
+        node: Node,
+        owner_type: &str,
+        owner_range: Option<&CodeRange>,
+        field_name: &str,
+        source: &[u8],
+    ) -> Option<Option<String>> {
+        if node_declares_type(node, owner_type, source)
+            && owner_range.is_none_or(|range| range_for_node(node) == *range)
+        {
+            fn find_field(
+                node: Node,
+                field_name: &str,
+                source: &[u8],
+                is_owner_root: bool,
+            ) -> Option<Option<String>> {
+                if !is_owner_root && is_type_declaration_node(node) {
+                    return None;
+                }
+                if matches!(
+                    node.kind(),
+                    "function_declaration"
+                        | "function_definition"
+                        | "method_definition"
+                        | "method_declaration"
+                        | "constructor_declaration"
+                        | "function_item"
+                ) {
+                    return None;
+                }
+                if let Some((name, type_name)) = declaration_name_and_type(node, source) {
+                    if name == field_name {
+                        return Some(type_name);
+                    }
+                }
+                for child in named_children(node) {
+                    if let Some(found) = find_field(child, field_name, source, false) {
+                        return Some(found);
+                    }
+                }
+                None
+            }
+            return find_field(node, field_name, source, true);
+        }
+        for child in named_children(node) {
+            if let Some(found) = visit(child, owner_type, owner_range, field_name, source) {
+                return Some(found);
+            }
+        }
+        None
+    }
+    visit(root, owner_type, owner_range, field_name, source)
+}
+
+fn normalized_collection_parts(text: &str) -> Vec<String> {
+    text.trim()
+        .trim_start_matches('&')
+        .trim_start_matches('*')
+        .trim()
+        .trim_matches(['(', ')'])
+        .replace("?.", ".")
+        .replace("->", ".")
+        .split('.')
+        .map(|part| part.trim().to_string())
+        .filter(|part| !part.is_empty())
+        .collect()
+}
+
+struct ResolvedStaticCollectionIdentity {
+    collection_owner_type: String,
+    collection_field: String,
+    owner_expression: String,
+    source_owner: Option<String>,
+    source_symbol: Option<String>,
+    source_owner_range: Option<CodeRange>,
+}
+
+fn static_collection_identity(
+    spec: &dyn crate::lang::LanguageSpec,
+    ext: &str,
+    root: Node,
+    expression_node: Node,
+    site_node: Node,
+    source: &[u8],
+) -> Option<ResolvedStaticCollectionIdentity> {
+    let expression_node = unwrap_collection_expression(expression_node);
+    let expression = receiver_text(expression_node, source)?;
+    let parts = normalized_collection_parts(&expression);
+    let collection_field = parts.last()?.clone();
+    let (source_owner, source_symbol, source_owner_range) =
+        static_collection_source_context(spec, ext, site_node, source);
+    let callable = enclosing_callable(site_node);
+    let (collection_owner_type, owner_expression) = match parts.as_slice() {
+        [self_name, _field] if matches!(self_name.as_str(), "this" | "self") => {
+            (source_owner.clone()?, "self".to_string())
+        }
+        [field] => {
+            let owner = source_owner.clone()?;
+            if callable.is_some_and(|callable| callable_has_local_binding(callable, field, source))
+            {
+                return None;
+            }
+            type_field_type(root, &owner, source_owner_range.as_ref(), field, source)??;
+            (owner, "self".to_string())
+        }
+        [receiver, _field] => {
+            let callable = callable?;
+            let receiver_type = parameter_type_for_name(callable, receiver, source)?;
+            (receiver_type, receiver.to_string())
+        }
+        [self_name, member, _field] if matches!(self_name.as_str(), "this" | "self") => {
+            let source_type = source_owner.clone()?;
+            let member_type = type_field_type(
+                root,
+                &source_type,
+                source_owner_range.as_ref(),
+                member,
+                source,
+            )??;
+            (member_type, expression.clone())
+        }
+        _ => return None,
+    };
+
+    let resolved_source_owner = source_owner.or_else(|| Some(collection_owner_type.clone()));
+    Some(ResolvedStaticCollectionIdentity {
+        collection_owner_type,
+        collection_field,
+        owner_expression,
+        source_owner: resolved_source_owner,
+        source_symbol,
+        source_owner_range,
+    })
+}
+
+fn is_collection_producer_operation(ext: &str, operation: Option<&str>) -> bool {
+    match ext {
+        "go" => operation == Some("append"),
+        "rs" => operation.is_some_and(|operation| {
+            matches!(
+                operation,
+                "push" | "push_back" | "insert" | "extend" | "extend_from_slice"
+            )
+        }),
+        "java" | "kt" | "kts" => operation.is_some_and(|operation| {
+            matches!(
+                operation,
+                "add" | "addAll" | "put" | "putAll" | "offer" | "push" | "enqueue"
+            )
+        }),
+        "py" => operation.is_some_and(|operation| {
+            matches!(
+                operation,
+                "append" | "extend" | "insert" | "add" | "update" | "put"
+            )
+        }),
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => operation.is_some_and(|operation| {
+            matches!(
+                operation,
+                "push_back" | "emplace_back" | "insert" | "emplace" | "push"
+            )
+        }),
+        "c" => operation.is_none(),
+        _ => false,
+    }
+}
+
+fn is_collection_consumer_operation(ext: &str, operation: Option<&str>) -> bool {
+    operation.is_some_and(|operation| match ext {
+        "rs" => matches!(
+            operation,
+            "iter" | "iter_mut" | "into_iter" | "get" | "first" | "last"
+        ),
+        "java" => matches!(
+            operation,
+            "iterator" | "stream" | "forEach" | "get" | "values" | "keySet" | "entrySet"
+        ),
+        "kt" | "kts" => matches!(
+            operation,
+            "iterator" | "forEach" | "get" | "first" | "last" | "asSequence"
+        ),
+        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => matches!(
+            operation,
+            "begin" | "end" | "cbegin" | "cend" | "front" | "back" | "at"
+        ),
+        _ => false,
+    })
+}
+
+fn bounded_collection_value(arguments_node: Node, source: &[u8]) -> Option<String> {
+    let value_node = (0..arguments_node.child_count())
+        .filter_map(|index| arguments_node.child(index as u32))
+        .find(|child| child.is_named())?;
+    let value = node_text(value_node, source).map(normalize_navigation_text)?;
+    if value.is_empty() {
+        return None;
+    }
+    const VALUE_MAX_CHARS: usize = 120;
+    Some(if value.chars().count() > VALUE_MAX_CHARS {
+        value.chars().take(VALUE_MAX_CHARS).collect()
+    } else {
+        value
+    })
+}
+
+fn typescript_static_collection_edge(
+    kind: StaticCollectionEdgeKind,
+    site_node: Node,
+    owner_node: Node,
+    field_node: Node,
+    arguments_node: Option<Node>,
+    source: &[u8],
+) -> Option<StaticCollectionEdge> {
+    let collection_owner_type = typescript_collection_owner_type(owner_node, site_node, source)?;
+    let collection_field = node_text(field_node, source)?;
+    let owner_expression = receiver_text(owner_node, source)?;
+    let (source_owner, source_symbol, source_owner_range) =
+        typescript_source_context(site_node, source);
+    Some(StaticCollectionEdge {
+        kind,
+        collection_owner_type,
+        collection_field,
+        owner_expression,
+        source_owner,
+        source_owner_range,
+        source_symbol,
+        value: arguments_node.and_then(|arguments| bounded_collection_value(arguments, source)),
+        range: range_for_node(site_node),
+    })
+}
+
+struct StaticCollectionCapture<'tree> {
+    site_node: Node<'tree>,
+    expression_node: Node<'tree>,
+    arguments_node: Option<Node<'tree>>,
+}
+
+fn static_collection_edge(
+    spec: &dyn crate::lang::LanguageSpec,
+    ext: &str,
+    root: Node,
+    kind: StaticCollectionEdgeKind,
+    capture: StaticCollectionCapture,
+    source: &[u8],
+) -> Option<StaticCollectionEdge> {
+    let ResolvedStaticCollectionIdentity {
+        collection_owner_type,
+        collection_field,
+        owner_expression,
+        source_owner,
+        source_symbol,
+        source_owner_range,
+    } = static_collection_identity(
+        spec,
+        ext,
+        root,
+        capture.expression_node,
+        capture.site_node,
+        source,
+    )?;
+    Some(StaticCollectionEdge {
+        kind,
+        collection_owner_type,
+        collection_field,
+        owner_expression,
+        source_owner,
+        source_owner_range,
+        source_symbol,
+        value: capture
+            .arguments_node
+            .and_then(|arguments| bounded_collection_value(arguments, source)),
+        range: range_for_node(capture.site_node),
+    })
+}
+
+fn is_typescript_for_of(node: Node, source: &[u8]) -> bool {
+    (0..node.child_count()).any(|index| {
+        node.child(index as u32)
+            .filter(|child| !child.is_named())
+            .and_then(|child| child.utf8_text(source).ok())
+            == Some("of")
+    })
+}
+
+const STATIC_COLLECTION_EDGES_PER_FILE_MAX: usize = 256;
+
+fn push_static_collection_edge(
+    edges: &mut Vec<StaticCollectionEdge>,
+    seen: &mut HashSet<String>,
+    edge: StaticCollectionEdge,
+) {
+    let key = format!(
+        "{:?}:{}:{}:{}:{}",
+        edge.kind,
+        edge.collection_owner_type,
+        edge.collection_field,
+        edge.range.start_line,
+        edge.range.start_col
+    );
+    if edges.len() < STATIC_COLLECTION_EDGES_PER_FILE_MAX && seen.insert(key) {
+        edges.push(edge);
+    }
+}
+
+fn collect_static_collection_edges_from_tree(
+    spec: &dyn crate::lang::LanguageSpec,
+    ext: &str,
+    query: &Query,
+    tree: &Tree,
+    source: &[u8],
+) -> Vec<StaticCollectionEdge> {
+    let mut edges = Vec::new();
+    let mut seen = HashSet::new();
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(query, tree.root_node(), source);
+    while edges.len() < STATIC_COLLECTION_EDGES_PER_FILE_MAX {
+        let Some(query_match) = matches.next() else {
+            break;
+        };
+        let mut owner_node = None;
+        let mut field_node = None;
+        let mut arguments_node = None;
+        let mut push_node = None;
+        let mut iteration_node = None;
+        let mut read_node = None;
+        let mut expression_node = None;
+        let mut operation_node = None;
+        let mut write_node = None;
+        for capture in query_match.captures {
+            match query.capture_names()[capture.index as usize] {
+                "collection.owner" => owner_node = Some(capture.node),
+                "collection.field" => field_node = Some(capture.node),
+                "collection.arguments" => arguments_node = Some(capture.node),
+                "collection.push" => push_node = Some(capture.node),
+                "collection.iteration" => iteration_node = Some(capture.node),
+                "collection.read" => read_node = Some(capture.node),
+                "collection.expression" => expression_node = Some(capture.node),
+                "collection.operation" => operation_node = Some(capture.node),
+                "collection.write" => write_node = Some(capture.node),
+                _ => {}
+            }
+        }
+
+        if let (Some(site), Some(owner), Some(field)) = (push_node, owner_node, field_node) {
+            if let Some(edge) = typescript_static_collection_edge(
+                StaticCollectionEdgeKind::Producer,
+                site,
+                owner,
+                field,
+                arguments_node,
+                source,
+            ) {
+                push_static_collection_edge(&mut edges, &mut seen, edge);
+            }
+        }
+        if let (Some(site), Some(owner), Some(field)) = (iteration_node, owner_node, field_node) {
+            if is_typescript_for_of(site, source) {
+                if let Some(edge) = typescript_static_collection_edge(
+                    StaticCollectionEdgeKind::Consumer,
+                    site,
+                    owner,
+                    field,
+                    None,
+                    source,
+                ) {
+                    push_static_collection_edge(&mut edges, &mut seen, edge);
+                }
+            }
+        }
+        if let (Some(site), Some(owner), Some(field)) = (read_node, owner_node, field_node) {
+            if let Some(edge) = typescript_static_collection_edge(
+                StaticCollectionEdgeKind::Consumer,
+                site,
+                owner,
+                field,
+                None,
+                source,
+            ) {
+                push_static_collection_edge(&mut edges, &mut seen, edge);
+            }
+        }
+
+        if let (Some(site), Some(expression)) = (write_node, expression_node) {
+            let operation = operation_node.and_then(|node| node_text(node, source));
+            let kind = if is_collection_producer_operation(ext, operation.as_deref()) {
+                Some(StaticCollectionEdgeKind::Producer)
+            } else if is_collection_consumer_operation(ext, operation.as_deref()) {
+                Some(StaticCollectionEdgeKind::Consumer)
+            } else {
+                None
+            };
+            if let Some(kind) = kind {
+                if let Some(edge) = static_collection_edge(
+                    spec,
+                    ext,
+                    tree.root_node(),
+                    kind,
+                    StaticCollectionCapture {
+                        site_node: site,
+                        expression_node: expression,
+                        arguments_node,
+                    },
+                    source,
+                ) {
+                    push_static_collection_edge(&mut edges, &mut seen, edge);
+                }
+            }
+        } else if let (Some(site), Some(expression)) = (read_node, expression_node) {
+            if let Some(edge) = static_collection_edge(
+                spec,
+                ext,
+                tree.root_node(),
+                StaticCollectionEdgeKind::Consumer,
+                StaticCollectionCapture {
+                    site_node: site,
+                    expression_node: expression,
+                    arguments_node: None,
+                },
+                source,
+            ) {
+                push_static_collection_edge(&mut edges, &mut seen, edge);
+            }
+        }
+    }
+    edges
+}
+
 impl TreeSitterExtractor {
     fn extract_parts(
         &self,
@@ -915,13 +1820,24 @@ impl TreeSitterExtractor {
         let mut seen_local_bindings: HashSet<String> = HashSet::new();
         let mut seen_references: HashSet<String> = HashSet::new();
         let source = file_content.as_bytes();
-        let auxiliary = if collect_auxiliary {
+        let mut auxiliary = if collect_auxiliary {
             spec.tags_query(ext)
                 .map(|tags_query| collect_index_auxiliary_from_tree(tags_query, &tree, source))
                 .unwrap_or_default()
         } else {
             IndexAuxiliary::default()
         };
+        if collect_auxiliary {
+            if let Some(collection_query) = spec.static_collection_query(ext) {
+                auxiliary.static_collection_edges = collect_static_collection_edges_from_tree(
+                    spec,
+                    ext,
+                    collection_query,
+                    &tree,
+                    source,
+                );
+            }
+        }
 
         // Per-language file-wide pre-pass collecting exported symbol names (TS `export {...}`
         // specifiers; ASM `.globl`/`.global` directives). No-op for languages without one.

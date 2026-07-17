@@ -16,6 +16,9 @@ pub use engine::{
     SearchEngine, SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle,
     TantivySearchEngine,
 };
-pub use indexer::{spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus};
+pub use indexer::{
+    spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus,
+    PublishedIndexSnapshot, StaticCollectionRecord,
+};
 pub use supervisor::EngineSupervisor;
 pub use watcher::{spawn_watcher, WatcherHandle, WatcherStatus};

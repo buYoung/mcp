@@ -1,10 +1,34 @@
-use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol};
+use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, StaticCollectionEdge};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use tantivy::collector::DocSetCollector;
 use tantivy::query::AllQuery;
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
+
+fn static_collection_edges_are_empty(edges: &&[StaticCollectionEdge]) -> bool {
+    edges.is_empty()
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredExtractedFileRef<'a> {
+    #[serde(flatten)]
+    extracted: &'a ExtractedFile,
+    #[serde(skip_serializing_if = "static_collection_edges_are_empty")]
+    static_collection_edges: &'a [StaticCollectionEdge],
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredExtractedFile {
+    #[serde(flatten)]
+    extracted: ExtractedFile,
+    #[serde(default)]
+    static_collection_edges: Vec<StaticCollectionEdge>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchRankingSignal {
@@ -131,9 +155,159 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// happily reuse a v6 index without re-emitting the owner tokens — so the bump is what forces
 /// the one-time reindex that populates them. `v9` adds two indexed auxiliary fields
 /// (`definition_body`, `reference`) populated from optional per-language `tags.scm` hooks,
-/// while keeping the stored `ExtractedFile` JSON contract unchanged. Each bump rebuilds
-/// exactly once.
-const EXTRACTION_FORMAT_VERSION: &str = "v9-search-auxiliary";
+/// while keeping the stored `ExtractedFile` JSON contract unchanged. `v10` stores bounded
+/// static TypeScript/JavaScript collection write/read endpoints used by search relation hints.
+/// `v11` extends those endpoints to every supported high-level language with a safe collection
+/// identity model. `v12` preserves qualified owner identity and republishes bounded relation
+/// indexes alongside the codemap snapshot. Each bump rebuilds exactly once.
+const EXTRACTION_FORMAT_VERSION: &str = "v12-multilang-static-collection-hardening";
+
+/// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
+/// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
+struct FormatUpgradeLock {
+    path: PathBuf,
+    token: String,
+}
+
+impl FormatUpgradeLock {
+    fn acquire(index_path: &Path) -> Result<Self, String> {
+        let parent = index_path.parent().unwrap_or_else(|| Path::new("."));
+        let name = index_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("codemap-index");
+        // Keep this outside the index directory: the upgrade itself removes that directory.
+        let path = parent.join(format!(".{name}.codemap-format-upgrade.lock"));
+        let token = format!(
+            "{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| format!("failed to create index upgrade lock token: {error}"))?
+                .as_nanos()
+        );
+        let candidate_path =
+            parent.join(format!(".{name}.codemap-format-upgrade.candidate-{token}"));
+        let mut candidate = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate_path)
+            .map_err(|error| format!("failed to create index upgrade lock candidate: {error}"))?;
+        if let Err(error) = write!(candidate, "pid={}\ntoken={token}\n", std::process::id())
+            .and_then(|()| candidate.sync_all())
+        {
+            let _ = std::fs::remove_file(&candidate_path);
+            return Err(format!("failed to prepare index upgrade lock: {error}"));
+        }
+        drop(candidate);
+        for _ in 0..600 {
+            match std::fs::hard_link(&candidate_path, &path) {
+                Ok(()) => {
+                    let _ = std::fs::remove_file(&candidate_path);
+                    return Ok(Self { path, token });
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    if let Err(error) = Self::reclaim_stale(&path) {
+                        let _ = std::fs::remove_file(&candidate_path);
+                        return Err(error);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                Err(error) => {
+                    let _ = std::fs::remove_file(&candidate_path);
+                    return Err(format!("failed to acquire index upgrade lock: {error}"));
+                }
+            }
+        }
+        let _ = std::fs::remove_file(&candidate_path);
+        Err("timed out waiting for a concurrent index format upgrade".to_string())
+    }
+
+    fn reclaim_stale(path: &Path) -> Result<(), String> {
+        let contents = match std::fs::read_to_string(path) {
+            Ok(contents) => contents,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(format!("failed to read index upgrade lock: {error}")),
+        };
+        let owner_pid = contents
+            .lines()
+            .find_map(|line| line.strip_prefix("pid="))
+            .and_then(|pid| pid.parse::<u32>().ok());
+        if let Some(owner_pid) = owner_pid {
+            if Self::process_is_alive(owner_pid) {
+                return Ok(());
+            }
+        } else {
+            let is_old_enough = std::fs::metadata(path)
+                .and_then(|metadata| metadata.modified())
+                .ok()
+                .and_then(|modified| modified.elapsed().ok())
+                .is_some_and(|age| age >= std::time::Duration::from_secs(2));
+            if !is_old_enough {
+                return Ok(());
+            }
+        }
+
+        // Rename, rather than unlink, so a contender can never remove a freshly acquired
+        // lock after observing an old crashed owner's file.
+        let stale_path = path.with_extension(format!(
+            "stale-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| format!("failed to reclaim index upgrade lock: {error}"))?
+                .as_nanos()
+        ));
+        match std::fs::rename(path, &stale_path) {
+            Ok(()) => {
+                let _ = std::fs::remove_file(stale_path);
+                Ok(())
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(format!(
+                "failed to reclaim stale index upgrade lock: {error}"
+            )),
+        }
+    }
+
+    #[cfg(unix)]
+    fn process_is_alive(pid: u32) -> bool {
+        let output = std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .output();
+        match output {
+            Ok(output) if output.status.success() => true,
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr).to_ascii_lowercase();
+                // `EPERM` still proves the process exists. Only an explicit ESRCH-style
+                // response permits reclaim; all other command failures fail closed.
+                !(stderr.contains("no such process") || stderr.contains("not found"))
+            }
+            Err(_) => true,
+        }
+    }
+
+    #[cfg(not(unix))]
+    fn process_is_alive(_pid: u32) -> bool {
+        // Without a portable PID liveness primitive, fail closed rather than risk removing a
+        // live sibling's lock. Unix hosts (the supported deployment environment) recover it.
+        true
+    }
+}
+
+impl Drop for FormatUpgradeLock {
+    fn drop(&mut self) {
+        let is_ours = std::fs::read_to_string(&self.path)
+            .ok()
+            .is_some_and(|contents| {
+                contents
+                    .lines()
+                    .any(|line| line == format!("token={}", self.token))
+            });
+        if is_ours {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+}
 
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
@@ -168,7 +342,22 @@ impl TantivySearchEngine {
         let stored_version = std::fs::read_to_string(&version_path)
             .ok()
             .map(|s| s.trim().to_string());
-        let version_mismatch = stored_version.as_deref() != Some(EXTRACTION_FORMAT_VERSION);
+        let mut version_mismatch = stored_version.as_deref() != Some(EXTRACTION_FORMAT_VERSION);
+        // The lock covers the full destructive upgrade transaction. A waiting process must
+        // re-read the sidecar after it wins the lock, because the prior process may already
+        // have rebuilt and stamped the directory while this one waited.
+        let upgrade_lock = if version_mismatch {
+            Some(FormatUpgradeLock::acquire(path)?)
+        } else {
+            None
+        };
+        if upgrade_lock.is_some() {
+            version_mismatch = std::fs::read_to_string(&version_path)
+                .ok()
+                .map(|version| version.trim().to_string())
+                .as_deref()
+                != Some(EXTRACTION_FORMAT_VERSION);
+        }
         // Wipe only an index that actually HAS content under an outdated format. A fresh
         // or empty index dir (no tantivy meta.json — e.g. a never-indexed repo) is created
         // in place: two server processes spawning concurrently on the same repo would
@@ -198,7 +387,9 @@ impl TantivySearchEngine {
         let index = match opened {
             Ok(idx) => idx,
             Err(_) => {
-                let _ = std::fs::remove_dir_all(path);
+                if path.exists() {
+                    std::fs::remove_dir_all(path).map_err(|error| error.to_string())?;
+                }
                 std::fs::create_dir_all(path).map_err(|e| e.to_string())?;
                 let directory =
                     tantivy::directory::MmapDirectory::open(path).map_err(|e| e.to_string())?;
@@ -218,7 +409,12 @@ impl TantivySearchEngine {
         // Written once: after this run the sidecar matches, so `version_mismatch` is false
         // on every subsequent run and neither the rebuild nor this write fires again.
         if version_mismatch {
-            let _ = std::fs::write(&version_path, EXTRACTION_FORMAT_VERSION);
+            std::fs::write(&version_path, EXTRACTION_FORMAT_VERSION).map_err(|error| {
+                format!(
+                    "failed to write index extraction format stamp {}: {error}",
+                    version_path.display()
+                )
+            })?;
         }
 
         Ok(Self {
@@ -354,6 +550,20 @@ impl TantivySearchEngine {
     /// or deletes), so callers (the indexer thread) can skip rebuilding derived snapshots
     /// on no-op passes. The `SearchEngine::index_files` trait method delegates here.
     pub fn index_files_changed(&mut self, paths: &[&str]) -> Result<bool, String> {
+        self.index_files_changed_with_reload(paths, true)
+    }
+
+    /// Indexer-only variant that leaves the shared reader on its prior generation until the
+    /// companion published snapshot has been reconstructed successfully.
+    pub(crate) fn index_files_changed_deferred(&mut self, paths: &[&str]) -> Result<bool, String> {
+        self.index_files_changed_with_reload(paths, false)
+    }
+
+    fn index_files_changed_with_reload(
+        &mut self,
+        paths: &[&str],
+        should_reload_reader: bool,
+    ) -> Result<bool, String> {
         let mut files_to_process = Vec::new();
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
@@ -423,7 +633,7 @@ impl TantivySearchEngine {
             to_delete.len()
         );
 
-        self.apply_index_updates(to_index, to_delete)
+        self.apply_index_updates(to_index, to_delete, should_reload_reader)
     }
 
     /// Apply a computed set of reindex/delete updates to the index: delete the stale docs,
@@ -435,6 +645,7 @@ impl TantivySearchEngine {
         &mut self,
         to_index: Vec<(String, PathBuf, u64)>,
         to_delete: Vec<String>,
+        should_reload_reader: bool,
     ) -> Result<bool, String> {
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
@@ -492,7 +703,11 @@ impl TantivySearchEngine {
             let path_parts = tokenize_path(&rel_path);
             doc.add_text(self.file_path_parts_field, &path_parts);
 
-            let json_str = match serde_json::to_string(&extracted) {
+            let stored_extracted = StoredExtractedFileRef {
+                extracted: &extracted,
+                static_collection_edges: &auxiliary.static_collection_edges,
+            };
+            let json_str = match serde_json::to_string(&stored_extracted) {
                 Ok(js) => js,
                 Err(e) => {
                     eprintln!(
@@ -564,8 +779,9 @@ impl TantivySearchEngine {
         }
 
         writer.commit().map_err(|e| e.to_string())?;
-        self.reader.reload().map_err(|e| e.to_string())?;
-
+        if should_reload_reader {
+            self.reader.reload().map_err(|error| error.to_string())?;
+        }
         // Reconcile the cache only after the commit landed (Child 04): drop the deleted
         // paths and record the freshly-indexed mtimes. On any earlier return (LockFailure,
         // commit/reload error) the cache is left untouched, so it never claims a file is
@@ -590,6 +806,19 @@ impl TantivySearchEngine {
     /// whole index (that logic assumes a full walk and would treat every not-passed file
     /// as deleted). Returns `true` only when a commit actually landed.
     pub fn refresh_paths(&mut self, paths: &[PathBuf]) -> Result<bool, String> {
+        self.refresh_paths_with_reload(paths, true)
+    }
+
+    /// Indexer-only watcher refresh that defers reader visibility until snapshot publication.
+    pub(crate) fn refresh_paths_deferred(&mut self, paths: &[PathBuf]) -> Result<bool, String> {
+        self.refresh_paths_with_reload(paths, false)
+    }
+
+    fn refresh_paths_with_reload(
+        &mut self,
+        paths: &[PathBuf],
+        should_reload_reader: bool,
+    ) -> Result<bool, String> {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
 
@@ -706,7 +935,13 @@ impl TantivySearchEngine {
             to_delete.len()
         );
 
-        self.apply_index_updates(to_index, to_delete)
+        self.apply_index_updates(to_index, to_delete, should_reload_reader)
+    }
+
+    /// Make the newest committed Tantivy generation visible only after its companion
+    /// `PublishedIndexSnapshot` has been rebuilt successfully.
+    pub(crate) fn reload_reader(&self) -> Result<(), String> {
+        self.reader.reload().map_err(|error| error.to_string())
     }
 
     /// Cheap read-side handle: clones the Arc-backed index/reader so search runs off the
@@ -736,30 +971,43 @@ impl TantivySearchEngine {
             .search_with_context(query, limit, context)
     }
 
-    /// Rebuild the codemap snapshot from the stored `extracted_json` docs (one AllQuery,
-    /// same shape as get_indexed_mtimes). The indexer publishes this for `overview`, so the
-    /// working tree is parsed once for the index instead of separately on every overview.
-    pub fn load_extracted_files(&self) -> Vec<ExtractedFile> {
-        let searcher = self.reader.searcher();
-        let mut files = Vec::new();
+    /// Rebuild all in-memory derived data from stored docs in one pass. This is called only by
+    /// the background indexer when publishing a successful generation; search never scans
+    /// Tantivy documents or deserializes stored JSON on its hot path.
+    pub fn load_published_snapshot(
+        &self,
+    ) -> Result<super::indexer::PublishedIndexSnapshot, String> {
+        // This temporary reader sees the just-committed generation without advancing the
+        // shared request reader. If reconstruction fails, callers keep the prior BM25 and
+        // relation generation together.
+        let snapshot_reader = self
+            .index
+            .reader_builder()
+            .reload_policy(ReloadPolicy::Manual)
+            .try_into()
+            .map_err(|error| format!("published snapshot reader open failed: {error}"))?;
+        let searcher = snapshot_reader.searcher();
+        let mut files_and_edges = Vec::new();
         // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
         // complete on large repos.
-        if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
-            for doc_address in doc_addresses {
-                if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
-                    if let Some(json) = doc
-                        .get_first(self.extracted_json_field)
-                        .and_then(|v| v.as_str())
-                    {
-                        if let Ok(file) = serde_json::from_str::<ExtractedFile>(json) {
-                            files.push(file);
-                        }
-                    }
-                }
-            }
+        let doc_addresses = searcher
+            .search(&AllQuery, &DocSetCollector)
+            .map_err(|error| format!("published snapshot query failed: {error}"))?;
+        for doc_address in doc_addresses {
+            let doc = searcher
+                .doc::<TantivyDocument>(doc_address)
+                .map_err(|error| format!("published snapshot document read failed: {error}"))?;
+            let json = doc
+                .get_first(self.extracted_json_field)
+                .and_then(|value| value.as_str())
+                .ok_or_else(|| {
+                    "published snapshot document is missing extracted_json".to_string()
+                })?;
+            let stored = serde_json::from_str::<StoredExtractedFile>(json)
+                .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
+            files_and_edges.push((stored.extracted, stored.static_collection_edges));
         }
-        files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
-        files
+        Ok(super::indexer::PublishedIndexSnapshot::from_files_and_edges(files_and_edges))
     }
 }
 

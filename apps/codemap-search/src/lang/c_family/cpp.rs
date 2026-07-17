@@ -28,6 +28,8 @@ const CPP_QUERY_STR: &str = concat!(
 );
 
 const CPP_TAGS_QUERY_STR: &str = include_str!("../../../queries/cpp/tags.scm");
+const CPP_STATIC_COLLECTION_QUERY_STR: &str =
+    include_str!("../../../queries/cpp/static_collection_edges.scm");
 
 fn get_cpp_query() -> &'static Query {
     static CPP_QUERY: OnceLock<Query> = OnceLock::new();
@@ -42,6 +44,17 @@ fn get_cpp_tags_query() -> &'static Query {
     CPP_TAGS_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_cpp::LANGUAGE.into(), CPP_TAGS_QUERY_STR)
             .expect("Failed to compile C++ tags query")
+    })
+}
+
+fn get_cpp_static_collection_query() -> &'static Query {
+    static QUERY: OnceLock<Query> = OnceLock::new();
+    QUERY.get_or_init(|| {
+        Query::new(
+            &tree_sitter_cpp::LANGUAGE.into(),
+            CPP_STATIC_COLLECTION_QUERY_STR,
+        )
+        .expect("Failed to compile C++ static collection query")
     })
 }
 
@@ -192,6 +205,10 @@ impl LanguageSpec for CppSpec {
 
     fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
         Some(get_cpp_tags_query())
+    }
+
+    fn static_collection_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_cpp_static_collection_query())
     }
 
     fn extensions(&self) -> &'static [&'static str] {
