@@ -260,6 +260,11 @@ pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
+    let initial_instructions_description = if is_monorepo {
+        include_str!("instructions/tools/initial_instructions.monorepo.md").trim_end()
+    } else {
+        include_str!("instructions/tools/initial_instructions.md").trim_end()
+    };
     let overview_description = if is_monorepo {
         include_str!("instructions/tools/overview.monorepo.md").trim_end()
     } else {
@@ -306,7 +311,7 @@ pub fn list_tools() -> Value {
                 "tools": [
                     {
                         "name": "initial_instructions",
-                        "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
+                        "description": initial_instructions_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": { "type": "object", "properties": {} }
                     },
