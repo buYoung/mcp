@@ -433,6 +433,12 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
             let name = node_text(type_node, source).and_then(|text| base_name_from_text(&text))?;
             (name, None)
         }
+        "new_expression" => {
+            let constructor = node
+                .child_by_field_name("constructor")
+                .or_else(|| first_descendant_kind(node, &["identifier", "member_expression"]))?;
+            call_name_and_receiver(constructor, source)?
+        }
         "method_call_expression" => {
             let name = node
                 .child_by_field_name("name")
@@ -446,6 +452,14 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
             let macro_node = node.child_by_field_name("macro")?;
             let (name, receiver) = call_name_and_receiver(macro_node, source)?;
             (name, receiver)
+        }
+        "instruction" => {
+            let kind_node = node.child_by_field_name("kind")?;
+            let target = (0..node.named_child_count())
+                .filter_map(|index| node.named_child(index as u32))
+                .find(|child| child.id() != kind_node.id())?;
+            let name = node_text(target, source).and_then(|text| base_name_from_text(&text))?;
+            (name, None)
         }
         "navigation_expression" => {
             let text = receiver_text(node, source)?;
@@ -802,6 +816,9 @@ fn include_name_from_source(source: &str) -> Option<String> {
 
 fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
     let trimmed = text.trim().trim_end_matches(';').trim();
+    if let Some(rest) = trimmed.strip_prefix("export import ") {
+        return import_entries_from_text(&format!("import {rest}"), range);
+    }
     let mut entries = Vec::new();
     if let Some(rest) = trimmed.strip_prefix("import ") {
         let source = quoted_source_after_from(trimmed);
@@ -931,14 +948,17 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
         return entries;
     }
 
-    if trimmed.starts_with("import") || trimmed.starts_with("#include") {
+    if trimmed.starts_with("import")
+        || trimmed.starts_with("#include")
+        || trimmed.starts_with(".include")
+    {
         if let Some(source) = quoted_source_after_from(trimmed).or_else(|| {
             trimmed
                 .split_whitespace()
                 .last()
                 .map(|part| string_literal_value(part.trim_matches(['<', '>'])))
         }) {
-            let name = if trimmed.starts_with("#include") {
+            let name = if trimmed.starts_with("#include") || trimmed.starts_with(".include") {
                 include_name_from_source(&source)
             } else {
                 base_name_from_text(&source)
@@ -958,9 +978,34 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
 }
 
 fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
-    node_text(node, source)
-        .map(|text| import_entries_from_text(&text, range_for_node(node)))
-        .unwrap_or_default()
+    let Some(text) = node_text(node, source) else {
+        return Vec::new();
+    };
+    let range = range_for_node(node);
+    if matches!(
+        node.kind(),
+        "declaration" | "labeled_statement" | "template_type"
+    ) {
+        let trimmed = text.trim().trim_end_matches(';').trim();
+        let module_name = trimmed
+            .strip_prefix("export import ")
+            .or_else(|| trimmed.strip_prefix("import "))
+            .map(str::trim)
+            .map(|name| string_literal_value(name.trim_matches(['<', '>'])))
+            .filter(|name| !name.is_empty());
+        if let Some(module_name) = module_name {
+            let imported_name =
+                base_name_from_text(&module_name).unwrap_or_else(|| module_name.clone());
+            return vec![ImportEntry {
+                local_name: imported_name.clone(),
+                imported_name: Some(imported_name),
+                source: Some(module_name),
+                kind: ImportKind::Named,
+                range,
+            }];
+        }
+    }
+    import_entries_from_text(&text, range)
 }
 
 fn enclosing_typescript_class(mut node: Node) -> Option<Node> {
@@ -1972,11 +2017,13 @@ impl TreeSitterExtractor {
                     if is_valid_test_call {
                         let kind = match capture_name {
                             "symbol.struct" => "struct",
+                            "symbol.union" => "union",
                             "symbol.enum" => "enum",
                             "symbol.variant" => "variant",
                             "symbol.trait" => "trait",
                             "symbol.mod" => "mod",
                             "symbol.fn" | "symbol.method" => "fn",
+                            "symbol.macro" => "fn",
                             "symbol.type" => "type",
                             "symbol.const" => "const",
                             "symbol.static" => "static",
@@ -1993,6 +2040,7 @@ impl TreeSitterExtractor {
                             // C/C++: function_definition and function prototype declarations are
                             // both captured as `symbol.cfn`; always emitted as kind "fn".
                             "symbol.cfn" => "fn",
+                            "symbol.cppmodule" => "module",
                             // ASM: labels and `.macro` definitions captured as `symbol.asmfn`.
                             // `.macro` nodes are filtered below using asm_meta_kind_text.
                             "symbol.asmfn" => "fn",
@@ -2085,14 +2133,13 @@ impl TreeSitterExtractor {
                             let is_deprecated =
                                 spec.is_deprecated(node, source, &docstring, &comments_text);
 
-                            // Owner (enclosing type) is computed for callables — the search
-                            // annotation qualifies `fn`/method names — and for enum variants
-                            // (the owning enum names which type the variant belongs to).
-                            // Other members are deferred (see the brief's Open Questions).
+                            // Owner (enclosing type) is computed for callables, enum variants,
+                            // and fields. The search layer uses it for qualified names such as
+                            // `Settings.timeout` as well as methods and enum variants.
                             // Best-effort: any unexpected shape yields `None`.
                             // Note: `symbol.method` maps to kind "fn" (see match arm above),
                             // so "method" is never a possible kind value here.
-                            let owner = if kind == "fn" || kind == "variant" {
+                            let owner = if matches!(kind, "fn" | "variant" | "field") {
                                 spec.find_owner(node, ext, source)
                             } else {
                                 None

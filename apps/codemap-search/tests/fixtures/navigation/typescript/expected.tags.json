@@ -20,6 +20,36 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "UserService",
+    "range": {
+      "startLine": 5,
+      "startCol": 17,
+      "endLine": 5,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "reference.class",
+    "text": "new UserService()",
+    "range": {
+      "startLine": 5,
+      "startCol": 31,
+      "endLine": 5,
+      "endCol": 48
+    }
+  },
+  {
+    "capture": "name",
+    "text": "UserService",
+    "range": {
+      "startLine": 5,
+      "startCol": 35,
+      "endLine": 5,
+      "endCol": 46
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "user.save()",
     "range": {

@@ -1,5 +1,25 @@
 [
   {
+    "capture": "reference.type",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 4,
+      "startCol": 12,
+      "endLine": 4,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "OrderValidator",
+    "range": {
+      "startLine": 5,
+      "startCol": 14,
+      "endLine": 5,
+      "endCol": 28
+    }
+  },
+  {
     "capture": "definition.function",
     "text": "function CheckoutForm(props: Props) {\n  const [errors, setErrors] = useState<string[]>([]);\n\n  async function handleSubmit(input: OrderInput) {\n    const nextErrors = props.validator.validate(input);\n    if (nextErrors.length > 0) {\n      setErrors(nextErrors);\n      return;\n    }\n\n    await props.service.submit(input);\n  }\n\n  return <button onClick={() => handleSubmit({})}>{errors.length}</button>;\n}",
     "range": {
@@ -17,6 +37,16 @@
       "startCol": 17,
       "endLine": 8,
       "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "Props",
+    "range": {
+      "startLine": 8,
+      "startCol": 37,
+      "endLine": 8,
+      "endCol": 42
     }
   },
   {
@@ -47,6 +77,16 @@
       "startCol": 18,
       "endLine": 11,
       "endCol": 30
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "OrderInput",
+    "range": {
+      "startLine": 11,
+      "startCol": 38,
+      "endLine": 11,
+      "endCol": 48
     }
   },
   {

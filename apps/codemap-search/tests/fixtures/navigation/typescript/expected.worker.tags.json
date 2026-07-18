@@ -40,6 +40,36 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "JobQueue",
+    "range": {
+      "startLine": 5,
+      "startCol": 29,
+      "endLine": 5,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "JobProcessor",
+    "range": {
+      "startLine": 6,
+      "startCol": 33,
+      "endLine": 6,
+      "endCol": 45
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "Logger",
+    "range": {
+      "startLine": 7,
+      "startCol": 30,
+      "endLine": 7,
+      "endCol": 36
+    }
+  },
+  {
     "capture": "definition.method",
     "text": "async tick() {\n    for (const queuedJob of this.queue.pending()) {\n      this.logger.warn(queuedJob.id);\n    }\n\n    const job = await this.queue.next();\n    if (!job) {\n      this.logger.warn(\"no job\");\n      return;\n    }\n\n    try {\n      const receipt = await this.processor.process(job);\n      await this.queue.ack(receipt.id);\n    } catch (error) {\n      this.logger.warn(error);\n    }\n  }",
     "range": {

@@ -30,6 +30,7 @@ mod asm;
 pub(crate) mod c_family;
 mod go;
 mod java;
+mod javascript;
 mod kotlin;
 mod python;
 mod rust;
@@ -52,9 +53,8 @@ pub(crate) enum NameDecision {
 /// implementations encode the common (TypeScript-family) behavior; each language file
 /// overrides only the hooks where it differs.
 pub(crate) trait LanguageSpec: Sync {
-    /// The tree-sitter grammar for `ext`. One spec may serve multiple extensions with
-    /// different grammars (TypeScript: `LANGUAGE_TYPESCRIPT` for ts/js, `LANGUAGE_TSX` for
-    /// tsx/jsx).
+    /// The tree-sitter grammar for `ext`. One spec may serve multiple dialect extensions
+    /// backed by the same grammar (TypeScript: ts/mts/cts; JavaScript: js/jsx/mjs/cjs).
     fn grammar(&self, ext: &str) -> Language;
 
     /// The compiled query for `ext` (lazy, compiled once per grammar via `OnceLock`).
@@ -230,7 +230,8 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
     match ext {
         "rs" => Some(&rust::RustSpec),
         "py" => Some(&python::PythonSpec),
-        "ts" | "js" | "tsx" | "jsx" => Some(&typescript::TypeScriptSpec),
+        "ts" | "tsx" | "mts" | "cts" => Some(&typescript::TypeScriptSpec),
+        "js" | "jsx" | "mjs" | "cjs" => Some(&javascript::JavaScriptSpec),
         "go" => Some(&go::GoSpec),
         "java" => Some(&java::JavaSpec),
         "kt" | "kts" => Some(&kotlin::KotlinSpec),
@@ -245,7 +246,8 @@ pub(crate) fn language_name_for_extension(ext: &str) -> Option<&'static str> {
     match ext.to_ascii_lowercase().as_str() {
         "rs" => Some("rust"),
         "py" => Some("python"),
-        "ts" | "tsx" | "js" | "jsx" => Some("typescript"),
+        "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
+        "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
         "go" => Some("go"),
         "java" => Some("java"),
         "kt" | "kts" => Some("kotlin"),
@@ -265,7 +267,8 @@ pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
     {
         "rust" | "rs" => Some("rust"),
         "python" | "py" => Some("python"),
-        "typescript" | "javascript" | "ts" | "tsx" | "js" | "jsx" => Some("typescript"),
+        "typescript" | "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
+        "javascript" | "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
         "go" => Some("go"),
         "java" => Some("java"),
         "kotlin" | "kt" | "kts" => Some("kotlin"),
@@ -292,6 +295,7 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &rust::RustSpec,
     &python::PythonSpec,
     &typescript::TypeScriptSpec,
+    &javascript::JavaScriptSpec,
     &go::GoSpec,
     &java::JavaSpec,
     &kotlin::KotlinSpec,

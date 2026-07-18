@@ -221,8 +221,10 @@ impl LanguageSpec for CppSpec {
     }
 
     fn is_import_line(&self, line: &str) -> bool {
-        // C/C++: `#include` is the only import-equivalent construct.
-        line.trim_start().starts_with("#include")
+        let trimmed = line.trim_start();
+        trimmed.starts_with("#include")
+            || trimmed.starts_with("import ")
+            || trimmed.starts_with("export import ")
     }
 
     fn name_for_capture(
@@ -234,6 +236,20 @@ impl LanguageSpec for CppSpec {
         source: &[u8],
         _asm_meta_kind_text: &Option<String>,
     ) -> Option<NameDecision> {
+        if capture_name == "symbol.cppmodule" {
+            let text = node.utf8_text(source).ok()?.trim();
+            let declaration = text.strip_prefix("export ").unwrap_or(text);
+            let name = declaration
+                .strip_prefix("module ")?
+                .trim()
+                .trim_end_matches(';')
+                .trim();
+            return if name.is_empty() || name.starts_with(':') {
+                Some(NameDecision::Skip)
+            } else {
+                Some(NameDecision::Name(name.to_string()))
+            };
+        }
         name_for_cfn(capture_name, node, kind, source)
     }
 

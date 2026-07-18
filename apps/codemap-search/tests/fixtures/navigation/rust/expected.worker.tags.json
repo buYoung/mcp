@@ -51,6 +51,16 @@
   },
   {
     "capture": "reference.call",
+    "text": "warn!(\"no job\")",
+    "range": {
+      "startLine": 15,
+      "startCol": 13,
+      "endLine": 15,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "reference.call",
     "text": "Ok(())",
     "range": {
       "startLine": 16,
@@ -67,6 +77,16 @@
       "startCol": 30,
       "endLine": 19,
       "endCol": 53
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "warn!(\"retrying {retry}\")",
+    "range": {
+      "startLine": 20,
+      "startCol": 13,
+      "endLine": 20,
+      "endCol": 38
     }
   },
   {

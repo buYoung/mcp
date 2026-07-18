@@ -40,6 +40,16 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "readonly T[]",
+    "range": {
+      "startLine": 6,
+      "startCol": 39,
+      "endLine": 6,
+      "endCol": 51
+    }
+  },
+  {
     "capture": "definition.method",
     "text": "evaluate(order: Order): RuleResult<T>[] {\n    const active = this.rules.filter((rule) => rule.check(order));\n    const names = active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule as T & {\n        severity?: string;\n      };\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    });\n    return names as RuleResult<T>[];\n  }",
     "range": {
@@ -57,6 +67,26 @@
       "startCol": 3,
       "endLine": 8,
       "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "Order",
+    "range": {
+      "startLine": 8,
+      "startCol": 19,
+      "endLine": 8,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "RuleResult<T>[]",
+    "range": {
+      "startLine": 8,
+      "startCol": 27,
+      "endLine": 8,
+      "endCol": 42
     }
   },
   {

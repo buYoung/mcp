@@ -60,6 +60,26 @@
     }
   },
   {
+    "capture": "definition.macro",
+    "text": "macro_rules! audit_event {\n    ($name:expr, $dto:expr) => {\n        trace_order($name, $dto.total)\n    };\n}",
+    "range": {
+      "startLine": 17,
+      "startCol": 1,
+      "endLine": 21,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "audit_event",
+    "range": {
+      "startLine": 17,
+      "startCol": 14,
+      "endLine": 17,
+      "endCol": 25
+    }
+  },
+  {
     "capture": "definition.struct",
     "text": "pub struct CheckoutService<M, I> {\n    mapper: M,\n    repo: OrderRepo,\n    inventory: I,\n}",
     "range": {
@@ -107,6 +127,16 @@
       "startCol": 29,
       "endLine": 35,
       "endCol": 51
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "audit_event!(\"checkout.submit\", dto)",
+    "range": {
+      "startLine": 36,
+      "startCol": 21,
+      "endLine": 36,
+      "endCol": 57
     }
   },
   {

@@ -20,6 +20,36 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "MenuItem[]",
+    "range": {
+      "startLine": 9,
+      "startCol": 10,
+      "endLine": 9,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "onChoose(id: string): void",
+    "range": {
+      "startLine": 10,
+      "startCol": 3,
+      "endLine": 10,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "name",
+    "text": "onChoose",
+    "range": {
+      "startLine": 10,
+      "startCol": 3,
+      "endLine": 10,
+      "endCol": 11
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "useMemo(() => items.filter((item) => item.enabled), [items])",
     "range": {

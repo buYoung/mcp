@@ -40,24 +40,6 @@
       "owner": "Repository"
     },
     {
-      "name": "query",
-      "kind": "variable",
-      "range": {
-        "startLine": 9,
-        "startCol": 9,
-        "endLine": 9,
-        "endCol": 38
-      },
-      "docstring": null,
-      "flags": {
-        "hasTodo": false,
-        "hasFixme": false,
-        "isTest": false,
-        "isExported": false,
-        "isDeprecated": false
-      }
-    },
-    {
       "name": "_private_method",
       "kind": "fn",
       "range": {

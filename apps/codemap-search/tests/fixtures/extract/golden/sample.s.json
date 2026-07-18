@@ -58,5 +58,11 @@
     }
   ],
   "literals": [],
-  "docstrings": []
+  "docstrings": [],
+  "navigation": {
+    "calls": [],
+    "references": [],
+    "localBindings": [],
+    "imports": []
+  }
 }

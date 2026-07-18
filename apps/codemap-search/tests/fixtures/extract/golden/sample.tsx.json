@@ -40,24 +40,6 @@
       "owner": "Panel"
     },
     {
-      "name": "title",
-      "kind": "variable",
-      "range": {
-        "startLine": 7,
-        "startCol": 11,
-        "endLine": 7,
-        "endCol": 32
-      },
-      "docstring": null,
-      "flags": {
-        "hasTodo": false,
-        "hasFixme": false,
-        "isTest": false,
-        "isExported": false,
-        "isDeprecated": false
-      }
-    },
-    {
       "name": "legacyRender",
       "kind": "fn",
       "range": {

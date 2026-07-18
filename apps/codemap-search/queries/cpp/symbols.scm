@@ -52,6 +52,14 @@
 (alias_declaration
   name: (type_identifier) @symbol.name) @symbol.type
 
+;; tree-sitter-cpp 0.23.4 predates C++20 module nodes and parses named module declarations
+;; as declarations. Keep the fallback text-filtered and remove it when a released grammar
+;; exposes module_declaration.
+(
+  (declaration) @symbol.cppmodule
+  (#match? @symbol.cppmodule "^(export[[:space:]]+)?module[[:space:]]+")
+)
+
 ;; Object-like macros → const; function-like macros → fn.
 (preproc_def
   name: (identifier) @symbol.name) @symbol.const

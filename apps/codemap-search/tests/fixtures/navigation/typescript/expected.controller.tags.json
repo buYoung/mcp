@@ -40,6 +40,16 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "CheckoutService",
+    "range": {
+      "startLine": 7,
+      "startCol": 41,
+      "endLine": 7,
+      "endCol": 56
+    }
+  },
+  {
     "capture": "definition.method",
     "text": "async post(request: RequestBody) {\n    const payload = parseOrder(request.body);\n    const result = await this.service.submit(payload);\n    return Response.ok(result);\n  }",
     "range": {
@@ -57,6 +67,16 @@
       "startCol": 9,
       "endLine": 9,
       "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "RequestBody",
+    "range": {
+      "startLine": 9,
+      "startCol": 23,
+      "endLine": 9,
+      "endCol": 34
     }
   },
   {

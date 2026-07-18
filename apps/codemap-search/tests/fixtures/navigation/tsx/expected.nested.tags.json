@@ -20,6 +20,36 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "LineItem[]",
+    "range": {
+      "startLine": 10,
+      "startCol": 10,
+      "endLine": 10,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "onSelect(id: string): void",
+    "range": {
+      "startLine": 11,
+      "startCol": 3,
+      "endLine": 11,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "name",
+    "text": "onSelect",
+    "range": {
+      "startLine": 11,
+      "startCol": 3,
+      "endLine": 11,
+      "endCol": 11
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "useMemo(\n    () =>\n      items.map((item) => ({\n        id: item.id,\n        label: formatMoney(item.amount),\n      })),\n    [items],\n  )",
     "range": {

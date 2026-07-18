@@ -40,6 +40,16 @@
     }
   },
   {
+    "capture": "reference.class",
+    "text": "UserService",
+    "range": {
+      "startLine": 5,
+      "startCol": 39,
+      "endLine": 5,
+      "endCol": 50
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "userService.save()",
     "range": {

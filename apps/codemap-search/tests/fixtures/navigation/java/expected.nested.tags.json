@@ -148,5 +148,15 @@
       "endLine": 28,
       "endCol": 28
     }
+  },
+  {
+    "capture": "reference.class",
+    "text": "Receipt",
+    "range": {
+      "startLine": 29,
+      "startCol": 24,
+      "endLine": 29,
+      "endCol": 31
+    }
   }
 ]

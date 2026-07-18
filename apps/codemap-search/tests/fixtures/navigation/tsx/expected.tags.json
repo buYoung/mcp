@@ -20,6 +20,26 @@
     }
   },
   {
+    "capture": "reference.class",
+    "text": "new Panel()",
+    "range": {
+      "startLine": 4,
+      "startCol": 19,
+      "endLine": 4,
+      "endCol": 30
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Panel",
+    "range": {
+      "startLine": 4,
+      "startCol": 23,
+      "endLine": 4,
+      "endCol": 28
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "panel.open()",
     "range": {

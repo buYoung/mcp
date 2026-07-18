@@ -1,11 +1,10 @@
-//! TypeScript/JavaScript language spec: one spec serving four extensions (ts/tsx/js/jsx)
-//! across two grammars (`LANGUAGE_TYPESCRIPT` for ts/js, `LANGUAGE_TSX` for tsx/jsx).
+//! TypeScript language spec: TypeScript and TSX grammars serving ts/mts/cts and tsx.
 
 use std::collections::HashSet;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
-use super::LanguageSpec;
+use super::{LanguageSpec, NameDecision};
 
 const TS_QUERY_STR: &str = concat!(
     include_str!("../../queries/typescript/symbols.scm"),
@@ -80,7 +79,11 @@ fn get_tsx_static_collection_query() -> &'static Query {
     })
 }
 
-fn collect_ts_exported_names(node: Node, source: &[u8], exported_names: &mut HashSet<String>) {
+pub(super) fn collect_ecmascript_exported_names(
+    node: Node,
+    source: &[u8],
+    exported_names: &mut HashSet<String>,
+) {
     let kind = node.kind();
     if kind == "export_specifier" {
         if let Some(name_node) = node.child_by_field_name("name") {
@@ -111,13 +114,52 @@ fn collect_ts_exported_names(node: Node, source: &[u8], exported_names: &mut Has
             }
         }
         for i in 0..node.child_count() {
-            collect_ts_exported_names(node.child(i as u32).unwrap(), source, exported_names);
+            collect_ecmascript_exported_names(
+                node.child(i as u32).unwrap(),
+                source,
+                exported_names,
+            );
         }
     } else {
         for i in 0..node.child_count() {
-            collect_ts_exported_names(node.child(i as u32).unwrap(), source, exported_names);
+            collect_ecmascript_exported_names(
+                node.child(i as u32).unwrap(),
+                source,
+                exported_names,
+            );
         }
     }
+}
+
+/// True only for variables declared directly in a file or TypeScript namespace/module.
+/// Block- and function-local declarations remain navigation bindings instead of polluting
+/// the repository-wide symbol field.
+pub(super) fn is_ecmascript_module_variable(node: Node) -> bool {
+    let mut ancestor = node.parent();
+    while let Some(current) = ancestor {
+        match current.kind() {
+            "program" => return true,
+            "lexical_declaration"
+            | "variable_declaration"
+            | "export_statement"
+            | "ambient_declaration"
+            | "internal_module"
+            | "module"
+            | "namespace"
+            | "expression_statement" => {}
+            "statement_block" => {
+                let is_module_body = current.parent().is_some_and(|parent| {
+                    matches!(parent.kind(), "internal_module" | "module" | "namespace")
+                });
+                if !is_module_body {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+        ancestor = current.parent();
+    }
+    false
 }
 
 pub(crate) struct TypeScriptSpec;
@@ -125,36 +167,36 @@ pub(crate) struct TypeScriptSpec;
 impl LanguageSpec for TypeScriptSpec {
     fn grammar(&self, ext: &str) -> Language {
         match ext {
-            "tsx" | "jsx" => tree_sitter_typescript::LANGUAGE_TSX.into(),
-            // "ts" | "js"
+            "tsx" => tree_sitter_typescript::LANGUAGE_TSX.into(),
+            // "ts" | "mts" | "cts"
             _ => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
         }
     }
 
     fn query(&self, ext: &str) -> &'static Query {
         match ext {
-            "tsx" | "jsx" => get_tsx_query(),
-            // "ts" | "js"
+            "tsx" => get_tsx_query(),
+            // "ts" | "mts" | "cts"
             _ => get_ts_query(),
         }
     }
 
     fn tags_query(&self, ext: &str) -> Option<&'static Query> {
         Some(match ext {
-            "tsx" | "jsx" => get_tsx_tags_query(),
+            "tsx" => get_tsx_tags_query(),
             _ => get_ts_tags_query(),
         })
     }
 
     fn static_collection_query(&self, ext: &str) -> Option<&'static Query> {
         Some(match ext {
-            "tsx" | "jsx" => get_tsx_static_collection_query(),
+            "tsx" => get_tsx_static_collection_query(),
             _ => get_ts_static_collection_query(),
         })
     }
 
     fn extensions(&self) -> &'static [&'static str] {
-        &["ts", "js", "tsx", "jsx"]
+        &["ts", "tsx", "mts", "cts"]
     }
 
     fn navigation_enabled(&self, _ext: &str) -> bool {
@@ -165,7 +207,34 @@ impl LanguageSpec for TypeScriptSpec {
     // TypeScript-family `import` / `require(` rule and the `.` separator) verbatim.
 
     fn collect_exported_names(&self, root: Node, source: &[u8], out: &mut HashSet<String>) {
-        collect_ts_exported_names(root, source, out);
+        collect_ecmascript_exported_names(root, source, out);
+    }
+
+    fn name_for_capture(
+        &self,
+        capture_name: &str,
+        node: Node,
+        _kind: &str,
+        _ext: &str,
+        _source: &[u8],
+        _asm_meta_kind_text: &Option<String>,
+    ) -> Option<NameDecision> {
+        if capture_name == "symbol.variable" && !is_ecmascript_module_variable(node) {
+            Some(NameDecision::Skip)
+        } else {
+            None
+        }
+    }
+
+    fn refine_kind(&self, capture_name: &str, node: Node, kind: &'static str) -> &'static str {
+        if capture_name != "symbol.variable" {
+            return kind;
+        }
+        match node.child_by_field_name("value").map(|value| value.kind()) {
+            Some("arrow_function" | "function_expression" | "generator_function") => "fn",
+            Some("class") => "class",
+            _ => kind,
+        }
     }
 
     fn docstring_anchor<'a>(&self, node: Node<'a>) -> Node<'a> {

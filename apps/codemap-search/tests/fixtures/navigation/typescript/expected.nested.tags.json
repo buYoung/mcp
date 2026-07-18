@@ -20,6 +20,16 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "MethodDecorator",
+    "range": {
+      "startLine": 7,
+      "startCol": 19,
+      "endLine": 7,
+      "endCol": 34
+    }
+  },
+  {
     "capture": "definition.class",
     "text": "class OrderMapper {\n  mapOrder(lines: readonly OrderLine[]): OrderDto {\n    const total = lines.reduce((sum, line) => sum + Number(line.price) * line.quantity, 0);\n    return { price: lines[0]?.price ?? \"0\", quantity: lines.length, total } as OrderDto;\n  }\n}",
     "range": {
@@ -57,6 +67,26 @@
       "startCol": 3,
       "endLine": 12,
       "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "readonly OrderLine[]",
+    "range": {
+      "startLine": 12,
+      "startCol": 19,
+      "endLine": 12,
+      "endCol": 39
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "OrderDto",
+    "range": {
+      "startLine": 12,
+      "startCol": 42,
+      "endLine": 12,
+      "endCol": 50
     }
   },
   {
@@ -120,6 +150,26 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "OrderRepository",
+    "range": {
+      "startLine": 20,
+      "startCol": 28,
+      "endLine": 20,
+      "endCol": 43
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "OrderMapper",
+    "range": {
+      "startLine": 21,
+      "startCol": 30,
+      "endLine": 21,
+      "endCol": 41
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "Trace()",
     "range": {
@@ -147,6 +197,16 @@
       "startCol": 9,
       "endLine": 25,
       "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "readonly OrderLine[]",
+    "range": {
+      "startLine": 25,
+      "startCol": 23,
+      "endLine": 25,
+      "endCol": 43
     }
   },
   {
@@ -217,6 +277,16 @@
       "startCol": 11,
       "endLine": 33,
       "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.type",
+    "text": "OrderDto",
+    "range": {
+      "startLine": 33,
+      "startCol": 22,
+      "endLine": 33,
+      "endCol": 30
     }
   }
 ]

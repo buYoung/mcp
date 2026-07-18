@@ -1,49 +1,40 @@
-
-;; Classes
+;; Runtime declarations supported by the official JavaScript grammar.
 (class_declaration
-  name: (type_identifier) @symbol.name) @symbol.class
+  name: (_) @symbol.name) @symbol.class
 
-(abstract_class_declaration
-  name: (type_identifier) @symbol.name) @symbol.class
-
-;; Functions
 (function_declaration
   name: (identifier) @symbol.name) @symbol.fn
 
-(function_signature
+(generator_function_declaration
   name: (identifier) @symbol.name) @symbol.fn
 
-;; Methods & Constructor
 (method_definition
   name: [
     (property_identifier)
     (private_property_identifier)
   ] @symbol.name) @symbol.method
 
-(method_signature
-  name: (property_identifier) @symbol.name) @symbol.method
-
-(abstract_method_signature
-  name: (property_identifier) @symbol.name) @symbol.method
-
-(module
-  name: (identifier) @symbol.name) @symbol.mod
-
-;; Interfaces
-(interface_declaration
-  name: (type_identifier) @symbol.name) @symbol.interface
-
-;; Type Aliases
-(type_alias_declaration
-  name: (type_identifier) @symbol.name) @symbol.type
-
-;; Enums
-(enum_declaration
-  name: (identifier) @symbol.name) @symbol.enum
-
-;; Variables
+;; Variable-backed functions/classes are refined from the initializer in JavaScriptSpec.
 (variable_declarator
   name: (identifier) @symbol.name) @symbol.variable
+
+(assignment_expression
+  left: [
+    (identifier) @symbol.name
+    (member_expression
+      property: (property_identifier) @symbol.name)
+  ]
+  right: [
+    (arrow_function)
+    (function_expression)
+  ]) @symbol.fn
+
+(pair
+  key: (property_identifier) @symbol.name
+  value: [
+    (arrow_function)
+    (function_expression)
+  ]) @symbol.fn
 
 ;; Test Call Expressions
 (call_expression
@@ -56,11 +47,9 @@
     [
       (string) @symbol.name
       (template_string) @symbol.name
-    ]
-  )
+    ])
 ) @symbol.test
 
-;; Literals
 (string) @literal.string
 (template_string) @literal.string
 (number) @literal.number

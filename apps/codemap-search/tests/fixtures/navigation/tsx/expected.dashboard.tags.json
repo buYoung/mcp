@@ -20,6 +20,16 @@
     }
   },
   {
+    "capture": "reference.type",
+    "text": "OrderClient",
+    "range": {
+      "startLine": 3,
+      "startCol": 54,
+      "endLine": 3,
+      "endCol": 65
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "useState<OrderSummary[]>([])",
     "range": {

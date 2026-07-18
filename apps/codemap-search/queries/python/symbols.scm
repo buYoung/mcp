@@ -7,9 +7,18 @@
 (function_definition
   name: (identifier) @symbol.name) @symbol.fn
 
-;; Assignments (Variables)
-(assignment
-  left: (identifier) @symbol.name) @symbol.variable
+;; File-level variables. Function-local assignments remain navigation bindings, not symbols.
+(module
+  (expression_statement
+    (assignment
+      left: (identifier) @symbol.name) @symbol.variable))
+
+;; Class attributes remain searchable fields and retain their class owner.
+(class_definition
+  body: (block
+    (expression_statement
+      (assignment
+        left: (identifier) @symbol.name)) @symbol.field))
 
 ;; Literals
 (string) @literal.string

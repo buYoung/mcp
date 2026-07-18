@@ -18,13 +18,26 @@ use super::{LanguageSpec, NameDecision};
 //     `string` child confirmed in node-types.json. Captured as `@literal.string` for BM25.
 // Export detection: a label is exported iff its name appears in a preceding `.globl`/`.global`
 // meta directive anywhere in the file (pre-pass via `collect_asm_globl_names`).
-const ASM_QUERY_STR: &str = include_str!("../../queries/asm/symbols.scm");
+const ASM_QUERY_STR: &str = concat!(
+    include_str!("../../queries/asm/symbols.scm"),
+    "\n",
+    include_str!("../../queries/asm/navigation.scm")
+);
+const ASM_TAGS_QUERY_STR: &str = include_str!("../../queries/asm/tags.scm");
 
 fn get_asm_query() -> &'static Query {
     static ASM_QUERY: OnceLock<Query> = OnceLock::new();
     ASM_QUERY.get_or_init(|| {
         Query::new(&tree_sitter_asm::LANGUAGE.into(), ASM_QUERY_STR)
             .expect("Failed to compile ASM query")
+    })
+}
+
+fn get_asm_tags_query() -> &'static Query {
+    static QUERY: OnceLock<Query> = OnceLock::new();
+    QUERY.get_or_init(|| {
+        Query::new(&tree_sitter_asm::LANGUAGE.into(), ASM_TAGS_QUERY_STR)
+            .expect("Failed to compile ASM tags query")
     })
 }
 
@@ -102,10 +115,18 @@ impl LanguageSpec for AsmSpec {
         get_asm_query()
     }
 
+    fn tags_query(&self, _ext: &str) -> Option<&'static Query> {
+        Some(get_asm_tags_query())
+    }
+
     fn extensions(&self) -> &'static [&'static str] {
         // `S` (uppercase) is preprocessed GAS and must be listed explicitly — extension
         // comparison is case-sensitive.
         &["s", "S", "asm"]
+    }
+
+    fn navigation_enabled(&self, _ext: &str) -> bool {
+        true
     }
 
     fn is_import_line(&self, line: &str) -> bool {

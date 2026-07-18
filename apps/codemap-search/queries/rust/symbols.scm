@@ -7,6 +7,9 @@
 (enum_item
   name: (type_identifier) @symbol.name) @symbol.enum
 
+(union_item
+  name: (type_identifier) @symbol.name) @symbol.union
+
 ;; Enum Variants — error/state variants ("TxReadonly") are the names agents search
 ;; for; without them an error enum's file is unreachable via symbol search.
 (enum_variant
@@ -27,6 +30,10 @@
 ;; Type Aliases
 (type_item
   name: (type_identifier) @symbol.name) @symbol.type
+
+;; Macro definitions are callable targets for macro_invocation navigation records.
+(macro_definition
+  name: (identifier) @symbol.name) @symbol.macro
 
 ;; Constants
 (const_item
