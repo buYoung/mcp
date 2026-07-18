@@ -4,7 +4,8 @@ mod tree;
 
 pub use monorepo::{
     generate_root_view as generate_monorepo_root_view, is_all_workspace_scope_input,
-    looks_like_monorepo_workspace, resolve_workspace_path_input, workspace_scope_for_input,
+    is_ambiguous_workspace_scope_input, looks_like_monorepo_workspace,
+    resolve_workspace_path_input, workspace_scope_for_input,
 };
 use summary::{build_directory_summaries, is_significant_symbol, summarize_file};
 pub use summary::{DirectorySummary, ExtractedFileSummary, ExtractedSymbolSummary};

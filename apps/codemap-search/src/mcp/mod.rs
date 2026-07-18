@@ -222,9 +222,26 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    "initial_instructions" => Ok(serde_json::json!({
-                        "content": [{ "type": "text", "text": crate::tools::instructions() }]
-                    })),
+                    "initial_instructions" => {
+                        let text = if crate::codemap::looks_like_monorepo_workspace() {
+                            // Match `overview` lifecycle behavior so the initial response can
+                            // include the same root scope selection without a second MCP call.
+                            self.engine.ensure_alive();
+                            self.engine.trigger_refresh();
+                            let ctx = ToolContext {
+                                engine: &self.engine,
+                                arguments,
+                                active_workspace_scope: self.active_workspace_scope.as_deref(),
+                            };
+                            let root_overview = crate::tools::overview::run(&ctx)?;
+                            crate::tools::instructions_with_root_overview(&root_overview)
+                        } else {
+                            crate::tools::instructions()
+                        };
+                        Ok(serde_json::json!({
+                            "content": [{ "type": "text", "text": text }]
+                        }))
+                    }
                     _ => Err((-32601, "Tool not found".to_string())),
                 }
             }

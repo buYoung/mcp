@@ -28,6 +28,15 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     let snapshot = ctx.engine.codemap_snapshot();
     let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
 
+    if raw_path.is_some_and(|path| {
+        crate::codemap::is_ambiguous_workspace_scope_input(extracted_files, path)
+    }) {
+        return Err((
+            -32602,
+            "Ambiguous workspace scope. Use the canonical path shown by root overview.".to_string(),
+        ));
+    }
+
     let workspace_resolved_path = monorepo::resolve_path(raw_path, extracted_files);
     let path = if monorepo::is_root_alias(raw_path) {
         None

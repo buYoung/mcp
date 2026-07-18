@@ -216,6 +216,13 @@ pub fn instructions() -> String {
     text.trim_end().to_string()
 }
 
+/// Compose the monorepo bootstrap response from the existing navigation guidance and the root
+/// overview rendered from the current index snapshot. The caller owns lifecycle handling and
+/// invokes this only for monorepos, preserving the non-monorepo response unchanged.
+pub fn instructions_with_root_overview(root_overview: &str) -> String {
+    format!("{}\n\n{}", instructions(), root_overview)
+}
+
 fn filesystem_tool_description(
     base_description: &str,
     policy: crate::config::FilesystemPermissionPolicy,
@@ -290,7 +297,7 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Optional monorepo scope such as 'apps/api' or unique basename 'api'. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
+                    "description": "Optional monorepo scope named by root overview, such as conventional workspace 'apps/api' or top-level source root 'api'/'app'/'sdk'; a unique basename is accepted. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
                 }),
             );
         }

@@ -24,6 +24,15 @@ fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, 
     let snapshot = ctx.engine.codemap_snapshot();
     match explicit_scope {
         Some(raw_scope) if crate::codemap::is_all_workspace_scope_input(raw_scope) => Ok(None),
+        Some(raw_scope)
+            if crate::codemap::is_ambiguous_workspace_scope_input(&snapshot, raw_scope) =>
+        {
+            Err((
+                -32602,
+                "Ambiguous workspace scope. Use the canonical path shown by root overview."
+                    .to_string(),
+            ))
+        }
         Some(raw_scope) => crate::codemap::workspace_scope_for_input(&snapshot, raw_scope)
             .map(Some)
             .ok_or_else(|| {

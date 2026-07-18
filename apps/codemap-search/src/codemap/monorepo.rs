@@ -13,15 +13,21 @@ fn immediate_child_under(path: &str, parent: &str) -> bool {
     !remainder.is_empty() && !remainder.contains('/')
 }
 
-fn workspace_scope_summaries(directories: &[DirectorySummary]) -> Vec<&DirectorySummary> {
-    let scopes: Vec<&DirectorySummary> = directories
+fn conventional_workspace_scope_summaries(
+    directories: &[DirectorySummary],
+) -> Vec<&DirectorySummary> {
+    directories
         .iter()
         .filter(|dir| {
             WORKSPACE_CONTAINER_DIRS
                 .iter()
                 .any(|container| immediate_child_under(&dir.path, container))
         })
-        .collect();
+        .collect()
+}
+
+fn workspace_scope_summaries(directories: &[DirectorySummary]) -> Vec<&DirectorySummary> {
+    let scopes = conventional_workspace_scope_summaries(directories);
     if scopes.len() >= 2 {
         scopes
     } else {
@@ -34,7 +40,26 @@ fn top_level_source_roots(directories: &[DirectorySummary]) -> Vec<&DirectorySum
         .iter()
         .filter(|dir| !dir.path.contains('/'))
         .filter(|dir| !WORKSPACE_CONTAINER_DIRS.contains(&dir.path.as_str()))
+        // Keep the documented repo-wide aliases unambiguous: a top-level directory
+        // named after one is ordinary source content, but not a selectable scope.
+        .filter(|dir| !is_all_workspace_scope_input(&dir.path))
         .collect()
+}
+
+/// The paths a monorepo root overview offers as selectable scopes. Conventional workspace
+/// children establish the monorepo boundary; top-level source roots then participate in that
+/// same selection contract rather than being informational-only output.
+fn selectable_scope_summaries(directories: &[DirectorySummary]) -> Vec<&DirectorySummary> {
+    let mut scopes = workspace_scope_summaries(directories);
+    if scopes.is_empty() && looks_like_monorepo_workspace() {
+        scopes = conventional_workspace_scope_summaries(directories);
+    }
+    if !scopes.is_empty() {
+        scopes.extend(top_level_source_roots(directories));
+    }
+    scopes.sort_by(|left, right| left.path.cmp(&right.path));
+    scopes.dedup_by(|left, right| left.path == right.path);
+    scopes
 }
 
 fn file_summaries(files: &[crate::parser::ExtractedFile]) -> Vec<ExtractedFileSummary<'_>> {
@@ -95,10 +120,34 @@ pub fn is_all_workspace_scope_input(input: &str) -> bool {
 
 pub fn workspace_scope_paths(files: &[crate::parser::ExtractedFile]) -> Vec<String> {
     let directories = directory_summaries(files);
-    workspace_scope_summaries(&directories)
+    selectable_scope_summaries(&directories)
         .into_iter()
         .map(|scope| scope.path.clone())
         .collect()
+}
+
+pub fn is_ambiguous_workspace_scope_input(
+    files: &[crate::parser::ExtractedFile],
+    input: &str,
+) -> bool {
+    if is_all_workspace_scope_input(input) {
+        return false;
+    }
+    let normalized = super::normalize_path(input);
+    let scopes = workspace_scope_paths_for_resolution(files);
+    if scopes
+        .iter()
+        .any(|scope| normalized == *scope || normalized.starts_with(&format!("{scope}/")))
+    {
+        return false;
+    }
+    let head = normalized.split('/').next().unwrap_or_default();
+    scopes
+        .iter()
+        .filter(|scope| scope.rsplit('/').next() == Some(head))
+        .take(2)
+        .count()
+        > 1
 }
 
 pub fn resolve_workspace_path_input(
@@ -116,7 +165,6 @@ pub fn resolve_workspace_path_input(
     {
         return Some(normalized);
     }
-
     let (head, tail) = normalized
         .split_once('/')
         .map_or((normalized.as_str(), ""), |(head, tail)| (head, tail));
@@ -124,7 +172,10 @@ pub fn resolve_workspace_path_input(
         .iter()
         .filter(|scope| scope.rsplit('/').next() == Some(head))
         .collect::<Vec<_>>();
-    if matches.len() != 1 {
+    if is_ambiguous_workspace_scope_input(files, input) {
+        return None;
+    }
+    if matches.is_empty() {
         return None;
     }
     let scope = matches.remove(0);
@@ -142,8 +193,7 @@ pub fn workspace_scope_for_input(
     if is_all_workspace_scope_input(input) {
         return None;
     }
-    let normalized = resolve_workspace_path_input(files, input)
-        .unwrap_or_else(|| super::normalize_path(input).into_owned());
+    let normalized = resolve_workspace_path_input(files, input)?;
     workspace_scope_paths_for_resolution(files)
         .into_iter()
         .filter(|scope| normalized == *scope || normalized.starts_with(&format!("{scope}/")))
@@ -158,7 +208,6 @@ pub struct MonorepoRootCodemap {
     total_files: usize,
     total_symbols: usize,
     scopes: Vec<DirectorySummary>,
-    other_roots: Vec<DirectorySummary>,
 }
 
 impl std::fmt::Display for MonorepoRootCodemap {
@@ -178,20 +227,6 @@ impl std::fmt::Display for MonorepoRootCodemap {
                 "- {} ({} files, {} symbols)",
                 scope.path, scope.file_count, scope.symbol_count
             )?;
-        }
-        if !self.other_roots.is_empty() {
-            let roots = self
-                .other_roots
-                .iter()
-                .map(|root| {
-                    format!(
-                        "{} ({} files, {} symbols)",
-                        root.path, root.file_count, root.symbol_count
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            writeln!(formatter, "- Other source roots: {roots}")?;
         }
         writeln!(formatter)?;
         writeln!(formatter, "## Next Step")?;
@@ -216,23 +251,18 @@ pub fn generate_root_view(files: &[crate::parser::ExtractedFile]) -> Option<Stri
     let total_files = files.len();
     let total_symbols = summaries.iter().map(|summary| summary.symbol_count).sum();
     let directories = build_directory_summaries(&summaries);
-    let scopes = workspace_scope_summaries(&directories)
+    let scopes = selectable_scope_summaries(&directories)
         .into_iter()
         .cloned()
         .collect::<Vec<_>>();
     if scopes.is_empty() {
         return None;
     }
-    let other_roots = top_level_source_roots(&directories)
-        .into_iter()
-        .cloned()
-        .collect();
     Some(
         MonorepoRootCodemap {
             total_files,
             total_symbols,
             scopes,
-            other_roots,
         }
         .to_string(),
     )
