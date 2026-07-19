@@ -34,6 +34,7 @@ mod javascript;
 mod kotlin;
 mod python;
 mod rust;
+mod sql;
 mod typescript;
 
 use std::collections::HashSet;
@@ -238,6 +239,7 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "c" => Some(&c_family::c::CSpec),
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
+        "sql" => Some(&sql::SqlSpec),
         _ => None,
     }
 }
@@ -254,6 +256,10 @@ pub(crate) fn language_name_for_extension(ext: &str) -> Option<&'static str> {
         "c" => Some("c"),
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
         "s" | "asm" => Some("asm"),
+        "sql" => Some("sql"),
+        "vue" => Some("vue"),
+        "astro" => Some("astro"),
+        "svelte" => Some("svelte"),
         _ => None,
     }
 }
@@ -275,6 +281,10 @@ pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
         "c" => Some("c"),
         "cpp" | "c++" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
         "asm" | "s" => Some("asm"),
+        "sql" => Some("sql"),
+        "vue" => Some("vue"),
+        "astro" => Some("astro"),
+        "svelte" => Some("svelte"),
         _ => None,
     }
 }
@@ -302,7 +312,17 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &c_family::c::CSpec,
     &c_family::cpp::CppSpec,
     &asm::AsmSpec,
+    &sql::SqlSpec,
 ];
+
+/// Composite component formats use embedded JavaScript/TypeScript grammars rather than a
+/// standalone tree-sitter grammar. Keep their eligibility in this same registry module so
+/// workspace walking and ranking remain centralized; MDX is intentionally absent.
+const COMPOSITE_SOURCE_EXTENSIONS: &[&str] = &["vue", "astro", "svelte"];
+
+pub(crate) fn is_composite_extension(ext: &str) -> bool {
+    COMPOSITE_SOURCE_EXTENSIONS.contains(&ext)
+}
 
 /// The source-file extensions codemap-search understands, derived once as the union of
 /// every spec's [`LanguageSpec::extensions`] in [`ALL_SPECS`]. Replaces the former
@@ -314,6 +334,7 @@ pub fn source_extensions() -> &'static HashSet<&'static str> {
         ALL_SPECS
             .iter()
             .flat_map(|spec| spec.extensions().iter().copied())
+            .chain(COMPOSITE_SOURCE_EXTENSIONS.iter().copied())
             .collect()
     })
 }

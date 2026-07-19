@@ -74,6 +74,73 @@ fn test_bm25_language_hint_reduces_cross_language_top1_misrank() {
 }
 
 #[test]
+fn test_bm25_composite_code_is_indexed_without_markup_or_mdx() {
+    let temp = create_mock_repo(&[
+        (
+            "src/component.vue",
+            "<template><div>component_template_noise Don't</div></template>\n<script data-kind=\"client\" LANG=\"ts\">\nexport function component_index_symbol() { return 'component_literal'; }\n</script>\n<style>.component_style_noise { color: red; }</style>\n",
+        ),
+        (
+            "src/component.astro",
+            "<html><body><script>export function nested_astro_index_symbol() { return '</'; }</script></body></html>\n",
+        ),
+        (
+            "docs/component.mdx",
+            "export const mdx_index_noise = 'mdx_index_noise';\n# mdx_index_noise\n",
+        ),
+    ])
+    .unwrap();
+
+    run_cli(&["index"], temp.path()).success();
+    run_cli(&["search", "component_index_symbol"], temp.path())
+        .success()
+        .stdout(predicates::str::starts_with("src/component.vue"));
+    run_cli(&["search", "nested_astro_index_symbol"], temp.path())
+        .success()
+        .stdout(predicates::str::starts_with("src/component.astro"));
+    run_cli(&["search", "component_template_noise"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("src/component.vue").not());
+    run_cli(&["search", "component_style_noise"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("src/component.vue").not());
+    run_cli(&["search", "mdx_index_noise"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("component.mdx").not());
+}
+
+#[test]
+fn test_bm25_existing_language_hints_do_not_promote_new_formats() {
+    let temp = create_mock_repo(&[
+        ("src/rank.rs", "pub fn language_rank_matrix() {}\n"),
+        (
+            "src/rank.sql",
+            "CREATE FUNCTION language_rank_matrix() RETURNS INT LANGUAGE SQL AS $$ SELECT 1; $$;\n",
+        ),
+        (
+            "src/rank.vue",
+            "<script>export function language_rank_matrix() {}</script>\n",
+        ),
+    ])
+    .unwrap();
+
+    run_cli(&["index"], temp.path()).success();
+    run_cli(
+        &[
+            "search",
+            "language_rank_matrix",
+            "--language-hint",
+            "rust",
+            "--extension-hint",
+            "rs",
+        ],
+        temp.path(),
+    )
+    .success()
+    .stdout(predicates::str::starts_with("src/rank.rs"));
+}
+
+#[test]
 fn test_bm25_incremental_no_change() {
     let temp = create_mock_repo(&[("src/lib.rs", "pub fn hello() {}")]).unwrap();
 

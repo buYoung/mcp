@@ -84,7 +84,8 @@ impl McpClient {
         loop {
             let response = self.send_request_once(method, params.clone()).await?;
             if method == "tools/call"
-                && response_is_warming(&response)
+                && (response_is_warming(&response)
+                    || overview_response_is_waiting_for_index(&params, &response))
                 && start.elapsed() < Duration::from_secs(10)
             {
                 sleep(Duration::from_millis(50)).await;
@@ -164,6 +165,26 @@ impl McpClient {
     }
 }
 
+impl Drop for McpClient {
+    fn drop(&mut self) {
+        // A test's TempDir is removed as soon as its future completes. Without terminating
+        // this child, its MCP watcher/indexer can keep using that removed workspace while
+        // later tests run in parallel, eventually exhausting shared process and watcher
+        // resources. Reap the process after signalling it: Tokio's orphan reaper is
+        // best-effort and leaving every test child to it can accumulate zombies during the
+        // default-parallel suite. The bounded wait avoids hanging a failed test forever;
+        // explicit `kill` above remains the asynchronous path for lifecycle assertions.
+        let _ = self.child.start_kill();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline {
+            match self.child.try_wait() {
+                Ok(Some(_)) | Err(_) => break,
+                Ok(None) => std::thread::sleep(Duration::from_millis(1)),
+            }
+        }
+    }
+}
+
 /// True when a `tools/call` response carries the search/overview warm-up notice, i.e. the
 /// initial background index is still building.
 fn response_is_warming(response: &Value) -> bool {
@@ -175,4 +196,16 @@ fn response_is_warming(response: &Value) -> bool {
         .and_then(|item| item.get("text"))
         .and_then(|t| t.as_str())
         .is_some_and(|text| text.contains("warming up"))
+}
+
+/// A contended initial pass can finish without publishing a file snapshot, while the request
+/// itself queues the next refresh. Retry only this overview-specific transient; ordinary tool
+/// errors and genuinely unsupported files still surface after the same bounded window.
+fn overview_response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
+    params.get("name").and_then(Value::as_str) == Some("overview")
+        && response
+            .get("error")
+            .and_then(|error| error.get("message"))
+            .and_then(Value::as_str)
+            .is_some_and(|message| message.contains("is not in the codemap"))
 }

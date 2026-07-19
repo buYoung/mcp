@@ -1,3 +1,4 @@
+mod composite;
 mod tokenize;
 mod types;
 
@@ -10,7 +11,8 @@ use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Parser, Query, QueryCursor, Tree};
 
 use crate::lang::{
-    clean_docstring, contains_case_insensitive, find_name, spec_for_ext, strip_quotes, NameDecision,
+    clean_docstring, contains_case_insensitive, find_name, is_composite_extension, spec_for_ext,
+    strip_quotes, NameDecision,
 };
 
 pub trait CodeExtractor {
@@ -56,6 +58,15 @@ pub(crate) fn collect_index_auxiliary(
     file_content: &str,
     file_path: &str,
 ) -> Result<IndexAuxiliary, String> {
+    if Path::new(file_path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(is_composite_extension)
+    {
+        return TreeSitterExtractor::new()
+            .extract_for_index(file_content, file_path)
+            .map(|(_, auxiliary)| auxiliary);
+    }
     let ext = Path::new(file_path)
         .extension()
         .and_then(|value| value.to_str())
@@ -1829,6 +1840,23 @@ impl TreeSitterExtractor {
         let path = Path::new(file_path);
         let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
 
+        if is_composite_extension(ext) {
+            return self.extract_composite_parts(file_content, file_path, ext, collect_auxiliary);
+        }
+        self.extract_language_parts(file_content, file_path, ext, collect_auxiliary)
+    }
+
+    /// Reuse the existing language walk against a same-length composite source mask. `file_path`
+    /// deliberately remains the outer component path while `grammar_ext` selects JS or TS.
+    fn extract_language_parts(
+        &self,
+        file_content: &str,
+        file_path: &str,
+        grammar_ext: &str,
+        collect_auxiliary: bool,
+    ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
+        let ext = grammar_ext;
+
         // Resolve the per-language spec from the registry. An unsupported extension yields an
         // empty `ExtractedFile`, preserving the prior unknown-extension behavior exactly.
         let Some(spec) = spec_for_ext(ext) else {
@@ -2194,6 +2222,85 @@ impl TreeSitterExtractor {
             },
             auxiliary,
         ))
+    }
+
+    fn extract_composite_parts(
+        &self,
+        file_content: &str,
+        file_path: &str,
+        extension: &str,
+        collect_auxiliary: bool,
+    ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
+        let mut extracted = ExtractedFile {
+            file_path: file_path.to_string(),
+            total_lines: file_content.lines().count(),
+            symbols: Vec::new(),
+            literals: Vec::new(),
+            docstrings: Vec::new(),
+            navigation: Some(NavigationFile::default()),
+        };
+        let mut auxiliary = IndexAuxiliary::default();
+
+        for embedded in composite::extract_sources(file_content, extension) {
+            let (part, part_auxiliary) = self.extract_language_parts(
+                &embedded.source,
+                file_path,
+                embedded.grammar_ext,
+                collect_auxiliary,
+            )?;
+            merge_composite_part(&mut extracted, &mut auxiliary, part, part_auxiliary);
+        }
+        // `extract_language_parts` already uses the outer path and same-length source masks;
+        // assigning these explicitly documents and protects the public coordinate contract.
+        extracted.file_path = file_path.to_string();
+        extracted.total_lines = file_content.lines().count();
+        Ok((extracted, auxiliary))
+    }
+}
+
+fn push_unique<T: PartialEq>(out: &mut Vec<T>, item: T) {
+    if !out.contains(&item) {
+        out.push(item);
+    }
+}
+
+fn merge_composite_part(
+    extracted: &mut ExtractedFile,
+    auxiliary: &mut IndexAuxiliary,
+    part: ExtractedFile,
+    part_auxiliary: IndexAuxiliary,
+) {
+    for symbol in part.symbols {
+        push_unique(&mut extracted.symbols, symbol);
+    }
+    for literal in part.literals {
+        push_unique(&mut extracted.literals, literal);
+    }
+    for docstring in part.docstrings {
+        push_unique(&mut extracted.docstrings, docstring);
+    }
+    if let (Some(target), Some(source)) = (&mut extracted.navigation, part.navigation) {
+        for call in source.calls {
+            push_unique(&mut target.calls, call);
+        }
+        for reference in source.references {
+            push_unique(&mut target.references, reference);
+        }
+        for binding in source.local_bindings {
+            push_unique(&mut target.local_bindings, binding);
+        }
+        for import in source.imports {
+            push_unique(&mut target.imports, import);
+        }
+    }
+    for definition in part_auxiliary.definition_body {
+        push_unique(&mut auxiliary.definition_body, definition);
+    }
+    for reference in part_auxiliary.reference {
+        push_unique(&mut auxiliary.reference, reference);
+    }
+    for edge in part_auxiliary.static_collection_edges {
+        push_unique(&mut auxiliary.static_collection_edges, edge);
     }
 }
 
@@ -2862,6 +2969,58 @@ class Calculator:
             let extractor = TreeSitterExtractor::new();
             // Must not panic; owner correctness is asserted in the per-language tests above.
             let _ = extractor.extract(content, path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_existing_language_index_auxiliary_matrix() {
+        // Reproduce the declaration/reference shapes used by each locked grammar's tags query.
+        // This complements the public CLI symbol matrix by proving that index auxiliary text
+        // continues through the shared extraction path for every pre-existing backend language.
+        let cases = [
+            (
+                "x.rs",
+                "fn rust_aux_target() {}\nfn rust_aux_caller() { rust_aux_target(); }\n",
+            ),
+            (
+                "x.go",
+                "package p\nfunc goAuxTarget() {}\nfunc goAuxCaller() { goAuxTarget() }\n",
+            ),
+            (
+                "X.java",
+                "class JavaAux { void target() {} void caller() { target(); } }\n",
+            ),
+            (
+                "x.kt",
+                "class KotlinAux {\n  fun target() {}\n  fun caller() { target() }\n}\n",
+            ),
+            (
+                "x.py",
+                "def python_aux_target():\n    pass\ndef python_aux_caller():\n    python_aux_target()\n",
+            ),
+            (
+                "x.c",
+                "void c_aux_target(void) {}\nvoid c_aux_caller(void) { c_aux_target(); }\n",
+            ),
+            (
+                "x.cpp",
+                "void cpp_aux_target() {}\nvoid cpp_aux_caller() { cpp_aux_target(); }\n",
+            ),
+            (
+                "x.s",
+                "asm_aux_target:\n  ret\nasm_aux_caller:\n  call asm_aux_target\n",
+            ),
+        ];
+        for (path, content) in cases {
+            let auxiliary = collect_index_auxiliary(content, path).unwrap();
+            assert!(
+                !auxiliary.definition_body.is_empty(),
+                "{path} must expose a definition to indexing"
+            );
+            assert!(
+                !auxiliary.reference.is_empty(),
+                "{path} must expose a relationship reference to indexing"
+            );
         }
     }
 }

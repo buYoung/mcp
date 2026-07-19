@@ -37,6 +37,9 @@ tree-sitter-cpp = "0.23"
 # `LANGUAGE: LanguageFn`, and links against the same 0.26 ABI. Covers AT&T syntax
 # (`.s`/`.S`) and Intel syntax (`.asm`). Labels are the primary symbol kind.
 tree-sitter-asm = "0.24"
+# SQL: `tree-sitter-sequel` 0.3.x exposes the tree-sitter 0.26-compatible
+# `LANGUAGE: LanguageFn` API used by the other grammar crates above.
+tree-sitter-sequel = "0.3"
 
 # Tantivy search engine for BM25 text indexing
 tantivy = "0.26"
