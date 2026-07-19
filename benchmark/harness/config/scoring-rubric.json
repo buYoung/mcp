@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "judgments_per_output": 3,
+  "independence": "three scorers work from separate blinded packages and may not see arm, trial, pair order, other scores, or aggregate results",
+  "score_components": {
+    "core_conclusion": {
+      "weight": 40,
+      "allowed_fraction": [0, 0.5, 1],
+      "fraction_definition": {
+        "1": "The central answer and decisive mechanism are correct.",
+        "0.5": "The central direction is correct, but a material mechanism or outcome is incomplete.",
+        "0": "The central answer is absent, wrong, or contradicted."
+      }
+    },
+    "required_content_mean": {
+      "weight": 30,
+      "allowed_item_fraction": [0, 0.5, 1],
+      "item_fraction_definition": {
+        "1": "The required item is explicit and accurate.",
+        "0.5": "The item is partial or implicit and is not contradicted.",
+        "0": "The item is absent or wrong."
+      }
+    },
+    "main_file_symbol_grounding": {
+      "weight": 15,
+      "allowed_fraction": [0, 0.5, 1],
+      "fraction_definition": {
+        "1": "The answer connects the main correct_file and every essential correct_symbol to the explanation.",
+        "0.5": "The answer correctly connects the file or only some essential symbols.",
+        "0": "Both are absent or incorrectly connected."
+      }
+    },
+    "required_relationship_mean": {
+      "weight": 15,
+      "allowed_item_fraction": [0, 0.5, 1],
+      "item_fraction_definition": {
+        "1": "The required relationship is explicit and accurate.",
+        "0.5": "The relationship is partial or implicit and is not contradicted.",
+        "0": "The relationship is absent or wrong."
+      }
+    }
+  },
+  "prohibited_claim_penalty": {
+    "per_explicit_claim": 20,
+    "maximum": 40,
+    "count_only_clear_explicit_claims": true,
+    "explicit_definition": "Mark true only when the final answer clearly asserts the prohibited claim; omission or ambiguity is false."
+  },
+  "formula": "clamp(40*core + 30*mean(required_content) + 15*grounding + 15*mean(required_relationships) - min(40, 20*explicit_prohibited_claim_count), 0, 100)",
+  "empty_required_list_rule": "a task answer contract must contain at least one required-content and one required-relationship item; otherwise the scoring input is invalid",
+  "semantic_label": {
+    "correct": "core=1, explicit prohibited claim count=0, and numeric score>=85",
+    "partial": "core>0 and numeric score>=50, but correct conditions are not all met",
+    "incorrect": "core=0 or numeric score<50",
+    "primary_quality_label": true
+  },
+  "secondary_contract_metrics": {
+    "contract_complete": "true only when every required-content item=1, grounding=1, and every required-relationship item=1",
+    "contract_label": ["complete", "incomplete"],
+    "does_not_replace_semantic_label": true
+  },
+  "format_metric": {
+    "format_valid_json": "recorded independently",
+    "affects_numeric_score": false,
+    "affects_semantic_label": false
+  },
+  "evidence_requirement": "every component, prohibited-claim decision, discovery-stage decision, and first-wrong decision must cite raw event line(s), final-answer excerpt(s), or answer-contract item IDs",
+  "aggregation": {
+    "preserve": [
+      "all_three_raw_scores",
+      "score_mean",
+      "score_min",
+      "score_max",
+      "score_range",
+      "all_three_semantic_labels",
+      "majority_semantic_label",
+      "all_three_contract_complete_values",
+      "label_disagreement",
+      "component_disagreements",
+      "scorer_notes"
+    ],
+    "no_silent_adjudication": true
+  }
+}

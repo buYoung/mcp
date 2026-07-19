@@ -1,9 +1,0 @@
-현재 코드 기준으로 그 흐름을 계속 살려 주는 것은 `BYONM`(기존 `node_modules` 사용) 해석 경로입니다. `deno compile`/실행 경로는 npm 패키지 폴더 해석 실패를 `Byonm` 케이스로 따로 다루고, 워크스페이스도 `libs/resolver`, `libs/node_resolver`, `libs/npm`을 함께 물고 있어서, 생성된 시작 파일이 옆 소스 트리의 헬퍼를 끌어온 뒤 그 헬퍼가 bare package import를 해도 결국 설치된 `node_modules` 쪽으로 다시 찾는 흐름이 유지됩니다. 그래서 헬퍼 옆 `package.json`에 그 의존성이 없어도, 릴리스 전체 어딘가에서 이미 그 패키지를 설치해 둔 상태면 빌드가 계속 통과할 수 있습니다.
-
-조용히 잘못된 버전에 묶일 수 있는 경우는, 그 헬퍼가 자기 근처 `package.json`에는 의존성을 적지 않았지만 실제로는 특정 버전을 전제하고 있고, 릴리스 앱 쪽 `node_modules`에는 같은 이름의 다른 버전이 이미 들어 있는 경우입니다. 이때 해석은 “헬퍼가 원래 선언했어야 할 버전”이 아니라 “현재 도달 가능한 설치본”, 보통 hoist된 상위 `node_modules` 사본에 붙을 수 있어서, 단독으로 설치했을 때와 다른 버전이 아무 경고 없이 선택될 수 있습니다. 특히 같은 패키지의 여러 버전이 트리에 공존할 때 이 문제가 잘 드러납니다.
-
-근거:
-- Deno 워크스페이스 의존성 구성: https://raw.githubusercontent.com/denoland/deno/main/Cargo.toml
-- CLI 쪽 npm/BYONM 해석 연결점: https://raw.githubusercontent.com/denoland/deno/main/cli/lib.rs
-
-위의 “잘못된 버전으로 묶이는 구체적 상황”은 현재 해석 구조로부터 도출한 판단입니다.

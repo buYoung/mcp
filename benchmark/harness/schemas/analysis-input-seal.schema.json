@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-analysis-input-seal.schema.json",
+  "title": "Immutable inputs for one baseline-3x aggregation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "input_contract",
+    "created_input_contract_version",
+    "generation",
+    "ledger",
+    "automatic_metrics_contract",
+    "metrics_index",
+    "scoring",
+    "judgments_index",
+    "aggregator",
+    "seal_schema",
+    "seal_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "input_contract": {"const": "baseline-analysis-input-seal-v1"},
+    "created_input_contract_version": {"const": "baseline-analysis-inputs-v1"},
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "generation_id", "generation_seal_sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "generation_id": {"type": "string", "minLength": 1},
+        "generation_seal_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "state", "attempt_accounting"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "state": {"const": "completed"},
+        "attempt_accounting": {"$ref": "#/$defs/attempt_accounting"}
+      }
+    },
+    "automatic_metrics_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_path", "schema_sha256", "extractor_path", "extractor_sha256"],
+      "properties": {
+        "schema_path": {"$ref": "#/$defs/absolute_path"},
+        "schema_sha256": {"$ref": "#/$defs/sha256"},
+        "extractor_path": {"$ref": "#/$defs/absolute_path"},
+        "extractor_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "metrics_index": {"$ref": "#/$defs/index_binding_metrics"},
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_manifest_path",
+        "final_manifest_file_sha256",
+        "final_manifest_seal_sha256",
+        "assignment_path",
+        "assignment_file_sha256",
+        "assignment_seal_sha256"
+      ],
+      "properties": {
+        "final_manifest_path": {"$ref": "#/$defs/absolute_path"},
+        "final_manifest_file_sha256": {"$ref": "#/$defs/sha256"},
+        "final_manifest_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "assignment_path": {"$ref": "#/$defs/absolute_path"},
+        "assignment_file_sha256": {"$ref": "#/$defs/sha256"},
+        "assignment_seal_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "judgments_index": {"$ref": "#/$defs/index_binding_judgments"},
+    "aggregator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "seal_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "seal_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "absolute_path": {"type": "string", "pattern": "^/"},
+    "nonnegative_integer": {"type": "integer", "minimum": 0},
+    "attempt_accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_attempt_count", "latest_valid_count", "superseded_attempt_count",
+        "invalid_attempt_count", "transient_attempt_count", "replacement_attempt_count",
+        "overall", "by_arm"
+      ],
+      "properties": {
+        "raw_attempt_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "latest_valid_count": {"const": 84},
+        "superseded_attempt_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "invalid_attempt_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "transient_attempt_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "replacement_attempt_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "overall": {"type": "object"},
+        "by_arm": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "object"}
+        }
+      }
+    },
+    "metric_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "path", "sha256"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "judgment_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_id", "path", "sha256"],
+      "properties": {
+        "review_id": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "index_binding_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "count", "entries"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "count": {"const": 84},
+        "entries": {
+          "type": "array",
+          "minItems": 84,
+          "maxItems": 84,
+          "items": {"$ref": "#/$defs/metric_entry"}
+        }
+      }
+    },
+    "index_binding_judgments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "count", "entries"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolute_path"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "count": {"const": 252},
+        "entries": {
+          "type": "array",
+          "minItems": 252,
+          "maxItems": 252,
+          "items": {"$ref": "#/$defs/judgment_entry"}
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,0 @@
-{
-    "status": "valid",
-    "target_cwd": "/Users/buyong/workspace/private/buyong-mcp/.agents/benchmark-data/ClickHouse-master",
-    "observed_cwd": "/Users/buyong/workspace/private/buyong-mcp/.agents/benchmark-data/ClickHouse-master",
-    "mcp_server_count": 0,
-    "reason": "init event shows the required ClickHouse target root and an empty MCP server list"
-}

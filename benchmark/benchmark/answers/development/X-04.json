@@ -1,0 +1,12 @@
+{
+  "task_id": "X-04",
+  "correct_file": "sdk/src/rest/composable.ts:14-18,33-67",
+  "correct_symbol": ["rest", "RestClient.request"],
+  "decisive_code_evidence": "getOptions 뒤 token이 있으면 Authorization을 추가하고, command onRequest 후 global onRequest 순으로 fetchOptions를 갱신한 뒤 request를 실행한다.",
+  "required_file_relationships": ["SDK REST client → client globals", "SDK REST client → auth helper", "SDK REST client → API transport"],
+  "allowed_other_definitions": [{"definition": "sdk/src/rest/helpers/with-token.ts", "reason": "token command wrapper 설명에는 허용되지만 전체 순서의 정답은 아니다."}],
+  "excluded_confusions": ["with-token.ts", "api/src/auth.ts"],
+  "final_answer_required": ["토큰 조건", "command/global 훅 순서", "fetch 호출 지점"],
+  "prohibited_claims": ["API middleware가 이 순서를 보장한다고 주장"],
+  "labels": {"area": "X", "query_type": "mixed", "first_area": "wrong", "ambiguity": "auth·request·hook 구현의 분산", "multi_file": true}
+}

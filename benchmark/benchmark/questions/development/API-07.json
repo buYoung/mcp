@@ -1,0 +1,4 @@
+{
+  "task_id": "API-07",
+  "question": "서버 health check가 DB, Redis, storage, email 결과를 어떤 서비스에서 조합하는지 설명하라."
+}

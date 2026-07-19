@@ -1,0 +1,12 @@
+{
+  "task_id": "API-07",
+  "correct_file": "api/src/services/server.ts:39,264-438",
+  "correct_symbol": ["ServerService", "testDatabase", "testRedis", "testStorage", "testEmail"],
+  "decisive_code_evidence": "ServerService 내부의 네 검사 함수가 database, redis, storage, email health 결과를 구성한다.",
+  "required_file_relationships": ["server controller → ServerService", "ServerService → env/config", "ServerService → database/redis/storage clients"],
+  "allowed_other_definitions": [{"definition": "controllers/server.ts", "reason": "서비스 호출 경계 설명에는 허용되지만 결과 조합 구현은 서비스다."}],
+  "excluded_confusions": ["controllers/metrics.ts", "deployment health"],
+  "final_answer_required": ["서비스 심볼", "네 가지 검사 함수"],
+  "prohibited_claims": ["단일 DB 검사만 있다고 축약"],
+  "labels": {"area": "API", "query_type": "natural", "first_area": "right", "ambiguity": "server controller/service 동명", "multi_file": true}
+}

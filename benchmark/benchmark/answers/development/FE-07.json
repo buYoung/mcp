@@ -1,0 +1,12 @@
+{
+  "task_id": "FE-07",
+  "correct_file": "app/src/modules/content/composables/use-navigation.ts; app/src/modules/content/components/navigation.vue:23,30-42",
+  "correct_symbol": ["showHidden", "activeGroups", "rootItems"],
+  "decisive_code_evidence": "navigation.vue가 useNavigation을 호출하고 showHidden에 따라 allCollections 또는 visibleCollections를 선택하며 hidden 존재를 계산한다.",
+  "required_file_relationships": ["navigation component → useNavigation composable", "navigation component → collectionsStore"],
+  "allowed_other_definitions": [{"definition": "use-navigation.ts의 그룹 계산", "reason": "보조 설명에는 허용되지만 최종 all/visible 선택은 navigation.vue에 있다."}],
+  "excluded_confusions": ["users navigation composable/component", "stores collections의 visible 계산만으로 답하기"],
+  "final_answer_required": ["showHidden 토글", "allCollections/visibleCollections 선택"],
+  "prohibited_claims": ["숨김 컬렉션이 권한 우회로 노출된다고 주장"],
+  "labels": {"area": "FE", "query_type": "natural", "first_area": "wrong", "ambiguity": "동일 navigation 이름과 두 단계 상태 전달", "multi_file": true}
+}

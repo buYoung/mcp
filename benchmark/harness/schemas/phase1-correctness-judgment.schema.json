@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-phase1-correctness-judgment.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "review_id", "scorer_id", "rubric_sha256", "correctness", "notes"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "review_id": {"type": "string"},
+    "scorer_id": {"type": "string"},
+    "rubric_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["core_fraction", "core_evidence", "required_claims", "grounding_fraction", "grounding_evidence", "required_relationships", "prohibited_claims", "format_valid_json"],
+      "properties": {
+        "core_fraction": {"$ref": "#/$defs/fraction"},
+        "core_evidence": {"type": "string", "minLength": 1},
+        "required_claims": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scored_item"}},
+        "grounding_fraction": {"$ref": "#/$defs/fraction"},
+        "grounding_evidence": {"type": "string", "minLength": 1},
+        "required_relationships": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scored_item"}},
+        "prohibited_claims": {"type": "array", "items": {"$ref": "#/$defs/prohibited_item"}},
+        "format_valid_json": {"type": "boolean"}
+      }
+    },
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "fraction": {"enum": [0, 0.5, 1]},
+    "scored_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "fraction", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "fraction": {"$ref": "#/$defs/fraction"},
+        "evidence": {"type": "string", "minLength": 1},
+        "raw_event_lines": {"type": "array", "maxItems": 0}
+      }
+    },
+    "prohibited_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "explicitly_present", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "explicitly_present": {"type": "boolean"},
+        "evidence": {"type": "string", "minLength": 1},
+        "raw_event_lines": {"type": "array", "maxItems": 0}
+      }
+    }
+  }
+}

@@ -1,5 +1,0 @@
-이 워크스페이스에는 Angular 프레임워크 소스가 없습니다. `packages/`에는 `typescript-config`만 있고, 검색 결과에서 보신 `packages/forms/` 관련 경로는 `pnpm-lock.yaml` 의존성 잠금 파일이나 Angular 문서(`adev/`)의 참조입니다.
-
-Angular의 `select_control_value_accessor.ts` 구현 (`compareWith`, `_optionMap`, 모델 재적용 규칙 등)은 이 저장소에 존재하지 않습니다.
-
-어떤 codebase에서 이 질문을 하고 싶으신지Clarify 해주시겠어요?

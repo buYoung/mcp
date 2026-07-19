@@ -1,0 +1,9 @@
+{
+  "attestation_path": "/private/tmp/codemap-search-quality.sRpqE6sG/harness/provenance/b2-clean-runtime-attestation.json",
+  "attestation_sha256": "17f5481e5ba311f95991efa9a10dad583e002b626e201c7d055c21a8cee04de7",
+  "binary_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/target/release/codemap-search",
+  "binary_sha256": "d55355cd358c08527823dab2bcc2908a618f75374296b503652d8d2f7362d7bd",
+  "source_commit": "c160dee10f400950eb141e09e284d4d930f44ce6",
+  "source_patch_scope": "read-only startup lock fix only; no candidate code, mode, metrics, prompt, schema, ranking, or index change",
+  "status": "verified-clean-baseline"
+}

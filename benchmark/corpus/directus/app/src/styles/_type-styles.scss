@@ -1,0 +1,21 @@
+@use 'mixins';
+
+.type-display {
+	@include mixins.type-display;
+}
+
+.type-title {
+	@include mixins.type-title;
+}
+
+.type-label {
+	@include mixins.type-label;
+}
+
+.type-text {
+	@include mixins.type-text;
+}
+
+.type-note {
+	@include mixins.type-note;
+}

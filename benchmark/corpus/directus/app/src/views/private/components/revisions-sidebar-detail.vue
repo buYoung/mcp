@@ -1,0 +1,199 @@
+<script setup lang="ts">
+import { useGroupable } from '@directus/composables';
+import { PrimaryKey } from '@directus/types';
+import { abbreviateNumber } from '@directus/utils';
+import { storeToRefs } from 'pinia';
+import { computed, onMounted, ref, toRefs, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+import { useSidebarStore } from '../private-view/stores/sidebar';
+import RevisionsDateGroup from './revisions-date-group.vue';
+import SidebarDetail from './sidebar-detail.vue';
+import VDivider from '@/components/v-divider.vue';
+import VNotice from '@/components/v-notice.vue';
+import VPagination from '@/components/v-pagination.vue';
+import VProgressLinear from '@/components/v-progress-linear.vue';
+import { useRevisions } from '@/composables/use-revisions';
+import { useLicenseStore } from '@/stores/license';
+import type { Revision } from '@/types/revisions';
+import type { ContentVersionMaybeNew, ContentVersionWithType } from '@/types/versions';
+import ComparisonModal from '@/views/private/components/comparison/comparison-modal.vue';
+
+const props = defineProps<{
+	collection: string;
+	primaryKey: PrimaryKey;
+	version?: ContentVersionMaybeNew | null;
+}>();
+
+defineEmits(['revert']);
+
+const { t } = useI18n();
+
+const title = computed(() => t('revisions'));
+
+const { active: open } = useGroupable({
+	value: title.value,
+	group: 'sidebar-detail',
+});
+
+const { collection, primaryKey, version } = toRefs(props);
+
+const sidebarStore = useSidebarStore();
+const { revisionHistoryTimeframe } = storeToRefs(useLicenseStore());
+const route = useRoute();
+
+const comparisonModalActive = ref(false);
+const currentRevision = ref<Revision | null>(null);
+const page = ref<number>(1);
+
+const isNewUnsavedVersion = computed(() => version.value?.id === '+');
+
+const comparableVersion = computed(() => {
+	if (version.value === undefined || version.value === null) return version.value;
+	if (version.value.id === '+') return undefined;
+	return version.value as ContentVersionWithType;
+});
+
+const {
+	revisions,
+	revisionsByDate,
+	loading,
+	refresh,
+	revisionsCount,
+	pagesCount,
+	created,
+	getRevisions,
+	loadingCount,
+	getRevisionsCount,
+} = useRevisions(collection, primaryKey, comparableVersion, { full: true, disabled: isNewUnsavedVersion });
+
+onMounted(() => {
+	if (isNewUnsavedVersion.value) return;
+
+	getRevisionsCount();
+
+	if (open.value || sidebarStore.activeAccordionItem === 'revisions') {
+		getRevisions();
+	}
+});
+
+watch(
+	() => page.value,
+	(newPage) => {
+		refresh(newPage);
+	},
+);
+
+watch(() => route.fullPath, closeModal);
+
+function openModal(id: number) {
+	currentRevision.value = (revisions.value as Revision[])?.find((revision) => revision.id === id) ?? null;
+	comparisonModalActive.value = true;
+}
+
+function closeModal() {
+	comparisonModalActive.value = false;
+	currentRevision.value = null;
+}
+
+function onToggle(open: boolean) {
+	if (open && revisions.value === null) getRevisions();
+}
+
+defineExpose({
+	refresh,
+});
+</script>
+
+<template>
+	<SidebarDetail
+		id="revisions"
+		:title
+		icon="change_history"
+		:badge="!loadingCount && revisionsCount > 0 ? abbreviateNumber(revisionsCount) : undefined"
+		@toggle="onToggle"
+	>
+		<VProgressLinear v-if="!revisions && loading" indeterminate />
+
+		<div v-else-if="revisionsCount === 0" class="empty">
+			<div class="content">{{ $t('no_revisions') }}</div>
+		</div>
+
+		<template v-else>
+			<template v-for="group in revisionsByDate" :key="group.date.toString()">
+				<RevisionsDateGroup :group="group" @click="openModal" />
+			</template>
+
+			<template v-if="page == pagesCount && !created">
+				<VDivider v-if="revisionsByDate!.length > 0" />
+
+				<div class="external">
+					{{ $t('revision_delta_created_externally') }}
+				</div>
+			</template>
+			<VPagination v-if="pagesCount > 1" v-model="page" :length="pagesCount" :total-visible="3" />
+		</template>
+
+		<VNotice v-if="revisionHistoryTimeframe !== null" type="info" icon="diamond" class="history-notice">
+			{{ $t('license.revisions_history_notice', { timeframe: revisionHistoryTimeframe }) }}
+		</VNotice>
+
+		<ComparisonModal
+			v-model="comparisonModalActive"
+			v-model:current-revision="currentRevision"
+			mode="revision"
+			:collection
+			:primary-key
+			:current-version="comparableVersion"
+			:revisions="revisions as Revision[]"
+			@confirm="$emit('revert', $event)"
+			@cancel="closeModal"
+		/>
+	</SidebarDetail>
+</template>
+
+<style lang="scss" scoped>
+.v-progress-linear {
+	margin: 1.375rem 0;
+}
+
+.v-divider {
+	--v-divider-color: var(--theme--background-accent);
+
+	margin-block: 1.375rem 0.4375rem;
+
+	&:first-of-type {
+		margin-block-start: 0;
+	}
+}
+
+.empty {
+	margin-block: 0.875rem;
+	margin-inline-start: 0.125rem;
+	color: var(--theme--foreground-subdued);
+	font-style: italic;
+}
+
+.external {
+	margin-inline-start: 1.125rem;
+	color: var(--theme--foreground-subdued);
+	font-style: italic;
+}
+
+.other {
+	--v-divider-label-color: var(--theme--foreground-subdued);
+
+	font-style: italic;
+}
+
+.v-pagination {
+	justify-content: center;
+	margin-block-start: 1.375rem;
+}
+
+.history-notice {
+	--v-notice-background-color: var(--theme--background-subdued);
+
+	margin-block-start: 0.875rem;
+}
+</style>

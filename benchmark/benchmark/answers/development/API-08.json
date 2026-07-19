@@ -1,0 +1,12 @@
+{
+  "task_id": "API-08",
+  "correct_file": "api/src/controllers/users.ts:457-476",
+  "correct_symbol": ["registerSchema", "usersService.registerUser"],
+  "decisive_code_evidence": "POST /register route가 Joi로 registerSchema를 validate한 value를 usersService.registerUser에 전달한다.",
+  "required_file_relationships": ["users controller → UsersService", "users controller → Joi", "users controller → respond/error middleware"],
+  "allowed_other_definitions": [{"definition": "UsersService.registerUser", "reason": "비즈니스 세부 설명에는 허용되지만 route contract의 정답은 controller다."}],
+  "excluded_confusions": ["UsersService.createOne", "auth controller login"],
+  "final_answer_required": ["Joi schema", "POST /register", "registerUser 전달"],
+  "prohibited_claims": ["등록이 auth /login route라고 주장"],
+  "labels": {"area": "API", "query_type": "exact", "first_area": "wrong", "ambiguity": "users/auth controller 경로", "multi_file": true}
+}

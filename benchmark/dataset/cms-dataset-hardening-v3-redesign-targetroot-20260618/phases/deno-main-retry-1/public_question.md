@@ -1,1 +1,0 @@
-A release team is turning a Deno application into a single executable. In the current codebase, trace the compile flow from command dispatch through module-graph construction and npm/lockfile handling to the ESZip-backed binary writer. Which entrypoint condition is rejected before the graph is packaged, and where is that rejection enforced?

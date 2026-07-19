@@ -1,5 +1,0 @@
-이 코드베이스에서 "버려진" 폴백 필드가 관측 가능한 이유는 세 가지입니다:
-
-1. **정크가 실제로 폐기되지 않음** — `symbol_fallback=true`여도 `matched_symbols`는 `emitted_starts` 중복 제거, 잔여 심볼 이름 목록 출력, Tier 분류 필터링에 계속 사용됨 (`apps/codemap-search/src/tools/search/mod.rs:533-602`)
-2. **암묵적 필드 커플링** — `ranking_signal`은 `scored_symbols.first()`에서 계산되는데, 폴백 시 빈 `scored_symbols`는 `ranking_signal=None`을 만들고, 이 `None`은 렌더링에서 다른 힌트 텍스트로 대체되어 표면에 드러남 (`apps/codemap-search/src/index/ranking.rs:553-569`)
-3. **타입 시스템이 분기를 표현하지 못함** — 동일한 `SearchResult` 타입이 `symbol_fallback: bool` 하나로 완전히 다른 두 의미를 가지지만, 타입에 그 차이가 기록되지 않아 모든 소비 지점이 폴백 정크를 일관되게 무시한다는 증명되지 않은 가정에 의존함

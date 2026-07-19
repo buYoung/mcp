@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-manual-evaluation-components.schema.json",
+  "title": "Shared final correctness and search-process judgment components",
+  "$defs": {
+    "fraction": {"enum": [0, 0.5, 1]},
+    "manual_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "raw_event_lines", "call_ids"],
+      "properties": {
+        "status": {"enum": ["yes", "no", "not_applicable", "unscored"]},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "call_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "scored_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "fraction", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "fraction": {"$ref": "#/$defs/fraction"},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "prohibited_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "explicitly_present", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "explicitly_present": {"type": "boolean"},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "dialogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery_stages", "first_wrong"],
+      "properties": {
+        "discovery_stages": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decisive_evidence_exposed", "selected_next", "original_code_read", "final_answer_used_correctly"],
+          "properties": {
+            "decisive_evidence_exposed": {"$ref": "#/$defs/manual_stage"},
+            "selected_next": {"$ref": "#/$defs/manual_stage"},
+            "original_code_read": {"$ref": "#/$defs/manual_stage"},
+            "final_answer_used_correctly": {"$ref": "#/$defs/manual_stage"}
+          }
+        },
+        "first_wrong": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["category", "raw_event_line", "completed_call_index", "call_id", "explanation"],
+          "properties": {
+            "category": {"enum": ["none", "initial_area", "tool_choice", "query_too_broad", "query_too_narrow", "scope", "answer_evidence_not_exposed", "insufficient_code_evidence", "similar_result_dominance", "evidence_not_selected", "original_not_read", "final_misuse", "other"]},
+            "raw_event_line": {"type": ["integer", "null"], "minimum": 1},
+            "completed_call_index": {"type": ["integer", "null"], "minimum": 1},
+            "call_id": {"type": ["string", "null"]},
+            "explanation": {"type": "string"}
+          },
+          "allOf": [{
+            "if": {"properties": {"category": {"const": "none"}}, "required": ["category"]},
+            "then": {"properties": {
+              "raw_event_line": {"const": null},
+              "completed_call_index": {"const": null},
+              "call_id": {"const": null}
+            }},
+            "else": {"properties": {
+              "raw_event_line": {"type": "integer", "minimum": 1},
+              "completed_call_index": {"type": "integer", "minimum": 1},
+              "call_id": {"type": "string", "minLength": 1},
+              "explanation": {"type": "string", "minLength": 1}
+            }}
+          }]
+        }
+      }
+    },
+    "final_correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["core_fraction", "core_evidence", "required_claims", "grounding_fraction", "grounding_evidence", "required_relationships", "prohibited_claims", "score_0_100", "semantic_label", "contract_complete", "contract_label", "format_valid_json", "scorer_id", "manual_status"],
+      "properties": {
+        "core_fraction": {"$ref": "#/$defs/fraction"},
+        "core_evidence": {"type": "string", "minLength": 1},
+        "required_claims": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scored_item"}},
+        "grounding_fraction": {"$ref": "#/$defs/fraction"},
+        "grounding_evidence": {"type": "string", "minLength": 1},
+        "required_relationships": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scored_item"}},
+        "prohibited_claims": {"type": "array", "items": {"$ref": "#/$defs/prohibited_item"}},
+        "score_0_100": {"type": "number", "minimum": 0, "maximum": 100},
+        "semantic_label": {"enum": ["correct", "partial", "incorrect"]},
+        "contract_complete": {"type": "boolean"},
+        "contract_label": {"enum": ["complete", "incomplete"]},
+        "format_valid_json": {"type": "boolean"},
+        "scorer_id": {"type": "string"},
+        "manual_status": {"const": "scored"}
+      }
+    }
+  }
+}

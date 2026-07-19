@@ -1,0 +1,12 @@
+{
+  "task_id": "FE-03",
+  "correct_file": "app/src/modules/content/routes/item.vue:594-660",
+  "correct_symbol": ["saveAndStay", "saveAndAddNew", "createNewItem", "saveAndQuit"],
+  "decisive_code_evidence": "saveAndStay는 저장 결과가 신규 item(primaryKeyParam === '+')일 때만 getItemRoute로 router.replace한다. 기존 item은 revisions와 item을 refresh한 뒤 현재 화면에 남는다. saveAndAddNew는 저장 전 신규 item(isNew.value === true)이면 저장 후 refresh하고, 기존 item일 때는 getItemRoute(props.collection, '+')를 직접 router.push한다. 이 함수와 독립적인 createNewItem은 getItemRoute(props.collection, '+', VERSION_KEY_DRAFT)를 직접 router.push해 draft route로 이동한다. saveAndQuit는 저장 후 non-singleton(props.singleton === false)일 때만 collection route로 push하고 singleton은 현재 화면에 남는다.",
+  "required_file_relationships": ["item route → useItem/save", "item route → getItemRoute/getCollectionRoute", "saveAndStay → 신규 item router.replace / 기존 item revisions·item refresh 후 stay", "saveAndAddNew → 신규 item refresh / 기존 item direct getItemRoute(collection, '+') push", "createNewItem → 독립적인 direct getItemRoute(collection, '+', VERSION_KEY_DRAFT) push", "saveAndQuit → non-singleton collection push / singleton stay"],
+  "allowed_other_definitions": [{"definition": "saveAndQuit", "reason": "종료 동작을 설명할 때만 허용된다."}],
+  "excluded_confusions": ["collection.vue의 addNewLink", "bookmark navigation"],
+  "final_answer_required": ["saveAndStay의 신규 item(primaryKeyParam === '+') router.replace", "saveAndStay의 기존 item revisions·item refresh 및 현재 화면 유지", "saveAndAddNew의 신규 item(isNew.value === true) refresh", "saveAndAddNew의 기존 item direct getItemRoute(collection, '+') push", "독립적인 createNewItem의 direct getItemRoute(collection, '+', VERSION_KEY_DRAFT) push", "saveAndQuit의 non-singleton(props.singleton === false) collection 이동", "saveAndQuit의 singleton 현재 화면 유지"],
+  "prohibited_claims": ["저장 API payload 모양을 추정", "saveAndStay가 항상 router.replace한다고 주장", "saveAndAddNew가 항상 add-new route로 push한다고 주장", "saveAndAddNew가 createNewItem을 호출한다고 주장", "saveAndQuit가 singleton 여부와 무관하게 항상 이동한다고 주장"],
+  "labels": {"area": "FE", "query_type": "mixed", "first_area": "wrong", "ambiguity": "여러 save 함수와 +/draft route", "multi_file": true}
+}

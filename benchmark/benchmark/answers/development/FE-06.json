@@ -1,0 +1,12 @@
+{
+  "task_id": "FE-06",
+  "correct_file": "app/src/modules/content/routes/item.vue:144-158",
+  "correct_symbol": ["onVersionDelete", "nextTick", "collectionRoute"],
+  "decisive_code_evidence": "onVersionDelete는 version watcher와 router.push의 경합을 피하려고 nextTick 뒤 collectionRoute로 이동한다.",
+  "required_file_relationships": ["item route → useVersions watcher", "item route → useRouteQuery/router"],
+  "allowed_other_definitions": [{"definition": "handleVersionGone", "reason": "오류 경로의 보조 설명으로만 허용된다."}],
+  "excluded_confusions": ["version-menu.vue의 UI 삭제 버튼", "version store"],
+  "final_answer_required": ["삭제 → watcher cascade → nextTick → router.push 순서"],
+  "prohibited_claims": ["nextTick이 네트워크 완료를 보장한다고 주장"],
+  "labels": {"area": "FE", "query_type": "mixed", "first_area": "right", "ambiguity": "비동기 경계와 유사 버전 컴포넌트", "multi_file": true}
+}

@@ -1,3 +1,0 @@
-**Resolution path**: Deno의 번들러는 일반 그래프 해석이 실패할 때 **managed npm snapshotへの fallback**을 수행한다. 일반 resolution 실패 후, 번들러는 `cli/tools/bundle/mod.rs:1558-1580`에서plain package specifier를 감지하면 `npm:{raw_specifier}`形式で合成し `libs/resolver/graph.rs:426-445`의 `resolve_bare_specifier_in_npm_snapshot`를 통해 스냅샷에서 이름만으로 해결한다. 이로 인해 helper module이 해당 패키지를 자체 `package.json`에 선언하지 않더라도 빌드-wide 스냅샷에 존재하면 번들링이 성공한다.
-
-**잘못된 버전이 조용히 바인딩되는 경우**: 스냅샷에同一 패키지의 여러 버전이 설치되어 있을 때이다. `libs/resolver/graph.rs:417-422`에서 fallback이 `name@*`로 해석하므로, 해당 패키지의 nearest `node_modules` 트리가 선택했을 버전이 아닌, 이름만 일치하는 스냅샷 엔트리가 선택될 수 있다.

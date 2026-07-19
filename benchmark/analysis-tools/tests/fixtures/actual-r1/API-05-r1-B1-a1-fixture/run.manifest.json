@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "generation_id": "baseline-3x-fixture",
+  "run_id": "API-05-r1-B1-a1-fixture",
+  "attempt_number": 1,
+  "prompt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "limits_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "arm_config_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "model_config_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "source_tree_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "model": "ollama-cloud/deepseek-v4-flash",
+  "started_at_ns": 900000000,
+  "ended_at_ns": 2100000000,
+  "schedule": {
+    "task_id": "API-05",
+    "trial_id": "r1",
+    "pair_id": "API-05-r1",
+    "criterion": "B1",
+    "pair_order_index": 0,
+    "question_sha256": "cfb561fd55db593384dc5768af91db884f2f8a9ed3240ff4dfe49a933577d6ad"
+  }
+}

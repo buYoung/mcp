@@ -1,7 +1,0 @@
-두 가지 메커니즘 때문입니다:
-
-**(a) throw 여부 — fallback이 에러 경계를 결정합니다.** `ranking.rs:435-465`에서 Tantivy 쿼리 파서가 `*` 같은 입력에 패닉하면, fallback 재파싱이 예외를 삼키고 아예 다른 쿼리(토큰화된 폼 또는 특수문자 제거 폼)로 대체합니다. 같은 위치의 `symbol_fallback` 플래그(`ranking.rs:600-607`)는 `matched_symbols`가 비어있을 때 모든 심볼로 채우도록 강제하는데, 이 값이 `true`면 `annotate.rs:413-415`에서 enrichment 전체를 스킵하고, `search/mod.rs:505-637`에서 렌더링 파이프라인 자체를 (snippet+annotation → 이름만 나열)로 전환합니다.
-
-**(b) 타입 변경 — 하나의 boolean 필드가 rendering pipeline 전체를 fork합니다.** `symbol_fallback = true`는 `matched_symbols`에 **매칭된 심볼 대신 파일의 모든 심볼**을 채우고(`ranking.rs:603-607`), `AnnotationRequest.is_fallback = true`로 전파되어 caller/callee annotation을 완전히 생략하며(`annotate.rs:431-434`), 결과 렌더러가 names-only 포맷을 선택하게 합니다(`search/mod.rs:505-602`). 즉, "버려진" fallback 슬롯 한 개가 downstream consumer가 받는 데이터의 구조와 풍부도를 결정합니다.
-
-핵심은 이 코드베이스에서 **fallback이 단순한 기본값 대체가 아니라, 실행 경로·타입·렌더링 파이프라인을 선택하는 분기점(gate)** 이라는 점입니다.

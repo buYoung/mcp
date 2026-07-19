@@ -1,0 +1,12 @@
+{
+  "task_id": "API-01",
+  "correct_file": "api/src/services/deployment.ts:29,327-355",
+  "correct_symbol": ["DEPLOYMENT_CACHE_TTL", "DeploymentService"],
+  "decisive_code_evidence": "CACHE_DEPLOYMENT_TTL 환경값 또는 기본 5000ms를 사용해 setCacheValueWithExpiry를 호출하고 remainingTTL을 반환한다.",
+  "required_file_relationships": ["DeploymentService → getMilliseconds", "DeploymentService → cache helpers", "deployment controller → DeploymentService"],
+  "allowed_other_definitions": [{"definition": "deployment controller route", "reason": "호출 관계의 보조 근거로만 허용되며 서비스 정의가 정답이다."}],
+  "excluded_confusions": ["deployment-runs.ts:DeploymentRunsService", "deployment-projects.ts"],
+  "final_answer_required": ["환경 키", "기본 5000ms", "캐시 저장과 remainingTTL 반환"],
+  "prohibited_claims": ["1시간 SYNC_THRESHOLD_MS를 TTL이라고 주장"],
+  "labels": {"area": "API", "query_type": "exact", "first_area": "right", "ambiguity": "deployment 서비스와 하위 서비스 이름", "multi_file": true}
+}

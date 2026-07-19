@@ -1,0 +1,6 @@
+{
+  "timeout_seconds": 600,
+  "completed_model_steps": 30,
+  "counter_semantics": "model-steps-v4",
+  "total_output_bytes": 2097152
+}

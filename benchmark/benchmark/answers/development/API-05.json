@@ -1,0 +1,12 @@
+{
+  "task_id": "API-05",
+  "correct_file": "api/src/controllers/files.ts:6,24-25,27,41-131,133-148,297-307",
+  "correct_symbol": ["multipartHandler", "FilesService.uploadOne"],
+  "decisive_code_evidence": "multipartHandler는 Busboy로 multipart field를 내부 payload에 넣고 file stream을 FilesService.uploadOne에 전달해 저장 결과를 res.locals.savedFiles에 모은다. POST /와 PATCH /:pk만 asyncHandler로 multipartHandler를 선행 호출한다.",
+  "required_file_relationships": ["files controller → useCollection('directus_files')", "files controller → checkIsLocked('files')", "files controller → multipartHandler → FilesService.uploadOne → res.locals.savedFiles", "files controller → FilesService"],
+  "allowed_other_definitions": [{"definition": "services/files.ts:FilesService", "reason": "저장 로직 설명에는 허용되지만 multipart route 연결의 정답은 아니다."}],
+  "excluded_confusions": ["services/files/lib/* 유틸", "GET route가 multipart를 사용한다는 주장"],
+  "final_answer_required": ["handler 위치", "Busboy parser", "multipart field → payload", "file stream → FilesService.uploadOne", "res.locals.savedFiles", "POST /와 PATCH /:pk route verb와 path", "GET route 제외"],
+  "prohibited_claims": ["GET route가 multipart를 사용한다고 주장", "multer를 사용한다고 주장", "req.file을 구성한다고 주장", "multipartHandler가 req.body를 구성한다고 주장"],
+  "labels": {"area": "API", "query_type": "natural", "first_area": "right", "ambiguity": "서비스와 유틸의 동명 파일", "multi_file": true}
+}

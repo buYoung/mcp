@@ -1,0 +1,12 @@
+{
+  "task_id": "FE-02",
+  "correct_file": "app/src/modules/files/routes/collection.vue:101,106,243-257,322-381; app/src/utils/upload-files.ts:9-45",
+  "correct_symbol": ["onDrop", "filesStore.upload", "uploadFiles", "uploadFile"],
+  "decisive_code_evidence": "window drop 이벤트는 onDrop으로 들어오며, onDrop은 dataTransfer의 파일을 수집하고 preset을 적용한다. filesStore.upload()은 start/finish 추적을 만들고, uploadFiles(...)가 각 uploadFile 네트워크 업로드를 수행한다.",
+  "required_file_relationships": ["collection route → useFilesStore.upload(추적)", "collection route → utils/upload-files.uploadFiles(실제 업로드) → uploadFile", "collection route → notifications/router"],
+  "allowed_other_definitions": [{"definition": "drag event 등록", "reason": "이벤트 진입점 설명의 보조 근거로 허용된다."}],
+  "excluded_confusions": ["add-new.vue의 단일 업로드", "stores/files.ts만으로 답하기"],
+  "final_answer_required": ["window drop 이벤트", "onDrop → filesStore.upload().start → uploadFiles → uploadFile 흐름", "filesStore.upload의 추적 책임과 uploadFile의 실제 네트워크 업로드 책임 구분", "업로드 실패 가능성"],
+  "prohibited_claims": ["브라우저 파일이 항상 성공한다고 주장", "filesStore.upload가 실제 네트워크 업로드 주체라고 단정"],
+  "labels": {"area": "FE", "query_type": "natural", "first_area": "right", "ambiguity": "이벤트 등록·핸들러·store의 분산", "multi_file": true}
+}

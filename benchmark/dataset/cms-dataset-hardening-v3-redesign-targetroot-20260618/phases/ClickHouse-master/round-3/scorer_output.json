@@ -1,7 +1,0 @@
-{
-    "candidate_id": "clickhouse-unused-fallback-slots-observable-v1",
-    "status": "accepted",
-    "scores": [0.6, 0.45],
-    "threshold": 0.6,
-    "reason": "Two valid target-root Sonnet no-MCP runs both landed at or below threshold after the prompt was reduced to the operational symptom of unused fallback slots still being observable."
-}

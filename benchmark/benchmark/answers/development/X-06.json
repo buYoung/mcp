@@ -1,0 +1,12 @@
+{
+  "task_id": "X-06",
+  "correct_file": "packages/schema-builder/src/field.ts:458-471,493-506,524-534; packages/schema-builder/src/relation.ts:124-185; packages/schema-builder/src/builder.ts:46-68; packages/types/src/schema.ts:37-40",
+  "correct_symbol": ["o2m", "m2o", "a2o", "_schema._relations", "RelationBuilder.build", "SchemaBuilder.build", "SchemaOverview.relations"],
+  "decisive_code_evidence": "field builder의 o2m, m2o, a2o는 RelationBuilder를 만들고 _schema._relations에 push한다. SchemaBuilder.build는 이를 순회해 RelationBuilder.build(schema)가 반환한 Relation을 최종 schema.relations에 push하며, shared SchemaOverview가 그 relations 배열을 정의한다.",
+  "required_file_relationships": ["field builder → SchemaBuilder._relations", "SchemaBuilder._relations → RelationBuilder.build", "RelationBuilder.build → SchemaBuilder.build → shared SchemaOverview.relations", "shared overview → API schema consumers"],
+  "allowed_other_definitions": [{"definition": "api/src/services/relations.ts", "reason": "persistence service이므로 builder assembly를 설명하는 대체 정답은 아니다."}],
+  "excluded_confusions": ["api/src/services/relations.ts", "SDK schema/relation.ts"],
+  "final_answer_required": ["o2m/m2o/a2o relation 생성 및 _schema._relations 등록 위치", "RelationBuilder.build가 Relation을 반환하는 단계", "SchemaBuilder.build의 최종 schema.relations aggregate 위치", "shared SchemaOverview.relations"],
+  "prohibited_claims": ["API relations service가 builder를 호출한다고 주장", "RelationBuilder.build가 schema.relations에 직접 push한다고 주장"],
+  "labels": {"area": "X", "query_type": "mixed", "first_area": "wrong", "ambiguity": "relation.ts 동명 파일", "multi_file": true}
+}

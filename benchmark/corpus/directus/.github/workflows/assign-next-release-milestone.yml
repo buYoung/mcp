@@ -1,0 +1,65 @@
+name: Assign Next Release Milestone
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  assign:
+    name: Assign Milestone
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign milestone
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const milestoneTitle = 'Next Release';
+
+            const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              owner,
+              repo,
+              commit_sha: context.sha,
+              per_page: 100,
+            });
+
+            const pull = pulls.find(({ merged_at, base }) => merged_at && base.ref === 'main');
+
+            if (!pull) {
+              core.info(`No merged pull request found for ${context.sha}.`);
+              return;
+            }
+
+            const milestones = await github.paginate(github.rest.issues.listMilestones, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            let milestone = milestones.find(({ title }) => title === milestoneTitle);
+
+            if (!milestone) {
+              const response = await github.rest.issues.createMilestone({
+                owner,
+                repo,
+                title: milestoneTitle,
+              });
+
+              milestone = response.data;
+            }
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: pull.number,
+              milestone: milestone.number,
+            });
+
+            core.info(`Assigned ${milestoneTitle} milestone to pull request #${pull.number}.`);

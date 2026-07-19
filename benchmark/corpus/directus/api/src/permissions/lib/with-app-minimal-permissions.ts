@@ -1,0 +1,27 @@
+import { appAccessMinimalPermissions } from '@directus/system-data';
+import type { Accountability, Permission, Query } from '@directus/types';
+import { cloneDeep } from 'lodash-es';
+import { filterItems } from '../../utils/filter-items.js';
+
+export function withAppMinimalPermissions(
+	accountability: Pick<Accountability, 'app'> | null,
+	permissions: Permission[],
+	filter: Query['filter'],
+): Permission[];
+export function withAppMinimalPermissions(
+	accountability: Pick<Accountability, 'app'> | null,
+	permissions: Partial<Permission>[],
+	filter: Query['filter'],
+): Partial<Permission>[];
+export function withAppMinimalPermissions(
+	accountability: Pick<Accountability, 'app'> | null,
+	permissions: Partial<Permission>[],
+	filter: Query['filter'],
+): Partial<Permission>[] {
+	if (accountability?.app === true) {
+		const filteredAppMinimalPermissions = cloneDeep(filterItems(appAccessMinimalPermissions, filter));
+		return [...permissions, ...filteredAppMinimalPermissions];
+	}
+
+	return permissions;
+}

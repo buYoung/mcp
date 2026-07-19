@@ -1,0 +1,299 @@
+import { VERSION_KEY_DRAFT } from '@directus/constants';
+import { createTestingPinia } from '@pinia/testing';
+import { mount } from '@vue/test-utils';
+import { setActivePinia } from 'pinia';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { computed, nextTick } from 'vue';
+import type { Router } from 'vue-router';
+import VisualEditor from './visual-editor.vue';
+import { generateRouter } from '@/__utils__/router';
+import { Tooltip } from '@/__utils__/tooltip';
+import type { GlobalMountOptions } from '@/__utils__/types';
+import { useCollectionPermissions } from '@/composables/use-permissions';
+import { i18n } from '@/lang';
+import { getUrlRoute } from '@/modules/visual/utils/get-url-route';
+import { analyzeTemplate, replaceVersion } from '@/modules/visual/utils/version-url';
+import { useSettingsStore } from '@/stores/settings';
+import { SIDEBAR_DEFAULT_SIZE, SIDEBAR_MIN_SIZE } from '@/views/private/private-view/stores/sidebar';
+
+vi.mock('@unhead/vue', () => ({ useHead: vi.fn() }));
+vi.mock('@directus/format-title', () => ({ default: (str: string) => str ?? '' }));
+
+vi.mock('@/composables/use-permissions', () => ({
+	useCollectionPermissions: vi.fn(),
+}));
+
+function mockPermissions({ read = false } = {}) {
+	vi.mocked(useCollectionPermissions).mockReturnValue({
+		readAllowed: computed(() => read),
+		createAllowed: computed(() => false),
+		updateAllowed: computed(() => false),
+		deleteAllowed: computed(() => false),
+		sortAllowed: computed(() => false),
+		archiveAllowed: computed(() => false),
+		revisionsAllowed: computed(() => false),
+	});
+}
+
+const mockSettingsUrls = (templates: string[]) => {
+	useSettingsStore().settings!.visual_editor_urls = templates.map((url) => ({ url }));
+};
+
+const LivePreviewStub = {
+	name: 'LivePreview',
+	props: ['sidebarSize', 'sidebarCollapsed', 'sidebarDisabled'],
+	template: '<div class="live-preview"><slot name="append-url" /></div>',
+	emits: ['select-url', 'update:sidebarSize', 'update:sidebarCollapsed'],
+};
+
+const stubs = {
+	TransitionExpand: { template: '<div><slot /></div>' },
+	ModuleBar: true,
+	LivePreview: LivePreviewStub,
+	EditingLayer: true,
+	AiConversation: true,
+	AiMagicButton: true,
+	NotificationDialogs: true,
+	NotificationsGroup: true,
+	PrivateViewDrawer: true,
+	VButton: { template: '<button @click="$emit(\'click\')"><slot /></button>', emits: ['click'] },
+	VMenu: {
+		template: '<div class="v-menu"><slot name="activator" :toggle="() => {}" :active="false" /><slot /></div>',
+	},
+	VChip: { template: '<div class="v-chip" @click="$emit(\'click\')"><slot /></div>', emits: ['click'] },
+	VList: { template: '<div class="v-list"><slot /></div>' },
+	VListItem: {
+		props: ['active', 'clickable'],
+		template: '<div class="v-list-item" :class="{ active }" @click="$emit(\'click\')"><slot /></div>',
+		emits: ['click'],
+	},
+	VListItemContent: { template: '<div><slot /></div>' },
+	VIcon: true,
+};
+
+let router: Router;
+let global: GlobalMountOptions;
+
+beforeEach(() => {
+	localStorage.clear();
+
+	const pinia = createTestingPinia({
+		createSpy: vi.fn,
+		initialState: {
+			settingsStore: { settings: {} },
+			serverStore: { info: { ai_enabled: false } },
+		},
+	});
+
+	setActivePinia(pinia);
+
+	mockPermissions();
+
+	router = generateRouter([{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]);
+
+	global = {
+		plugins: [i18n, router, pinia],
+		directives: { tooltip: Tooltip },
+		stubs,
+	};
+});
+
+afterEach(() => {
+	vi.clearAllMocks();
+});
+
+describe('Version selector', () => {
+	it('is not rendered when the URL has no version template', () => {
+		mockPermissions({ read: true });
+		mockSettingsUrls(['https://example.com/preview']);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com/preview' },
+		});
+
+		expect(wrapper.find('.version-chip').exists()).toBe(false);
+	});
+
+	it('is not rendered when user lacks read permission on directus_versions', () => {
+		mockSettingsUrls(['https://example.com/?version={{$version}}']);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com/?version=v1' },
+		});
+
+		expect(wrapper.find('.version-chip').exists()).toBe(false);
+	});
+
+	it('is rendered when the URL matches a version template and user can read versions', () => {
+		mockPermissions({ read: true });
+		mockSettingsUrls(['https://example.com/?version={{$version}}']);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com/?version=v1' },
+		});
+
+		expect(wrapper.find('.version-chip').exists()).toBe(true);
+	});
+
+	it('adds a new version to the list when the URL contains a custom version key', async () => {
+		mockPermissions({ read: true });
+		mockSettingsUrls(['https://example.com/?version={{$version}}']);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: `https://example.com/?version=${VERSION_KEY_DRAFT}` },
+		});
+
+		const initialCount = wrapper.findAll('.v-list-item').length;
+
+		await wrapper.setProps({ dynamicUrl: 'https://example.com/?version=custom' });
+
+		expect(wrapper.findAll('.v-list-item')).toHaveLength(initialCount + 1);
+	});
+
+	it('calls router.replace with the version-substituted URL when a version is selected', async () => {
+		mockPermissions({ read: true });
+		const template = 'https://example.com/?version={{$version}}';
+		const currentUrl = `https://example.com/?version=`;
+		mockSettingsUrls([template]);
+
+		const replaceSpy = vi.spyOn(router, 'replace').mockResolvedValue(undefined);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: currentUrl },
+		});
+
+		await wrapper.findAll('.v-list-item')[1]!.trigger('click');
+
+		const placement = analyzeTemplate(template);
+		const newUrl = replaceVersion(currentUrl, placement, VERSION_KEY_DRAFT);
+		expect(replaceSpy).toHaveBeenCalledWith(getUrlRoute(newUrl));
+	});
+});
+
+describe('AI sidebar enforce-default on expand', () => {
+	function mountEditor() {
+		mockSettingsUrls([]);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com' },
+		});
+
+		return { wrapper, lp: wrapper.findComponent({ name: 'LivePreview' }) };
+	}
+
+	it('initializes with the AI sidebar default size', () => {
+		const { lp } = mountEditor();
+		expect(lp.props('sidebarSize')).toBe(SIDEBAR_DEFAULT_SIZE);
+	});
+
+	it('returns default size when expanding after size drops below min', async () => {
+		const { lp } = mountEditor();
+
+		lp.vm.$emit('update:sidebarSize', 50);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', true);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', false);
+		await nextTick();
+
+		expect(lp.props('sidebarSize')).toBe(SIDEBAR_DEFAULT_SIZE);
+	});
+
+	it('returns default size when expanding after size equals min', async () => {
+		const { lp } = mountEditor();
+
+		lp.vm.$emit('update:sidebarSize', SIDEBAR_MIN_SIZE);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', true);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', false);
+		await nextTick();
+
+		expect(lp.props('sidebarSize')).toBe(SIDEBAR_DEFAULT_SIZE);
+	});
+
+	it('preserves stored size when expanding if size is above min', async () => {
+		const { lp } = mountEditor();
+
+		lp.vm.$emit('update:sidebarSize', 400);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', true);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', false);
+		await nextTick();
+
+		expect(lp.props('sidebarSize')).toBe(400);
+	});
+
+	it('clears enforce-default once size is dragged above min after expand', async () => {
+		const { lp } = mountEditor();
+
+		lp.vm.$emit('update:sidebarSize', 50);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', true);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', false);
+		await nextTick();
+		expect(lp.props('sidebarSize')).toBe(SIDEBAR_DEFAULT_SIZE); // enforce-default active
+
+		lp.vm.$emit('update:sidebarSize', 300); // user drags above SIDEBAR_MIN_SIZE
+		await nextTick();
+		expect(lp.props('sidebarSize')).toBe(300); // enforce-default cleared
+	});
+
+	it('does not enforce default on collapse alone', async () => {
+		const { lp } = mountEditor();
+
+		lp.vm.$emit('update:sidebarSize', 400);
+		await nextTick();
+		lp.vm.$emit('update:sidebarCollapsed', true);
+		await nextTick();
+
+		expect(lp.props('sidebarSize')).toBe(400);
+	});
+});
+
+describe('URL selection', () => {
+	it('calls router.replace when navigating within the same origin', async () => {
+		mockSettingsUrls([]);
+		const replaceSpy = vi.spyOn(router, 'replace').mockResolvedValue(undefined);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com/old' },
+		});
+
+		wrapper
+			.findComponent({ name: 'LivePreview' })
+			.vm.$emit('select-url', 'https://example.com/new', 'https://example.com/old');
+
+		await nextTick();
+
+		expect(replaceSpy).toHaveBeenCalledWith(getUrlRoute('https://example.com/new'));
+	});
+
+	it('calls window.location.assign when navigating to a different origin', async () => {
+		mockSettingsUrls([]);
+		const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+
+		const wrapper = mount(VisualEditor, {
+			global,
+			props: { dynamicUrl: 'https://example.com/page' },
+		});
+
+		wrapper
+			.findComponent({ name: 'LivePreview' })
+			.vm.$emit('select-url', 'https://other-site.com/page', 'https://example.com/page');
+
+		await nextTick();
+
+		expect(assignSpy).toHaveBeenCalledWith(router.resolve(getUrlRoute('https://other-site.com/page')).href);
+		assignSpy.mockRestore();
+	});
+});

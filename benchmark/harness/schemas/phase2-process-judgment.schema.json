@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-phase2-process-judgment.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "review_id", "scorer_id", "rubric_sha256", "phase1_judgment_sha256", "dialogue", "notes"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "review_id": {"type": "string"},
+    "scorer_id": {"type": "string"},
+    "rubric_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "phase1_judgment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "dialogue": {"$ref": "manual-evaluation-components.schema.json#/$defs/dialogue"},
+    "notes": {"type": "string"}
+  }
+}

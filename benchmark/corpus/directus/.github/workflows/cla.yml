@@ -1,0 +1,39 @@
+name: CLA Assistant
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - id: check
+        uses: directus/cla-bot@v0.0.3
+        continue-on-error: true
+
+      - name: Create missing CLA handoff
+        if: steps.check.outcome == 'failure' && steps.check.outputs.missing
+        run: |
+          mkdir -p cla-missing
+          touch cla-missing/missing
+
+      - name: Upload missing CLA handoff
+        if: steps.check.outcome == 'failure' && steps.check.outputs.missing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cla-missing
+          path: cla-missing
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Preserve CLA result
+        if: steps.check.outcome == 'failure'
+        run: exit 1

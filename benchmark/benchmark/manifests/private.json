@@ -1,0 +1,123 @@
+{
+  "corpus": {
+    "commit": "9f2f73aee7d8647d3f187dac43f724fe617763f5",
+    "cwd": "/private/tmp/codemap-search-quality.sRpqE6sG/corpus/directus",
+    "identity_status": "tree verified by local git rev-parse HEAD^{tree}; commit remains the supplied deterministic-seed reference and was not independently verified",
+    "tree": "0beb7bd5187e9131aba4a582effb3630d378eb4c"
+  },
+  "task_set": "20260714-codemap-search-quality-candidates",
+  "tasks": [
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/API-05.json",
+      "answer_sha256": "80d77ef85c964d16555055da4cf8a69df6e7b638ed8d50c7a1381176bbef5630",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/API-05.json",
+      "question_sha256": "cfb561fd55db593384dc5768af91db884f2f8a9ed3240ff4dfe49a933577d6ad",
+      "split": "development",
+      "task_id": "API-05"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/API-06.json",
+      "answer_sha256": "1cb4b3589854c80af8aa26d53a79d516dffa0fa6deb464b124b62e573cd13859",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/API-06.json",
+      "question_sha256": "3547fa343338b255ca58089481cd4383385305225df8eecd679c1c796507f8f2",
+      "split": "development",
+      "task_id": "API-06"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/API-01.json",
+      "answer_sha256": "a9783f627a5191ce10e35cafd394fba56dafcf143e0d397fa685701b5a4f29b3",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/API-01.json",
+      "question_sha256": "9c3fda8714bdf4ecf632451cd187e2759b40218fbebf7d8d61cb7e4daec7398f",
+      "split": "development",
+      "task_id": "API-01"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/API-08.json",
+      "answer_sha256": "20157d101dae17fa60237e5a97dc4811729ccdedb8943401eb6cecc8bd26002e",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/API-08.json",
+      "question_sha256": "13bbc15b631c3256ca02b6ad457b76dee29d6754d51069151092ca7261df0af7",
+      "split": "development",
+      "task_id": "API-08"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/API-07.json",
+      "answer_sha256": "0d05054fdb36c27bab8e0993c35e7b2712282fa39b0e6bce5283ff7dc2b0b5a9",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/API-07.json",
+      "question_sha256": "97ea73b994bfc624f38624151f886ad688c301cafbb5adb7e4684228c4d0aa7c",
+      "split": "development",
+      "task_id": "API-07"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/FE-07.json",
+      "answer_sha256": "9d8b31dd71610aa7fc75b75bb5ad0adf90292c46f65610c869a8d4075b1c99e3",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/FE-07.json",
+      "question_sha256": "a058ff35e6182ec7d30efcfa13f4c9e6ac803ad10ef0e75c8ff474aa505ad58b",
+      "split": "development",
+      "task_id": "FE-07"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/FE-06.json",
+      "answer_sha256": "a9dd7a5a41092eef6599a08eb62b3e24fa3d4395eaa6b2cd24ede78dfdb50787",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/FE-06.json",
+      "question_sha256": "6cce4ded5f27523434b05db6be85a4edb1311d0835c2506a114d9010780ab51c",
+      "split": "development",
+      "task_id": "FE-06"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/FE-08.json",
+      "answer_sha256": "4db73417237f4b263c0c2a40542ab856b6c618e2eba3062017ecac4ca0c20b94",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/FE-08.json",
+      "question_sha256": "2ffd63ccac0d09082d84705e95017f91ae1fc03200c2a5eab1c562da0e965429",
+      "split": "development",
+      "task_id": "FE-08"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/FE-03.json",
+      "answer_sha256": "408721494d714906039454e32e3967cca269123bb5cbe869891d7365fc7a02c1",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/FE-03.json",
+      "question_sha256": "93044921ea6c86fb825e082deb04f4f6d8090f949c27dccdea5633dcaa4191b7",
+      "split": "development",
+      "task_id": "FE-03"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/FE-02.json",
+      "answer_sha256": "015861e767d7628c1bb64d94dd498715a25af037bae765b270ed352e2fe74c24",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/FE-02.json",
+      "question_sha256": "25112d8c0419fbb10c0a95cf4f92e69601db59d2a50c48fa709888d0f336205e",
+      "split": "development",
+      "task_id": "FE-02"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/X-04.json",
+      "answer_sha256": "6ad9bea5d56d9bbff3ceeadef9f140e23726665289b6504e0368e09c5d37429f",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/X-04.json",
+      "question_sha256": "7fca04287747002c265e9d186245d24666c7c4cf8a14858de7bb3d0297e6e3df",
+      "split": "development",
+      "task_id": "X-04"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/X-02.json",
+      "answer_sha256": "d6adacafc41582e1b7d5f05858c46208ca14bb86dd07aa17d5ec4d6fcb572676",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/X-02.json",
+      "question_sha256": "26afee5289d892789bf0f02ac7d6bf5f92178e11a86c018428ffd216cf011ceb",
+      "split": "development",
+      "task_id": "X-02"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/X-03.json",
+      "answer_sha256": "874a5dd69deee6a1a0b4a7910ea87f2e36b96510668a711dd6c6f75d55cbdb84",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/X-03.json",
+      "question_sha256": "2cbac74bbfabe729c8299b8aa5c4f82bedec4821d1ccc1add03fc6519bb90aad",
+      "split": "development",
+      "task_id": "X-03"
+    },
+    {
+      "answer_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/answers/development/X-06.json",
+      "answer_sha256": "5f660c73884fab935ee85ce1282d7a81d2ac3b4dbd89cec6f157d2cc7467d24f",
+      "question_path": "/private/tmp/codemap-search-quality.sRpqE6sG/benchmark/questions/development/X-06.json",
+      "question_sha256": "719a850619b3b6954fb29881675e1e4ef6800437c85c6ac15aaa5beae6ed5992",
+      "split": "development",
+      "task_id": "X-06"
+    }
+  ]
+}

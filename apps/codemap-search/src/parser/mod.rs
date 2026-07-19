@@ -1992,7 +1992,7 @@ impl TreeSitterExtractor {
                         "{}:{}:{:?}:{}:{}",
                         entry.local_name,
                         entry.source.as_deref().unwrap_or(""),
-                        &entry.kind,
+                        entry.kind,
                         entry.range.start_line,
                         entry.range.start_col
                     );

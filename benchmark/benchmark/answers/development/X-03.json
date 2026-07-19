@@ -1,0 +1,12 @@
+{
+  "task_id": "X-03",
+  "correct_file": "packages/types/src/schema.ts:5-39; packages/schema-builder/src/builder.ts:46-54; api/src/services/server.ts:43",
+  "correct_symbol": ["FieldOverview", "CollectionOverview", "SchemaOverview"],
+  "decisive_code_evidence": "shared 타입이 collections/relations 및 field 속성을 정의하고 builder.build가 이를 구성하며 API ServerService가 schema: SchemaOverview로 소비한다.",
+  "required_file_relationships": ["shared types → schema-builder", "schema-builder → API ServerService"],
+  "allowed_other_definitions": [{"definition": "packages/schema/src/types/overview.ts", "reason": "dialect 내부 타입이므로 @directus/types 계약의 대체 정답으로는 허용되지 않는다."}],
+  "excluded_confusions": ["packages/schema/src/types/overview.ts"],
+  "final_answer_required": ["세 계층의 같은 shape", "각 계층의 책임"],
+  "prohibited_claims": ["builder가 DB overview를 직접 조회한다고 주장"],
+  "labels": {"area": "X", "query_type": "mixed", "first_area": "wrong", "ambiguity": "SchemaOverview 동명 정의", "multi_file": true}
+}

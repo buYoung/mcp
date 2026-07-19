@@ -1,0 +1,387 @@
+--- c160dee/src/index/engine.rs
++++ clean-b2/src/index/engine.rs
+@@ -1,10 +1,84 @@
+ use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol};
+ use std::collections::HashMap;
++use std::io;
+ use std::path::{Path, PathBuf};
++use std::sync::Arc;
+ use tantivy::collector::DocSetCollector;
++use tantivy::directory::error::{DeleteError, LockError, OpenReadError, OpenWriteError};
++use tantivy::directory::{
++    Directory, DirectoryLock, FileHandle, Lock, MmapDirectory, RamDirectory, WatchCallback,
++    WatchHandle, WritePtr,
++};
+ use tantivy::query::AllQuery;
+ use tantivy::schema::*;
+ use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
++
++/// Read committed index bytes from a sealed mmap directory while keeping every lock or
++/// incidental write in memory. Tantivy's reader acquires `META_LOCK` while opening segment
++/// readers, so using `MmapDirectory` directly still requires write access to the index path.
++#[derive(Clone, Debug)]
++struct ImmutableSnapshotDirectory {
++    committed: MmapDirectory,
++    scratch: RamDirectory,
++}
++
++impl ImmutableSnapshotDirectory {
++    fn open(path: &Path) -> Result<Self, String> {
++        Ok(Self {
++            committed: MmapDirectory::open(path).map_err(|e| e.to_string())?,
++            scratch: RamDirectory::create(),
++        })
++    }
++}
++
++impl Directory for ImmutableSnapshotDirectory {
++    fn get_file_handle(&self, path: &Path) -> Result<Arc<dyn FileHandle>, OpenReadError> {
++        match self.scratch.get_file_handle(path) {
++            Ok(handle) => Ok(handle),
++            Err(OpenReadError::FileDoesNotExist(_)) => self.committed.get_file_handle(path),
++            Err(error) => Err(error),
++        }
++    }
++
++    fn delete(&self, path: &Path) -> Result<(), DeleteError> {
++        self.scratch.delete(path)
++    }
++
++    fn exists(&self, path: &Path) -> Result<bool, OpenReadError> {
++        if self.scratch.exists(path)? {
++            return Ok(true);
++        }
++        self.committed.exists(path)
++    }
++
++    fn open_write(&self, path: &Path) -> Result<WritePtr, OpenWriteError> {
++        self.scratch.open_write(path)
++    }
++
++    fn atomic_read(&self, path: &Path) -> Result<Vec<u8>, OpenReadError> {
++        match self.scratch.atomic_read(path) {
++            Ok(data) => Ok(data),
++            Err(OpenReadError::FileDoesNotExist(_)) => self.committed.atomic_read(path),
++            Err(error) => Err(error),
++        }
++    }
++
++    fn atomic_write(&self, path: &Path, data: &[u8]) -> io::Result<()> {
++        self.scratch.atomic_write(path, data)
++    }
++
++    fn sync_directory(&self) -> io::Result<()> {
++        self.scratch.sync_directory()
++    }
++
++    fn acquire_lock(&self, lock: &Lock) -> Result<DirectoryLock, LockError> {
++        self.scratch.acquire_lock(lock)
++    }
++
++    fn watch(&self, callback: WatchCallback) -> tantivy::Result<WatchHandle> {
++        self.scratch.watch(callback)
++    }
++}
+ 
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub struct SearchRankingSignal {
+@@ -70,6 +144,64 @@
+     pub(super) definition_body_field: Field,
+     pub(super) reference_field: Field,
+     pub(super) extracted_json_field: Field,
++}
++
++impl SearcherHandle {
++    /// Open an existing committed index without creating files, acquiring a writer, or
++    /// watching for commits. A sealed index must already match the extraction format and
++    /// schema expected by this binary; unlike [`TantivySearchEngine::new`], this path never
++    /// repairs or rebuilds an incompatible index.
++    pub fn open_read_only(index_path: &str) -> Result<Self, String> {
++        let path = Path::new(index_path);
++        let version_path = path.join(EXTRACTION_FORMAT_FILE);
++        let stored_version = std::fs::read_to_string(&version_path).map_err(|e| {
++            format!(
++                "failed to read sealed index format '{}': {e}",
++                version_path.display()
++            )
++        })?;
++        if stored_version.trim() != EXTRACTION_FORMAT_VERSION {
++            return Err(format!(
++                "sealed index extraction format mismatch: expected '{}', found '{}'",
++                EXTRACTION_FORMAT_VERSION,
++                stored_version.trim()
++            ));
++        }
++
++        let directory = ImmutableSnapshotDirectory::open(path)
++            .map_err(|e| format!("failed to open sealed index '{}': {e}", path.display()))?;
++        let index = Index::open(directory)
++            .map_err(|e| format!("failed to open sealed index '{}': {e}", path.display()))?;
++        let schema = index.schema();
++        let field = |name| {
++            schema
++                .get_field(name)
++                .map_err(|e| format!("sealed index schema is incompatible: {e}"))
++        };
++        let reader = index
++            .reader_builder()
++            .reload_policy(ReloadPolicy::Manual)
++            .try_into()
++            .map_err(|e| e.to_string())?;
++
++        Ok(Self {
++            index,
++            reader,
++            file_path_field: field("file_path")?,
++            file_path_parts_field: field("file_path_parts")?,
++            symbol_field: field("symbol")?,
++            docstring_field: field("docstring")?,
++            literal_field: field("literal")?,
++            definition_body_field: field("definition_body")?,
++            reference_field: field("reference")?,
++            extracted_json_field: field("extracted_json")?,
++        })
++    }
++
++    /// Rebuild the codemap snapshot from the sealed index's stored documents.
++    pub fn load_extracted_files(&self) -> Vec<ExtractedFile> {
++        load_extracted_files_from_reader(&self.reader, self.extracted_json_field)
++    }
+ }
+ 
+ pub struct TantivySearchEngine {
+@@ -134,6 +266,32 @@
+ /// while keeping the stored `ExtractedFile` JSON contract unchanged. Each bump rebuilds
+ /// exactly once.
+ const EXTRACTION_FORMAT_VERSION: &str = "v9-search-auxiliary";
++
++fn load_extracted_files_from_reader(
++    reader: &IndexReader,
++    extracted_json_field: Field,
++) -> Vec<ExtractedFile> {
++    let searcher = reader.searcher();
++    let mut files = Vec::new();
++    // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
++    // complete on large repos.
++    if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
++        for doc_address in doc_addresses {
++            if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
++                if let Some(json) = doc
++                    .get_first(extracted_json_field)
++                    .and_then(|v| v.as_str())
++                {
++                    if let Ok(file) = serde_json::from_str::<ExtractedFile>(json) {
++                        files.push(file);
++                    }
++                }
++            }
++        }
++    }
++    files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
++    files
++}
+ 
+ impl TantivySearchEngine {
+     pub fn new(index_path: &str) -> Result<Self, String> {
+@@ -740,26 +898,7 @@
+     /// same shape as get_indexed_mtimes). The indexer publishes this for `overview`, so the
+     /// working tree is parsed once for the index instead of separately on every overview.
+     pub fn load_extracted_files(&self) -> Vec<ExtractedFile> {
+-        let searcher = self.reader.searcher();
+-        let mut files = Vec::new();
+-        // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
+-        // complete on large repos.
+-        if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
+-            for doc_address in doc_addresses {
+-                if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
+-                    if let Some(json) = doc
+-                        .get_first(self.extracted_json_field)
+-                        .and_then(|v| v.as_str())
+-                    {
+-                        if let Ok(file) = serde_json::from_str::<ExtractedFile>(json) {
+-                            files.push(file);
+-                        }
+-                    }
+-                }
+-            }
+-        }
+-        files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+-        files
++        load_extracted_files_from_reader(&self.reader, self.extracted_json_field)
+     }
+ }
+ 
+--- c160dee/src/index/supervisor.rs
++++ clean-b2/src/index/supervisor.rs
+@@ -17,10 +17,8 @@
+ /// existing "results are frozen" notice stands and a server restart is required.
+ const MAX_INDEXER_RESTART_ATTEMPTS: u32 = 5;
+ 
+-/// Owns the live index subsystem for the MCP server: a read-only [`SearcherHandle`], the
+-/// background [`IndexerHandle`], and the optional filesystem [`WatcherHandle`], plus the
+-/// supervision state (restart-attempt counter, refresh-debounce instant, shared watcher
+-/// health flag).
++/// Owns the index subsystem for the MCP server: either the live searcher/indexer/watcher
++/// group or a searcher plus an immutable snapshot opened from a sealed index.
+ pub struct EngineSupervisor {
+     // Read-only search handle over the committed index (cloned Arc-backed reader). Indexing
+     // happens off-thread, so the request loop never blocks on it.
+@@ -33,7 +31,10 @@
+     watcher: Option<WatcherHandle>,
+     // Background indexer: fire-and-forget refresh trigger, warming/error status, and the
+     // current codemap snapshot consumed by `overview`.
+-    indexer: IndexerHandle,
++    indexer: Option<IndexerHandle>,
++    // Present only when the MCP opened an existing sealed index without an indexer. Live
++    // mode reads the changing snapshot through `indexer` instead.
++    read_only_snapshot: Option<CodemapSnapshot>,
+     // Watcher health flag: while healthy, the watcher keeps the index current and the
+     // request-triggered refresh below is suppressed entirely. Stays unhealthy forever
+     // when `watch = false` or the watch failed to start, which preserves the lazy path.
+@@ -57,8 +58,23 @@
+         Self {
+             searcher,
+             watcher,
+-            indexer,
++            indexer: Some(indexer),
++            read_only_snapshot: None,
+             watcher_status,
++            last_refresh_trigger: None,
++            indexer_restart_attempts: 0,
++        }
++    }
++
++    /// Construct a supervisor over an immutable committed index. No indexer or watcher is
++    /// owned, so lifecycle hooks invoked by MCP dispatch remain side-effect free.
++    pub fn new_read_only(searcher: SearcherHandle, snapshot: CodemapSnapshot) -> Self {
++        Self {
++            searcher,
++            watcher: None,
++            indexer: None,
++            read_only_snapshot: Some(snapshot),
++            watcher_status: Arc::new(WatcherStatus::default()),
+             last_refresh_trigger: None,
+             indexer_restart_attempts: 0,
+         }
+@@ -71,7 +87,11 @@
+     /// [`MAX_INDEXER_RESTART_ATTEMPTS`]. `TantivySearchEngine::new` rebuilds a corrupt
+     /// index directory, so a crash caused by index corruption heals instead of recurring.
+     pub fn ensure_alive(&mut self) {
+-        if !crate::config::get().indexer_auto_restart || !self.indexer.is_dead() {
++        let is_indexer_dead = self
++            .indexer
++            .as_ref()
++            .is_some_and(|indexer| indexer.is_dead());
++        if !crate::config::get().indexer_auto_restart || !is_indexer_dead {
+             return;
+         }
+         if self.indexer_restart_attempts >= MAX_INDEXER_RESTART_ATTEMPTS {
+@@ -99,13 +119,17 @@
+         self.searcher = engine.searcher_handle();
+         // Old IndexerHandle drops on assignment: its thread is already dead, so the
+         // join returns immediately — no shutdown-order hazard here.
+-        self.indexer = spawn_indexer(engine);
++        self.indexer = Some(spawn_indexer(engine));
+ 
+         if crate::config::get().watch {
+             if let Ok(cwd) = std::env::current_dir() {
++                let indexer = self
++                    .indexer
++                    .as_ref()
++                    .expect("live supervisor must own an indexer");
+                 self.watcher = spawn_watcher(
+                     &cwd,
+-                    self.indexer.command_sender(),
++                    indexer.command_sender(),
+                     Arc::clone(&self.watcher_status),
+                 );
+             }
+@@ -121,10 +145,13 @@
+     /// actually removes the per-request O(repo) walk during active use. The fallback below
+     /// runs only when the watcher is absent (`watch = false`), failed to start, or died.
+     pub fn trigger_refresh(&mut self) {
++        let Some(indexer) = self.indexer.as_ref() else {
++            return;
++        };
+         // A dead indexer disarms the suppression: falling through lets `trigger_refresh`
+         // observe the disconnected channel and raise the "results are frozen" notice,
+         // which a healthy-looking watcher would otherwise mask indefinitely.
+-        if self.watcher_status.is_healthy() && !self.indexer.is_dead() {
++        if self.watcher_status.is_healthy() && !indexer.is_dead() {
+             return;
+         }
+         let staleness = Duration::from_millis(crate::config::get().index_staleness_ms);
+@@ -132,7 +159,7 @@
+             .last_refresh_trigger
+             .is_some_and(|t| t.elapsed() < staleness);
+         if !is_fresh {
+-            self.indexer.trigger_refresh();
++            indexer.trigger_refresh();
+             self.last_refresh_trigger = Some(Instant::now());
+         }
+     }
+@@ -153,21 +180,33 @@
+ 
+     /// The current codemap snapshot the indexer publishes (cheap `Arc` clone).
+     pub fn codemap_snapshot(&self) -> CodemapSnapshot {
+-        self.indexer.codemap_snapshot()
++        if let Some(snapshot) = &self.read_only_snapshot {
++            return Arc::clone(snapshot);
++        }
++        self.indexer
++            .as_ref()
++            .expect("live supervisor must own an indexer")
++            .codemap_snapshot()
+     }
+ 
+     /// True if the background indexer thread has stopped (panicked or exited).
+     pub fn is_dead(&self) -> bool {
+-        self.indexer.is_dead()
++        self.indexer
++            .as_ref()
++            .is_some_and(|indexer| indexer.is_dead())
+     }
+ 
+     /// True until the initial background indexing pass completes.
+     pub fn is_warming(&self) -> bool {
+-        self.indexer.is_warming()
++        self.indexer
++            .as_ref()
++            .is_some_and(|indexer| indexer.is_warming())
+     }
+ 
+     /// The last background refresh error, if any.
+     pub fn last_error(&self) -> Option<String> {
+-        self.indexer.last_error()
++        self.indexer
++            .as_ref()
++            .and_then(|indexer| indexer.last_error())
+     }
+ }
+--- c160dee/src/main.rs
++++ clean-b2/src/main.rs
+@@ -181,6 +181,24 @@
+             }
+         }
+         Commands::Mcp => {
++            // The sealed baseline is an explicit harness-only mode. Open its committed
++            // index and hydrate the codemap snapshot without any config write, writer,
++            // indexer, watcher, or refresh path. Every other value preserves normal MCP
++            // startup unchanged.
++            if matches!(
++                std::env::var("CODEMAP_BASELINE_READ_ONLY"),
++                Ok(value) if value == "1"
++            ) {
++                let searcher = index::SearcherHandle::open_read_only(
++                    &codemap_search::config::get().index_path,
++                )?;
++                let snapshot = std::sync::Arc::new(searcher.load_extracted_files());
++                let supervisor = index::EngineSupervisor::new_read_only(searcher, snapshot);
++                let mut server = mcp::McpServer::new(supervisor);
++                server.run().await?;
++                return Ok(());
++            }
++
+             // When `[update].config_auto_update` is true, scaffold `.codemap/config.toml`
+             // when absent, else incrementally sync it to the current schema version
+             // (additive, presence-guarded, a no-op when already current) — `mcp` only,

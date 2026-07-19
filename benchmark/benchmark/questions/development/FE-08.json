@@ -1,0 +1,4 @@
+{
+  "task_id": "FE-08",
+  "question": "item 미리보기 URL이 display template 데이터로 렌더링되고 live preview의 크기와 모드가 저장되는 방식을 설명하라."
+}

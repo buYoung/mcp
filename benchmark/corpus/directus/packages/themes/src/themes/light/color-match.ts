@@ -1,0 +1,63 @@
+import { defineTheme } from '../../utils/define-theme.js';
+
+export default defineTheme({
+	id: 'Directus Color Match',
+	name: '$t:theme_directus_colormatch',
+	appearance: 'light',
+	rules: {
+		background: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 7%)',
+		backgroundAccent: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 20%)',
+		backgroundNormal: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 15%)',
+		backgroundSubdued: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 10%)',
+		borderColor: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 20%)',
+		borderColorAccent: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 40%)',
+		borderColorSubdued: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 15%)',
+		borderRadius: '0.6875rem',
+		borderWidth: '1px',
+		foreground: 'color-mix(in srgb, #000000, var(--theme--primary) 70%)',
+		foregroundAccent: 'color-mix(in srgb, #000000, var(--theme--primary) 50%)',
+		foregroundSubdued: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 60%)',
+		fonts: {
+			display: {
+				fontFamily: '"Montserrat", system-ui',
+				fontWeight: '400',
+			},
+		},
+		form: {
+			field: {
+				input: { background: '#FFFFFF', backgroundSubdued: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 13%)' },
+			},
+		},
+		shell: {
+			background: '#FFFFFF',
+			backgroundAccent: 'var(--theme--background)',
+			borderColor: 'var(--theme--border-color-subdued)',
+		},
+		navigation: {
+			modules: {
+				background: 'color-mix(in srgb, #000000, var(--theme--primary) 90%)',
+				button: {
+					backgroundActive: '#FFFFFF',
+					foreground: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 20%)',
+					foregroundActive: 'var(--theme--primary)',
+				},
+			},
+			project: {},
+			list: {
+				divider: { borderColor: 'var(--theme--border-color-subdued)' },
+				icon: { foreground: 'var(--theme--foreground)' },
+				foreground: 'var(--theme--foreground)',
+				foregroundHover: 'var(--theme--foreground)',
+				foregroundActive: 'var(--theme--foreground)',
+			},
+		},
+		public: {
+			art: {
+				background: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 10%)',
+				primary: 'color-mix(in srgb, #FFFFFF, var(--theme--primary) 60%)',
+				secondary: 'color-mix(in srgb, #FFFFFF, var(--theme--secondary) 70%)',
+			},
+			background: '#FFFFFF',
+		},
+	},
+});

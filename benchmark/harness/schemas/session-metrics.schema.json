@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-session-metrics.schema.json",
+  "title": "One baseline dialogue: automatic cost plus blinded manual quality evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "experiment", "dialogue", "correctness", "cost", "repeated_searches", "unbounded_reads", "post_first_wrong"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "trial_id", "pair_id", "arm", "pair_order_index", "question_sha256", "prompt_sha256", "source_tree_sha256", "model", "limits_sha256", "arm_config_sha256", "measurement_status", "terminal_behavior"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "trial_id": {"enum": ["r1", "r2", "r3"]},
+        "pair_id": {"type": "string"},
+        "arm": {"enum": ["B1", "B2"]},
+        "pair_order_index": {"enum": [0, 1]},
+        "question_sha256": {"$ref": "#/$defs/sha256"},
+        "prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "source_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "model": {"const": "ollama-cloud/deepseek-v4-flash"},
+        "limits_sha256": {"$ref": "#/$defs/sha256"},
+        "arm_config_sha256": {"$ref": "#/$defs/sha256"},
+        "generation_id": {"type": ["string", "null"]},
+        "measurement_status": {"enum": ["valid", "infrastructure_invalid"]},
+        "terminal_behavior": {"enum": ["stop", "timeout", "model_step_limit", "output_limit", "process_error", "protocol_error", "infrastructure_error", "unknown"]}
+      }
+    },
+    "dialogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery_stages", "first_wrong"],
+      "properties": {
+        "discovery_stages": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decisive_evidence_exposed", "selected_next", "original_code_read", "final_answer_used_correctly"],
+          "properties": {
+            "decisive_evidence_exposed": {"$ref": "#/$defs/manual_stage"},
+            "selected_next": {"$ref": "#/$defs/manual_stage"},
+            "original_code_read": {"$ref": "#/$defs/manual_stage"},
+            "final_answer_used_correctly": {"$ref": "#/$defs/manual_stage"}
+          }
+        },
+        "first_wrong": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["category", "raw_event_line", "completed_call_index", "call_id", "explanation"],
+          "properties": {
+            "category": {"enum": ["none", "initial_area", "tool_choice", "query_too_broad", "query_too_narrow", "scope", "answer_evidence_not_exposed", "insufficient_code_evidence", "similar_result_dominance", "evidence_not_selected", "original_not_read", "final_misuse", "other"]},
+            "raw_event_line": {"type": ["integer", "null"], "minimum": 1},
+            "completed_call_index": {"type": ["integer", "null"], "minimum": 1},
+            "call_id": {"type": ["string", "null"]},
+            "explanation": {"type": "string"}
+          },
+          "allOf": [{
+            "if": {"properties": {"category": {"const": "none"}}, "required": ["category"]},
+            "then": {"properties": {
+              "raw_event_line": {"const": null},
+              "completed_call_index": {"const": null},
+              "call_id": {"const": null}
+            }},
+            "else": {"properties": {
+              "raw_event_line": {"type": "integer", "minimum": 1},
+              "completed_call_index": {"type": "integer", "minimum": 1},
+              "call_id": {"type": "string", "minLength": 1},
+              "explanation": {"type": "string", "minLength": 1}
+            }}
+          }]
+        }
+      }
+    },
+    "correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["core_fraction", "core_evidence", "required_claims", "grounding_fraction", "grounding_evidence", "required_relationships", "prohibited_claims", "score_0_100", "semantic_label", "contract_complete", "contract_label", "format_valid_json"],
+      "properties": {
+        "core_fraction": {"$ref": "#/$defs/fraction"},
+        "core_evidence": {"type": "string", "minLength": 1},
+        "required_claims": {"type": "array", "items": {"$ref": "#/$defs/scored_item"}, "minItems": 1},
+        "grounding_fraction": {"$ref": "#/$defs/fraction"},
+        "grounding_evidence": {"type": "string", "minLength": 1},
+        "required_relationships": {"type": "array", "items": {"$ref": "#/$defs/scored_item"}, "minItems": 1},
+        "prohibited_claims": {"type": "array", "items": {"$ref": "#/$defs/prohibited_item"}},
+        "score_0_100": {"type": "number", "minimum": 0, "maximum": 100},
+        "semantic_label": {"enum": ["correct", "partial", "incorrect"]},
+        "contract_complete": {"type": "boolean"},
+        "contract_label": {"enum": ["complete", "incomplete"]},
+        "format_valid_json": {"type": "boolean"},
+        "scorer_id": {"type": ["string", "null"]},
+        "manual_status": {"enum": ["unscored", "scored"]}
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_steps", "tool_calls_total", "navigation_calls_excluding_handshake", "tool_calls_by_family", "tool_input_bytes", "tool_output_bytes", "captured_stdout_bytes", "captured_stderr_bytes", "tokens", "command_wall_ms", "client_observed_tool_ms", "codemap_internal_ms", "tool_errors", "protocol_errors"],
+      "properties": {
+        "model_steps": {"type": "integer", "minimum": 0},
+        "tool_calls_total": {"type": "integer", "minimum": 0},
+        "navigation_calls_excluding_handshake": {"type": "integer", "minimum": 0},
+        "tool_calls_by_family": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "tool_input_bytes": {"type": "integer", "minimum": 0},
+        "tool_output_bytes": {"type": "integer", "minimum": 0},
+        "captured_stdout_bytes": {"type": "integer", "minimum": 0},
+        "captured_stderr_bytes": {"type": "integer", "minimum": 0},
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input", "output", "reasoning", "cache_read", "cache_write", "total"],
+          "properties": {
+            "input": {"type": "integer", "minimum": 0},
+            "output": {"type": "integer", "minimum": 0},
+            "reasoning": {"type": "integer", "minimum": 0},
+            "cache_read": {"type": "integer", "minimum": 0},
+            "cache_write": {"type": "integer", "minimum": 0},
+            "total": {"type": "integer", "minimum": 0}
+          }
+        },
+        "command_wall_ms": {"type": "integer", "minimum": 0},
+        "client_observed_tool_ms": {"type": "integer", "minimum": 0},
+        "codemap_internal_ms": {"const": null},
+        "tool_errors": {"type": "integer", "minimum": 0},
+        "protocol_errors": {"type": "integer", "minimum": 0},
+        "steps": {"type": "array", "items": {"type": "object"}},
+        "calls": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "repeated_searches": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groups", "extra_call_count"],
+      "properties": {
+        "groups": {"type": "array", "items": {"type": "object"}},
+        "extra_call_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "unbounded_reads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calls", "count", "output_bytes"],
+      "properties": {
+        "calls": {"type": "array", "items": {"type": "object"}},
+        "count": {"type": "integer", "minimum": 0},
+        "output_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "post_first_wrong": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_calls", "tool_output_bytes", "tokens", "wall_ms", "tool_errors", "repeated_extra_calls", "unbounded_read_calls"],
+      "properties": {
+        "tool_calls": {"type": ["integer", "null"], "minimum": 0},
+        "tool_output_bytes": {"type": ["integer", "null"], "minimum": 0},
+        "tokens": {"type": ["integer", "null"], "minimum": 0},
+        "wall_ms": {"type": ["integer", "null"], "minimum": 0},
+        "tool_errors": {"type": ["integer", "null"], "minimum": 0},
+        "repeated_extra_calls": {"type": ["integer", "null"], "minimum": 0},
+        "unbounded_read_calls": {"type": ["integer", "null"], "minimum": 0}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fraction": {"enum": [0, 0.5, 1]},
+    "manual_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "raw_event_lines", "call_ids"],
+      "properties": {
+        "status": {"enum": ["yes", "no", "not_applicable", "unscored"]},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "call_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "scored_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "fraction", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "fraction": {"$ref": "#/$defs/fraction"},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "prohibited_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "explicitly_present", "evidence", "raw_event_lines"],
+      "properties": {
+        "item_id": {"type": "string"},
+        "explicitly_present": {"type": "boolean"},
+        "evidence": {"type": "string"},
+        "raw_event_lines": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      }
+    }
+  }
+}

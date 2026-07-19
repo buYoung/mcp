@@ -1,3 +1,0 @@
-- The answer begins by claiming the repository contains no Angular code, so it never grounds itself in the benchmark-data Angular source tree.
-- It replaces `_writeValueAfterRender` plus `afterNextRender` with a generic `writeValue`-on-model-change and deferred microtask story.
-- It omits the application-injector teardown rationale, the destruction guard, and the multiple-choice contrast required by the key.

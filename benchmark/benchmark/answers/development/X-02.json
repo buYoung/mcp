@@ -1,0 +1,12 @@
+{
+  "task_id": "X-02",
+  "correct_file": "sdk/src/rest/commands/read/items.ts:5-9,21-39",
+  "correct_symbol": ["ReadItemOutput", "readItems", "ApplyQueryFields"],
+  "decisive_code_evidence": "ReadItemOutput이 CollectionType 및 TQuery['fields']에 ApplyQueryFields를 적용하고 readItems는 /items/{collection} GET을 생성한다.",
+  "required_file_relationships": ["SDK read command → sdk/src/types/query.ts Query", "SDK read command → packages/types의 Query/Schema 모델", "SDK read command → REST runtime path"],
+  "allowed_other_definitions": [{"definition": "sdk/src/types/query.ts Query", "reason": "제네릭 입력 타입 설명의 보조 정의로 허용된다."}],
+  "excluded_confusions": ["sdk/src/rest/commands/create/items.ts"],
+  "final_answer_required": ["제네릭 연결", "fields 추론", "실제 path와 method"],
+  "prohibited_claims": ["서버가 타입을 런타임 검증한다고 주장"],
+  "labels": {"area": "X", "query_type": "exact", "first_area": "right", "ambiguity": "read/create 동명 items command", "multi_file": true}
+}

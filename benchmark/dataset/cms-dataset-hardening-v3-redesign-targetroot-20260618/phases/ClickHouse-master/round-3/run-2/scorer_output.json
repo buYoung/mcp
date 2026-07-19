@@ -1,8 +1,0 @@
-{
-    "candidate_id": "clickhouse-unused-fallback-slots-observable-v1",
-    "run_label": "clickhouse-round-3-run-2",
-    "status": "passed",
-    "score": 0.45,
-    "threshold": 0.6,
-    "reason": "Sonnet recovered the runtime whole-tuple cast and a generic type-visibility mismatch, but it missed both analyzer-side guard contracts."
-}

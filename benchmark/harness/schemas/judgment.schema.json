@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-judgment.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "blind_output_id", "scorer_id", "rubric_sha256", "correctness", "dialogue", "notes"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "blind_output_id": {"type": "string"},
+    "scorer_id": {"type": "string"},
+    "rubric_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "correctness": {"$ref": "manual-evaluation-components.schema.json#/$defs/final_correctness"},
+    "dialogue": {"$ref": "manual-evaluation-components.schema.json#/$defs/dialogue"},
+    "notes": {"type": "string"}
+  }
+}

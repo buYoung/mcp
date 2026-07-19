@@ -1,0 +1,12 @@
+{
+  "task_id": "FE-08",
+  "correct_file": "app/src/modules/content/routes/item.vue:418-437",
+  "correct_symbol": ["previewTemplate", "previewUrl", "livePreviewMode", "livePreviewSizeStorage"],
+  "decisive_code_evidence": "previewTemplate의 값은 fetchTemplateValues와 renderStringTemplate을 거쳐 previewUrl이 되고, 모드와 크기는 localStorage 기반 상태로 유지된다.",
+  "required_file_relationships": ["item route → useTemplateData", "item route → renderStringTemplate", "item route → preview UI"],
+  "allowed_other_definitions": [{"definition": "visual editing composable", "reason": "별도 기능으로 언급하는 경우에만 허용된다."}],
+  "excluded_confusions": ["visual-editor/routes/visual-editor.vue", "collection meta preview backend"],
+  "final_answer_required": ["URL 렌더링 입력", "localStorage 키 상태"],
+  "prohibited_claims": ["URL이 항상 외부 네트워크에서 검증된다고 주장"],
+  "labels": {"area": "FE", "query_type": "exact", "first_area": "right", "ambiguity": "preview와 visual editing 경계", "multi_file": true}
+}

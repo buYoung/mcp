@@ -1,7 +1,0 @@
-이 코드베이스에서 폐기된 fallback 필드가 여전히 관측 가능한 이유는 **Rust가 필드 수준에서 진정한 익명 공용체(anonymous union)를 지원하지 않기 때문**입니다.
-
-`SearchResult`에서 `symbol_fallback: bool`은 단순 Boolean 필드일 뿐, 타입-수준 판별자가 아닙니다. `symbol_fallback == true`일 때 `matched_symbols`는 "실제로 매칭된 심볼"이 아니라 **파일의 모든 심볼**로 채워지지만, Rust의 구조체는 항상 모든 필드를 물리적으로 보유합니다. `ranked_search` 함수(`ranking.rs:604-607`)가 `matched_symbols = all_symbols`로 덮어쓰지만, 타입 시스템은 이 의미 차이를 전혀 모릅니다.
-
-두 번째 문제("one-field form이 다른 타입을 표면화")는 `AnnotationRequest`가 `symbols: &[ExtractedSymbol]`와 `is_fallback: bool`을 별도 필드로 복사해 전달(`search/mod.rs:443-449`)하기 때문입니다. `annotate.rs:411-421`에서 `is_fallback` 체크 전에 `symbols.iter()`를 먼저 실행해 모든 심볼을 스캔한 뒤에야 (`annotate.rs:432-456`) 이 결과를 폐기합니다. 타입 시스템은 `symbols`가 fallback 모드일 때 완전히 다른 의미를 가진다는 사실을 표현할 방법이 없으므로, 폐기될 작업이 컴파일 타임에 감지되지 않은 채 런타임 오버헤드로 남습니다.
-
-**근본 원인**: 부울 플래그가 필드 의미를 조건부로 갈아끼우지만, Rust의 구조체는 모든 필드를 항상 온전히 보유합니다. 이는 타입이 행동을 문서화하지 못하고, 폐기될 계산이 보이지 않게 실행되는 구조적 취약점입니다.

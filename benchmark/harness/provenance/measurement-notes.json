@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "automatic_vs_manual": "automatic cost fields are extracted without gold; discovery stages, first wrong, and correctness are filled only by blinded scorers with raw-line/call-id evidence",
+  "codemap_internal_ms": null,
+  "codemap_internal_time_reason": "server-side timing instrumentation is intentionally absent because adding it would change the baseline binary; use OpenCode tool state start/end as client-observed elapsed time",
+  "navigation_call_rule": "count completed built-in or codemap navigation calls; exclude MCP initialize and tools/list handshake messages",
+  "post_first_wrong_rule": "compute only after a scorer fixes first_wrong.raw_event_line/completed_call_index; otherwise every post-first-wrong field remains null",
+  "validity_rule": "agent-caused timeout, 30-model-step cap, and 2 MiB captured-output cap are valid observed outcomes; transient provider/network/auth startup failures are infrastructure-invalid; MCP/code/config/prompt/model/limit/binary/index/source/sandbox drift invalidates the generation"
+}

@@ -1,0 +1,101 @@
+{
+  "activation_environment": {
+    "CODEMAP_BASELINE_READ_ONLY": "1"
+  },
+  "audit_evidence": [
+    {
+      "check": "file membership",
+      "result": "identical"
+    },
+    {
+      "check": "changed files",
+      "result": [
+        "src/index/engine.rs",
+        "src/index/supervisor.rs",
+        "src/main.rs"
+      ]
+    },
+    {
+      "check": "forbidden candidate markers",
+      "result": []
+    },
+    {
+      "check": "activation variable occurrences",
+      "result": 1
+    },
+    {
+      "check": "model-free MCP probe",
+      "result": "passed"
+    }
+  ],
+  "binary_comparison": {
+    "bytes_identical": true,
+    "command": "cmp -s <build1 binary> <build2 binary>",
+    "exit_code": 0
+  },
+  "binary_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/target/release/codemap-search",
+  "binary_sha256": "d55355cd358c08527823dab2bcc2908a618f75374296b503652d8d2f7362d7bd",
+  "build_count": 2,
+  "builds": [
+    {
+      "binary_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/build-evidence/target-build1/release/codemap-search",
+      "binary_sha256": "d55355cd358c08527823dab2bcc2908a618f75374296b503652d8d2f7362d7bd",
+      "cargo_rustc_info_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/build-evidence/target-build1/.rustc_info.json",
+      "cargo_rustc_info_sha256": "6e6288f8bbf7b48444dcd0efa1a44cc9189eb812f038852ea3bc895adfcbe9b9",
+      "cargo_target_dir": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/build-evidence/target-build1",
+      "rustc_fingerprint": 15780455470880608726,
+      "rustc_vv": "rustc 1.96.1 (31fca3adb 2026-06-26)\nbinary: rustc\ncommit-hash: 31fca3adb283cc9dfd56b49cdee9a96eb9c96ffd\ncommit-date: 2026-06-26\nhost: aarch64-apple-darwin\nrelease: 1.96.1\nLLVM version: 22.1.2\n",
+      "rustc_vv_sha256": "28a3d6b44fd36649efdcc159a47e2e08cce8cd2dee204a8a0967125c7bb17b2d"
+    },
+    {
+      "binary_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/target/release/codemap-search",
+      "binary_sha256": "d55355cd358c08527823dab2bcc2908a618f75374296b503652d8d2f7362d7bd",
+      "cargo_rustc_info_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/target/.rustc_info.json",
+      "cargo_rustc_info_sha256": "6e6288f8bbf7b48444dcd0efa1a44cc9189eb812f038852ea3bc895adfcbe9b9",
+      "cargo_target_dir": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/target",
+      "rustc_fingerprint": 15780455470880608726,
+      "rustc_vv": "rustc 1.96.1 (31fca3adb 2026-06-26)\nbinary: rustc\ncommit-hash: 31fca3adb283cc9dfd56b49cdee9a96eb9c96ffd\ncommit-date: 2026-06-26\nhost: aarch64-apple-darwin\nrelease: 1.96.1\nLLVM version: 22.1.2\n",
+      "rustc_vv_sha256": "28a3d6b44fd36649efdcc159a47e2e08cce8cd2dee204a8a0967125c7bb17b2d"
+    }
+  ],
+  "candidate_code_present": false,
+  "candidate_environment_present": false,
+  "cargo_lock": {
+    "baseline_identity": "git:c160dee10f400950eb141e09e284d4d930f44ce6:apps/codemap-search/Cargo.lock",
+    "baseline_sha256": "3c534438f118e90514cb18cd4c820c003744c256591fb04e00554cb91dce04ca",
+    "matches_baseline": true,
+    "source_path": "/private/tmp/codemap-search-quality.sRpqE6sG/b2/source/apps/codemap-search/Cargo.lock",
+    "source_sha256": "3c534438f118e90514cb18cd4c820c003744c256591fb04e00554cb91dce04ca"
+  },
+  "mcp_command_tail": [
+    "mcp"
+  ],
+  "patch_scope": "read-only startup lock fix only; no candidate code, mode, metrics, prompt, schema, ranking, or index change",
+  "probe_builds": 0,
+  "probe_report_path": "/private/tmp/codemap-search-quality.sRpqE6sG/harness/reports/b2-mcp-probe.json",
+  "probe_report_sha256": "4cd55162881ae602afbe29edcdd9d638c269227ef95a31540c35b5f17ffe387d",
+  "schema_version": 1,
+  "source_commit": "c160dee10f400950eb141e09e284d4d930f44ce6",
+  "source_diff_sha256": "0c23bc2ed8073010ebd7ed8be02d4a5d45f61f4aae6ef6d87ca9f3fe3e1cd8b5",
+  "source_git_tree": "522317026e29186a704c370cbcee161f20a3e3e8",
+  "source_hashes": {
+    "common_tree_digest": {
+      "definition": "common.tree_digest(b2/source): SHA-256 of sorted relative paths plus NUL and each file SHA-256, with no exclusions",
+      "sha256": "429e16601421dcde861abfed0dc72aece4739dfa9ea69ca25502fb477e002999"
+    },
+    "tar_stream": {
+      "definition": "SHA-256 of stdout from (cd b2/source && LC_ALL=C tar -cf - .)",
+      "sha256": "ce3116241ba895051316b618eb5f8d403e4b236072677de7fc496c9eaca09d00"
+    }
+  },
+  "toolchain": {
+    "active_rustc_vv": "rustc 1.96.1 (31fca3adb 2026-06-26)\nbinary: rustc\ncommit-hash: 31fca3adb283cc9dfd56b49cdee9a96eb9c96ffd\ncommit-date: 2026-06-26\nhost: aarch64-apple-darwin\nrelease: 1.96.1\nLLVM version: 22.1.2\n",
+    "active_rustc_vv_sha256": "28a3d6b44fd36649efdcc159a47e2e08cce8cd2dee204a8a0967125c7bb17b2d",
+    "both_builds_match_active_rustc": true,
+    "build_rustc_info_sha256": [
+      "6e6288f8bbf7b48444dcd0efa1a44cc9189eb812f038852ea3bc895adfcbe9b9",
+      "6e6288f8bbf7b48444dcd0efa1a44cc9189eb812f038852ea3bc895adfcbe9b9"
+    ]
+  },
+  "verdict": "verified-clean-baseline"
+}

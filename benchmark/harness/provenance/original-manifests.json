@@ -1,0 +1,10 @@
+{
+  "derivation": "selected only the 14 development entries in original order; preserved entry fields; relocated private absolute paths to the new root",
+  "original_private_manifest_sha256": "d5445603a3d3e35d858d2e720f35e1f298e5a53dd552deab782fd253730fc4f4",
+  "original_public_manifest_sha256": "2ddb4887490025bd8272f5a14b1090a6580585539cd9bdaafedf2fa2807cb22d",
+  "original_root": "/private/tmp/codemap-search-quality.7f4a91c2",
+  "removed_without_use": [
+    "practice questions and answers",
+    "sealed questions and answers"
+  ]
+}

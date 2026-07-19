@@ -1,0 +1,33 @@
+(version 1)
+(allow default)
+; Nothing else in the quality workspace is part of the agent-visible corpus.
+(deny file-read* (subpath "__QUALITY_ROOT__"))
+(deny file-write* (subpath "__QUALITY_ROOT__"))
+; Path resolution may inspect names/metadata, but directory contents and file data stay denied.
+(allow file-read-metadata (subpath "__QUALITY_ROOT__"))
+; Re-open only this run and the byte-fixed executables used by both arms.
+(allow file-read* (subpath "__RUN_ROOT__"))
+(allow file-write* (subpath "__RUN_ROOT__"))
+(allow file-read* (literal "__OPENCODE_BINARY__"))
+(allow file-read* (literal "__B2_BINARY__"))
+; OpenCode receives one provider-scoped staged credential directory.
+(allow file-read* (subpath "__AUTH_RUNTIME__"))
+(allow file-write* (subpath "__AUTH_RUNTIME__"))
+; Evaluation answers and every legacy experiment artifact are unreadable.
+(deny file-read* (subpath "__BENCHMARK_ROOT__"))
+(deny file-read* (subpath "__LEGACY_ROOT__"))
+(deny file-write* (subpath "__BENCHMARK_ROOT__"))
+(deny file-write* (subpath "__LEGACY_ROOT__"))
+; The live product repository and clean-B2 source tree cannot leak into answers.
+(deny file-read* (subpath "__PRODUCT_REPOSITORY_ROOT__"))
+(deny file-read* (subpath "__B2_SOURCE_ROOT__"))
+(deny file-write* (subpath "__PRODUCT_REPOSITORY_ROOT__"))
+(deny file-write* (subpath "__B2_SOURCE_ROOT__"))
+; Only a provider-scoped staged credential is used; host OpenCode state is blocked.
+(deny file-read* (subpath "__HOST_OPENCODE_CONFIG__"))
+(deny file-read* (subpath "__HOST_OPENCODE_DATA__"))
+(deny file-write* (subpath "__HOST_OPENCODE_CONFIG__"))
+(deny file-write* (subpath "__HOST_OPENCODE_DATA__"))
+; The run-local source and prebuilt index are immutable.
+(deny file-write* (subpath "__SOURCE_ROOT__"))
+(deny file-write* (subpath "__WORKING_CODEMAP__"))

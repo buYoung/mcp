@@ -1,0 +1,4 @@
+{
+  "task_id": "API-06",
+  "question": "배포 생성 시 credentials 및 options 검증과 provider 연결 테스트가 어떤 순서로 수행되는지 설명하라."
+}

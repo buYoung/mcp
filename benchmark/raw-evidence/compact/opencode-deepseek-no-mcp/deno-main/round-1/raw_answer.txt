@@ -1,8 +1,0 @@
-Let me look more broadly at what files reference neighboring source trees and check the scout app's structure
-이 코드베이스에서 `codemap-search`(Rust)와 `scout`/`mcp-server`(TypeScript) 두 계층을 모두 검토한 결과, **pnpm workspace hoisting + `moduleResolution: "NodeNext"`** 조합이 언급된 패키징 흐름을 가능하게 합니다.
-
-구체적으로:
-
-- **Resolution path**: `@repo/typescript-config/base.json`의 `"moduleResolution": "NodeNext"`가 TypeScript에 Node.js resolution을 위임하고, pnpm이 워크스페이스 루트 `node_modules/.pnpm/` 스토어에 호이스트한 패키지를 디렉터리 트리 상향 탐색으로 발견합니다. `apps/*/tsconfig.json`이 `"extends": "@repo/typescript-config/node.json"`을 통해 공유 설정을 참조할 때, TypeScript가 `@repo/typescript-config`를 `node_modules`에서 해석하는 것과 같은 경로입니다.
-
-- **잘못된 버전에 바인딩되는 경우**: 두 워크스페이스 멤버가 동일 패키지의 서로 다른 버전 범위를 선언하고, pnpm의 hoisting 알고리즘이 한 버전만 호이스트할 때 발생합니다. 헬퍼 모듈의 자체 manifest에는 해당 패키지가 누락되어 있으므로 버전 제약이 전혀 없고, 호이스트된 버전이 기대와 다른 API 시그니처를 가지고 있어도 빌드는 정상 통과합니다. 런타임에서야 `undefined is not a function` 같은 증상으로 드러납니다.

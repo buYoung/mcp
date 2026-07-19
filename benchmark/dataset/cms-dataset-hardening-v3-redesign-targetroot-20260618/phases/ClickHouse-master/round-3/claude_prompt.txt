@@ -1,9 +1,0 @@
-You are solving a source-only repository question in a true no-MCP session.
-Repository root: /Users/buyong/workspace/private/buyong-mcp/.agents/benchmark-data/ClickHouse-master
-Restrict your investigation to this repository root only.
-Answer concisely but completely, and explain the decisive mechanism rather than giving a guess.
-
-Question:
-A query enriches rows from a reference source and the consumer only reads one returned field. Engineers therefore start stuffing sentinel junk into the other fallback fields, assuming those slots can never matter if nobody reads them.
-
-In this codebase that assumption is false: a supposedly unused fallback slot can still change whether the query throws, and a similar one-field form can surface a different type to the rest of the plan. Why do those discarded fallback fields remain observable here?

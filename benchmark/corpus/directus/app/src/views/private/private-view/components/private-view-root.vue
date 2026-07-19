@@ -1,0 +1,149 @@
+<script setup lang="ts">
+import { SplitPanel } from '@directus/vue-split-panel';
+import { useBreakpoints } from '@vueuse/core';
+import { computed, watch } from 'vue';
+import ModuleBar from '../../components/module-bar.vue';
+import SkipMenu from '../../components/skip-menu.vue';
+import { NAV_BAR_DEFAULT_SIZE, NAV_BAR_MIN_SIZE, useNavBarStore } from '../stores/nav-bar';
+import { useSidebarStore } from '../stores/sidebar';
+import PrivateViewDrawer from './private-view-drawer.vue';
+import PrivateViewMain from './private-view-main.vue';
+import PrivateViewNav from './private-view-nav.vue';
+import PrivateViewResizeHandle from './private-view-resize-handle.vue';
+import type { PrivateViewProps } from './private-view.vue';
+import { BREAKPOINTS } from '@/constants';
+import { useUserStore } from '@/stores/user';
+
+defineProps<PrivateViewProps>();
+
+const { lg, xl } = useBreakpoints(BREAKPOINTS);
+
+const userStore = useUserStore();
+const navBarStore = useNavBarStore();
+const sidebarStore = useSidebarStore();
+
+const inlineNav = computed(() => {
+	return sidebarStore.collapsed ? lg.value : xl.value;
+});
+
+watch(inlineNav, (inline) => {
+	if (!inline) navBarStore.collapse();
+	else navBarStore.expand();
+});
+
+const splitterCollapsed = computed({
+	get() {
+		if (inlineNav.value === false) return true;
+		return navBarStore.collapsed;
+	},
+	set(val: boolean) {
+		if (inlineNav.value === false) return;
+		navBarStore.collapsed = val;
+	},
+});
+</script>
+
+<template>
+	<div class="private-view">
+		<template v-if="lg">
+			<SkipMenu section="navigation" />
+			<ModuleBar id="navigation" class="module-bar" />
+		</template>
+
+		<SplitPanel
+			v-model:size="navBarStore.size"
+			v-model:collapsed="splitterCollapsed"
+			size-unit="px"
+			collapsible
+			:collapse-threshold="70"
+			:min-size="NAV_BAR_MIN_SIZE"
+			:max-size="306"
+			:snap-points="[NAV_BAR_DEFAULT_SIZE]"
+			:snap-threshold="6"
+			:direction="userStore.textDirection"
+			divider-hit-area="4px"
+			:transition-duration="125"
+			primary="start"
+			class="root-split"
+			:disabled="!inlineNav"
+		>
+			<template #start>
+				<template v-if="inlineNav">
+					<SkipMenu section="module-navigation" />
+					<PrivateViewNav id="module-navigation">
+						<template #navigation><slot name="navigation" /></template>
+					</PrivateViewNav>
+				</template>
+
+				<PrivateViewDrawer v-else v-model:collapsed="navBarStore.collapsed" placement="left">
+					<SkipMenu section="navigation" />
+					<ModuleBar id="navigation" class="module-bar" />
+
+					<SkipMenu section="module-navigation" class="mobile-skip-menu" />
+					<PrivateViewNav id="module-navigation" class="mobile-nav">
+						<template #navigation><slot name="navigation" /></template>
+					</PrivateViewNav>
+				</PrivateViewDrawer>
+			</template>
+
+			<template #divider>
+				<PrivateViewResizeHandle />
+			</template>
+
+			<template #end>
+				<SkipMenu section="main-content" />
+				<PrivateViewMain id="main-content" v-bind="$props" :inline-nav>
+					<template #actions:prepend><slot name="actions:prepend" /></template>
+					<template #actions><slot name="actions" /></template>
+					<template #actions:primary><slot name="actions:primary" /></template>
+					<template #title-outer:append><slot name="title-outer:append" /></template>
+					<template #title-outer:prepend><slot name="title-outer:prepend" /></template>
+					<template #title:append><slot name="title:append" /></template>
+					<template #title:prepend><slot name="title:prepend" /></template>
+					<template #title><slot name="title" /></template>
+					<template #sidebar><slot name="sidebar" /></template>
+					<slot />
+				</PrivateViewMain>
+			</template>
+		</SplitPanel>
+	</div>
+</template>
+
+<style scoped>
+.private-view {
+	block-size: 100%;
+	display: flex;
+}
+
+.module-bar {
+	flex-shrink: 0;
+}
+
+.root-split {
+	flex-grow: 1;
+	block-size: 100%;
+	position: relative;
+	background: var(--theme--shell--background);
+}
+
+:deep(.root-split > :is(.sp-start, .sp-end)) {
+	overflow-y: auto;
+}
+
+.v-list.skip-menu.mobile-skip-menu {
+	/* 54 (module-bar) + 4 (spacing) */
+	inset-inline-start: 3.625rem;
+}
+
+.mobile-nav {
+	inline-size: 0;
+	max-inline-size: var(--sidebar-mobile-width);
+	flex-grow: 1;
+	flex-shrink: 1;
+}
+
+.root-split.sp-dragging :deep(iframe),
+.root-split:active :deep(iframe) {
+	pointer-events: none !important;
+}
+</style>

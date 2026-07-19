@@ -1,3 +1,0 @@
-- The answer does not explain why the deferred write is scheduled with the application injector instead of the node injector during teardown.
-- It omits the `destroyRef.destroyed` guard that prevents a late queued callback from writing after destruction has progressed.
-- It never contrasts the single-choice deferred path with the multiple-choice accessor's immediate per-child updates.

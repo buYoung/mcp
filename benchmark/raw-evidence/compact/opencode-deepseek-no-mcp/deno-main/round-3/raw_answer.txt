@@ -1,7 +1,0 @@
-제가 시나리오를 정확히 특정 코드로 찾을 수 없었고, 개념적 패턴을 확인한 후 답변드립니다.
-
-이 코드베이스(pnpm strict mode, empty `.npmrc`, `moduleResolution: "NodeNext"`)에서 설명된 흐름이 성립하는 유일한 경로는 **호이스팅이 적용된 상황에서 `node_modules/` 디렉터리 상향 탐색(Node.js Module Resolution)** 입니다.
-
-pnpm 기본값(엄격 모드)에서는 각 패키지가 자기 `node_modules/`에 선언된 의존성만 갖습니다. 그러나 `.npmrc`에 `shamefully-hoist=true`를 넣거나 npm/yarn classic을 쓰면 모든 의존성이 최상위 `node_modules/`로 호이스팅되어, 이웃 소스 트리에 있는 헬퍼 모듈이 자체 manifest에 없는 패키지를 `import`해도 Node.js가 루트 `node_modules/`를 찾아 해소합니다.
-
-**잘못된 버전이 조용히 바인딩되는 경우:** 두 워크스페이스 패키지가 같은 패키지의 다른 semver 범위(예: `zod@^3.0`과 `zod@^4.0`)를 의존할 때, 호이스팅 알고리즘은 한 버전만 루트에 둡니다. 자체 manifest에 아예 선언하지 않은 헬퍼는 어떤 버전이 왔는지 알 길이 없어, 의도와 다른 API/동작을 가진 버전을 받아도 런타임 실패로만 드러나고 컴파일/빌드 단계에서는 조용히 넘어갑니다.

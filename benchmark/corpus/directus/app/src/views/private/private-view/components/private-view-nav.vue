@@ -1,0 +1,58 @@
+<script setup lang="ts">
+import PrivateViewNavFooter from './private-view-nav-footer.vue';
+import PrivateViewNavProjectName from './private-view-nav-project-name.vue';
+import VLicenseBadge from '@/components/v-license-badge.vue';
+import VNonProductionBadge from '@/components/v-non-production-badge.vue';
+import PinnedStatusNotice from '@/views/private/components/license/pinned-status-notice.vue';
+
+// id attribute for accessibility linking doesn’t work on the top-level element
+defineProps<{ id?: string }>();
+</script>
+
+<template>
+	<aside role="navigation" aria-label="Module Navigation" class="module-nav alt-colors">
+		<PrivateViewNavProjectName />
+
+		<div :id class="module-nav-content">
+			<slot name="navigation" />
+		</div>
+
+		<PrivateViewNavFooter>
+			<PinnedStatusNotice />
+			<VLicenseBadge private />
+			<VNonProductionBadge />
+		</PrivateViewNavFooter>
+	</aside>
+</template>
+
+<style scoped>
+.module-nav {
+	block-size: 100%;
+	inline-size: 100%;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	font-size: 0.8125rem;
+	background: var(--theme--shell--background);
+}
+
+.module-nav-content {
+	--v-list-item-color: var(--theme--navigation--list--foreground);
+	--v-list-item-color-hover: var(--theme--navigation--list--foreground-hover);
+	--v-list-item-color-active: var(--theme--navigation--list--foreground-active);
+	--v-list-item-icon-color: var(--theme--navigation--list--icon--foreground);
+	--v-list-item-icon-color-hover: var(--theme--navigation--list--icon--foreground-hover);
+	--v-list-item-icon-color-active: var(--theme--navigation--list--icon--foreground-active);
+	--v-list-item-background-color: var(--theme--navigation--list--background);
+	--v-list-item-background-color-hover: var(--theme--navigation--list--background-hover);
+	--v-list-item-background-color-active: var(--theme--navigation--list--background-active);
+	--v-divider-color: var(--theme--navigation--list--divider--border-color);
+	--v-divider-thickness: var(--theme--navigation--list--divider--border-width);
+	--project-header-height: 3.375rem;
+
+	block-size: calc(100% - var(--project-header-height));
+	overflow: hidden auto;
+
+	/* border is set on .main-split */
+}
+</style>

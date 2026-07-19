@@ -1,0 +1,7 @@
+{
+  "supervisor_status": 0,
+  "parser_status": 0,
+  "parser_ok": true,
+  "required_files": ["raw/events.jsonl", "raw/stderr.log", "wrapper.json", "normalized.json"],
+  "required_files_present": true
+}

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline-3x-b2-runtime-attestation.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "verdict", "source_commit", "source_git_tree", "source_hashes", "source_diff_sha256", "binary_path", "binary_sha256", "build_count", "builds", "binary_comparison", "cargo_lock", "toolchain", "probe_builds", "activation_environment", "mcp_command_tail", "candidate_code_present", "candidate_environment_present", "patch_scope", "probe_report_path", "probe_report_sha256"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "verdict": {"const": "verified-clean-baseline"},
+    "source_commit": {"const": "c160dee10f400950eb141e09e284d4d930f44ce6"},
+    "source_git_tree": {"const": "522317026e29186a704c370cbcee161f20a3e3e8"},
+    "source_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tar_stream", "common_tree_digest"],
+      "properties": {
+        "tar_stream": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["definition", "sha256"],
+          "properties": {
+            "definition": {"const": "SHA-256 of stdout from (cd b2/source && LC_ALL=C tar -cf - .)"},
+            "sha256": {"const": "ce3116241ba895051316b618eb5f8d403e4b236072677de7fc496c9eaca09d00"}
+          }
+        },
+        "common_tree_digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["definition", "sha256"],
+          "properties": {
+            "definition": {"const": "common.tree_digest(b2/source): SHA-256 of sorted relative paths plus NUL and each file SHA-256, with no exclusions"},
+            "sha256": {"const": "429e16601421dcde861abfed0dc72aece4739dfa9ea69ca25502fb477e002999"}
+          }
+        }
+      }
+    },
+    "binary_path": {"type": "string", "pattern": "^/"},
+    "binary_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "build_count": {"const": 2},
+    "builds": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cargo_target_dir", "binary_path", "binary_sha256", "cargo_rustc_info_path", "cargo_rustc_info_sha256", "rustc_fingerprint", "rustc_vv", "rustc_vv_sha256"],
+        "properties": {
+          "cargo_target_dir": {"type": "string", "pattern": "^/"},
+          "binary_path": {"type": "string", "pattern": "^/"},
+          "binary_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "cargo_rustc_info_path": {"type": "string", "pattern": "^/"},
+          "cargo_rustc_info_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "rustc_fingerprint": {"type": "integer"},
+          "rustc_vv": {"type": "string", "minLength": 1},
+          "rustc_vv_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "binary_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "exit_code", "bytes_identical"],
+      "properties": {
+        "command": {"const": "cmp -s <build1 binary> <build2 binary>"},
+        "exit_code": {"const": 0},
+        "bytes_identical": {"const": true}
+      }
+    },
+    "cargo_lock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_path", "source_sha256", "baseline_identity", "baseline_sha256", "matches_baseline"],
+      "properties": {
+        "source_path": {"type": "string", "pattern": "^/"},
+        "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "baseline_identity": {"const": "git:c160dee10f400950eb141e09e284d4d930f44ce6:apps/codemap-search/Cargo.lock"},
+        "baseline_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "matches_baseline": {"const": true}
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_rustc_vv", "active_rustc_vv_sha256", "both_builds_match_active_rustc", "build_rustc_info_sha256"],
+      "properties": {
+        "active_rustc_vv": {"type": "string", "minLength": 1},
+        "active_rustc_vv_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "both_builds_match_active_rustc": {"const": true},
+        "build_rustc_info_sha256": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+      }
+    },
+    "probe_builds": {"const": 0},
+    "activation_environment": {"const": {"CODEMAP_BASELINE_READ_ONLY": "1"}},
+    "mcp_command_tail": {"const": ["mcp"]},
+    "candidate_code_present": {"const": false},
+    "candidate_environment_present": {"const": false},
+    "patch_scope": {"const": "read-only startup lock fix only; no candidate code, mode, metrics, prompt, schema, ranking, or index change"},
+    "source_diff_sha256": {"const": "0c23bc2ed8073010ebd7ed8be02d4a5d45f61f4aae6ef6d87ca9f3fe3e1cd8b5"},
+    "audit_evidence": {"type": "array", "items": {"type": "object"}, "minItems": 1},
+    "probe_report_path": {"type": "string", "pattern": "^/"},
+    "probe_report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "generation_id": "baseline-3x-fixture",
+  "state": "active",
+  "attempts": {
+    "API-05-r1-B1-a1-fixture": {
+      "run_id": "API-05-r1-B1-a1-fixture",
+      "attempt_number": 1,
+      "slot_key": "API-05:r1:B1",
+      "pair_id": "API-05-r1",
+      "task_id": "API-05",
+      "trial_id": "r1",
+      "arm": "B1",
+      "pair_order_index": 0,
+      "state": "terminal",
+      "published_at_ns": 2200000000,
+      "run_dir": "__RUN_DIR__",
+      "artifact_manifest_sha256": "__ARTIFACT_SHA__",
+      "artifact_count": 0,
+      "classification": {
+        "measurement_status": "valid",
+        "terminal_behavior": "stop",
+        "replacement_allowed": false,
+        "replacement_category": null,
+        "generation_invalid": false,
+        "reason": "synthetic normal terminal answer"
+      }
+    }
+  },
+  "slots": {
+    "API-05:r1:B1": {
+      "latest_run_id": "API-05-r1-B1-a1-fixture",
+      "latest_attempt_number": 1,
+      "measurement_status": "valid",
+      "replacement_allowed": false,
+      "all_run_ids": ["API-05-r1-B1-a1-fixture"]
+    }
+  }
+}

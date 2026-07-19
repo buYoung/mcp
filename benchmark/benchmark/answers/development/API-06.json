@@ -1,0 +1,12 @@
+{
+  "task_id": "API-06",
+  "correct_file": "api/src/services/deployment.ts:32-78",
+  "correct_symbol": ["DeploymentService.createOne"],
+  "decisive_code_evidence": "provider와 credentials 필수 여부를 확인하고 options JSON을 parse한 뒤 getDeploymentDriver로 driver를 얻어 testConnection을 호출하며, 성공 후 credentials JSON 문자열로 super.createOne을 호출한다.",
+  "required_file_relationships": ["DeploymentService → deployment driver factory", "DeploymentService → ItemsService"],
+  "allowed_other_definitions": [{"definition": "deployment controller POST", "reason": "입력 전달 경계로만 허용되며 검증 순서의 대체 정답은 아니다."}],
+  "excluded_confusions": ["updateOne의 merge semantics", "deployment controller parseRange"],
+  "final_answer_required": ["검증 순서", "Invalid 계열 오류", "연결 테스트가 저장보다 앞선다는 점"],
+  "prohibited_claims": ["저장 후 연결 테스트한다고 주장"],
+  "labels": {"area": "API", "query_type": "mixed", "first_area": "wrong", "ambiguity": "create/update 유사 흐름", "multi_file": true}
+}

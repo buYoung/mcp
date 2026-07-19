@@ -1,0 +1,7 @@
+You are investigating the supplied source repository. Use the available built-in tools as needed and answer only from evidence you can inspect in that repository.
+
+Return a concise answer in this exact JSON object shape:
+{"answer":"...","evidence":[{"path":"...","reason":"..."}]}
+
+Question:
+__QUESTION_JSON__
