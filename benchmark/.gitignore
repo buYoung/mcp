@@ -2,10 +2,12 @@ harness/reports/
 harness/runs/
 harness/runtime-auth/
 harness/scoring/
+harness/analysis-inputs/
 harness/work/
 harness/synthetic/*
 !harness/synthetic/.gitkeep
 runtime/
+b2/source/
 b2/target/
 b2/build-evidence/
 corpus/directus-index-golden/
