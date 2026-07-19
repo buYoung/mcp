@@ -6,6 +6,19 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-20
+
+### 추가
+
+- TypeScript/JavaScript, Python, Java, Kotlin, Go, Rust, C/C++의 정적 컬렉션 읽기·쓰기 관계 추적 추가
+- Vue, Astro, Svelte 컴포넌트의 코드 섹션 분석과 SQL 구문 지원 추가
+
+### 개선
+
+- 모노레포 `initial_instructions`에 워크스페이스 범위·상위 소스 루트·탐색 규칙을 제공해 검색 범위 선택 개선
+- 중복되거나 모호한 모노레포 워크스페이스 경로 검증 개선
+- codemap-search의 다국어 검색 관계 추출 개선
+
 ## [0.4.0] - 2026-07-01
 
 ### 추가

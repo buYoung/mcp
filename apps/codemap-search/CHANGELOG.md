@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-20
+
+### Added
+- Added static collection read/write tracking for TypeScript, JavaScript, Python, Java, Kotlin, Go, Rust, C, and C++.
+- Added code relationship extraction for Vue, Astro, and Svelte components, plus SQL syntax support.
+
+### Improved
+- Improved monorepo navigation with workspace scopes and source roots included in `initial_instructions`.
+- Improved workspace selection by rejecting duplicate or ambiguous monorepo paths.
+- Improved relationship extraction for multilingual code searches.
+
+### Internal
+- Expanded benchmark fixtures, validation, attempt records, episode claims, terminal event checks, and cache reuse.
+
 ## [0.4.0] - 2026-07-01
 
 ### Added
