@@ -203,10 +203,27 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
         ("app.props", "<main />", "main"),
         ("app.targets", "<main />", "main"),
         ("site.css", ".card {}", ".card"),
+        (
+            "site.scss",
+            "@mixin surface($color) { color: $color; }",
+            "surface",
+        ),
+        (
+            "site.less",
+            ".surface(@color) { color: @color; }",
+            ".surface",
+        ),
         ("deploy.sh", "run() { :; }", "run"),
         ("deploy.bash", "run() { :; }", "run"),
+        ("deploy.zsh", "function run { :; }", "run"),
         ("main.hcl", "variable \"region\" {}", "region"),
         ("main.tf", "terraform {}", "terraform"),
+        ("values.tfvars", "region = \"kr\"", "region"),
+        (
+            "Dockerfile",
+            "ARG VERSION\nFROM rust:${VERSION} AS build",
+            "build",
+        ),
         ("api.proto", "message Request {}", "Request"),
         (
             "schema.graphql",
@@ -214,6 +231,13 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
             "schema",
         ),
         ("schema.gql", "type Query { id: ID! }", "Query"),
+        ("Makefile", "all package: compile", "package"),
+        ("rules.mk", "all: compile", "all"),
+        ("CMakeLists.txt", "add_test(NAME unit COMMAND app)", "unit"),
+        ("module.cmake", "find_package(OpenSSL REQUIRED)", "OpenSSL"),
+        ("BUILD", "cc_library(name = \"core\")", "core"),
+        ("BUILD.bazel", "cc_library(name = \"core\")", "core"),
+        ("defs.bzl", "def helper():\n    pass", "helper"),
     ];
     let temp = create_mock_repo(
         &cases
@@ -230,12 +254,12 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
 }
 
 #[test]
-fn test_codemap_renders_tfvars_detail_with_an_explicit_empty_symbol_boundary() {
+fn test_codemap_renders_tfvars_attribute_symbols() {
     let temp = create_mock_repo(&[("values.tfvars", "region = \"kr\"\n")]).unwrap();
 
     run_cli(&["codemap", "--path", "values.tfvars"], temp.path())
         .success()
-        .stdout("# Detailed Codemap: values.tfvars (1 lines)\n\n## Symbols\n\n");
+        .stdout(predicates::str::contains("region"));
 }
 
 #[test]

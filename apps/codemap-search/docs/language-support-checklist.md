@@ -102,6 +102,8 @@
 - [ ] Sass 구조 지원: 호환되는 들여쓰기형 `.sass` grammar를 확인할 때까지 지원 레지스트리에서 제외
 - [x] SCSS 구조 지원: `.scss` (tree-sitter AST)
 - [x] Less 구조 지원: `.less` (tree-sitter AST)
+- [ ] Less `#id(...)` mixin 정의: 현재 `tree-sitter-less 1.0.0`이 정상
+  `mixin_definition`이 아닌 `rule_set + ERROR`로 파싱하므로 오류 노드를 선언으로 승격하지 않음
 - [x] HTML/XML의 태그, `id`, `class`를 심볼로 추출
 - [x] CSS selector, custom property, keyframes 이름을 심볼로 추출
 - [x] 호출자·피호출자 탐색은 비활성화
@@ -201,3 +203,6 @@ tree-sitter AST에서 기록한다. 모든 형식에서 `calls`는 비워 두며
 - [x] 파서 오류가 인덱서나 MCP 서버 종료로 이어지지 않는다.
 - [x] 생성 파일과 대용량 파일에 대한 기존 보호 정책을 유지한다.
 - [x] 사용자 문서의 지원 언어·확장자 목록과 실제 등록부를 일치시킨다.
+- [x] 추가 형식별 대표 선언 하나만이 아니라 중첩 키, 복합 selector, mixin·함수,
+  복수 target·대입, field·variant·확장 선언을 tree-sitter fixture로 검증한다.
+- [x] 추가 형식에서 추출한 심볼이 실제 MCP `overview` 결과까지 전달되는지 형식별로 검증한다.
