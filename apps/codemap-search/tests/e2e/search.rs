@@ -21,6 +21,111 @@ fn test_bm25_basic_search() {
 }
 
 #[test]
+fn test_bm25_format_text_surfaces_structured_markup_shell_and_infrastructure_files() {
+    let temp = create_mock_repo(&[
+        ("config.yaml", "feature_token: structured_needle\n"),
+        ("page.html", "<main>markup_needle</main>"),
+        ("deploy.sh", "shell_needle=1\n"),
+        ("Dockerfile", "FROM rust\n# infrastructure_needle\n"),
+    ])
+    .unwrap();
+    run_cli(&["index"], temp.path()).success();
+    for (query, path) in [
+        ("structured_needle", "config.yaml"),
+        ("markup_needle", "page.html"),
+        ("shell_needle", "deploy.sh"),
+        ("infrastructure_needle", "Dockerfile"),
+    ] {
+        run_cli(&["search", query], temp.path())
+            .success()
+            .stdout(predicates::str::contains(path));
+    }
+}
+
+#[test]
+fn test_bm25_search_reaches_every_priority_alias_and_grammar_boundary() {
+    let formats = [
+        ("config.json", "{\"token\": \"json_token\"}", "json_token"),
+        ("config.jsonc", "// jsonc_token\n{}", "jsonc_token"),
+        ("config.toml", "token = \"toml_token\"", "toml_token"),
+        ("config.yaml", "token: yaml_token", "yaml_token"),
+        ("config.yml", "token: yml_token", "yml_token"),
+        ("page.html", "<!-- html_token -->", "html_token"),
+        ("page.htm", "<!-- htm_token -->", "htm_token"),
+        ("page.xml", "<!-- xml_token -->", "xml_token"),
+        ("schema.xsd", "<!-- xsd_token -->", "xsd_token"),
+        ("page.xsl", "<!-- xsl_token -->", "xsl_token"),
+        ("page.xslt", "<!-- xslt_token -->", "xslt_token"),
+        ("Info.plist", "<!-- plist_token -->", "plist_token"),
+        ("app.csproj", "<!-- csproj_token -->", "csproj_token"),
+        ("app.props", "<!-- props_token -->", "props_token"),
+        ("app.targets", "<!-- targets_token -->", "targets_token"),
+        ("site.css", "/* css_token */", "css_token"),
+        ("deploy.sh", "# sh_token", "sh_token"),
+        ("deploy.bash", "# bash_token", "bash_token"),
+        ("main.hcl", "# hcl_token", "hcl_token"),
+        ("main.tf", "# tf_token", "tf_token"),
+        ("values.tfvars", "# tfvars_token", "tfvars_token"),
+        ("api.proto", "// proto_token", "proto_token"),
+        ("schema.graphql", "# graphql_token", "graphql_token"),
+        ("schema.gql", "# gql_token", "gql_token"),
+        (
+            "site.scss",
+            "// scss_tree_sitter_token",
+            "scss_tree_sitter_token",
+        ),
+        (
+            "site.less",
+            "// less_tree_sitter_token",
+            "less_tree_sitter_token",
+        ),
+        (
+            "Widget.astro",
+            "<div>astro_unstructured_token</div>",
+            "astro_unstructured_token",
+        ),
+        (
+            "Dockerfile",
+            "# docker_tree_sitter_token",
+            "docker_tree_sitter_token",
+        ),
+        (
+            "Makefile",
+            "# make_tree_sitter_token",
+            "make_tree_sitter_token",
+        ),
+        (
+            "CMakeLists.txt",
+            "# cmake_tree_sitter_token",
+            "cmake_tree_sitter_token",
+        ),
+        (
+            "BUILD",
+            "# build_tree_sitter_token",
+            "build_tree_sitter_token",
+        ),
+        (
+            "BUILD.bazel",
+            "# bazel_tree_sitter_token",
+            "bazel_tree_sitter_token",
+        ),
+    ];
+    let temp = create_mock_repo(
+        &formats
+            .iter()
+            .map(|(path, body, _)| (*path, *body))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    run_cli(&["index"], temp.path()).success();
+    for (path, _, token) in formats {
+        run_cli(&["search", token], temp.path())
+            .success()
+            .stdout(predicates::str::contains(path));
+    }
+}
+
+#[test]
 fn test_bm25_field_weighting() {
     let temp = create_mock_repo(&[
         ("src/file_a.rs", "/// QueryTerm\npub fn dummy() {}"), // Term in docstring
@@ -74,7 +179,7 @@ fn test_bm25_language_hint_reduces_cross_language_top1_misrank() {
 }
 
 #[test]
-fn test_bm25_composite_code_is_indexed_without_markup_or_mdx() {
+fn test_bm25_composite_code_and_markup_are_indexed_without_mdx() {
     let temp = create_mock_repo(&[
         (
             "src/component.vue",
@@ -100,10 +205,10 @@ fn test_bm25_composite_code_is_indexed_without_markup_or_mdx() {
         .stdout(predicates::str::starts_with("src/component.astro"));
     run_cli(&["search", "component_template_noise"], temp.path())
         .success()
-        .stdout(predicates::str::contains("src/component.vue").not());
+        .stdout(predicates::str::contains("src/component.vue"));
     run_cli(&["search", "component_style_noise"], temp.path())
         .success()
-        .stdout(predicates::str::contains("src/component.vue").not());
+        .stdout(predicates::str::contains("src/component.vue"));
     run_cli(&["search", "mdx_index_noise"], temp.path())
         .success()
         .stdout(predicates::str::contains("component.mdx").not());

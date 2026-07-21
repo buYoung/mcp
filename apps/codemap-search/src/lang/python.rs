@@ -81,6 +81,10 @@ fn has_ancestor_fn(node: Node) -> bool {
 pub(crate) struct PythonSpec;
 
 impl LanguageSpec for PythonSpec {
+    fn language_name(&self) -> &'static str {
+        "python"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_python::LANGUAGE.into()
     }

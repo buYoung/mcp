@@ -195,6 +195,10 @@ fn cpp_member_is_exported(member_node: Node, container_kind: &str, source: &[u8]
 pub(crate) struct CppSpec;
 
 impl LanguageSpec for CppSpec {
+    fn language_name(&self) -> &'static str {
+        "cpp"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_cpp::LANGUAGE.into()
     }

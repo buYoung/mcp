@@ -132,19 +132,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .filter_map(|e| e.ok())
             {
                 let file_path = entry.path();
-                if file_path.is_file() {
-                    if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
-                        if codemap_search::workspace::is_source_extension(ext) {
-                            let rel_path_str =
-                                codemap_search::workspace::workspace_relative_key(file_path, &cwd);
-                            if let Some(content) =
-                                codemap_search::workspace::read_source_for_parse(file_path)
-                            {
-                                if let Ok(extracted) = extractor.extract(&content, &rel_path_str) {
-                                    extracted_files.push(extracted);
-                                }
-                            }
-                        }
+                if !file_path.is_file()
+                    || !codemap_search::workspace::is_supported_source_path(file_path)
+                {
+                    continue;
+                }
+                let rel_path_str =
+                    codemap_search::workspace::workspace_relative_key(file_path, &cwd);
+                if let Some(content) = codemap_search::workspace::read_source_for_parse(file_path) {
+                    if let Ok(extracted) = extractor.extract(&content, &rel_path_str) {
+                        extracted_files.push(extracted);
                     }
                 }
             }

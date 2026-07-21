@@ -51,6 +51,10 @@ fn get_javascript_static_collection_query() -> &'static Query {
 pub(crate) struct JavaScriptSpec;
 
 impl LanguageSpec for JavaScriptSpec {
+    fn language_name(&self) -> &'static str {
+        "javascript"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_javascript::LANGUAGE.into()
     }

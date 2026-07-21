@@ -286,3 +286,155 @@ async fn test_watch_false_preserves_request_triggered_refresh() {
         "watch=false must keep the request-triggered refresh working"
     );
 }
+
+#[tokio::test]
+async fn test_watcher_refreshes_priority_format_create_modify_and_delete() {
+    let temp = create_mock_repo(&[(".codemap/config.toml", WATCHER_ONLY_CONFIG)]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    // Seed the first request, then mutate without relying on request-triggered refresh.
+    client.send_request("tools/call", serde_json::json!({ "name": "search", "arguments": { "query": "priority_watch_created" } })).await.unwrap();
+    let_seeded_refresh_settle().await;
+    let config = temp.path().join("config.yaml");
+    fs::write(&config, "value: priority_watch_created\n").unwrap();
+    client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "priority_watch_created" }),
+            |text| text.contains("config.yaml"),
+        )
+        .await
+        .unwrap();
+    fs::write(&config, "value: priority_watch_updated\n").unwrap();
+    client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "priority_watch_updated" }),
+            |text| text.contains("config.yaml"),
+        )
+        .await
+        .unwrap();
+    fs::remove_file(&config).unwrap();
+    let removed = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "priority_watch_updated" }),
+            |text| !text.contains("config.yaml"),
+        )
+        .await
+        .unwrap();
+    assert!(!removed["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("config.yaml"));
+}
+
+#[tokio::test]
+async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
+    let temp = create_mock_repo(&[(".codemap/config.toml", WATCHER_ONLY_CONFIG)]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    client
+        .send_request(
+            "tools/call",
+            serde_json::json!({ "name": "search", "arguments": { "query": "lsr_watcher_seed" } }),
+        )
+        .await
+        .unwrap();
+    let_seeded_refresh_settle().await;
+
+    // Each priority reaches the same watcher → index → MCP-search final consumer. Exact-name
+    // formats use the same grammar-backed indexing path as extension-based formats.
+    for (file, body) in [
+        ("config.json", "{\"value\": \"needle\"}"),
+        ("config.jsonc", "// needle\n{}"),
+        ("settings.toml", "value = \"needle\""),
+        ("config.yaml", "value: needle"),
+        ("config.yml", "value: needle"),
+        ("page.html", "<main>needle</main>"),
+        ("page.htm", "<main>needle</main>"),
+        ("page.xml", "<main>needle</main>"),
+        ("schema.xsd", "<main>needle</main>"),
+        ("page.xsl", "<main>needle</main>"),
+        ("page.xslt", "<main>needle</main>"),
+        ("Info.plist", "<main>needle</main>"),
+        ("app.csproj", "<main>needle</main>"),
+        ("app.props", "<main>needle</main>"),
+        ("app.targets", "<main>needle</main>"),
+        ("site.css", ".needle {}"),
+        ("deploy.sh", "echo needle"),
+        ("deploy.bash", "echo needle"),
+        ("main.hcl", "value = \"needle\""),
+        ("main.tf", "value = \"needle\""),
+        ("values.tfvars", "value = \"needle\""),
+        ("api.proto", "// needle"),
+        ("schema.graphql", "# needle"),
+        ("schema.gql", "# needle"),
+        ("site.scss", "// needle"),
+        ("site.less", "// needle"),
+        ("Widget.astro", "<div>needle</div>"),
+        ("Dockerfile", "# needle"),
+        ("Makefile", "# needle"),
+        ("CMakeLists.txt", "# needle"),
+        ("BUILD", "# needle"),
+        ("BUILD.bazel", "# needle"),
+    ] {
+        let created = format!("lsr_007_created_{}", file.replace('.', "_"));
+        let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));
+        let path = temp.path().join(file);
+        fs::write(&path, format!("{body}\n# {created}\n")).unwrap();
+        client
+            .send_tool_until("search", serde_json::json!({ "query": created }), |text| {
+                text.contains(file)
+            })
+            .await
+            .unwrap();
+        fs::write(&path, format!("{body}\n# {updated}\n")).unwrap();
+        client
+            .send_tool_until("search", serde_json::json!({ "query": updated }), |text| {
+                text.contains(file)
+            })
+            .await
+            .unwrap();
+        fs::remove_file(&path).unwrap();
+        let removed = client
+            .send_tool_until("search", serde_json::json!({ "query": updated }), |text| {
+                text.starts_with("No indexed matches")
+            })
+            .await
+            .unwrap();
+        assert!(
+            removed["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .starts_with("No indexed matches"),
+            "watcher retained deleted {file}: {}",
+            removed["result"]["content"][0]["text"]
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_watcher_does_not_index_repo_local_custom_index() {
+    let temp = create_mock_repo(&[
+        ("source.json", r#"{"value": "watcher_source"}"#),
+        (".codemap/config.toml", "index_path = \"search-index\"\nindex_staleness_ms = 3600000\nwatch_debounce_ms = 100\n"),
+    ]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "watcher_source" }),
+            |text| text.contains("source.json"),
+        )
+        .await
+        .unwrap();
+    let_seeded_refresh_settle().await;
+
+    let generated = temp.path().join("search-index/watcher-generated.json");
+    fs::write(&generated, r#"{"needle": "watcher_self_index_needle"}"#).unwrap();
+    let_seeded_refresh_settle().await;
+    let result = client.send_request("tools/call", serde_json::json!({ "name": "search", "arguments": { "query": "watcher_self_index_needle" } })).await.unwrap();
+    assert!(result["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .starts_with("No indexed matches"));
+}

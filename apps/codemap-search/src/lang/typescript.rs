@@ -165,6 +165,10 @@ pub(super) fn is_ecmascript_module_variable(node: Node) -> bool {
 pub(crate) struct TypeScriptSpec;
 
 impl LanguageSpec for TypeScriptSpec {
+    fn language_name(&self) -> &'static str {
+        "typescript"
+    }
+
     fn grammar(&self, ext: &str) -> Language {
         match ext {
             "tsx" => tree_sitter_typescript::LANGUAGE_TSX.into(),

@@ -57,6 +57,10 @@ fn get_c_static_collection_query() -> &'static Query {
 pub(crate) struct CSpec;
 
 impl LanguageSpec for CSpec {
+    fn language_name(&self) -> &'static str {
+        "c"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_c::LANGUAGE.into()
     }

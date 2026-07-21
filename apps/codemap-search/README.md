@@ -81,6 +81,14 @@ it carries `static` storage class (otherwise exported), and uses C++ access spec
 members default to private); Assembly exports symbols that appear in a `.globl`/`.global`
 directive.
 
+Structured and operational formats are indexed without adding a programming-language
+caller/callee model. Tree-sitter AST extraction supports JSON/JSONC, TOML, YAML, HTML/XML
+(including XML-syntax derivatives), CSS/SCSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
+Protobuf, GraphQL, Make, CMake, and Starlark/Bazel. JSON5 and indented Sass are excluded from
+the support registry until a grammar compatible with the current tree-sitter runtime is
+available. Embedded JavaScript/TypeScript extraction in Vue/Astro/Svelte is kept; their
+template and style regions remain unstructured.
+
 ## Install
 
 Use the route that matches your machine. `cargo install` is the simplest path if you
@@ -383,11 +391,12 @@ watcher is path-scoped, so real incremental cost is at or below the numbers abov
 
 ## Known limits
 
-- Symbol extraction is bounded by the compiled-in tree-sitter grammars (the languages
-  above); other extensions are searchable via `read`/`find`/`grep` but not symbol-indexed.
+- The non-tree-sitter format scanners are tolerant and deliberately conservative: malformed
+  files remain text-searchable, while ambiguous declarations and dynamic command relationships
+  are omitted. These formats do not participate in caller/callee annotations.
 - `max_file_size` (default 1 MiB) silently skips larger files from indexing/codemap.
-- String literals are details-layer only (shown in `overview` file details) and are not
-  in the BM25 index; use `grep` for exact string/literal search.
+- String literals and registered format bodies have low-weight BM25 indexing; use `grep` for
+  exact text or regex matching.
 - Single-client, sequential stdio server (no cross-process index locking).
 
 ## License

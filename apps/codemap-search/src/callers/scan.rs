@@ -188,11 +188,7 @@ pub(super) fn scan_workspace(
             continue;
         }
         // Same coverage as the indexer: source extensions only, under the size filter.
-        let ext = match path.extension().and_then(|s| s.to_str()) {
-            Some(e) => e,
-            None => continue,
-        };
-        if !crate::workspace::is_source_extension(ext) {
+        if !crate::lang::supports_caller_scan(path) {
             continue;
         }
         match std::fs::metadata(path) {

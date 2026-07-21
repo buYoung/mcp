@@ -107,6 +107,10 @@ fn asm_label_name(label_node: Node, source: &[u8]) -> Option<String> {
 pub(crate) struct AsmSpec;
 
 impl LanguageSpec for AsmSpec {
+    fn language_name(&self) -> &'static str {
+        "asm"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_asm::LANGUAGE.into()
     }
