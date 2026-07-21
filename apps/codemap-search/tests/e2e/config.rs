@@ -1,5 +1,7 @@
 use crate::e2e::helpers::{create_mock_repo, run_cli, McpClient};
+use assert_cmd::prelude::*;
 use predicates::prelude::*;
+use std::process::Command;
 
 #[tokio::test]
 async fn test_config_threshold_override_changes_branching() {
@@ -179,4 +181,114 @@ fn test_default_index_materializes_under_codemap_dir() {
         .success()
         .stdout(predicates::str::contains("- src ("))
         .stdout(predicates::str::contains(".codemap").not());
+}
+
+fn index_command(cwd: &std::path::Path, home: Option<&std::path::Path>) -> Command {
+    let mut command = Command::cargo_bin("codemap-search").unwrap();
+    command
+        .current_dir(cwd)
+        .env("CODEMAP_HOME", cwd.join("global-config"));
+    match home {
+        Some(home) => {
+            command.env("HOME", home).env("USERPROFILE", home);
+        }
+        None => {
+            command.env_remove("HOME").env_remove("USERPROFILE");
+        }
+    }
+    command.arg("index");
+    command
+}
+
+#[test]
+fn test_index_refuses_user_home_before_creating_state() {
+    let home = create_mock_repo(&[("src/lib.rs", "pub fn must_not_be_indexed() {}")]).unwrap();
+
+    index_command(home.path(), Some(home.path()))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "Refusing to index the user home directory",
+        ));
+
+    assert!(
+        !home.path().join(".codemap").exists(),
+        "rejected home indexing must not create repo config or index state"
+    );
+}
+
+#[test]
+fn test_mcp_refuses_user_home_before_creating_state() {
+    let home = create_mock_repo(&[("src/lib.rs", "pub fn must_not_start_mcp() {}")]).unwrap();
+    let mut command = Command::cargo_bin("codemap-search").unwrap();
+    command
+        .current_dir(home.path())
+        .env("CODEMAP_HOME", home.path().join("global-config"))
+        .env("HOME", home.path())
+        .env("USERPROFILE", home.path())
+        .arg("mcp")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "Refusing to index the user home directory",
+        ));
+
+    assert!(
+        !home.path().join(".codemap").exists(),
+        "rejected MCP startup must not create repo config or index state"
+    );
+}
+
+#[test]
+fn test_index_refuses_explicit_home_target_from_descendant_project() {
+    let home = tempfile::tempdir().unwrap();
+    let project = home.path().join("work/project");
+    std::fs::create_dir_all(project.join("src")).unwrap();
+    std::fs::write(project.join("src/lib.rs"), "pub fn project_symbol() {}").unwrap();
+
+    let mut command = index_command(&project, Some(home.path()));
+    command.arg(home.path());
+    command.assert().failure().stderr(predicates::str::contains(
+        "Refusing to index the user home directory",
+    ));
+
+    assert!(
+        !project.join(".codemap").exists(),
+        "the index directory must not be created before target validation"
+    );
+}
+
+#[test]
+fn test_index_allows_project_below_user_home() {
+    let home = tempfile::tempdir().unwrap();
+    let project = home.path().join("work/project");
+    std::fs::create_dir_all(project.join("src")).unwrap();
+    std::fs::write(
+        project.join("src/lib.rs"),
+        "pub fn allowed_project_symbol() {}",
+    )
+    .unwrap();
+
+    index_command(&project, Some(home.path()))
+        .assert()
+        .success();
+
+    assert!(
+        project.join(".codemap/index").exists(),
+        "a project below the home directory must remain indexable"
+    );
+}
+
+#[test]
+fn test_index_warns_and_continues_when_home_is_unknown() {
+    let project = create_mock_repo(&[("src/lib.rs", "pub fn unknown_home_symbol() {}")]).unwrap();
+
+    index_command(project.path(), None)
+        .assert()
+        .success()
+        .stderr(predicates::str::contains(
+            "Cannot determine the user home directory",
+        ));
+
+    assert!(project.path().join(".codemap/index").exists());
 }

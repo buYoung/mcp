@@ -216,6 +216,53 @@ async fn test_index_and_codemap_exclude_junk_dirs() {
 }
 
 #[tokio::test]
+async fn test_index_excludes_minified_and_generated_bundles_case_insensitively() {
+    let temp = create_mock_repo(&[
+        ("src/keep.js", "function shared_asset_symbol() {}"),
+        (
+            "src/generated.MIN.js",
+            "function excluded_minified_symbol() {}",
+        ),
+        (
+            "src/generated.bundle.js",
+            "function excluded_bundle_symbol() {}",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let kept = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "search", "arguments": { "query": "shared_asset_symbol" }
+            }),
+        )
+        .await
+        .unwrap();
+    let kept_text = kept["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(kept_text.contains("src/keep.js"), "{kept_text:?}");
+
+    for (query, excluded_path) in [
+        ("excluded_minified_symbol", "generated.MIN.js"),
+        ("excluded_bundle_symbol", "generated.bundle.js"),
+    ] {
+        let response = client
+            .send_request(
+                "tools/call",
+                serde_json::json!({ "name": "search", "arguments": { "query": query } }),
+            )
+            .await
+            .unwrap();
+        let text = response["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(
+            !text.contains(excluded_path),
+            "explicitly excluded file leaked into the index: {text:?}"
+        );
+    }
+}
+
+#[tokio::test]
 async fn test_index_respects_codemapignore() {
     // Child 04: the indexer now honors .codemapignore (gitignore semantics), matching
     // find/grep — previously a find/grep-only behavior, the BM25 index ignored it.

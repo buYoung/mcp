@@ -106,10 +106,12 @@ Use this table as the source of truth for supported keys, accepted types, and de
 ### Indexing
 
 - **`index_path`** — where the tantivy index lives, relative to the repo root. The default keeps it inside the repo-local `.codemap/` directory. The index location is always excluded from walking and from watcher events, so the index never indexes (or re-triggers) itself, including at a custom location.
-- **`max_file_size`** — files larger than this many bytes are silently skipped before read/parse/index. The cap exists to keep minified bundles and generated blobs out of the symbol index; such files remain reachable via `read`/`find`/`grep`.
+- **Workspace safety** — the user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target. Descendant project directories remain valid. The guard runs before repo config, index, or watcher state is created. If both `HOME` and `USERPROFILE` are unavailable, startup warns on stderr and continues.
+- **Built-in file exclusions** — `.md`, `.mdx`, `.txt`, `*.lock`, known package-manager lockfile names, `*.map`, and minified/bundle suffixes are excluded case-insensitively from index, codemap, and caller scans. They are also hidden by default from `find`/`grep`; `include_ignored: true` restores explicit live-tool access, while direct `read`/`parse` remains available. Repo-specific additions belong in `.codemapignore`; the built-in semantic-index exclusions cannot be removed.
+- **`max_file_size`** — files larger than this many bytes are silently skipped before read/parse/index. The cap remains a second guard against generated blobs; such files remain reachable via direct live filesystem tools.
 - **`excluded_directories`** — directory names that are never walked, **added** to the built-ins (`node_modules`, `target`, `dist`, `build`, `vendor`, `.git`, `.codemap`, …). This augments the built-in list; built-ins cannot be removed.
 
-한국어 요약: 색인 설정은 “무엇을 인덱싱할지”를 정합니다. 큰 생성물이나 번들 파일은 `max_file_size`와 `excluded_directories`로 색인에서 빼고, 필요하면 `read`/`find`/`grep`으로 직접 확인합니다.
+한국어 요약: 사용자 홈 자체는 인덱싱 루트로 사용할 수 없지만 홈 아래 프로젝트는 허용합니다. 문서·잠금·source map·minified·bundle 파일은 의미 기반 인덱스에서 항상 제외됩니다. `find`/`grep`은 기본적으로 같은 제외를 따르며 `include_ignored: true`로 명시적 접근할 수 있고, 직접 `read`/`parse`도 유지됩니다. 큰 생성물은 `max_file_size`와 `excluded_directories`로 추가 차단합니다.
 
 ### Search output
 

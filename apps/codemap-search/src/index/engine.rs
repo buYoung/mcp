@@ -526,6 +526,9 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
 /// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
 /// same-second edit still reindexes. Returns `None` when the file is not to be indexed.
 fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, PathBuf, u64)> {
+    if crate::workspace::is_explicitly_excluded_file(entry_path) {
+        return None;
+    }
     let ext = entry_path.extension().and_then(|s| s.to_str())?;
     if !crate::workspace::is_source_extension(ext) {
         return None;

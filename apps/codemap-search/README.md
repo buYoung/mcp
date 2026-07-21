@@ -289,9 +289,17 @@ server:
 | `read` aliases | `read` also accepts `path`/`file` for `file_path`, and 1-based inclusive `start_line`/`end_line` for `offset`/`limit`. | — |
 
 `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
-default; pass `include_ignored: true` to bypass **all** ignore sources for that call. To
-turn off only `.git/info/exclude` (everywhere, while keeping `.gitignore`), use the
-`use_git_exclude` config key (see [docs/configuration.md](./docs/configuration.md)).
+default. Lockfiles, source maps, minified/bundle files, and `.md`/`.mdx`/`.txt` are also
+excluded from default live-tool results and the semantic index. Pass
+`include_ignored: true` to bypass ignore and file-exclusion rules for a `find`/`grep`
+call; direct `read` remains available. To turn off only `.git/info/exclude` (everywhere,
+while keeping `.gitignore`), use the `use_git_exclude` config key (see
+[docs/configuration.md](./docs/configuration.md)).
+
+Using the user home directory itself as the workspace or an explicit `index`/`benchmark`
+target is refused before repo config, index, or watcher state is created. Descendant
+projects such as `~/work/project` remain valid. If neither `HOME` nor `USERPROFILE` is
+available, codemap-search warns on stderr and continues.
 
 ## CLI
 

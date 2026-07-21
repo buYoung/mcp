@@ -46,6 +46,9 @@ impl BenchmarkEngine {
         {
             let p = entry.path();
             if p.is_file() {
+                if crate::workspace::is_explicitly_excluded_file(p) {
+                    continue;
+                }
                 if let Some(ext) = p.extension().and_then(|s| s.to_str()) {
                     if crate::workspace::is_source_extension(ext) {
                         source_files.push(p.to_path_buf());

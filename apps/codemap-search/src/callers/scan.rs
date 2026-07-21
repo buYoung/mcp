@@ -184,6 +184,9 @@ pub(super) fn scan_workspace(
             continue;
         }
         let path = entry.path();
+        if crate::workspace::is_explicitly_excluded_file(path) {
+            continue;
+        }
         // Same coverage as the indexer: source extensions only, under the size filter.
         let ext = match path.extension().and_then(|s| s.to_str()) {
             Some(e) => e,

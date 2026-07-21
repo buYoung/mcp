@@ -164,3 +164,25 @@ fn test_codemap_non_source_files() {
         .stdout(predicates::str::contains("image.png").not())
         .stdout(predicates::str::contains("archive.zip").not());
 }
+
+#[test]
+fn test_codemap_excludes_minified_and_generated_bundles() {
+    let temp = create_mock_repo(&[
+        ("src/keep.js", "function visible_codemap_symbol() {}"),
+        (
+            "src/generated.MIN.js",
+            "function hidden_minified_codemap_symbol() {}",
+        ),
+        (
+            "src/generated.bundle.js",
+            "function hidden_bundle_codemap_symbol() {}",
+        ),
+    ])
+    .unwrap();
+
+    run_cli(&["codemap", "--path", "src"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("visible_codemap_symbol"))
+        .stdout(predicates::str::contains("hidden_minified_codemap_symbol").not())
+        .stdout(predicates::str::contains("hidden_bundle_codemap_symbol").not());
+}

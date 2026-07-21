@@ -181,6 +181,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Mcp => {
+            codemap_search::workspace::ensure_index_root_is_not_user_home(&cwd)?;
             // When `[update].config_auto_update` is true, scaffold `.codemap/config.toml`
             // when absent, else incrementally sync it to the current schema version
             // (additive, presence-guarded, a no-op when already current) — `mcp` only,
@@ -223,6 +224,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             language_hint,
             extension_hint,
         } => {
+            codemap_search::workspace::ensure_index_root_is_not_user_home(&cwd)?;
             let engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             let search_context = SearchQueryContext {
@@ -235,12 +237,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Index { dir } => {
+            codemap_search::workspace::ensure_index_root_is_not_user_home(Path::new(dir))?;
             let mut engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
             engine.index_files(&[dir])?;
             println!("Indexed directory {}", dir);
         }
         Commands::Benchmark { dir, queries } => {
+            codemap_search::workspace::ensure_index_root_is_not_user_home(Path::new(dir))?;
             let extractor = TreeSitterExtractor::new();
             let mut engine =
                 index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;

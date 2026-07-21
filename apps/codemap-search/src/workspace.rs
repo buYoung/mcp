@@ -13,6 +13,7 @@
 //! toggle — an accepted dependency on the global config singleton.
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum FilesystemTool {
@@ -89,20 +90,97 @@ pub fn is_source_extension(ext: &str) -> bool {
     crate::lang::source_extensions().contains(ext)
 }
 
-/// Minified web bundle filename suffixes excluded as default `grep` noise (the
-/// file-level analogue of the [`EXCLUDED_DIRS`] junk-dir set). A generated `*.min.js` /
-/// `*.min.css` bundle is single-line and machine-produced — its matches are noise, never
-/// the hand-written source a `grep` is after. Same bypass semantics as the junk dirs: this
-/// applies only while ignore rules are respected, so `include_ignored` reaches the file.
-const MINIFIED_BUNDLE_SUFFIXES: &[&str] = &[".min.js", ".min.css", ".min.cjs", ".min.mjs"];
+/// Lockfiles whose names do not end in `.lock`. The ordinary `.lock` suffix rule covers
+/// Cargo/Gemfile/Composer/Poetry/Pipfile/Yarn lockfiles; these package-manager spellings
+/// need exact-name coverage before JSON/YAML become indexable languages.
+const EXCLUDED_LOCKFILE_NAMES: &[&str] = &[
+    "package-lock.json",
+    "npm-shrinkwrap.json",
+    "pnpm-lock.yaml",
+    "bun.lockb",
+];
 
-/// Whether `file_name` is a minified web bundle (see [`MINIFIED_BUNDLE_SUFFIXES`]). The
-/// match is on the literal basename suffix (case-sensitive, matching the source-extension
-/// comparison), so `app.min.js` is a bundle but `app.js` is not.
+const MINIFIED_BUNDLE_SUFFIXES: &[&str] =
+    &[".min.js", ".min.mjs", ".min.cjs", ".min.css", ".min.html"];
+
+const GENERATED_BUNDLE_SUFFIXES: &[&str] =
+    &[".bundle.js", ".bundle.mjs", ".bundle.cjs", ".bundle.css"];
+
+const INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES: &[&str] = &[".md", ".mdx", ".txt"];
+
+/// Whether `file_name` is a minified web bundle. Matching is ASCII-case-insensitive so
+/// the policy is stable across case-sensitive and case-insensitive filesystems.
 pub fn is_minified_bundle(file_name: &str) -> bool {
+    let normalized = file_name.to_ascii_lowercase();
     MINIFIED_BUNDLE_SUFFIXES
         .iter()
-        .any(|suffix| file_name.ends_with(suffix))
+        .any(|suffix| normalized.ends_with(suffix))
+}
+
+/// Files that are never useful in the semantic index or codemap: intentionally unsupported
+/// prose, dependency lock state, source maps, minified assets, and generated bundles.
+/// Index/codemap/caller consumers call this at their final file boundary; live `find`/`grep`
+/// apply it only by default so `include_ignored=true` and direct `read`/`parse` remain
+/// available. The indexer's single-file gate prevents watcher events from bypassing it.
+pub fn is_explicitly_excluded_file(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let normalized = file_name.to_ascii_lowercase();
+    normalized.ends_with(".lock")
+        || normalized.ends_with(".map")
+        || EXCLUDED_LOCKFILE_NAMES.contains(&normalized.as_str())
+        || is_minified_bundle(&normalized)
+        || GENERATED_BUNDLE_SUFFIXES
+            .iter()
+            .any(|suffix| normalized.ends_with(suffix))
+        || INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES
+            .iter()
+            .any(|suffix| normalized.ends_with(suffix))
+}
+
+fn user_home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var_os("USERPROFILE").filter(|value| !value.is_empty()))
+        .map(PathBuf::from)
+}
+
+fn path_resolved_from_cwd(path: &Path) -> PathBuf {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
+    };
+    canonicalize_path_lenient(&absolute)
+}
+
+/// Refuse only the user's home directory itself as an indexing root. Descendant project
+/// directories remain valid. When neither HOME nor USERPROFILE is available, emit one
+/// process-wide stderr warning and allow indexing, preserving headless MCP compatibility.
+pub fn ensure_index_root_is_not_user_home(root: &Path) -> Result<(), String> {
+    let Some(home) = user_home_dir() else {
+        static HOME_WARNING: OnceLock<()> = OnceLock::new();
+        if HOME_WARNING.set(()).is_ok() {
+            eprintln!(
+                "Warning: Cannot determine the user home directory from HOME or USERPROFILE; allowing indexing root '{}'.",
+                root.display()
+            );
+        }
+        return Ok(());
+    };
+
+    let resolved_root = path_resolved_from_cwd(root);
+    let resolved_home = path_resolved_from_cwd(&home);
+    if resolved_root == resolved_home {
+        return Err(format!(
+            "Refusing to index the user home directory '{}'. Run codemap-search from a project directory below the home directory instead.",
+            resolved_home.display()
+        ));
+    }
+    Ok(())
 }
 
 /// Leniently canonicalize a path that may not fully exist on disk: resolve the deepest
@@ -343,6 +421,9 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
 /// minified/binary blobs are never parsed wholesale (Child 04). Shared by the
 /// `overview` walk (`mcp.rs`) and the CLI `codemap` walk (`main.rs`).
 pub fn read_source_for_parse(path: &Path) -> Option<String> {
+    if is_explicitly_excluded_file(path) {
+        return None;
+    }
     let metadata = std::fs::metadata(path).ok()?;
     if metadata.len() > crate::config::get().max_file_size {
         return None;
@@ -472,5 +553,57 @@ mod tests {
             workspace_relative_key(Path::new(".\\src\\lib.rs"), &root),
             "src/lib.rs"
         );
+    }
+
+    #[test]
+    fn test_explicit_file_exclusions_are_case_insensitive_and_narrow() {
+        for excluded in [
+            "Cargo.lock",
+            "PACKAGE-LOCK.JSON",
+            "npm-shrinkwrap.json",
+            "pnpm-lock.yaml",
+            "bun.lockb",
+            "app.MIN.js",
+            "app.min.mjs",
+            "app.min.cjs",
+            "styles.min.css",
+            "page.min.html",
+            "app.BUNDLE.js",
+            "app.bundle.mjs",
+            "app.bundle.cjs",
+            "styles.bundle.css",
+            "app.js.map",
+            "README.md",
+            "guide.MDX",
+            "notes.txt",
+        ] {
+            assert!(
+                is_explicitly_excluded_file(Path::new(excluded)),
+                "expected explicit exclusion for {excluded}"
+            );
+        }
+
+        for included in [
+            "Cargo.toml",
+            "package.json",
+            "pnpm-workspace.yaml",
+            "unlock.rs",
+            "app.js",
+            "bundle.js",
+            "map.rs",
+        ] {
+            assert!(
+                !is_explicitly_excluded_file(Path::new(included)),
+                "ordinary source/config file must remain eligible: {included}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_minified_bundle_compatibility_predicate_is_case_insensitive() {
+        assert!(is_minified_bundle("APP.MIN.JS"));
+        assert!(is_minified_bundle("styles.min.css"));
+        assert!(!is_minified_bundle("app.bundle.js"));
+        assert!(!is_minified_bundle("app.js"));
     }
 }

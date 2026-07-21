@@ -317,6 +317,92 @@ async fn test_find_include_ignored_bypass() {
 }
 
 #[tokio::test]
+async fn test_find_and_grep_exclude_generated_files_unless_explicitly_bypassed() {
+    let temp = create_mock_repo(&[
+        ("src/keep.js", "const exclusion_probe = 'keep';\n"),
+        ("src/app.min.js", "const exclusion_probe = 'minified';\n"),
+        ("src/app.bundle.js", "const exclusion_probe = 'bundle';\n"),
+        ("package-lock.json", "{\"exclusion_probe\": \"lock\"}\n"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let default_find = client
+        .send_request(
+            "tools/call",
+            call("find", serde_json::json!({ "pattern": "**/*" })),
+        )
+        .await
+        .unwrap();
+    let default_find_text = text(&default_find);
+    assert!(default_find_text.contains("src/keep.js"));
+    for excluded in ["app.min.js", "app.bundle.js", "package-lock.json"] {
+        assert!(
+            !default_find_text.contains(excluded),
+            "default find leaked {excluded}: {default_find_text:?}"
+        );
+    }
+
+    let bypass_find = client
+        .send_request(
+            "tools/call",
+            call(
+                "find",
+                serde_json::json!({ "pattern": "**/*", "include_ignored": true }),
+            ),
+        )
+        .await
+        .unwrap();
+    let bypass_find_text = text(&bypass_find);
+    for excluded in ["app.min.js", "app.bundle.js", "package-lock.json"] {
+        assert!(
+            bypass_find_text.contains(excluded),
+            "include_ignored should reveal {excluded}: {bypass_find_text:?}"
+        );
+    }
+
+    let default_grep = client
+        .send_request(
+            "tools/call",
+            call("grep", serde_json::json!({ "pattern": "exclusion_probe" })),
+        )
+        .await
+        .unwrap();
+    let default_grep_text = text(&default_grep);
+    assert!(default_grep_text.contains("src/keep.js"));
+    assert!(!default_grep_text.contains("app.min.js"));
+    assert!(!default_grep_text.contains("app.bundle.js"));
+    assert!(!default_grep_text.contains("package-lock.json"));
+
+    let bypass_grep = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({
+                    "pattern": "exclusion_probe",
+                    "include_ignored": true
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+    let bypass_grep_text = text(&bypass_grep);
+    assert!(bypass_grep_text.contains("app.min.js"));
+    assert!(bypass_grep_text.contains("app.bundle.js"));
+    assert!(bypass_grep_text.contains("package-lock.json"));
+
+    let direct_read = client
+        .send_request(
+            "tools/call",
+            call("read", serde_json::json!({ "file_path": "src/app.min.js" })),
+        )
+        .await
+        .unwrap();
+    assert!(text(&direct_read).contains("exclusion_probe"));
+}
+
+#[tokio::test]
 async fn test_find_accepts_windows_style_relative_pattern() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

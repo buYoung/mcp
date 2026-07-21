@@ -222,7 +222,9 @@ codex mcp add codemap-search -- codemap-search mcp
 | `find` | glob으로 파일을 찾습니다. 결과는 수정 시간순으로 정렬되고 상한이 있습니다. | `pattern`, `path`, `include_ignored` |
 | `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 
-`read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 한 호출에서 모든 ignore 규칙을 우회하려면 `include_ignored: true`를 전달하세요. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
+`read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.md`/`.mdx`/`.txt`도 기본 결과와 의미 기반 인덱스에서 제외됩니다. 한 호출에서 ignore 및 파일 제외 규칙을 우회하려면 `include_ignored: true`를 전달하세요. 직접 `read`는 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
+
+사용자 홈 디렉터리 자체를 작업공간 또는 `index`/`benchmark` 대상으로 지정하면 설정·인덱스·watcher를 만들기 전에 거부합니다. `~/work/project` 같은 홈 아래 프로젝트는 정상적으로 허용합니다. `HOME`과 `USERPROFILE`을 모두 확인할 수 없는 환경에서는 `stderr`에 경고하고 실행을 계속합니다.
 
 ## CLI
 
