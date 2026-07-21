@@ -78,64 +78,76 @@
 
 ## 1순위 — 설정 및 구조화 데이터
 
-- [ ] JSON 지원: `.json`
-- [ ] JSON with Comments 지원: `.jsonc`
-- [ ] JSON5 지원: `.json5`
-- [ ] TOML 지원: `.toml`
-- [ ] YAML 지원: `.yaml`, `.yml`
-- [ ] 파일을 텍스트 검색 대상으로 포함
-- [ ] 키와 중첩 키 경로를 심볼로 추출
-- [ ] 배열과 스칼라 값은 텍스트 검색 대상으로만 처리
-- [ ] 호출자·피호출자 탐색은 비활성화
+- [x] JSON 지원: `.json` (tree-sitter AST)
+- [x] JSON with Comments 지원: `.jsonc` (유효한 quoted-key JSONC, tree-sitter AST)
+- [ ] JSON5 구조 지원: 현재 Rust grammar가 `tree-sitter ~0.20`에 고정되어 지원 레지스트리에서 제외
+- [x] TOML 지원: `.toml` (tree-sitter AST)
+- [x] YAML 지원: `.yaml`, `.yml` (tree-sitter AST)
+- [x] 파일을 텍스트 검색 대상으로 포함
+- [x] 키와 중첩 키 경로를 심볼로 추출
+- [x] 배열과 스칼라 값은 텍스트 검색 대상으로만 처리
+- [x] 호출자·피호출자 탐색은 비활성화
 
 ## 2순위 — 웹, 스타일 및 마크업
 
 ### 독립 파일
 
-- [ ] HTML 지원: `.html`, `.htm`
-- [ ] XML 지원: `.xml`
-- [ ] XML 파생 형식 지원 여부 결정
+- [x] HTML 지원: `.html`, `.htm` (tree-sitter AST)
+- [x] XML 지원: `.xml` (tree-sitter AST)
+- [x] XML 파생 형식은 XML syntax 수준으로 지원
   - `.xsd`, `.xsl`, `.xslt`
   - `.plist`
   - `.csproj`, `.props`, `.targets`
-- [ ] CSS 지원: `.css`
-- [ ] Sass/SCSS 지원: `.sass`, `.scss`
-- [ ] Less 지원: `.less`
-- [ ] HTML/XML의 태그, `id`, `class`를 심볼로 추출
-- [ ] CSS 계열의 selector, 변수, mixin, animation 이름을 심볼로 추출
-- [ ] 호출자·피호출자 탐색은 비활성화
+- [x] CSS 지원: `.css` (tree-sitter AST)
+- [ ] Sass 구조 지원: 호환되는 들여쓰기형 `.sass` grammar를 확인할 때까지 지원 레지스트리에서 제외
+- [x] SCSS 구조 지원: `.scss` (tree-sitter AST)
+- [x] Less 구조 지원: `.less` (tree-sitter AST)
+- [x] HTML/XML의 태그, `id`, `class`를 심볼로 추출
+- [x] CSS selector, custom property, keyframes 이름을 심볼로 추출
+- [x] 호출자·피호출자 탐색은 비활성화
 
 ### 복합 컴포넌트
 
 현재 Vue, Astro, Svelte는 내부 JavaScript/TypeScript 영역을 추출한다. HTML/CSS 문법을 등록하는 것만으로 `<template>`과 `<style>` 영역이 자동 지원되지는 않는다.
 
-- [ ] Vue의 `<template>` 및 `<style>` 영역 검색 지원
-- [ ] Astro의 마크업 및 `<style>` 영역 검색 지원
-- [ ] Svelte의 마크업 및 `<style>` 영역 검색 지원
-- [ ] 복합 파일에서 추출한 결과의 원본 줄·열 좌표 보존
-- [ ] 같은 심볼이 여러 영역에서 중복 노출되지 않도록 병합 규칙 정의
+- [ ] Vue의 `<template>` 및 `<style>` 구조 심볼 지원 (embedded JS/TS와 전체 text 검색만 유지)
+- [ ] Astro의 마크업 및 `<style>` 구조 심볼 지원 (embedded JS/TS와 전체 text 검색만 유지)
+- [ ] Svelte의 마크업 및 `<style>` 구조 심볼 지원 (embedded JS/TS와 전체 text 검색만 유지)
+- [x] 복합 파일에서 추출한 결과의 원본 줄·열 좌표 보존
+- [x] 같은 심볼이 여러 영역에서 중복 노출되지 않도록 병합 규칙 정의
 
 ## 3순위 — 범용 스크립트
 
-- [ ] Shell 지원: `.sh`, `.bash`, `.zsh`
-- [ ] 함수, 변수, 환경 변수를 심볼로 추출
-- [ ] `source` 및 `.` 명령으로 불러오는 파일을 import로 추출
-- [ ] 정적으로 확인 가능한 함수 호출 관계 지원 여부 결정
-- [ ] 동적 명령 실행을 호출 관계에서 제외하거나 낮은 신뢰도로 처리
+- [x] Shell 지원: `.sh`, `.bash` (tree-sitter Bash AST)
+- [x] `.zsh` 구조 지원: tree-sitter Zsh AST
+- [x] 함수, 변수, 환경 변수를 심볼로 추출
+- [x] literal `source` 및 `.` 명령으로 불러오는 파일을 import로 추출
+- [x] 정적으로 확인 가능한 함수 호출 관계 지원 여부 결정
+- [x] 동적 명령 실행을 호출 관계에서 제외하거나 낮은 신뢰도로 처리
+
+Shell은 정적 호출도 일반 호출 그래프에 넣지 않으며, 동적 명령 실행·`eval`·간접 확장과
+변수·명령 치환을 포함한 dynamic source는 `calls`·`references`·`imports`에서 모두 제외한다.
 
 ## 4순위 — 인프라 및 인터페이스
 
-- [ ] HCL/Terraform 지원: `.hcl`, `.tf`, `.tfvars`
-- [ ] Dockerfile 지원
-- [ ] Protocol Buffers 지원: `.proto`
-- [ ] GraphQL 지원: `.graphql`, `.gql`
-- [ ] 확장자뿐 아니라 정확한 파일명으로 형식을 등록하는 기능 추가
+- [x] HCL/Terraform 지원: `.hcl`, `.tf`, `.tfvars` (tree-sitter AST)
+- [x] Dockerfile 구조 지원: 정확한 파일명 등록 및 tree-sitter Containerfile AST
+- [x] Protocol Buffers 지원: `.proto` (tree-sitter AST)
+- [x] GraphQL 지원: `.graphql`, `.gql` (tree-sitter AST)
+- [x] 확장자뿐 아니라 정확한 파일명으로 형식을 등록하는 기능 추가
   - `Dockerfile`
   - `Makefile`
   - `CMakeLists.txt`
   - `BUILD`, `BUILD.bazel`
-- [ ] 선언, 리소스, 서비스, 타입을 형식별 심볼로 추출
-- [ ] 호출 관계 대신 참조·의존 관계를 제공할 형식 결정
+- [x] 선언, 리소스, 서비스, 타입을 형식별 심볼로 추출
+- [x] 호출 관계 대신 참조·의존 관계를 제공할 형식 결정
+
+HCL/Terraform은 확인 가능한 `var`·`local`·`module`·`data` 참조와 literal module
+`source`만, Protobuf는 `import`와 field/RPC type만, GraphQL은 fragment spread와 named
+type reference만 기록한다. Dockerfile은 ARG·ENV·LABEL·stage 심볼과 base image 의존성을
+tree-sitter AST에서 기록한다. 모든 형식에서 `calls`는 비워 두며
+동적·모호한 관계는 생략한다. 이름이 없는 `terraform` block과 GraphQL `schema` definition은
+각 grammar AST node에서 안정된 선언 심볼로 기록한다.
 
 ## 5순위 — 추가 프로그래밍 언어
 
@@ -158,13 +170,13 @@
 
 ## 7순위 — 빌드 시스템 및 기타 형식
 
-- [ ] CMake 지원: `.cmake`, `CMakeLists.txt`
-- [ ] Make 지원: `Makefile`, `.mk`
-- [ ] Starlark/Bazel 지원: `.bzl`, `BUILD`, `BUILD.bazel`
+- [x] CMake 지원: `.cmake`, `CMakeLists.txt` (tree-sitter AST)
+- [x] Make 지원: `Makefile`, `.mk` (tree-sitter AST)
+- [x] Starlark/Bazel 지원: `.bzl`, `BUILD`, `BUILD.bazel` (tree-sitter AST)
 - [ ] Nix 지원: `.nix`
 - [ ] WebAssembly text 지원: `.wat`, `.wast`
-- [ ] target, rule, task, 변수를 형식별 심볼로 추출
-- [ ] target 간 의존성을 일반 호출 관계와 별도로 표현
+- [x] target, rule, 변수를 형식별 심볼로 추출
+- [x] target 간 의존성을 일반 호출 관계와 별도로 표현
 
 ## SQL 정책
 
@@ -182,10 +194,10 @@
 
 새로운 언어나 파일 형식을 완료 처리하려면 다음 조건을 확인한다.
 
-- [ ] 지원 확장자 또는 정확한 파일명이 중앙 등록부에서 최종 파일 탐색기로 전달된다.
-- [ ] 잠금·압축·번들 파일 제외 규칙이 지원 확장자보다 우선한다.
-- [ ] 선택한 지원 단계가 실제 검색, codemap, 심볼 상세 정보 또는 탐색 결과까지 전달된다.
-- [ ] 지원하지 않는 단계는 빈 결과와 오류 중 어떤 동작을 사용할지 명확히 정의한다.
-- [ ] 파서 오류가 인덱서나 MCP 서버 종료로 이어지지 않는다.
-- [ ] 생성 파일과 대용량 파일에 대한 기존 보호 정책을 유지한다.
-- [ ] 사용자 문서의 지원 언어·확장자 목록과 실제 등록부를 일치시킨다.
+- [x] 지원 확장자 또는 정확한 파일명이 중앙 등록부에서 최종 파일 탐색기로 전달된다.
+- [x] 잠금·압축·번들 파일 제외 규칙이 지원 확장자보다 우선한다.
+- [x] 선택한 지원 단계가 실제 검색, codemap, 심볼 상세 정보 또는 탐색 결과까지 전달된다.
+- [x] 지원하지 않는 단계는 빈 결과와 오류 중 어떤 동작을 사용할지 명확히 정의한다.
+- [x] 파서 오류가 인덱서나 MCP 서버 종료로 이어지지 않는다.
+- [x] 생성 파일과 대용량 파일에 대한 기존 보호 정책을 유지한다.
+- [x] 사용자 문서의 지원 언어·확장자 목록과 실제 등록부를 일치시킨다.

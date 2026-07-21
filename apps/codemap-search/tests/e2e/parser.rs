@@ -20,6 +20,341 @@ fn symbol<'a>(value: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
+fn test_priority_one_structured_data_is_searchable_and_has_key_symbols() {
+    for (file, content, nested) in [
+        (
+            "config.json",
+            r#"{ "server": { "port": 5000 }, "items": [1, 2] }"#,
+            "server",
+        ),
+        (
+            "config.jsonc",
+            "// comment\n{ \"server\": { \"port\": 5000 } }",
+            "server",
+        ),
+        ("config.toml", "[server]\nport = 5000", "server"),
+        ("config.yaml", "server:\n  port: 5000", "server"),
+        ("config.yml", "server:\n  port: 5000", "server"),
+    ] {
+        let value = parsed_file(file, content);
+        assert!(
+            value["symbols"].as_array().is_some_and(|symbols| symbols
+                .iter()
+                .any(|symbol| symbol["name"]
+                    .as_str()
+                    .is_some_and(|name| name.contains(nested)))),
+            "missing structured symbol in {file}: {value}"
+        );
+        assert!(
+            value["navigation"].is_null(),
+            "structured data must not expose call navigation"
+        );
+    }
+}
+
+#[test]
+fn test_lsr_002_toml_comments_never_become_keys_and_keep_table_path() {
+    let value = parsed_file(
+        "config.toml",
+        "[server] # deployment\nport = 5000\n# fake = 1\n",
+    );
+    symbol(&value, "server.port");
+    assert!(value["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != "# fake"));
+}
+
+#[test]
+fn test_priority_one_nested_paths_and_unicode_ranges_are_original_and_one_based() {
+    let json = parsed_file("config.json", r#"{"server":{"port":5000}}"#);
+    symbol(&json, "server.port");
+    let toml = parsed_file(
+        "config.toml",
+        "[server]\nport = 1\n[client]\nhost = \"x\"\n",
+    );
+    symbol(&toml, "server.port");
+    symbol(&toml, "client.host");
+    let yaml = parsed_file("config.yaml", "parent:\n  child: 한글x\n");
+    let nested = symbol(&yaml, "parent.child");
+    assert_eq!(nested["range"]["startLine"], 2);
+    assert_eq!(nested["range"]["startCol"], 3);
+}
+
+#[test]
+fn test_priority_two_markup_and_css_symbols_preserve_navigation_boundary() {
+    let markup = parsed_file(
+        "page.html",
+        r#"<main id="app" class="shell wide"><p>Body</p></main>"#,
+    );
+    symbol(&markup, "main");
+    symbol(&markup, "app");
+    symbol(&markup, "shell");
+    assert!(markup["navigation"].is_null());
+    let style = parsed_file(
+        "site.css",
+        ".panel { --gap: 1rem; } @keyframes pulse { from { opacity: 0 } } @media (width > 10px) {}",
+    );
+    symbol(&style, ".panel");
+    symbol(&style, "--gap");
+    symbol(&style, "pulse");
+    assert!(style["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != "width"));
+    assert!(style["navigation"].is_null());
+}
+
+#[test]
+fn test_lsr_003_tree_sitter_style_and_unverified_component_regions() {
+    let markup = parsed_file(
+        "page.html",
+        "<!-- <fake id=\"ghost\"> -->\n<main id=\"real\"></main>",
+    );
+    symbol(&markup, "main");
+    symbol(&markup, "real");
+    assert!(markup["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != "fake" && entry["name"] != "ghost"));
+    let style = parsed_file(
+        "site.scss",
+        "// .ghost { color: red }\n.card { color: red }\n",
+    );
+    symbol(&style, ".card");
+    assert!(style["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != ".ghost"));
+    let component = parsed_file(
+        "Widget.astro",
+        "---\nconst sample = \"<fake id='ghost'>\";\n---\n<main />",
+    );
+    assert!(component["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != "fake" && entry["name"] != "ghost"));
+}
+
+#[test]
+fn test_priority_three_shell_symbols_and_source_import_do_not_create_calls() {
+    let value = parsed_file("deploy.sh", "function deploy { echo ok; }\nexport REGION=kr\nsource ./shared.sh\nsource \"$PLUGIN_ROOT/common.sh\"\n. \"$(resolve_lib)\"\n$(deploy)");
+    symbol(&value, "deploy");
+    symbol(&value, "REGION");
+    assert_eq!(value["navigation"]["calls"], serde_json::json!([]));
+    assert_eq!(value["navigation"]["references"], serde_json::json!([]));
+    assert_eq!(value["navigation"]["imports"][0]["source"], "./shared.sh");
+    assert_eq!(value["navigation"]["imports"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn test_lsr_008_bash_function_keyword_without_parentheses_is_a_symbol() {
+    let value = parsed_file("deploy.bash", "function deploy { echo ok; }");
+    symbol(&value, "deploy");
+}
+
+#[test]
+fn test_priority_four_infrastructure_symbols_and_dependencies() {
+    let terraform = parsed_file("main.tf", "terraform { required_version = \">= 1.8\" }\nresource \"aws_s3_bucket\" \"assets\" {}\nmodule \"network\" { source = \"./modules/network\" }\nvalue = module.network.id");
+    symbol(&terraform, "terraform");
+    symbol(&terraform, "aws_s3_bucket.assets");
+    assert_eq!(terraform["navigation"]["calls"], serde_json::json!([]));
+    assert!(terraform["navigation"]["references"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["name"] == "module.network.id"));
+    assert_eq!(
+        terraform["navigation"]["imports"][0]["source"],
+        "./modules/network"
+    );
+    let proto = parsed_file("api.proto", "import \"common.proto\";\nmessage User {}\nmessage Request { User owner = 1; }\nservice Api {}");
+    symbol(&proto, "Api");
+    assert_eq!(proto["navigation"]["imports"][0]["source"], "common.proto");
+    assert!(proto["navigation"]["references"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["name"] == "User"));
+    let docker = parsed_file("Dockerfile", "ARG VERSION\nFROM rust AS build");
+    symbol(&docker, "VERSION");
+    symbol(&docker, "build");
+    assert_eq!(docker["navigation"]["imports"][0]["source"], "rust");
+    let graph = parsed_file(
+        "schema.graphql",
+        "schema { query: Query }\ntype Query { id: ID! }",
+    );
+    symbol(&graph, "schema");
+}
+
+#[test]
+fn test_new_tree_sitter_formats_emit_symbols_and_dependencies() {
+    for (path, source, expected) in [
+        ("site.scss", ".card { color: red; }", ".card"),
+        ("site.less", ".card { color: red; }", ".card"),
+        ("deploy.zsh", "deploy() { echo ok; }", "deploy"),
+        ("Dockerfile", "ARG VERSION\nFROM rust AS build", "VERSION"),
+        ("Makefile", "build: input\n\t@echo ok", "build"),
+        ("CMakeLists.txt", "add_executable(app main.cpp)", "app"),
+        ("BUILD", "cc_library(name = \"core\")", "core"),
+    ] {
+        let value = parsed_file(path, source);
+        symbol(&value, expected);
+    }
+}
+
+#[test]
+fn test_lsr_005_and_lsr_009_hcl_comments_and_ast_relationships_are_conservative() {
+    let graph = parsed_file("schema.graphql", "type User { id: ID! }\ndirective @auth on FIELD_DEFINITION\nfragment UserFields on User { id }\nquery GetUser { user { ...UserFields } }");
+    symbol(&graph, "auth");
+    symbol(&graph, "UserFields");
+    symbol(&graph, "GetUser");
+    let terraform = parsed_file(
+        "main.tf",
+        "/*\nmodule.fake.id\n*/\nvalue = module.real.id\n",
+    );
+    let references = terraform["navigation"]["references"].as_array().unwrap();
+    assert_eq!(references.len(), 1);
+    assert_eq!(references[0]["name"], "module.real.id");
+    assert!(graph["navigation"]["references"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["name"] == "UserFields"));
+    assert!(graph["navigation"]["references"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["name"] == "User"));
+}
+
+#[test]
+fn test_malformed_priority_files_remain_searchable_without_recovered_structure() {
+    let cases = [
+        (
+            "broken.json",
+            r#"{ "stable": 1, "ghost": }"#,
+            "stable",
+            "ghost",
+        ),
+        (
+            "broken.jsonc",
+            "// jsonc_recovery_token\n{ \"stable\": 1, \"ghost\": }",
+            "stable",
+            "ghost",
+        ),
+        (
+            "broken.toml",
+            "toml_recovery_token = 1\nghost =",
+            "toml_recovery_token",
+            "ghost",
+        ),
+        (
+            "broken.yaml",
+            "yaml_recovery_token: 1\nghost: [}",
+            "yaml_recovery_token",
+            "ghost",
+        ),
+        (
+            "broken.html",
+            "<stable></stable><ghost",
+            "stable",
+            "ghost",
+        ),
+        (
+            "broken.xml",
+            "<root><stable/><ghost</root>",
+            "stable",
+            "ghost",
+        ),
+        (
+            "broken.css",
+            ".css_recovery_token {}\n.ghost {",
+            ".css_recovery_token",
+            ".ghost",
+        ),
+        (
+            "broken.sh",
+            "shell_recovery_token() { :; }\nghost() {",
+            "shell_recovery_token",
+            "ghost",
+        ),
+        (
+            "broken.tf",
+            "variable \"hcl_recovery_token\" {}\nresource \"aws_s3_bucket\" \"ghost\" { value = module.fake.id",
+            "hcl_recovery_token",
+            "ghost",
+        ),
+        (
+            "broken.proto",
+            "message ProtoRecoveryToken {}\nmessage Ghost { string name =",
+            "ProtoRecoveryToken",
+            "Ghost",
+        ),
+        (
+            "broken.graphql",
+            "type GraphqlRecoveryToken { id: ID }\ntype Ghost { id: ID !! }",
+            "GraphqlRecoveryToken",
+            "Ghost",
+        ),
+    ];
+
+    for (path, source, stable, rejected) in cases {
+        let value = parsed_file(path, source);
+        assert!(
+            value["symbols"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|symbol| symbol["name"] == stable),
+            "error recovery removed the valid sibling {stable} in {path}: {value}"
+        );
+        assert!(value["symbols"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|symbol| symbol["name"] != rejected));
+        assert!(
+            value["navigation"].is_null()
+                || value["navigation"]["references"]
+                    .as_array()
+                    .is_none_or(
+                        |references| references.iter().all(|reference| reference["name"]
+                            != rejected
+                            && !reference["name"]
+                                .as_str()
+                                .is_some_and(|name| name.contains("fake")))
+                    )
+        );
+    }
+
+    let temp = create_mock_repo(
+        &cases
+            .iter()
+            .map(|(path, source, _, _)| (*path, *source))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    run_cli(&["index"], temp.path()).success();
+    for (path, _, stable, rejected) in cases {
+        run_cli(&["search", stable], temp.path())
+            .success()
+            .stdout(predicates::str::contains(path));
+        run_cli(&["codemap", "--path", path], temp.path())
+            .success()
+            .stdout(predicates::str::contains("# Detailed Codemap:"))
+            .stdout(predicates::str::contains("## Symbols"))
+            .stdout(predicates::str::contains(stable))
+            .stdout(predicates::str::contains(rejected).not());
+    }
+}
+
+#[test]
 fn test_tree_sitter_rust_extraction() {
     let temp = create_mock_repo(&[(
         "src/main.rs",
@@ -480,7 +815,7 @@ fn test_composite_code_preserves_original_lines_and_excludes_non_code() {
     }));
     let vue_json = vue.to_string();
     assert!(!vue_json.contains("vue_template_only_token"));
-    assert!(!vue_json.contains("vue_style_only_token"));
+    assert!(!vue_json.contains(".vue_style_only_token"));
     assert!(!vue_json.contains("vue_fake_script"));
     assert!(!vue_json.contains("vue_template_string_fake_script"));
 

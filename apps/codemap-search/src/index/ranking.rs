@@ -256,13 +256,12 @@ fn symbol_name_frequencies(candidates: &[CandidateFile]) -> HashMap<String, usiz
 }
 
 fn language_prior_adjustment(file_path: &str, context: &NormalizedSearchQueryContext) -> f32 {
-    let candidate_extension = Path::new(file_path)
+    let candidate_path = Path::new(file_path);
+    let candidate_extension = candidate_path
         .extension()
         .and_then(|value| value.to_str())
         .map(|value| value.to_ascii_lowercase());
-    let candidate_language = candidate_extension
-        .as_deref()
-        .and_then(crate::lang::language_name_for_extension);
+    let candidate_language = crate::lang::language_name_for_path(candidate_path);
 
     let mut adjustment = 0.0;
     if let Some(language_hint) = context.language_hint {
@@ -490,6 +489,7 @@ impl SearcherHandle {
                 self.literal_field,
                 self.definition_body_field,
                 self.reference_field,
+                self.format_text_field,
             ],
         );
 
@@ -501,6 +501,7 @@ impl SearcherHandle {
         query_parser.set_field_boost(self.literal_field, 1.0);
         query_parser.set_field_boost(self.definition_body_field, DEFINITION_BODY_SCORE_BOOST);
         query_parser.set_field_boost(self.reference_field, REFERENCE_SCORE_BOOST);
+        query_parser.set_field_boost(self.format_text_field, 0.5);
 
         if query_str.trim().is_empty() {
             return Ok(Vec::new());

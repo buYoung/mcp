@@ -19,6 +19,10 @@ fn get_sql_query() -> &'static Query {
 pub(crate) struct SqlSpec;
 
 impl LanguageSpec for SqlSpec {
+    fn language_name(&self) -> &'static str {
+        "sql"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_sequel::LANGUAGE.into()
     }

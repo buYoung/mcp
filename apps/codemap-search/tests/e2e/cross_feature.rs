@@ -285,6 +285,47 @@ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
     );
 }
 
+#[tokio::test]
+async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
+    let temp = create_mock_repo(&[
+        ("config.yaml", "server:\n  port: priority_format_needle\n"),
+        (
+            "schema.graphql",
+            "query PriorityOperation { service { id } }\n",
+        ),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let search = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "priority_format_needle" }),
+            |text| text.contains("config.yaml"),
+        )
+        .await
+        .unwrap();
+    assert!(search["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("config.yaml"));
+    let overview = client
+        .send_tool_until(
+            "overview",
+            serde_json::json!({ "path": "schema.graphql" }),
+            |text| text.contains("PriorityOperation"),
+        )
+        .await
+        .unwrap();
+    assert!(overview["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("PriorityOperation"));
+}
+
 #[test]
 fn test_cross_benchmark_indexing() {
     let temp = create_mock_repo(&[

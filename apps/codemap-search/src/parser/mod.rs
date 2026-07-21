@@ -1,4 +1,5 @@
 mod composite;
+pub(crate) mod structured_formats;
 mod tokenize;
 mod types;
 
@@ -12,7 +13,7 @@ use tree_sitter::{Node, Parser, Query, QueryCursor, Tree};
 
 use crate::lang::{
     clean_docstring, contains_case_insensitive, find_name, is_composite_extension, spec_for_ext,
-    strip_quotes, NameDecision,
+    spec_for_path, strip_quotes, NameDecision,
 };
 
 pub trait CodeExtractor {
@@ -25,7 +26,14 @@ pub struct TreeSitterExtractor;
 pub(crate) struct IndexAuxiliary {
     pub definition_body: Vec<String>,
     pub reference: Vec<String>,
+    /// Full text for registered non-code formats. It is indexed but never stored in Tantivy.
+    pub format_text: Vec<String>,
     pub static_collection_edges: Vec<StaticCollectionEdge>,
+}
+
+pub(crate) struct SpecExtraction {
+    pub symbols: Vec<ExtractedSymbol>,
+    pub navigation: Option<NavigationFile>,
 }
 
 const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
@@ -71,7 +79,7 @@ pub(crate) fn collect_index_auxiliary(
         .extension()
         .and_then(|value| value.to_str())
         .unwrap_or("");
-    let Some(spec) = spec_for_ext(ext) else {
+    let Some(spec) = spec_for_path(Path::new(file_path)) else {
         return Ok(IndexAuxiliary::default());
     };
     let Some(tags_query) = spec.tags_query(ext) else {
@@ -1859,7 +1867,16 @@ impl TreeSitterExtractor {
 
         // Resolve the per-language spec from the registry. An unsupported extension yields an
         // empty `ExtractedFile`, preserving the prior unknown-extension behavior exactly.
-        let Some(spec) = spec_for_ext(ext) else {
+        let path_extension = Path::new(file_path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .unwrap_or("");
+        let spec = if ext == path_extension {
+            spec_for_path(Path::new(file_path))
+        } else {
+            spec_for_ext(ext)
+        };
+        let Some(spec) = spec else {
             return Ok((
                 ExtractedFile {
                     file_path: file_path.to_string(),
@@ -1875,15 +1892,38 @@ impl TreeSitterExtractor {
 
         let mut parser = Parser::new();
         let lang = spec.grammar(ext);
-        let query = spec.query(ext);
-        let navigation_enabled = spec.navigation_enabled(ext);
-        let navigation_store_references =
-            navigation_enabled && crate::config::get().navigation_store_references;
-
         parser.set_language(&lang).map_err(|e| e.to_string())?;
         let tree = parser
             .parse(file_content, None)
             .ok_or("Failed to parse file content")?;
+
+        if let Some(extraction) = spec.extract_override(tree.root_node(), file_content) {
+            let docstrings = extraction
+                .symbols
+                .iter()
+                .filter_map(|symbol| symbol.docstring.clone())
+                .collect();
+            let mut auxiliary = IndexAuxiliary::default();
+            if collect_auxiliary {
+                auxiliary.format_text.push(file_content.to_string());
+            }
+            return Ok((
+                ExtractedFile {
+                    file_path: file_path.to_string(),
+                    total_lines: file_content.lines().count(),
+                    symbols: extraction.symbols,
+                    literals: Vec::new(),
+                    docstrings,
+                    navigation: extraction.navigation,
+                },
+                auxiliary,
+            ));
+        }
+
+        let query = spec.query(ext);
+        let navigation_enabled = spec.navigation_enabled(ext);
+        let navigation_store_references =
+            navigation_enabled && crate::config::get().navigation_store_references;
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
@@ -2240,6 +2280,9 @@ impl TreeSitterExtractor {
             navigation: Some(NavigationFile::default()),
         };
         let mut auxiliary = IndexAuxiliary::default();
+        // Component template/style regions are unstructured, but the complete outer source must
+        // remain searchable even when no structural extractor is activated for them.
+        auxiliary.format_text.push(file_content.to_string());
 
         for embedded in composite::extract_sources(file_content, extension) {
             let (part, part_auxiliary) = self.extract_language_parts(
@@ -2250,6 +2293,18 @@ impl TreeSitterExtractor {
             )?;
             merge_composite_part(&mut extracted, &mut auxiliary, part, part_auxiliary);
         }
+        // Vue/Astro/Svelte keep their established same-length embedded JavaScript/TypeScript
+        // extraction only. Template/style grammars are not verified for these composite
+        // containers, so they remain searchable through the original format text but do not
+        // contribute untrusted markup/style symbols.
+        extracted.symbols.sort_by_key(|symbol| {
+            (
+                symbol.range.start_line,
+                symbol.range.start_col,
+                symbol.name.clone(),
+                symbol.kind.clone(),
+            )
+        });
         // `extract_language_parts` already uses the outer path and same-length source masks;
         // assigning these explicitly documents and protects the public coordinate contract.
         extracted.file_path = file_path.to_string();
@@ -2298,6 +2353,9 @@ fn merge_composite_part(
     }
     for reference in part_auxiliary.reference {
         push_unique(&mut auxiliary.reference, reference);
+    }
+    for format_text in part_auxiliary.format_text {
+        push_unique(&mut auxiliary.format_text, format_text);
     }
     for edge in part_auxiliary.static_collection_edges {
         push_unique(&mut auxiliary.static_collection_edges, edge);

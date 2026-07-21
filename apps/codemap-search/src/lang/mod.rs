@@ -35,9 +35,11 @@ mod kotlin;
 mod python;
 mod rust;
 mod sql;
+pub(crate) mod structured_formats;
 mod typescript;
 
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
@@ -54,6 +56,9 @@ pub(crate) enum NameDecision {
 /// implementations encode the common (TypeScript-family) behavior; each language file
 /// overrides only the hooks where it differs.
 pub(crate) trait LanguageSpec: Sync {
+    /// Stable language label used by ranking and language hints.
+    fn language_name(&self) -> &'static str;
+
     /// The tree-sitter grammar for `ext`. One spec may serve multiple dialect extensions
     /// backed by the same grammar (TypeScript: ts/mts/cts; JavaScript: js/jsx/mjs/cjs).
     fn grammar(&self, ext: &str) -> Language;
@@ -77,6 +82,26 @@ pub(crate) trait LanguageSpec: Sync {
     /// specs in [`ALL_SPECS`] to derive the source-extension allowlist
     /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.
     fn extensions(&self) -> &'static [&'static str];
+
+    /// Exact basenames served by this spec when extension matching is insufficient.
+    fn exact_names(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Whether approximate caller scanning is meaningful for this language.
+    fn caller_scan_enabled(&self) -> bool {
+        true
+    }
+
+    /// Optional AST extraction policy for structured formats whose symbol/dependency model does
+    /// not fit the programming-language query captures. The default keeps the generic query walk.
+    fn extract_override(
+        &self,
+        _root: Node<'_>,
+        _source: &str,
+    ) -> Option<crate::parser::SpecExtraction> {
+        None
+    }
 
     /// Whether this spec's runtime query includes `@nav.*` / `@local.*` captures. `false`
     /// means `ExtractedFile.navigation` stays `None`; `true` means extraction ran and may
@@ -240,53 +265,96 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
         "sql" => Some(&sql::SqlSpec),
+        "json" | "jsonc" => Some(&structured_formats::JsonSpec),
+        "toml" => Some(&structured_formats::TomlSpec),
+        "yaml" | "yml" => Some(&structured_formats::YamlSpec),
+        "html" | "htm" => Some(&structured_formats::HtmlSpec),
+        "xml" | "xsd" | "xsl" | "xslt" | "plist" | "csproj" | "props" | "targets" => {
+            Some(&structured_formats::XmlSpec)
+        }
+        "css" => Some(&structured_formats::CssSpec),
+        "scss" => Some(&structured_formats::ScssSpec),
+        "less" => Some(&structured_formats::LessSpec),
+        "sh" | "bash" => Some(&structured_formats::BashSpec),
+        "zsh" => Some(&structured_formats::ZshSpec),
+        "hcl" | "tf" | "tfvars" => Some(&structured_formats::HclSpec),
+        "proto" => Some(&structured_formats::ProtoSpec),
+        "graphql" | "gql" => Some(&structured_formats::GraphqlSpec),
+        "mk" => Some(&structured_formats::MakeSpec),
+        "cmake" => Some(&structured_formats::CmakeSpec),
+        "bzl" => Some(&structured_formats::StarlarkSpec),
         _ => None,
     }
 }
 
 pub(crate) fn language_name_for_extension(ext: &str) -> Option<&'static str> {
-    match ext.to_ascii_lowercase().as_str() {
-        "rs" => Some("rust"),
-        "py" => Some("python"),
-        "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
-        "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
-        "go" => Some("go"),
-        "java" => Some("java"),
-        "kt" | "kts" => Some("kotlin"),
-        "c" => Some("c"),
-        "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
-        "s" | "asm" => Some("asm"),
-        "sql" => Some("sql"),
-        "vue" => Some("vue"),
-        "astro" => Some("astro"),
-        "svelte" => Some("svelte"),
-        _ => None,
-    }
+    let normalized = ext.to_ascii_lowercase();
+    spec_for_ext(&normalized)
+        .map(LanguageSpec::language_name)
+        .or(match normalized.as_str() {
+            "vue" => Some("vue"),
+            "astro" => Some("astro"),
+            "svelte" => Some("svelte"),
+            _ => None,
+        })
+}
+
+/// Resolve ordinary extensions and exact basenames through the shared language registry.
+pub(crate) fn spec_for_path(path: &Path) -> Option<&'static dyn LanguageSpec> {
+    let exact = path.file_name().and_then(|name| name.to_str());
+    ALL_SPECS
+        .iter()
+        .copied()
+        .find(|spec| exact.is_some_and(|name| spec.exact_names().contains(&name)))
+        .or_else(|| {
+            path.extension()
+                .and_then(|extension| extension.to_str())
+                .and_then(spec_for_ext)
+        })
+}
+
+pub(crate) fn language_name_for_path(path: &Path) -> Option<&'static str> {
+    spec_for_path(path)
+        .map(LanguageSpec::language_name)
+        .or_else(|| {
+            path.extension()
+                .and_then(|extension| extension.to_str())
+                .and_then(language_name_for_extension)
+        })
+}
+
+pub(crate) fn is_supported_source_path(path: &Path) -> bool {
+    spec_for_path(path).is_some()
+        || path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(is_composite_extension)
+}
+
+/// Only tree-sitter languages/composite components participate in approximate caller scans.
+pub(crate) fn supports_caller_scan(path: &Path) -> bool {
+    spec_for_path(path).is_some_and(LanguageSpec::caller_scan_enabled)
+        || path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(is_composite_extension)
 }
 
 pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
-    match hint
-        .trim()
-        .trim_start_matches('.')
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "rust" | "rs" => Some("rust"),
-        "python" | "py" => Some("python"),
-        "typescript" | "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
-        "javascript" | "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
-        "go" => Some("go"),
-        "java" => Some("java"),
-        "kotlin" | "kt" | "kts" => Some("kotlin"),
-        "c" => Some("c"),
-        "cpp" | "c++" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some("cpp"),
-        "asm" | "s" => Some("asm"),
-        "sql" => Some("sql"),
-        "vue" => Some("vue"),
-        "astro" => Some("astro"),
-        "svelte" => Some("svelte"),
-        _ => None,
-    }
+    let normalized = hint.trim().trim_start_matches('.').to_ascii_lowercase();
+    ALL_SPECS
+        .iter()
+        .copied()
+        .find(|spec| {
+            spec.language_name() == normalized || spec.extensions().contains(&normalized.as_str())
+        })
+        .map(LanguageSpec::language_name)
+        .or(match normalized.as_str() {
+            "vue" => Some("vue"),
+            "astro" => Some("astro"),
+            "svelte" => Some("svelte"),
+            _ => None,
+        })
 }
 
 pub(crate) fn normalize_extension_hint(hint: &str) -> Option<String> {
@@ -313,6 +381,23 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &c_family::cpp::CppSpec,
     &asm::AsmSpec,
     &sql::SqlSpec,
+    &structured_formats::JsonSpec,
+    &structured_formats::TomlSpec,
+    &structured_formats::YamlSpec,
+    &structured_formats::HtmlSpec,
+    &structured_formats::XmlSpec,
+    &structured_formats::CssSpec,
+    &structured_formats::ScssSpec,
+    &structured_formats::LessSpec,
+    &structured_formats::BashSpec,
+    &structured_formats::ZshSpec,
+    &structured_formats::HclSpec,
+    &structured_formats::ContainerfileSpec,
+    &structured_formats::ProtoSpec,
+    &structured_formats::GraphqlSpec,
+    &structured_formats::MakeSpec,
+    &structured_formats::CmakeSpec,
+    &structured_formats::StarlarkSpec,
 ];
 
 /// Composite component formats use embedded JavaScript/TypeScript grammars rather than a

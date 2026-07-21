@@ -112,6 +112,10 @@ fn kotlin_class_kind(node: Node) -> &'static str {
 pub(crate) struct KotlinSpec;
 
 impl LanguageSpec for KotlinSpec {
+    fn language_name(&self) -> &'static str {
+        "kotlin"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_kotlin_ng::LANGUAGE.into()
     }

@@ -166,6 +166,79 @@ fn test_codemap_non_source_files() {
 }
 
 #[test]
+fn test_codemap_renders_structured_and_graphql_declarations() {
+    let temp = create_mock_repo(&[
+        ("config.yaml", "server:\n  port: 5000\n"),
+        (
+            "schema.graphql",
+            "fragment UserFields on User { id }\nquery GetUser { user { id } }\n",
+        ),
+    ])
+    .unwrap();
+    run_cli(&["codemap", "--path", "config.yaml"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("server.port"));
+    run_cli(&["codemap", "--path", "schema.graphql"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("UserFields"))
+        .stdout(predicates::str::contains("GetUser"));
+}
+
+#[test]
+fn test_codemap_renders_every_checked_priority_grammar_capability() {
+    let cases = [
+        ("config.json", r#"{"service": 1}"#, "service"),
+        ("config.jsonc", "// comment\n{ \"service\": 1 }", "service"),
+        ("config.toml", "service = 1", "service"),
+        ("config.yaml", "service: 1", "service"),
+        ("config.yml", "service: 1", "service"),
+        ("page.html", "<main />", "main"),
+        ("page.htm", "<main />", "main"),
+        ("page.xml", "<main />", "main"),
+        ("schema.xsd", "<main />", "main"),
+        ("page.xsl", "<main />", "main"),
+        ("page.xslt", "<main />", "main"),
+        ("Info.plist", "<main />", "main"),
+        ("app.csproj", "<main />", "main"),
+        ("app.props", "<main />", "main"),
+        ("app.targets", "<main />", "main"),
+        ("site.css", ".card {}", ".card"),
+        ("deploy.sh", "run() { :; }", "run"),
+        ("deploy.bash", "run() { :; }", "run"),
+        ("main.hcl", "variable \"region\" {}", "region"),
+        ("main.tf", "terraform {}", "terraform"),
+        ("api.proto", "message Request {}", "Request"),
+        (
+            "schema.graphql",
+            "schema { query: Query }\ntype Query { id: ID! }",
+            "schema",
+        ),
+        ("schema.gql", "type Query { id: ID! }", "Query"),
+    ];
+    let temp = create_mock_repo(
+        &cases
+            .iter()
+            .map(|(path, body, _)| (*path, *body))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    for (path, _, symbol) in cases {
+        run_cli(&["codemap", "--path", path], temp.path())
+            .success()
+            .stdout(predicates::str::contains(symbol));
+    }
+}
+
+#[test]
+fn test_codemap_renders_tfvars_detail_with_an_explicit_empty_symbol_boundary() {
+    let temp = create_mock_repo(&[("values.tfvars", "region = \"kr\"\n")]).unwrap();
+
+    run_cli(&["codemap", "--path", "values.tfvars"], temp.path())
+        .success()
+        .stdout("# Detailed Codemap: values.tfvars (1 lines)\n\n## Symbols\n\n");
+}
+
+#[test]
 fn test_codemap_excludes_minified_and_generated_bundles() {
     let temp = create_mock_repo(&[
         ("src/keep.js", "function visible_codemap_symbol() {}"),

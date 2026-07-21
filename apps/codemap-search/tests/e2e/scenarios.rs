@@ -127,7 +127,7 @@ fn test_realworld_multilang_workspace() {
     assert_codemap
         .success()
         .stdout(predicates::str::contains("- src ("))
-        .stdout(predicates::str::contains("package.json").not())
+        .stdout(predicates::str::contains("package.json"))
         .stdout(predicates::str::contains("README.md").not());
 }
 

@@ -72,6 +72,10 @@ fn java_is_test(node: Node, file_path: &str, source: &[u8]) -> bool {
 pub(crate) struct JavaSpec;
 
 impl LanguageSpec for JavaSpec {
+    fn language_name(&self) -> &'static str {
+        "java"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_java::LANGUAGE.into()
     }

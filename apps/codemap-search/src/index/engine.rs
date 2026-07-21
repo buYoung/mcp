@@ -93,6 +93,7 @@ pub struct SearcherHandle {
     pub(super) literal_field: Field,
     pub(super) definition_body_field: Field,
     pub(super) reference_field: Field,
+    pub(super) format_text_field: Field,
     pub(super) extracted_json_field: Field,
 }
 
@@ -110,6 +111,7 @@ pub struct TantivySearchEngine {
     pub literal_field: Field,
     pub definition_body_field: Field,
     pub reference_field: Field,
+    pub format_text_field: Field,
     pub extracted_json_field: Field,
     pub mtime_field: Field,
 
@@ -162,7 +164,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// indexes alongside the codemap snapshot. Each bump rebuilds exactly once.
 // Composite source masking and SQL declarations change what a file contributes to a persisted
 // document, so existing local indexes must be rebuilt once. The schema/JSON shape is unchanged.
-const EXTRACTION_FORMAT_VERSION: &str = "v13-composite-sql-language-hardening";
+const EXTRACTION_FORMAT_VERSION: &str = "v15-tree-sitter-file-formats";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -325,6 +327,8 @@ impl TantivySearchEngine {
         let literal_field = schema_builder.add_text_field("literal", TEXT);
         let definition_body_field = schema_builder.add_text_field("definition_body", TEXT);
         let reference_field = schema_builder.add_text_field("reference", TEXT);
+        // Raw data/markup text is searchable at a deliberately lower boost and is not stored.
+        let format_text_field = schema_builder.add_text_field("format_text", TEXT);
         let extracted_json_field = schema_builder.add_text_field("extracted_json", STORED);
         let mtime_field = schema_builder.add_u64_field("mtime", STORED);
         let schema = schema_builder.build();
@@ -431,6 +435,7 @@ impl TantivySearchEngine {
             literal_field,
             definition_body_field,
             reference_field,
+            format_text_field,
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
@@ -529,8 +534,7 @@ fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, Pat
     if crate::workspace::is_explicitly_excluded_file(entry_path) {
         return None;
     }
-    let ext = entry_path.extension().and_then(|s| s.to_str())?;
-    if !crate::workspace::is_source_extension(ext) {
+    if !crate::workspace::is_supported_source_path(entry_path) {
         return None;
     }
     let metadata = std::fs::metadata(entry_path).ok()?;
@@ -572,12 +576,17 @@ impl TantivySearchEngine {
         let mut files_to_process = Vec::new();
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
+        // JSON and related formats are source inputs now, so a caller that indexes a parent of
+        // the Tantivy directory must not feed Tantivy's own metadata back into the index.
+        let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
         for path_str in paths {
             let path = Path::new(path_str);
             if path.is_file() {
-                if let Some(entry) = collect_index_entry(path, &abs_cwd) {
-                    files_to_process.push(entry);
+                if !is_under_index_root(path, &index_root, &abs_cwd) {
+                    if let Some(entry) = collect_index_entry(path, &abs_cwd) {
+                        files_to_process.push(entry);
+                    }
                 }
             } else if path.is_dir() {
                 // Shared walker: honors EXCLUDED_DIRS + .gitignore/.codemapignore so
@@ -588,10 +597,17 @@ impl TantivySearchEngine {
                     .filter_map(|e| e.ok())
                 {
                     let entry_path = entry.path();
-                    if entry_path.is_file() {
-                        if let Some(collected) = collect_index_entry(entry_path, &abs_cwd) {
-                            files_to_process.push(collected);
-                        }
+                    // The event can name an ancestor of a repository-local custom index.
+                    // Apply the same entry-level guard as a full walk before considering
+                    // descendants, otherwise `search-index/meta.json` becomes a JSON source.
+                    if is_under_index_root(entry_path, &index_root, &abs_cwd) {
+                        continue;
+                    }
+                    if !entry_path.is_file() {
+                        continue;
+                    }
+                    if let Some(collected) = collect_index_entry(entry_path, &abs_cwd) {
+                        files_to_process.push(collected);
                     }
                 }
             }
@@ -769,6 +785,9 @@ impl TantivySearchEngine {
             for reference in &auxiliary.reference {
                 doc.add_text(self.reference_field, reference);
             }
+            for format_text in &auxiliary.format_text {
+                doc.add_text(self.format_text_field, format_text);
+            }
 
             match writer.add_document(doc) {
                 Ok(_) => committed_updates.push((rel_path, mtime)),
@@ -826,6 +845,7 @@ impl TantivySearchEngine {
     ) -> Result<bool, String> {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
+        let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
         if self.indexed_mtimes_cache.is_none() {
             let snapshot = self.get_indexed_mtimes();
@@ -837,6 +857,12 @@ impl TantivySearchEngine {
         let mut to_delete: Vec<String> = Vec::new();
 
         for path in paths {
+            // A repository-local custom index can contain supported files such as Tantivy's
+            // `meta.json`. Ignore both existing and removed paths under it before deriving
+            // delete keys, otherwise watcher events feed the index back into itself.
+            if is_under_index_root(path, &index_root, &abs_cwd) {
+                continue;
+            }
             if path.is_file() {
                 let canonical_key = crate::workspace::stored_index_key(path, &abs_cwd);
                 // Case-only renames on case-insensitive filesystems (macOS APFS default):
@@ -895,6 +921,12 @@ impl TantivySearchEngine {
                     .filter_map(|e| e.ok())
                 {
                     let entry_path = entry.path();
+                    // A watcher can receive an ancestor-directory event. Exclude every
+                    // descendant of a repository-local custom index before collecting or
+                    // adding it to the subtree delete-diff set.
+                    if is_under_index_root(entry_path, &index_root, &abs_cwd) {
+                        continue;
+                    }
                     if entry_path.is_file() {
                         if let Some((rel_path, disk_path, mtime)) =
                             collect_index_entry(entry_path, &abs_cwd)
@@ -907,9 +939,15 @@ impl TantivySearchEngine {
                         }
                     }
                 }
-                let prefix = format!("{}/", crate::workspace::stored_index_key(path, &abs_cwd));
+                let directory_key = crate::workspace::stored_index_key(path, &abs_cwd);
+                // The workspace root has an empty stored key. `format!("{directory_key}/")`
+                // would be `/`, which matches no ordinary relative document and leaves a
+                // deleted exact-name format stale when FSEvents reports only its parent.
+                let prefix = (!directory_key.is_empty()).then(|| format!("{directory_key}/"));
                 for indexed_path in indexed_mtimes.keys() {
-                    if indexed_path.starts_with(&prefix)
+                    if prefix
+                        .as_ref()
+                        .is_none_or(|prefix| indexed_path.starts_with(prefix))
                         && !subtree_disk_paths.contains(indexed_path)
                     {
                         to_delete.push(indexed_path.clone());
@@ -962,6 +1000,7 @@ impl TantivySearchEngine {
             literal_field: self.literal_field,
             definition_body_field: self.definition_body_field,
             reference_field: self.reference_field,
+            format_text_field: self.format_text_field,
             extracted_json_field: self.extracted_json_field,
         }
     }
@@ -1016,6 +1055,27 @@ impl TantivySearchEngine {
     }
 }
 
+fn normalized_index_root(index_path: &Path, abs_cwd: &Path) -> PathBuf {
+    let absolute = if index_path.is_absolute() {
+        index_path.to_path_buf()
+    } else {
+        abs_cwd.join(index_path)
+    };
+    absolute.canonicalize().unwrap_or(absolute)
+}
+
+fn is_under_index_root(path: &Path, index_root: &Path, abs_cwd: &Path) -> bool {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        abs_cwd.join(path)
+    };
+    absolute
+        .canonicalize()
+        .unwrap_or(absolute)
+        .starts_with(index_root)
+}
+
 impl SearchEngine for TantivySearchEngine {
     fn index_files(&mut self, paths: &[&str]) -> Result<(), String> {
         self.index_files_changed(paths).map(|_| ())
@@ -1037,6 +1097,52 @@ mod tests {
         assert_eq!(tokenize_path("src/lib.rs"), "src lib rs");
         assert_eq!(tokenize_path("a\\b\\c.js"), "a b c js");
         assert_eq!(tokenize_path("main.rs"), "main rs");
+    }
+
+    #[test]
+    fn test_repo_local_custom_index_root_is_normalized_for_relative_walker_and_watcher_paths() {
+        let temp = tempdir().unwrap();
+        let workspace = temp.path().join("workspace");
+        let index = workspace.join("search-index");
+        fs::create_dir_all(&index).unwrap();
+        let root = normalized_index_root(Path::new("search-index"), &workspace);
+        assert!(is_under_index_root(
+            Path::new("search-index/meta.json"),
+            &root,
+            &workspace
+        ));
+        assert!(is_under_index_root(
+            &index.join("meta.json"),
+            &root,
+            &workspace
+        ));
+        assert!(!is_under_index_root(
+            Path::new("src/config.json"),
+            &root,
+            &workspace
+        ));
+    }
+
+    #[test]
+    fn test_lsr_006_ancestor_directory_refresh_excludes_repo_local_index_subtree() {
+        let temp = tempdir().unwrap();
+        let workspace = temp.path().join("workspace");
+        let index = workspace.join("search-index");
+        fs::create_dir_all(&index).unwrap();
+        fs::write(workspace.join("source.json"), r#"{"source":"normal"}"#).unwrap();
+
+        let mut engine = TantivySearchEngine::new(&index.to_string_lossy()).unwrap();
+        engine.index_files(&[&workspace.to_string_lossy()]).unwrap();
+        fs::write(
+            index.join("watcher-generated.json"),
+            r#"{"needle":"self_index_needle"}"#,
+        )
+        .unwrap();
+
+        // A watcher event for the custom-index ancestor walks the workspace. The generated
+        // JSON must never be handed to `collect_index_entry` through that directory branch.
+        engine.refresh_paths(&[workspace]).unwrap();
+        assert!(engine.search("self_index_needle", 10).unwrap().is_empty());
     }
 
     #[test]

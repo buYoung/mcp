@@ -152,6 +152,10 @@ fn go_receiver_owner(method_node: Node, source: &[u8]) -> Option<String> {
 pub(crate) struct GoSpec;
 
 impl LanguageSpec for GoSpec {
+    fn language_name(&self) -> &'static str {
+        "go"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_go::LANGUAGE.into()
     }

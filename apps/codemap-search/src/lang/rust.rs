@@ -100,6 +100,10 @@ fn rust_base_type_name(node: Node, source: &[u8]) -> Option<String> {
 pub(crate) struct RustSpec;
 
 impl LanguageSpec for RustSpec {
+    fn language_name(&self) -> &'static str {
+        "rust"
+    }
+
     fn grammar(&self, _ext: &str) -> Language {
         tree_sitter_rust::LANGUAGE.into()
     }

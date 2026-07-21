@@ -87,7 +87,12 @@ pub const ALWAYS_EXCLUDED_DIRS: &[&str] = &[
 /// Signature unchanged: the four consumer sites (`index`, `callers`, `main.rs`, `benchmark`)
 /// are untouched.
 pub fn is_source_extension(ext: &str) -> bool {
-    crate::lang::source_extensions().contains(ext)
+    crate::lang::source_extensions().contains(&ext.to_ascii_lowercase().as_str())
+}
+
+/// Final index/codemap eligibility is path based so exact-name formats can be registered.
+pub fn is_supported_source_path(path: &Path) -> bool {
+    !is_explicitly_excluded_file(path) && crate::lang::is_supported_source_path(path)
 }
 
 /// Lockfiles whose names do not end in `.lock`. The ordinary `.lock` suffix rule covers
@@ -134,9 +139,10 @@ pub fn is_explicitly_excluded_file(path: &Path) -> bool {
         || GENERATED_BUNDLE_SUFFIXES
             .iter()
             .any(|suffix| normalized.ends_with(suffix))
-        || INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES
+        || (INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES
             .iter()
             .any(|suffix| normalized.ends_with(suffix))
+            && file_name != "CMakeLists.txt")
 }
 
 fn user_home_dir() -> Option<PathBuf> {
