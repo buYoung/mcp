@@ -1,5 +1,4 @@
 mod composite;
-pub(crate) mod structured_formats;
 mod tokenize;
 mod types;
 
@@ -29,11 +28,6 @@ pub(crate) struct IndexAuxiliary {
     /// Full text for registered non-code formats. It is indexed but never stored in Tantivy.
     pub format_text: Vec<String>,
     pub static_collection_edges: Vec<StaticCollectionEdge>,
-}
-
-pub(crate) struct SpecExtraction {
-    pub symbols: Vec<ExtractedSymbol>,
-    pub navigation: Option<NavigationFile>,
 }
 
 const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
@@ -1897,33 +1891,10 @@ impl TreeSitterExtractor {
             .parse(file_content, None)
             .ok_or("Failed to parse file content")?;
 
-        if let Some(extraction) = spec.extract_override(tree.root_node(), file_content) {
-            let docstrings = extraction
-                .symbols
-                .iter()
-                .filter_map(|symbol| symbol.docstring.clone())
-                .collect();
-            let mut auxiliary = IndexAuxiliary::default();
-            if collect_auxiliary {
-                auxiliary.format_text.push(file_content.to_string());
-            }
-            return Ok((
-                ExtractedFile {
-                    file_path: file_path.to_string(),
-                    total_lines: file_content.lines().count(),
-                    symbols: extraction.symbols,
-                    literals: Vec::new(),
-                    docstrings,
-                    navigation: extraction.navigation,
-                },
-                auxiliary,
-            ));
-        }
-
         let query = spec.query(ext);
         let navigation_enabled = spec.navigation_enabled(ext);
-        let navigation_store_references =
-            navigation_enabled && crate::config::get().navigation_store_references;
+        let navigation_store_references = navigation_enabled
+            && (spec.always_store_references() || crate::config::get().navigation_store_references);
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
@@ -1940,6 +1911,9 @@ impl TreeSitterExtractor {
         } else {
             IndexAuxiliary::default()
         };
+        if collect_auxiliary && spec.indexes_format_text() {
+            auxiliary.format_text.push(file_content.to_string());
+        }
         if collect_auxiliary {
             if let Some(collection_query) = spec.static_collection_query(ext) {
                 auxiliary.static_collection_edges = collect_static_collection_edges_from_tree(
@@ -2027,7 +2001,13 @@ impl TreeSitterExtractor {
                 }
             }
             if let Some(node) = nav_import_node {
-                for entry in import_entries_from_node(node, source) {
+                if !spec.capture_is_valid("nav.import", node, source) {
+                    continue;
+                }
+                let entries = spec
+                    .import_entries_for_capture(node, source)
+                    .unwrap_or_else(|| import_entries_from_node(node, source));
+                for entry in entries {
                     let key = format!(
                         "{}:{}:{:?}:{}:{}",
                         entry.local_name,
@@ -2057,12 +2037,22 @@ impl TreeSitterExtractor {
                 }
             }
             if let Some(node) = local_reference_node {
-                if let Some(name) = node_text(node, source) {
-                    let reference = ReferenceSite {
-                        name,
-                        range: range_for_node(node),
-                        scope_id: scope_id_for_node(node),
-                    };
+                if !spec.capture_is_valid("local.reference", node, source) {
+                    continue;
+                }
+                let references = spec
+                    .reference_sites_for_capture(node, source)
+                    .unwrap_or_else(|| {
+                        node_text(node, source)
+                            .map(|name| ReferenceSite {
+                                name,
+                                range: range_for_node(node),
+                                scope_id: scope_id_for_node(node),
+                            })
+                            .into_iter()
+                            .collect()
+                    });
+                for reference in references {
                     let scope_key = reference
                         .scope_id
                         .map(|scope_id| scope_id.to_string())
@@ -2082,6 +2072,9 @@ impl TreeSitterExtractor {
 
             if let Some((node, capture_name)) = main_node {
                 if capture_name.starts_with("symbol.") {
+                    if !spec.capture_is_valid(capture_name, node, source) {
+                        continue;
+                    }
                     if is_valid_test_call {
                         let kind = match capture_name {
                             "symbol.struct" => "struct",
@@ -2116,7 +2109,7 @@ impl TreeSitterExtractor {
                         };
                         // Per-language refine of a node-dependent kind (Go `type_spec` struct/
                         // interface/alias; Kotlin `class`/`interface`). No-op for other captures.
-                        let kind = spec.refine_kind(capture_name, node, kind);
+                        let kind = spec.symbol_kind_for_capture(capture_name, node, source, kind);
 
                         // Per-language accept-and-name cluster (ASM `.macro` filter and label/
                         // macro name extraction; C/C++ type-reference and vexing-parse skips and
@@ -2125,7 +2118,7 @@ impl TreeSitterExtractor {
                         let mut name = match spec.name_for_capture(
                             capture_name,
                             node,
-                            kind,
+                            &kind,
                             ext,
                             source,
                             &asm_meta_kind_text,
@@ -2193,10 +2186,10 @@ impl TreeSitterExtractor {
                                 || contains_case_insensitive(&comments_text, "fixme");
 
                             let is_test =
-                                spec.is_test(node, &name, kind, file_path, source, &comments_text);
+                                spec.is_test(node, &name, &kind, file_path, source, &comments_text);
 
                             let is_exported =
-                                spec.is_exported(node, &name, kind, source, &exported_names);
+                                spec.is_exported(node, &name, &kind, source, &exported_names);
 
                             let is_deprecated =
                                 spec.is_deprecated(node, source, &docstring, &comments_text);
@@ -2207,15 +2200,21 @@ impl TreeSitterExtractor {
                             // Best-effort: any unexpected shape yields `None`.
                             // Note: `symbol.method` maps to kind "fn" (see match arm above),
                             // so "method" is never a possible kind value here.
-                            let owner = if matches!(kind, "fn" | "variant" | "field") {
+                            let owner = if matches!(kind.as_str(), "fn" | "variant" | "field") {
                                 spec.find_owner(node, ext, source)
                             } else {
                                 None
                             };
 
-                            symbols.push(ExtractedSymbol {
+                            let additional_names = spec.additional_symbol_names_for_capture(
+                                capture_name,
+                                node,
+                                source,
+                                &name,
+                            );
+                            let symbol = ExtractedSymbol {
                                 name,
-                                kind: kind.to_string(),
+                                kind,
                                 range,
                                 docstring,
                                 flags: SymbolFlags {
@@ -2226,7 +2225,13 @@ impl TreeSitterExtractor {
                                     is_deprecated,
                                 },
                                 owner,
-                            });
+                            };
+                            symbols.extend(additional_names.into_iter().map(|name| {
+                                let mut additional = symbol.clone();
+                                additional.name = name;
+                                additional
+                            }));
+                            symbols.push(symbol);
                         }
                     }
                 } else if capture_name.starts_with("literal.string") {

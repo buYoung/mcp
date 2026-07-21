@@ -27,16 +27,33 @@
 //! detection to the spec.
 
 mod asm;
+mod bash;
 pub(crate) mod c_family;
+mod cmake;
+mod containerfile;
+mod css;
+mod format_support;
 mod go;
+mod graphql;
+mod hcl;
+mod html;
 mod java;
 mod javascript;
+mod json;
 mod kotlin;
+mod less;
+mod make;
+mod proto;
 mod python;
 mod rust;
+mod scss;
 mod sql;
-pub(crate) mod structured_formats;
+mod starlark;
+mod toml;
 mod typescript;
+mod xml;
+mod yaml;
+mod zsh;
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -93,14 +110,41 @@ pub(crate) trait LanguageSpec: Sync {
         true
     }
 
-    /// Optional AST extraction policy for structured formats whose symbol/dependency model does
-    /// not fit the programming-language query captures. The default keeps the generic query walk.
-    fn extract_override(
+    /// Reject a query capture whose nearest declaration boundary contains tree-sitter recovery
+    /// nodes. Ordinary programming-language specs accept captures by default.
+    fn capture_is_valid(&self, _capture_name: &str, _node: Node<'_>, _source: &[u8]) -> bool {
+        true
+    }
+
+    /// Optional format-specific import conversion for a granular `@nav.import` capture. `None`
+    /// delegates to the programming-language import decoder in the shared parser.
+    fn import_entries_for_capture(
         &self,
-        _root: Node<'_>,
-        _source: &str,
-    ) -> Option<crate::parser::SpecExtraction> {
+        _node: Node<'_>,
+        _source: &[u8],
+    ) -> Option<Vec<crate::parser::ImportEntry>> {
         None
+    }
+
+    /// Optional format-specific reference conversion for a granular `@local.reference` capture.
+    /// `None` delegates to the shared parser's ordinary identifier conversion.
+    fn reference_sites_for_capture(
+        &self,
+        _node: Node<'_>,
+        _source: &[u8],
+    ) -> Option<Vec<crate::parser::ReferenceSite>> {
+        None
+    }
+
+    /// Structured formats keep AST dependency references independently of the optional source
+    /// navigation-reference setting used by programming languages.
+    fn always_store_references(&self) -> bool {
+        false
+    }
+
+    /// Whether the full source participates in the bounded format-text search field.
+    fn indexes_format_text(&self) -> bool {
+        false
     }
 
     /// Whether this spec's runtime query includes `@nav.*` / `@local.*` captures. `false`
@@ -137,6 +181,29 @@ pub(crate) trait LanguageSpec: Sync {
     /// already-resolved static kind. Default: return `kind` unchanged.
     fn refine_kind(&self, _capture_name: &str, _node: Node, kind: &'static str) -> &'static str {
         kind
+    }
+
+    /// Resolve a final symbol kind when it depends on source text rather than node shape alone.
+    fn symbol_kind_for_capture(
+        &self,
+        capture_name: &str,
+        node: Node<'_>,
+        _source: &[u8],
+        default_kind: &'static str,
+    ) -> String {
+        self.refine_kind(capture_name, node, default_kind)
+            .to_string()
+    }
+
+    /// Additional names represented by the same granular query capture.
+    fn additional_symbol_names_for_capture(
+        &self,
+        _capture_name: &str,
+        _node: Node<'_>,
+        _source: &[u8],
+        _primary_name: &str,
+    ) -> Vec<String> {
+        Vec::new()
     }
 
     /// The C-family/ASM accept-and-name cluster: filter out non-symbol matches and extract
@@ -265,24 +332,24 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
         "sql" => Some(&sql::SqlSpec),
-        "json" | "jsonc" => Some(&structured_formats::JsonSpec),
-        "toml" => Some(&structured_formats::TomlSpec),
-        "yaml" | "yml" => Some(&structured_formats::YamlSpec),
-        "html" | "htm" => Some(&structured_formats::HtmlSpec),
+        "json" | "jsonc" => Some(&json::JsonSpec),
+        "toml" => Some(&toml::TomlSpec),
+        "yaml" | "yml" => Some(&yaml::YamlSpec),
+        "html" | "htm" => Some(&html::HtmlSpec),
         "xml" | "xsd" | "xsl" | "xslt" | "plist" | "csproj" | "props" | "targets" => {
-            Some(&structured_formats::XmlSpec)
+            Some(&xml::XmlSpec)
         }
-        "css" => Some(&structured_formats::CssSpec),
-        "scss" => Some(&structured_formats::ScssSpec),
-        "less" => Some(&structured_formats::LessSpec),
-        "sh" | "bash" => Some(&structured_formats::BashSpec),
-        "zsh" => Some(&structured_formats::ZshSpec),
-        "hcl" | "tf" | "tfvars" => Some(&structured_formats::HclSpec),
-        "proto" => Some(&structured_formats::ProtoSpec),
-        "graphql" | "gql" => Some(&structured_formats::GraphqlSpec),
-        "mk" => Some(&structured_formats::MakeSpec),
-        "cmake" => Some(&structured_formats::CmakeSpec),
-        "bzl" => Some(&structured_formats::StarlarkSpec),
+        "css" => Some(&css::CssSpec),
+        "scss" => Some(&scss::ScssSpec),
+        "less" => Some(&less::LessSpec),
+        "sh" | "bash" => Some(&bash::BashSpec),
+        "zsh" => Some(&zsh::ZshSpec),
+        "hcl" | "tf" | "tfvars" => Some(&hcl::HclSpec),
+        "proto" => Some(&proto::ProtoSpec),
+        "graphql" | "gql" => Some(&graphql::GraphqlSpec),
+        "mk" => Some(&make::MakeSpec),
+        "cmake" => Some(&cmake::CmakeSpec),
+        "bzl" => Some(&starlark::StarlarkSpec),
         _ => None,
     }
 }
@@ -381,23 +448,23 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &c_family::cpp::CppSpec,
     &asm::AsmSpec,
     &sql::SqlSpec,
-    &structured_formats::JsonSpec,
-    &structured_formats::TomlSpec,
-    &structured_formats::YamlSpec,
-    &structured_formats::HtmlSpec,
-    &structured_formats::XmlSpec,
-    &structured_formats::CssSpec,
-    &structured_formats::ScssSpec,
-    &structured_formats::LessSpec,
-    &structured_formats::BashSpec,
-    &structured_formats::ZshSpec,
-    &structured_formats::HclSpec,
-    &structured_formats::ContainerfileSpec,
-    &structured_formats::ProtoSpec,
-    &structured_formats::GraphqlSpec,
-    &structured_formats::MakeSpec,
-    &structured_formats::CmakeSpec,
-    &structured_formats::StarlarkSpec,
+    &json::JsonSpec,
+    &toml::TomlSpec,
+    &yaml::YamlSpec,
+    &html::HtmlSpec,
+    &xml::XmlSpec,
+    &css::CssSpec,
+    &scss::ScssSpec,
+    &less::LessSpec,
+    &bash::BashSpec,
+    &zsh::ZshSpec,
+    &hcl::HclSpec,
+    &containerfile::ContainerfileSpec,
+    &proto::ProtoSpec,
+    &graphql::GraphqlSpec,
+    &make::MakeSpec,
+    &cmake::CmakeSpec,
+    &starlark::StarlarkSpec,
 ];
 
 /// Composite component formats use embedded JavaScript/TypeScript grammars rather than a
@@ -488,7 +555,11 @@ pub(crate) fn strip_quotes(s: &str) -> String {
             break;
         }
     }
-    let mut s_stripped = if quote_idx > 0 && quote_idx < chars.len() {
+    let has_prefixed_quote = quote_idx > 0
+        && chars
+            .get(quote_idx)
+            .is_some_and(|character| matches!(character, '"' | '\'' | '`'));
+    let mut s_stripped = if has_prefixed_quote {
         &trimmed[quote_idx..]
     } else {
         trimmed

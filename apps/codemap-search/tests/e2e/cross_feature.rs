@@ -288,10 +288,34 @@ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
 #[tokio::test]
 async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
     let temp = create_mock_repo(&[
+        ("config.json", r#"{"services":[{"port":8080}]}"#),
+        ("settings.toml", "root = { nested = { leaf = 1 } }\n"),
         ("config.yaml", "server:\n  port: priority_format_needle\n"),
+        ("page.html", r#"<main class="shell responsive"></main>"#),
+        ("page.xml", r#"<root><child id="leaf"/></root>"#),
+        ("site.css", "a[href]:hover::before { --gap: 1rem; }\n"),
+        ("site.scss", "@mixin surface($color) { color: $color; }\n"),
+        ("site.less", ".surface(@color) { color: @color; }\n"),
+        ("deploy.sh", "function deploy { :; }\nREGION=kr\n"),
+        ("deploy.zsh", "function prepare { :; }\nREGION=kr\n"),
+        (
+            "main.tf",
+            "resource \"aws_s3_bucket\" \"assets\" { lifecycle { prevent_destroy = true } }\n",
+        ),
+        ("Dockerfile", "ARG VERSION\nFROM rust:${VERSION} AS build\n"),
+        (
+            "api.proto",
+            "message User { oneof identity { string email = 1; } }\n",
+        ),
         (
             "schema.graphql",
-            "query PriorityOperation { service { id } }\n",
+            "query PriorityOperation { service { id } }\nextend type Query { other: String }\n",
+        ),
+        ("Makefile", "all package: compile\n"),
+        ("CMakeLists.txt", "add_test(NAME unit COMMAND app)\n"),
+        (
+            "BUILD",
+            "first, second = (1, 2)\ncc_library(name = \"core\")\n",
         ),
         (
             ".codemap/config.toml",
@@ -324,6 +348,38 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         .as_str()
         .unwrap()
         .contains("PriorityOperation"));
+
+    for (path, symbol) in [
+        ("config.json", "services.port"),
+        ("settings.toml", "root.nested.leaf"),
+        ("config.yaml", "server.port"),
+        ("page.html", "responsive"),
+        ("page.xml", "leaf"),
+        ("site.css", "a[href]:hover::before"),
+        ("site.scss", "surface"),
+        ("site.less", ".surface"),
+        ("deploy.sh", "deploy"),
+        ("deploy.zsh", "prepare"),
+        ("main.tf", "prevent_destroy"),
+        ("Dockerfile", "build"),
+        ("api.proto", "identity"),
+        ("schema.graphql", "other"),
+        ("Makefile", "package"),
+        ("CMakeLists.txt", "unit"),
+        ("BUILD", "second"),
+    ] {
+        let result = client
+            .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
+                text.contains(symbol)
+            })
+            .await
+            .unwrap();
+        let text = result["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(
+            text.contains(symbol),
+            "overview omitted {symbol} from {path}: {text:?}"
+        );
+    }
 }
 
 #[test]
