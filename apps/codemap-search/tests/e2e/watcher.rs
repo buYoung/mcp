@@ -329,6 +329,92 @@ async fn test_watcher_refreshes_priority_format_create_modify_and_delete() {
 }
 
 #[tokio::test]
+async fn test_watcher_refreshes_fifth_priority_languages_on_create_modify_and_delete() {
+    let temp = create_mock_repo(&[(".codemap/config.toml", WATCHER_ONLY_CONFIG)]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "search",
+                "arguments": { "query": "fifth_priority_watch_seed" }
+            }),
+        )
+        .await
+        .unwrap();
+    let_seeded_refresh_settle().await;
+
+    for (path, created_source, created_symbol, updated_source, updated_symbol) in [
+        (
+            "Watch.cs",
+            "public class WatchCreatedCSharp {}\n",
+            "WatchCreatedCSharp",
+            "public class WatchUpdatedCSharp {}\n",
+            "WatchUpdatedCSharp",
+        ),
+        (
+            "watch.php",
+            "<?php class WatchCreatedPhp {}\n",
+            "WatchCreatedPhp",
+            "<?php class WatchUpdatedPhp {}\n",
+            "WatchUpdatedPhp",
+        ),
+        (
+            "watch.rb",
+            "class WatchCreatedRuby\nend\n",
+            "WatchCreatedRuby",
+            "class WatchUpdatedRuby\nend\n",
+            "WatchUpdatedRuby",
+        ),
+        (
+            "watch.lua",
+            "function WatchCreatedLua() end\n",
+            "WatchCreatedLua",
+            "function WatchUpdatedLua() end\n",
+            "WatchUpdatedLua",
+        ),
+    ] {
+        let file = temp.path().join(path);
+        fs::write(&file, created_source).unwrap();
+        client
+            .send_tool_until(
+                "search",
+                serde_json::json!({ "query": created_symbol }),
+                |text| text.contains(path),
+            )
+            .await
+            .unwrap();
+
+        fs::write(&file, updated_source).unwrap();
+        client
+            .send_tool_until(
+                "search",
+                serde_json::json!({ "query": updated_symbol }),
+                |text| text.contains(path),
+            )
+            .await
+            .unwrap();
+
+        fs::remove_file(&file).unwrap();
+        let removed = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({ "query": updated_symbol }),
+                |text| !text.contains(path),
+            )
+            .await
+            .unwrap();
+        assert!(
+            !removed["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains(path),
+            "{path} should be removed from the watcher index"
+        );
+    }
+}
+
+#[tokio::test]
 async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
     let temp = create_mock_repo(&[(".codemap/config.toml", WATCHER_ONLY_CONFIG)]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

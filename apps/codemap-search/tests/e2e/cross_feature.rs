@@ -286,6 +286,84 @@ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
 }
 
 #[tokio::test]
+async fn test_fifth_priority_languages_flow_through_index_search_and_mcp_overview() {
+    let temp = create_mock_repo(&[
+        (
+            "src/CSharpFlow.cs",
+            "public class CSharpFlow { public void TargetCSharp() {} public void CallerCSharp() { TargetCSharp(); } }\n",
+        ),
+        (
+            "src/php_flow.php",
+            "<?php class PhpFlow { public function targetPhp(): void {} public function callerPhp(): void { $this->targetPhp(); } }\n",
+        ),
+        (
+            "src/ruby_flow.rb",
+            "class RubyFlow\n  def target_ruby\n  end\n  def caller_ruby\n    target_ruby()\n  end\nend\n",
+        ),
+        (
+            "src/lua_flow.lua",
+            "local LuaFlow = {}\nfunction LuaFlow.target_lua() end\nfunction LuaFlow.caller_lua() LuaFlow.target_lua() end\n",
+        ),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    for (path, query, language_hint, qualified_name) in [
+        (
+            "src/CSharpFlow.cs",
+            "TargetCSharp",
+            "c#",
+            "CSharpFlow.TargetCSharp",
+        ),
+        ("src/php_flow.php", "targetPhp", "php", "PhpFlow.targetPhp"),
+        (
+            "src/ruby_flow.rb",
+            "target_ruby",
+            "rb",
+            "RubyFlow.target_ruby",
+        ),
+        (
+            "src/lua_flow.lua",
+            "target_lua",
+            "lua",
+            "LuaFlow.target_lua",
+        ),
+    ] {
+        let search = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({
+                    "query": query,
+                    "language_hint": language_hint,
+                    "caller_context": true
+                }),
+                |text| text.contains(path) && text.contains(qualified_name),
+            )
+            .await
+            .unwrap();
+        let search_text = search["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(search_text.contains(path), "{path}: {search_text}");
+        assert!(
+            search_text.contains(qualified_name),
+            "{qualified_name}: {search_text}"
+        );
+
+        let overview = client
+            .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
+                text.contains(query)
+            })
+            .await
+            .unwrap();
+        let overview_text = overview["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(overview_text.contains(query), "{path}: {overview_text}");
+    }
+}
+
+#[tokio::test]
 async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
     let temp = create_mock_repo(&[
         ("config.json", r#"{"services":[{"port":8080}]}"#),

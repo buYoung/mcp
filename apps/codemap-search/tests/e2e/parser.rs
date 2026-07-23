@@ -638,6 +638,44 @@ fn test_existing_language_extraction_matrix() {
                 ("asm_matrix_macro", "fn", 4),
             ],
         ),
+        (
+            "src/Matrix.cs",
+            "public interface ICSharpMatrix { void Execute(); }\npublic record CSharpMatrix { public void Run() {} }\n",
+            &[
+                ("ICSharpMatrix", "interface", 1),
+                ("Execute", "fn", 1),
+                ("CSharpMatrix", "record", 2),
+                ("Run", "fn", 2),
+            ],
+        ),
+        (
+            "src/matrix.php",
+            "<?php interface PhpMatrixContract { public function execute(): void; }\nclass PhpMatrix { public function run(): void {} }\n",
+            &[
+                ("PhpMatrixContract", "interface", 1),
+                ("execute", "fn", 1),
+                ("PhpMatrix", "class", 2),
+                ("run", "fn", 2),
+            ],
+        ),
+        (
+            "src/matrix.rb",
+            "module RubyMatrix\n  class Worker\n    def run\n    end\n  end\nend\n",
+            &[
+                ("RubyMatrix", "mod", 1),
+                ("Worker", "class", 2),
+                ("run", "fn", 3),
+            ],
+        ),
+        (
+            "src/matrix.lua",
+            "local LuaMatrix = {}\nfunction LuaMatrix.run() end\nfunction LuaMatrix:stop() end\n",
+            &[
+                ("LuaMatrix", "variable", 1),
+                ("run", "fn", 2),
+                ("stop", "fn", 3),
+            ],
+        ),
     ];
 
     for (file, content, expected_symbols) in cases {
@@ -650,6 +688,49 @@ fn test_existing_language_extraction_matrix() {
         assert!(
             parsed["navigation"].is_object(),
             "{file} must retain the observable parse-navigation shape"
+        );
+    }
+}
+
+#[test]
+fn test_fifth_priority_navigation_references_respect_opt_in_config() {
+    let cases = [
+        (
+            "src/ref.cs",
+            "public class Ref { public Demo.Type Value; }\n",
+        ),
+        (
+            "src/ref.php",
+            "<?php class Ref extends Demo\\Base { public function run(): void {} }\n",
+        ),
+        ("src/ref.rb", "class Ref < Demo::Base\nend\n"),
+        (
+            "src/ref.lua",
+            "local Ref = {}\nfunction Ref.run() Demo.Base.call() end\n",
+        ),
+    ];
+
+    for (file, content) in cases {
+        let temp = create_mock_repo(&[
+            (file, content),
+            (
+                ".codemap/config.toml",
+                "[caller_context]\nnavigation_store_references = true\n",
+            ),
+        ])
+        .unwrap();
+        let output = run_cli(&["parse", file], temp.path())
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let parsed: Value =
+            serde_json::from_slice(&output).expect("parse must retain its JSON contract");
+        assert!(
+            parsed["navigation"]["references"]
+                .as_array()
+                .is_some_and(|references| !references.is_empty()),
+            "{file} should store static references when explicitly enabled: {parsed}"
         );
     }
 }

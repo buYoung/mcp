@@ -1,0 +1,54 @@
+{
+  "calls": [
+    {
+      "name": "parse",
+      "receiver": "Request",
+      "range": {
+        "startLine": 5,
+        "startCol": 16,
+        "endLine": 5,
+        "endCol": 32
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "submit",
+      "receiver": "$service",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 31
+      },
+      "scopeId": 300007
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "$service",
+      "typeName": "Service",
+      "range": {
+        "startLine": 3,
+        "startCol": 17,
+        "endLine": 3,
+        "endCol": 33
+      },
+      "scopeId": 300007
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Request",
+      "importedName": "Request",
+      "source": "Demo\\Request",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 18
+      }
+    }
+  ]
+}

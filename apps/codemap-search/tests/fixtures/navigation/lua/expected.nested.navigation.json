@@ -1,0 +1,82 @@
+{
+  "calls": [
+    {
+      "name": "map",
+      "receiver": "mapper",
+      "range": {
+        "startLine": 3,
+        "startCol": 15,
+        "endLine": 3,
+        "endCol": 27
+      },
+      "scopeId": 200005
+    },
+    {
+      "name": "save",
+      "receiver": "repo",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 17
+      },
+      "scopeId": 200005
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "repo_module",
+      "range": {
+        "startLine": 1,
+        "startCol": 7,
+        "endLine": 1,
+        "endCol": 38
+      }
+    },
+    {
+      "name": "mapper",
+      "range": {
+        "startLine": 2,
+        "startCol": 14,
+        "endLine": 2,
+        "endCol": 20
+      },
+      "scopeId": 200005
+    },
+    {
+      "name": "repo",
+      "range": {
+        "startLine": 2,
+        "startCol": 22,
+        "endLine": 2,
+        "endCol": 26
+      },
+      "scopeId": 200005
+    },
+    {
+      "name": "dto",
+      "range": {
+        "startLine": 3,
+        "startCol": 9,
+        "endLine": 3,
+        "endCol": 27
+      },
+      "scopeId": 200005
+    }
+  ],
+  "imports": [
+    {
+      "localName": "repo",
+      "importedName": "repo",
+      "source": "./repo",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 21,
+        "endLine": 1,
+        "endCol": 38
+      }
+    }
+  ]
+}

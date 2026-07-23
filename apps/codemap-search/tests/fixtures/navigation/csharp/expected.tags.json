@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "public class Basic\n{\n    public void Ready() {}\n}",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 4,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Basic",
+    "range": {
+      "startLine": 1,
+      "startCol": 14,
+      "endLine": 1,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public void Ready() {}",
+    "range": {
+      "startLine": 3,
+      "startCol": 5,
+      "endLine": 3,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Ready",
+    "range": {
+      "startLine": 3,
+      "startCol": 17,
+      "endLine": 3,
+      "endCol": 22
+    }
+  }
+]

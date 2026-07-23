@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "public class Worker\n{\n    public void Run(Queue queue, Processor processor)\n    {\n        var job = queue.Next();\n        processor.Process(job);\n        queue.Ack(job);\n    }\n}",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 10,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Worker",
+    "range": {
+      "startLine": 2,
+      "startCol": 14,
+      "endLine": 2,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public void Run(Queue queue, Processor processor)\n    {\n        var job = queue.Next();\n        processor.Process(job);\n        queue.Ack(job);\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 9,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Run",
+    "range": {
+      "startLine": 4,
+      "startCol": 17,
+      "endLine": 4,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.Next()",
+    "range": {
+      "startLine": 6,
+      "startCol": 19,
+      "endLine": 6,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor.Process(job)",
+    "range": {
+      "startLine": 7,
+      "startCol": 9,
+      "endLine": 7,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.Ack(job)",
+    "range": {
+      "startLine": 8,
+      "startCol": 9,
+      "endLine": 8,
+      "endCol": 23
+    }
+  }
+]

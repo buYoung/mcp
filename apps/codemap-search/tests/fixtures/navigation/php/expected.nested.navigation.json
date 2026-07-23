@@ -1,0 +1,65 @@
+{
+  "calls": [
+    {
+      "name": "map",
+      "receiver": "$mapper",
+      "range": {
+        "startLine": 5,
+        "startCol": 12,
+        "endLine": 5,
+        "endCol": 26
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "save",
+      "receiver": "$repo",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 22
+      },
+      "scopeId": 300007
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "$mapper",
+      "typeName": "Mapper",
+      "range": {
+        "startLine": 3,
+        "startCol": 14,
+        "endLine": 3,
+        "endCol": 28
+      },
+      "scopeId": 300007
+    },
+    {
+      "name": "$repo",
+      "typeName": "Repo",
+      "range": {
+        "startLine": 3,
+        "startCol": 30,
+        "endLine": 3,
+        "endCol": 40
+      },
+      "scopeId": 300007
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Repo",
+      "importedName": "Repository",
+      "source": "Demo\\Repository",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 29
+      }
+    }
+  ]
+}

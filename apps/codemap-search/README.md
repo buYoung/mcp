@@ -68,7 +68,8 @@ prompts. All tools are read-only over the configured filesystem scope.
 Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),
 **TypeScript/TSX** (`.ts`, `.tsx`), **JavaScript/JSX** (`.js`, `.jsx`), **Go** (`.go`),
 **Java** (`.java`), **Kotlin** (`.kt`, `.kts`), **C** (`.c`), **C++** (`.h`, `.cpp`,
-`.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`), **Assembly/GAS** (`.s`, `.S`, `.asm`).
+`.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`), **C#** (`.cs`), **PHP** (`.php`),
+**Ruby** (`.rb`), **Lua** (`.lua`), **Assembly/GAS** (`.s`, `.S`, `.asm`).
 `read`/`find`/`grep` work on any text file.
 
 Per-language flag conventions: Go uses initial-uppercase for exported symbols, `*_test.go`
@@ -79,7 +80,11 @@ and reads `@Test` / `@Deprecated` annotations; C/C++ treats a declaration as fil
 it carries `static` storage class (otherwise exported), and uses C++ access specifiers
 (`public`/`private`/`protected`) for class members (struct members default to public, class
 members default to private); Assembly exports symbols that appear in a `.globl`/`.global`
-directive.
+directive. C# uses explicit `public` plus implicitly public interface members, PHP treats
+top-level and non-private/non-protected members as public, Ruby follows class/module visibility
+sections, and Lua exposes every file-level declaration (including `local` declarations).
+All four languages recognize their conventional test paths/names and supported deprecation
+attributes or comments.
 
 Structured and operational formats are indexed without adding a programming-language
 caller/callee model. Tree-sitter AST extraction supports JSON/JSONC, TOML, YAML, HTML/XML

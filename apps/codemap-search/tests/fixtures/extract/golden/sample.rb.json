@@ -1,0 +1,229 @@
+{
+  "filePath": "sample.rb",
+  "totalLines": 23,
+  "symbols": [
+    {
+      "name": "Demo",
+      "kind": "mod",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 18,
+        "endCol": 4
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 17,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "name",
+      "kind": "property",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 31
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "status",
+      "kind": "property",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 31
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "STATE",
+      "kind": "const",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 20
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 8
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "helper",
+      "kind": "fn",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 16,
+        "endCol": 8
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "top_level",
+      "kind": "fn",
+      "range": {
+        "startLine": 20,
+        "startCol": 1,
+        "endLine": 22,
+        "endCol": 4
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "worker",
+      "line": 1
+    },
+    {
+      "text": "ready",
+      "line": 6
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "helper",
+        "range": {
+          "startLine": 9,
+          "startCol": 7,
+          "endLine": 9,
+          "endCol": 15
+        },
+        "scopeId": 800011
+      },
+      {
+        "name": "tick",
+        "receiver": "clock",
+        "range": {
+          "startLine": 10,
+          "startCol": 7,
+          "endLine": 10,
+          "endCol": 19
+        },
+        "scopeId": 800011
+      },
+      {
+        "name": "new",
+        "receiver": "Demo::Worker",
+        "range": {
+          "startLine": 21,
+          "startCol": 3,
+          "endLine": 21,
+          "endCol": 19
+        },
+        "scopeId": 2000022
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "clock",
+        "range": {
+          "startLine": 8,
+          "startCol": 13,
+          "endLine": 8,
+          "endCol": 18
+        },
+        "scopeId": 800011
+      }
+    ],
+    "imports": [
+      {
+        "localName": "worker",
+        "importedName": "worker",
+        "source": "./worker",
+        "kind": "named",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 26
+        }
+      }
+    ]
+  }
+}

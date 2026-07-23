@@ -167,15 +167,25 @@ fn source_candidate_paths(
         .map(Path::to_path_buf)
         .unwrap_or_default();
     let base = base_dir.join(source);
-    const EXTENSIONS: [&str; 4] = ["ts", "tsx", "js", "jsx"];
+    const SCRIPT_EXTENSIONS: [&str; 4] = ["ts", "tsx", "js", "jsx"];
+    let extensions: &[&str] = match Path::new(importing_file)
+        .extension()
+        .and_then(|extension| extension.to_str())
+    {
+        Some("cs") => &["cs"],
+        Some("php") => &["php"],
+        Some("rb") => &["rb"],
+        Some("lua") => &["lua"],
+        _ => &SCRIPT_EXTENSIONS,
+    };
     let mut candidates = Vec::new();
     if base.extension().is_some() {
         candidates.push(normalize_relative_path(&base));
     } else {
-        for ext in EXTENSIONS {
+        for ext in extensions {
             candidates.push(normalize_relative_path(&base.with_extension(ext)));
         }
-        for ext in EXTENSIONS {
+        for ext in extensions {
             candidates.push(normalize_relative_path(&base.join(format!("index.{ext}"))));
         }
     }
@@ -285,5 +295,19 @@ mod tests {
         assert_eq!(enclosing_fn(&f, 50).unwrap().name, "inner");
         assert_eq!(enclosing_fn(&f, 5).unwrap().name, "outer");
         assert!(enclosing_fn(&f, 200).is_none());
+    }
+
+    #[test]
+    fn relative_import_candidates_follow_the_importing_language() {
+        for (importing_file, expected, unexpected) in [
+            ("src/use.cs", "src/target.cs", "src/target.ts"),
+            ("src/use.php", "src/target.php", "src/target.ts"),
+            ("src/use.rb", "src/target.rb", "src/target.ts"),
+            ("src/use.lua", "src/target.lua", "src/target.ts"),
+        ] {
+            let candidates = source_candidate_paths(importing_file, "./target").unwrap();
+            assert!(candidates.iter().any(|candidate| candidate == expected));
+            assert!(!candidates.iter().any(|candidate| candidate == unexpected));
+        }
     }
 }

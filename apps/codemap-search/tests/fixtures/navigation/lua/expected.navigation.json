@@ -1,0 +1,16 @@
+{
+  "calls": [],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "Basic",
+      "range": {
+        "startLine": 1,
+        "startCol": 7,
+        "endLine": 1,
+        "endCol": 17
+      }
+    }
+  ],
+  "imports": []
+}

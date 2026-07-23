@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "public class Service\n{\n    public void Run(Mapper mapper, Repo repo)\n    {\n        var dto = mapper.Map();\n        repo.Save(dto);\n    }\n}",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Service",
+    "range": {
+      "startLine": 2,
+      "startCol": 14,
+      "endLine": 2,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public void Run(Mapper mapper, Repo repo)\n    {\n        var dto = mapper.Map();\n        repo.Save(dto);\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Run",
+    "range": {
+      "startLine": 4,
+      "startCol": 17,
+      "endLine": 4,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "mapper.Map()",
+    "range": {
+      "startLine": 6,
+      "startCol": 19,
+      "endLine": 6,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "repo.Save(dto)",
+    "range": {
+      "startLine": 7,
+      "startCol": 9,
+      "endLine": 7,
+      "endCol": 23
+    }
+  }
+]

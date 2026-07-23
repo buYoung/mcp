@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require(\"./request\")",
+    "range": {
+      "startLine": 1,
+      "startCol": 24,
+      "endLine": 1,
+      "endCol": 44
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "function handle(service)\n  local request_value = request.parse()\n  service.submit(request_value)\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 2,
+      "startCol": 10,
+      "endLine": 2,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "request.parse()",
+    "range": {
+      "startLine": 3,
+      "startCol": 25,
+      "endLine": 3,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.submit(request_value)",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 32
+    }
+  }
+]

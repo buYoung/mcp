@@ -32,6 +32,7 @@ pub(crate) mod c_family;
 mod cmake;
 mod component;
 mod containerfile;
+mod csharp;
 mod css;
 mod format_support;
 mod go;
@@ -43,9 +44,12 @@ mod javascript;
 mod json;
 mod kotlin;
 mod less;
+mod lua;
 mod make;
+mod php;
 mod proto;
 mod python;
+mod ruby;
 mod rust;
 mod sql;
 mod starlark;
@@ -99,6 +103,11 @@ pub(crate) trait LanguageSpec: Sync {
     /// specs in [`ALL_SPECS`] to derive the source-extension allowlist
     /// ([`source_extensions`]) consumed by `workspace::is_source_extension`.
     fn extensions(&self) -> &'static [&'static str];
+
+    /// Additional accepted language-hint spellings that are not file extensions.
+    fn aliases(&self) -> &'static [&'static str] {
+        &[]
+    }
 
     /// Exact basenames served by this spec when extension matching is insufficient.
     fn exact_names(&self) -> &'static [&'static str] {
@@ -327,6 +336,10 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "js" | "jsx" | "mjs" | "cjs" => Some(&javascript::JavaScriptSpec),
         "go" => Some(&go::GoSpec),
         "java" => Some(&java::JavaSpec),
+        "cs" => Some(&csharp::CsharpSpec),
+        "php" => Some(&php::PhpSpec),
+        "rb" => Some(&ruby::RubySpec),
+        "lua" => Some(&lua::LuaSpec),
         "kt" | "kts" => Some(&kotlin::KotlinSpec),
         "c" => Some(&c_family::c::CSpec),
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
@@ -413,7 +426,9 @@ pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
         .iter()
         .copied()
         .find(|spec| {
-            spec.language_name() == normalized || spec.extensions().contains(&normalized.as_str())
+            spec.language_name() == normalized
+                || spec.extensions().contains(&normalized.as_str())
+                || spec.aliases().contains(&normalized.as_str())
         })
         .map(LanguageSpec::language_name)
         .or((normalized == "sass").then_some("sass"))
@@ -438,6 +453,10 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &javascript::JavaScriptSpec,
     &go::GoSpec,
     &java::JavaSpec,
+    &csharp::CsharpSpec,
+    &php::PhpSpec,
+    &ruby::RubySpec,
+    &lua::LuaSpec,
     &kotlin::KotlinSpec,
     &c_family::c::CSpec,
     &c_family::cpp::CppSpec,
@@ -779,4 +798,40 @@ pub(crate) fn generic_find_owner<S: LanguageSpec + ?Sized>(
         return None;
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fifth_priority_language_hints_and_extensions_are_registered() {
+        let cases = [
+            ("cs", "csharp"),
+            ("c#", "csharp"),
+            ("c-sharp", "csharp"),
+            ("csharp", "csharp"),
+            ("php", "php"),
+            ("rb", "ruby"),
+            ("ruby", "ruby"),
+            ("lua", "lua"),
+        ];
+        for (hint, expected) in cases {
+            assert_eq!(normalize_language_hint(hint), Some(expected), "{hint}");
+        }
+        for extension in ["cs", "php", "rb", "lua"] {
+            assert!(source_extensions().contains(extension), "{extension}");
+        }
+    }
+
+    #[test]
+    fn fifth_priority_queries_compile_against_their_grammars() {
+        for extension in ["cs", "php", "rb", "lua"] {
+            let spec = spec_for_ext(extension).expect("language must be registered");
+            let _ = spec.grammar(extension);
+            let _ = spec.query(extension);
+            assert!(spec.tags_query(extension).is_some(), "{extension}");
+            assert!(spec.navigation_enabled(extension), "{extension}");
+        }
+    }
 }

@@ -23,6 +23,10 @@ tree-sitter-javascript = "0.25"
 tree-sitter-python = "0.25"
 tree-sitter-go = "0.25"
 tree-sitter-java = "0.23"
+tree-sitter-c-sharp = "0.23.5"
+tree-sitter-php = "0.24.2"
+tree-sitter-ruby = "0.23.1"
+tree-sitter-lua = "0.5.0"
 # Kotlin: the actively-maintained rewrite (`-ng`) exposes the `LANGUAGE: LanguageFn`
 # constant and links against tree-sitter 0.26's ABI; the older `tree-sitter-kotlin`
 # (0.3.x, fwcd) still ships the legacy `language()` fn and is not compatible here.

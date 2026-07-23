@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require_relative \"request\"",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "name",
+    "text": "require_relative",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "def handle(service)\n  request = Request.parse()\n  service.submit(request)\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 2,
+      "startCol": 5,
+      "endLine": 2,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Request.parse()",
+    "range": {
+      "startLine": 3,
+      "startCol": 13,
+      "endLine": 3,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "name",
+    "text": "parse",
+    "range": {
+      "startLine": 3,
+      "startCol": 21,
+      "endLine": 3,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.submit(request)",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "name",
+    "text": "submit",
+    "range": {
+      "startLine": 4,
+      "startCol": 11,
+      "endLine": 4,
+      "endCol": 17
+    }
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "calls": [
+    {
+      "name": "next",
+      "receiver": "queue",
+      "range": {
+        "startLine": 3,
+        "startCol": 9,
+        "endLine": 3,
+        "endCol": 21
+      },
+      "scopeId": 200006
+    },
+    {
+      "name": "process",
+      "receiver": "processor",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 25
+      },
+      "scopeId": 200006
+    },
+    {
+      "name": "ack",
+      "receiver": "queue",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 17
+      },
+      "scopeId": 200006
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "queue",
+      "range": {
+        "startLine": 2,
+        "startCol": 10,
+        "endLine": 2,
+        "endCol": 15
+      },
+      "scopeId": 200006
+    },
+    {
+      "name": "processor",
+      "range": {
+        "startLine": 2,
+        "startCol": 17,
+        "endLine": 2,
+        "endCol": 26
+      },
+      "scopeId": 200006
+    },
+    {
+      "name": "job",
+      "valueType": "queue",
+      "range": {
+        "startLine": 3,
+        "startCol": 3,
+        "endLine": 3,
+        "endCol": 21
+      },
+      "scopeId": 200006
+    }
+  ],
+  "imports": [
+    {
+      "localName": "job",
+      "importedName": "job",
+      "source": "./job",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 23
+      }
+    }
+  ]
+}

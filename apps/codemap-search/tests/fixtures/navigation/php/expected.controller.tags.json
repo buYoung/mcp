@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function handle(Service $service): void\n{\n    $request = Request::parse();\n    $service->submit($request);\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "handle",
+    "range": {
+      "startLine": 3,
+      "startCol": 10,
+      "endLine": 3,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Request::parse()",
+    "range": {
+      "startLine": 5,
+      "startCol": 16,
+      "endLine": 5,
+      "endCol": 32
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$service->submit($request)",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 31
+    }
+  }
+]

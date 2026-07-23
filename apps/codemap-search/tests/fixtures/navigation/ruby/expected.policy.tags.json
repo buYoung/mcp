@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require_relative \"rule\"",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "name",
+    "text": "require_relative",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "def allow(rule)\n  rule.check()\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 4,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "allow",
+    "range": {
+      "startLine": 2,
+      "startCol": 5,
+      "endLine": 2,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check()",
+    "range": {
+      "startLine": 3,
+      "startCol": 3,
+      "endLine": 3,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "name",
+    "text": "check",
+    "range": {
+      "startLine": 3,
+      "startCol": 8,
+      "endLine": 3,
+      "endCol": 13
+    }
+  }
+]

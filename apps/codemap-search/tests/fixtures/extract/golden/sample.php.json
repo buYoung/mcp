@@ -1,0 +1,255 @@
+{
+  "filePath": "sample.php",
+  "totalLines": 29,
+  "symbols": [
+    {
+      "name": "Demo",
+      "kind": "mod",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 16
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 8,
+        "startCol": 1,
+        "endLine": 21,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "STATE",
+      "kind": "const",
+      "range": {
+        "startLine": 11,
+        "startCol": 5,
+        "endLine": 11,
+        "endCol": 34
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "status",
+      "kind": "property",
+      "range": {
+        "startLine": 12,
+        "startCol": 5,
+        "endLine": 12,
+        "endCol": 36
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 14,
+        "startCol": 5,
+        "endLine": 20,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "helper",
+      "kind": "fn",
+      "range": {
+        "startLine": 23,
+        "startCol": 1,
+        "endLine": 23,
+        "endCol": 27
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Mode",
+      "kind": "enum",
+      "range": {
+        "startLine": 25,
+        "startCol": 1,
+        "endLine": 28,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Fast",
+      "kind": "variant",
+      "range": {
+        "startLine": 27,
+        "startCol": 5,
+        "endLine": 27,
+        "endCol": 15
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Mode"
+    }
+  ],
+  "literals": [
+    {
+      "text": "./worker.php",
+      "line": 6
+    },
+    {
+      "text": "ready",
+      "line": 11
+    },
+    {
+      "text": "idle",
+      "line": 12
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "helper",
+        "range": {
+          "startLine": 16,
+          "startCol": 9,
+          "endLine": 16,
+          "endCol": 17
+        },
+        "scopeId": 1400020
+      },
+      {
+        "name": "tick",
+        "receiver": "$clock",
+        "range": {
+          "startLine": 17,
+          "startCol": 9,
+          "endLine": 17,
+          "endCol": 23
+        },
+        "scopeId": 1400020
+      },
+      {
+        "name": "now",
+        "receiver": "AppClock",
+        "range": {
+          "startLine": 18,
+          "startCol": 9,
+          "endLine": 18,
+          "endCol": 24
+        },
+        "scopeId": 1400020
+      },
+      {
+        "name": "Worker",
+        "range": {
+          "startLine": 19,
+          "startCol": 18,
+          "endLine": 19,
+          "endCol": 30
+        },
+        "scopeId": 1400020
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "$clock",
+        "typeName": "AppClock",
+        "range": {
+          "startLine": 14,
+          "startCol": 25,
+          "endLine": 14,
+          "endCol": 40
+        },
+        "scopeId": 1400020
+      }
+    ],
+    "imports": [
+      {
+        "localName": "AppClock",
+        "importedName": "Clock",
+        "source": "Demo\\Support\\Clock",
+        "kind": "named",
+        "range": {
+          "startLine": 5,
+          "startCol": 1,
+          "endLine": 5,
+          "endCol": 36
+        }
+      },
+      {
+        "localName": "worker",
+        "importedName": "worker",
+        "source": "./worker.php",
+        "kind": "named",
+        "range": {
+          "startLine": 6,
+          "startCol": 1,
+          "endLine": 6,
+          "endCol": 28
+        }
+      }
+    ]
+  }
+}

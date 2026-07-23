@@ -214,6 +214,10 @@ mod tests {
         // Assembly include directive.
         assert!(is_import_line(".include \"defs.s\"", "s"));
         assert!(!is_import_line("movq %rsp, %rbp", "S"));
+        assert!(is_import_line("using Demo.Worker;", "cs"));
+        assert!(is_import_line("use Demo\\Worker;", "php"));
+        assert!(is_import_line("require_relative 'worker'", "rb"));
+        assert!(is_import_line("local worker = require('./worker')", "lua"));
     }
 }
 

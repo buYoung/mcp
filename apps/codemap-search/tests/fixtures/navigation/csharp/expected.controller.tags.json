@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "public class Controller\n{\n    public void Handle(Service service)\n    {\n        var request = Request.Parse();\n        service.Submit(request);\n    }\n}",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Controller",
+    "range": {
+      "startLine": 2,
+      "startCol": 14,
+      "endLine": 2,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public void Handle(Service service)\n    {\n        var request = Request.Parse();\n        service.Submit(request);\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Handle",
+    "range": {
+      "startLine": 4,
+      "startCol": 17,
+      "endLine": 4,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Request.Parse()",
+    "range": {
+      "startLine": 6,
+      "startCol": 23,
+      "endLine": 6,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "service.Submit(request)",
+    "range": {
+      "startLine": 7,
+      "startCol": 9,
+      "endLine": 7,
+      "endCol": 32
+    }
+  }
+]

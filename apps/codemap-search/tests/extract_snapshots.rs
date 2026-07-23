@@ -39,6 +39,10 @@ const FIXTURES: &[&str] = &[
     "sample.jsx",
     "sample.go",
     "sample.java",
+    "sample.cs",
+    "sample.php",
+    "sample.rb",
+    "sample.lua",
     "sample.kt",
     "sample.c",
     "sample.cpp",
@@ -157,6 +161,26 @@ fn go_extraction_matches_golden() {
 #[test]
 fn java_extraction_matches_golden() {
     check_fixture("sample.java");
+}
+
+#[test]
+fn csharp_extraction_matches_golden() {
+    check_fixture("sample.cs");
+}
+
+#[test]
+fn php_extraction_matches_golden() {
+    check_fixture("sample.php");
+}
+
+#[test]
+fn ruby_extraction_matches_golden() {
+    check_fixture("sample.rb");
+}
+
+#[test]
+fn lua_extraction_matches_golden() {
+    check_fixture("sample.lua");
 }
 
 #[test]

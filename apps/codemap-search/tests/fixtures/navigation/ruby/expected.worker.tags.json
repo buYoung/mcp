@@ -1,0 +1,102 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require_relative \"job\"",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "name",
+    "text": "require_relative",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "def work(queue, processor)\n  job = queue.next()\n  processor.process(job)\n  queue.ack(job)\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 6,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "work",
+    "range": {
+      "startLine": 2,
+      "startCol": 5,
+      "endLine": 2,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.next()",
+    "range": {
+      "startLine": 3,
+      "startCol": 9,
+      "endLine": 3,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "name",
+    "text": "next",
+    "range": {
+      "startLine": 3,
+      "startCol": 15,
+      "endLine": 3,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor.process(job)",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "name",
+    "text": "process",
+    "range": {
+      "startLine": 4,
+      "startCol": 13,
+      "endLine": 4,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.ack(job)",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "name",
+    "text": "ack",
+    "range": {
+      "startLine": 5,
+      "startCol": 9,
+      "endLine": 5,
+      "endCol": 12
+    }
+  }
+]

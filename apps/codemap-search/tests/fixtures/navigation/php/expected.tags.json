@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class Basic\n{\n    public function ready(): void {}\n}",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Basic",
+    "range": {
+      "startLine": 2,
+      "startCol": 7,
+      "endLine": 2,
+      "endCol": 12
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public function ready(): void {}",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 4,
+      "endCol": 37
+    }
+  },
+  {
+    "capture": "name",
+    "text": "ready",
+    "range": {
+      "startLine": 4,
+      "startCol": 21,
+      "endLine": 4,
+      "endCol": 26
+    }
+  }
+]

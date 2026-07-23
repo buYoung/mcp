@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function work(Queue $queue, Processor $processor): void\n{\n    $job = $queue->next();\n    $processor->process($job);\n    $queue->ack($job);\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 8,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "work",
+    "range": {
+      "startLine": 3,
+      "startCol": 10,
+      "endLine": 3,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$queue->next()",
+    "range": {
+      "startLine": 5,
+      "startCol": 12,
+      "endLine": 5,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$processor->process($job)",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 30
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$queue->ack($job)",
+    "range": {
+      "startLine": 7,
+      "startCol": 5,
+      "endLine": 7,
+      "endCol": 22
+    }
+  }
+]

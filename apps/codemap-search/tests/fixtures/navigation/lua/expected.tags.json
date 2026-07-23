@@ -1,0 +1,22 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function Basic.ready() end",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 2,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "name",
+    "text": "ready",
+    "range": {
+      "startLine": 2,
+      "startCol": 16,
+      "endLine": 2,
+      "endCol": 21
+    }
+  }
+]

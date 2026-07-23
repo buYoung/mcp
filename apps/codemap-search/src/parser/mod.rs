@@ -375,15 +375,32 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
         | "field_identifier"
         | "property_identifier"
         | "type_identifier"
-        | "namespace_identifier" => node_text(function_node, source).map(|name| (name, None)),
-        "member_expression" | "field_expression" | "selector_expression" | "attribute" => {
+        | "namespace_identifier"
+        | "name" => node_text(function_node, source).map(|name| (name, None)),
+        "conditional_access_expression" => {
+            let text = node_text(function_node, source)?;
+            let (receiver, tail) = text.rsplit_once("?.")?;
+            let name = base_name_from_text(tail)?;
+            Some((name, Some(receiver.trim().to_string())))
+        }
+        "member_expression"
+        | "member_access_expression"
+        | "field_expression"
+        | "selector_expression"
+        | "attribute"
+        | "dot_index_expression"
+        | "method_index_expression" => {
             let name_node = function_node
                 .child_by_field_name("property")
                 .or_else(|| function_node.child_by_field_name("field"))
+                .or_else(|| function_node.child_by_field_name("method"))
                 .or_else(|| function_node.child_by_field_name("attribute"))
                 .or_else(|| function_node.child_by_field_name("name"))?;
             let receiver = function_node
                 .child_by_field_name("object")
+                .or_else(|| function_node.child_by_field_name("expression"))
+                .or_else(|| function_node.child_by_field_name("table"))
+                .or_else(|| function_node.child_by_field_name("prefix"))
                 .or_else(|| function_node.child_by_field_name("operand"))
                 .or_else(|| function_node.child_by_field_name("receiver"))
                 .or_else(|| function_node.child_by_field_name("value"))
@@ -441,9 +458,18 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
             (name, receiver)
         }
         "object_creation_expression" => {
-            let type_node = node
-                .child_by_field_name("type")
-                .or_else(|| first_descendant_kind(node, &["type_identifier", "identifier"]))?;
+            let type_node = node.child_by_field_name("type").or_else(|| {
+                first_descendant_kind(
+                    node,
+                    &[
+                        "type_identifier",
+                        "identifier",
+                        "name",
+                        "qualified_name",
+                        "relative_name",
+                    ],
+                )
+            })?;
             let name = node_text(type_node, source).and_then(|text| base_name_from_text(&text))?;
             (name, None)
         }
@@ -461,6 +487,38 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
                 .child_by_field_name("receiver")
                 .and_then(|receiver| receiver_text(receiver, source));
             (name, receiver)
+        }
+        "member_call_expression" | "nullsafe_member_call_expression" => {
+            let name = node
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source))
+                .and_then(|name| base_name_from_text(&name))?;
+            let receiver = node
+                .child_by_field_name("object")
+                .and_then(|receiver| receiver_text(receiver, source));
+            (name, receiver)
+        }
+        "scoped_call_expression" => {
+            let name = node
+                .child_by_field_name("name")
+                .and_then(|name| node_text(name, source))
+                .and_then(|name| base_name_from_text(&name))?;
+            let receiver = node
+                .child_by_field_name("scope")
+                .and_then(|receiver| receiver_text(receiver, source));
+            (name, receiver)
+        }
+        "call" => {
+            if let Some(method) = node.child_by_field_name("method") {
+                let name = node_text(method, source).and_then(|name| base_name_from_text(&name))?;
+                let receiver = node
+                    .child_by_field_name("receiver")
+                    .and_then(|receiver| receiver_text(receiver, source));
+                (name, receiver)
+            } else {
+                let function = node.child_by_field_name("function")?;
+                call_name_and_receiver(function, source)?
+            }
         }
         "macro_invocation" => {
             let macro_node = node.child_by_field_name("macro")?;
@@ -543,6 +601,8 @@ fn scope_id_for_node(node: Node) -> Option<usize> {
                 | "constructor_declaration"
                 | "arrow_function"
                 | "function_item"
+                | "method"
+                | "singleton_method"
         ) {
             let range = range_for_node(ancestor);
             return Some(range.start_line.saturating_mul(100_000) + range.end_line);
@@ -2086,6 +2146,7 @@ impl TreeSitterExtractor {
                             "symbol.enum" => "enum",
                             "symbol.variant" => "variant",
                             "symbol.trait" => "trait",
+                            "symbol.alias" => "fn",
                             "symbol.mod" => "mod",
                             "symbol.fn" | "symbol.method" => "fn",
                             "symbol.macro" => "fn",
@@ -2154,7 +2215,7 @@ impl TreeSitterExtractor {
                                 if sk == "comment" || sk == "line_comment" || sk == "block_comment"
                                 {
                                     let end_row = sibling.end_position().row;
-                                    if end_row >= last_row - 1 {
+                                    if end_row >= last_row.saturating_sub(1) {
                                         if let Ok(text) = sibling.utf8_text(source) {
                                             comments.push(text.to_string());
                                         }
@@ -2204,7 +2265,10 @@ impl TreeSitterExtractor {
                             // Best-effort: any unexpected shape yields `None`.
                             // Note: `symbol.method` maps to kind "fn" (see match arm above),
                             // so "method" is never a possible kind value here.
-                            let owner = if matches!(kind.as_str(), "fn" | "variant" | "field") {
+                            let owner = if matches!(
+                                kind.as_str(),
+                                "fn" | "variant" | "field" | "property" | "const"
+                            ) {
                                 spec.find_owner(node, ext, source)
                             } else {
                                 None
@@ -3037,6 +3101,19 @@ class Calculator:
             ),
             // ASM: a globl label and a non-globl label.
             (".globl _main\n_main:\n  ret\n_local:\n  ret\n", "x.s"),
+            (
+                "public class T { public void A() { this.B(); } public void B() {} }",
+                "x.cs",
+            ),
+            (
+                "<?php class T { public function a() { $this->b(); } public function b() {} }",
+                "x.php",
+            ),
+            ("class T\n  def a\n    b\n  end\nend\n", "x.rb"),
+            (
+                "local T = {}\nfunction T.a() T.b() end\nfunction T.b() end\n",
+                "x.lua",
+            ),
         ];
         for (content, path) in cases {
             let extractor = TreeSitterExtractor::new();
@@ -3083,6 +3160,22 @@ class Calculator:
                 "x.s",
                 "asm_aux_target:\n  ret\nasm_aux_caller:\n  call asm_aux_target\n",
             ),
+            (
+                "x.cs",
+                "public class CSharpAux { public void Target() {} public void Caller() { Target(); } }\n",
+            ),
+            (
+                "x.php",
+                "<?php class PhpAux { public function target() {} public function caller() { $this->target(); } }\n",
+            ),
+            (
+                "x.rb",
+                "def ruby_aux_target\nend\ndef ruby_aux_caller\n  ruby_aux_target()\nend\n",
+            ),
+            (
+                "x.lua",
+                "function lua_aux_target() end\nfunction lua_aux_caller() lua_aux_target() end\n",
+            ),
         ];
         for (path, content) in cases {
             let auxiliary = collect_index_auxiliary(content, path).unwrap();
@@ -3094,6 +3187,163 @@ class Calculator:
                 !auxiliary.reference.is_empty(),
                 "{path} must expose a relationship reference to indexing"
             );
+        }
+    }
+
+    #[test]
+    fn fifth_priority_languages_extract_symbols_calls_imports_flags_and_owners() {
+        let cases = [
+            (
+                "Worker.cs",
+                "using Alias = Demo.Worker;\npublic class Worker { [Obsolete] public void Run() { Alias.Create(); } }\n",
+                "Run",
+                Some("Worker"),
+                "Create",
+                Some("Alias"),
+                "Alias",
+            ),
+            (
+                "Worker.php",
+                "<?php use Demo\\Worker as Alias; class Worker { #[Deprecated] public function run() { Alias::create(); } }\n",
+                "run",
+                Some("Worker"),
+                "create",
+                Some("Alias"),
+                "Alias",
+            ),
+            (
+                "worker.rb",
+                "require_relative 'base'\nclass Worker\n  def run\n    self.create()\n  end\nend\n",
+                "run",
+                Some("Worker"),
+                "create",
+                Some("self"),
+                "base",
+            ),
+            (
+                "worker.lua",
+                "local base = require('./base')\nlocal Worker = {}\nfunction Worker.run() Worker.create() end\n",
+                "run",
+                Some("Worker"),
+                "create",
+                Some("Worker"),
+                "base",
+            ),
+        ];
+
+        let extractor = TreeSitterExtractor::new();
+        for (path, content, symbol_name, owner, call_name, receiver, import_name) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            let symbol = file
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == symbol_name)
+                .unwrap_or_else(|| panic!("{path}: missing symbol {symbol_name}"));
+            assert_eq!(symbol.owner.as_deref(), owner, "{path}");
+            let navigation = file.navigation.as_ref().expect("navigation must run");
+            assert!(
+                navigation
+                    .calls
+                    .iter()
+                    .any(|call| { call.name == call_name && call.receiver.as_deref() == receiver }),
+                "{path}: missing receiver call"
+            );
+            assert!(
+                navigation
+                    .imports
+                    .iter()
+                    .any(|import| import.local_name == import_name),
+                "{path}: missing import"
+            );
+        }
+    }
+
+    #[test]
+    fn fifth_priority_languages_keep_valid_siblings_after_malformed_declarations() {
+        let cases = [
+            (
+                "broken.cs",
+                "public class Broken { public void Bad( { } public void Good() {} }",
+                "Good",
+            ),
+            (
+                "broken.php",
+                "<?php class Broken { public function bad( { } public function good() {} }",
+                "good",
+            ),
+            (
+                "broken.rb",
+                "class Broken\n  def bad(\n  end\n  def good\n  end\nend\n",
+                "good",
+            ),
+            (
+                "broken.lua",
+                "function bad( end\nfunction good() end\n",
+                "good",
+            ),
+        ];
+        let extractor = TreeSitterExtractor::new();
+        for (path, content, expected) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == expected),
+                "{path}: valid sibling was lost"
+            );
+        }
+    }
+
+    #[test]
+    fn fifth_priority_language_flags_follow_visibility_test_and_deprecation_rules() {
+        let extractor = TreeSitterExtractor::new();
+        let cases = [
+            (
+                "WorkerTests.cs",
+                "public class Worker { [Fact] [Obsolete] public void Run() {} private void Hide() {} }",
+                "Run",
+                "Hide",
+            ),
+            (
+                "WorkerTest.php",
+                "<?php class Worker { /** @deprecated */ public function testRun() {} private function hide() {} }",
+                "testRun",
+                "hide",
+            ),
+            (
+                "worker_spec.rb",
+                "class Worker\n  # @deprecated\n  def test_run\n  end\n  private\n  def hide\n  end\nend\n",
+                "test_run",
+                "hide",
+            ),
+            (
+                "worker_spec.lua",
+                "-- @deprecated\nfunction test_run() end\nlocal function hide() end\n",
+                "test_run",
+                "hide",
+            ),
+        ];
+        for (path, content, public_name, private_name) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            let public_symbol = file
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == public_name)
+                .unwrap_or_else(|| panic!("{path}: missing {public_name}"));
+            assert!(public_symbol.flags.is_exported, "{path}");
+            assert!(public_symbol.flags.is_test, "{path}");
+            assert!(public_symbol.flags.is_deprecated, "{path}");
+            let private_symbol = file
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == private_name)
+                .unwrap_or_else(|| panic!("{path}: missing {private_name}"));
+            if !path.ends_with(".lua") {
+                assert!(!private_symbol.flags.is_exported, "{path}");
+            } else {
+                assert!(
+                    private_symbol.flags.is_exported,
+                    "top-level local Lua declarations remain public by contract"
+                );
+            }
         }
     }
 }

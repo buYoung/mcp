@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function run(Mapper $mapper, Repo $repo): void\n{\n    $dto = $mapper->map();\n    $repo->save($dto);\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 7,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 3,
+      "startCol": 10,
+      "endLine": 3,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$mapper->map()",
+    "range": {
+      "startLine": 5,
+      "startCol": 12,
+      "endLine": 5,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$repo->save($dto)",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 22
+    }
+  }
+]

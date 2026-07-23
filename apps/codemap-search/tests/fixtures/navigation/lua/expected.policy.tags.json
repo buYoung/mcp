@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require(\"./rule\")",
+    "range": {
+      "startLine": 1,
+      "startCol": 21,
+      "endLine": 1,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "function allow(rule)\n  return rule.check()\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 4,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "allow",
+    "range": {
+      "startLine": 2,
+      "startCol": 10,
+      "endLine": 2,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check()",
+    "range": {
+      "startLine": 3,
+      "startCol": 10,
+      "endLine": 3,
+      "endCol": 22
+    }
+  }
+]

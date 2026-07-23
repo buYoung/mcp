@@ -1,0 +1,62 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require(\"./job\")",
+    "range": {
+      "startLine": 1,
+      "startCol": 20,
+      "endLine": 1,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "function work(queue, processor)\n  local job_value = queue.next()\n  processor.process(job_value)\n  queue.ack(job_value)\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 6,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "work",
+    "range": {
+      "startLine": 2,
+      "startCol": 10,
+      "endLine": 2,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.next()",
+    "range": {
+      "startLine": 3,
+      "startCol": 21,
+      "endLine": 3,
+      "endCol": 33
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "processor.process(job_value)",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 31
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "queue.ack(job_value)",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 23
+    }
+  }
+]

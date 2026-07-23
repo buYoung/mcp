@@ -1,0 +1,32 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "function allow(Rule $rule): bool\n{\n    return $rule->check();\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 6,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "allow",
+    "range": {
+      "startLine": 3,
+      "startCol": 10,
+      "endLine": 3,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "$rule->check()",
+    "range": {
+      "startLine": 5,
+      "startCol": 12,
+      "endLine": 5,
+      "endCol": 26
+    }
+  }
+]

@@ -1,0 +1,262 @@
+{
+  "filePath": "sample.lua",
+  "totalLines": 22,
+  "symbols": [
+    {
+      "name": "worker",
+      "kind": "variable",
+      "range": {
+        "startLine": 1,
+        "startCol": 7,
+        "endLine": 1,
+        "endCol": 35
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "state",
+      "kind": "variable",
+      "range": {
+        "startLine": 2,
+        "startCol": 7,
+        "endLine": 2,
+        "endCol": 22
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "status",
+      "kind": "field",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 18
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "service"
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "service"
+    },
+    {
+      "name": "start",
+      "kind": "fn",
+      "range": {
+        "startLine": 10,
+        "startCol": 1,
+        "endLine": 13,
+        "endCol": 4
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "service"
+    },
+    {
+      "name": "stop",
+      "kind": "fn",
+      "range": {
+        "startLine": 15,
+        "startCol": 1,
+        "endLine": 17,
+        "endCol": 4
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "service"
+    },
+    {
+      "name": "helper",
+      "kind": "fn",
+      "range": {
+        "startLine": 19,
+        "startCol": 1,
+        "endLine": 21,
+        "endCol": 4
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "./worker",
+      "line": 1
+    },
+    {
+      "text": "ready",
+      "line": 2
+    },
+    {
+      "text": "idle",
+      "line": 4
+    },
+    {
+      "text": "stopped",
+      "line": 16
+    },
+    {
+      "text": "./helper.lua",
+      "line": 20
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "execute",
+        "receiver": "worker",
+        "range": {
+          "startLine": 6,
+          "startCol": 5,
+          "endLine": 6,
+          "endCol": 21
+        },
+        "scopeId": 500007
+      },
+      {
+        "name": "tick",
+        "receiver": "clock",
+        "range": {
+          "startLine": 11,
+          "startCol": 3,
+          "endLine": 11,
+          "endCol": 15
+        },
+        "scopeId": 1000013
+      },
+      {
+        "name": "new",
+        "receiver": "worker",
+        "range": {
+          "startLine": 12,
+          "startCol": 10,
+          "endLine": 12,
+          "endCol": 22
+        },
+        "scopeId": 1000013
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "worker",
+        "range": {
+          "startLine": 1,
+          "startCol": 7,
+          "endLine": 1,
+          "endCol": 35
+        }
+      },
+      {
+        "name": "state",
+        "range": {
+          "startLine": 2,
+          "startCol": 7,
+          "endLine": 2,
+          "endCol": 22
+        }
+      },
+      {
+        "name": "service",
+        "range": {
+          "startLine": 3,
+          "startCol": 7,
+          "endLine": 8,
+          "endCol": 2
+        }
+      },
+      {
+        "name": "clock",
+        "range": {
+          "startLine": 10,
+          "startCol": 24,
+          "endLine": 10,
+          "endCol": 29
+        },
+        "scopeId": 1000013
+      }
+    ],
+    "imports": [
+      {
+        "localName": "worker",
+        "importedName": "worker",
+        "source": "./worker",
+        "kind": "named",
+        "range": {
+          "startLine": 1,
+          "startCol": 16,
+          "endLine": 1,
+          "endCol": 35
+        }
+      },
+      {
+        "localName": "helper",
+        "importedName": "helper",
+        "source": "./helper.lua",
+        "kind": "named",
+        "range": {
+          "startLine": 20,
+          "startCol": 10,
+          "endLine": 20,
+          "endCol": 32
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "calls": [
+    {
+      "name": "Map",
+      "receiver": "mapper",
+      "range": {
+        "startLine": 6,
+        "startCol": 19,
+        "endLine": 6,
+        "endCol": 31
+      },
+      "scopeId": 400008
+    },
+    {
+      "name": "Save",
+      "receiver": "repo",
+      "range": {
+        "startLine": 7,
+        "startCol": 9,
+        "endLine": 7,
+        "endCol": 23
+      },
+      "scopeId": 400008
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 32
+      },
+      "scopeId": 400008
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Repo",
+      "importedName": "Repository",
+      "source": "Demo.Repository",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 30
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "public class Policy\n{\n    public bool Allow(Rule rule)\n    {\n        var passed = rule.Check();\n        return passed;\n    }\n}",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 9,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Policy",
+    "range": {
+      "startLine": 2,
+      "startCol": 14,
+      "endLine": 2,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "public bool Allow(Rule rule)\n    {\n        var passed = rule.Check();\n        return passed;\n    }",
+    "range": {
+      "startLine": 4,
+      "startCol": 5,
+      "endLine": 8,
+      "endCol": 6
+    }
+  },
+  {
+    "capture": "name",
+    "text": "Allow",
+    "range": {
+      "startLine": 4,
+      "startCol": 17,
+      "endLine": 4,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.Check()",
+    "range": {
+      "startLine": 6,
+      "startCol": 22,
+      "endLine": 6,
+      "endCol": 34
+    }
+  }
+]

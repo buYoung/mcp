@@ -1,0 +1,242 @@
+{
+  "filePath": "sample.cs",
+  "totalLines": 26,
+  "symbols": [
+    {
+      "name": "Demo",
+      "kind": "mod",
+      "range": {
+        "startLine": 4,
+        "startCol": 1,
+        "endLine": 4,
+        "endCol": 16
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "IWorker",
+      "kind": "interface",
+      "range": {
+        "startLine": 6,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Execute",
+      "kind": "fn",
+      "range": {
+        "startLine": 8,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 20
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "IWorker"
+    },
+    {
+      "name": "Worker",
+      "kind": "record",
+      "range": {
+        "startLine": 11,
+        "startCol": 1,
+        "endLine": 25,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "Completed",
+      "kind": "field",
+      "range": {
+        "startLine": 14,
+        "startCol": 5,
+        "endLine": 14,
+        "endCol": 42
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "Status",
+      "kind": "property",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 15,
+        "endCol": 58
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "attempts",
+      "kind": "field",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 16,
+        "endCol": 26
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "Execute",
+      "kind": "fn",
+      "range": {
+        "startLine": 18,
+        "startCol": 5,
+        "endLine": 24,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": true,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    }
+  ],
+  "literals": [
+    {
+      "text": "ready",
+      "line": 15
+    },
+    {
+      "text": "child",
+      "line": 22
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "Trace",
+        "receiver": "Helpers",
+        "range": {
+          "startLine": 21,
+          "startCol": 9,
+          "endLine": 21,
+          "endCol": 24
+        },
+        "scopeId": 1800024
+      },
+      {
+        "name": "WorkerAlias",
+        "range": {
+          "startLine": 22,
+          "startCol": 22,
+          "endLine": 22,
+          "endCol": 46
+        },
+        "scopeId": 1800024
+      },
+      {
+        "name": "Invoke",
+        "receiver": "Completed",
+        "range": {
+          "startLine": 23,
+          "startCol": 9,
+          "endLine": 23,
+          "endCol": 49
+        },
+        "scopeId": 1800024
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "nested",
+        "valueType": "WorkerAlias",
+        "range": {
+          "startLine": 22,
+          "startCol": 9,
+          "endLine": 22,
+          "endCol": 47
+        },
+        "scopeId": 1800024
+      }
+    ],
+    "imports": [
+      {
+        "localName": "WorkerAlias",
+        "importedName": "Worker",
+        "source": "Demo.Worker",
+        "kind": "named",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 33
+        }
+      },
+      {
+        "localName": "Helpers",
+        "importedName": "Helpers",
+        "source": "Demo.Helpers",
+        "kind": "named",
+        "range": {
+          "startLine": 2,
+          "startCol": 1,
+          "endLine": 2,
+          "endCol": 27
+        }
+      }
+    ]
+  }
+}

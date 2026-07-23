@@ -1,0 +1,82 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "require_relative \"repo\"",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "name",
+    "text": "require_relative",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "def run(mapper, repo)\n  dto = mapper.map()\n  repo.save(dto)\nend",
+    "range": {
+      "startLine": 2,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "name",
+    "text": "run",
+    "range": {
+      "startLine": 2,
+      "startCol": 5,
+      "endLine": 2,
+      "endCol": 8
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "mapper.map()",
+    "range": {
+      "startLine": 3,
+      "startCol": 9,
+      "endLine": 3,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "name",
+    "text": "map",
+    "range": {
+      "startLine": 3,
+      "startCol": 16,
+      "endLine": 3,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "repo.save(dto)",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "name",
+    "text": "save",
+    "range": {
+      "startLine": 4,
+      "startCol": 8,
+      "endLine": 4,
+      "endCol": 12
+    }
+  }
+]

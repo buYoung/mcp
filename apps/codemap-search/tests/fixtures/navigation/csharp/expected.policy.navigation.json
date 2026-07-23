@@ -1,0 +1,42 @@
+{
+  "calls": [
+    {
+      "name": "Check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 6,
+        "startCol": 22,
+        "endLine": 6,
+        "endCol": 34
+      },
+      "scopeId": 400008
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "passed",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 35
+      },
+      "scopeId": 400008
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Rule",
+      "importedName": "Rule",
+      "source": "Demo.Rule",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 24
+      }
+    }
+  ]
+}
