@@ -8,3 +8,4 @@
 (property_name) @symbol.const
 (variable) @symbol.variable
 (mixin_definition) @symbol.fn
+(rule_set) @symbol.fn

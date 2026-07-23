@@ -33,6 +33,9 @@ impl LanguageSpec for LessSpec {
         true
     }
     fn capture_is_valid(&self, capture: &str, node: Node<'_>, source: &[u8]) -> bool {
+        if capture == "symbol.fn" && node.kind() == "rule_set" {
+            return id_mixin_name(node, source).is_some();
+        }
         is_recoverable(nearest_ancestor(
             node,
             &[
@@ -76,7 +79,9 @@ impl LanguageSpec for LessSpec {
         source: &[u8],
         _meta: &Option<String>,
     ) -> Option<NameDecision> {
-        let name = if capture == "symbol.fn" {
+        let name = if capture == "symbol.fn" && node.kind() == "rule_set" {
+            id_mixin_name(node, source)?
+        } else if capture == "symbol.fn" {
             named_children(node)
                 .into_iter()
                 .find(|child| matches!(child.kind(), "class_name" | "id_name"))
@@ -94,4 +99,53 @@ impl LanguageSpec for LessSpec {
         };
         Some(NameDecision::Name(name))
     }
+}
+
+fn id_mixin_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let rule = node.utf8_text(source).ok()?.trim_start();
+    let rest = rule.strip_prefix('#')?;
+    let name_end = rest
+        .find(|character: char| {
+            !(character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
+        })
+        .unwrap_or(rest.len());
+    if name_end == 0 {
+        return None;
+    }
+    let name = &rest[..name_end];
+    let signature = rest[name_end..].trim_start();
+    if !signature.starts_with('(') || matching_paren_end(signature)? == signature.len() {
+        return None;
+    }
+    Some(format!("#{name}"))
+}
+
+fn matching_paren_end(signature: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    let mut quote = None;
+    let mut is_escaped = false;
+    for (index, character) in signature.char_indices() {
+        if let Some(current_quote) = quote {
+            if is_escaped {
+                is_escaped = false;
+            } else if character == '\\' {
+                is_escaped = true;
+            } else if character == current_quote {
+                quote = None;
+            }
+            continue;
+        }
+        match character {
+            '"' | '\'' => quote = Some(character),
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(index + character.len_utf8());
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }

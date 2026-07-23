@@ -9,13 +9,23 @@ fn has_symbol(file: &codemap_search::parser::ExtractedFile, name: &str) -> bool 
 }
 
 #[test]
-fn test_registry_routes_only_tree_sitter_formats() {
+fn test_registry_routes_supported_formats() {
     assert!(has_symbol(
         &extract("config.json", r#"{"server": 1}"#),
         "server"
     ));
     assert!(has_symbol(&extract("page.html", "<main></main>"), "main"));
+    assert!(has_symbol(
+        &extract("site.sass", ".card\n  color: red"),
+        ".card"
+    ));
     assert!(has_symbol(&extract("site.less", ".card {}"), ".card"));
+    assert!(has_symbol(
+        &extract("Widget.vue", "<template><main /></template>"),
+        "main"
+    ));
+    assert!(has_symbol(&extract("Widget.astro", "<main />"), "main"));
+    assert!(has_symbol(&extract("Widget.svelte", "<main />"), "main"));
     assert!(has_symbol(
         &extract("deploy.bash", "function deploy { :; }"),
         "deploy"
@@ -58,7 +68,11 @@ fn test_checked_priority_aliases_have_grammar_backed_symbols() {
         ("app.props", "<main />", "main"),
         ("app.targets", "<main />", "main"),
         ("site.css", ".card {}", ".card"),
+        ("site.sass", "$color: red\n.card\n  color: $color", ".card"),
         ("site.less", "@color: red;\n.card {}", ".card"),
+        ("Widget.vue", "<template><main /></template>", "main"),
+        ("Widget.astro", "<main />", "main"),
+        ("Widget.svelte", "<main />", "main"),
         ("deploy.sh", "run() { :; }", "run"),
         ("deploy.bash", "run() { :; }", "run"),
         ("deploy.zsh", "run() { :; }", "run"),
@@ -104,7 +118,7 @@ fn priority_one_ast_keys_have_nested_paths_and_comment_isolation() {
 }
 
 #[test]
-fn priority_two_ast_symbols_exclude_unverified_components() {
+fn priority_two_ast_symbols_include_verified_components() {
     let html = extract("page.html", "<img id=\"hero\" class=\"asset image\" />");
     assert!(has_symbol(&html, "img") && has_symbol(&html, "hero") && has_symbol(&html, "asset"));
     let xml = extract(
@@ -127,12 +141,11 @@ fn priority_two_ast_symbols_exclude_unverified_components() {
     );
     let component = extract(
         "Widget.astro",
-        "---\nconst fake = \"<main>\"\n---\n<main />",
+        "---\nconst sample = \"<fake id='ghost'>\"\n---\n<main />",
     );
-    assert!(
-        !has_symbol(&component, "main"),
-        "template markup must stay unstructured"
-    );
+    assert!(has_symbol(&component, "main"));
+    assert!(!has_symbol(&component, "fake"));
+    assert!(!has_symbol(&component, "ghost"));
 }
 
 #[test]
@@ -285,9 +298,34 @@ fn broad_tree_sitter_grammar_coverage_keeps_overview_symbols_complete() {
             ],
         ),
         (
+            "site.sass",
+            "$gap: 1rem\n@mixin surface($color)\n  color: $color\n@function spacing($n)\n  @return $n * $gap\n.card:hover\n  --gap: $gap",
+            &["$gap", "surface", "spacing", ".card", ":hover", "--gap"],
+        ),
+        (
             "site.less",
             "@gap: 1rem; .surface(@color) { color: @color; } .card:hover {}",
             &["@gap", ".surface", ".card", ".card:hover"],
+        ),
+        (
+            "id-mixin.less",
+            "#surface(@color) { color: @color; } #page { color: red; }",
+            &["#surface"],
+        ),
+        (
+            "Widget.vue",
+            "<template><main id=\"app\" class=\"shell wide\"><Card /></main></template><style lang=\"less\">.shell { --gap: 1rem; }</style>",
+            &["template", "main", "app", "shell", "wide", "Card", ".shell", "--gap"],
+        ),
+        (
+            "Widget.astro",
+            "---\nconst ready = true;\n---\n<main id=\"app\" class=\"shell\"><Card /></main>\n<style>.shell { --gap: 1rem; }</style>",
+            &["ready", "main", "app", "shell", "Card", ".shell", "--gap"],
+        ),
+        (
+            "Widget.svelte",
+            "{#if ready}<main id=\"app\" class=\"shell\"><Card /></main>{/if}<style>.shell { --gap: 1rem; }</style>",
+            &["main", "app", "shell", "Card", ".shell", "--gap"],
         ),
         (
             "deploy.sh",
@@ -372,6 +410,14 @@ fn malformed_priority_grammars_preserve_recoverable_ast_boundaries() {
         ),
         ("broken.css", ".stable {}\n.ghost {", ".stable", ".ghost"),
         ("broken.less", ".stable {}\n.ghost {", ".stable", ".ghost"),
+        (
+            "broken.vue",
+            "<template><stable /><ghost</template>",
+            "stable",
+            "ghost",
+        ),
+        ("broken.astro", "<stable /><ghost", "stable", "ghost"),
+        ("broken.svelte", "<stable /><ghost", "stable", "ghost"),
         ("broken.sh", "stable() { :; }\nghost() {", "stable", "ghost"),
         (
             "broken.zsh",

@@ -21,7 +21,7 @@ impl<'a> SourceMasks<'a> {
         }
     }
 
-    fn copy_code(&mut self, grammar_ext: &str, start: usize, end: usize) {
+    fn copy_code(&mut self, grammar_ext: &'static str, start: usize, end: usize) {
         if start >= end || end > self.original.len() {
             return;
         }
@@ -40,7 +40,7 @@ impl<'a> SourceMasks<'a> {
             .collect();
         mask[start..end].copy_from_slice(&self.original.as_bytes()[start..end]);
         self.sources.push(CompositeSource {
-            grammar_ext: if grammar_ext == "ts" { "ts" } else { "js" },
+            grammar_ext,
             // Code regions are delimited by tags or full lines, therefore their byte offsets
             // are UTF-8 boundaries. The remaining bytes are ASCII spaces.
             source: String::from_utf8(mask).expect("composite source mask must be UTF-8"),
@@ -68,8 +68,16 @@ pub(super) fn extract_sources(source: &str, extension: &str) -> Vec<CompositeSou
     } else {
         0
     };
-    extract_scripts(source, body_start, extension == "astro", &mut masks);
+    extract_embedded_sources(source, body_start, extension == "astro", &mut masks);
     masks.finish()
+}
+
+pub(super) fn has_unterminated_astro_frontmatter(source: &str) -> bool {
+    let mut masks = SourceMasks::new(source);
+    matches!(
+        extract_astro_frontmatter(source, &mut masks),
+        AstroFrontmatter::Unterminated
+    )
 }
 
 enum AstroFrontmatter {
@@ -124,7 +132,7 @@ fn line_end_after(bytes: &[u8], index: usize) -> Option<usize> {
     }
 }
 
-fn extract_scripts(
+fn extract_embedded_sources(
     source: &str,
     mut index: usize,
     allow_nested_scripts: bool,
@@ -207,12 +215,24 @@ fn extract_scripts(
         } else {
             tag.name == "script"
         };
-        if is_script && (allow_nested_scripts || ancestors.is_empty()) {
-            let Some(close_start) = find_script_close(source, index, allow_nested_scripts) else {
+        let is_style = if allow_nested_scripts {
+            tag.raw_name == "style"
+        } else {
+            tag.name == "style"
+        };
+        if (is_script || is_style) && (allow_nested_scripts || ancestors.is_empty()) {
+            let raw_name = if is_script { "script" } else { "style" };
+            let Some(close_start) =
+                find_raw_text_close(source, index, raw_name, allow_nested_scripts)
+            else {
                 // An unclosed tag has no verified boundary; leave it masked.
                 return;
             };
-            masks.copy_code(script_grammar(tag.attributes), index, close_start);
+            if is_script {
+                masks.copy_code(script_grammar(tag.attributes), index, close_start);
+            } else if let Some(grammar) = style_grammar(tag.attributes) {
+                masks.copy_code(grammar, index, close_start);
+            }
             let Some(close_tag) = parse_tag(source, close_start) else {
                 return;
             };
@@ -289,7 +309,12 @@ fn tag_end(source: &str, mut cursor: usize) -> Option<usize> {
     None
 }
 
-fn find_script_close(source: &str, mut cursor: usize, is_case_sensitive: bool) -> Option<usize> {
+fn find_raw_text_close(
+    source: &str,
+    mut cursor: usize,
+    raw_name: &str,
+    is_case_sensitive: bool,
+) -> Option<usize> {
     while cursor < source.len() {
         let relative = source[cursor..].find("</")?;
         let candidate = cursor + relative;
@@ -298,12 +323,12 @@ fn find_script_close(source: &str, mut cursor: usize, is_case_sensitive: bool) -
             cursor = candidate + 2;
             continue;
         };
-        let is_script = if is_case_sensitive {
-            tag.raw_name == "script"
+        let is_target = if is_case_sensitive {
+            tag.raw_name == raw_name
         } else {
-            tag.name == "script"
+            tag.name == raw_name
         };
-        if tag.is_closing && is_script {
+        if tag.is_closing && is_target {
             return Some(candidate);
         }
         cursor = tag.end;
@@ -330,6 +355,23 @@ fn quoted_value_end(bytes: &[u8], start: usize) -> Option<usize> {
 }
 
 fn script_grammar(attributes: &str) -> &'static str {
+    match language_attribute(attributes).as_deref() {
+        Some("ts" | "typescript") => "ts",
+        _ => "js",
+    }
+}
+
+fn style_grammar(attributes: &str) -> Option<&'static str> {
+    match language_attribute(attributes).as_deref() {
+        None | Some("css") => Some("css"),
+        Some("scss") => Some("scss"),
+        Some("sass") => Some("sass"),
+        Some("less") => Some("less"),
+        Some(_) => None,
+    }
+}
+
+fn language_attribute(attributes: &str) -> Option<String> {
     let mut cursor = 0;
     let bytes = attributes.as_bytes();
     while cursor < bytes.len() {
@@ -382,17 +424,14 @@ fn script_grammar(attributes: &str) -> &'static str {
             }
         };
         if name == "lang" {
-            let value = attributes[value_start..value_end]
-                .trim()
-                .to_ascii_lowercase();
-            return if matches!(value.as_str(), "ts" | "typescript") {
-                "ts"
-            } else {
-                "js"
-            };
+            return Some(
+                attributes[value_start..value_end]
+                    .trim()
+                    .to_ascii_lowercase(),
+            );
         }
     }
-    "js"
+    None
 }
 
 fn is_void_element(name: &str) -> bool {
@@ -423,15 +462,16 @@ mod tests {
     fn masks_only_top_level_component_code_without_changing_coordinates() {
         let source = "<template>\n<script>const fake = 'noise';</script>\n</template>\n<script lang=\"ts\">\nconst real = 'kept';\n</script>\n<style>.noise { color: red; }</style>\n";
         let sources = extract_sources(source, "vue");
-        assert_eq!(sources.len(), 1);
+        assert_eq!(sources.len(), 2);
         assert_eq!(sources[0].grammar_ext, "ts");
+        assert_eq!(sources[1].grammar_ext, "css");
         assert_eq!(sources[0].source.len(), source.len());
         assert_eq!(
             sources[0].source.lines().nth(4),
             Some("const real = 'kept';")
         );
         assert!(!sources[0].source.contains("const fake"));
-        assert!(!sources[0].source.contains("color: red"));
+        assert!(sources[1].source.contains("color: red"));
     }
 
     #[test]
@@ -494,5 +534,27 @@ mod tests {
         assert!(extracted.contains("expression_markup_symbol"));
         assert!(!extracted.contains("expression_only_symbol"));
         assert!(!extracted.contains("component_child_text"));
+    }
+
+    #[test]
+    fn extracts_verified_style_languages_with_original_coordinates() {
+        let source = "<style>.plain { color: red; }</style>\r\n<style lang=\"scss\">.nested { --gap: 1rem; }</style>\r\n<style lang=\"less\">#theme(@x) { color: @x; }</style>\r\n<style lang=\"unknown\">.ignored {}</style>\r\n";
+        let sources = extract_sources(source, "vue");
+        assert_eq!(
+            sources
+                .iter()
+                .map(|source| source.grammar_ext)
+                .collect::<Vec<_>>(),
+            vec!["css", "scss", "less"]
+        );
+        for masked in &sources {
+            assert_eq!(masked.source.len(), source.len());
+        }
+        assert!(sources[0].source.contains(".plain"));
+        assert!(sources[1].source.contains(".nested"));
+        assert!(sources[2].source.contains("#theme"));
+        assert!(sources
+            .iter()
+            .all(|masked| !masked.source.contains(".ignored")));
     }
 }

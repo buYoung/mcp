@@ -208,6 +208,26 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
             ".surface(@color) { color: @color; }",
             ".surface",
         ),
+        (
+            "site.sass",
+            "@mixin surface($color)\n  color: $color\n\n.card\n  @include surface(red)",
+            "surface",
+        ),
+        (
+            "Widget.vue",
+            "<template><main class=\"vue-shell\" /></template><style>.vue-style {}</style>",
+            "vue-shell",
+        ),
+        (
+            "Widget.astro",
+            "<main class=\"astro-shell\"></main><style>.astro-style {}</style>",
+            "astro-shell",
+        ),
+        (
+            "Widget.svelte",
+            "<main class=\"svelte-shell\"></main><style>.svelte-style {}</style>",
+            "svelte-shell",
+        ),
         ("deploy.sh", "run() { :; }", "run"),
         ("deploy.bash", "run() { :; }", "run"),
         ("deploy.zsh", "function run { :; }", "run"),

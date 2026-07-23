@@ -1,4 +1,5 @@
 mod composite;
+mod sass;
 mod tokenize;
 mod types;
 
@@ -1845,6 +1846,9 @@ impl TreeSitterExtractor {
         if is_composite_extension(ext) {
             return self.extract_composite_parts(file_content, file_path, ext, collect_auxiliary);
         }
+        if ext == "sass" {
+            return sass::extract(file_content, file_path, collect_auxiliary);
+        }
         self.extract_language_parts(file_content, file_path, ext, collect_auxiliary)
     }
 
@@ -2285,23 +2289,29 @@ impl TreeSitterExtractor {
             navigation: Some(NavigationFile::default()),
         };
         let mut auxiliary = IndexAuxiliary::default();
-        // Component template/style regions are unstructured, but the complete outer source must
-        // remain searchable even when no structural extractor is activated for them.
+        // Keep the complete outer source searchable in addition to the dedicated component
+        // grammar and embedded script/style structural results.
         auxiliary.format_text.push(file_content.to_string());
 
+        if extension != "astro" || !composite::has_unterminated_astro_frontmatter(file_content) {
+            let (markup, markup_auxiliary) =
+                self.extract_language_parts(file_content, file_path, extension, false)?;
+            merge_composite_part(&mut extracted, &mut auxiliary, markup, markup_auxiliary);
+        }
+
         for embedded in composite::extract_sources(file_content, extension) {
-            let (part, part_auxiliary) = self.extract_language_parts(
-                &embedded.source,
-                file_path,
-                embedded.grammar_ext,
-                collect_auxiliary,
-            )?;
+            let (part, part_auxiliary) = if embedded.grammar_ext == "sass" {
+                sass::extract(&embedded.source, file_path, collect_auxiliary)?
+            } else {
+                self.extract_language_parts(
+                    &embedded.source,
+                    file_path,
+                    embedded.grammar_ext,
+                    collect_auxiliary,
+                )?
+            };
             merge_composite_part(&mut extracted, &mut auxiliary, part, part_auxiliary);
         }
-        // Vue/Astro/Svelte keep their established same-length embedded JavaScript/TypeScript
-        // extraction only. Template/style grammars are not verified for these composite
-        // containers, so they remain searchable through the original format text but do not
-        // contribute untrusted markup/style symbols.
         extracted.symbols.sort_by_key(|symbol| {
             (
                 symbol.range.start_line,

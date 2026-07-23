@@ -108,7 +108,7 @@ fn test_priority_two_markup_and_css_symbols_preserve_navigation_boundary() {
 }
 
 #[test]
-fn test_lsr_003_tree_sitter_markup_and_unverified_component_regions() {
+fn test_lsr_003_tree_sitter_style_and_verified_component_regions() {
     let markup = parsed_file(
         "page.html",
         "<!-- <fake id=\"ghost\"> -->\n<main id=\"real\"></main>",
@@ -124,11 +124,67 @@ fn test_lsr_003_tree_sitter_markup_and_unverified_component_regions() {
         "Widget.astro",
         "---\nconst sample = \"<fake id='ghost'>\";\n---\n<main />",
     );
+    symbol(&component, "main");
     assert!(component["symbols"]
         .as_array()
         .unwrap()
         .iter()
         .all(|entry| entry["name"] != "fake" && entry["name"] != "ghost"));
+}
+
+#[test]
+fn test_priority_two_sass_less_and_component_structure_is_complete() {
+    let sass_source = "$accent: red\n@mixin theme($color)\n  color: $color\n@function spacing($n)\n  @return $n * 2\n.shell\n  --accent: $accent\n  &.active\n    display: block\n";
+    let sass = parsed_file("styles/site.sass", sass_source);
+    assert_eq!(symbol(&sass, "$accent")["kind"], "variable");
+    assert_eq!(symbol(&sass, "theme")["kind"], "mixin");
+    assert_eq!(symbol(&sass, "spacing")["kind"], "function");
+    assert_eq!(symbol(&sass, ".shell")["range"]["startLine"], 6);
+    assert_eq!(symbol(&sass, ".active")["range"]["startCol"], 4);
+    assert_eq!(symbol(&sass, "--accent")["kind"], "custom_property");
+    assert!(sass["navigation"].is_null());
+
+    let less = parsed_file(
+        "styles/site.less",
+        "#theme(@color) { color: @color; }\n#ordinary { color: red; }\n",
+    );
+    assert_eq!(symbol(&less, "#theme")["kind"], "mixin");
+    assert!(less["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| !(entry["name"] == "#ordinary" && entry["kind"] == "mixin")));
+
+    for (path, source, tag_line, style_line) in [
+        (
+            "src/Widget.vue",
+            "<template>\n<main id=\"app\" class=\"shell wide\"><Card /></main>\n</template>\n<script setup lang=\"ts\">function client() {}</script>\n<style lang=\"less\">\n.shell { --gap: 1rem; }\n</style>\n",
+            2,
+            6,
+        ),
+        (
+            "src/Widget.astro",
+            "---\nfunction server() {}\n---\n<main id=\"app\" class=\"shell wide\"><Card /></main>\n<style lang=\"less\">\n.shell { --gap: 1rem; }\n</style>\n",
+            4,
+            6,
+        ),
+        (
+            "src/Widget.svelte",
+            "<script lang=\"ts\">function client() {}</script>\n{#if ready}<main id=\"app\" class=\"shell wide\"><Card /></main>{/if}\n<style lang=\"less\">\n.shell { --gap: 1rem; }\n</style>\n",
+            2,
+            4,
+        ),
+    ] {
+        let component = parsed_file(path, source);
+        assert_eq!(symbol(&component, "main")["range"]["startLine"], tag_line);
+        symbol(&component, "app");
+        symbol(&component, "shell");
+        symbol(&component, "wide");
+        symbol(&component, "Card");
+        assert_eq!(symbol(&component, ".shell")["range"]["startLine"], style_line);
+        symbol(&component, "--gap");
+        assert!(component["navigation"]["calls"].as_array().unwrap().is_empty());
+    }
 }
 
 #[test]
@@ -266,6 +322,12 @@ fn test_malformed_priority_files_remain_searchable_without_recovered_structure()
             ".css_recovery_token {}\n.ghost {",
             ".css_recovery_token",
             ".ghost",
+        ),
+        (
+            "broken.sass",
+            ".sass_recovery_token\n  color: red\n@mixin ghost(",
+            ".sass_recovery_token",
+            "ghost",
         ),
         (
             "broken.sh",
@@ -791,7 +853,7 @@ fn test_unterminated_astro_frontmatter_is_not_reinterpreted_as_markup() {
 }
 
 #[test]
-fn test_composite_code_preserves_original_lines_and_excludes_non_code() {
+fn test_composite_code_markup_and_style_preserve_original_lines() {
     let vue = parsed_file(
         "src/matrix.vue",
         "<template>\n<div>vue_template_only_token</div>\n<!-- <script>const vue_fake_script = 'no';</script> -->\n\"<script>const vue_template_string_fake_script = 'no';</script>\"\n</template>\n<script setup lang=\"ts\">\nconst vue_line_preserved = 'vue_literal_kept';\nfunction vue_real_call() { return vue_line_preserved; }\n</script>\n<style>.vue_style_only_token { color: red; }</style>\n",
@@ -803,8 +865,8 @@ fn test_composite_code_preserves_original_lines_and_excludes_non_code() {
             .any(|literal| literal["text"] == "vue_literal_kept")
     }));
     let vue_json = vue.to_string();
-    assert!(!vue_json.contains("vue_template_only_token"));
-    assert!(!vue_json.contains(".vue_style_only_token"));
+    symbol(&vue, "div");
+    symbol(&vue, ".vue_style_only_token");
     assert!(!vue_json.contains("vue_fake_script"));
     assert!(!vue_json.contains("vue_template_string_fake_script"));
 
@@ -820,7 +882,7 @@ fn test_composite_code_preserves_original_lines_and_excludes_non_code() {
         symbol(&svelte, "svelte_instance_symbol")["range"]["startLine"],
         5
     );
-    assert!(!svelte.to_string().contains("svelte_template_only_token"));
+    symbol(&svelte, "div");
 
     let astro = parsed_file(
         "src/matrix.astro",
@@ -834,7 +896,7 @@ fn test_composite_code_preserves_original_lines_and_excludes_non_code() {
         symbol(&astro, "astro_client_symbol")["range"]["startLine"],
         7
     );
-    assert!(!astro.to_string().contains("astro_template_only_token"));
+    symbol(&astro, "div");
 }
 
 #[test]

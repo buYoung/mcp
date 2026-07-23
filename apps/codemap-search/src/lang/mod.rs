@@ -30,6 +30,7 @@ mod asm;
 mod bash;
 pub(crate) mod c_family;
 mod cmake;
+mod component;
 mod containerfile;
 mod css;
 mod format_support;
@@ -340,6 +341,9 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         }
         "css" => Some(&css::CssSpec),
         "less" => Some(&less::LessSpec),
+        "vue" => Some(&component::VueSpec),
+        "astro" => Some(&component::AstroSpec),
+        "svelte" => Some(&component::SvelteSpec),
         "sh" | "bash" => Some(&bash::BashSpec),
         "zsh" => Some(&zsh::ZshSpec),
         "hcl" | "tf" | "tfvars" => Some(&hcl::HclSpec),
@@ -357,9 +361,7 @@ pub(crate) fn language_name_for_extension(ext: &str) -> Option<&'static str> {
     spec_for_ext(&normalized)
         .map(LanguageSpec::language_name)
         .or(match normalized.as_str() {
-            "vue" => Some("vue"),
-            "astro" => Some("astro"),
-            "svelte" => Some("svelte"),
+            "sass" => Some("sass"),
             _ => None,
         })
 }
@@ -393,7 +395,7 @@ pub(crate) fn is_supported_source_path(path: &Path) -> bool {
         || path
             .extension()
             .and_then(|extension| extension.to_str())
-            .is_some_and(is_composite_extension)
+            .is_some_and(is_non_tree_sitter_extension)
 }
 
 /// Only tree-sitter languages/composite components participate in approximate caller scans.
@@ -414,12 +416,7 @@ pub(crate) fn normalize_language_hint(hint: &str) -> Option<&'static str> {
             spec.language_name() == normalized || spec.extensions().contains(&normalized.as_str())
         })
         .map(LanguageSpec::language_name)
-        .or(match normalized.as_str() {
-            "vue" => Some("vue"),
-            "astro" => Some("astro"),
-            "svelte" => Some("svelte"),
-            _ => None,
-        })
+        .or((normalized == "sass").then_some("sass"))
 }
 
 pub(crate) fn normalize_extension_hint(hint: &str) -> Option<String> {
@@ -453,6 +450,9 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &xml::XmlSpec,
     &css::CssSpec,
     &less::LessSpec,
+    &component::VueSpec,
+    &component::AstroSpec,
+    &component::SvelteSpec,
     &bash::BashSpec,
     &zsh::ZshSpec,
     &hcl::HclSpec,
@@ -464,13 +464,18 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &starlark::StarlarkSpec,
 ];
 
-/// Composite component formats use embedded JavaScript/TypeScript grammars rather than a
-/// standalone tree-sitter grammar. Keep their eligibility in this same registry module so
+/// Composite component formats combine a dedicated outer tree-sitter grammar with embedded
+/// JavaScript/TypeScript and style grammars. Keep their eligibility in this registry module so
 /// workspace walking and ranking remain centralized; MDX is intentionally absent.
 const COMPOSITE_SOURCE_EXTENSIONS: &[&str] = &["vue", "astro", "svelte"];
+const NON_TREE_SITTER_SOURCE_EXTENSIONS: &[&str] = &["sass"];
 
 pub(crate) fn is_composite_extension(ext: &str) -> bool {
     COMPOSITE_SOURCE_EXTENSIONS.contains(&ext)
+}
+
+pub(crate) fn is_non_tree_sitter_extension(ext: &str) -> bool {
+    NON_TREE_SITTER_SOURCE_EXTENSIONS.contains(&ext)
 }
 
 /// The source-file extensions codemap-search understands, derived once as the union of
@@ -484,6 +489,7 @@ pub fn source_extensions() -> &'static HashSet<&'static str> {
             .iter()
             .flat_map(|spec| spec.extensions().iter().copied())
             .chain(COMPOSITE_SOURCE_EXTENSIONS.iter().copied())
+            .chain(NON_TREE_SITTER_SOURCE_EXTENSIONS.iter().copied())
             .collect()
     })
 }

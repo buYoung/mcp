@@ -74,10 +74,21 @@ fn test_bm25_search_reaches_every_priority_alias_and_grammar_boundary() {
             "// less_tree_sitter_token",
             "less_tree_sitter_token",
         ),
+        ("site.sass", "// sass_ast_token", "sass_ast_token"),
+        (
+            "Widget.vue",
+            "<template><main>vue_structured_token</main></template>",
+            "vue_structured_token",
+        ),
         (
             "Widget.astro",
-            "<div>astro_unstructured_token</div>",
-            "astro_unstructured_token",
+            "<div>astro_structured_token</div>",
+            "astro_structured_token",
+        ),
+        (
+            "Widget.svelte",
+            "<main>svelte_structured_token</main>",
+            "svelte_structured_token",
         ),
         (
             "Dockerfile",

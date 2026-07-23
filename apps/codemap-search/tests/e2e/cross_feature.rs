@@ -295,6 +295,22 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ("page.xml", r#"<root><child id="leaf"/></root>"#),
         ("site.css", "a[href]:hover::before { --gap: 1rem; }\n"),
         ("site.less", ".surface(@color) { color: @color; }\n"),
+        (
+            "site.sass",
+            "@mixin sass_surface($color)\n  color: $color\n",
+        ),
+        (
+            "Widget.vue",
+            "<template><main class=\"vue-shell\" /></template><style>.vue-style {}</style>",
+        ),
+        (
+            "Widget.astro",
+            "<main class=\"astro-shell\"></main><style>.astro-style {}</style>",
+        ),
+        (
+            "Widget.svelte",
+            "<main class=\"svelte-shell\"></main><style>.svelte-style {}</style>",
+        ),
         ("deploy.sh", "function deploy { :; }\nREGION=kr\n"),
         ("deploy.zsh", "function prepare { :; }\nREGION=kr\n"),
         (
@@ -356,6 +372,10 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ("page.xml", "leaf"),
         ("site.css", "a[href]:hover::before"),
         ("site.less", ".surface"),
+        ("site.sass", "sass_surface"),
+        ("Widget.vue", "vue-shell"),
+        ("Widget.astro", "astro-shell"),
+        ("Widget.svelte", "svelte-shell"),
         ("deploy.sh", "deploy"),
         ("deploy.zsh", "prepare"),
         ("main.tf", "prevent_destroy"),
