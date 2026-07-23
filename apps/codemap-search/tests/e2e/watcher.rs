@@ -329,7 +329,7 @@ async fn test_watcher_refreshes_priority_format_create_modify_and_delete() {
 }
 
 #[tokio::test]
-async fn test_watcher_refreshes_fifth_priority_languages_on_create_modify_and_delete() {
+async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delete() {
     let temp = create_mock_repo(&[(".codemap/config.toml", WATCHER_ONLY_CONFIG)]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     client
@@ -345,6 +345,76 @@ async fn test_watcher_refreshes_fifth_priority_languages_on_create_modify_and_de
     let_seeded_refresh_settle().await;
 
     for (path, created_source, created_symbol, updated_source, updated_symbol) in [
+        (
+            "watch.rs",
+            "pub struct WatchCreatedRust;\n",
+            "WatchCreatedRust",
+            "pub struct WatchUpdatedRust;\n",
+            "WatchUpdatedRust",
+        ),
+        (
+            "watch.py",
+            "class WatchCreatedPython:\n    pass\n",
+            "WatchCreatedPython",
+            "class WatchUpdatedPython:\n    pass\n",
+            "WatchUpdatedPython",
+        ),
+        (
+            "watch.ts",
+            "export class WatchCreatedTypeScript {}\n",
+            "WatchCreatedTypeScript",
+            "export class WatchUpdatedTypeScript {}\n",
+            "WatchUpdatedTypeScript",
+        ),
+        (
+            "watch.js",
+            "export class WatchCreatedJavaScript {}\n",
+            "WatchCreatedJavaScript",
+            "export class WatchUpdatedJavaScript {}\n",
+            "WatchUpdatedJavaScript",
+        ),
+        (
+            "watch.go",
+            "package watch\ntype WatchCreatedGo struct{}\n",
+            "WatchCreatedGo",
+            "package watch\ntype WatchUpdatedGo struct{}\n",
+            "WatchUpdatedGo",
+        ),
+        (
+            "Watch.java",
+            "class WatchCreatedJava {}\n",
+            "WatchCreatedJava",
+            "class WatchUpdatedJava {}\n",
+            "WatchUpdatedJava",
+        ),
+        (
+            "Watch.kt",
+            "class WatchCreatedKotlin\n",
+            "WatchCreatedKotlin",
+            "class WatchUpdatedKotlin\n",
+            "WatchUpdatedKotlin",
+        ),
+        (
+            "watch.c",
+            "struct WatchCreatedC { int value; };\n",
+            "WatchCreatedC",
+            "struct WatchUpdatedC { int value; };\n",
+            "WatchUpdatedC",
+        ),
+        (
+            "watch.cpp",
+            "class WatchCreatedCpp {};\n",
+            "WatchCreatedCpp",
+            "class WatchUpdatedCpp {};\n",
+            "WatchUpdatedCpp",
+        ),
+        (
+            "watch.s",
+            ".globl WatchCreatedAsm\nWatchCreatedAsm:\n  ret\n",
+            "WatchCreatedAsm",
+            ".globl WatchUpdatedAsm\nWatchUpdatedAsm:\n  ret\n",
+            "WatchUpdatedAsm",
+        ),
         (
             "Watch.cs",
             "public class WatchCreatedCSharp {}\n",

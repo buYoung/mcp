@@ -1,0 +1,65 @@
+{
+  "calls": [
+    {
+      "name": "queue_pending",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 21
+      }
+    },
+    {
+      "name": "queue_next",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 18
+      }
+    },
+    {
+      "name": "process_job",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 6,
+        "endCol": 19
+      }
+    },
+    {
+      "name": "queue_ack",
+      "range": {
+        "startLine": 7,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 17
+      }
+    },
+    {
+      "name": "logger_warn",
+      "range": {
+        "startLine": 8,
+        "startCol": 3,
+        "endLine": 8,
+        "endCol": 19
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "queue",
+      "importedName": "queue",
+      "source": "queue.inc",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 21
+      }
+    }
+  ]
+}

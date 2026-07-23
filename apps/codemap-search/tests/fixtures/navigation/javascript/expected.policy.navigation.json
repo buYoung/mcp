@@ -1,0 +1,117 @@
+{
+  "calls": [
+    {
+      "name": "filter",
+      "receiver": "this.rules",
+      "range": {
+        "startLine": 9,
+        "startCol": 20,
+        "endLine": 9,
+        "endCol": 66
+      },
+      "scopeId": 800015
+    },
+    {
+      "name": "check",
+      "receiver": "rule",
+      "range": {
+        "startLine": 9,
+        "startCol": 48,
+        "endLine": 9,
+        "endCol": 65
+      },
+      "scopeId": 900009
+    },
+    {
+      "name": "map",
+      "receiver": "active",
+      "range": {
+        "startLine": 10,
+        "startCol": 19,
+        "endLine": 13,
+        "endCol": 7
+      },
+      "scopeId": 800015
+    },
+    {
+      "name": "keys",
+      "receiver": "Object",
+      "range": {
+        "startLine": 12,
+        "startCol": 41,
+        "endLine": 12,
+        "endCol": 62
+      },
+      "scopeId": 1000013
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "active",
+      "valueType": "filter",
+      "range": {
+        "startLine": 9,
+        "startCol": 11,
+        "endLine": 9,
+        "endCol": 66
+      },
+      "scopeId": 800015
+    },
+    {
+      "name": "names",
+      "valueType": "map",
+      "range": {
+        "startLine": 10,
+        "startCol": 11,
+        "endLine": 13,
+        "endCol": 7
+      },
+      "scopeId": 800015
+    },
+    {
+      "name": "ruleName",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 11,
+        "endCol": 69
+      },
+      "scopeId": 1000013
+    },
+    {
+      "name": "severity",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 11,
+        "endCol": 69
+      },
+      "scopeId": 1000013
+    },
+    {
+      "name": "metadata",
+      "range": {
+        "startLine": 11,
+        "startCol": 13,
+        "endLine": 11,
+        "endCol": 69
+      },
+      "scopeId": 1000013
+    }
+  ],
+  "imports": [
+    {
+      "localName": "Rule",
+      "importedName": "Rule",
+      "source": "./rules",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 32
+      }
+    }
+  ]
+}

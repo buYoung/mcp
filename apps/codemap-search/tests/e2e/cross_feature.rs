@@ -286,15 +286,55 @@ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
 }
 
 #[tokio::test]
-async fn test_fifth_priority_languages_flow_through_index_search_and_mcp_overview() {
+async fn test_programming_languages_flow_through_index_search_and_mcp_overview() {
     let temp = create_mock_repo(&[
         (
+            "src/rust_flow.rs",
+            "pub struct RustFlow;\nimpl RustFlow {\n    pub fn target_rust(&self) {}\n    pub fn caller_rust(&self) { self.target_rust(); }\n}\n",
+        ),
+        (
+            "src/python_flow.py",
+            "class PythonFlow:\n    def target_python(self):\n        pass\n    def caller_python(self):\n        self.target_python()\n",
+        ),
+        (
+            "src/typescript_flow.ts",
+            "export class TypeScriptFlow {\n  targetTypeScript() {}\n  callerTypeScript() { this.targetTypeScript(); }\n}\n",
+        ),
+        (
+            "src/javascript_flow.js",
+            "export class JavaScriptFlow {\n  targetJavaScript() {}\n  callerJavaScript() { this.targetJavaScript(); }\n}\n",
+        ),
+        (
+            "src/go_flow.go",
+            "package flow\ntype GoFlow struct{}\nfunc (flow GoFlow) TargetGo() {}\nfunc (flow GoFlow) CallerGo() { flow.TargetGo() }\n",
+        ),
+        (
+            "src/JavaFlow.java",
+            "class JavaFlow {\n  void targetJava() {}\n  void callerJava() { targetJava(); }\n}\n",
+        ),
+        (
+            "src/KotlinFlow.kt",
+            "class KotlinFlow {\n  fun targetKotlin() {}\n  fun callerKotlin() { targetKotlin() }\n}\n",
+        ),
+        (
+            "src/c_flow.c",
+            "void target_c(void) {}\nvoid caller_c(void) { target_c(); }\n",
+        ),
+        (
+            "src/cpp_flow.cpp",
+            "class CppFlow {\npublic:\n  void targetCpp() {}\n  void callerCpp() { targetCpp(); }\n};\n",
+        ),
+        (
+            "src/asm_flow.s",
+            ".globl target_asm\n.globl caller_asm\ntarget_asm:\n  ret\ncaller_asm:\n  call target_asm\n  ret\n",
+        ),
+        (
             "src/CSharpFlow.cs",
-            "public class CSharpFlow { public void TargetCSharp() {} public void CallerCSharp() { TargetCSharp(); } }\n",
+            "public class CSharpFlow {\n  public void TargetCSharp() {}\n  public void CallerCSharp() { TargetCSharp(); }\n}\n",
         ),
         (
             "src/php_flow.php",
-            "<?php class PhpFlow { public function targetPhp(): void {} public function callerPhp(): void { $this->targetPhp(); } }\n",
+            "<?php class PhpFlow {\n  public function targetPhp(): void {}\n  public function callerPhp(): void { $this->targetPhp(); }\n}\n",
         ),
         (
             "src/ruby_flow.rb",
@@ -313,6 +353,46 @@ async fn test_fifth_priority_languages_flow_through_index_search_and_mcp_overvie
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     for (path, query, language_hint, qualified_name) in [
+        (
+            "src/rust_flow.rs",
+            "target_rust",
+            "rust",
+            "RustFlow.target_rust",
+        ),
+        (
+            "src/python_flow.py",
+            "target_python",
+            "py",
+            "PythonFlow.target_python",
+        ),
+        (
+            "src/typescript_flow.ts",
+            "targetTypeScript",
+            "ts",
+            "TypeScriptFlow.targetTypeScript",
+        ),
+        (
+            "src/javascript_flow.js",
+            "targetJavaScript",
+            "js",
+            "JavaScriptFlow.targetJavaScript",
+        ),
+        ("src/go_flow.go", "TargetGo", "go", "GoFlow.TargetGo"),
+        (
+            "src/JavaFlow.java",
+            "targetJava",
+            "java",
+            "JavaFlow.targetJava",
+        ),
+        (
+            "src/KotlinFlow.kt",
+            "targetKotlin",
+            "kt",
+            "KotlinFlow.targetKotlin",
+        ),
+        ("src/c_flow.c", "target_c", "c", "target_c"),
+        ("src/cpp_flow.cpp", "targetCpp", "cpp", "CppFlow.targetCpp"),
+        ("src/asm_flow.s", "target_asm", "asm", "target_asm"),
         (
             "src/CSharpFlow.cs",
             "TargetCSharp",
@@ -351,7 +431,6 @@ async fn test_fifth_priority_languages_flow_through_index_search_and_mcp_overvie
             search_text.contains(qualified_name),
             "{qualified_name}: {search_text}"
         );
-
         let overview = client
             .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
                 text.contains(query)

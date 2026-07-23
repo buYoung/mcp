@@ -178,21 +178,8 @@ tree-sitter AST에서 기록한다. 모든 형식에서 `calls`는 비워 두며
 - [x] Make 지원: `Makefile`, `.mk` (tree-sitter AST)
 - [x] Starlark/Bazel 지원: `.bzl`, `BUILD`, `BUILD.bazel` (tree-sitter AST)
 - [ ] Nix 지원: `.nix`
-- [ ] WebAssembly text 지원: `.wat`, `.wast`
 - [x] target, rule, 변수를 형식별 심볼로 추출
 - [x] target 간 의존성을 일반 호출 관계와 별도로 표현
-
-## SQL 정책
-
-일반 SQL에는 프로그래밍 언어와 같은 호출자·피호출자 모델을 적용하지 않는다. 저장 프로시저 중심 저장소에서 수요가 확인될 때만 프로시저 호출 관계를 선택적으로 확장한다.
-
-- [x] SQL 심볼 추출 유지
-- [x] 일반 호출자·피호출자 탐색 비활성화
-- [ ] 테이블 및 뷰 참조 추출
-- [ ] 뷰에서 원본 테이블로 이어지는 의존 관계 추출
-- [ ] `INSERT`, `UPDATE`, `DELETE` 대상 추출
-- [ ] 함수, 프로시저, 트리거 정의 추출
-- [ ] 프로시저 호출 관계는 필요성이 확인될 때만 선택적으로 지원
 
 ## 공통 완료 조건
 

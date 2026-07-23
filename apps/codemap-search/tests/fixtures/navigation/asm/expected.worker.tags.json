@@ -1,0 +1,112 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "tick_worker:",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 3,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call queue_pending",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call queue_next",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call process_job",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call queue_ack",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call logger_warn",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 7
+    }
+  }
+]

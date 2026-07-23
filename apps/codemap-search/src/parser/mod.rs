@@ -3149,6 +3149,14 @@ class Calculator:
                 "def python_aux_target():\n    pass\ndef python_aux_caller():\n    python_aux_target()\n",
             ),
             (
+                "x.ts",
+                "export function typeScriptAuxTarget() {}\nexport function typeScriptAuxCaller() { typeScriptAuxTarget(); }\n",
+            ),
+            (
+                "x.js",
+                "export function javaScriptAuxTarget() {}\nexport function javaScriptAuxCaller() { javaScriptAuxTarget(); }\n",
+            ),
+            (
                 "x.c",
                 "void c_aux_target(void) {}\nvoid c_aux_caller(void) { c_aux_target(); }\n",
             ),

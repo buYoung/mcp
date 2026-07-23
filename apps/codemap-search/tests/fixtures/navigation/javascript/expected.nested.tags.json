@@ -1,0 +1,102 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class CheckoutService {\n  constructor(mapper, repo) {\n    this.mapper = mapper;\n    this.repo = repo;\n  }\n\n  submit(lines) {\n    const dto = this.mapper.mapOrder(lines);\n    const audit = createAudit(\"checkout.submit\", dto);\n    const total = Number(dto.total);\n\n    this.repo.persist(dto);\n    audit.track(total);\n    return this.toDto(dto);\n  }\n\n  toDto(dto) {\n    return dto;\n  }\n}",
+    "range": {
+      "startLine": 4,
+      "startCol": 8,
+      "endLine": 23,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "constructor(mapper, repo) {\n    this.mapper = mapper;\n    this.repo = repo;\n  }",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "submit(lines) {\n    const dto = this.mapper.mapOrder(lines);\n    const audit = createAudit(\"checkout.submit\", dto);\n    const total = Number(dto.total);\n\n    this.repo.persist(dto);\n    audit.track(total);\n    return this.toDto(dto);\n  }",
+    "range": {
+      "startLine": 10,
+      "startCol": 3,
+      "endLine": 18,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.mapper.mapOrder(lines)",
+    "range": {
+      "startLine": 11,
+      "startCol": 17,
+      "endLine": 11,
+      "endCol": 44
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "createAudit(\"checkout.submit\", dto)",
+    "range": {
+      "startLine": 12,
+      "startCol": 19,
+      "endLine": 12,
+      "endCol": 54
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Number(dto.total)",
+    "range": {
+      "startLine": 13,
+      "startCol": 19,
+      "endLine": 13,
+      "endCol": 36
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.repo.persist(dto)",
+    "range": {
+      "startLine": 15,
+      "startCol": 5,
+      "endLine": 15,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "audit.track(total)",
+    "range": {
+      "startLine": 16,
+      "startCol": 5,
+      "endLine": 16,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.toDto(dto)",
+    "range": {
+      "startLine": 17,
+      "startCol": 12,
+      "endLine": 17,
+      "endCol": 27
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "toDto(dto) {\n    return dto;\n  }",
+    "range": {
+      "startLine": 20,
+      "startCol": 3,
+      "endLine": 22,
+      "endCol": 4
+    }
+  }
+]

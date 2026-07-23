@@ -1,0 +1,92 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "submit_order:",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 3,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call map_order",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call reserve_inventory",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 25
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call persist_order",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call audit_finish",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 7
+    }
+  }
+]

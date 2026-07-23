@@ -1,0 +1,47 @@
+{
+  "calls": [
+    {
+      "name": "parse_order",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 19
+      }
+    },
+    {
+      "name": "submit_order",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 20
+      }
+    },
+    {
+      "name": "response_ok",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 6,
+        "endCol": 19
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "http",
+      "importedName": "http",
+      "source": "http.inc",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 20
+      }
+    }
+  ]
+}

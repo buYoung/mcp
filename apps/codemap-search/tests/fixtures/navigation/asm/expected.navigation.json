@@ -1,0 +1,38 @@
+{
+  "calls": [
+    {
+      "name": "init_runtime",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 20
+      }
+    },
+    {
+      "name": "flush_runtime",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 22
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "runtime",
+      "importedName": "runtime",
+      "source": "runtime.inc",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 23
+      }
+    }
+  ]
+}

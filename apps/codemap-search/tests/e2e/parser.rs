@@ -621,6 +621,25 @@ fn test_existing_language_extraction_matrix() {
             ],
         ),
         (
+            "src/matrix.ts",
+            "export interface TypeScriptMatrix { run(): void; }\nexport class TypeScriptMatrixClass { typeScriptMatrixMethod(): void {} }\n",
+            &[
+                ("TypeScriptMatrix", "interface", 1),
+                ("run", "fn", 1),
+                ("TypeScriptMatrixClass", "class", 2),
+                ("typeScriptMatrixMethod", "fn", 2),
+            ],
+        ),
+        (
+            "src/matrix.js",
+            "export class JavaScriptMatrix { javaScriptMatrixMethod() {} }\nexport function javaScriptMatrixFunction() {}\n",
+            &[
+                ("JavaScriptMatrix", "class", 1),
+                ("javaScriptMatrixMethod", "fn", 1),
+                ("javaScriptMatrixFunction", "fn", 2),
+            ],
+        ),
+        (
             "src/matrix.c",
             "struct CMatrix { int field; };\nint c_matrix_fn(void) { return 0; }\n",
             &[("CMatrix", "struct", 1), ("c_matrix_fn", "fn", 2)],

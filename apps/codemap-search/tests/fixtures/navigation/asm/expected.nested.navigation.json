@@ -1,0 +1,56 @@
+{
+  "calls": [
+    {
+      "name": "map_order",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 17
+      }
+    },
+    {
+      "name": "reserve_inventory",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 25
+      }
+    },
+    {
+      "name": "persist_order",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 6,
+        "endCol": 21
+      }
+    },
+    {
+      "name": "audit_finish",
+      "range": {
+        "startLine": 7,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 20
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "audit",
+      "importedName": "audit",
+      "source": "audit.inc",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 21
+      }
+    }
+  ]
+}

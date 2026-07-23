@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "handle_request:",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 3,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call parse_order",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call submit_order",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call response_ok",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 19
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 7
+    }
+  }
+]

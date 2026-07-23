@@ -1,0 +1,130 @@
+{
+  "calls": [
+    {
+      "name": "mapOrder",
+      "receiver": "this.mapper",
+      "range": {
+        "startLine": 11,
+        "startCol": 17,
+        "endLine": 11,
+        "endCol": 44
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "createAudit",
+      "range": {
+        "startLine": 12,
+        "startCol": 19,
+        "endLine": 12,
+        "endCol": 54
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "Number",
+      "range": {
+        "startLine": 13,
+        "startCol": 19,
+        "endLine": 13,
+        "endCol": 36
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "persist",
+      "receiver": "this.repo",
+      "range": {
+        "startLine": 15,
+        "startCol": 5,
+        "endLine": 15,
+        "endCol": 27
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "track",
+      "receiver": "audit",
+      "range": {
+        "startLine": 16,
+        "startCol": 5,
+        "endLine": 16,
+        "endCol": 23
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "toDto",
+      "receiver": "this",
+      "range": {
+        "startLine": 17,
+        "startCol": 12,
+        "endLine": 17,
+        "endCol": 27
+      },
+      "scopeId": 1000018
+    }
+  ],
+  "references": [],
+  "localBindings": [
+    {
+      "name": "dto",
+      "valueType": "mapOrder",
+      "range": {
+        "startLine": 11,
+        "startCol": 11,
+        "endLine": 11,
+        "endCol": 44
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "audit",
+      "valueType": "createAudit",
+      "range": {
+        "startLine": 12,
+        "startCol": 11,
+        "endLine": 12,
+        "endCol": 54
+      },
+      "scopeId": 1000018
+    },
+    {
+      "name": "total",
+      "valueType": "Number",
+      "range": {
+        "startLine": 13,
+        "startCol": 11,
+        "endLine": 13,
+        "endCol": 36
+      },
+      "scopeId": 1000018
+    }
+  ],
+  "imports": [
+    {
+      "localName": "createAudit",
+      "importedName": "createAudit",
+      "source": "./audit",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 39
+      }
+    },
+    {
+      "localName": "OrderRepository",
+      "importedName": "OrderRepository",
+      "source": "./repo",
+      "kind": "named",
+      "range": {
+        "startLine": 2,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 42
+      }
+    }
+  ]
+}

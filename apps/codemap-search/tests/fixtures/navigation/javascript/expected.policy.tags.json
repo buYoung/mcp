@@ -1,0 +1,72 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "class OrderPolicy {\n  constructor(rules) {\n    this.rules = rules;\n  }\n\n  evaluate(order) {\n    const active = this.rules.filter((rule) => rule.check(order));\n    const names = active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule;\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    });\n    return names;\n  }\n}",
+    "range": {
+      "startLine": 3,
+      "startCol": 8,
+      "endLine": 16,
+      "endCol": 2
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "constructor(rules) {\n    this.rules = rules;\n  }",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "evaluate(order) {\n    const active = this.rules.filter((rule) => rule.check(order));\n    const names = active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule;\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    });\n    return names;\n  }",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 15,
+      "endCol": 4
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "this.rules.filter((rule) => rule.check(order))",
+    "range": {
+      "startLine": 9,
+      "startCol": 20,
+      "endLine": 9,
+      "endCol": 66
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "rule.check(order)",
+    "range": {
+      "startLine": 9,
+      "startCol": 48,
+      "endLine": 9,
+      "endCol": 65
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "active.map((rule) => {\n      const { name: ruleName, severity = \"low\", ...metadata } = rule;\n      return `${ruleName}:${severity}:${Object.keys(metadata).length}`;\n    })",
+    "range": {
+      "startLine": 10,
+      "startCol": 19,
+      "endLine": 13,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Object.keys(metadata)",
+    "range": {
+      "startLine": 12,
+      "startCol": 41,
+      "endLine": 12,
+      "endCol": 62
+    }
+  }
+]

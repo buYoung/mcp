@@ -1,0 +1,56 @@
+{
+  "calls": [
+    {
+      "name": "filter_rules",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 20
+      }
+    },
+    {
+      "name": "check_rule",
+      "range": {
+        "startLine": 5,
+        "startCol": 3,
+        "endLine": 5,
+        "endCol": 18
+      }
+    },
+    {
+      "name": "map_names",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 6,
+        "endCol": 17
+      }
+    },
+    {
+      "name": "object_keys",
+      "range": {
+        "startLine": 7,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 19
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "rules",
+      "importedName": "rules",
+      "source": "rules.inc",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 21
+      }
+    }
+  ]
+}

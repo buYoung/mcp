@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "run:",
+    "range": {
+      "startLine": 3,
+      "startCol": 1,
+      "endLine": 3,
+      "endCol": 5
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "call init_runtime",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 20
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "callq flush_runtime",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "asm.call.kind",
+    "text": "callq",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 8
+    }
+  }
+]
