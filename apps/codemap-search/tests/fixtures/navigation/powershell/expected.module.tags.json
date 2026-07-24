@@ -1,0 +1,32 @@
+[
+  {
+    "capture": "definition.function",
+    "text": "Invoke-Worker",
+    "range": {
+      "startLine": 1,
+      "startCol": 10,
+      "endLine": 1,
+      "endCol": 23
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Start-Worker",
+    "range": {
+      "startLine": 2,
+      "startCol": 5,
+      "endLine": 2,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "Export-ModuleMember",
+    "range": {
+      "startLine": 5,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 20
+    }
+  }
+]

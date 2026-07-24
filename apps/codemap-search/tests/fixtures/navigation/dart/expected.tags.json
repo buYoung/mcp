@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "DartFlow",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "targetDart",
+    "range": {
+      "startLine": 4,
+      "startCol": 8,
+      "endLine": 4,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "callerDart",
+    "range": {
+      "startLine": 5,
+      "startCol": 8,
+      "endLine": 5,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "targetDart",
+    "range": {
+      "startLine": 6,
+      "startCol": 5,
+      "endLine": 6,
+      "endCol": 15
+    }
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "calls": [
+    {
+      "name": "Start-Worker",
+      "range": {
+        "startLine": 2,
+        "startCol": 5,
+        "endLine": 2,
+        "endCol": 17
+      },
+      "scopeId": 100003
+    },
+    {
+      "name": "Export-ModuleMember",
+      "range": {
+        "startLine": 5,
+        "startCol": 1,
+        "endLine": 5,
+        "endCol": 46
+      }
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": []
+}

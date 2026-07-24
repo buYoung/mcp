@@ -1,0 +1,30 @@
+{
+  "calls": [
+    {
+      "name": "targetDart",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 6,
+        "endCol": 17
+      },
+      "scopeId": 500007
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "helper",
+      "importedName": "helper",
+      "source": "package:demo/helper.dart",
+      "kind": "named",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 35
+      }
+    }
+  ]
+}

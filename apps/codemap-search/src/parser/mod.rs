@@ -372,6 +372,7 @@ fn field_or_descendant_name(node: Node, source: &[u8]) -> Option<String> {
 fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String, Option<String>)> {
     match function_node.kind() {
         "identifier"
+        | "simple_identifier"
         | "field_identifier"
         | "property_identifier"
         | "type_identifier"
@@ -430,7 +431,7 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
                     },
                 ));
             }
-            find_name(function_node, source).map(|name| (name, None))
+            base_name_from_text(&text).map(|name| (name, None))
         }
         "parenthesized_expression" | "parenthesized_declarator" => {
             for child_index in 0..function_node.child_count() {
@@ -456,6 +457,12 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
                 .or_else(|| node.child_by_field_name("receiver"))
                 .and_then(|receiver| receiver_text(receiver, source));
             (name, receiver)
+        }
+        "command" => {
+            let command_name = node.child_by_field_name("command_name")?;
+            let name =
+                node_text(command_name, source).and_then(|text| base_name_from_text(&text))?;
+            (name, None)
         }
         "object_creation_expression" => {
             let type_node = node.child_by_field_name("type").or_else(|| {
@@ -603,6 +610,8 @@ fn scope_id_for_node(node: Node) -> Option<usize> {
                 | "function_item"
                 | "method"
                 | "singleton_method"
+                | "class_method_definition"
+                | "function_statement"
         ) {
             let range = range_for_node(ancestor);
             return Some(range.start_line.saturating_mul(100_000) + range.end_line);
@@ -1246,6 +1255,8 @@ fn enclosing_callable(mut node: Node) -> Option<Node> {
                 | "method_declaration"
                 | "constructor_declaration"
                 | "function_item"
+                | "class_method_definition"
+                | "function_statement"
         ) {
             return Some(parent);
         }
@@ -1261,6 +1272,7 @@ fn callable_name(node: Node, source: &[u8]) -> Option<String> {
             node.child_by_field_name("declarator")
                 .and_then(|declarator| declarator_name(declarator, source))
         })
+        .or_else(|| find_name(node, source))
 }
 
 fn static_collection_source_context(
@@ -1958,7 +1970,8 @@ impl TreeSitterExtractor {
         let query = spec.query(ext);
         let navigation_enabled = spec.navigation_enabled(ext);
         let navigation_store_references = navigation_enabled
-            && (spec.always_store_references() || crate::config::get().navigation_store_references);
+            && (spec.always_store_references(ext)
+                || crate::config::get().navigation_store_references);
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
@@ -2050,17 +2063,19 @@ impl TreeSitterExtractor {
             }
 
             if let Some(node) = nav_call_node {
-                if let Some(call) = call_site_from_node(node, source) {
-                    let key = format!(
-                        "{}:{}:{}:{}:{}",
-                        call.name,
-                        call.receiver.as_deref().unwrap_or(""),
-                        call.range.start_line,
-                        call.range.start_col,
-                        call.range.end_line
-                    );
-                    if seen_calls.insert(key) {
-                        navigation.calls.push(call);
+                if spec.capture_is_valid("nav.call", node, source) {
+                    if let Some(call) = call_site_from_node(node, source) {
+                        let key = format!(
+                            "{}:{}:{}:{}:{}",
+                            call.name,
+                            call.receiver.as_deref().unwrap_or(""),
+                            call.range.start_line,
+                            call.range.start_col,
+                            call.range.end_line
+                        );
+                        if seen_calls.insert(key) {
+                            navigation.calls.push(call);
+                        }
                     }
                 }
             }
@@ -3375,5 +3390,256 @@ class Calculator:
                 );
             }
         }
+    }
+
+    #[test]
+    fn sixth_priority_languages_compile_queries_and_extract_representative_symbols() {
+        let extractor = TreeSitterExtractor::new();
+        let cases = [
+            (
+                "Worker.swift",
+                "import Foundation\npublic struct Worker { public func run() { Helper.start() } }\n",
+                "Worker",
+                "run",
+            ),
+            (
+                "worker.dart",
+                "import 'package:demo/helper.dart';\nclass Worker { void run() { Helper.start(); } }\n",
+                "Worker",
+                "run",
+            ),
+            (
+                "Worker.scala",
+                "import demo.Helper\nclass Worker { def run(): Unit = Helper.start() }\n",
+                "Worker",
+                "run",
+            ),
+            (
+                "Worker.groovy",
+                "import demo.Helper\nclass Worker { void run() { Helper.start() } }\n",
+                "Worker",
+                "run",
+            ),
+            (
+                "Worker.ps1",
+                "Import-Module 'Demo.Helper'\nclass Worker { [void] Run() { Start-Worker } }\n",
+                "Worker",
+                "Run",
+            ),
+        ];
+        for (path, content, type_name, member_name) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == type_name),
+                "{path}: missing type {type_name}; symbols={:?}",
+                file.symbols
+            );
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == member_name),
+                "{path}: missing member {member_name}; symbols={:?}",
+                file.symbols
+            );
+            let navigation = file.navigation.as_ref().expect("navigation did not run");
+            assert!(!navigation.calls.is_empty(), "{path}: missing calls");
+            assert!(!navigation.imports.is_empty(), "{path}: missing imports");
+            let auxiliary = collect_index_auxiliary(content, path).unwrap();
+            assert!(
+                !auxiliary.definition_body.is_empty(),
+                "{path}: tags query produced no definitions"
+            );
+        }
+    }
+
+    #[test]
+    fn gradle_static_dsl_extracts_targets_and_relationships_only_from_literals() {
+        let extractor = TreeSitterExtractor::new();
+        let content = r#"
+task('assembleApp')
+tasks.register('verifyApp')
+assembleApp.dependsOn('verifyApp')
+tasks.named('publishApp')
+plugins { id 'com.example.plugin' }
+dependencies { implementation 'com.example:core:1.2.3' }
+tasks.register("dynamic${suffix}")
+dependencies { implementation "com.example:${artifact}:1.0" }
+sourceSets { customThing 'not:a:dependency' }
+"#;
+        let file = extractor.extract(content, "build.gradle").unwrap();
+        assert!(file
+            .symbols
+            .iter()
+            .any(|symbol| { symbol.name == "assembleApp" && symbol.kind == "target" }));
+        assert!(file
+            .symbols
+            .iter()
+            .any(|symbol| { symbol.name == "verifyApp" && symbol.kind == "target" }));
+        assert!(!file
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name.contains("dynamic")));
+        let navigation = file.navigation.expect("Gradle navigation must run");
+        assert!(
+            navigation.calls.is_empty(),
+            "Gradle DSL must not become precise language calls"
+        );
+        for expected in [
+            "verifyApp",
+            "publishApp",
+            "com.example.plugin",
+            "com.example:core:1.2.3",
+        ] {
+            assert!(
+                navigation
+                    .references
+                    .iter()
+                    .any(|site| site.name == expected),
+                "missing Gradle reference {expected}: {:?}",
+                navigation.references
+            );
+        }
+        assert!(navigation
+            .references
+            .iter()
+            .all(|site| !site.name.contains("${")));
+        assert!(navigation
+            .references
+            .iter()
+            .all(|site| site.name != "not:a:dependency"));
+    }
+
+    #[test]
+    fn powershell_dynamic_execution_is_not_a_precise_call_or_import() {
+        let extractor = TreeSitterExtractor::new();
+        let file = extractor
+            .extract(
+                "Import-Module $module\nInvoke-Expression $code\n& $command\n. $script\n",
+                "dynamic.ps1",
+            )
+            .unwrap();
+        let navigation = file.navigation.expect("PowerShell navigation must run");
+        assert!(navigation.imports.is_empty());
+        assert!(navigation.calls.iter().all(|call| {
+            call.name != "Invoke-Expression" && call.name != "$command" && call.name != "$script"
+        }));
+    }
+
+    #[test]
+    fn sixth_priority_languages_keep_valid_siblings_after_malformed_declarations() {
+        let extractor = TreeSitterExtractor::new();
+        let cases = [
+            (
+                "broken.swift",
+                "func bad(,) {}\npublic func good() {}\n",
+                "good",
+            ),
+            ("broken.dart", "void bad(,) {}\nvoid good() {}\n", "good"),
+            (
+                "broken.scala",
+                "def bad( = {\ndef good(): Unit = ()\n",
+                "good",
+            ),
+            ("broken.groovy", "void bad(,) {}\nvoid good() {}\n", "good"),
+            (
+                "broken.ps1",
+                "function Bad-Thing( {\nfunction Good-Thing {}\n",
+                "Good-Thing",
+            ),
+        ];
+        for (path, content, expected) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == expected),
+                "{path}: valid sibling was lost; symbols={:?}",
+                file.symbols
+            );
+        }
+    }
+
+    #[test]
+    fn sixth_priority_visibility_test_and_deprecation_flags_are_applied() {
+        let extractor = TreeSitterExtractor::new();
+        let cases = [
+            (
+                "Tests/WorkerTests.swift",
+                "@available(*, deprecated)\npublic func oldRun() {}\nprivate func hidden() {}\n",
+                "oldRun",
+                "hidden",
+            ),
+            (
+                "test/worker_test.dart",
+                "@Deprecated('old')\nvoid oldRun() {}\nvoid _hidden() {}\n",
+                "oldRun",
+                "_hidden",
+            ),
+            (
+                "src/test/WorkerSpec.scala",
+                "@deprecated(\"old\", \"1\")\ndef oldRun(): Unit = ()\nprivate def hidden(): Unit = ()\n",
+                "oldRun",
+                "hidden",
+            ),
+            (
+                "src/test/WorkerSpec.groovy",
+                "@Deprecated\npublic void oldRun() {}\nprivate void hidden() {}\n",
+                "oldRun",
+                "hidden",
+            ),
+            (
+                "Worker.Tests.ps1",
+                "# Deprecated\nfunction Test-OldRun {}\nfunction Hidden-Run {}\nExport-ModuleMember -Function 'Test-OldRun'\n",
+                "Test-OldRun",
+                "Hidden-Run",
+            ),
+        ];
+        for (path, content, public_name, private_name) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            let public_symbol = file
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == public_name)
+                .unwrap_or_else(|| panic!("{path}: missing {public_name}; {:?}", file.symbols));
+            assert!(public_symbol.flags.is_exported, "{path}");
+            assert!(public_symbol.flags.is_test, "{path}");
+            assert!(public_symbol.flags.is_deprecated, "{path}");
+            let private_symbol = file
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == private_name)
+                .unwrap_or_else(|| panic!("{path}: missing {private_name}; {:?}", file.symbols));
+            assert!(!private_symbol.flags.is_exported, "{path}");
+        }
+    }
+
+    #[test]
+    fn sixth_priority_alias_extensions_use_the_intended_grammars() {
+        let extractor = TreeSitterExtractor::new();
+        let cases = [
+            ("script.sc", "object Script { def run(): Unit = () }", "run"),
+            (
+                "module.psm1",
+                "function Invoke-Module {}\nExport-ModuleMember -Function 'Invoke-Module'\n",
+                "Invoke-Module",
+            ),
+        ];
+        for (path, content, expected) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == expected),
+                "{path}: alias extension did not parse with its registered grammar"
+            );
+        }
+    }
+
+    #[test]
+    fn swift_unqualified_calls_are_recorded_for_precise_resolution() {
+        let source =
+            "class Flow {\n  func targetSwift() {}\n  func callerSwift() { targetSwift() }\n}\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "Flow.swift")
+            .unwrap();
+        let calls = &file.navigation.as_ref().unwrap().calls;
+        assert!(
+            calls.iter().any(|call| call.name == "targetSwift"),
+            "{calls:?}"
+        );
     }
 }

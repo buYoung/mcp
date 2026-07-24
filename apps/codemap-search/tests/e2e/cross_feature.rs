@@ -345,6 +345,26 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             "local LuaFlow = {}\nfunction LuaFlow.target_lua() end\nfunction LuaFlow.caller_lua() LuaFlow.target_lua() end\n",
         ),
         (
+            "src/SwiftFlow.swift",
+            "public class SwiftFlow {\n  public func targetSwift() {}\n  public func callerSwift() { targetSwift() }\n}\n",
+        ),
+        (
+            "src/dart_flow.dart",
+            "class DartFlow {\n  void targetDart() {}\n  void callerDart() { targetDart(); }\n}\n",
+        ),
+        (
+            "src/ScalaFlow.scala",
+            "class ScalaFlow {\n  def targetScala(): Unit = ()\n  def callerScala(): Unit = targetScala()\n}\n",
+        ),
+        (
+            "src/GroovyFlow.groovy",
+            "class GroovyFlow {\n  void targetGroovy() {}\n  void callerGroovy() { targetGroovy() }\n}\n",
+        ),
+        (
+            "src/PowerShellFlow.ps1",
+            "class PowerShellFlow {\n  [void] TargetPowerShell() {}\n  [void] CallerPowerShell() { TargetPowerShell }\n}\n",
+        ),
+        (
             ".codemap/config.toml",
             "watch = false\nindex_staleness_ms = 1\n[caller_context]\nnavigation_context_default = true\n",
         ),
@@ -412,6 +432,36 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             "lua",
             "LuaFlow.target_lua",
         ),
+        (
+            "src/SwiftFlow.swift",
+            "targetSwift",
+            "swift",
+            "SwiftFlow.targetSwift",
+        ),
+        (
+            "src/dart_flow.dart",
+            "targetDart",
+            "dart",
+            "DartFlow.targetDart",
+        ),
+        (
+            "src/ScalaFlow.scala",
+            "targetScala",
+            "scala",
+            "ScalaFlow.targetScala",
+        ),
+        (
+            "src/GroovyFlow.groovy",
+            "targetGroovy",
+            "gradle",
+            "GroovyFlow.targetGroovy",
+        ),
+        (
+            "src/PowerShellFlow.ps1",
+            "TargetPowerShell",
+            "pwsh",
+            "PowerShellFlow.TargetPowerShell",
+        ),
     ] {
         let search = client
             .send_tool_until(
@@ -473,6 +523,46 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             "LuaFlow.target_lua",
             "LuaFlow.caller_lua",
             "src/lua_flow.lua:3",
+        ),
+        (
+            "src/SwiftFlow.swift",
+            "targetSwift",
+            "callerSwift",
+            "SwiftFlow.targetSwift",
+            "SwiftFlow.callerSwift",
+            "src/SwiftFlow.swift:3",
+        ),
+        (
+            "src/dart_flow.dart",
+            "targetDart",
+            "callerDart",
+            "DartFlow.targetDart",
+            "DartFlow.callerDart",
+            "src/dart_flow.dart:3",
+        ),
+        (
+            "src/ScalaFlow.scala",
+            "targetScala",
+            "callerScala",
+            "ScalaFlow.targetScala",
+            "ScalaFlow.callerScala",
+            "src/ScalaFlow.scala:3",
+        ),
+        (
+            "src/GroovyFlow.groovy",
+            "targetGroovy",
+            "callerGroovy",
+            "GroovyFlow.targetGroovy",
+            "GroovyFlow.callerGroovy",
+            "src/GroovyFlow.groovy:3",
+        ),
+        (
+            "src/PowerShellFlow.ps1",
+            "TargetPowerShell",
+            "CallerPowerShell",
+            "PowerShellFlow.TargetPowerShell",
+            "PowerShellFlow.CallerPowerShell",
+            "src/PowerShellFlow.ps1:3",
         ),
     ] {
         let target_response = client

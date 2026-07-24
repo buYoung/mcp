@@ -1,0 +1,94 @@
+{
+  "filePath": "sample.groovy",
+  "totalLines": 10,
+  "symbols": [
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 10,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "name",
+      "kind": "field",
+      "range": {
+        "startLine": 4,
+        "startCol": 5,
+        "endLine": 4,
+        "endCol": 27
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 9,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Worker"
+    }
+  ],
+  "literals": [],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "start",
+        "receiver": "Helper",
+        "range": {
+          "startLine": 8,
+          "startCol": 9,
+          "endLine": 8,
+          "endCol": 23
+        },
+        "scopeId": 600009
+      }
+    ],
+    "references": [],
+    "localBindings": [],
+    "imports": [
+      {
+        "localName": "Helper",
+        "source": "demo.Helper",
+        "kind": "namespace",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 3,
+          "endCol": 1
+        }
+      }
+    ]
+  }
+}

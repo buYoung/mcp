@@ -69,10 +69,17 @@ tree-sitter 기반 심볼 추출은 다음 확장자를 지원합니다.
 | Ruby | `.rb` |
 | Lua | `.lua` |
 | Assembly / GAS | `.s`, `.S`, `.asm` |
+| Swift | `.swift` |
+| Dart | `.dart` |
+| Scala | `.scala`, `.sc` |
+| Groovy / Gradle | `.groovy`, `.gradle` |
+| PowerShell | `.ps1`, `.psm1` |
 
 `read`, `find`, `grep`은 텍스트 파일이면 언어와 관계없이 사용할 수 있습니다.
 
 언어별 플래그 규칙도 반영합니다. Go는 대문자로 시작하는 심볼을 내보낸 심볼로 보고, `*_test.go`와 `Test`/`Benchmark`/`Example`/`Fuzz`를 테스트로 봅니다. Java는 `public`, `@Test`, `@Deprecated`, javadoc `@deprecated`를 읽습니다. Kotlin은 `private`/`internal`/`protected`가 아니면 내보낸 심볼로 보고, `@Test`와 `@Deprecated`를 읽습니다. C/C++는 `static` 저장 클래스를 파일 내부 심볼로 처리하고, C++ 접근 지정자를 반영합니다. C#은 명시적 `public`과 interface의 암시적 공개 멤버를 반영합니다. PHP는 최상위 선언과 `private`/`protected`가 아닌 멤버를 공개로 처리하고, Ruby는 class/module의 가시성 영역을 따릅니다. Lua는 `local`을 포함한 모든 파일 수준 선언을 공개로 처리합니다. 네 언어 모두 지원 범위 안의 테스트 경로·이름 관례와 폐기 attribute 또는 주석을 판별합니다. Assembly는 `.globl`/`.global` 지시문에 나온 심볼을 내보낸 심볼로 봅니다.
+
+Swift, Dart, Scala, Groovy, PowerShell은 정적 AST에서 확인되는 선언, import, 참조와 호출을 기록합니다. 계산형 import, reflection, 동적 dispatch와 PowerShell 동적 실행은 정밀 관계로 승격하지 않습니다. `.gradle`은 literal `task`/`tasks.register`/`tasks.create` target, task 의존·순서 관계, plugin ID, `group:artifact:version` dependency 좌표를 추가로 구조화합니다. 보간된 Gradle 값과 사용자 정의 DSL은 구조화하지 않습니다. `.gradle.kts`는 기존 Kotlin 일반 지원을 그대로 사용합니다.
 
 ## 설치
 

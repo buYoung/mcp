@@ -31,6 +31,13 @@ tree-sitter-lua = "0.5.0"
 # constant and links against tree-sitter 0.26's ABI; the older `tree-sitter-kotlin`
 # (0.3.x, fwcd) still ships the legacy `language()` fn and is not compatible here.
 tree-sitter-kotlin-ng = "1.1"
+# Platform-specific languages. These releases expose the tree-sitter 0.26-compatible
+# `LANGUAGE: LanguageFn` API and are intentionally pinned to the verified grammar lines.
+tree-sitter-swift = "0.7.3"
+tree-sitter-dart = "0.2.0"
+tree-sitter-scala = "0.26.0"
+tree-sitter-groovy = "0.1.2"
+tree-sitter-powershell = "0.26.4"
 # C/C++: both 0.24.x/0.23.x generations expose `LANGUAGE: LanguageFn` and link
 # against tree-sitter-language 0.1.x (the 0.26 ABI shim). `.h` files are parsed
 # with the C++ grammar because most real-world headers lean C++ and the grammar

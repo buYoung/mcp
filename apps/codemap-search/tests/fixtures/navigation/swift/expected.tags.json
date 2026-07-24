@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.type",
+    "text": "SwiftFlow",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 16
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "targetSwift",
+    "range": {
+      "startLine": 4,
+      "startCol": 10,
+      "endLine": 4,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "callerSwift",
+    "range": {
+      "startLine": 5,
+      "startCol": 10,
+      "endLine": 5,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "targetSwift",
+    "range": {
+      "startLine": 6,
+      "startCol": 9,
+      "endLine": 6,
+      "endCol": 20
+    }
+  }
+]

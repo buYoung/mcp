@@ -1,0 +1,7 @@
+(function_statement (function_name) @definition.function)
+(class_statement (simple_name) @definition.class)
+(enum_statement (simple_name) @definition.enum)
+(class_method_definition (simple_name) @definition.method)
+(class_property_definition (variable) @definition.property)
+(enum_member (simple_name) @definition.constant)
+(command command_name: (command_name) @reference.call)

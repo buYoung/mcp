@@ -1,0 +1,89 @@
+{
+  "filePath": "sample.dart",
+  "totalLines": 10,
+  "symbols": [
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 10,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 7,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 13
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Worker"
+    }
+  ],
+  "literals": [
+    {
+      "text": "package:demo/helper.dart",
+      "line": 1
+    },
+    {
+      "text": "dart",
+      "line": 4
+    },
+    {
+      "text": "old",
+      "line": 6
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "start",
+        "receiver": "Helper",
+        "range": {
+          "startLine": 8,
+          "startCol": 5,
+          "endLine": 8,
+          "endCol": 19
+        },
+        "scopeId": 600009
+      }
+    ],
+    "references": [],
+    "localBindings": [],
+    "imports": [
+      {
+        "localName": "helper",
+        "importedName": "helper",
+        "source": "package:demo/helper.dart",
+        "kind": "named",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 35
+        }
+      }
+    ]
+  }
+}

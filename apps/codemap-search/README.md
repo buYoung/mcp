@@ -70,6 +70,8 @@ Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),
 **Java** (`.java`), **Kotlin** (`.kt`, `.kts`), **C** (`.c`), **C++** (`.h`, `.cpp`,
 `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`), **C#** (`.cs`), **PHP** (`.php`),
 **Ruby** (`.rb`), **Lua** (`.lua`), **Assembly/GAS** (`.s`, `.S`, `.asm`).
+It also covers **Swift** (`.swift`), **Dart** (`.dart`), **Scala** (`.scala`, `.sc`),
+**Groovy/Gradle** (`.groovy`, `.gradle`), and **PowerShell** (`.ps1`, `.psm1`).
 `read`/`find`/`grep` work on any text file.
 
 Per-language flag conventions: Go uses initial-uppercase for exported symbols, `*_test.go`
@@ -85,6 +87,14 @@ top-level and non-private/non-protected members as public, Ruby follows class/mo
 sections, and Lua exposes every file-level declaration (including `local` declarations).
 All four languages recognize their conventional test paths/names and supported deprecation
 attributes or comments.
+
+Swift, Dart, Scala, Groovy, and PowerShell record statically identifiable declarations, imports,
+references, and calls. Computed imports, reflection, dynamic dispatch, and PowerShell dynamic
+execution are not promoted to precise relationships. `.gradle` additionally recognizes literal
+`task`/`tasks.register`/`tasks.create` targets; literal task ordering/dependency relationships,
+plugin IDs, and `group:artifact:version` dependency coordinates. Interpolated Gradle values and
+arbitrary custom DSLs remain unstructured. `.gradle.kts` continues to use the ordinary Kotlin
+language support.
 
 Structured and operational formats are indexed without adding a programming-language
 caller/callee model. Tree-sitter AST extraction supports JSON/JSONC, TOML, YAML, HTML/XML

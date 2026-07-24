@@ -1,0 +1,17 @@
+{
+  "calls": [
+    {
+      "name": "println",
+      "range": {
+        "startLine": 2,
+        "startCol": 21,
+        "endLine": 2,
+        "endCol": 38
+      },
+      "scopeId": 200002
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": []
+}

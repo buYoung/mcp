@@ -1,0 +1,67 @@
+{
+  "filePath": "sample.sc",
+  "totalLines": 3,
+  "symbols": [
+    {
+      "name": "Script",
+      "kind": "object",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 2,
+        "startCol": 3,
+        "endLine": 2,
+        "endCol": 44
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Script"
+    }
+  ],
+  "literals": [
+    {
+      "text": "scala script",
+      "line": 2
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "println",
+        "range": {
+          "startLine": 2,
+          "startCol": 21,
+          "endLine": 2,
+          "endCol": 44
+        },
+        "scopeId": 200002
+      }
+    ],
+    "references": [],
+    "localBindings": [],
+    "imports": []
+  }
+}

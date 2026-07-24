@@ -34,9 +34,11 @@ mod component;
 mod containerfile;
 mod csharp;
 mod css;
+mod dart;
 mod format_support;
 mod go;
 mod graphql;
+mod groovy;
 mod hcl;
 mod html;
 mod java;
@@ -47,12 +49,15 @@ mod less;
 mod lua;
 mod make;
 mod php;
+mod powershell;
 mod proto;
 mod python;
 mod ruby;
 mod rust;
+mod scala;
 mod sql;
 mod starlark;
+mod swift;
 mod toml;
 mod typescript;
 mod xml;
@@ -147,7 +152,7 @@ pub(crate) trait LanguageSpec: Sync {
 
     /// Structured formats keep AST dependency references independently of the optional source
     /// navigation-reference setting used by programming languages.
-    fn always_store_references(&self) -> bool {
+    fn always_store_references(&self, _ext: &str) -> bool {
         false
     }
 
@@ -341,6 +346,11 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "rb" => Some(&ruby::RubySpec),
         "lua" => Some(&lua::LuaSpec),
         "kt" | "kts" => Some(&kotlin::KotlinSpec),
+        "swift" => Some(&swift::SwiftSpec),
+        "dart" => Some(&dart::DartSpec),
+        "scala" | "sc" => Some(&scala::ScalaSpec),
+        "groovy" | "gradle" => Some(&groovy::GroovySpec),
+        "ps1" | "psm1" => Some(&powershell::PowerShellSpec),
         "c" => Some(&c_family::c::CSpec),
         "h" | "cpp" | "cc" | "cxx" | "hpp" | "hh" | "hxx" => Some(&c_family::cpp::CppSpec),
         "s" | "S" | "asm" => Some(&asm::AsmSpec),
@@ -458,6 +468,11 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &ruby::RubySpec,
     &lua::LuaSpec,
     &kotlin::KotlinSpec,
+    &swift::SwiftSpec,
+    &dart::DartSpec,
+    &scala::ScalaSpec,
+    &groovy::GroovySpec,
+    &powershell::PowerShellSpec,
     &c_family::c::CSpec,
     &c_family::cpp::CppSpec,
     &asm::AsmSpec,
@@ -827,6 +842,43 @@ mod tests {
     #[test]
     fn fifth_priority_queries_compile_against_their_grammars() {
         for extension in ["cs", "php", "rb", "lua"] {
+            let spec = spec_for_ext(extension).expect("language must be registered");
+            let _ = spec.grammar(extension);
+            let _ = spec.query(extension);
+            assert!(spec.tags_query(extension).is_some(), "{extension}");
+            assert!(spec.navigation_enabled(extension), "{extension}");
+        }
+    }
+
+    #[test]
+    fn sixth_priority_language_hints_extensions_and_aliases_are_registered() {
+        let cases = [
+            ("swift", "swift"),
+            ("dart", "dart"),
+            ("scala", "scala"),
+            ("sc", "scala"),
+            ("groovy", "groovy"),
+            ("gradle", "groovy"),
+            ("powershell", "powershell"),
+            ("pwsh", "powershell"),
+            ("ps1", "powershell"),
+            ("psm1", "powershell"),
+        ];
+        for (hint, expected) in cases {
+            assert_eq!(normalize_language_hint(hint), Some(expected), "{hint}");
+        }
+        for extension in [
+            "swift", "dart", "scala", "sc", "groovy", "gradle", "ps1", "psm1",
+        ] {
+            assert!(source_extensions().contains(extension), "{extension}");
+        }
+    }
+
+    #[test]
+    fn sixth_priority_queries_compile_against_every_registered_extension() {
+        for extension in [
+            "swift", "dart", "scala", "sc", "groovy", "gradle", "ps1", "psm1",
+        ] {
             let spec = spec_for_ext(extension).expect("language must be registered");
             let _ = spec.grammar(extension);
             let _ = spec.query(extension);

@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "Import-Module",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.class",
+    "text": "PowerShellFlow",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 21
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "TargetPowerShell",
+    "range": {
+      "startLine": 4,
+      "startCol": 12,
+      "endLine": 4,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "CallerPowerShell",
+    "range": {
+      "startLine": 5,
+      "startCol": 12,
+      "endLine": 5,
+      "endCol": 28
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "TargetPowerShell",
+    "range": {
+      "startLine": 6,
+      "startCol": 9,
+      "endLine": 6,
+      "endCol": 25
+    }
+  }
+]

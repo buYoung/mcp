@@ -1,0 +1,57 @@
+{
+  "filePath": "sample.psm1",
+  "totalLines": 5,
+  "symbols": [
+    {
+      "name": "Invoke-Worker",
+      "kind": "unknown",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [
+    {
+      "text": "Invoke-Worker",
+      "line": 5
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "Start-Worker",
+        "range": {
+          "startLine": 2,
+          "startCol": 5,
+          "endLine": 2,
+          "endCol": 17
+        },
+        "scopeId": 100003
+      },
+      {
+        "name": "Export-ModuleMember",
+        "range": {
+          "startLine": 5,
+          "startCol": 1,
+          "endLine": 5,
+          "endCol": 46
+        }
+      }
+    ],
+    "references": [],
+    "localBindings": [],
+    "imports": []
+  }
+}

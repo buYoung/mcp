@@ -52,7 +52,7 @@ impl LanguageSpec for ProtoSpec {
     fn navigation_enabled(&self, _ext: &str) -> bool {
         true
     }
-    fn always_store_references(&self) -> bool {
+    fn always_store_references(&self, _ext: &str) -> bool {
         true
     }
     fn indexes_format_text(&self) -> bool {

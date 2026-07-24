@@ -1,0 +1,29 @@
+{
+  "calls": [
+    {
+      "name": "targetScala",
+      "range": {
+        "startLine": 5,
+        "startCol": 29,
+        "endLine": 5,
+        "endCol": 42
+      },
+      "scopeId": 500005
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "Helper",
+      "source": "demo.Helper",
+      "kind": "namespace",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 19
+      }
+    }
+  ]
+}

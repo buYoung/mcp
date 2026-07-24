@@ -48,6 +48,14 @@ const FIXTURES: &[&str] = &[
     "sample.cpp",
     "sample.hpp",
     "sample.s",
+    "sample.swift",
+    "sample.dart",
+    "sample.scala",
+    "sample.sc",
+    "sample.groovy",
+    "sample.gradle",
+    "sample.ps1",
+    "sample.psm1",
 ];
 
 fn fixtures_dir() -> PathBuf {
@@ -176,6 +184,22 @@ fn php_extraction_matches_golden() {
 #[test]
 fn ruby_extraction_matches_golden() {
     check_fixture("sample.rb");
+}
+
+#[test]
+fn sixth_priority_extraction_matches_goldens() {
+    for fixture in [
+        "sample.swift",
+        "sample.dart",
+        "sample.scala",
+        "sample.sc",
+        "sample.groovy",
+        "sample.gradle",
+        "sample.ps1",
+        "sample.psm1",
+    ] {
+        check_fixture(fixture);
+    }
 }
 
 #[test]

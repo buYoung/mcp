@@ -1,0 +1,78 @@
+{
+  "filePath": "sample.gradle",
+  "totalLines": 11,
+  "symbols": [
+    {
+      "name": "verifyApp",
+      "kind": "target",
+      "range": {
+        "startLine": 9,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 28
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "assembleApp",
+      "kind": "target",
+      "range": {
+        "startLine": 10,
+        "startCol": 1,
+        "endLine": 10,
+        "endCol": 20
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [],
+  "docstrings": [],
+  "navigation": {
+    "calls": [],
+    "references": [
+      {
+        "name": "com.example.application",
+        "range": {
+          "startLine": 2,
+          "startCol": 5,
+          "endLine": 2,
+          "endCol": 33
+        }
+      },
+      {
+        "name": "com.example:core:1.2.3",
+        "range": {
+          "startLine": 6,
+          "startCol": 5,
+          "endLine": 6,
+          "endCol": 44
+        }
+      },
+      {
+        "name": "verifyApp",
+        "range": {
+          "startLine": 11,
+          "startCol": 1,
+          "endLine": 11,
+          "endCol": 35
+        }
+      }
+    ],
+    "localBindings": [],
+    "imports": []
+  }
+}

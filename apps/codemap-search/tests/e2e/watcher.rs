@@ -443,6 +443,62 @@ async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delet
             "function WatchUpdatedLua() end\n",
             "WatchUpdatedLua",
         ),
+        (
+            "Watch.swift",
+            "public struct WatchCreatedSwift {}\n",
+            "WatchCreatedSwift",
+            "public struct WatchUpdatedSwift {}\n",
+            "WatchUpdatedSwift",
+        ),
+        (
+            "watch.dart",
+            "class WatchCreatedDart {}\n",
+            "WatchCreatedDart",
+            "class WatchUpdatedDart {}\n",
+            "WatchUpdatedDart",
+        ),
+        (
+            "Watch.scala",
+            "class WatchCreatedScala\n",
+            "WatchCreatedScala",
+            "class WatchUpdatedScala\n",
+            "WatchUpdatedScala",
+        ),
+        (
+            "watch.sc",
+            "object WatchCreatedScalaScript\n",
+            "WatchCreatedScalaScript",
+            "object WatchUpdatedScalaScript\n",
+            "WatchUpdatedScalaScript",
+        ),
+        (
+            "Watch.groovy",
+            "class WatchCreatedGroovy {}\n",
+            "WatchCreatedGroovy",
+            "class WatchUpdatedGroovy {}\n",
+            "WatchUpdatedGroovy",
+        ),
+        (
+            "build.gradle",
+            "task('WatchCreatedGradle')\n",
+            "WatchCreatedGradle",
+            "task('WatchUpdatedGradle')\n",
+            "WatchUpdatedGradle",
+        ),
+        (
+            "watch.ps1",
+            "function WatchCreatedPowerShell {}\n",
+            "WatchCreatedPowerShell",
+            "function WatchUpdatedPowerShell {}\n",
+            "WatchUpdatedPowerShell",
+        ),
+        (
+            "watch.psm1",
+            "function WatchCreatedModule {}\n",
+            "WatchCreatedModule",
+            "function WatchUpdatedModule {}\n",
+            "WatchUpdatedModule",
+        ),
     ] {
         let file = temp.path().join(path);
         fs::write(&file, created_source).unwrap();

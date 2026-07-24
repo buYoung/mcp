@@ -1,0 +1,117 @@
+{
+  "filePath": "sample.scala",
+  "totalLines": 8,
+  "symbols": [
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 8,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      }
+    },
+    {
+      "name": "name",
+      "kind": "const",
+      "range": {
+        "startLine": 4,
+        "startCol": 3,
+        "endLine": 4,
+        "endCol": 21
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "run",
+      "kind": "fn",
+      "range": {
+        "startLine": 6,
+        "startCol": 3,
+        "endLine": 7,
+        "endCol": 35
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": true
+      },
+      "owner": "Worker"
+    }
+  ],
+  "literals": [
+    {
+      "text": "scala",
+      "line": 4
+    },
+    {
+      "text": "old",
+      "line": 6
+    },
+    {
+      "text": "1",
+      "line": 6
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "start",
+        "receiver": "Helper",
+        "range": {
+          "startLine": 7,
+          "startCol": 21,
+          "endLine": 7,
+          "endCol": 35
+        },
+        "scopeId": 600007
+      }
+    ],
+    "references": [],
+    "localBindings": [
+      {
+        "name": "name",
+        "range": {
+          "startLine": 4,
+          "startCol": 3,
+          "endLine": 4,
+          "endCol": 21
+        }
+      }
+    ],
+    "imports": [
+      {
+        "localName": "Helper",
+        "source": "demo.Helper",
+        "kind": "namespace",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 19
+        }
+      }
+    ]
+  }
+}

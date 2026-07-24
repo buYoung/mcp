@@ -1,0 +1,42 @@
+[
+  {
+    "capture": "definition.class",
+    "text": "GroovyFlow",
+    "range": {
+      "startLine": 3,
+      "startCol": 7,
+      "endLine": 3,
+      "endCol": 17
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "targetGroovy",
+    "range": {
+      "startLine": 4,
+      "startCol": 10,
+      "endLine": 4,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "definition.method",
+    "text": "callerGroovy",
+    "range": {
+      "startLine": 5,
+      "startCol": 10,
+      "endLine": 5,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "targetGroovy",
+    "range": {
+      "startLine": 6,
+      "startCol": 9,
+      "endLine": 6,
+      "endCol": 21
+    }
+  }
+]

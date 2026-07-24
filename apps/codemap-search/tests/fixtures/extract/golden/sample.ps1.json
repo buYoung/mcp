@@ -1,0 +1,111 @@
+{
+  "filePath": "sample.ps1",
+  "totalLines": 9,
+  "symbols": [
+    {
+      "name": "Worker",
+      "kind": "class",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 2
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "$Name",
+      "kind": "property",
+      "range": {
+        "startLine": 4,
+        "startCol": 5,
+        "endLine": 4,
+        "endCol": 34
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    },
+    {
+      "name": "Run",
+      "kind": "fn",
+      "range": {
+        "startLine": 6,
+        "startCol": 5,
+        "endLine": 8,
+        "endCol": 6
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": true,
+        "isDeprecated": false
+      },
+      "owner": "Worker"
+    }
+  ],
+  "literals": [
+    {
+      "text": "Demo.Helper",
+      "line": 1
+    },
+    {
+      "text": "powershell",
+      "line": 4
+    }
+  ],
+  "docstrings": [],
+  "navigation": {
+    "calls": [
+      {
+        "name": "Import-Module",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 28
+        }
+      },
+      {
+        "name": "Start-Worker",
+        "range": {
+          "startLine": 7,
+          "startCol": 9,
+          "endLine": 7,
+          "endCol": 21
+        },
+        "scopeId": 600008
+      }
+    ],
+    "references": [],
+    "localBindings": [],
+    "imports": [
+      {
+        "localName": "Demo.Helper",
+        "source": "Demo.Helper",
+        "kind": "namespace",
+        "range": {
+          "startLine": 1,
+          "startCol": 1,
+          "endLine": 1,
+          "endCol": 28
+        }
+      }
+    ]
+  }
+}

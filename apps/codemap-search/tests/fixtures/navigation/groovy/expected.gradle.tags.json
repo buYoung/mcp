@@ -1,0 +1,52 @@
+[
+  {
+    "capture": "reference.call",
+    "text": "plugins",
+    "range": {
+      "startLine": 1,
+      "startCol": 1,
+      "endLine": 1,
+      "endCol": 8
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "dependencies",
+    "range": {
+      "startLine": 4,
+      "startCol": 1,
+      "endLine": 4,
+      "endCol": 13
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "register",
+    "range": {
+      "startLine": 7,
+      "startCol": 7,
+      "endLine": 7,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "task",
+    "range": {
+      "startLine": 8,
+      "startCol": 1,
+      "endLine": 8,
+      "endCol": 5
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "dependsOn",
+    "range": {
+      "startLine": 9,
+      "startCol": 13,
+      "endLine": 9,
+      "endCol": 22
+    }
+  }
+]

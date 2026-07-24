@@ -1,0 +1,29 @@
+{
+  "calls": [
+    {
+      "name": "targetGroovy",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 23
+      },
+      "scopeId": 500007
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "Helper",
+      "source": "demo.Helper",
+      "kind": "namespace",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 3,
+        "endCol": 1
+      }
+    }
+  ]
+}

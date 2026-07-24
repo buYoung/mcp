@@ -1,0 +1,34 @@
+{
+  "calls": [],
+  "references": [
+    {
+      "name": "com.example.application",
+      "range": {
+        "startLine": 2,
+        "startCol": 5,
+        "endLine": 2,
+        "endCol": 33
+      }
+    },
+    {
+      "name": "com.example:core:1.2.3",
+      "range": {
+        "startLine": 5,
+        "startCol": 5,
+        "endLine": 5,
+        "endCol": 44
+      }
+    },
+    {
+      "name": "verifyApp",
+      "range": {
+        "startLine": 9,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 35
+      }
+    }
+  ],
+  "localBindings": [],
+  "imports": []
+}

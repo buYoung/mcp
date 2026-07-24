@@ -1,0 +1,38 @@
+{
+  "calls": [
+    {
+      "name": "Import-Module",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 28
+      }
+    },
+    {
+      "name": "TargetPowerShell",
+      "range": {
+        "startLine": 6,
+        "startCol": 9,
+        "endLine": 6,
+        "endCol": 25
+      },
+      "scopeId": 500007
+    }
+  ],
+  "references": [],
+  "localBindings": [],
+  "imports": [
+    {
+      "localName": "Demo.Helper",
+      "source": "Demo.Helper",
+      "kind": "namespace",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 1,
+        "endCol": 28
+      }
+    }
+  ]
+}

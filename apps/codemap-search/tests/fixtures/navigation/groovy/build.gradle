@@ -1,0 +1,9 @@
+plugins {
+    id 'com.example.application'
+}
+dependencies {
+    implementation 'com.example:core:1.2.3'
+}
+tasks.register('verifyApp')
+task('assembleApp')
+assembleApp.dependsOn('verifyApp')

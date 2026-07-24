@@ -171,12 +171,18 @@ navigation context가 확인한 관계를 정밀 결과로, 나머지 이름 기
 
 ## 6순위 — 플랫폼 특화 언어
 
-- [ ] Swift 지원: `.swift`
-- [ ] Dart 지원: `.dart`
-- [ ] Scala 지원: `.scala`, `.sc`
-- [ ] Groovy 지원: `.groovy`, `.gradle`
-- [ ] PowerShell 지원: `.ps1`, `.psm1`
+- [x] Swift 지원: `.swift`
+- [x] Dart 지원: `.dart`
+- [x] Scala 지원: `.scala`, `.sc`
+- [x] Groovy 지원: `.groovy`, `.gradle`
+- [x] PowerShell 지원: `.ps1`, `.psm1`
 - [ ] 실제 사용 수요를 확인한 뒤 구현 순서 결정
+
+다섯 언어 모두 정적 AST에서 확인되는 선언, literal import, 참조와 호출을 기록하고
+언어별 공개·테스트·폐기 규칙을 적용한다. `.gradle`은 literal task target과 task 관계,
+plugin ID, dependency 좌표만 구조화하며, 보간 값과 사용자 정의 DSL은 제외한다.
+PowerShell의 동적 실행과 계산형 import, reflection, 동적 dispatch는 정밀 관계로
+승격하지 않는다. `.gradle.kts`는 Kotlin 일반 지원 범위에 남는다.
 
 ## 7순위 — 빌드 시스템 및 기타 형식
 

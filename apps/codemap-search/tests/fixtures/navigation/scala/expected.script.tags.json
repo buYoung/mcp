@@ -1,0 +1,32 @@
+[
+  {
+    "capture": "definition.object",
+    "text": "Script",
+    "range": {
+      "startLine": 1,
+      "startCol": 8,
+      "endLine": 1,
+      "endCol": 14
+    }
+  },
+  {
+    "capture": "definition.function",
+    "text": "run",
+    "range": {
+      "startLine": 2,
+      "startCol": 7,
+      "endLine": 2,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "reference.call",
+    "text": "println",
+    "range": {
+      "startLine": 2,
+      "startCol": 21,
+      "endLine": 2,
+      "endCol": 28
+    }
+  }
+]
