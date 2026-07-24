@@ -2064,7 +2064,10 @@ impl TreeSitterExtractor {
 
             if let Some(node) = nav_call_node {
                 if spec.capture_is_valid("nav.call", node, source) {
-                    if let Some(call) = call_site_from_node(node, source) {
+                    let calls = spec
+                        .call_sites_for_capture(node, source)
+                        .unwrap_or_else(|| call_site_from_node(node, source).into_iter().collect());
+                    for call in calls {
                         let key = format!(
                             "{}:{}:{}:{}:{}",
                             call.name,
@@ -2101,7 +2104,10 @@ impl TreeSitterExtractor {
                 }
             }
             if let Some(node) = local_scope_node {
-                for binding in local_bindings_from_node(node, source) {
+                let bindings = spec
+                    .local_bindings_for_capture(node, source)
+                    .unwrap_or_else(|| local_bindings_from_node(node, source));
+                for binding in bindings {
                     let scope_key = binding
                         .scope_id
                         .map(|scope_id| scope_id.to_string())

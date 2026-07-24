@@ -81,6 +81,8 @@ tree-sitter 기반 심볼 추출은 다음 확장자를 지원합니다.
 
 Swift, Dart, Scala, Groovy, PowerShell은 정적 AST에서 확인되는 선언, import, 참조와 호출을 기록합니다. 계산형 import, reflection, 동적 dispatch와 PowerShell 동적 실행은 정밀 관계로 승격하지 않습니다. `.gradle`은 literal `task`/`tasks.register`/`tasks.create` target, task 의존·순서 관계, plugin ID, `group:artifact:version` dependency 좌표를 추가로 구조화합니다. 보간된 Gradle 값과 사용자 정의 DSL은 구조화하지 않습니다. `.gradle.kts`는 기존 Kotlin 일반 지원을 그대로 사용합니다.
 
+구조화·운영 형식은 보수적으로 인덱싱합니다. tree-sitter AST 추출은 JSON/JSONC, TOML, YAML, HTML/XML 계열, CSS/SCSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile, Protobuf, GraphQL, Make, CMake, Starlark/Bazel, Nix를 지원합니다. Nix는 정적 attribute 경로, `let` binding, `inherit`, derivation target, literal `import`/`builtins.import`/`callPackage` 경로, 참조와 직접 함수 적용을 추출합니다. 정적인 직접 함수 적용만 정밀 caller/callee 관계에 참여하며, 보간 경로·attribute, 계산형 import와 동적 함수 식은 구조화하지 않습니다. 들여쓰기 Sass는 전용 Sass AST parser를 사용하고, Vue·Astro·Svelte는 전용 component 문법과 내장 JavaScript/TypeScript 및 CSS/SCSS/Sass/Less 추출을 결합합니다. JSON5는 지원 등록부에서 제외합니다.
+
 ## 설치
 
 Rust가 이미 있으면 `cargo install`이 가장 단순합니다. 로컬 컴파일을 피하고 싶으면 GitHub Release 사전 빌드 바이너리, `install.sh`, WinGet, Homebrew 경로를 사용할 수 있습니다. OS별 권장 경로와 배포 채널별 메인테이너 런북은 [docs/distribution](./docs/distribution/index.md)에 있습니다.

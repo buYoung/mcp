@@ -189,9 +189,16 @@ PowerShell의 동적 실행과 계산형 import, reflection, 동적 dispatch는 
 - [x] CMake 지원: `.cmake`, `CMakeLists.txt` (tree-sitter AST)
 - [x] Make 지원: `Makefile`, `.mk` (tree-sitter AST)
 - [x] Starlark/Bazel 지원: `.bzl`, `BUILD`, `BUILD.bazel` (tree-sitter AST)
-- [ ] Nix 지원: `.nix`
+- [x] Nix 지원: `.nix` (tree-sitter AST)
 - [x] target, rule, 변수를 형식별 심볼로 추출
 - [x] target 간 의존성을 일반 호출 관계와 별도로 표현
+
+Nix는 정적 attribute 경로, `let` binding, `inherit`, 함수 binding과 직접적인
+`derivation`/`mkDerivation` target을 심볼로 기록한다. 보간 없는 literal
+`import`/`builtins.import`/`callPackage` 경로와 정적 참조·함수 적용만 구조화하며,
+직접 함수 적용은 정밀 caller/callee 관계로 표시한다. Flake `inputs`/`outputs`와
+nixpkgs 관용구는 별도 의미 모델로 해석하지 않고, Nix 평가기 실행·동적 attribute
+추론·계산형 import 해석은 지원 범위 밖이다.
 
 ## 공통 완료 조건
 

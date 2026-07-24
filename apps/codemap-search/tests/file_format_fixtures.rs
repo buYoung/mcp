@@ -47,6 +47,143 @@ fn test_registry_routes_supported_formats() {
         &extract("BUILD", "cc_library(name = \"x\")"),
         "x"
     ));
+    assert!(has_symbol(
+        &extract("default.nix", "{ services.api.enable = true; }"),
+        "services.api.enable"
+    ));
+}
+
+#[test]
+fn seventh_priority_nix_symbols_preserve_static_names_kinds_ranges_and_visibility() {
+    let source = r#"{ lib, pkgs, ... }:
+let
+  privateValue = 1;
+  helper = value: lib.transform value;
+in {
+  services = {
+    api.enable = true;
+    inherit helper;
+  };
+  "quoted".port = 5000;
+  package = pkgs.stdenv.mkDerivation { name = "demo"; };
+  inherit (pkgs) nginx;
+  computed.${name} = false;
+}"#;
+    let file = extract("default.nix", source);
+    for (name, kind, is_exported) in [
+        ("privateValue", "variable", false),
+        ("helper", "fn", false),
+        ("services", "variable", true),
+        ("services.api.enable", "variable", true),
+        ("services.helper", "variable", true),
+        ("quoted.port", "variable", true),
+        ("package", "target", true),
+        ("nginx", "variable", true),
+    ] {
+        let symbol = file
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("missing {name}: {:#?}", file.symbols));
+        assert_eq!(symbol.kind, kind, "{name}");
+        assert_eq!(symbol.flags.is_exported, is_exported, "{name}");
+        assert!(symbol.range.start_line <= symbol.range.end_line, "{name}");
+    }
+    assert!(
+        !has_symbol(&file, "computed.name"),
+        "interpolated attributes are not static symbols"
+    );
+}
+
+#[test]
+fn seventh_priority_nix_navigation_records_only_static_relationships() {
+    let source = r#"{ lib, callPackage, root, ... }:
+let
+  helper = value: lib.transform value;
+  package = callPackage ./package.nix {};
+  ignored = callPackage "${root}/dynamic.nix" {};
+in {
+  imported = import ./module.nix;
+  builtinsImported = builtins.import ./other.nix;
+  result = helper package;
+  dynamic = (if true then helper else lib.id) package;
+  inherit (lib) optional;
+}"#;
+    let file = extract("default.nix", source);
+    let navigation = file.navigation.expect("Nix navigation");
+    let import_sources = navigation
+        .imports
+        .iter()
+        .filter_map(|entry| entry.source.as_deref())
+        .collect::<Vec<_>>();
+    assert!(import_sources.contains(&"./package.nix"));
+    assert!(import_sources.contains(&"./module.nix"));
+    assert!(import_sources.contains(&"./other.nix"));
+    assert!(!import_sources.iter().any(|path| path.contains("dynamic")));
+    assert!(navigation.calls.iter().any(|call| call.name == "helper"));
+    assert!(navigation
+        .calls
+        .iter()
+        .any(|call| { call.name == "transform" && call.receiver.as_deref() == Some("lib") }));
+    assert!(navigation
+        .calls
+        .iter()
+        .any(|call| { call.name == "import" && call.receiver.as_deref() == Some("builtins") }));
+    assert!(!navigation
+        .calls
+        .iter()
+        .any(|call| call.range.start_line == 10));
+    assert!(navigation
+        .local_bindings
+        .iter()
+        .any(|binding| binding.name == "value" && binding.scope_id.is_some()));
+    assert!(navigation
+        .references
+        .iter()
+        .any(|reference| reference.name == "lib.transform"));
+    assert!(navigation
+        .references
+        .iter()
+        .any(|reference| reference.name == "lib.optional"));
+}
+
+#[test]
+fn seventh_priority_build_formats_reject_computed_targets_and_dependencies() {
+    let make = extract(
+        "Makefile",
+        "$(TARGET): $(DEPENDENCY)\nstatic: input\n\t@echo ok",
+    );
+    assert!(!has_symbol(&make, "$(TARGET)"));
+    assert!(!make
+        .navigation
+        .unwrap()
+        .references
+        .iter()
+        .any(|reference| reference.name.contains("$(")));
+
+    let cmake = extract(
+        "CMakeLists.txt",
+        "add_library(${TARGET} source.cpp)\ntarget_link_libraries(app ${DEPENDENCY})\nadd_library(core core.cpp)",
+    );
+    assert!(!has_symbol(&cmake, "${TARGET}"));
+    assert!(!cmake
+        .navigation
+        .unwrap()
+        .references
+        .iter()
+        .any(|reference| reference.name.contains("${")));
+
+    let starlark = extract(
+        "BUILD.bazel",
+        "cc_library(name = TARGET, deps = DEPS)\ncc_library(name = \"core\", deps = [\"//base\"])",
+    );
+    assert!(!has_symbol(&starlark, "TARGET"));
+    assert!(has_symbol(&starlark, "core"));
+    assert_eq!(
+        starlark.navigation.unwrap().references.len(),
+        1,
+        "computed Starlark dependencies stay unstructured"
+    );
 }
 
 #[test]
@@ -450,6 +587,12 @@ fn malformed_priority_grammars_preserve_recoverable_ast_boundaries() {
             "ghost",
         ),
         ("broken.bzl", "stable = 1\nghost =", "stable", "ghost"),
+        (
+            "broken.nix",
+            "{ stable = 1; ghost = ; sibling = 2; }",
+            "sibling",
+            "ghost",
+        ),
     ] {
         let file = extract(path, source);
         assert!(

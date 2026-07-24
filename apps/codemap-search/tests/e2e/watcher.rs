@@ -587,9 +587,13 @@ async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
         ("Widget.svelte", "<main>needle</main>"),
         ("Dockerfile", "# needle"),
         ("Makefile", "# needle"),
+        ("rules.mk", "# needle"),
         ("CMakeLists.txt", "# needle"),
+        ("module.cmake", "# needle"),
         ("BUILD", "# needle"),
         ("BUILD.bazel", "# needle"),
+        ("defs.bzl", "# needle"),
+        ("default.nix", "# needle\n{}"),
     ] {
         let created = format!("lsr_007_created_{}", file.replace('.', "_"));
         let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));

@@ -247,6 +247,11 @@ fn test_new_tree_sitter_formats_emit_symbols_and_dependencies() {
         ("Makefile", "build: input\n\t@echo ok", "build"),
         ("CMakeLists.txt", "add_executable(app main.cpp)", "app"),
         ("BUILD", "cc_library(name = \"core\")", "core"),
+        (
+            "default.nix",
+            "{ services.api.enable = true; }",
+            "services.api.enable",
+        ),
     ] {
         let value = parsed_file(path, source);
         symbol(&value, expected);

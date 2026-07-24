@@ -167,7 +167,9 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // `v17` adds Swift, Dart, Scala, Groovy/Gradle, and PowerShell source extensions plus their
 // persisted symbols/navigation metadata. Existing local indexes must therefore be rebuilt once
 // even though the Tantivy schema and MCP JSON contracts are unchanged.
-const EXTRACTION_FORMAT_VERSION: &str = "v17-sixth-priority-languages";
+// `v18` adds Nix symbols, static build relationships, and a new source extension under the same
+// persisted contract, requiring one re-extraction of existing workspaces.
+const EXTRACTION_FORMAT_VERSION: &str = "v18-seventh-priority-build-formats";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1359,6 +1361,10 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
+        assert_eq!(
+            EXTRACTION_FORMAT_VERSION,
+            "v18-seventh-priority-build-formats"
+        );
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

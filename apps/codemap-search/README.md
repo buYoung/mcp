@@ -96,10 +96,14 @@ plugin IDs, and `group:artifact:version` dependency coordinates. Interpolated Gr
 arbitrary custom DSLs remain unstructured. `.gradle.kts` continues to use the ordinary Kotlin
 language support.
 
-Structured and operational formats are indexed without adding a programming-language
-caller/callee model. Tree-sitter AST extraction supports JSON/JSONC, TOML, YAML, HTML/XML
+Structured and operational formats are indexed conservatively. Tree-sitter AST extraction
+supports JSON/JSONC, TOML, YAML, HTML/XML
 (including XML-syntax derivatives), CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
-Protobuf, GraphQL, Make, CMake, and Starlark/Bazel. Indented Sass uses a dedicated Sass AST
+Protobuf, GraphQL, Make, CMake, Starlark/Bazel, and Nix. Nix extracts static attribute paths,
+`let` bindings, `inherit`, derivation targets, literal `import`/`builtins.import`/`callPackage`
+paths, references, and direct function applications. Direct static applications participate in
+the precise caller/callee model; interpolated paths or attributes, computed imports, and dynamic
+function expressions remain unstructured. Indented Sass uses a dedicated Sass AST
 parser. Vue, Astro, and Svelte combine dedicated component grammars for markup with embedded
 JavaScript/TypeScript and CSS/Sass/Less extraction. SCSS is excluded until the upstream
 Windows build fix is published. JSON5 remains excluded from the support registry.

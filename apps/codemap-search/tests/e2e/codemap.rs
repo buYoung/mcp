@@ -253,6 +253,11 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
         ("BUILD", "cc_library(name = \"core\")", "core"),
         ("BUILD.bazel", "cc_library(name = \"core\")", "core"),
         ("defs.bzl", "def helper():\n    pass", "helper"),
+        (
+            "default.nix",
+            "{ services.api.enable = true; }",
+            "services.api.enable",
+        ),
     ];
     let temp = create_mock_repo(
         &cases

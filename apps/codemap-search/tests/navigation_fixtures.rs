@@ -1101,6 +1101,24 @@ const FIXTURES: &[NavigationFixture] = &[
         required_imports: NO_IMPORTS,
         required_locals: NO_LOCALS,
     },
+    NavigationFixture {
+        name: "nix",
+        source_file: "nix/basic.nix",
+        tags_query: "queries/nix/tags.scm",
+        expected_navigation: "expected.navigation.json",
+        expected_tags: "expected.tags.json",
+        required_calls: &[
+            "transform",
+            "callPackage",
+            "helper",
+            "helperArg",
+            "caller",
+            "import",
+        ],
+        required_receiver_calls: &[("transform", "lib"), ("import", "builtins")],
+        required_imports: &["./package.nix", "./module.nix"],
+        required_locals: &["lib", "callPackage", "value", "helperArg"],
+    },
 ];
 
 #[derive(Debug, Serialize)]
@@ -1145,6 +1163,7 @@ fn language_for_source(source_file: &str) -> Language {
         "scala" | "sc" => tree_sitter_scala::LANGUAGE.into(),
         "groovy" | "gradle" => tree_sitter_groovy::LANGUAGE.into(),
         "ps1" | "psm1" => tree_sitter_powershell::LANGUAGE.into(),
+        "nix" => tree_sitter_nix::LANGUAGE.into(),
         ext => panic!("unsupported navigation fixture extension: {ext}"),
     }
 }

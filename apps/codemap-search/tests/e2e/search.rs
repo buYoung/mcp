@@ -115,6 +115,11 @@ fn test_bm25_search_reaches_every_priority_alias_and_grammar_boundary() {
             "# bazel_tree_sitter_token",
             "bazel_tree_sitter_token",
         ),
+        (
+            "default.nix",
+            "# nix_tree_sitter_token\n{ value = 1; }",
+            "nix_tree_sitter_token",
+        ),
     ];
     let temp = create_mock_repo(
         &formats

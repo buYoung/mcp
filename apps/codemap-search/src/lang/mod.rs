@@ -48,6 +48,7 @@ mod kotlin;
 mod less;
 mod lua;
 mod make;
+mod nix;
 mod php;
 mod powershell;
 mod proto;
@@ -137,6 +138,26 @@ pub(crate) trait LanguageSpec: Sync {
         _node: Node<'_>,
         _source: &[u8],
     ) -> Option<Vec<crate::parser::ImportEntry>> {
+        None
+    }
+
+    /// Optional format-specific call conversion for a granular `@nav.call` capture. `None`
+    /// delegates to the shared programming-language call decoder.
+    fn call_sites_for_capture(
+        &self,
+        _node: Node<'_>,
+        _source: &[u8],
+    ) -> Option<Vec<crate::parser::CallSite>> {
+        None
+    }
+
+    /// Optional format-specific local-binding conversion for a granular `@local.scope`
+    /// capture. `None` delegates to the shared programming-language binding decoder.
+    fn local_bindings_for_capture(
+        &self,
+        _node: Node<'_>,
+        _source: &[u8],
+    ) -> Option<Vec<crate::parser::LocalBinding>> {
         None
     }
 
@@ -375,6 +396,7 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "mk" => Some(&make::MakeSpec),
         "cmake" => Some(&cmake::CmakeSpec),
         "bzl" => Some(&starlark::StarlarkSpec),
+        "nix" => Some(&nix::NixSpec),
         _ => None,
     }
 }
@@ -496,6 +518,7 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &make::MakeSpec,
     &cmake::CmakeSpec,
     &starlark::StarlarkSpec,
+    &nix::NixSpec,
 ];
 
 /// Composite component formats combine a dedicated outer tree-sitter grammar with embedded
@@ -885,5 +908,19 @@ mod tests {
             assert!(spec.tags_query(extension).is_some(), "{extension}");
             assert!(spec.navigation_enabled(extension), "{extension}");
         }
+    }
+
+    #[test]
+    fn seventh_priority_nix_hint_extension_and_queries_are_registered() {
+        assert_eq!(normalize_language_hint("nix"), Some("nix"));
+        assert_eq!(normalize_language_hint(".nix"), Some("nix"));
+        assert!(source_extensions().contains("nix"));
+        let spec = spec_for_ext("nix").expect("Nix must be registered");
+        let _ = spec.grammar("nix");
+        let _ = spec.query("nix");
+        assert!(spec.tags_query("nix").is_some());
+        assert!(spec.navigation_enabled("nix"));
+        assert!(!spec.caller_scan_enabled());
+        assert!(spec.always_store_references("nix"));
     }
 }

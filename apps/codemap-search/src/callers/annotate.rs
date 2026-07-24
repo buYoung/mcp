@@ -153,9 +153,13 @@ fn has_non_function_local_shadow(
     let Some(navigation) = &call_file.navigation else {
         return false;
     };
+    let is_nix = Path::new(&call_file.file_path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some("nix");
     let has_known_function = index.fn_names.contains(&call.name);
     navigation.local_bindings.iter().any(|binding| {
-        if binding.name != call.name || has_known_function {
+        if binding.name != call.name || (has_known_function && !is_nix) {
             return false;
         }
         match (binding.scope_id, call.scope_id) {

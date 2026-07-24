@@ -56,6 +56,7 @@ const FIXTURES: &[&str] = &[
     "sample.gradle",
     "sample.ps1",
     "sample.psm1",
+    "sample.nix",
 ];
 
 fn fixtures_dir() -> PathBuf {
@@ -200,6 +201,11 @@ fn sixth_priority_extraction_matches_goldens() {
     ] {
         check_fixture(fixture);
     }
+}
+
+#[test]
+fn seventh_priority_nix_extraction_matches_golden() {
+    check_fixture("sample.nix");
 }
 
 #[test]

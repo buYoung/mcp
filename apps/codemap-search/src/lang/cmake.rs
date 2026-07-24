@@ -44,6 +44,11 @@ fn command_parts<'tree>(node: Node<'tree>, source: &[u8]) -> Option<(String, Vec
         .collect();
     Some((name, values))
 }
+
+fn is_literal_value(node: Node<'_>, source: &[u8]) -> bool {
+    !text(node, source).contains('$')
+}
+
 pub(crate) struct CmakeSpec;
 impl LanguageSpec for CmakeSpec {
     fn language_name(&self) -> &'static str {
@@ -94,19 +99,27 @@ impl LanguageSpec for CmakeSpec {
                             | "add_test"
                             | "find_package"
                             | "fetchcontent_declare"
-                    ) && !values.is_empty()
+                    ) && values
+                        .first()
+                        .is_some_and(|value| is_literal_value(*value, source))
             }
             "nav.import" => {
                 matches!(
                     command.as_str(),
                     "include" | "add_subdirectory" | "find_package" | "fetchcontent_declare"
-                ) && !values.is_empty()
+                ) && values
+                    .first()
+                    .is_some_and(|value| is_literal_value(*value, source))
             }
             "local.reference" => {
                 matches!(
                     command.as_str(),
                     "add_dependencies" | "target_link_libraries"
                 ) && values.len() > 1
+                    && values
+                        .iter()
+                        .skip(1)
+                        .any(|value| is_literal_value(*value, source))
             }
             _ => true,
         }
@@ -191,6 +204,7 @@ impl LanguageSpec for CmakeSpec {
                     values
                         .into_iter()
                         .skip(1)
+                        .filter(|value| is_literal_value(*value, source))
                         .map(|value| reference(value, source))
                         .collect()
                 })

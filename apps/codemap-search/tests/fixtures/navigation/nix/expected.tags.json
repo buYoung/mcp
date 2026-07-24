@@ -1,0 +1,182 @@
+[
+  {
+    "capture": "definition.binding",
+    "text": "helper",
+    "range": {
+      "startLine": 3,
+      "startCol": 3,
+      "endLine": 3,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.attribute",
+    "text": "lib.transform",
+    "range": {
+      "startLine": 3,
+      "startCol": 19,
+      "endLine": 3,
+      "endCol": 32
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "lib",
+    "range": {
+      "startLine": 3,
+      "startCol": 19,
+      "endLine": 3,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "value",
+    "range": {
+      "startLine": 3,
+      "startCol": 33,
+      "endLine": 3,
+      "endCol": 38
+    }
+  },
+  {
+    "capture": "definition.binding",
+    "text": "package",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 10
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "callPackage",
+    "range": {
+      "startLine": 4,
+      "startCol": 13,
+      "endLine": 4,
+      "endCol": 24
+    }
+  },
+  {
+    "capture": "definition.binding",
+    "text": "caller",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "helper",
+    "range": {
+      "startLine": 5,
+      "startCol": 23,
+      "endLine": 5,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "helperArg",
+    "range": {
+      "startLine": 5,
+      "startCol": 31,
+      "endLine": 5,
+      "endCol": 40
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "package",
+    "range": {
+      "startLine": 5,
+      "startCol": 41,
+      "endLine": 5,
+      "endCol": 48
+    }
+  },
+  {
+    "capture": "definition.binding",
+    "text": "result",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
+      "endCol": 9
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "caller",
+    "range": {
+      "startLine": 7,
+      "startCol": 12,
+      "endLine": 7,
+      "endCol": 18
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "package",
+    "range": {
+      "startLine": 7,
+      "startCol": 19,
+      "endLine": 7,
+      "endCol": 26
+    }
+  },
+  {
+    "capture": "definition.binding",
+    "text": "imported",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 11
+    }
+  },
+  {
+    "capture": "reference.attribute",
+    "text": "builtins.import",
+    "range": {
+      "startLine": 8,
+      "startCol": 14,
+      "endLine": 8,
+      "endCol": 29
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "builtins",
+    "range": {
+      "startLine": 8,
+      "startCol": 14,
+      "endLine": 8,
+      "endCol": 22
+    }
+  },
+  {
+    "capture": "reference.variable",
+    "text": "lib",
+    "range": {
+      "startLine": 9,
+      "startCol": 12,
+      "endLine": 9,
+      "endCol": 15
+    }
+  },
+  {
+    "capture": "definition.inherit",
+    "text": "optional",
+    "range": {
+      "startLine": 9,
+      "startCol": 17,
+      "endLine": 9,
+      "endCol": 25
+    }
+  }
+]

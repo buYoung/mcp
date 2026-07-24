@@ -1,0 +1,244 @@
+{
+  "calls": [
+    {
+      "name": "transform",
+      "receiver": "lib",
+      "range": {
+        "startLine": 3,
+        "startCol": 19,
+        "endLine": 3,
+        "endCol": 38
+      },
+      "scopeId": 300003
+    },
+    {
+      "name": "callPackage",
+      "range": {
+        "startLine": 4,
+        "startCol": 13,
+        "endLine": 4,
+        "endCol": 38
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "helper",
+      "range": {
+        "startLine": 5,
+        "startCol": 23,
+        "endLine": 5,
+        "endCol": 49
+      },
+      "scopeId": 500005
+    },
+    {
+      "name": "helperArg",
+      "range": {
+        "startLine": 5,
+        "startCol": 31,
+        "endLine": 5,
+        "endCol": 48
+      },
+      "scopeId": 500005
+    },
+    {
+      "name": "caller",
+      "range": {
+        "startLine": 7,
+        "startCol": 12,
+        "endLine": 7,
+        "endCol": 26
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "import",
+      "receiver": "builtins",
+      "range": {
+        "startLine": 8,
+        "startCol": 14,
+        "endLine": 8,
+        "endCol": 42
+      },
+      "scopeId": 100010
+    }
+  ],
+  "references": [
+    {
+      "name": "lib.transform",
+      "range": {
+        "startLine": 3,
+        "startCol": 19,
+        "endLine": 3,
+        "endCol": 32
+      },
+      "scopeId": 300003
+    },
+    {
+      "name": "value",
+      "range": {
+        "startLine": 3,
+        "startCol": 33,
+        "endLine": 3,
+        "endCol": 38
+      },
+      "scopeId": 300003
+    },
+    {
+      "name": "callPackage",
+      "range": {
+        "startLine": 4,
+        "startCol": 13,
+        "endLine": 4,
+        "endCol": 24
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "helper",
+      "range": {
+        "startLine": 5,
+        "startCol": 23,
+        "endLine": 5,
+        "endCol": 29
+      },
+      "scopeId": 500005
+    },
+    {
+      "name": "helperArg",
+      "range": {
+        "startLine": 5,
+        "startCol": 31,
+        "endLine": 5,
+        "endCol": 40
+      },
+      "scopeId": 500005
+    },
+    {
+      "name": "package",
+      "range": {
+        "startLine": 5,
+        "startCol": 41,
+        "endLine": 5,
+        "endCol": 48
+      },
+      "scopeId": 500005
+    },
+    {
+      "name": "caller",
+      "range": {
+        "startLine": 7,
+        "startCol": 12,
+        "endLine": 7,
+        "endCol": 18
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "package",
+      "range": {
+        "startLine": 7,
+        "startCol": 19,
+        "endLine": 7,
+        "endCol": 26
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "builtins.import",
+      "range": {
+        "startLine": 8,
+        "startCol": 14,
+        "endLine": 8,
+        "endCol": 29
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "lib.optional",
+      "range": {
+        "startLine": 9,
+        "startCol": 3,
+        "endLine": 9,
+        "endCol": 26
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "lib",
+      "range": {
+        "startLine": 9,
+        "startCol": 12,
+        "endLine": 9,
+        "endCol": 15
+      },
+      "scopeId": 100010
+    }
+  ],
+  "localBindings": [
+    {
+      "name": "lib",
+      "range": {
+        "startLine": 1,
+        "startCol": 3,
+        "endLine": 1,
+        "endCol": 6
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "callPackage",
+      "range": {
+        "startLine": 1,
+        "startCol": 8,
+        "endLine": 1,
+        "endCol": 19
+      },
+      "scopeId": 100010
+    },
+    {
+      "name": "value",
+      "range": {
+        "startLine": 3,
+        "startCol": 12,
+        "endLine": 3,
+        "endCol": 17
+      },
+      "scopeId": 300003
+    },
+    {
+      "name": "helperArg",
+      "range": {
+        "startLine": 5,
+        "startCol": 12,
+        "endLine": 5,
+        "endCol": 21
+      },
+      "scopeId": 500005
+    }
+  ],
+  "imports": [
+    {
+      "localName": "./package.nix",
+      "source": "./package.nix",
+      "kind": "default",
+      "range": {
+        "startLine": 4,
+        "startCol": 25,
+        "endLine": 4,
+        "endCol": 38
+      }
+    },
+    {
+      "localName": "./module.nix",
+      "source": "./module.nix",
+      "kind": "default",
+      "range": {
+        "startLine": 8,
+        "startCol": 30,
+        "endLine": 8,
+        "endCol": 42
+      }
+    }
+  ]
+}

@@ -666,7 +666,11 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ("CMakeLists.txt", "add_test(NAME unit COMMAND app)\n"),
         (
             "BUILD",
-            "first, second = (1, 2)\ncc_library(name = \"core\")\n",
+            "# starlark_mcp_token\nfirst, second = (1, 2)\ncc_library(name = \"core\")\n",
+        ),
+        (
+            "default.nix",
+            "{ nix_mcp_token = true; target = derivation { name = \"demo\"; }; }\n",
         ),
         (
             ".codemap/config.toml",
@@ -721,6 +725,7 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ("Makefile", "package"),
         ("CMakeLists.txt", "unit"),
         ("BUILD", "second"),
+        ("default.nix", "target"),
     ] {
         let result = client
             .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
@@ -734,6 +739,80 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
             "overview omitted {symbol} from {path}: {text:?}"
         );
     }
+
+    for (query, path) in [
+        ("package", "Makefile"),
+        ("unit", "CMakeLists.txt"),
+        ("starlark_mcp_token", "BUILD"),
+        ("nix_mcp_token", "default.nix"),
+    ] {
+        let result = client
+            .send_tool_until("search", serde_json::json!({ "query": query }), |text| {
+                text.contains(path)
+            })
+            .await
+            .unwrap();
+        let text = result["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(path), "search omitted {path}: {text}");
+    }
+}
+
+#[tokio::test]
+async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp() {
+    let temp = create_mock_repo(&[
+        (
+            "default.nix",
+            "let\n  targetNix = value: value;\n  callerNix = value: targetNix value;\n  shadowedNix = value: value;\n  shadowCaller = shadowedNix: shadowedNix 1;\nin { inherit targetNix callerNix shadowedNix shadowCaller; }\n",
+        ),
+        (
+            ".codemap/config.toml",
+            "watch = false\nindex_staleness_ms = 1\n[caller_context]\nnavigation_context_default = true\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+    let target = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "targetNix", "language_hint": "nix", "caller_context": true }),
+            |text| {
+                text.contains("callerNix")
+                    && text.contains("default.nix:3")
+                    && text.contains("tree-sitter precise")
+            },
+        )
+        .await
+        .unwrap();
+    let target_text = target["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(target_text.contains("callerNix"));
+    assert!(target_text.contains("default.nix:3"));
+    assert!(target_text.contains("tree-sitter precise"));
+
+    let caller = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "callerNix", "language_hint": "nix", "caller_context": true }),
+            |text| text.contains("- targetNix (precise)"),
+        )
+        .await
+        .unwrap();
+    let caller_text = caller["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(caller_text.contains("- targetNix (precise)"));
+
+    let shadowed = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "shadowedNix", "language_hint": "nix", "caller_context": true }),
+            |text| text.contains("shadowedNix") && !text.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let shadowed_text = shadowed["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        !shadowed_text.contains("shadowCaller (default.nix:5)"),
+        "function parameter shadowing must suppress a false precise caller: {shadowed_text}"
+    );
 }
 
 #[test]
