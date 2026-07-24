@@ -3301,6 +3301,28 @@ class Calculator:
     }
 
     #[test]
+    fn fifth_priority_dynamic_imports_are_not_navigation_edges_or_calls() {
+        let cases = [
+            ("dynamic.php", "<?php include $path;\n", "include"),
+            ("dynamic.rb", "require(path)\n", "require"),
+            ("dynamic.lua", "require(path)\n", "require"),
+        ];
+        let extractor = TreeSitterExtractor::new();
+        for (path, content, import_call) in cases {
+            let file = extractor.extract(content, path).unwrap();
+            let navigation = file.navigation.as_ref().expect("navigation must run");
+            assert!(
+                navigation.imports.is_empty(),
+                "{path}: dynamic import must not become an import edge"
+            );
+            assert!(
+                navigation.calls.iter().all(|call| call.name != import_call),
+                "{path}: dynamic import must not become a call edge"
+            );
+        }
+    }
+
+    #[test]
     fn fifth_priority_language_flags_follow_visibility_test_and_deprecation_rules() {
         let extractor = TreeSitterExtractor::new();
         let cases = [

@@ -164,7 +164,10 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 /// indexes alongside the codemap snapshot. Each bump rebuilds exactly once.
 // Composite source masking and SQL declarations change what a file contributes to a persisted
 // document, so existing local indexes must be rebuilt once. The schema/JSON shape is unchanged.
-const EXTRACTION_FORMAT_VERSION: &str = "v15-tree-sitter-file-formats";
+// `v16` adds C#, PHP, Ruby, and Lua source extensions and their persisted symbols/navigation
+// metadata, and extends owner extraction to property/constant symbols. Existing local indexes
+// must therefore be rebuilt once even though the Tantivy schema itself is unchanged.
+const EXTRACTION_FORMAT_VERSION: &str = "v16-fifth-priority-languages";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.

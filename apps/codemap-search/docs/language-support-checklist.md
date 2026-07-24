@@ -155,13 +155,19 @@ tree-sitter AST에서 기록한다. 모든 형식에서 `calls`는 비워 두며
 
 ## 5순위 — 추가 프로그래밍 언어
 
-- [ ] C# 지원: `.cs`
-- [ ] PHP 지원: `.php`
-- [ ] Ruby 지원: `.rb`
-- [ ] Lua 지원: `.lua`
-- [ ] 각 언어의 심볼, import, 참조, 호출 정보를 추출
-- [ ] 테스트 코드, 공개 심볼, deprecated 상태 판별
-- [ ] 호출자·피호출자 탐색 활성화
+- [x] C# 지원: `.cs`
+- [x] PHP 지원: `.php`
+- [x] Ruby 지원: `.rb`
+- [x] Lua 지원: `.lua`
+- [x] 각 언어의 심볼, import, 참조, 호출 정보를 추출
+- [x] 테스트 코드, 공개 심볼, deprecated 상태 판별
+- [x] 호출자·피호출자 탐색 활성화
+
+네 언어 모두 tree-sitter AST에서 정적으로 확인 가능한 선언, literal import, 참조와
+호출을 기록한다. 참조 저장은 기존 `navigation_store_references` 설정을 따르며, 계산된
+import와 동적·모호한 dispatch는 정밀 관계로 승격하지 않는다. 호출자·피호출자 결과는
+navigation context가 확인한 관계를 정밀 결과로, 나머지 이름 기반 후보를 근사 결과로
+구분한다.
 
 ## 6순위 — 플랫폼 특화 언어
 

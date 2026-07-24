@@ -32,7 +32,7 @@ pub const ANNOTATION_OMITTED_MARKER: &str =
 /// The observation-scope caveat appended whenever a `fn` shows no discoverable callers —
 /// so a zero is never read as "dead code".
 const OBSERVATION_SCOPE_CAVEAT: &str =
-    "_(no direct caller observed — scope: indexed source only (rs/py/ts/tsx/js/jsx/go/java/kt/kts), \
+    "_(no direct caller observed — scope: indexed source only (rs/py/ts/tsx/js/jsx/go/java/kt/kts/cs/php/rb/lua), \
 direct `name(` calls; callbacks, higher-order/method-reference passing, macro-wrapped, and \
 event/dispatch calls are not counted; approximate)_";
 
@@ -1298,6 +1298,10 @@ mod tests {
         assert!(
             text.contains("no direct caller observed"),
             "observation-scope caveat: {text}"
+        );
+        assert!(
+            text.contains("cs/php/rb/lua"),
+            "observation scope lists fifth-priority languages: {text}"
         );
         assert!(
             !text.contains("0 callers"),

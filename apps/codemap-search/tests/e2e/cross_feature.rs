@@ -346,7 +346,7 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
+            "watch = false\nindex_staleness_ms = 1\n[caller_context]\nnavigation_context_default = true\n",
         ),
     ])
     .unwrap();
@@ -439,6 +439,95 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             .unwrap();
         let overview_text = overview["result"]["content"][0]["text"].as_str().unwrap();
         assert!(overview_text.contains(query), "{path}: {overview_text}");
+    }
+
+    for (path, target_query, caller_query, qualified_target, qualified_caller, call_site) in [
+        (
+            "src/CSharpFlow.cs",
+            "TargetCSharp",
+            "CallerCSharp",
+            "CSharpFlow.TargetCSharp",
+            "CSharpFlow.CallerCSharp",
+            "src/CSharpFlow.cs:3",
+        ),
+        (
+            "src/php_flow.php",
+            "targetPhp",
+            "callerPhp",
+            "PhpFlow.targetPhp",
+            "PhpFlow.callerPhp",
+            "src/php_flow.php:3",
+        ),
+        (
+            "src/ruby_flow.rb",
+            "target_ruby",
+            "caller_ruby",
+            "RubyFlow.target_ruby",
+            "RubyFlow.caller_ruby",
+            "src/ruby_flow.rb:5",
+        ),
+        (
+            "src/lua_flow.lua",
+            "target_lua",
+            "caller_lua",
+            "LuaFlow.target_lua",
+            "LuaFlow.caller_lua",
+            "src/lua_flow.lua:3",
+        ),
+    ] {
+        let target_response = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({
+                    "query": target_query,
+                    "caller_context": true
+                }),
+                |text| {
+                    text.contains(qualified_caller)
+                        && text.contains(call_site)
+                        && text.contains("tree-sitter precise")
+                },
+            )
+            .await
+            .unwrap();
+        let target_text = target_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap();
+        assert!(
+            target_text.contains(qualified_target),
+            "{path}: target symbol missing from caller result: {target_text}"
+        );
+        assert!(
+            target_text.contains(qualified_caller) && target_text.contains(call_site),
+            "{path}: precise caller and call site missing: {target_text}"
+        );
+        assert!(
+            target_text.contains("tree-sitter precise"),
+            "{path}: caller attribution was not precise: {target_text}"
+        );
+
+        let caller_response = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({
+                    "query": caller_query,
+                    "caller_context": true
+                }),
+                |text| {
+                    text.contains("calls (depth 1")
+                        && text.contains(&format!("- {qualified_target} (precise)"))
+                },
+            )
+            .await
+            .unwrap();
+        let caller_text = caller_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap();
+        assert!(
+            caller_text.contains("calls (depth 1")
+                && caller_text.contains(&format!("- {qualified_target} (precise)")),
+            "{path}: precise callee missing from caller symbol: {caller_text}"
+        );
     }
 }
 

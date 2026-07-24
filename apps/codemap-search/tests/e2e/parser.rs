@@ -717,19 +717,22 @@ fn test_fifth_priority_navigation_references_respect_opt_in_config() {
         (
             "src/ref.cs",
             "public class Ref { public Demo.Type Value; }\n",
+            "Demo.Type",
         ),
         (
             "src/ref.php",
             "<?php class Ref extends Demo\\Base { public function run(): void {} }\n",
+            "Demo\\Base",
         ),
-        ("src/ref.rb", "class Ref < Demo::Base\nend\n"),
+        ("src/ref.rb", "class Ref < Demo::Base\nend\n", "Demo::Base"),
         (
             "src/ref.lua",
             "local Ref = {}\nfunction Ref.run() Demo.Base.call() end\n",
+            "Demo.Base",
         ),
     ];
 
-    for (file, content) in cases {
+    for (file, content, expected_reference) in cases {
         let temp = create_mock_repo(&[
             (file, content),
             (
@@ -745,11 +748,14 @@ fn test_fifth_priority_navigation_references_respect_opt_in_config() {
             .clone();
         let parsed: Value =
             serde_json::from_slice(&output).expect("parse must retain its JSON contract");
+        let references = parsed["navigation"]["references"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{file} should expose a references array: {parsed}"));
         assert!(
-            parsed["navigation"]["references"]
-                .as_array()
-                .is_some_and(|references| !references.is_empty()),
-            "{file} should store static references when explicitly enabled: {parsed}"
+            references
+                .iter()
+                .any(|reference| reference["name"] == expected_reference),
+            "{file} should store static reference {expected_reference:?} when explicitly enabled: {parsed}"
         );
     }
 }
