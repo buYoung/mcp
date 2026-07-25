@@ -81,9 +81,18 @@ tree-sitter 기반 심볼 추출은 다음 확장자를 지원합니다.
 
 Swift, Dart, Scala, Groovy, PowerShell은 정적 AST에서 확인되는 선언, import, 참조와 호출을 기록합니다. 계산형 import, reflection, 동적 dispatch와 PowerShell 동적 실행은 정밀 관계로 승격하지 않습니다. `.gradle`은 literal `task`/`tasks.register`/`tasks.create` target, task 의존·순서 관계, plugin ID, `group:artifact:version` dependency 좌표를 추가로 구조화합니다. 보간된 Gradle 값과 사용자 정의 DSL은 구조화하지 않습니다. `.gradle.kts`는 기존 Kotlin 일반 지원을 그대로 사용합니다.
 
-구조화·운영 형식은 보수적으로 인덱싱합니다. tree-sitter AST 추출은 JSON/JSONC, TOML, YAML, HTML/XML 계열, CSS/SCSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile, Protobuf, GraphQL, Make, CMake, Starlark/Bazel, Nix를 지원합니다. Nix는 정적 attribute 경로, `let` binding, `inherit`, derivation target, literal `import`/`builtins.import`/`callPackage` 경로, 참조와 직접 함수 적용을 추출합니다. 정적인 직접 함수 적용만 정밀 caller/callee 관계에 참여하며, 보간 경로·attribute, 계산형 import와 동적 함수 식은 구조화하지 않습니다. 들여쓰기 Sass는 전용 Sass AST parser를 사용하고, Vue·Astro·Svelte는 전용 component 문법과 내장 JavaScript/TypeScript 및 CSS/SCSS/Sass/Less 추출을 결합합니다. JSON5는 지원 등록부에서 제외합니다.
+구조화·운영 형식은 보수적으로 파싱합니다. tree-sitter AST 추출은 JSON/JSONC, TOML, YAML, HTML/XML 계열, CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile, Protobuf, GraphQL, Make, CMake, Starlark/Bazel, Nix를 지원합니다. 이 중 셸·인프라·인터페이스·빌드 그룹은 기본적으로 색인 기반 탐색에서 제외하며 `[language_support]`에서 그룹별로 활성화할 수 있습니다. Nix는 정적 attribute 경로, `let` binding, `inherit`, derivation target, literal `import`/`builtins.import`/`callPackage` 경로, 참조와 직접 함수 적용을 추출합니다. 정적인 직접 함수 적용만 정밀 caller/callee 관계에 참여하며, 보간 경로·attribute, 계산형 import와 동적 함수 식은 구조화하지 않습니다. 들여쓰기 Sass는 전용 Sass AST parser를 사용하고, Vue·Astro·Svelte는 전용 component 문법과 내장 JavaScript/TypeScript 및 CSS/Sass/Less 추출을 결합합니다. SCSS는 upstream Windows 빌드 수정 버전이 배포될 때까지 지원 등록부에서 제외합니다. JSON5도 지원 등록부에서 제외합니다.
 
 선택형 **Document** 그룹은 `tree-sitter-md`로 Markdown(`.md`, `.mdx`)을 처리합니다. `[language_support].is_document_support_enabled = true`로 활성화하면 전체 본문을 검색하고 제목·링크·코드 블록을 원본 범위와 함께 추출합니다. import·참조·caller/callee 관계를 만들거나 fenced code를 다시 파싱하지 않습니다. MDX의 JSX와 JavaScript 표현식은 본문 검색에만 포함합니다.
+
+나머지 선택형 그룹도 기본값은 모두 `false`입니다.
+
+- `is_shell_support_enabled`: `.sh`, `.bash`, `.zsh`
+- `is_infrastructure_support_enabled`: `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix`
+- `is_interface_support_enabled`: `.proto`, `.graphql`, `.gql`
+- `is_build_support_enabled`: `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl`
+
+각 설정은 초기 색인·watcher·search·overview·codemap에 적용합니다. 실시간 파일 도구인 `find`·`grep`·`read`와 직접 `parse`는 그룹이 비활성 상태여도 그대로 사용할 수 있습니다.
 
 ## 설치
 
@@ -237,7 +246,7 @@ codex mcp add codemap-search -- codemap-search mcp
 | `find` | glob으로 파일을 찾습니다. 결과는 수정 시간순으로 정렬되고 상한이 있습니다. | `pattern`, `path`, `include_ignored` |
 | `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 
-`read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.txt`는 기본 결과와 의미 기반 인덱스에서 제외됩니다. `.md`/`.mdx`는 기본적으로 제외되지만 Document 설정을 켜면 초기 색인·watcher·도구에 함께 포함됩니다. 한 호출에서 ignore 및 파일 제외 규칙을 우회하려면 `include_ignored: true`를 전달하세요. 직접 `read`와 `parse`는 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
+`read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.txt`는 기본 결과와 의미 기반 인덱스에서 제외됩니다. Markdown과 선택형 셸·인프라·인터페이스·빌드 그룹은 설정이 꺼져도 `find`·`grep`·`read`로 접근할 수 있으며, 설정은 색인·watcher·search·overview·codemap 포함 여부만 제어합니다. ignore 및 영구 파일 제외 규칙을 한 호출에서 우회하려면 `include_ignored: true`를 전달하세요. 직접 `parse`도 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
 
 사용자 홈 디렉터리 자체를 작업공간 또는 `index`/`benchmark` 대상으로 지정하면 설정·인덱스·watcher를 만들기 전에 거부합니다. `~/work/project` 같은 홈 아래 프로젝트는 정상적으로 허용합니다. `HOME`과 `USERPROFILE`을 모두 확인할 수 없는 환경에서는 `stderr`에 경고하고 실행을 계속합니다.
 

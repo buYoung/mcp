@@ -7,6 +7,14 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
 use tokio::time::sleep;
 
+pub const OPTIONAL_LANGUAGE_SUPPORT_CONFIG: &str = "\
+[language_support]
+is_shell_support_enabled = true
+is_infrastructure_support_enabled = true
+is_interface_support_enabled = true
+is_build_support_enabled = true
+";
+
 /// Helper to dynamically build a mock directory with specific files
 pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Error> {
     let temp_dir = tempfile::tempdir()?;

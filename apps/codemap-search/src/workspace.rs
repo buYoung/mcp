@@ -111,7 +111,6 @@ const MINIFIED_BUNDLE_SUFFIXES: &[&str] =
 const GENERATED_BUNDLE_SUFFIXES: &[&str] =
     &[".bundle.js", ".bundle.mjs", ".bundle.cjs", ".bundle.css"];
 
-const DOCUMENT_SUFFIXES: &[&str] = &[".md", ".mdx"];
 const INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES: &[&str] = &[".txt"];
 
 /// Whether `file_name` is a minified web bundle. Matching is ASCII-case-insensitive so
@@ -123,25 +122,34 @@ pub fn is_minified_bundle(file_name: &str) -> bool {
         .any(|suffix| normalized.ends_with(suffix))
 }
 
-/// Files that are never useful in the semantic index or codemap: intentionally unsupported
-/// prose, dependency lock state, source maps, minified assets, and generated bundles.
-/// Index/codemap/caller consumers call this at their final file boundary; live `find`/`grep`
-/// apply it only by default so `include_ignored=true` and direct `read`/`parse` remain
-/// available. The indexer's single-file gate prevents watcher events from bypassing it.
+/// Files excluded from the semantic index and codemap. This combines permanent junk-file
+/// exclusions with config-controlled language groups. The indexer's single-file gate prevents
+/// watcher events from bypassing it.
 pub fn is_explicitly_excluded_file(path: &Path) -> bool {
-    is_always_excluded_file(path)
-        || (!crate::config::get().is_document_support_enabled && is_document_file(path))
+    if is_always_excluded_file(path) {
+        return true;
+    }
+    let Some(group) = crate::lang::optional_language_group_for_path(path) else {
+        return false;
+    };
+    let config = crate::config::get();
+    match group {
+        crate::lang::OptionalLanguageGroup::Document => !config.is_document_support_enabled,
+        crate::lang::OptionalLanguageGroup::Shell => !config.is_shell_support_enabled,
+        crate::lang::OptionalLanguageGroup::Infrastructure => {
+            !config.is_infrastructure_support_enabled
+        }
+        crate::lang::OptionalLanguageGroup::Interface => !config.is_interface_support_enabled,
+        crate::lang::OptionalLanguageGroup::Build => !config.is_build_support_enabled,
+    }
 }
 
-fn is_document_file(path: &Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .map(str::to_ascii_lowercase)
-        .is_some_and(|name| {
-            DOCUMENT_SUFFIXES
-                .iter()
-                .any(|suffix| name.ends_with(suffix))
-        })
+/// Permanent junk-file exclusions used by default live `find`/`grep` walks. Optional language
+/// groups deliberately do not participate: `find`, `grep`, and `read` remain available even when
+/// a group is disabled for index-backed discovery. `include_ignored=true` still bypasses this
+/// predicate for explicit access to lockfiles, source maps, minified assets, and generated bundles.
+pub fn is_default_live_tool_excluded_file(path: &Path) -> bool {
+    is_always_excluded_file(path)
 }
 
 fn is_always_excluded_file(path: &Path) -> bool {

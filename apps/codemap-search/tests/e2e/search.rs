@@ -1,4 +1,4 @@
-use crate::e2e::helpers::{create_mock_repo, run_cli};
+use crate::e2e::helpers::{create_mock_repo, run_cli, OPTIONAL_LANGUAGE_SUPPORT_CONFIG};
 use filetime::{set_file_mtime, FileTime};
 use predicates::prelude::*;
 use std::fs;
@@ -27,6 +27,7 @@ fn test_bm25_format_text_surfaces_structured_markup_shell_and_infrastructure_fil
         ("page.html", "<main>markup_needle</main>"),
         ("deploy.sh", "shell_needle=1\n"),
         ("Dockerfile", "FROM rust\n# infrastructure_needle\n"),
+        (".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG),
     ])
     .unwrap();
     run_cli(&["index"], temp.path()).success();
@@ -121,13 +122,12 @@ fn test_bm25_search_reaches_every_priority_alias_and_grammar_boundary() {
             "nix_tree_sitter_token",
         ),
     ];
-    let temp = create_mock_repo(
-        &formats
-            .iter()
-            .map(|(path, body, _)| (*path, *body))
-            .collect::<Vec<_>>(),
-    )
-    .unwrap();
+    let mut files = formats
+        .iter()
+        .map(|(path, body, _)| (*path, *body))
+        .collect::<Vec<_>>();
+    files.push((".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG));
+    let temp = create_mock_repo(&files).unwrap();
     run_cli(&["index"], temp.path()).success();
     for (path, _, token) in formats {
         run_cli(&["search", token], temp.path())

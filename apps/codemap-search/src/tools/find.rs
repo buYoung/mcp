@@ -96,7 +96,7 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         if !entry.file_type().is_some_and(|ft| ft.is_file()) {
             continue;
         }
-        if !include_ignored && crate::workspace::is_explicitly_excluded_file(entry.path()) {
+        if !include_ignored && crate::workspace::is_default_live_tool_excluded_file(entry.path()) {
             continue;
         }
         // Glob is matched relative to the search base (gitignore semantics).

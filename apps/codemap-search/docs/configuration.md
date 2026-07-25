@@ -59,7 +59,11 @@ Use this table as the source of truth for supported keys, accepted types, and de
 | `[index].max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
 | `[index].excluded_directories` | string array | `[]` | Directory names excluded in addition to the built-ins |
 | `[index].use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
-| `[language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, codemap, watcher refreshes, and default `find`/`grep` |
+| `[language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, overview, codemap, and watcher refreshes |
+| `[language_support].is_shell_support_enabled` | bool | `false` | Include `.sh`, `.bash`, and `.zsh` through the shared eligibility rule |
+| `[language_support].is_infrastructure_support_enabled` | bool | `false` | Include HCL/Terraform, Dockerfile, and Nix definitions |
+| `[language_support].is_interface_support_enabled` | bool | `false` | Include Protocol Buffers and GraphQL definitions |
+| `[language_support].is_build_support_enabled` | bool | `false` | Include Make, CMake, and Starlark/Bazel build definitions |
 | `[refresh].watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
 | `[refresh].watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `[refresh].index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
@@ -92,7 +96,7 @@ Use this table as the source of truth for supported keys, accepted types, and de
 ### Korean key guide
 
 - 색인 위치와 범위: `[index]`
-- 문서 언어 지원: `[language_support]`
+- 선택형 문서·셸·인프라·인터페이스·빌드 지원: `[language_support]`
 - 설정 파일 자동 생성/동기화: `[update]`
 - 색인 최신성: `[refresh]`
 - 검색 결과 크기: `[search]`
@@ -110,11 +114,17 @@ Use this table as the source of truth for supported keys, accepted types, and de
 - **`index_path`** — where the tantivy index lives, relative to the repo root. The default keeps it inside the repo-local `.codemap/` directory. The index location is always excluded from walking and from watcher events, so the index never indexes (or re-triggers) itself, including at a custom location.
 - **Workspace safety** — the user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target. Descendant project directories remain valid. The guard runs before repo config, index, or watcher state is created. If both `HOME` and `USERPROFILE` are unavailable, startup warns on stderr and continues.
 - **Built-in file exclusions** — `.txt`, `*.lock`, known package-manager lockfile names, `*.map`, and minified/bundle suffixes are excluded case-insensitively from index, codemap, and caller scans. They are also hidden by default from `find`/`grep`; `include_ignored: true` restores explicit live-tool access, while direct `read`/`parse` remains available. Repo-specific additions belong in `.codemapignore`; the built-in semantic-index exclusions cannot be removed.
-- **`is_document_support_enabled`** — enables the shared Document group for `.md` and `.mdx`. The default `false` excludes them from initial indexing, watcher updates, search, overview, codemap, and default `find`/`grep`. `true` includes them everywhere through the same file-eligibility rule. A runtime value change requests one full refresh, so enabling adds documents and disabling removes existing document index entries without a file edit. Direct `read`/`parse` and `include_ignored: true` remain available in either state.
+- **`is_document_support_enabled`** — enables the shared Document group for `.md` and `.mdx`. The default `false` excludes them from initial indexing, watcher updates, search, overview, and codemap. `true` includes them everywhere in index-backed discovery. A runtime value change requests one full refresh, so enabling adds documents and disabling removes existing document index entries without a file edit. Live `find`/`grep`/`read` and direct `parse` remain available in either state.
+- **`is_shell_support_enabled`** — controls `.sh`, `.bash`, and `.zsh`.
+- **`is_infrastructure_support_enabled`** — controls HCL/Terraform (`.hcl`, `.tf`, `.tfvars`), the exact `Dockerfile` name, and Nix (`.nix`).
+- **`is_interface_support_enabled`** — controls Protocol Buffers (`.proto`) and GraphQL (`.graphql`, `.gql`).
+- **`is_build_support_enabled`** — controls Make (`Makefile`, `.mk`), CMake (`CMakeLists.txt`, `.cmake`), and Starlark/Bazel (`BUILD`, `BUILD.bazel`, `.bzl`).
+
+All five language switches default to `false` and use the same boundary: disabled files are absent from initial indexing, watcher updates, search, overview, and codemap. Live `find`/`grep`/`read` and direct `parse` remain available without enabling a group. Changing any switch at runtime requests one full refresh so the committed index converges without a source-file edit.
 - **`max_file_size`** — files larger than this many bytes are silently skipped before read/parse/index. The cap remains a second guard against generated blobs; such files remain reachable via direct live filesystem tools.
 - **`excluded_directories`** — directory names that are never walked, **added** to the built-ins (`node_modules`, `target`, `dist`, `build`, `vendor`, `.git`, `.codemap`, …). This augments the built-in list; built-ins cannot be removed.
 
-한국어 요약: 사용자 홈 자체는 인덱싱 루트로 사용할 수 없지만 홈 아래 프로젝트는 허용합니다. Markdown 문서는 기본적으로 제외되며 `[language_support].is_document_support_enabled = true`일 때 색인·codemap·watcher·기본 `find`/`grep`에 함께 포함됩니다. `.txt`, 잠금·source map·minified·bundle 파일은 계속 제외됩니다. `include_ignored: true`와 직접 `read`/`parse` 접근은 설정과 관계없이 유지됩니다.
+한국어 요약: 사용자 홈 자체는 인덱싱 루트로 사용할 수 없지만 홈 아래 프로젝트는 허용합니다. 문서·셸·인프라·인터페이스·빌드 그룹은 각각의 `[language_support]` 설정이 `true`일 때만 색인·search·overview·codemap·watcher에 포함됩니다. 설정이 `false`여도 `find`·`grep`·`read`와 직접 `parse`는 사용할 수 있습니다. `.txt`, 잠금·source map·minified·bundle 파일은 계속 제외됩니다.
 
 ### Search output
 
@@ -197,6 +207,10 @@ use_git_exclude = true
 
 [language_support]
 is_document_support_enabled = false
+is_shell_support_enabled = false
+is_infrastructure_support_enabled = false
+is_interface_support_enabled = false
+is_build_support_enabled = false
 
 [refresh]
 watch = true

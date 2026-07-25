@@ -13,7 +13,15 @@ use std::path::Path;
 use std::time::Duration;
 
 /// Repo config that leaves only the watcher able to refresh (see module docs).
-const WATCHER_ONLY_CONFIG: &str = "index_staleness_ms = 3600000\nwatch_debounce_ms = 100\n";
+const WATCHER_ONLY_CONFIG: &str = "\
+index_staleness_ms = 3600000
+watch_debounce_ms = 100
+[language_support]
+is_shell_support_enabled = true
+is_infrastructure_support_enabled = true
+is_interface_support_enabled = true
+is_build_support_enabled = true
+";
 
 /// Settle window between the first request and the test's mutation. If the suppression
 /// gate ever regressed, that first request could seed ONE request-fallback refresh; on

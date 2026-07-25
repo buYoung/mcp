@@ -423,6 +423,8 @@ pub(crate) fn spec_for_path(path: &Path) -> Option<&'static dyn LanguageSpec> {
         .or_else(|| {
             path.extension()
                 .and_then(|extension| extension.to_str())
+                .map(str::to_ascii_lowercase)
+                .as_deref()
                 .and_then(spec_for_ext)
         })
 }
@@ -435,6 +437,32 @@ pub(crate) fn language_name_for_path(path: &Path) -> Option<&'static str> {
                 .and_then(|extension| extension.to_str())
                 .and_then(language_name_for_extension)
         })
+}
+
+/// Optional, noise-prone language families that are parsed on explicit requests but only
+/// participate in index-backed and default filesystem-tool discovery when enabled in config.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum OptionalLanguageGroup {
+    Document,
+    Shell,
+    Infrastructure,
+    Interface,
+    Build,
+}
+
+/// Classify optional formats from the canonical language registry so extension and exact-name
+/// exceptions stay owned by their `LanguageSpec`:
+/// - infrastructure includes HCL/Terraform, Dockerfile, and Nix;
+/// - build includes Makefile/`.mk`, CMakeLists.txt/`.cmake`, and BUILD/BUILD.bazel/`.bzl`.
+pub(crate) fn optional_language_group_for_path(path: &Path) -> Option<OptionalLanguageGroup> {
+    match spec_for_path(path)?.language_name() {
+        "document" => Some(OptionalLanguageGroup::Document),
+        "bash" | "zsh" => Some(OptionalLanguageGroup::Shell),
+        "hcl" | "dockerfile" | "nix" => Some(OptionalLanguageGroup::Infrastructure),
+        "proto" | "graphql" => Some(OptionalLanguageGroup::Interface),
+        "make" | "cmake" | "starlark" => Some(OptionalLanguageGroup::Build),
+        _ => None,
+    }
 }
 
 pub(crate) fn is_supported_source_path(path: &Path) -> bool {

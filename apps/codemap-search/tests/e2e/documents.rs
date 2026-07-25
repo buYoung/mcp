@@ -8,7 +8,7 @@ const DOCUMENT_CONTENT: &str =
 
 fn config(is_enabled: bool) -> String {
     format!(
-        "# codemap-config-version: 4\n\
+        "# codemap-config-version: 5\n\
          [refresh]\n\
          index_staleness_ms = 3600000\n\
          watch_debounce_ms = 100\n\
@@ -63,7 +63,7 @@ fn test_document_support_gates_cli_search_and_codemap_but_not_direct_parse() {
 }
 
 #[tokio::test]
-async fn test_document_support_runtime_toggle_converges_search_overview_find_and_grep() {
+async fn test_document_support_runtime_toggle_converges_index_while_live_tools_remain_available() {
     let initial_config = config(false);
     let temp = create_mock_repo(&[
         (".codemap/config.toml", &initial_config),
@@ -100,33 +100,32 @@ async fn test_document_support_runtime_toggle_converges_search_overview_find_and
         )
         .await
         .unwrap();
-    assert!(!response_text(&default_find).contains("guide.md"));
-    let bypass_find = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "find",
-                "arguments": { "pattern": "**/*.md", "include_ignored": true }
-            }),
-        )
-        .await
-        .unwrap();
-    assert!(response_text(&bypass_find).contains("guide.md"));
-    let bypass_grep = client
+    assert!(response_text(&default_find).contains("guide.md"));
+    let default_grep = client
         .send_request(
             "tools/call",
             serde_json::json!({
                 "name": "grep",
                 "arguments": {
                     "pattern": "document_support_unique_token",
-                    "glob": "**/*.md",
-                    "include_ignored": true
+                    "glob": "**/*.md"
                 }
             }),
         )
         .await
         .unwrap();
-    assert!(response_text(&bypass_grep).contains("guide.md"));
+    assert!(response_text(&default_grep).contains("guide.md"));
+    let direct_read = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({
+                "name": "read",
+                "arguments": { "file_path": "docs/guide.md" }
+            }),
+        )
+        .await
+        .unwrap();
+    assert!(response_text(&direct_read).contains("Document Feature"));
 
     let disabled_overview = client
         .send_request(

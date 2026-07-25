@@ -223,7 +223,7 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             continue;
         }
         let p = entry.path();
-        if !include_ignored && crate::workspace::is_explicitly_excluded_file(p) {
+        if !include_ignored && crate::workspace::is_default_live_tool_excluded_file(p) {
             continue;
         }
         if let Some(ref gm) = glob_matcher {

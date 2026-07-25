@@ -96,10 +96,12 @@ plugin IDs, and `group:artifact:version` dependency coordinates. Interpolated Gr
 arbitrary custom DSLs remain unstructured. `.gradle.kts` continues to use the ordinary Kotlin
 language support.
 
-Structured and operational formats are indexed conservatively. Tree-sitter AST extraction
+Structured and operational formats are parsed conservatively. Tree-sitter AST extraction
 supports JSON/JSONC, TOML, YAML, HTML/XML
 (including XML-syntax derivatives), CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
-Protobuf, GraphQL, Make, CMake, Starlark/Bazel, and Nix. Nix extracts static attribute paths,
+Protobuf, GraphQL, Make, CMake, Starlark/Bazel, and Nix. The shell, infrastructure,
+interface, and build families are excluded from index-backed discovery by default and can be
+enabled independently under `[language_support]`. Nix extracts static attribute paths,
 `let` bindings, `inherit`, derivation targets, literal `import`/`builtins.import`/`callPackage`
 paths, references, and direct function applications. Direct static applications participate in
 the precise caller/callee model; interpolated paths or attributes, computed imports, and dynamic
@@ -113,6 +115,18 @@ with `[language_support].is_document_support_enabled = true`. It indexes full do
 extracts headings, links, and code blocks with original ranges, but does not create import,
 reference, or caller/callee relationships and does not reparse fenced code. MDX uses the same
 recoverable Markdown structure; JSX and JavaScript expressions remain text-only.
+
+The other optional groups default to `false` as well:
+
+- `is_shell_support_enabled`: `.sh`, `.bash`, `.zsh`
+- `is_infrastructure_support_enabled`: `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix`
+- `is_interface_support_enabled`: `.proto`, `.graphql`, `.gql`
+- `is_build_support_enabled`: `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
+  `BUILD.bazel`, `.bzl`
+
+Each switch applies to initial indexing, watcher refreshes, search, overview, and codemap.
+Live `find`, `grep`, and `read` remain available without enabling the group; direct `parse`
+remains available as well.
 
 ## Install
 
@@ -323,8 +337,9 @@ server:
 
 `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
 default. Lockfiles, source maps, minified/bundle files, and `.txt` are also excluded from
-default live-tool results and the semantic index. `.md`/`.mdx` follow the disabled-by-default
-Document setting described above. Pass
+default live-tool results and the semantic index. Markdown and the optional shell,
+infrastructure, interface, and build groups are excluded only from index-backed discovery when
+disabled; live `find`/`grep` still see them. Pass
 `include_ignored: true` to bypass ignore and file-exclusion rules for a `find`/`grep`
 call; direct `read` and `parse` remain available. To turn off only `.git/info/exclude` (everywhere,
 while keeping `.gitignore`), use the `use_git_exclude` config key (see

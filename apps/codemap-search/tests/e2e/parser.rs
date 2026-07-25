@@ -1,4 +1,4 @@
-use crate::e2e::helpers::{create_mock_repo, run_cli};
+use crate::e2e::helpers::{create_mock_repo, run_cli, OPTIONAL_LANGUAGE_SUPPORT_CONFIG};
 use predicates::prelude::*;
 use serde_json::Value;
 
@@ -426,13 +426,12 @@ fn test_malformed_priority_files_remain_searchable_without_recovered_structure()
         );
     }
 
-    let temp = create_mock_repo(
-        &cases
-            .iter()
-            .map(|(path, source, _, _)| (*path, *source))
-            .collect::<Vec<_>>(),
-    )
-    .unwrap();
+    let mut files = cases
+        .iter()
+        .map(|(path, source, _, _)| (*path, *source))
+        .collect::<Vec<_>>();
+    files.push((".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG));
+    let temp = create_mock_repo(&files).unwrap();
     run_cli(&["index"], temp.path()).success();
     for (path, _, stable, rejected) in cases {
         run_cli(&["search", stable], temp.path())

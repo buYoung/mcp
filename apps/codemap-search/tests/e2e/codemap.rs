@@ -1,4 +1,4 @@
-use crate::e2e::helpers::{create_mock_repo, run_cli};
+use crate::e2e::helpers::{create_mock_repo, run_cli, OPTIONAL_LANGUAGE_SUPPORT_CONFIG};
 use predicates::prelude::*;
 
 #[test]
@@ -173,6 +173,7 @@ fn test_codemap_renders_structured_and_graphql_declarations() {
             "schema.graphql",
             "fragment UserFields on User { id }\nquery GetUser { user { id } }\n",
         ),
+        (".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG),
     ])
     .unwrap();
     run_cli(&["codemap", "--path", "config.yaml"], temp.path())
@@ -259,13 +260,12 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
             "services.api.enable",
         ),
     ];
-    let temp = create_mock_repo(
-        &cases
-            .iter()
-            .map(|(path, body, _)| (*path, *body))
-            .collect::<Vec<_>>(),
-    )
-    .unwrap();
+    let mut files = cases
+        .iter()
+        .map(|(path, body, _)| (*path, *body))
+        .collect::<Vec<_>>();
+    files.push((".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG));
+    let temp = create_mock_repo(&files).unwrap();
     for (path, _, symbol) in cases {
         run_cli(&["codemap", "--path", path], temp.path())
             .success()
@@ -275,7 +275,11 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
 
 #[test]
 fn test_codemap_renders_tfvars_attribute_symbols() {
-    let temp = create_mock_repo(&[("values.tfvars", "region = \"kr\"\n")]).unwrap();
+    let temp = create_mock_repo(&[
+        ("values.tfvars", "region = \"kr\"\n"),
+        (".codemap/config.toml", OPTIONAL_LANGUAGE_SUPPORT_CONFIG),
+    ])
+    .unwrap();
 
     run_cli(&["codemap", "--path", "values.tfvars"], temp.path())
         .success()

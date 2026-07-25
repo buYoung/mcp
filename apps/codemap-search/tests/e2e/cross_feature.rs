@@ -674,7 +674,7 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
+            "watch = false\nindex_staleness_ms = 1\n[language_support]\nis_shell_support_enabled = true\nis_infrastructure_support_enabled = true\nis_interface_support_enabled = true\nis_build_support_enabled = true\n",
         ),
     ])
     .unwrap();
@@ -766,7 +766,7 @@ async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp()
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n[caller_context]\nnavigation_context_default = true\n",
+            "watch = false\nindex_staleness_ms = 1\n[language_support]\nis_infrastructure_support_enabled = true\n[caller_context]\nnavigation_context_default = true\n",
         ),
     ])
     .unwrap();

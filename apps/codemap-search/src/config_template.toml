@@ -1,4 +1,4 @@
-# codemap-config-version: 4
+# codemap-config-version: 5
 # codemap-search config for this repo.
 # These values are the built-in defaults, written explicitly for discoverability.
 # Repo config wins over global config per setting: repo > global > built-in default.
@@ -33,10 +33,35 @@ excluded_directories = ["__pycache__", ".next", "coverage"]
 use_git_exclude = true
 
 [language_support]
-# Include Markdown documents (`.md`, `.mdx`) in indexing, codemap, and default find/grep.
-# false: preserves the code-only default; direct read/parse and include_ignored still work.
-# true: applies the same document rule to initial indexing, watcher refreshes, and tools.
+# Documents
+# Include Markdown documents (`.md`, `.mdx`) in indexing, search, overview, and codemap.
+# false: excludes them from index-backed discovery and watcher refreshes.
+# Exception: direct read/parse and ordinary find/grep remain available.
 is_document_support_enabled = false
+
+# Shell scripts
+# Includes `.sh`, `.bash`, and `.zsh`.
+# false: excludes them from indexing, search, overview, codemap, and watcher refreshes.
+# Exception: direct read/parse and ordinary find/grep remain available.
+is_shell_support_enabled = false
+
+# Infrastructure definitions
+# Includes HCL/Terraform (`.hcl`, `.tf`, `.tfvars`), Dockerfile, and Nix (`.nix`).
+# false: excludes them from indexing, search, overview, codemap, and watcher refreshes.
+# Exception: direct read/parse and ordinary find/grep remain available.
+is_infrastructure_support_enabled = false
+
+# Interface definitions
+# Includes Protocol Buffers (`.proto`) and GraphQL (`.graphql`, `.gql`).
+# false: excludes them from indexing, search, overview, codemap, and watcher refreshes.
+# Exception: direct read/parse and ordinary find/grep remain available.
+is_interface_support_enabled = false
+
+# Build definitions
+# Includes Makefile and `.mk`; CMakeLists.txt and `.cmake`; BUILD, BUILD.bazel, and `.bzl`.
+# false: excludes them from indexing, search, overview, codemap, and watcher refreshes.
+# Exception: direct read/parse and ordinary find/grep remain available.
+is_build_support_enabled = false
 
 [refresh]
 # Watch the filesystem and refresh the index in the background.

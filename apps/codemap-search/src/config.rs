@@ -83,7 +83,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 4;
+const CONFIG_VERSION: u32 = 5;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -159,9 +159,20 @@ pub struct ResolvedConfig {
     /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
     /// Set false to keep the frozen-results behavior until the server restarts.
     pub indexer_auto_restart: bool,
-    /// Whether Markdown documents (`.md`, `.mdx`) participate in indexing and default
-    /// filesystem-tool walks. Direct `read`/`parse` and `include_ignored = true` remain available.
+    /// Whether Markdown documents (`.md`, `.mdx`) participate in index-backed discovery.
+    /// Direct `read`/`find`/`grep`/`parse` remain available.
     pub is_document_support_enabled: bool,
+    /// Whether shell scripts (`.sh`, `.bash`, `.zsh`) participate in index-backed discovery.
+    pub is_shell_support_enabled: bool,
+    /// Whether infrastructure definitions (`.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix`)
+    /// participate in index-backed discovery.
+    pub is_infrastructure_support_enabled: bool,
+    /// Whether interface definitions (`.proto`, `.graphql`, `.gql`) participate in indexing and
+    /// index-backed discovery.
+    pub is_interface_support_enabled: bool,
+    /// Whether build definitions (`Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
+    /// `BUILD.bazel`, `.bzl`) participate in index-backed discovery.
+    pub is_build_support_enabled: bool,
     /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
     /// every tool workspace-confined unless configured otherwise.
     pub filesystem_permissions: FilesystemPermissions,
@@ -229,6 +240,18 @@ pub struct ResolvedConfig {
     pub caller_omit_def_threshold: usize,
 }
 
+impl ResolvedConfig {
+    fn language_support_settings(&self) -> [bool; 5] {
+        [
+            self.is_document_support_enabled,
+            self.is_shell_support_enabled,
+            self.is_infrastructure_support_enabled,
+            self.is_interface_support_enabled,
+            self.is_build_support_enabled,
+        ]
+    }
+}
+
 impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
@@ -247,6 +270,10 @@ impl Default for ResolvedConfig {
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
             is_document_support_enabled: false,
+            is_shell_support_enabled: false,
+            is_infrastructure_support_enabled: false,
+            is_interface_support_enabled: false,
+            is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 500,
             read_output_byte_cap: 102_400,
@@ -287,6 +314,10 @@ struct ConfigLayer {
     watch_debounce_ms: Option<u64>,
     indexer_auto_restart: Option<bool>,
     is_document_support_enabled: Option<bool>,
+    is_shell_support_enabled: Option<bool>,
+    is_infrastructure_support_enabled: Option<bool>,
+    is_interface_support_enabled: Option<bool>,
+    is_build_support_enabled: Option<bool>,
     filesystem_permissions: FilesystemPermissionsLayer,
     grep_max_columns: Option<usize>,
     read_output_byte_cap: Option<usize>,
@@ -458,7 +489,14 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "common_name_threshold"
                 | "caller_omit_def_threshold"
         ),
-        "language_support" => matches!(key, "is_document_support_enabled"),
+        "language_support" => matches!(
+            key,
+            "is_document_support_enabled"
+                | "is_shell_support_enabled"
+                | "is_infrastructure_support_enabled"
+                | "is_interface_support_enabled"
+                | "is_build_support_enabled"
+        ),
         _ => false,
     }
 }
@@ -490,6 +528,18 @@ fn assign_config_key(
         "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(value, key_display, path),
         "is_document_support_enabled" => {
             layer.is_document_support_enabled = as_bool(value, key_display, path)
+        }
+        "is_shell_support_enabled" => {
+            layer.is_shell_support_enabled = as_bool(value, key_display, path)
+        }
+        "is_infrastructure_support_enabled" => {
+            layer.is_infrastructure_support_enabled = as_bool(value, key_display, path)
+        }
+        "is_interface_support_enabled" => {
+            layer.is_interface_support_enabled = as_bool(value, key_display, path)
+        }
+        "is_build_support_enabled" => {
+            layer.is_build_support_enabled = as_bool(value, key_display, path)
         }
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
@@ -593,6 +643,22 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .is_document_support_enabled
             .or(global.is_document_support_enabled)
             .unwrap_or(defaults.is_document_support_enabled),
+        is_shell_support_enabled: repo
+            .is_shell_support_enabled
+            .or(global.is_shell_support_enabled)
+            .unwrap_or(defaults.is_shell_support_enabled),
+        is_infrastructure_support_enabled: repo
+            .is_infrastructure_support_enabled
+            .or(global.is_infrastructure_support_enabled)
+            .unwrap_or(defaults.is_infrastructure_support_enabled),
+        is_interface_support_enabled: repo
+            .is_interface_support_enabled
+            .or(global.is_interface_support_enabled)
+            .unwrap_or(defaults.is_interface_support_enabled),
+        is_build_support_enabled: repo
+            .is_build_support_enabled
+            .or(global.is_build_support_enabled)
+            .unwrap_or(defaults.is_build_support_enabled),
         filesystem_permissions: merge_filesystem_permissions(
             repo.filesystem_permissions,
             global.filesystem_permissions,
@@ -920,14 +986,14 @@ fn run_config_watch_loop(
         }
 
         if should_reload {
-            let was_document_support_enabled = get().is_document_support_enabled;
+            let previous_language_support = get().language_support_settings();
             reload_from_paths(&repo_root, &global);
-            if was_document_support_enabled != get().is_document_support_enabled {
+            if previous_language_support != get().language_support_settings() {
                 match index_command_sender.try_send(crate::index::IndexCommand::Refresh) {
                     Ok(()) | Err(TrySendError::Full(_)) => {}
                     Err(TrySendError::Disconnected(_)) => {
                         tracing::warn!(
-                            "document support changed, but the indexer is unavailable; \
+                            "language support changed, but the indexer is unavailable; \
                              search results remain stale until recovery"
                         );
                     }
@@ -1043,8 +1109,38 @@ const MIGRATIONS: &[Migration] = &[
         version: 4,
         key: "is_document_support_enabled",
         placement: KeyPlacement::TopLevel,
-        english_block: "# Include Markdown documents (`.md`, `.mdx`) in indexing and default find/grep.\n# false preserves code-only defaults; direct read/parse and include_ignored remain available.\n# [language_support]\n# is_document_support_enabled = false",
-        korean_block: "# Markdown 문서(`.md`, `.mdx`)를 색인과 기본 find/grep에 포함합니다.\n# false는 코드 중심 기본값을 유지합니다. 직접 read/parse와 include_ignored 접근은 유지됩니다.\n# [language_support]\n# is_document_support_enabled = false",
+        english_block: "# Include Markdown documents (`.md`, `.mdx`) in index-backed discovery.\n# false excludes them from search/overview/codemap; direct read/parse/find/grep remain available.\n# [language_support]\n# is_document_support_enabled = false",
+        korean_block: "# Markdown 문서(`.md`, `.mdx`)를 색인 기반 탐색에 포함합니다.\n# false이면 search/overview/codemap에서 제외하지만 직접 read/parse/find/grep은 유지됩니다.\n# [language_support]\n# is_document_support_enabled = false",
+    },
+    // Insert in reverse display order because every subtable migration is placed immediately
+    // after the same header. The resulting config reads shell → infrastructure → interface → build.
+    Migration {
+        version: 5,
+        key: "is_build_support_enabled",
+        placement: KeyPlacement::Subtable("language_support"),
+        english_block: "# Build definitions\n# Includes Makefile and `.mk`; CMakeLists.txt and `.cmake`; BUILD, BUILD.bazel, and `.bzl`.\n# Direct read/parse/find/grep remain available when false.\n# is_build_support_enabled = false",
+        korean_block: "# 빌드 정의\n# Makefile과 `.mk`, CMakeLists.txt와 `.cmake`, BUILD·BUILD.bazel과 `.bzl`을 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_build_support_enabled = false",
+    },
+    Migration {
+        version: 5,
+        key: "is_interface_support_enabled",
+        placement: KeyPlacement::Subtable("language_support"),
+        english_block: "# Interface definitions\n# Includes Protocol Buffers (`.proto`) and GraphQL (`.graphql`, `.gql`).\n# Direct read/parse/find/grep remain available when false.\n# is_interface_support_enabled = false",
+        korean_block: "# 인터페이스 정의\n# Protocol Buffers(`.proto`)와 GraphQL(`.graphql`, `.gql`)을 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_interface_support_enabled = false",
+    },
+    Migration {
+        version: 5,
+        key: "is_infrastructure_support_enabled",
+        placement: KeyPlacement::Subtable("language_support"),
+        english_block: "# Infrastructure definitions\n# Includes HCL/Terraform (`.hcl`, `.tf`, `.tfvars`), Dockerfile, and Nix (`.nix`).\n# Direct read/parse/find/grep remain available when false.\n# is_infrastructure_support_enabled = false",
+        korean_block: "# 인프라 정의\n# HCL/Terraform(`.hcl`, `.tf`, `.tfvars`), Dockerfile, Nix(`.nix`)를 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_infrastructure_support_enabled = false",
+    },
+    Migration {
+        version: 5,
+        key: "is_shell_support_enabled",
+        placement: KeyPlacement::Subtable("language_support"),
+        english_block: "# Shell scripts\n# Includes `.sh`, `.bash`, and `.zsh`.\n# Direct read/parse/find/grep remain available when false.\n# is_shell_support_enabled = false",
+        korean_block: "# 셸 스크립트\n# `.sh`, `.bash`, `.zsh`를 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_shell_support_enabled = false",
     },
 ];
 
@@ -1459,6 +1555,10 @@ mod tests {
         assert_eq!(cfg.annotation_sub_budget, 8192);
         assert_eq!(cfg.common_name_threshold, 2);
         assert!(!cfg.is_document_support_enabled);
+        assert!(!cfg.is_shell_support_enabled);
+        assert!(!cfg.is_infrastructure_support_enabled);
+        assert!(!cfg.is_interface_support_enabled);
+        assert!(!cfg.is_build_support_enabled);
     }
 
     #[test]
@@ -1510,29 +1610,36 @@ mod tests {
     }
 
     #[test]
-    fn test_document_support_repo_overrides_global_and_bad_type_falls_back() {
+    fn test_language_support_repo_overrides_global_and_bad_type_falls_back() {
         let repo = tempdir().unwrap();
         let global = tempdir().unwrap();
         fs::write(
             global.path().join(CONFIG_FILE_NAME),
-            "[language_support]\nis_document_support_enabled = true\n",
+            "[language_support]\nis_document_support_enabled = true\nis_shell_support_enabled = true\nis_infrastructure_support_enabled = true\nis_interface_support_enabled = true\nis_build_support_enabled = true\n",
         )
         .unwrap();
-        assert!(load(repo.path(), global.path()).is_document_support_enabled);
+        assert_eq!(
+            load(repo.path(), global.path()).language_support_settings(),
+            [true; 5]
+        );
 
         write_repo_config(
             repo.path(),
-            "[language_support]\nis_document_support_enabled = false\n",
+            "[language_support]\nis_document_support_enabled = false\nis_shell_support_enabled = false\nis_infrastructure_support_enabled = false\nis_interface_support_enabled = false\nis_build_support_enabled = false\n",
         );
-        assert!(!load(repo.path(), global.path()).is_document_support_enabled);
+        assert_eq!(
+            load(repo.path(), global.path()).language_support_settings(),
+            [false; 5]
+        );
 
         write_repo_config(
             repo.path(),
-            "[language_support]\nis_document_support_enabled = \"yes\"\n",
+            "[language_support]\nis_document_support_enabled = \"yes\"\nis_shell_support_enabled = \"yes\"\nis_infrastructure_support_enabled = \"yes\"\nis_interface_support_enabled = \"yes\"\nis_build_support_enabled = \"yes\"\n",
         );
-        assert!(
-            load(repo.path(), global.path()).is_document_support_enabled,
-            "invalid repo type must fall back to the valid global value"
+        assert_eq!(
+            load(repo.path(), global.path()).language_support_settings(),
+            [true; 5],
+            "invalid repo types must fall back to the valid global values"
         );
     }
 
@@ -1798,22 +1905,40 @@ mod tests {
     }
 
     #[test]
-    fn test_v4_document_support_migration_is_localized_and_idempotent() {
+    fn test_language_support_migrations_are_localized_and_idempotent() {
         let original = "# codemap-config-version: 3\n[index]\nindex_path = \".codemap/index\"\n";
         for (language, expected_comment) in [
-            (ConfigCommentLanguage::English, "Include Markdown documents"),
-            (ConfigCommentLanguage::Korean, "Markdown 문서"),
+            (ConfigCommentLanguage::English, "Shell scripts"),
+            (ConfigCommentLanguage::Korean, "셸 스크립트"),
         ] {
             let migrated =
-                apply_migrations_with_language(original, 3, 4, MIGRATIONS, language).unwrap();
-            assert!(migrated.contains("# codemap-config-version: 4"));
+                apply_migrations_with_language(original, 3, CONFIG_VERSION, MIGRATIONS, language)
+                    .unwrap();
+            assert!(migrated.contains("# codemap-config-version: 5"));
             assert!(migrated.contains("# [language_support]"));
             assert!(migrated.contains("# is_document_support_enabled = false"));
+            assert!(migrated.contains("# is_shell_support_enabled = false"));
+            assert!(migrated.contains("# is_infrastructure_support_enabled = false"));
+            assert!(migrated.contains("# is_interface_support_enabled = false"));
+            assert!(migrated.contains("# is_build_support_enabled = false"));
             assert!(migrated.contains(expected_comment));
-            assert_eq!(migrated.matches("is_document_support_enabled").count(), 1);
-            assert!(
-                apply_migrations_with_language(&migrated, 4, 4, MIGRATIONS, language).is_none()
-            );
+            for key in [
+                "is_document_support_enabled",
+                "is_shell_support_enabled",
+                "is_infrastructure_support_enabled",
+                "is_interface_support_enabled",
+                "is_build_support_enabled",
+            ] {
+                assert_eq!(migrated.matches(key).count(), 1);
+            }
+            assert!(apply_migrations_with_language(
+                &migrated,
+                CONFIG_VERSION,
+                CONFIG_VERSION,
+                MIGRATIONS,
+                language
+            )
+            .is_none());
         }
     }
 

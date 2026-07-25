@@ -1,6 +1,6 @@
 # codemap-search 언어 및 파일 형식 지원 체크리스트
 
-이 문서는 `codemap-search`가 추가로 인덱싱할 언어와 파일 형식의 우선순위를 정리한다. Markdown 문서는 선택형 Document 그룹으로 지원하고, 일반 텍스트·잠금 파일·압축·번들 파일은 검색 잡음을 줄이기 위해 명시적으로 제외한다.
+이 문서는 `codemap-search`가 추가로 인덱싱할 언어와 파일 형식의 우선순위를 정리한다. Markdown 문서와 잡음이 될 수 있는 셸·인프라·인터페이스·빌드 형식은 그룹별 선택 지원으로 제공하고, 일반 텍스트·잠금 파일·압축·번들 파일은 명시적으로 제외한다.
 
 ## 지원 단계
 
@@ -21,7 +21,7 @@
 - [x] 전체 본문 텍스트 검색 및 원본 줄·열 범위 보존
 - [x] MDX의 복구 가능한 Markdown만 구조화하고 JSX·JavaScript 표현식은 본문 검색에만 포함
 - [x] Markdown 링크 관계, caller/callee, fenced code 내부 언어 재파싱 제외
-- [x] 비활성 상태에서도 직접 `read`·`parse`와 `include_ignored: true` 접근 유지
+- [x] 비활성 상태에서도 일반 `find`·`grep`·`read`와 직접 `parse` 접근 유지
 - [x] 일반 텍스트 제외: `.txt`
 
 ### 사용자 홈을 인덱싱 루트로 사용 금지
@@ -127,6 +127,7 @@ Vue, Astro, Svelte는 각각의 전용 tree-sitter grammar로 바깥 마크업�
 
 ## 3순위 — 범용 스크립트
 
+- [x] 셸 선택 지원: `[language_support].is_shell_support_enabled` (기본값 `false`)
 - [x] Shell 지원: `.sh`, `.bash` (tree-sitter Bash AST)
 - [x] `.zsh` 구조 지원: tree-sitter Zsh AST
 - [x] 함수, 변수, 환경 변수를 심볼로 추출
@@ -139,8 +140,11 @@ Shell은 정적 호출도 일반 호출 그래프에 넣지 않으며, 동적 �
 
 ## 4순위 — 인프라 및 인터페이스
 
+- [x] 인프라 선택 지원: `[language_support].is_infrastructure_support_enabled` (기본값 `false`)
+- [x] 인터페이스 선택 지원: `[language_support].is_interface_support_enabled` (기본값 `false`)
 - [x] HCL/Terraform 지원: `.hcl`, `.tf`, `.tfvars` (tree-sitter AST)
 - [x] Dockerfile 구조 지원: 정확한 파일명 등록 및 tree-sitter Containerfile AST
+- [x] Nix 지원: `.nix` (tree-sitter AST)
 - [x] Protocol Buffers 지원: `.proto` (tree-sitter AST)
 - [x] GraphQL 지원: `.graphql`, `.gql` (tree-sitter AST)
 - [x] 확장자뿐 아니라 정확한 파일명으로 형식을 등록하는 기능 추가
@@ -191,10 +195,10 @@ PowerShell의 동적 실행과 계산형 import, reflection, 동적 dispatch는 
 
 ## 7순위 — 빌드 시스템 및 기타 형식
 
+- [x] 빌드 정의 선택 지원: `[language_support].is_build_support_enabled` (기본값 `false`)
 - [x] CMake 지원: `.cmake`, `CMakeLists.txt` (tree-sitter AST)
 - [x] Make 지원: `Makefile`, `.mk` (tree-sitter AST)
 - [x] Starlark/Bazel 지원: `.bzl`, `BUILD`, `BUILD.bazel` (tree-sitter AST)
-- [x] Nix 지원: `.nix` (tree-sitter AST)
 - [x] target, rule, 변수를 형식별 심볼로 추출
 - [x] target 간 의존성을 일반 호출 관계와 별도로 표현
 
