@@ -1,0 +1,188 @@
+{
+  "filePath": "document.md",
+  "totalLines": 19,
+  "symbols": [
+    {
+      "name": "Main Guide",
+      "kind": "heading1",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Reference title",
+      "kind": "heading1",
+      "range": {
+        "startLine": 3,
+        "startCol": 1,
+        "endLine": 5,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "Links",
+      "kind": "heading2",
+      "range": {
+        "startLine": 6,
+        "startCol": 1,
+        "endLine": 7,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "inline label",
+      "kind": "link",
+      "range": {
+        "startLine": 8,
+        "startCol": 1,
+        "endLine": 8,
+        "endCol": 43
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "full label",
+      "kind": "link",
+      "range": {
+        "startLine": 9,
+        "startCol": 1,
+        "endLine": 9,
+        "endCol": 20
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "shortcut label",
+      "kind": "link",
+      "range": {
+        "startLine": 10,
+        "startCol": 1,
+        "endLine": 10,
+        "endCol": 17
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "https://example.com/auto",
+      "kind": "link",
+      "range": {
+        "startLine": 11,
+        "startCol": 1,
+        "endLine": 11,
+        "endCol": 27
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "guide",
+      "kind": "link",
+      "range": {
+        "startLine": 13,
+        "startCol": 1,
+        "endLine": 14,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "rust",
+      "kind": "code",
+      "range": {
+        "startLine": 15,
+        "startCol": 1,
+        "endLine": 18,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "code block",
+      "kind": "code",
+      "range": {
+        "startLine": 19,
+        "startCol": 1,
+        "endLine": 20,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [],
+  "docstrings": []
+}

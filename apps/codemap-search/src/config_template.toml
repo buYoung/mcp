@@ -1,4 +1,4 @@
-# codemap-config-version: 3
+# codemap-config-version: 4
 # codemap-search config for this repo.
 # These values are the built-in defaults, written explicitly for discoverability.
 # Repo config wins over global config per setting: repo > global > built-in default.
@@ -31,6 +31,12 @@ excluded_directories = ["__pycache__", ".next", "coverage"]
 # true: local-only excludes hide files from codemap-search.
 # false: files hidden only by `.git/info/exclude` are visible to index/find/grep.
 use_git_exclude = true
+
+[language_support]
+# Include Markdown documents (`.md`, `.mdx`) in indexing, codemap, and default find/grep.
+# false: preserves the code-only default; direct read/parse and include_ignored still work.
+# true: applies the same document rule to initial indexing, watcher refreshes, and tools.
+is_document_support_enabled = false
 
 [refresh]
 # Watch the filesystem and refresh the index in the background.

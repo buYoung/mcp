@@ -1,4 +1,4 @@
-# codemap-config-version: 3
+# codemap-config-version: 4
 # 이 저장소의 codemap-search 설정입니다.
 # 아래 값들은 확인하기 쉽도록 명시한 내장 기본값입니다.
 # 저장소 설정은 항목별로 전역 설정보다 우선합니다: repo > global > built-in default.
@@ -31,6 +31,12 @@ excluded_directories = ["__pycache__", ".next", "coverage"]
 # true: 로컬 전용 제외 규칙이 codemap-search에서 파일을 숨깁니다.
 # false: `.git/info/exclude`만으로 숨겨진 파일은 index/find/grep에 표시됩니다.
 use_git_exclude = true
+
+[language_support]
+# Markdown 문서(`.md`, `.mdx`)를 색인, codemap, 기본 find/grep에 포함합니다.
+# false: 코드 중심 기본값을 유지합니다. 직접 read/parse와 include_ignored는 계속 동작합니다.
+# true: 초기 색인, watcher refresh, 도구에 같은 문서 규칙을 적용합니다.
+is_document_support_enabled = false
 
 [refresh]
 # 파일 시스템을 감시하고 백그라운드에서 색인을 갱신합니다.

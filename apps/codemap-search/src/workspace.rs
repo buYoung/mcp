@@ -111,7 +111,8 @@ const MINIFIED_BUNDLE_SUFFIXES: &[&str] =
 const GENERATED_BUNDLE_SUFFIXES: &[&str] =
     &[".bundle.js", ".bundle.mjs", ".bundle.cjs", ".bundle.css"];
 
-const INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES: &[&str] = &[".md", ".mdx", ".txt"];
+const DOCUMENT_SUFFIXES: &[&str] = &[".md", ".mdx"];
+const INTENTIONALLY_UNSUPPORTED_TEXT_SUFFIXES: &[&str] = &[".txt"];
 
 /// Whether `file_name` is a minified web bundle. Matching is ASCII-case-insensitive so
 /// the policy is stable across case-sensitive and case-insensitive filesystems.
@@ -128,6 +129,22 @@ pub fn is_minified_bundle(file_name: &str) -> bool {
 /// apply it only by default so `include_ignored=true` and direct `read`/`parse` remain
 /// available. The indexer's single-file gate prevents watcher events from bypassing it.
 pub fn is_explicitly_excluded_file(path: &Path) -> bool {
+    is_always_excluded_file(path)
+        || (!crate::config::get().is_document_support_enabled && is_document_file(path))
+}
+
+fn is_document_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|name| {
+            DOCUMENT_SUFFIXES
+                .iter()
+                .any(|suffix| name.ends_with(suffix))
+        })
+}
+
+fn is_always_excluded_file(path: &Path) -> bool {
     let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
         return false;
     };
@@ -427,7 +444,7 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
 /// minified/binary blobs are never parsed wholesale (Child 04). Shared by the
 /// `overview` walk (`mcp.rs`) and the CLI `codemap` walk (`main.rs`).
 pub fn read_source_for_parse(path: &Path) -> Option<String> {
-    if is_explicitly_excluded_file(path) {
+    if is_always_excluded_file(path) {
         return None;
     }
     let metadata = std::fs::metadata(path).ok()?;

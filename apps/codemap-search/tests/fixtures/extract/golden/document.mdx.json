@@ -1,0 +1,62 @@
+{
+  "filePath": "document.mdx",
+  "totalLines": 7,
+  "symbols": [
+    {
+      "name": "Before JSX",
+      "kind": "heading1",
+      "range": {
+        "startLine": 1,
+        "startCol": 1,
+        "endLine": 2,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "After JSX",
+      "kind": "heading2",
+      "range": {
+        "startLine": 5,
+        "startCol": 1,
+        "endLine": 6,
+        "endCol": 1
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    },
+    {
+      "name": "recovered link",
+      "kind": "link",
+      "range": {
+        "startLine": 7,
+        "startCol": 1,
+        "endLine": 7,
+        "endCol": 48
+      },
+      "docstring": null,
+      "flags": {
+        "hasTodo": false,
+        "hasFixme": false,
+        "isTest": false,
+        "isExported": false,
+        "isDeprecated": false
+      }
+    }
+  ],
+  "literals": [],
+  "docstrings": []
+}

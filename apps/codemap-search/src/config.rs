@@ -22,7 +22,7 @@
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -83,7 +83,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 3;
+const CONFIG_VERSION: u32 = 4;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -159,6 +159,9 @@ pub struct ResolvedConfig {
     /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
     /// Set false to keep the frozen-results behavior until the server restarts.
     pub indexer_auto_restart: bool,
+    /// Whether Markdown documents (`.md`, `.mdx`) participate in indexing and default
+    /// filesystem-tool walks. Direct `read`/`parse` and `include_ignored = true` remain available.
+    pub is_document_support_enabled: bool,
     /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
     /// every tool workspace-confined unless configured otherwise.
     pub filesystem_permissions: FilesystemPermissions,
@@ -243,6 +246,7 @@ impl Default for ResolvedConfig {
             watch: true,
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
+            is_document_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 500,
             read_output_byte_cap: 102_400,
@@ -282,6 +286,7 @@ struct ConfigLayer {
     watch: Option<bool>,
     watch_debounce_ms: Option<u64>,
     indexer_auto_restart: Option<bool>,
+    is_document_support_enabled: Option<bool>,
     filesystem_permissions: FilesystemPermissionsLayer,
     grep_max_columns: Option<usize>,
     read_output_byte_cap: Option<usize>,
@@ -363,7 +368,8 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let mut section_values = Vec::new();
     for (key, value) in table {
         match key.as_str() {
-            "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context" => {
+            "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
+            | "language_support" => {
                 section_values.push((key, value));
             }
             "filesystem_permissions" => {
@@ -452,6 +458,7 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "common_name_threshold"
                 | "caller_omit_def_threshold"
         ),
+        "language_support" => matches!(key, "is_document_support_enabled"),
         _ => false,
     }
 }
@@ -481,6 +488,9 @@ fn assign_config_key(
         "watch" => layer.watch = as_bool(value, key_display, path),
         "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(value, key_display, path),
         "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(value, key_display, path),
+        "is_document_support_enabled" => {
+            layer.is_document_support_enabled = as_bool(value, key_display, path)
+        }
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
             layer.read_output_byte_cap = as_positive_usize(value, key_display, path)
@@ -579,6 +589,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .indexer_auto_restart
             .or(global.indexer_auto_restart)
             .unwrap_or(defaults.indexer_auto_restart),
+        is_document_support_enabled: repo
+            .is_document_support_enabled
+            .or(global.is_document_support_enabled)
+            .unwrap_or(defaults.is_document_support_enabled),
         filesystem_permissions: merge_filesystem_permissions(
             repo.filesystem_permissions,
             global.filesystem_permissions,
@@ -794,8 +808,11 @@ impl Drop for ConfigWatcherHandle {
 
 /// Watch repo/global `config.toml` files and refresh the in-memory config after a fixed
 /// one-second debounce window. This is independent of the index watcher and runs even when
-/// `[indexing].watch` is disabled.
-pub fn spawn_config_watcher(repo_root: &Path) -> Option<ConfigWatcherHandle> {
+/// `[refresh].watch` is disabled.
+pub fn spawn_config_watcher(
+    repo_root: &Path,
+    index_command_sender: SyncSender<crate::index::IndexCommand>,
+) -> Option<ConfigWatcherHandle> {
     let repo_root = repo_root
         .canonicalize()
         .unwrap_or_else(|_| repo_root.to_path_buf());
@@ -842,7 +859,14 @@ pub fn spawn_config_watcher(repo_root: &Path) -> Option<ConfigWatcherHandle> {
     let join_handle = match std::thread::Builder::new()
         .name("codemap-config-watcher".to_string())
         .spawn(move || {
-            run_config_watch_loop(event_receiver, repo_root, global, config_paths, debounce)
+            run_config_watch_loop(
+                event_receiver,
+                repo_root,
+                global,
+                config_paths,
+                debounce,
+                index_command_sender,
+            )
         }) {
         Ok(handle) => handle,
         Err(e) => {
@@ -873,6 +897,7 @@ fn run_config_watch_loop(
     global: PathBuf,
     config_paths: BTreeSet<PathBuf>,
     debounce: Duration,
+    index_command_sender: SyncSender<crate::index::IndexCommand>,
 ) {
     loop {
         let first = match events.recv() {
@@ -895,7 +920,19 @@ fn run_config_watch_loop(
         }
 
         if should_reload {
+            let was_document_support_enabled = get().is_document_support_enabled;
             reload_from_paths(&repo_root, &global);
+            if was_document_support_enabled != get().is_document_support_enabled {
+                match index_command_sender.try_send(crate::index::IndexCommand::Refresh) {
+                    Ok(()) | Err(TrySendError::Full(_)) => {}
+                    Err(TrySendError::Disconnected(_)) => {
+                        tracing::warn!(
+                            "document support changed, but the indexer is unavailable; \
+                             search results remain stale until recovery"
+                        );
+                    }
+                }
+            }
         }
     }
 }
@@ -1001,6 +1038,13 @@ const MIGRATIONS: &[Migration] = &[
         placement: KeyPlacement::TopLevel,
         english_block: "# Automatic repo config file creation and schema sync on `mcp` startup.\n# true: create missing `.codemap/config.toml` and append commented blocks for new settings.\n# false: never writes `.codemap/config.toml` automatically; existing config is still read.\n# Existing-file schema sync adds new settings as commented blocks, not active values.\n# [update]\n# config_auto_update = true",
         korean_block: "# `mcp` 시작 시 저장소 설정 파일 생성과 스키마 동기화를 자동으로 수행합니다.\n# true: 누락된 `.codemap/config.toml`을 만들고 새 설정의 주석 블록을 추가합니다.\n# false: `.codemap/config.toml`을 자동으로 쓰지 않습니다. 기존 설정은 계속 읽습니다.\n# 기존 파일의 스키마 동기화는 새 설정을 활성 값이 아닌 주석 블록으로 추가합니다.\n# [update]\n# config_auto_update = true",
+    },
+    Migration {
+        version: 4,
+        key: "is_document_support_enabled",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Include Markdown documents (`.md`, `.mdx`) in indexing and default find/grep.\n# false preserves code-only defaults; direct read/parse and include_ignored remain available.\n# [language_support]\n# is_document_support_enabled = false",
+        korean_block: "# Markdown 문서(`.md`, `.mdx`)를 색인과 기본 find/grep에 포함합니다.\n# false는 코드 중심 기본값을 유지합니다. 직접 read/parse와 include_ignored 접근은 유지됩니다.\n# [language_support]\n# is_document_support_enabled = false",
     },
 ];
 
@@ -1414,6 +1458,7 @@ mod tests {
         assert_eq!(cfg.callee_list_cap, 5);
         assert_eq!(cfg.annotation_sub_budget, 8192);
         assert_eq!(cfg.common_name_threshold, 2);
+        assert!(!cfg.is_document_support_enabled);
     }
 
     #[test]
@@ -1462,6 +1507,33 @@ mod tests {
         let cfg = load(repo.path(), global.path());
         assert_eq!(cfg.result_threshold, 3, "repo wins for threshold");
         assert_eq!(cfg.max_file_size, 10, "global wins where repo is silent");
+    }
+
+    #[test]
+    fn test_document_support_repo_overrides_global_and_bad_type_falls_back() {
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        fs::write(
+            global.path().join(CONFIG_FILE_NAME),
+            "[language_support]\nis_document_support_enabled = true\n",
+        )
+        .unwrap();
+        assert!(load(repo.path(), global.path()).is_document_support_enabled);
+
+        write_repo_config(
+            repo.path(),
+            "[language_support]\nis_document_support_enabled = false\n",
+        );
+        assert!(!load(repo.path(), global.path()).is_document_support_enabled);
+
+        write_repo_config(
+            repo.path(),
+            "[language_support]\nis_document_support_enabled = \"yes\"\n",
+        );
+        assert!(
+            load(repo.path(), global.path()).is_document_support_enabled,
+            "invalid repo type must fall back to the valid global value"
+        );
     }
 
     #[test]
@@ -1532,6 +1604,11 @@ mod tests {
             parse_version_marker(CONFIG_TEMPLATE),
             Some(CONFIG_VERSION),
             "config_template.toml must carry the current schema version marker"
+        );
+        assert_eq!(
+            parse_version_marker(CONFIG_TEMPLATE_KO),
+            Some(CONFIG_VERSION),
+            "config_template.ko.toml must carry the current schema version marker"
         );
         assert_eq!(
             CONFIG_TEMPLATE.matches(VERSION_MARKER_PREFIX).count(),
@@ -1718,6 +1795,26 @@ mod tests {
             "migration block should explain that auto-update adds commented settings: {out:?}"
         );
         assert!(out.contains("# codemap-config-version: 3"));
+    }
+
+    #[test]
+    fn test_v4_document_support_migration_is_localized_and_idempotent() {
+        let original = "# codemap-config-version: 3\n[index]\nindex_path = \".codemap/index\"\n";
+        for (language, expected_comment) in [
+            (ConfigCommentLanguage::English, "Include Markdown documents"),
+            (ConfigCommentLanguage::Korean, "Markdown 문서"),
+        ] {
+            let migrated =
+                apply_migrations_with_language(original, 3, 4, MIGRATIONS, language).unwrap();
+            assert!(migrated.contains("# codemap-config-version: 4"));
+            assert!(migrated.contains("# [language_support]"));
+            assert!(migrated.contains("# is_document_support_enabled = false"));
+            assert!(migrated.contains(expected_comment));
+            assert_eq!(migrated.matches("is_document_support_enabled").count(), 1);
+            assert!(
+                apply_migrations_with_language(&migrated, 4, 4, MIGRATIONS, language).is_none()
+            );
+        }
     }
 
     #[test]

@@ -108,6 +108,12 @@ parser. Vue, Astro, and Svelte combine dedicated component grammars for markup w
 JavaScript/TypeScript and CSS/Sass/Less extraction. SCSS is excluded until the upstream
 Windows build fix is published. JSON5 remains excluded from the support registry.
 
+The optional **Document** group uses `tree-sitter-md` for Markdown (`.md`, `.mdx`). Enable it
+with `[language_support].is_document_support_enabled = true`. It indexes full document text and
+extracts headings, links, and code blocks with original ranges, but does not create import,
+reference, or caller/callee relationships and does not reparse fenced code. MDX uses the same
+recoverable Markdown structure; JSX and JavaScript expressions remain text-only.
+
 ## Install
 
 Use the route that matches your machine. `cargo install` is the simplest path if you
@@ -316,10 +322,11 @@ server:
 | `read` aliases | `read` also accepts `path`/`file` for `file_path`, and 1-based inclusive `start_line`/`end_line` for `offset`/`limit`. | — |
 
 `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
-default. Lockfiles, source maps, minified/bundle files, and `.md`/`.mdx`/`.txt` are also
-excluded from default live-tool results and the semantic index. Pass
+default. Lockfiles, source maps, minified/bundle files, and `.txt` are also excluded from
+default live-tool results and the semantic index. `.md`/`.mdx` follow the disabled-by-default
+Document setting described above. Pass
 `include_ignored: true` to bypass ignore and file-exclusion rules for a `find`/`grep`
-call; direct `read` remains available. To turn off only `.git/info/exclude` (everywhere,
+call; direct `read` and `parse` remain available. To turn off only `.git/info/exclude` (everywhere,
 while keeping `.gitignore`), use the `use_git_exclude` config key (see
 [docs/configuration.md](./docs/configuration.md)).
 

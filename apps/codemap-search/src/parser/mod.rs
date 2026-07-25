@@ -1,4 +1,5 @@
 mod composite;
+mod markdown;
 mod sass;
 mod tokenize;
 mod types;
@@ -1920,6 +1921,9 @@ impl TreeSitterExtractor {
         }
         if ext == "sass" {
             return sass::extract(file_content, file_path, collect_auxiliary);
+        }
+        if matches!(ext, "md" | "mdx") {
+            return markdown::extract(file_content, file_path, collect_auxiliary);
         }
         self.extract_language_parts(file_content, file_path, ext, collect_auxiliary)
     }

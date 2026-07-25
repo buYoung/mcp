@@ -20,6 +20,43 @@ fn symbol<'a>(value: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
+fn test_markdown_documents_extract_headings_links_code_and_original_ranges() {
+    let value = parsed_file(
+        "document.md",
+        include_str!("../fixtures/extract/document.md"),
+    );
+    for (name, kind) in [
+        ("Main Guide", "heading1"),
+        ("Reference title", "heading1"),
+        ("Links", "heading2"),
+        ("inline label", "link"),
+        ("full label", "link"),
+        ("shortcut label", "link"),
+        ("https://example.com/auto", "link"),
+        ("rust", "code"),
+        ("code block", "code"),
+    ] {
+        assert_eq!(symbol(&value, name)["kind"], kind, "{value}");
+    }
+    let inline = symbol(&value, "inline label");
+    assert_eq!(inline["range"]["startLine"], 8);
+    assert_eq!(inline["range"]["startCol"], 1);
+    assert!(value["navigation"].is_null());
+}
+
+#[test]
+fn test_mdx_recovers_markdown_around_malformed_jsx_without_code_navigation() {
+    let value = parsed_file(
+        "document.mdx",
+        include_str!("../fixtures/extract/document.mdx"),
+    );
+    assert_eq!(symbol(&value, "Before JSX")["kind"], "heading1");
+    assert_eq!(symbol(&value, "After JSX")["kind"], "heading2");
+    assert_eq!(symbol(&value, "recovered link")["kind"], "link");
+    assert!(value["navigation"].is_null());
+}
+
+#[test]
 fn test_priority_one_structured_data_is_searchable_and_has_key_symbols() {
     for (file, content, nested) in [
         (
@@ -1011,11 +1048,16 @@ fn test_composite_code_markup_and_style_preserve_original_lines() {
 }
 
 #[test]
-fn test_mdx_remains_unsupported() {
+fn test_mdx_structures_markdown_but_not_javascript_expressions() {
     let parsed = parsed_file(
         "docs/matrix.mdx",
         "export const mdx_matrix_symbol = 'must_not_index';\n# Markdown heading\n",
     );
-    assert_eq!(parsed["symbols"], serde_json::json!([]));
+    assert_eq!(symbol(&parsed, "Markdown heading")["kind"], "heading1");
+    assert!(parsed["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| entry["name"] != "mdx_matrix_symbol"));
     assert!(parsed["navigation"].is_null());
 }

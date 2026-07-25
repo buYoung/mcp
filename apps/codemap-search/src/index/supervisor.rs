@@ -25,6 +25,9 @@ pub struct EngineSupervisor {
     // Read-only search handle over the committed index (cloned Arc-backed reader). Indexing
     // happens off-thread, so the request loop never blocks on it.
     searcher: SearcherHandle,
+    // Config watcher also owns an index-command sender clone. It must be dropped before the
+    // indexer and recreated after an indexer restart so document-support toggles keep converging.
+    config_watcher: Option<crate::config::ConfigWatcherHandle>,
     // Filesystem watcher (None when `watch = false` or the watch failed to start). Field
     // order is load-bearing: struct fields drop in declaration order, and the watcher
     // thread holds a sender clone into the indexer channel — `watcher` MUST be declared
@@ -50,12 +53,14 @@ pub struct EngineSupervisor {
 impl EngineSupervisor {
     pub fn new(
         searcher: SearcherHandle,
+        config_watcher: Option<crate::config::ConfigWatcherHandle>,
         watcher: Option<WatcherHandle>,
         indexer: IndexerHandle,
         watcher_status: Arc<WatcherStatus>,
     ) -> Self {
         Self {
             searcher,
+            config_watcher,
             watcher,
             indexer,
             watcher_status,
@@ -87,6 +92,7 @@ impl EngineSupervisor {
         // Tear the watcher down FIRST: its thread holds a sender clone into the dead
         // channel, and its drop flips the shared health flag off — done before the
         // respawn below so it cannot clobber the new watcher's healthy=true.
+        self.config_watcher = None;
         self.watcher = None;
 
         let engine = match TantivySearchEngine::new(&crate::config::get().index_path) {
@@ -101,6 +107,10 @@ impl EngineSupervisor {
         // join returns immediately — no shutdown-order hazard here.
         self.indexer = spawn_indexer(engine);
 
+        if let Ok(cwd) = std::env::current_dir() {
+            self.config_watcher =
+                crate::config::spawn_config_watcher(&cwd, self.indexer.command_sender());
+        }
         if crate::config::get().watch {
             if let Ok(cwd) = std::env::current_dir() {
                 self.watcher = spawn_watcher(

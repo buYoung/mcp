@@ -48,6 +48,7 @@ mod kotlin;
 mod less;
 mod lua;
 mod make;
+mod markdown;
 mod nix;
 mod php;
 mod powershell;
@@ -397,6 +398,7 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
         "cmake" => Some(&cmake::CmakeSpec),
         "bzl" => Some(&starlark::StarlarkSpec),
         "nix" => Some(&nix::NixSpec),
+        "md" | "mdx" => Some(&markdown::MarkdownSpec),
         _ => None,
     }
 }
@@ -516,6 +518,7 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &proto::ProtoSpec,
     &graphql::GraphqlSpec,
     &make::MakeSpec,
+    &markdown::MarkdownSpec,
     &cmake::CmakeSpec,
     &starlark::StarlarkSpec,
     &nix::NixSpec,
@@ -523,7 +526,7 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
 
 /// Composite component formats combine a dedicated outer tree-sitter grammar with embedded
 /// JavaScript/TypeScript and style grammars. Keep their eligibility in this registry module so
-/// workspace walking and ranking remain centralized; MDX is intentionally absent.
+/// workspace walking and ranking remain centralized.
 const COMPOSITE_SOURCE_EXTENSIONS: &[&str] = &["vue", "astro", "svelte"];
 const NON_TREE_SITTER_SOURCE_EXTENSIONS: &[&str] = &["sass"];
 
@@ -922,5 +925,18 @@ mod tests {
         assert!(spec.navigation_enabled("nix"));
         assert!(!spec.caller_scan_enabled());
         assert!(spec.always_store_references("nix"));
+    }
+
+    #[test]
+    fn document_group_hints_extensions_and_queries_are_registered() {
+        assert_eq!(normalize_language_hint("document"), Some("document"));
+        assert_eq!(normalize_language_hint("markdown"), Some("document"));
+        assert_eq!(normalize_language_hint("mdx"), Some("document"));
+        for extension in ["md", "mdx"] {
+            assert!(source_extensions().contains(extension));
+            let spec = spec_for_ext(extension).expect("Markdown must be registered");
+            assert_eq!(spec.language_name(), "document");
+            let _ = spec.query(extension);
+        }
     }
 }

@@ -1,6 +1,6 @@
 # codemap-search 언어 및 파일 형식 지원 체크리스트
 
-이 문서는 `codemap-search`가 추가로 인덱싱할 언어와 파일 형식의 우선순위를 정리한다. 문서·일반 텍스트, 잠금 파일, 압축·번들 파일은 검색 잡음을 줄이기 위해 명시적으로 제외한다.
+이 문서는 `codemap-search`가 추가로 인덱싱할 언어와 파일 형식의 우선순위를 정리한다. Markdown 문서는 선택형 Document 그룹으로 지원하고, 일반 텍스트·잠금 파일·압축·번들 파일은 검색 잡음을 줄이기 위해 명시적으로 제외한다.
 
 ## 지원 단계
 
@@ -16,7 +16,12 @@
 
 ### 문서 및 일반 텍스트
 
-- [x] Markdown 제외: `.md`, `.mdx`
+- [x] Markdown 선택 지원: `.md`, `.mdx` (`[language_support].is_document_support_enabled`, 기본값 `false`)
+- [x] ATX·Setext 제목, inline·reference·autolink, fenced·indented code block 구조 추출
+- [x] 전체 본문 텍스트 검색 및 원본 줄·열 범위 보존
+- [x] MDX의 복구 가능한 Markdown만 구조화하고 JSX·JavaScript 표현식은 본문 검색에만 포함
+- [x] Markdown 링크 관계, caller/callee, fenced code 내부 언어 재파싱 제외
+- [x] 비활성 상태에서도 직접 `read`·`parse`와 `include_ignored: true` 접근 유지
 - [x] 일반 텍스트 제외: `.txt`
 
 ### 사용자 홈을 인덱싱 루트로 사용 금지

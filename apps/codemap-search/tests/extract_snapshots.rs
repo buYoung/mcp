@@ -57,6 +57,8 @@ const FIXTURES: &[&str] = &[
     "sample.ps1",
     "sample.psm1",
     "sample.nix",
+    "document.md",
+    "document.mdx",
 ];
 
 fn fixtures_dir() -> PathBuf {
@@ -206,6 +208,13 @@ fn sixth_priority_extraction_matches_goldens() {
 #[test]
 fn seventh_priority_nix_extraction_matches_golden() {
     check_fixture("sample.nix");
+}
+
+#[test]
+fn document_extraction_matches_goldens() {
+    for fixture in ["document.md", "document.mdx"] {
+        check_fixture(fixture);
+    }
 }
 
 #[test]

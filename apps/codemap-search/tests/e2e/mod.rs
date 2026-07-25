@@ -2,6 +2,7 @@ mod benchmark;
 mod codemap;
 mod config;
 mod cross_feature;
+mod documents;
 mod helpers;
 mod mcp;
 mod parser;
