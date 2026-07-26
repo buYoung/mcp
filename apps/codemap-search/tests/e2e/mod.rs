@@ -4,6 +4,7 @@ mod config;
 mod cross_feature;
 mod documents;
 mod helpers;
+mod language_support;
 mod mcp;
 mod parser;
 mod scenarios;

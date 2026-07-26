@@ -988,17 +988,30 @@ fn run_config_watch_loop(
         if should_reload {
             let previous_language_support = get().language_support_settings();
             reload_from_paths(&repo_root, &global);
-            if previous_language_support != get().language_support_settings() {
-                match index_command_sender.try_send(crate::index::IndexCommand::Refresh) {
-                    Ok(()) | Err(TrySendError::Full(_)) => {}
-                    Err(TrySendError::Disconnected(_)) => {
-                        tracing::warn!(
-                            "language support changed, but the indexer is unavailable; \
-                             search results remain stale until recovery"
-                        );
-                    }
-                }
-            }
+            request_refresh_if_language_support_changed(
+                previous_language_support,
+                get().language_support_settings(),
+                &index_command_sender,
+            );
+        }
+    }
+}
+
+fn request_refresh_if_language_support_changed(
+    previous: [bool; 5],
+    current: [bool; 5],
+    index_command_sender: &SyncSender<crate::index::IndexCommand>,
+) {
+    if previous == current {
+        return;
+    }
+    match index_command_sender.try_send(crate::index::IndexCommand::Refresh) {
+        Ok(()) | Err(TrySendError::Full(_)) => {}
+        Err(TrySendError::Disconnected(_)) => {
+            tracing::warn!(
+                "language support changed, but the indexer is unavailable; \
+                 search results remain stale until recovery"
+            );
         }
     }
 }
@@ -1526,6 +1539,7 @@ fn warn(message: &str) {
 mod tests {
     use super::*;
     use std::fs;
+    use std::sync::mpsc::{sync_channel, TryRecvError};
     use tempfile::tempdir;
 
     fn write_repo_config(repo: &Path, body: &str) {
@@ -1641,6 +1655,34 @@ mod tests {
             [true; 5],
             "invalid repo types must fall back to the valid global values"
         );
+    }
+
+    #[test]
+    fn test_language_support_refresh_request_is_coalesced_and_change_sensitive() {
+        let (sender, receiver) = sync_channel(1);
+        request_refresh_if_language_support_changed(
+            [false; 5],
+            [false, true, true, true, true],
+            &sender,
+        );
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(crate::index::IndexCommand::Refresh)
+        ));
+        assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
+
+        request_refresh_if_language_support_changed([false; 5], [false; 5], &sender);
+        assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
+
+        sender
+            .try_send(crate::index::IndexCommand::Refresh)
+            .unwrap();
+        request_refresh_if_language_support_changed([false; 5], [true; 5], &sender);
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(crate::index::IndexCommand::Refresh)
+        ));
+        assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
     }
 
     #[test]
