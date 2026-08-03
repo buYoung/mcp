@@ -83,11 +83,12 @@ directive.
 
 Structured and operational formats are indexed without adding a programming-language
 caller/callee model. Tree-sitter AST extraction supports JSON/JSONC, TOML, YAML, HTML/XML
-(including XML-syntax derivatives), CSS/SCSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
+(including XML-syntax derivatives), CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
 Protobuf, GraphQL, Make, CMake, and Starlark/Bazel. JSON5 and indented Sass are excluded from
 the support registry until a grammar compatible with the current tree-sitter runtime is
-available. Embedded JavaScript/TypeScript extraction in Vue/Astro/Svelte is kept; their
-template and style regions remain unstructured.
+available. SCSS is also excluded until the upstream Windows build fix is published.
+Embedded JavaScript/TypeScript extraction in Vue/Astro/Svelte is kept; their template and
+style regions remain unstructured.
 
 ## Install
 

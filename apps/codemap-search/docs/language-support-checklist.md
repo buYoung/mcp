@@ -100,7 +100,8 @@
   - `.csproj`, `.props`, `.targets`
 - [x] CSS 지원: `.css` (tree-sitter AST)
 - [ ] Sass 구조 지원: 호환되는 들여쓰기형 `.sass` grammar를 확인할 때까지 지원 레지스트리에서 제외
-- [x] SCSS 구조 지원: `.scss` (tree-sitter AST)
+- [ ] SCSS 구조 지원: `tree-sitter-scss 1.0.0`의 Windows MSVC 빌드 오류가 수정된 버전으로
+  배포될 때까지 `.scss`를 지원 레지스트리에서 제외
 - [x] Less 구조 지원: `.less` (tree-sitter AST)
 - [ ] Less `#id(...)` mixin 정의: 현재 `tree-sitter-less 1.0.0`이 정상
   `mixin_definition`이 아닌 `rule_set + ERROR`로 파싱하므로 오류 노드를 선언으로 승격하지 않음

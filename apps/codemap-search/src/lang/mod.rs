@@ -46,7 +46,6 @@ mod make;
 mod proto;
 mod python;
 mod rust;
-mod scss;
 mod sql;
 mod starlark;
 mod toml;
@@ -340,7 +339,6 @@ pub(crate) fn spec_for_ext(ext: &str) -> Option<&'static dyn LanguageSpec> {
             Some(&xml::XmlSpec)
         }
         "css" => Some(&css::CssSpec),
-        "scss" => Some(&scss::ScssSpec),
         "less" => Some(&less::LessSpec),
         "sh" | "bash" => Some(&bash::BashSpec),
         "zsh" => Some(&zsh::ZshSpec),
@@ -454,7 +452,6 @@ static ALL_SPECS: &[&dyn LanguageSpec] = &[
     &html::HtmlSpec,
     &xml::XmlSpec,
     &css::CssSpec,
-    &scss::ScssSpec,
     &less::LessSpec,
     &bash::BashSpec,
     &zsh::ZshSpec,

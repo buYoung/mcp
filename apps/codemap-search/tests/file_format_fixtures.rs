@@ -15,7 +15,6 @@ fn test_registry_routes_only_tree_sitter_formats() {
         "server"
     ));
     assert!(has_symbol(&extract("page.html", "<main></main>"), "main"));
-    assert!(has_symbol(&extract("site.scss", ".card {}"), ".card"));
     assert!(has_symbol(&extract("site.less", ".card {}"), ".card"));
     assert!(has_symbol(
         &extract("deploy.bash", "function deploy { :; }"),
@@ -59,7 +58,6 @@ fn test_checked_priority_aliases_have_grammar_backed_symbols() {
         ("app.props", "<main />", "main"),
         ("app.targets", "<main />", "main"),
         ("site.css", ".card {}", ".card"),
-        ("site.scss", "$color: red;\n.card {}", ".card"),
         ("site.less", "@color: red;\n.card {}", ".card"),
         ("deploy.sh", "run() { :; }", "run"),
         ("deploy.bash", "run() { :; }", "run"),
@@ -287,11 +285,6 @@ fn broad_tree_sitter_grammar_coverage_keeps_overview_symbols_complete() {
             ],
         ),
         (
-            "site.scss",
-            "$gap: 1rem; @mixin surface($color) { color: $color; } @function spacing($n) { @return $n * $gap; } .card:hover {}",
-            &["$gap", "surface", "spacing", ".card", ".card:hover"],
-        ),
-        (
             "site.less",
             "@gap: 1rem; .surface(@color) { color: @color; } .card:hover {}",
             &["@gap", ".surface", ".card", ".card:hover"],
@@ -378,7 +371,6 @@ fn malformed_priority_grammars_preserve_recoverable_ast_boundaries() {
             "ghost",
         ),
         ("broken.css", ".stable {}\n.ghost {", ".stable", ".ghost"),
-        ("broken.scss", ".stable {}\n.ghost {", ".stable", ".ghost"),
         ("broken.less", ".stable {}\n.ghost {", ".stable", ".ghost"),
         ("broken.sh", "stable() { :; }\nghost() {", "stable", "ghost"),
         (

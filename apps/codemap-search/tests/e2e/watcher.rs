@@ -368,7 +368,6 @@ async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
         ("api.proto", "// needle"),
         ("schema.graphql", "# needle"),
         ("schema.gql", "# needle"),
-        ("site.scss", "// needle"),
         ("site.less", "// needle"),
         ("Widget.astro", "<div>needle</div>"),
         ("Dockerfile", "# needle"),

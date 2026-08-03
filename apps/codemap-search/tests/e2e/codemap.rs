@@ -204,11 +204,6 @@ fn test_codemap_renders_every_checked_priority_grammar_capability() {
         ("app.targets", "<main />", "main"),
         ("site.css", ".card {}", ".card"),
         (
-            "site.scss",
-            "@mixin surface($color) { color: $color; }",
-            "surface",
-        ),
-        (
             "site.less",
             ".surface(@color) { color: @color; }",
             ".surface",

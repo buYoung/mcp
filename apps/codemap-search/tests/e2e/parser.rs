@@ -108,7 +108,7 @@ fn test_priority_two_markup_and_css_symbols_preserve_navigation_boundary() {
 }
 
 #[test]
-fn test_lsr_003_tree_sitter_style_and_unverified_component_regions() {
+fn test_lsr_003_tree_sitter_markup_and_unverified_component_regions() {
     let markup = parsed_file(
         "page.html",
         "<!-- <fake id=\"ghost\"> -->\n<main id=\"real\"></main>",
@@ -120,16 +120,6 @@ fn test_lsr_003_tree_sitter_style_and_unverified_component_regions() {
         .unwrap()
         .iter()
         .all(|entry| entry["name"] != "fake" && entry["name"] != "ghost"));
-    let style = parsed_file(
-        "site.scss",
-        "// .ghost { color: red }\n.card { color: red }\n",
-    );
-    symbol(&style, ".card");
-    assert!(style["symbols"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|entry| entry["name"] != ".ghost"));
     let component = parsed_file(
         "Widget.astro",
         "---\nconst sample = \"<fake id='ghost'>\";\n---\n<main />",
@@ -195,7 +185,6 @@ fn test_priority_four_infrastructure_symbols_and_dependencies() {
 #[test]
 fn test_new_tree_sitter_formats_emit_symbols_and_dependencies() {
     for (path, source, expected) in [
-        ("site.scss", ".card { color: red; }", ".card"),
         ("site.less", ".card { color: red; }", ".card"),
         ("deploy.zsh", "deploy() { echo ok; }", "deploy"),
         ("Dockerfile", "ARG VERSION\nFROM rust AS build", "VERSION"),

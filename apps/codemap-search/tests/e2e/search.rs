@@ -70,11 +70,6 @@ fn test_bm25_search_reaches_every_priority_alias_and_grammar_boundary() {
         ("schema.graphql", "# graphql_token", "graphql_token"),
         ("schema.gql", "# gql_token", "gql_token"),
         (
-            "site.scss",
-            "// scss_tree_sitter_token",
-            "scss_tree_sitter_token",
-        ),
-        (
             "site.less",
             "// less_tree_sitter_token",
             "less_tree_sitter_token",
