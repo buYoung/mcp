@@ -6,6 +6,30 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-28
+
+### 추가
+
+- JSON·TOML·YAML·XML·CSS·Less와 Dockerfile·Makefile의 구조 및 심볼 추출 추가
+- Bash·CMake·GraphQL·HCL·HTML·Containerfile의 코드 탐색 지원 추가
+- Vue·Astro·Svelte 컴포넌트의 마크업·스크립트·스타일 영역 탐색 지원 추가
+- C#·PHP·Ruby·Lua의 심볼·참조·호출자·피호출자 탐색 지원 추가
+- Swift·Dart·Scala·Groovy/Gradle·PowerShell의 코드 탐색 지원 추가
+- Nix의 attribute·derivation·import·callPackage 탐색 지원 추가
+- `is_document_support_enabled`로 Markdown·MDX 제목·링크·코드 블록 탐색을 켜는 옵션 추가
+- 셸·인프라·인터페이스·빌드 언어를 선택적으로 색인하는 그룹 설정 추가
+
+### 개선
+
+- minified·bundle·source map·`.txt`·`.lock` 등 검색 가치가 낮은 파일의 기본 제외 규칙 개선
+- 사용자 홈 디렉토리 전체를 워크스페이스로 색인하지 않도록 안전 장치 개선
+- 여러 언어의 상대 import·receiver call·동적 import를 반영해 호출 탐색 정확도 개선
+- 파일 생성·변경·삭제와 실행 중 언어 그룹 전환 시 색인 동기화 개선
+
+### 수정
+
+- 독립 SCSS 형식이 지원 대상으로 노출되지 않도록 수정
+
 ## [0.5.0] - 2026-07-20
 
 ### 추가

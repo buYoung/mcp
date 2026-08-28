@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-28
+
+### Added
+- Added navigation for Vue, Astro, and Svelte components across markup, scripts, styles, and original source locations.
+- Added C#, PHP, Ruby, Lua, Swift, Dart, Scala, Groovy/Gradle, PowerShell, and Nix language support.
+- Added Bash, CMake, Containerfile, CSS, GraphQL, HCL, HTML, JSON, TOML, YAML, XML, Less, Dockerfile, and Makefile support.
+- Added optional Markdown and MDX indexing for headings, links, code blocks, and full text via `is_document_support_enabled`.
+- Added optional language groups for shell, infrastructure, interface, and build formats.
+
+### Improved
+- Improved search relevance by skipping text, lock, source map, minified, and bundle files by default.
+- Improved caller/callee navigation for receiver calls, relative and dynamic imports, local shadowing, and indirection.
+- Improved live indexing for file creation, changes, deletion, and runtime language-setting updates.
+- Improved workspace safety by refusing to index a user's home directory as the workspace root.
+
+### Fixed
+- Fixed standalone SCSS files being indexed as a supported language.
+
+### Changed
+- Changed shell, infrastructure, interface, and build groups to opt-in; `find`, `grep`, `read`, and direct parsing remain available.
+- Changed `EXTRACTION_FORMAT_VERSION` to `v18` for the expanded language and symbol data.
+
+### Internal
+- Replaced legacy benchmark data with a fixed Directus search-quality harness and 14 tasks.
+
 ## [0.5.0] - 2026-07-20
 
 ### Added
