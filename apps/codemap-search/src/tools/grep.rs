@@ -131,6 +131,47 @@ fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>,
     (page, footer)
 }
 
+/// Appended to every empty result so the agent knows which narrowing filters were in
+/// effect and what to do next. Observed failure mode without it: agents rerun the same
+/// pattern through a shell grep, or repeat the call unchanged. Names filters only — never
+/// echoes argument values — to keep the reply short.
+fn empty_result_hint(
+    path: &str,
+    glob_opt: Option<&str>,
+    type_opt: Option<&str>,
+    case_insensitive: bool,
+    multiline: bool,
+    include_ignored: bool,
+) -> String {
+    let mut active_filters: Vec<&str> = Vec::new();
+    if path != "." {
+        active_filters.push("path");
+    }
+    if glob_opt.is_some() {
+        active_filters.push("glob");
+    }
+    if type_opt.is_some() {
+        active_filters.push("type");
+    }
+    if !case_insensitive {
+        active_filters.push("case-sensitive");
+    }
+    if !multiline {
+        active_filters.push("single-line");
+    }
+    if !include_ignored {
+        active_filters.push("ignore files respected");
+    }
+    let active = if active_filters.is_empty() {
+        "none".to_string()
+    } else {
+        active_filters.join(", ")
+    };
+    format!(
+        "_Active filters: {active}. Do not rerun unchanged: check the pattern spelling and relax one filter (path, glob, type, -i, multiline, include_ignored). If the wording or location is only a guess, switch to `search` (scoped in a monorepo)._"
+    )
+}
+
 pub fn grep(args: &Value) -> Result<String, (i64, String)> {
     let pattern = arg_required_str(args, "pattern")?;
     let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
@@ -263,6 +304,16 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
     }
 
     let max_columns = crate::config::get().grep_max_columns;
+    let no_match_hint = || {
+        empty_result_hint(
+            path,
+            glob_opt,
+            type_opt,
+            case_insensitive,
+            multiline,
+            include_ignored,
+        )
+    };
 
     match output_mode {
         "count" => {
@@ -270,7 +321,11 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             // `content`/`count` keep ripgrep's native (walk) order — only
             // `files_with_matches` is mtime-sorted.
             if files.is_empty() {
-                return Ok("Found 0 total occurrence(s) across 0 file(s).".to_string());
+                // Keep the summary line first: `test_grep_count_mode` pins "total occurrence".
+                return Ok(format!(
+                    "Found 0 total occurrence(s) across 0 file(s).\n{}",
+                    no_match_hint()
+                ));
             }
             let rows: Vec<(String, usize)> = files
                 .iter()
@@ -307,7 +362,7 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
                 }
             }
             if lines.is_empty() {
-                return Ok("No matches found".to_string());
+                return Ok(format!("No matches found\n{}", no_match_hint()));
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
             let mut out = page.join("\n");
@@ -320,7 +375,7 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
         // default: files_with_matches
         _ => {
             if files.is_empty() {
-                return Ok("No matches found".to_string());
+                return Ok(format!("No matches found\n{}", no_match_hint()));
             }
             // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
             // Code parity). `content`/`count` above stay in ripgrep's native order.

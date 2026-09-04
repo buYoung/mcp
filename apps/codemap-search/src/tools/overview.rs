@@ -76,9 +76,29 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             } else {
                 // On disk but absent from the codemap: skipped, not
                 // broken — non-source extension, over the size cap, or
-                // unparseable. Say so rather than imply a failure.
+                // unparseable. Say so rather than imply a failure, and name
+                // the fallback: agents were observed retrying `overview` on
+                // the same script/doc file across sessions before switching
+                // to `read` on their own. Keep the "is not in the codemap"
+                // prefix verbatim — the e2e helpers key their index-warmup
+                // retry on it.
+                let index_size_cap = crate::config::get().max_file_size;
+                let fallback_hint = if crate::tools::read::is_unsupported_extension(target_path) {
+                    "This extension is binary/document, so `read` cannot open it either."
+                        .to_string()
+                } else if std::fs::metadata(target_path)
+                    .map(|m| m.len() > index_size_cap)
+                    .unwrap_or(false)
+                {
+                    format!(
+                        "It exceeds the index size cap ({index_size_cap} bytes) but exists on disk; use `read` with offset/limit windows for its content."
+                    )
+                } else {
+                    "The file exists on disk; use `read` for its raw content (offset/limit for large files)."
+                        .to_string()
+                };
                 return Err((-32602, format!(
-                    "File '{}' is not in the codemap (not a supported source file, exceeds the size cap, or could not be parsed)",
+                    "File '{}' is not in the codemap (not a supported source file, exceeds the size cap, or could not be parsed). {fallback_hint}",
                     p
                 )));
             }

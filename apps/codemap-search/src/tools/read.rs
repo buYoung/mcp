@@ -24,6 +24,15 @@ const UNSUPPORTED_EXTENSIONS: &[&str] = &[
     "sketch",
 ];
 
+/// Whether `read` refuses this path by extension (see [`UNSUPPORTED_EXTENSIONS`]). Shared
+/// with `overview` so its "not in the codemap" error can say whether `read` is a viable
+/// fallback instead of pointing at a tool that would also refuse the file.
+pub fn is_unsupported_extension(path: &std::path::Path) -> bool {
+    path.extension()
+        .and_then(|s| s.to_str())
+        .is_some_and(|ext| UNSUPPORTED_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
+}
+
 /// Format file content with right-justified, arrow-delimited line numbers
 /// (`␠␠␠␠␠1→content`), matching Claude Code's `addLineNumbers`. `start_line` is
 /// 1-indexed.
@@ -112,13 +121,12 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
         ));
     }
 
-    if let Some(ext) = resolved.extension().and_then(|s| s.to_str()) {
-        if UNSUPPORTED_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
-            return Err((
-                -32602,
-                format!("Reading '.{ext}' files is not supported (binary/image/document)."),
-            ));
-        }
+    if is_unsupported_extension(&resolved) {
+        let ext = resolved.extension().and_then(|s| s.to_str()).unwrap_or("");
+        return Err((
+            -32602,
+            format!("Reading '.{ext}' files is not supported (binary/image/document)."),
+        ));
     }
 
     // Without an explicit window, cap the read so we never emit an unbounded blob.

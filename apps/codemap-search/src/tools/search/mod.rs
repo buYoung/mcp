@@ -596,6 +596,15 @@ pub(crate) fn run_inner_with_metadata(
         } else {
             text.push_str(&format!("No indexed matches for `{query}`."));
         }
+        // Only when the index is ready: a warming/dead index already carries its own
+        // retry guidance above, and an empty result there says nothing about the code.
+        // The `workspace_scope: "all"` widening hint is already emitted above for
+        // scoped searches, so don't repeat it here.
+        if !ctx.engine.is_dead() && !ctx.engine.is_warming() {
+            text.push_str(
+                " Next: confirm with a scoped `grep` for the exact text (only supported source files are indexed, so unindexed files never appear here), or reword the query with different terms.",
+            );
+        }
         return Ok(SearchOutput { text });
     }
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
