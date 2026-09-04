@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-04
+
+### Improved
+- Improved `grep` no-result messages with active filters and next-step guidance.
+- Clarified `output_mode` options and updated `search` and `grep` guidance for more efficient navigation.
+- Improved `overview` and `read` handling of unsupported file types.
+
 ## [0.6.0] - 2026-08-28
 
 ### Added
