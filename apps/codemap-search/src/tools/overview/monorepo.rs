@@ -4,11 +4,11 @@ pub(crate) fn is_root_alias(path: Option<&str>) -> bool {
 
 pub(crate) fn resolve_path(
     raw_path: Option<&str>,
-    files: &[crate::parser::ExtractedFile],
+    catalog: &crate::codemap::WorkspaceCatalog,
 ) -> Option<String> {
-    raw_path.and_then(|path| crate::codemap::resolve_workspace_path_input(files, path))
+    raw_path.and_then(|path| catalog.resolve_path(path))
 }
 
-pub(crate) fn root_view(files: &[crate::parser::ExtractedFile]) -> Option<String> {
-    crate::codemap::generate_monorepo_root_view(files)
+pub(crate) fn root_view(catalog: &crate::codemap::WorkspaceCatalog) -> Option<String> {
+    catalog.root_view()
 }

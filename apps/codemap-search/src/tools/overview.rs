@@ -25,19 +25,19 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     let cwd = std::env::current_dir()
         .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
-    let snapshot = ctx.engine.codemap_snapshot();
+    let published = ctx.engine.published_snapshot();
+    let catalog = published.workspace_catalog();
+    let snapshot = published.codemap();
     let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
 
-    if raw_path.is_some_and(|path| {
-        crate::codemap::is_ambiguous_workspace_scope_input(extracted_files, path)
-    }) {
+    if raw_path.is_some_and(|path| catalog.is_ambiguous(path)) {
         return Err((
             -32602,
             "Ambiguous workspace scope. Use the canonical path shown by root overview.".to_string(),
         ));
     }
 
-    let workspace_resolved_path = monorepo::resolve_path(raw_path, extracted_files);
+    let workspace_resolved_path = monorepo::resolve_path(raw_path, catalog);
     let path = if monorepo::is_root_alias(raw_path) {
         None
     } else {
@@ -108,7 +108,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     } else {
         if format == Some("llms-txt") {
             crate::codemap::CodemapGenerator::generate_llms_txt_view(extracted_files)
-        } else if let Some(text) = monorepo::root_view(extracted_files) {
+        } else if let Some(text) = monorepo::root_view(catalog) {
             text
         } else {
             crate::codemap::CodemapGenerator::generate_root_view(extracted_files).to_markdown()

@@ -169,8 +169,23 @@ impl EngineSupervisor {
         limit: usize,
         context: &SearchQueryContext,
     ) -> Result<(Vec<SearchResult>, Arc<super::PublishedIndexSnapshot>), String> {
-        self.indexer
-            .search_with_context(&self.searcher, query, limit, context)
+        self.search_with_context_and_snapshot_in_scope(query, limit, context, None)
+    }
+
+    pub(crate) fn search_with_context_and_snapshot_in_scope(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+        workspace_scope: Option<&str>,
+    ) -> Result<(Vec<SearchResult>, Arc<super::PublishedIndexSnapshot>), String> {
+        self.indexer.search_with_context_in_scope(
+            &self.searcher,
+            query,
+            limit,
+            context,
+            workspace_scope,
+        )
     }
 
     /// The current immutable index generation. Relation rendering reads this alongside its

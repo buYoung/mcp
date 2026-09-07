@@ -61,6 +61,7 @@ pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 #[derive(Debug, Clone)]
 pub struct PublishedIndexSnapshot {
     codemap: CodemapSnapshot,
+    workspace_catalog: crate::codemap::WorkspaceCatalog,
     records: Vec<StaticCollectionRecord>,
     records_by_path: HashMap<String, Vec<usize>>,
     records_by_collection: HashMap<(String, String), Vec<usize>>,
@@ -151,8 +152,16 @@ impl PublishedIndexSnapshot {
                 .push(index);
         }
 
+        let catalog_started = std::time::Instant::now();
+        let workspace_catalog = crate::codemap::WorkspaceCatalog::new(&files);
+        tracing::debug!(
+            elapsed_ms = catalog_started.elapsed().as_secs_f64() * 1000.0,
+            file_count = files.len(),
+            "published workspace catalog"
+        );
         Self {
             codemap: Arc::new(files),
+            workspace_catalog,
             records,
             records_by_path,
             records_by_collection,
@@ -163,6 +172,10 @@ impl PublishedIndexSnapshot {
 
     pub fn codemap(&self) -> CodemapSnapshot {
         Arc::clone(&self.codemap)
+    }
+
+    pub(crate) fn workspace_catalog(&self) -> &crate::codemap::WorkspaceCatalog {
+        &self.workspace_catalog
     }
 
     pub fn records_for_result_paths<'a>(
@@ -283,8 +296,20 @@ impl IndexerHandle {
         limit: usize,
         context: &super::SearchQueryContext,
     ) -> Result<(Vec<super::SearchResult>, Arc<PublishedIndexSnapshot>), String> {
+        self.search_with_context_in_scope(searcher, query, limit, context, None)
+    }
+
+    pub(crate) fn search_with_context_in_scope(
+        &self,
+        searcher: &super::SearcherHandle,
+        query: &str,
+        limit: usize,
+        context: &super::SearchQueryContext,
+        workspace_scope: Option<&str>,
+    ) -> Result<(Vec<super::SearchResult>, Arc<PublishedIndexSnapshot>), String> {
         let _generation_guard = self.generation_gate.read().unwrap();
-        let results = searcher.search_with_context(query, limit, context)?;
+        let results =
+            searcher.search_with_context_in_scope(query, limit, context, workspace_scope)?;
         Ok((results, self.snapshot.lock().unwrap().clone()))
     }
 

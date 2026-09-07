@@ -39,26 +39,47 @@ const FUNCTION_SCOPE_KINDS: &[&str] = &["fn", "method", "function"];
 /// contained by a type symbol, not a function) stay significant; function-local
 /// symbols are dropped. Operates on the flat per-file symbol list, since the
 /// extractor records no parent links.
-pub(crate) fn is_significant_symbol(
-    symbol: &crate::parser::ExtractedSymbol,
-    file_symbols: &[crate::parser::ExtractedSymbol],
-) -> bool {
-    if symbol.flags.is_exported {
-        return true;
-    }
-    !file_symbols.iter().any(|parent| {
-        FUNCTION_SCOPE_KINDS.contains(&parent.kind.as_str())
-            && crate::parser::range_strictly_contains(&parent.range, &symbol.range)
+pub(crate) fn significant_symbols(
+    symbols: &[crate::parser::ExtractedSymbol],
+) -> impl Iterator<Item = &crate::parser::ExtractedSymbol> {
+    // The containment contract is line-based, including strictness for equal ranges.
+    // A prefix maximum answers each containment query without scanning every symbol.
+    let mut functions: Vec<_> = symbols
+        .iter()
+        .filter(|symbol| FUNCTION_SCOPE_KINDS.contains(&symbol.kind.as_str()))
+        .map(|symbol| (symbol.range.start_line, symbol.range.end_line))
+        .collect();
+    functions.sort_unstable();
+    let mut widest: Option<(usize, usize)> = None;
+    let prefixes: Vec<_> = functions
+        .iter()
+        .map(|&(start, end)| {
+            if widest.is_none_or(|(best_start, best_end)| {
+                end > best_end || (end == best_end && start < best_start)
+            }) {
+                widest = Some((start, end));
+            }
+            widest.unwrap()
+        })
+        .collect();
+    symbols.iter().filter(move |symbol| {
+        if symbol.flags.is_exported {
+            return true;
+        }
+        let start = symbol.range.start_line;
+        let end = symbol.range.end_line;
+        let bound = functions.partition_point(|&(function_start, _)| function_start <= start);
+        bound == 0 || {
+            let (outer_start, outer_end) = prefixes[bound - 1];
+            !(end <= outer_end && (outer_start < start || end < outer_end))
+        }
     })
 }
 
 /// Build a per-file summary carrying only significant symbols, with their count.
 /// Shared by the root and folder views so both apply the same filter.
 pub(crate) fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFileSummary<'_> {
-    let symbols: Vec<ExtractedSymbolSummary<'_>> = file
-        .symbols
-        .iter()
-        .filter(|s| is_significant_symbol(s, &file.symbols))
+    let symbols: Vec<ExtractedSymbolSummary<'_>> = significant_symbols(&file.symbols)
         .map(|s| ExtractedSymbolSummary {
             name: &s.name,
             kind: &s.kind,

@@ -44,8 +44,8 @@ impl McpServer {
             self.active_workspace_scope = None;
             return;
         }
-        let snapshot = self.engine.codemap_snapshot();
-        self.active_workspace_scope = crate::codemap::workspace_scope_for_input(&snapshot, path);
+        let snapshot = self.engine.published_snapshot();
+        self.active_workspace_scope = snapshot.workspace_catalog().scope_for_input(path);
     }
 
     pub async fn run(&mut self) -> Result<(), String> {

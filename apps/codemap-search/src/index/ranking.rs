@@ -1,10 +1,11 @@
+use super::path_role::{is_auxiliary_path, AUXILIARY_PATH_PATTERN, AUXILIARY_PATH_SCORE_WEIGHT};
 use super::{SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle};
 use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, QueryTokens};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
-use tantivy::schema::Value;
+use tantivy::query::{BooleanQuery, ConstScoreQuery, Occur, Query, QueryParser, RegexQuery};
+use tantivy::schema::{Field, Value};
 use tantivy::{DocAddress, TantivyDocument};
 
 /// Runs a query-parse attempt and converts a panic into `None`. tantivy 0.26's
@@ -461,6 +462,80 @@ fn is_test_like_path(path: &str) -> bool {
         || file_name.contains(".spec.")
 }
 
+fn restrict_to_scope(
+    query: Box<dyn Query>,
+    path_field: Field,
+    workspace_scope: Option<&str>,
+) -> Result<Box<dyn Query>, String> {
+    let Some(scope) = workspace_scope else {
+        return Ok(query);
+    };
+    // file_path is already a STRING field, so no index migration is needed. The
+    // slash boundary prevents apps/api from admitting apps/api-extra. Filtering
+    // contributes zero score and applies before TopDocs limits the candidate pool.
+    let filter = RegexQuery::from_pattern(&format!("{}(/.*)?", regex::escape(scope)), path_field)
+        .map_err(|error| error.to_string())?;
+    Ok(Box::new(BooleanQuery::new(vec![
+        (Occur::Must, query),
+        (
+            Occur::Must,
+            Box::new(ConstScoreQuery::new(Box::new(filter), 0.0)),
+        ),
+    ])))
+}
+
+fn has_explicit_target(
+    candidate: &CandidateFile,
+    query_str: &str,
+    query: &QueryTokens,
+    name_frequencies: &HashMap<String, usize>,
+) -> bool {
+    let file_path = candidate.file_path.to_lowercase();
+    let file_name = file_path.rsplit('/').next().unwrap_or(&file_path);
+    if query.raw_words().iter().any(|word| {
+        let word = word
+            .trim_matches(['`', '\'', '"', '(', ')', ','])
+            .trim_start_matches("./");
+        let word = word
+            .split_once(':')
+            .filter(|(_, line)| line.chars().all(|c| c.is_ascii_digit() || c == '-'))
+            .map_or(word, |(path, _)| path);
+        word == file_path
+            || word == file_name
+            || (word.contains('/')
+                && (file_path.ends_with(&format!("/{word}"))
+                    || word.ends_with(&format!("/{file_path}"))))
+    }) {
+        return true;
+    }
+    let raw = query_str
+        .trim()
+        .trim_matches(['`', '\'', '"'])
+        .to_lowercase();
+    if candidate.symbols.iter().any(|symbol| {
+        let name = symbol.name.to_lowercase();
+        raw == name
+            || (whole_exact_name_hit(symbol, query)
+                && exact_boost_eligible(
+                    symbol,
+                    query,
+                    &candidate.file_path,
+                    name_frequencies.get(&name).copied().unwrap_or(1),
+                ))
+    }) {
+        return true;
+    }
+    let quoted_query = query_str.to_lowercase();
+    candidate.literals.iter().any(|literal| {
+        let value = literal.text.to_lowercase();
+        !value.is_empty()
+            && (raw == value
+                || ['"', '\'', '`']
+                    .iter()
+                    .any(|quote| quoted_query.contains(&format!("{quote}{value}{quote}"))))
+    })
+}
+
 impl SearcherHandle {
     /// BM25 search over the committed index snapshot. Reads index/reader/field handles
     /// only — moved verbatim from the former `TantivySearchEngine::search`.
@@ -474,6 +549,17 @@ impl SearcherHandle {
         limit: usize,
         context: &SearchQueryContext,
     ) -> Result<Vec<SearchResult>, String> {
+        self.search_with_context_in_scope(query_str, limit, context, None)
+    }
+
+    pub(crate) fn search_with_context_in_scope(
+        &self,
+        query_str: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+        workspace_scope: Option<&str>,
+    ) -> Result<Vec<SearchResult>, String> {
+        let search_started = std::time::Instant::now();
         if query_str.len() > 10000 {
             return Err("Query too long".to_string());
         }
@@ -541,6 +627,7 @@ impl SearcherHandle {
             }
         };
 
+        let query = restrict_to_scope(query, self.file_path_field, workspace_scope)?;
         let top_docs = searcher
             .search(&query, &TopDocs::with_limit(limit).order_by_score())
             .map_err(|e| e.to_string())?;
@@ -560,6 +647,8 @@ impl SearcherHandle {
             if let Some(Ok(token_query)) =
                 parse_query_catching_panic(|| query_parser.parse_query(query_tokens.search_text()))
             {
+                let token_query =
+                    restrict_to_scope(token_query, self.file_path_field, workspace_scope)?;
                 let supplemental_top_docs = searcher
                     .search(&token_query, &TopDocs::with_limit(limit).order_by_score())
                     .map_err(|e| e.to_string())?;
@@ -582,10 +671,59 @@ impl SearcherHandle {
             }
         }
 
+        let recall_started = std::time::Instant::now();
+        let primary_name_frequencies = symbol_name_frequencies(&candidates);
+        let is_general_query = query_tokens.words().len() > 1
+            && !candidates.iter().any(|candidate| {
+                has_explicit_target(
+                    candidate,
+                    query_str,
+                    &query_tokens,
+                    &primary_name_frequencies,
+                )
+            });
+        if is_general_query
+            && candidates
+                .iter()
+                .any(|candidate| is_auxiliary_path(&candidate.file_path))
+        {
+            // The primary pool remains intact. This second pool prevents repeated generated
+            // declarations and locale keys from exhausting recall before post-ranking runs.
+            let auxiliary = RegexQuery::from_pattern(AUXILIARY_PATH_PATTERN, self.file_path_field)
+                .map_err(|error| error.to_string())?;
+            let implementation_query = BooleanQuery::new(vec![
+                (Occur::Must, query.box_clone()),
+                (Occur::MustNot, Box::new(auxiliary)),
+            ]);
+            for (score, address) in searcher
+                .search(
+                    &implementation_query,
+                    &TopDocs::with_limit(limit.min(100)).order_by_score(),
+                )
+                .map_err(|error| error.to_string())?
+            {
+                let candidate = candidate_from_doc(&searcher, self, score, address, 1.0)?;
+                if seen_paths.insert(candidate.file_path.clone()) {
+                    candidates.push(candidate);
+                }
+            }
+        }
+        let recall_elapsed = recall_started.elapsed();
+        let ranking_started = std::time::Instant::now();
         let name_frequencies = symbol_name_frequencies(&candidates);
         let mut results = Vec::new();
 
         for candidate in candidates {
+            let has_explicit_target =
+                has_explicit_target(&candidate, query_str, &query_tokens, &name_frequencies);
+            let mut path_weight: f32 = if is_test_like_path(&candidate.file_path) {
+                TEST_PATH_SCORE_WEIGHT
+            } else {
+                1.0
+            };
+            if !has_explicit_target && is_auxiliary_path(&candidate.file_path) {
+                path_weight = path_weight.min(AUXILIARY_PATH_SCORE_WEIGHT);
+            }
             let all_symbols = candidate.symbols;
 
             // Matched-symbol selection. All-terms is the precision baseline, but agent
@@ -667,9 +805,7 @@ impl SearcherHandle {
                 adjusted_score *= QUALIFIED_LITERAL_SCORE_BOOST;
             }
             adjusted_score *= symbol_signal_multiplier(&scored_symbols);
-            if is_test_like_path(&candidate.file_path) {
-                adjusted_score *= TEST_PATH_SCORE_WEIGHT;
-            }
+            adjusted_score *= path_weight;
             adjusted_score += language_prior_adjustment(&candidate.file_path, &normalized_context);
             let mut matched_symbols: Vec<ExtractedSymbol> = scored_symbols
                 .into_iter()
@@ -730,6 +866,15 @@ impl SearcherHandle {
                 .then(a.file_path.cmp(&b.file_path))
         });
         results.truncate(limit);
+
+        tracing::debug!(
+            total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
+            implementation_recall_ms = recall_elapsed.as_secs_f64() * 1000.0,
+            ranking_ms = ranking_started.elapsed().as_secs_f64() * 1000.0,
+            scope = workspace_scope.unwrap_or("all"),
+            results = results.len(),
+            "search candidate timings"
+        );
 
         Ok(results)
     }

@@ -1,13 +1,14 @@
 mod monorepo;
 mod summary;
 mod tree;
+pub(crate) use monorepo::WorkspaceCatalog;
 
 pub use monorepo::{
     generate_root_view as generate_monorepo_root_view, is_all_workspace_scope_input,
     is_ambiguous_workspace_scope_input, looks_like_monorepo_workspace,
     resolve_workspace_path_input, workspace_scope_for_input,
 };
-use summary::{build_directory_summaries, is_significant_symbol, summarize_file};
+use summary::{build_directory_summaries, significant_symbols, summarize_file};
 pub use summary::{DirectorySummary, ExtractedFileSummary, ExtractedSymbolSummary};
 use tree::write_directory_tree;
 
@@ -219,11 +220,7 @@ impl<'a> std::fmt::Display for DetailsCodemap<'a> {
         writeln!(f)?;
 
         writeln!(f, "## Symbols")?;
-        for symbol in self
-            .symbols
-            .iter()
-            .filter(|s| is_significant_symbol(s, self.symbols))
-        {
+        for symbol in significant_symbols(self.symbols) {
             writeln!(
                 f,
                 "- {} ({}) [L{}-{}]",

@@ -1,5 +1,5 @@
 use super::summary::{
-    build_directory_summaries, summarize_file, DirectorySummary, ExtractedFileSummary,
+    build_directory_summaries, significant_symbols, DirectorySummary, ExtractedFileSummary,
 };
 
 /// Conventional monorepo container directories. Monorepo-specific views treat their
@@ -63,14 +63,17 @@ fn selectable_scope_summaries(directories: &[DirectorySummary]) -> Vec<&Director
 }
 
 fn file_summaries(files: &[crate::parser::ExtractedFile]) -> Vec<ExtractedFileSummary<'_>> {
-    let mut files_summary: Vec<ExtractedFileSummary<'_>> =
-        files.iter().map(summarize_file).collect();
+    let mut files_summary: Vec<ExtractedFileSummary<'_>> = files
+        .iter()
+        .map(|file| ExtractedFileSummary {
+            file_path: super::normalize_path(&file.file_path).into_owned(),
+            total_lines: file.total_lines,
+            symbol_count: significant_symbols(&file.symbols).count(),
+            symbols: Vec::new(),
+        })
+        .collect();
     files_summary.sort_by(|left, right| left.file_path.cmp(&right.file_path));
     files_summary
-}
-
-fn directory_summaries(files: &[crate::parser::ExtractedFile]) -> Vec<DirectorySummary> {
-    build_directory_summaries(&file_summaries(files))
 }
 
 fn filesystem_workspace_scope_paths() -> Vec<String> {
@@ -97,15 +100,6 @@ fn filesystem_workspace_scope_paths() -> Vec<String> {
     }
 }
 
-fn workspace_scope_paths_for_resolution(files: &[crate::parser::ExtractedFile]) -> Vec<String> {
-    let scopes = workspace_scope_paths(files);
-    if scopes.is_empty() {
-        filesystem_workspace_scope_paths()
-    } else {
-        scopes
-    }
-}
-
 pub fn is_all_workspace_scope_input(input: &str) -> bool {
     let trimmed = input.trim();
     if trimmed.eq_ignore_ascii_case("all")
@@ -118,121 +112,192 @@ pub fn is_all_workspace_scope_input(input: &str) -> bool {
     super::normalize_path(trimmed).is_empty()
 }
 
-pub fn workspace_scope_paths(files: &[crate::parser::ExtractedFile]) -> Vec<String> {
-    let directories = directory_summaries(files);
-    selectable_scope_summaries(&directories)
-        .into_iter()
-        .map(|scope| scope.path.clone())
-        .collect()
+/// Scope metadata belongs to one published index generation, not to an individual request.
+#[derive(Debug, Clone)]
+pub(crate) struct WorkspaceCatalog {
+    total_files: usize,
+    total_symbols: usize,
+    scopes: Vec<DirectorySummary>,
+    paths: Vec<String>,
+    languages: std::collections::BTreeMap<String, Vec<(String, usize)>>,
+}
+
+impl WorkspaceCatalog {
+    pub(crate) fn new(files: &[crate::parser::ExtractedFile]) -> Self {
+        let summaries = file_summaries(files);
+        let directories = build_directory_summaries(&summaries);
+        let scopes: Vec<_> = selectable_scope_summaries(&directories)
+            .into_iter()
+            .cloned()
+            .collect();
+        let paths = if scopes.is_empty() {
+            filesystem_workspace_scope_paths()
+        } else {
+            scopes.iter().map(|scope| scope.path.clone()).collect()
+        };
+        let mut counts: std::collections::BTreeMap<
+            String,
+            std::collections::BTreeMap<String, usize>,
+        > = std::collections::BTreeMap::new();
+        for file in files {
+            let path = super::normalize_path(&file.file_path);
+            let language = crate::lang::language_name_for_path(std::path::Path::new(path.as_ref()))
+                .unwrap_or("other");
+            for scope in &scopes {
+                if path == scope.path || path.starts_with(&format!("{}/", scope.path)) {
+                    *counts
+                        .entry(scope.path.clone())
+                        .or_default()
+                        .entry(language.to_string())
+                        .or_default() += 1;
+                }
+            }
+        }
+        let languages = counts
+            .into_iter()
+            .map(|(scope, counts)| {
+                let mut languages: Vec<_> = counts.into_iter().collect();
+                languages.sort_by(|left, right| right.1.cmp(&left.1).then(left.0.cmp(&right.0)));
+                languages.truncate(3);
+                (scope, languages)
+            })
+            .collect();
+        Self {
+            total_files: files.len(),
+            total_symbols: summaries.iter().map(|file| file.symbol_count).sum(),
+            scopes,
+            paths,
+            languages,
+        }
+    }
+
+    pub(crate) fn is_ambiguous(&self, input: &str) -> bool {
+        if is_all_workspace_scope_input(input) {
+            return false;
+        }
+        let normalized = super::normalize_path(input);
+        let scopes = &self.paths;
+        if scopes.iter().any(|scope| {
+            normalized == scope.as_str() || normalized.starts_with(&format!("{scope}/"))
+        }) {
+            return false;
+        }
+        let head = normalized.split('/').next().unwrap_or_default();
+        scopes
+            .iter()
+            .filter(|scope| scope.rsplit('/').next() == Some(head))
+            .take(2)
+            .count()
+            > 1
+    }
+
+    pub(crate) fn resolve_path(&self, input: &str) -> Option<String> {
+        if is_all_workspace_scope_input(input) {
+            return None;
+        }
+        let normalized = super::normalize_path(input).into_owned();
+        let scopes = &self.paths;
+        if scopes.iter().any(|scope| {
+            normalized == scope.as_str() || normalized.starts_with(&format!("{scope}/"))
+        }) {
+            return Some(normalized);
+        }
+        let (head, tail) = normalized
+            .split_once('/')
+            .map_or((normalized.as_str(), ""), |(head, tail)| (head, tail));
+        let mut matches = scopes
+            .iter()
+            .filter(|scope| scope.rsplit('/').next() == Some(head))
+            .collect::<Vec<_>>();
+        if self.is_ambiguous(input) {
+            return None;
+        }
+        if matches.is_empty() {
+            return None;
+        }
+        let scope = matches.remove(0);
+        if tail.is_empty() {
+            Some(scope.clone())
+        } else {
+            Some(format!("{scope}/{tail}"))
+        }
+    }
+
+    pub(crate) fn scope_for_input(&self, input: &str) -> Option<String> {
+        if is_all_workspace_scope_input(input) {
+            return None;
+        }
+        let normalized = self.resolve_path(input)?;
+        self.paths
+            .iter()
+            .filter(|scope| {
+                normalized == scope.as_str() || normalized.starts_with(&format!("{scope}/"))
+            })
+            .max_by_key(|scope| scope.len())
+            .cloned()
+    }
+
+    pub(crate) fn root_view(&self) -> Option<String> {
+        (!self.scopes.is_empty()).then(|| self.to_string())
+    }
 }
 
 pub fn is_ambiguous_workspace_scope_input(
     files: &[crate::parser::ExtractedFile],
     input: &str,
 ) -> bool {
-    if is_all_workspace_scope_input(input) {
-        return false;
-    }
-    let normalized = super::normalize_path(input);
-    let scopes = workspace_scope_paths_for_resolution(files);
-    if scopes
-        .iter()
-        .any(|scope| normalized == *scope || normalized.starts_with(&format!("{scope}/")))
-    {
-        return false;
-    }
-    let head = normalized.split('/').next().unwrap_or_default();
-    scopes
-        .iter()
-        .filter(|scope| scope.rsplit('/').next() == Some(head))
-        .take(2)
-        .count()
-        > 1
+    WorkspaceCatalog::new(files).is_ambiguous(input)
 }
 
 pub fn resolve_workspace_path_input(
     files: &[crate::parser::ExtractedFile],
     input: &str,
 ) -> Option<String> {
-    if is_all_workspace_scope_input(input) {
-        return None;
-    }
-    let normalized = super::normalize_path(input).into_owned();
-    let scopes = workspace_scope_paths_for_resolution(files);
-    if scopes
-        .iter()
-        .any(|scope| normalized == *scope || normalized.starts_with(&format!("{scope}/")))
-    {
-        return Some(normalized);
-    }
-    let (head, tail) = normalized
-        .split_once('/')
-        .map_or((normalized.as_str(), ""), |(head, tail)| (head, tail));
-    let mut matches = scopes
-        .iter()
-        .filter(|scope| scope.rsplit('/').next() == Some(head))
-        .collect::<Vec<_>>();
-    if is_ambiguous_workspace_scope_input(files, input) {
-        return None;
-    }
-    if matches.is_empty() {
-        return None;
-    }
-    let scope = matches.remove(0);
-    if tail.is_empty() {
-        Some(scope.clone())
-    } else {
-        Some(format!("{scope}/{tail}"))
-    }
+    WorkspaceCatalog::new(files).resolve_path(input)
 }
 
 pub fn workspace_scope_for_input(
     files: &[crate::parser::ExtractedFile],
     input: &str,
 ) -> Option<String> {
-    if is_all_workspace_scope_input(input) {
-        return None;
-    }
-    let normalized = resolve_workspace_path_input(files, input)?;
-    workspace_scope_paths_for_resolution(files)
-        .into_iter()
-        .filter(|scope| normalized == *scope || normalized.starts_with(&format!("{scope}/")))
-        .max_by_key(|scope| scope.len())
+    WorkspaceCatalog::new(files).scope_for_input(input)
 }
 
 pub fn looks_like_monorepo_workspace() -> bool {
     !filesystem_workspace_scope_paths().is_empty()
 }
 
-pub struct MonorepoRootCodemap {
-    total_files: usize,
-    total_symbols: usize,
-    scopes: Vec<DirectorySummary>,
-}
-
-impl std::fmt::Display for MonorepoRootCodemap {
+impl std::fmt::Display for WorkspaceCatalog {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(formatter, "# Root Codemap Overview")?;
         writeln!(formatter)?;
         writeln!(formatter, "- **Total Files**: {}", self.total_files)?;
         writeln!(formatter, "- **Total Symbols**: {}", self.total_symbols)?;
         writeln!(formatter)?;
-        writeln!(
-            formatter,
-            "## Workspace Scopes (choose one before reading or editing)"
-        )?;
+        writeln!(formatter, "## Workspace Scopes")?;
         for scope in &self.scopes {
+            let languages = self
+                .languages
+                .get(&scope.path)
+                .map(|languages| {
+                    languages
+                        .iter()
+                        .map(|(language, count)| format!("{language} {count}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                })
+                .unwrap_or_default();
             writeln!(
                 formatter,
-                "- {} ({} files, {} symbols)",
-                scope.path, scope.file_count, scope.symbol_count
+                "- {} ({} files, {} symbols) — languages: {}",
+                scope.path, scope.file_count, scope.symbol_count, languages
             )?;
         }
         writeln!(formatter)?;
         writeln!(formatter, "## Next Step")?;
         writeln!(
             formatter,
-            "- For broad requests, ask which workspace scope to use before acting."
+            "- For broad changes, ask which workspace scope to use before acting. For read-only location discovery with no chosen scope, use a repo-wide search first, then narrow to the implementation path. Do not infer a scope from its name alone; check its languages."
         )?;
         writeln!(
             formatter,
@@ -247,23 +312,5 @@ impl std::fmt::Display for MonorepoRootCodemap {
 }
 
 pub fn generate_root_view(files: &[crate::parser::ExtractedFile]) -> Option<String> {
-    let summaries = file_summaries(files);
-    let total_files = files.len();
-    let total_symbols = summaries.iter().map(|summary| summary.symbol_count).sum();
-    let directories = build_directory_summaries(&summaries);
-    let scopes = selectable_scope_summaries(&directories)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>();
-    if scopes.is_empty() {
-        return None;
-    }
-    Some(
-        MonorepoRootCodemap {
-            total_files,
-            total_symbols,
-            scopes,
-        }
-        .to_string(),
-    )
+    WorkspaceCatalog::new(files).root_view()
 }

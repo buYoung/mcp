@@ -525,6 +525,7 @@ pub(crate) fn run_inner_with_metadata(
     workspace_scope: Option<&str>,
     search_limit: usize,
 ) -> Result<SearchOutput, (i64, String)> {
+    let search_started = std::time::Instant::now();
     let query = ctx
         .arguments
         .get("query")
@@ -555,8 +556,14 @@ pub(crate) fn run_inner_with_metadata(
 
     let (mut results, published_snapshot) = ctx
         .engine
-        .search_with_context_and_snapshot(query, search_limit, &search_context)
+        .search_with_context_and_snapshot_in_scope(
+            query,
+            search_limit,
+            &search_context,
+            workspace_scope,
+        )
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
+    let candidates_elapsed = search_started.elapsed();
     if let Some(scope) = workspace_scope {
         results.retain(|result| monorepo::result_is_under_scope(result, scope));
         results.truncate(DEFAULT_SEARCH_LIMIT);
@@ -649,8 +656,9 @@ pub(crate) fn run_inner_with_metadata(
         // detail view renders exactly as today (failure isolation). The
         // annotation byte budget is what is still free under `byte_cap`
         // at this point (snippets keep priority, two-counter inside).
+        let callers_started = std::time::Instant::now();
         let caller_annotations = if caller_context_enabled {
-            let snapshot = ctx.engine.codemap_snapshot();
+            let snapshot = published_snapshot.codemap();
             let requests: Vec<crate::callers::AnnotationRequest<'_>> = detail_results
                 .iter()
                 .map(|res| crate::callers::AnnotationRequest {
@@ -689,6 +697,11 @@ pub(crate) fn run_inner_with_metadata(
         } else {
             None
         };
+        tracing::debug!(
+            elapsed_ms = callers_started.elapsed().as_secs_f64() * 1000.0,
+            enabled = caller_context_enabled,
+            "search caller annotation timing"
+        );
 
         // Shared query model (P1, 2-tier anchoring). Tier-1 uses whole query
         // words for exact NAME equality; Tier-2 uses the same sub-token set
@@ -977,10 +990,17 @@ pub(crate) fn run_inner_with_metadata(
 
     let is_partial = output_was_capped || text.len() > byte_cap;
     let text = finish_search_output(text, byte_cap, is_partial);
-    Ok(append_static_collection_relations(
-        &results,
-        published_snapshot,
-        text,
-        workspace_scope,
-    ))
+    let output =
+        append_static_collection_relations(&results, published_snapshot, text, workspace_scope);
+    tracing::debug!(
+        candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
+        output_ms = search_started
+            .elapsed()
+            .saturating_sub(candidates_elapsed)
+            .as_secs_f64()
+            * 1000.0,
+        total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
+        "search tool timing"
+    );
+    Ok(output)
 }

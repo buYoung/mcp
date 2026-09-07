@@ -8,6 +8,7 @@
 
 mod engine;
 mod indexer;
+mod path_role;
 mod ranking;
 mod supervisor;
 mod watcher;

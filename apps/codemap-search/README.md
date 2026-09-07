@@ -11,10 +11,12 @@ binary is required.
 
 The intended flow is hierarchical narrowing:
 
-1. **`overview`** — orient: repo root → folder → file symbol details.
-2. **`search`** — locate by keyword; returns a codemap overview when many files match,
-   per-file details when few.
-3. **`read` / `find` / `grep`** — confirm exact content once the target is pinpointed.
+1. **`initial_instructions`** — load the navigation guidance once; monorepos include
+   selectable scopes and their leading languages.
+2. **`search` / `find` / `grep`** — locate the implementation. If its scope is unknown,
+   read-only discovery can start repo-wide, then narrow using actual paths.
+3. **`overview` / `read`** — inspect structure or confirm the original source ranges.
+   `search` already includes detailed top matches and a bounded ranked tail.
 
 > For how it compares to an agent's built-in Read/Grep and to other code-navigation MCP
 > backends (serena, codegraph), see the [benchmark](../../benchmark/README.md): there is
@@ -329,11 +331,27 @@ server:
 |---|---|---|
 | `initial_instructions` | Returns the recommended codemap-search navigation flow. Call once when the MCP client does not display server-level instructions. | none |
 | `overview` | Hierarchical codemap. Empty/omitted `path` → root overview; a folder path narrows; a file path shows that file's symbol details. | `path` (string), `format` (e.g. `"llms-txt"`) |
-| `search` | BM25 keyword search over symbols/docstrings/path tokens. ≤ threshold → file details; above → codemap overview. | `query` (string, required) |
+| `search` | BM25 search with detailed top matches and a bounded ranked tail. | `query` (required), `workspace_scope` (monorepos), `language_hint`, `extension_hint`, `caller_context` |
 | `read` | Read a file with line numbers (`   N→content`). Pages large files. | `file_path` (required), `offset` (1-indexed), `limit` |
 | `find` | Locate files by glob (`**/*.rs`), mtime-sorted, capped. | `pattern` (required), `path`, `include_ignored` |
 | `grep` | Exact literal/regex over files on disk (sees comments + just-changed files). Mirrors Claude Code's Grep. | `pattern` (required), `path`, `glob`, `type`, `output_mode` (default `content` with line numbers; `files_with_matches` = file set only; `count` = per-file counts, no line content), `-i`, `-n`, `-A`/`-B`/`-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` aliases | `read` also accepts `path`/`file` for `file_path`, and 1-based inclusive `start_line`/`end_line` for `offset`/`limit`. | — |
+
+In a monorepo, `overview` scope selection persists for later `search` calls. An explicit
+`workspace_scope` overrides it, and `all`/`전체` selects the whole repository. Scope filtering
+happens before candidate collection, including supplementary queries; the server never
+silently widens a chosen scope. Root scope counts and the three leading languages are
+computed once per published index generation and reused by navigation requests.
+
+For general queries, generated-file paths (`generated/`, `_gen`, `.generated`, `.g`, `.pb`
+filename suffixes) and JSON/YAML under `locale`, `locales`, `i18n`, or `l10n` receive a
+0.3 ranking weight. These path markers are case-sensitive. An exact file path,
+discriminative symbol name, complete resource key, or quoted resource text protects the
+explicitly targeted file from this new penalty. Existing test-path and new role penalties
+use the lowest weight once. General queries can collect up to 100 additional implementation
+candidates when auxiliary files occupy the initial pool; final output limits still apply.
+This changes ranking, not indexing or direct filesystem access, and needs no new config or
+index migration.
 
 `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
 default. Lockfiles, source maps, minified/bundle files, and `.txt` are also excluded from
@@ -401,6 +419,11 @@ per search) is suppressed. Raise it with `RUST_LOG`:
 ```sh
 RUST_LOG=debug codemap-search mcp     # full diagnostics
 ```
+
+At debug level, `search candidate timings`, `search caller annotation timing`, and
+`search tool timing` separate candidate work, caller analysis, and output work. Caller
+analysis is included in the output duration; do not add these overlapping durations.
+`published workspace catalog` records the once-per-generation metadata construction time.
 
 ## Indexing
 

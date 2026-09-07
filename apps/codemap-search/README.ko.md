@@ -6,9 +6,9 @@
 
 기본 흐름은 좁혀 들어가기입니다.
 
-1. `overview`로 저장소 루트, 폴더, 파일 단위 구조를 봅니다.
-2. `search`로 심볼, 정의, 개념, 오류 메시지, 설정 기본값을 찾습니다.
-3. `read`, `find`, `grep`으로 실제 파일 내용과 경로를 확인합니다.
+1. `initial_instructions`를 한 번 호출해 안내를 읽습니다. 모노레포는 선택 가능한 범위와 주요 언어도 함께 보여줍니다.
+2. `search`, `find`, `grep`으로 구현 위치를 찾습니다. 위치를 모르는 읽기 전용 탐색은 전체 저장소에서 시작한 뒤 실제 경로로 범위를 좁힙니다.
+3. `overview`로 구조를 확인하거나 `read`로 필요한 원문 범위를 읽습니다. `search`에도 상위 결과의 상세 발췌와 제한된 나머지 결과 목록이 포함됩니다.
 
 벤치마크 비교는 [benchmark](../../benchmark/README.md)를 참고하세요. 모든 저장소에서 항상 이기는 단일 백엔드는 없고, 공개된 측정에서 `codemap-search`가 가장 뚜렷하게 앞선 부분은 인덱스 생성 속도와 디스크 사용량입니다. 자세한 수치는 [인덱싱](#인덱싱)에 정리했습니다.
 
@@ -241,10 +241,14 @@ codex mcp add codemap-search -- codemap-search mcp
 |---|---|---|
 | `initial_instructions` | 권장 탐색 흐름을 반환합니다. 클라이언트가 서버 안내문을 표시하지 않을 때 한 번 호출합니다. | 없음 |
 | `overview` | 계층형 코드맵입니다. `path`가 없으면 저장소 루트, 폴더면 해당 폴더, 파일이면 파일 안의 심볼과 줄 범위를 보여줍니다. | `path`, `format` |
-| `search` | 심볼, 문서 문자열, 경로 토큰을 BM25로 검색합니다. 좁은 결과는 파일 상세, 넓은 결과는 코드맵 개요로 렌더링합니다. | `query`, `caller_context` |
+| `search` | BM25로 검색하고 상위 결과의 상세 발췌와 제한된 나머지 결과 목록을 반환합니다. | `query`, 모노레포의 `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `read` | 파일을 줄 번호와 함께 읽습니다. 큰 파일은 창 단위로 읽습니다. | `file_path`, `offset`, `limit` |
 | `find` | glob으로 파일을 찾습니다. 결과는 수정 시간순으로 정렬되고 상한이 있습니다. | `pattern`, `path`, `include_ignored` |
 | `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
+
+모노레포에서 `overview`로 선택한 범위는 이후 `search`에 적용됩니다. 명시적인 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체를 뜻합니다. 범위 필터는 보조 질의를 포함한 후보 수집 전에 적용하고, 도구가 선택된 범위를 임의로 넓히지 않습니다. 루트의 범위별 파일·심볼 수와 상위 3개 언어의 파일 수는 색인 스냅샷마다 한 번 계산해 재사용합니다.
+
+일반 질의에서는 생성 경로(`generated/`, 파일명의 `_gen`, `.generated`, `.g`, `.pb` 표식)와 `locale`, `locales`, `i18n`, `l10n` 아래의 JSON·YAML에 0.3 가중치를 적용합니다. 경로 표식은 대소문자를 구분합니다. 정확한 파일 경로, 식별력 있는 심볼명, 완전한 리소스 키나 인용한 원문을 지정하면 해당 파일에는 새 감점을 적용하지 않습니다. 기존 테스트 경로 감점과 겹치면 가장 낮은 가중치를 한 번만 적용합니다. 초기 후보를 생성·번역 파일이 차지하는 일반 질의에서는 구현 파일 후보를 최대 100개 추가 수집하고 최종 출력 한도는 유지합니다. 파일을 색인에서 빼거나 직접 읽기를 제한하는 규칙이 아니며 새 설정·인덱스 형식 변경은 없습니다.
 
 `read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.txt`는 기본 결과와 의미 기반 인덱스에서 제외됩니다. Markdown과 선택형 셸·인프라·인터페이스·빌드 그룹은 설정이 꺼져도 `find`·`grep`·`read`로 접근할 수 있으며, 설정은 색인·watcher·search·overview·codemap 포함 여부만 제어합니다. ignore 및 영구 파일 제외 규칙을 한 호출에서 우회하려면 `include_ignored: true`를 전달하세요. 직접 `parse`도 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
 
@@ -297,6 +301,8 @@ codemap-search benchmark --queries <json> [--dir D]
 RUST_LOG=debug codemap-search mcp
 ```
 
+debug 로그의 `search candidate timings`, `search caller annotation timing`, `search tool timing`으로 후보 처리·호출 관계 분석·출력 처리를 구분할 수 있습니다. 호출 관계 분석 시간은 출력 시간에 포함되므로 중복 합산하지 않습니다. `published workspace catalog`는 스냅샷별 메타데이터 생성 시간입니다.
+
 ## 인덱싱
 
 MCP 서버는 시작 시 저장소를 직접 인덱싱합니다. 별도 인덱스 단계, 언어 서버, 외부 서비스가 필요 없습니다. 인덱스는 저장소 안의 `.codemap/` 디렉터리에 저장되고 다음 실행에서 재사용됩니다.
@@ -316,7 +322,7 @@ MCP 서버는 시작 시 저장소를 직접 인덱싱합니다. 별도 인덱�
 
 - 심볼 추출은 컴파일된 tree-sitter 문법이 있는 언어로 제한됩니다. 다른 확장자는 `read`, `find`, `grep`으로 검색할 수 있지만 심볼 인덱스에는 들어가지 않습니다.
 - `max_file_size` 기본값은 1 MiB입니다. 이보다 큰 파일은 인덱싱과 코드맵에서 건너뜁니다.
-- 문자열 리터럴은 상세 보기 레이어에 표시되지만 BM25 인덱스에는 넣지 않습니다. 정확한 문자열 검색은 `grep`을 사용하세요.
+- 문자열 리터럴은 낮은 가중치로 색인하고 상세 보기에도 표시합니다. 정확한 문자열·정규식 검색은 `grep`을 사용하세요.
 - 서버는 단일 클라이언트용 순차 stdio 서버입니다. 여러 프로세스가 같은 인덱스를 잠그고 공유하는 모델은 아닙니다.
 
 ## 라이선스
