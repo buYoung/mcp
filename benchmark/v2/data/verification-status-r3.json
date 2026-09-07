@@ -1,0 +1,49 @@
+{
+  "after_per_group": {
+    "A": {
+      "calls_valid": 6,
+      "completed": 6,
+      "conditions_valid": 6,
+      "environment_or_unfinished": 0,
+      "limited": 0,
+      "quality_valid": 6,
+      "recorded": 6,
+      "scheduled": 6,
+      "statuses": {
+        "completed": 6
+      },
+      "tokens_valid": 6,
+      "usage_consistent": 6
+    },
+    "B": {
+      "calls_valid": 6,
+      "completed": 6,
+      "conditions_valid": 6,
+      "environment_or_unfinished": 0,
+      "limited": 0,
+      "quality_valid": 6,
+      "recorded": 6,
+      "scheduled": 6,
+      "statuses": {
+        "completed": 6
+      },
+      "tokens_valid": 6,
+      "usage_consistent": 6
+    }
+  },
+  "automatic_retries": false,
+  "before_after_B": {
+    "accuracy_pp": 33.333333333333336,
+    "elapsed_seconds_percent": -40.838403410680336,
+    "exploration_calls_percent": -40.594059405940584,
+    "total_tokens_percent": -38.408367675369526
+  },
+  "calibration_calls": 2,
+  "grading_protocol_revisions": 2,
+  "joint_grading_calls": 12,
+  "joint_grading_complete": true,
+  "main_started": false,
+  "new_evaluations": 12,
+  "reference_evaluations_reused": 12,
+  "report": "../artifacts/improvement-r3/report.md"
+}

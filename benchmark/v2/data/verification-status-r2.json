@@ -1,0 +1,81 @@
+{
+  "accuracy_difference_ci95": {
+    "high": null,
+    "low": null,
+    "reason": "incomplete paired metric"
+  },
+  "accuracy_difference_pp": null,
+  "all_relay_groups_cleaned": true,
+  "blind_run_identity_removed": true,
+  "comparison_report": "../artifacts/preparation-r2/report/preparation-comparison.md",
+  "execution_sha256": "f68cec07336b8157baee40e16548d874b66f37d741b8827dd864b81c43d4c5e9",
+  "executions": {
+    "automatic_retries": 0,
+    "finished": 12,
+    "scheduled": 12,
+    "statuses": {
+      "A": {
+        "completed": 5,
+        "token_limit": 1
+      },
+      "B": {
+        "completed": 5,
+        "token_limit": 1
+      }
+    }
+  },
+  "frozen_harness_archive_verified": true,
+  "frozen_harness_sha256": "e5cf787828a4c8aa803b4f04d9708a35d7a728cf79dece57d88dfe5cf678cb71",
+  "grading_batches": 1,
+  "grading_controls_and_references_valid": false,
+  "grading_failure": {
+    "actual": {
+      "correct": false,
+      "supported": true
+    },
+    "control": true,
+    "error": "incomplete supporting evidence bundle",
+    "expected": {
+      "correct": true,
+      "supported": true
+    },
+    "fact_id": "f2",
+    "question_id": "prep-medium-go",
+    "retry_performed": false
+  },
+  "harness_improvement_verified": true,
+  "legacy_reaggregation": "../artifacts/reaggregation-r2/legacy-four.json",
+  "main_started": false,
+  "observed_partial_tokens": 2862785,
+  "offline_checks": 33,
+  "old_limited_raw_hashes_unchanged": true,
+  "phase": "preparation",
+  "pre_evaluation_offline_checks": 32,
+  "product_verdict": {
+    "accuracy_observation": null,
+    "decision": "해당 비교 판정 보류",
+    "scope": "고정된 데이터셋에 한정하며, 차이 미검출은 동등성 입증이 아님"
+  },
+  "report": "../artifacts/preparation-r2/report/report.md",
+  "runtime_evidence": "../artifacts/probe-r2/reinspection.json",
+  "runtime_probe": {
+    "executions": 2,
+    "included_in_evaluation": false,
+    "total_tokens": 77920
+  },
+  "same_fixed_spec": true,
+  "same_question_answer_contract": true,
+  "sealed_immediate_total_changes": [
+    {
+      "changed": true,
+      "id": "prep-medium-ts-B-1",
+      "original_evidence": "/Users/buyong/workspace/private/buyong-mcp/benchmark/v2/artifacts/preparation-r2/runs/prep-medium-ts-B-1/execution.json",
+      "original_total_tokens": null,
+      "reaggregated_total_tokens": 531226
+    }
+  ],
+  "shared_certification_reaggregation_equal": true,
+  "usage_consistent_runs": 12,
+  "whole_cost_complete_runs": 11,
+  "whole_total_tokens": null
+}

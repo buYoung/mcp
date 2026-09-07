@@ -135,7 +135,7 @@ def normalize_run(question: dict, run: dict, judgment: dict | None) -> dict:
     if artifact_path.name == "runtime.json":
         quality_sources = [str(artifact_path.with_name("answer.txt")), str(artifact_path), str(artifact_path.parents[2] / "dataset.json")]
         if judgment is not None and run["answer"].strip():
-            quality_sources.append(str(artifact_path.parents[2] / "grading/judgments.json"))
+            quality_sources.append(run.get("grading_artifact", str(artifact_path.parents[2] / "grading/judgments.json")))
     exploration = exploration_metrics(run.get("calls", []), complete=run["exploration"]["complete"],
                                       evidence=(run["exploration"]["exploration_calls"]["evidence"] or source)[0])
     exploration["delivered_output_bytes"] = run["exploration"]["delivered_output_bytes"]

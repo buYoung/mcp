@@ -136,7 +136,8 @@ def create_summary(dataset: dict, runs: list[dict], grading: dict, phase: str, *
             "cost_increases": extra_cost, "harness": harness,
             "cost_increase_coverage": {"known_questions": known_cost_questions, "scheduled_questions": len(question_results)},
             "verdict": verdict(overall, complete and batch_complete and not harness["code_boundary_violations"]),
-            "preparation_cost": frozen["preparation"], "normalized": normalized}
+            "preparation_cost": frozen["preparation"], "normalized": normalized,
+            "product_build": frozen.get("verification", {}).get("product_build")}
 
 
 def render_report(summary: dict) -> str:
@@ -248,6 +249,12 @@ def render_report(summary: dict) -> str:
               "[고정 명세](../frozen.json), [예정 실행](../schedule.json), [원자료](../runs/), [채점 자료](../grading/)를 함께 확인한다.", "",
               summary["verdict"]["scope"] + ".", ""]
     preparation = summary.get("preparation_cost", {})
+    product = summary.get("product_build")
+    if product:
+        identity = (f"소스 스냅샷 `{product['source_manifest_sha256']}` (기준 제품 커밋 `{product['base_product_commit']}`)"
+                    if product.get("source_kind") == "snapshot" else f"고정 커밋 `{product['source_commit']}`")
+        lines += [f"실제 B 제품: {identity}. 바이너리 SHA-256 `{product['binary_sha256']}`. "
+                  "`SPEC.product_commit`은 기본 기준 제품이며, 이 실행의 실제 제품은 고정된 빌드 기록을 따른다.", ""]
     if "index_elapsed_seconds" in preparation:
         lines += [f"별도 색인 준비: {number(preparation['index_elapsed_seconds'])}초, {preparation['index_bytes']:,}바이트.", ""]
     grading_cost = summary.get("grading_cost", [])

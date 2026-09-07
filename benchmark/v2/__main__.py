@@ -60,10 +60,9 @@ def main():
                 result["dataset_sha256"] = digest(read_json(args.dataset))
             result["runtime_probe_passed"] = False
             if args.product_build:
-                from .core import file_digest, require
+                from .runner import verify_product_build
                 build = read_json(args.product_build)
-                require(build["source_commit"] == SPEC["product_commit"] and build["exit_code"] == 0
-                        and file_digest(Path(build["binary"])) == build["binary_sha256"], "product build evidence mismatch")
+                verify_product_build(build)
                 result["product_build"] = build
                 args.product = Path(build["binary"])
             if args.build_product:

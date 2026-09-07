@@ -8,7 +8,11 @@ Grafana의 고정 코드에 대해 기본 탐색 도구(A)와 codemap-search(B)�
 
 준비 재실험 `preparation-r2`는 **12/12회 종료**했다. 자동검사 33개와 별도 런타임 검사 A/B 각 1회가 통과했고, 사용량 일관성은 12회, 전체 비용은 11회에서 확인했다. Astra 채점은 정상 종료했지만 오답 대조 사례 1건에서 고정 계약과 다른 판정을 반환해 묶음 검증에 실패했다. 정확도 차이·신뢰구간은 `null`로 보존하고 제품 비교를 보류했다. [재실험 검증 기록](v2/data/verification-status-r2.json), [새 준비 보고서](v2/artifacts/preparation-r2/report/report.md), [이전 실험과의 비교·채점 실패 분석](v2/artifacts/preparation-r2/report/preparation-comparison.md)을 함께 확인할 수 있다. 평가·채점을 자동 재실행하거나 본평가를 시작하지 않았다.
 
+개선 제품의 에이전트 재평가 `preparation-r3`는 **12/12회 정상 완료**했고 전체 사용량도 모두 확보했다. 기존 R2 답변과 새 답변을 같은 최종 지시로 공동 블라인드 채점해 6묶음·대조 사례 24개가 검증을 통과했다. B의 정답은 **3/6 → 5/6**, 평균 총토큰은 **38.4%**, 탐색 호출은 **40.6%**, 시간은 **40.8% 감소**했다. 시간·호출 감소의 95% 구간은 0을 제외하지만 정답률·토큰 변화의 구간은 0을 포함한다. [개선 검증 보고서](v2/artifacts/improvement-r3/report.md)와 [검증 상태](v2/data/verification-status-r3.json)에 소규모 준비 실험의 한계, 채점 지시 보완과 추가 채점 비용을 함께 기록했다.
+
 ## 고정 실행 조건
+
+아래 표는 기준 제품의 기본 계약이다. 후보 제품 비교에서는 `frozen.json`의 `verification.product_build`가 실제 제품의 출처와 바이너리를 식별한다.
 
 | 항목 | 값 |
 | --- | --- |
@@ -146,3 +150,11 @@ Codex 종료 뒤 이미 요청된 도구의 결과가 도착할 수 있다. 원�
 결과 경로는 [새 준비 보고서](v2/artifacts/preparation-r2/report/report.md), [기존 제한 종료 4건의 메모리 재집계](v2/artifacts/reaggregation-r2/legacy-four.json), [별도 런타임 검사 재판독](v2/artifacts/probe-r2/reinspection.json)이다. 런타임 검사의 최초 판정과 원자료도 보존한다. 새 실험은 `run`·`grade`·`report`의 `--experiment`에 `benchmark/v2/artifacts/preparation-r2`를 지정한다. 실패·제한 종료를 지우거나 자동 재실행하지 않으며 본평가는 시작하지 않는다.
 
 기존 하네스 폐기 내역은 [폐기 기록](RETIRED.md), 제품 후보 패치는 [패치 보관 안내](experiments/codex-codemap/README.md)에 남긴다. Codex 설정의 외부 참고는 [공식 설정 문서](https://developers.openai.com/codex/config-reference/)이며, 실제 옵션·이벤트 형식은 고정된 로컬 CLI의 검증 기록을 따른다.
+
+### 후보 제품과 공동 채점
+
+`verify --product-build`는 기존 고정 커밋 빌드와 `source_kind: "snapshot"` 빌드를 구분한다. 스냅샷 빌드는 `source_commit: null`, `base_product_commit`, `source_snapshot`, `source_manifest_sha256`, 실제 빌드 명령과 바이너리 해시를 기록하며 소스 파일·패키지 버전·빌드 명령·바이너리를 다시 대조한다. 후보를 기준 릴리스 커밋의 바이너리로 표시하지 않는다. `improvement-r3`에는 완전한 제품 소스와 재빌드 기록을 보존했다.
+
+공동 채점은 기존·새 답변의 실행 ID와 절대 경로에 포함된 시점 정보를 익명화하고, 사실별 인용문을 원본 답변으로 복원해 검증한다. 근거는 답변 전체의 인용을 공유할 수 있으며, 같은 문장에 반복해서 인용할 필요는 없다. 답변에 없는 근거를 정답 자료에서 가져와 인용한 것으로 간주하지는 않는다. `correct=false`이면 `supported=false`이고, 중대한 잘못된 주장과 모순은 별도로 판정한다. 기존 정답 계약·대조 사례의 기대값은 유지한다.
+
+각 보고서의 `shared_grading` 참조는 공동 채점의 파일 해시·봉인·입력 답변·판정 매핑을 검증한다. 이미 검증된 공동 채점 참조가 있으면 `grade`를 다시 호출해도 모델을 추가 실행하지 않는다. R3의 첫 공동 채점 실패와 근거 범위를 명확히 한 최종 공동 채점은 모두 보존했으며, 평가 12회는 재실행하지 않았다.

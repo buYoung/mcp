@@ -83,6 +83,30 @@ def build_product(repository: Path, output: Path) -> dict:
     return attestation
 
 
+def verify_product_build(build: dict, binary: Path | None = None) -> None:
+    """Verify either the pinned release or an explicitly identified source snapshot."""
+    require(build.get("exit_code") == 0, "product build did not succeed")
+    recorded_binary = Path(build["binary"])
+    require(file_digest(recorded_binary) == build["binary_sha256"], "product binary drift")
+    if binary is not None:
+        require(file_digest(binary) == build["binary_sha256"], "selected product binary mismatch")
+    if build.get("source_kind", "commit") == "commit":
+        require(build["source_commit"] == SPEC["product_commit"], "product commit mismatch")
+        return
+    require(build["source_kind"] == "snapshot" and build.get("source_commit") is None,
+            "unknown product source identity")
+    require(build["base_product_commit"] == SPEC["product_commit"], "candidate base product mismatch")
+    snapshot = Path(build["source_snapshot"])
+    require(digest(source_manifest(snapshot)) == build["source_manifest_sha256"], "candidate source snapshot drift")
+    import tomllib
+    package = tomllib.loads((snapshot / "Cargo.toml").read_text())["package"]
+    require(package["name"] == "codemap-search" and package["version"] == SPEC["product_version"], "candidate package mismatch")
+    args = build["command"]
+    require(args[:4] == ["cargo", "build", "--release", "--locked"]
+            and Path(args[args.index("--manifest-path") + 1]).resolve() == (snapshot / "Cargo.toml").resolve(),
+            "candidate build command does not identify the frozen source")
+
+
 def codex_options(grading=False) -> list[str]:
     settings = {"model_reasoning_effort": SPEC["grader_reasoning_effort"] if grading else SPEC["reasoning_effort"],
                 "web_search": "disabled", "approval_policy": "never", "sandbox_mode": "read-only",
@@ -620,6 +644,8 @@ def verify_frozen(dataset: dict, experiment: Path) -> dict:
             expected_execution = execution_digest(archive)
         require(expected_execution == execution_digest(), "model-facing execution changed after freeze")
     require(file_digest(Path(frozen["preparation"]["product_binary"])) == frozen["preparation"]["product_sha256"], "product binary drift")
+    if build := frozen.get("verification", {}).get("product_build"):
+        verify_product_build(build, Path(frozen["preparation"]["product_binary"]))
     require(read_json(experiment / "schedule.json") == question_schedule(dataset, frozen["phase"]), "scheduled denominator/order drift")
     return frozen
 
@@ -755,7 +781,8 @@ def _run_experiment(dataset: dict, experiment: Path, source: Path, binary: Path,
         require(verification["passed"] and verification["harness_sha256"] == harness_digest(), "run current V2 verify first")
         require(verification.get("runtime_probe_passed"), "code boundary/runtime probe must pass before evaluation")
         build = verification.get("product_build")
-        require(build and build["source_commit"] == SPEC["product_commit"] and build["binary_sha256"] == file_digest(binary), "missing verified pinned product build")
+        require(build, "missing verified product build")
+        verify_product_build(build, binary)
         experiment.mkdir(parents=True, exist_ok=True)
         preparation = prepare_source(source, binary, experiment / "preparation")
         write_json(experiment / "frozen.json", {"spec": SPEC, "dataset_sha256": digest(dataset), "harness_sha256": harness_digest(),
