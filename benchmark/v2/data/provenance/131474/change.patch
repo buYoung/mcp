@@ -1,0 +1,159 @@
+diff --git a/pkg/services/accesscontrol/filter.go b/pkg/services/accesscontrol/filter.go
+index af760a2ff7cfe..1d53daa9e4d28 100644
+--- a/pkg/services/accesscontrol/filter.go
++++ b/pkg/services/accesscontrol/filter.go
+@@ -32,6 +32,10 @@ type SQLFilter struct {
+ 	Args  []any
+ }
+ 
++func (f SQLFilter) AllowsAllRecords() bool {
++	return f.Where == allowAllQuery.Where
++}
++
+ // Filter creates a where clause to restrict the view of a query based on a users permissions
+ // Scopes that exists for all actions will be parsed and compared against the supplied sqlID
+ // Prefix parameter is the prefix of the scope that we support (e.g. "users:id:")
+diff --git a/pkg/services/accesscontrol/filter_test.go b/pkg/services/accesscontrol/filter_test.go
+index 4ebbc9d6c4658..eb207f5f31df5 100644
+--- a/pkg/services/accesscontrol/filter_test.go
++++ b/pkg/services/accesscontrol/filter_test.go
+@@ -35,6 +35,43 @@ func TestManagedPermissionsActionSetsFilter(t *testing.T) {
+ 	assert.Contains(t, filter, "'folders:admin'")
+ }
+ 
++func TestSQLFilterAllowsAllRecords(t *testing.T) {
++	tests := []struct {
++		name        string
++		permissions []string
++		accessAll   bool
++		args        []any
++	}{
++		{
++			name:        "allows all records",
++			permissions: []string{"global.users:*"},
++			accessAll:   true,
++		},
++		{
++			name:        "returns filtered record arguments",
++			permissions: []string{"global.users:id:1"},
++			args:        []any{int64(1)},
++		},
++		{
++			name: "denies all records",
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			filter, err := accesscontrol.Filter(&user.SignedInUser{
++				OrgID: 1,
++				Permissions: map[int64]map[string][]string{
++					1: {accesscontrol.ActionUsersRead: tt.permissions},
++				},
++			}, "u.id", "global.users:id:", accesscontrol.ActionUsersRead)
++			require.NoError(t, err)
++			assert.Equal(t, tt.accessAll, filter.AllowsAllRecords())
++			assert.Equal(t, tt.args, filter.Args)
++		})
++	}
++}
++
+ type filterDatasourcesTestCase struct {
+ 	desc        string
+ 	sqlID       string
+diff --git a/pkg/services/org/orgimpl/store.go b/pkg/services/org/orgimpl/store.go
+index 3670031506c55..08846fdf99508 100644
+--- a/pkg/services/org/orgimpl/store.go
++++ b/pkg/services/org/orgimpl/store.go
+@@ -845,10 +845,6 @@ type searchOrgUsersQuery struct {
+ 
+ func (q searchOrgUsersQuery) Validate() error { return nil }
+ 
+-func accessControlQueryFields(filter accesscontrol.SQLFilter) (bool, []any) {
+-	return strings.TrimSpace(filter.Where) == "1 = 1", filter.Args
+-}
+-
+ func filteredHiddenUsers(requester identity.Requester, hiddenUsersMap map[string]struct{}) []string {
+ 	if requester != nil && requester.GetIsGrafanaAdmin() {
+ 		return nil
+@@ -915,7 +911,7 @@ func (ss *sqlStore) SearchOrgUsers(ctx context.Context, query *org.SearchOrgUser
+ 			if err != nil {
+ 				return err
+ 			}
+-			accessAll, accessUserIDs = accessControlQueryFields(acFilter)
++			accessAll, accessUserIDs = acFilter.AllowsAllRecords(), acFilter.Args
+ 		}
+ 
+ 		var hiddenUserLogins []string
+diff --git a/pkg/services/team/teamimpl/store.go b/pkg/services/team/teamimpl/store.go
+index ad88e5cbf1a1d..22ee00c19b58d 100644
+--- a/pkg/services/team/teamimpl/store.go
++++ b/pkg/services/team/teamimpl/store.go
+@@ -4,7 +4,6 @@ import (
+ 	"context"
+ 	"errors"
+ 	"fmt"
+-	"strings"
+ 	"text/template"
+ 	"time"
+ 
+@@ -268,10 +267,6 @@ type searchTeamsQuery struct {
+ 
+ func (q searchTeamsQuery) Validate() error { return nil }
+ 
+-func accessControlQueryFields(filter ac.SQLFilter) (bool, []any) {
+-	return strings.TrimSpace(filter.Where) == "1 = 1", filter.Args
+-}
+-
+ func (ss *xormStore) Search(ctx context.Context, query *team.SearchTeamsQuery) (team.SearchTeamQueryResult, error) {
+ 	queryResult := team.SearchTeamQueryResult{
+ 		Teams: make([]*team.TeamDTO, 0),
+@@ -288,7 +283,7 @@ func (ss *xormStore) Search(ctx context.Context, query *team.SearchTeamsQuery) (
+ 		if err != nil {
+ 			return err
+ 		}
+-		accessAll, accessTeamIDs := accessControlQueryFields(acFilter)
++		accessAll, accessTeamIDs := acFilter.AllowsAllRecords(), acFilter.Args
+ 
+ 		sorts := make([]string, 0, len(query.SortOpts))
+ 		for i := range query.SortOpts {
+@@ -455,7 +450,7 @@ func (ss *xormStore) GetByUser(ctx context.Context, query *team.GetTeamsByUserQu
+ 		if err != nil {
+ 			return err
+ 		}
+-		accessAll, accessTeamIDs := accessControlQueryFields(acFilter)
++		accessAll, accessTeamIDs := acFilter.AllowsAllRecords(), acFilter.Args
+ 
+ 		sqlQuery := getTeamsByUserQuery{
+ 			SQLTemplate:     sqltemplate.New(dbHelper.DialectForDriver()),
+@@ -813,7 +808,7 @@ func (ss *xormStore) getTeamMembers(ctx context.Context, dbHelper *legacysql.Leg
+ 		accessAll := true
+ 		var accessUserIDs []any
+ 		if acUserFilter != nil {
+-			accessAll, accessUserIDs = accessControlQueryFields(*acUserFilter)
++			accessAll, accessUserIDs = acUserFilter.AllowsAllRecords(), acUserFilter.Args
+ 		}
+ 
+ 		sqlQuery := getTeamMembersQuery{
+diff --git a/pkg/services/user/userimpl/store.go b/pkg/services/user/userimpl/store.go
+index 7b47ce6dda03b..9c2d2c5dedb13 100644
+--- a/pkg/services/user/userimpl/store.go
++++ b/pkg/services/user/userimpl/store.go
+@@ -835,7 +835,7 @@ func (ss *sqlStore) Search(ctx context.Context, query *user.SearchUsersQuery) (*
+ 			return err
+ 		}
+ 
+-		accessAll := strings.TrimSpace(acFilter.Where) == "1 = 1"
++		accessAll, accessUserIDs := acFilter.AllowsAllRecords(), acFilter.Args
+ 		joins, inFilters, whereFilters, err := buildSearchUserFilters(dbHelper, query.Filters)
+ 		if err != nil {
+ 			return err
+@@ -858,7 +858,7 @@ func (ss *sqlStore) Search(ctx context.Context, query *user.SearchUsersQuery) (*
+ 			Joins:         joins,
+ 			OrgID:         query.OrgID,
+ 			AccessAll:     accessAll,
+-			AccessUserIDs: acFilter.Args,
++			AccessUserIDs: accessUserIDs,
+ 			QueryPattern:  searchQueryPattern(query.Query),
+ 			IsDisabled:    query.IsDisabled,
+ 			InFilters:     inFilters,

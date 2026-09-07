@@ -1,0 +1,79 @@
+diff --git a/pkg/storage/unified/resource/access.go b/pkg/storage/unified/resource/access.go
+index bb991b320addc..d6976ba820aab 100644
+--- a/pkg/storage/unified/resource/access.go
++++ b/pkg/storage/unified/resource/access.go
+@@ -55,7 +55,7 @@ func newMetrics(reg prometheus.Registerer) *accessMetrics {
+ 				NativeHistogramBucketFactor:     1.1,
+ 				NativeHistogramMaxBucketNumber:  160,
+ 				NativeHistogramMinResetDuration: time.Hour,
+-			}, []string{"check_count"}),
++			}, []string{"check_count_bucket"}),
+ 		errorsTotal: promauto.With(reg).NewCounterVec(
+ 			prometheus.CounterOpts{
+ 				Name: "grafana_grpc_authz_limited_client_errors_total",
+@@ -64,6 +64,25 @@ func newMetrics(reg prometheus.Registerer) *accessMetrics {
+ 	}
+ }
+ 
++// batchSizeBucket keeps the batch size out of the label value, which would
++// otherwise add a series per size. Ranges cover 1 to batchCheckChunkSize (50),
++// the sizes search produces, and are spelled out so changing that constant
++// cannot reshape existing series unnoticed.
++func batchSizeBucket(n int) string {
++	switch {
++	case n <= 1:
++		return "1"
++	case n <= 10:
++		return "2-10"
++	case n <= 25:
++		return "11-25"
++	case n <= 50:
++		return "26-50"
++	default:
++		return "51+"
++	}
++}
++
+ // rbacAllowlist is a map of group to resources that are compatible with RBAC.
+ var rbacAllowlist = groupResource{
+ 	"dashboard.grafana.app": map[string]interface{}{"dashboards": nil, "variables": nil},
+@@ -288,7 +307,7 @@ func (c authzLimitedClient) BatchCheck(ctx context.Context, id claims.AuthInfo,
+ 	// Merge results from underlying client
+ 	maps.Copy(results, resp.Results)
+ 
+-	c.metrics.batchCheckDuration.WithLabelValues(fmt.Sprintf("%d", len(req.Checks))).Observe(time.Since(t).Seconds())
++	c.metrics.batchCheckDuration.WithLabelValues(batchSizeBucket(len(req.Checks))).Observe(time.Since(t).Seconds())
+ 	return claims.BatchCheckResponse{Results: results}, nil
+ }
+ 
+diff --git a/pkg/storage/unified/resource/access_test.go b/pkg/storage/unified/resource/access_test.go
+index dc209512aac8c..9fbd0a285d5f4 100644
+--- a/pkg/storage/unified/resource/access_test.go
++++ b/pkg/storage/unified/resource/access_test.go
+@@ -321,3 +321,26 @@ func TestAuthzLimitedClientExemptionGate(t *testing.T) {
+ 		})
+ 	}
+ }
++
++func TestBatchSizeBucket(t *testing.T) {
++	// Ranges below assume this chunk size; revisit them before changing it.
++	require.Equal(t, 50, batchCheckChunkSize)
++
++	for _, tt := range []struct {
++		size int
++		want string
++	}{
++		{0, "1"},
++		{1, "1"},
++		{2, "2-10"},
++		{10, "2-10"},
++		{11, "11-25"},
++		{25, "11-25"},
++		{26, "26-50"},
++		{50, "26-50"},
++		{51, "51+"},
++		{500, "51+"},
++	} {
++		require.Equal(t, tt.want, batchSizeBucket(tt.size), "size %d", tt.size)
++	}
++}

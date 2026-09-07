@@ -1,0 +1,3610 @@
+diff --git a/apps/codemap-search/CHANGELOG.ko.md b/apps/codemap-search/CHANGELOG.ko.md
+index 0688435f34cbcd2541dc9e30a72bd58a1a3f8286..d9ddd8c8cc509787ab25997daf2e193f941ece9b 100644
+--- a/apps/codemap-search/CHANGELOG.ko.md
++++ b/apps/codemap-search/CHANGELOG.ko.md
+@@ -6,6 +6,24 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
+ 
+ ## [Unreleased]
+ 
++### 변경
++
++- **호환성 변경:** `grep`의 `content` 페이지를 출력 행 수에서 일치 영역 수 기준으로 변경. 0.7.0의 offset과 새 `next_offset`은 혼용할 수 없으며, 건수·파일 목록 모드는 기존 파일 단위 유지
++- 요약·이어보기 안내를 포함하는 `[tool_output].grep_output_byte_cap`(32,768바이트), `overview_output_byte_cap`(8,192바이트) 추가. 설정 스키마 6은 기존 값을 보존하며 새 키만 추가
++- `grep_max_columns`를 긴 일치 행 생략 기준에서 원문 바이트 위치를 보존하는 일치 중심 발췌 예산으로 변경. `0`은 행별 제한만 해제
++
++### 개선
++
++- 일치와 요청 문맥을 함께 반환하고 겹치는 문맥을 중복 제거하며, 단일 일치가 상한을 넘어도 위치를 포함한 부분 근거 보존
++- `fixed_strings`·`-F` 리터럴 검색, 읽기·순회 실패의 부분 검색 표시, 전체 검색 합계와 페이지 합계 구분 추가
++- 경로를 명시한 `read`·`find`·`grep`은 초기 안내 없이 직접 호출하고, `initial_instructions`에 실행 중인 패키지 버전을 한 번 표시
++- 모든 검색 질의의 후보 수집 전에 무점수 경로 필터로 작업공간 범위 적용. 공개 질의 구조와 인덱스 스키마를 유지하며 재색인 불필요
++- 모든 개요 형식과 폴더·파일 심볼 목록에 상한을 적용하고, 모호함 없이 완전한 원문 출력이 증명된 경우에만 `read_suggestion` 제거
++
++### 내부
++
++- 회귀 검사와 0.7.0 태그 대상의 격리된 Codex 비교 실행기 추가. 기존 OpenCode 하니스 유지
++
+ ## [0.7.0] - 2026-09-04
+ 
+ ### 개선
+diff --git a/apps/codemap-search/CHANGELOG.md b/apps/codemap-search/CHANGELOG.md
+index a55d919951e4cb5cec46b9765d3e79d7f9c0e5b6..eeeaa3190bf80af4414ab638585cb114f8cb01f5 100644
+--- a/apps/codemap-search/CHANGELOG.md
++++ b/apps/codemap-search/CHANGELOG.md
+@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
+ 
+ ## [Unreleased]
+ 
++### Changed
++
++- **Breaking:** `grep` content pages now count match regions instead of rendered match/context lines. Do not reuse 0.7.0 offsets with new `next_offset` values; count and file-list modes still paginate by file.
++- Added `[tool_output].grep_output_byte_cap` (32,768 bytes) and `overview_output_byte_cap` (8,192 bytes), including status and continuation text. Config schema 6 adds these keys without replacing existing values.
++- `grep_max_columns` now budgets match-centered excerpts with original byte positions instead of discarding long matching lines. `0` removes only the per-line limit.
++
++### Improved
++
++- Keep grep matches with requested context, deduplicate overlapping context, and retain positioned evidence when a single match exceeds the output budget.
++- Support literal grep with `fixed_strings` / `-F`, report partial searches after read/walk failures, and distinguish whole-search from page counts.
++- Allow explicit-path `read`, `find`, and `grep` without initial guidance; include the running package version once in `initial_instructions`.
++- Apply workspace scope before all search candidate collection with a score-free path filter; preserve the public query context and existing index schema without reindexing.
++- Bound all overview formats and per-folder/file symbol lists; omit `read_suggestion` only for proven complete, unambiguous source output.
++
++### Internal
++
++- Add regression coverage and an isolated Codex comparison runner against the 0.7.0 tag; preserve the existing OpenCode harness.
++
+ ## [0.7.0] - 2026-09-04
+ 
+ ### Improved
+diff --git a/apps/codemap-search/README.ko.md b/apps/codemap-search/README.ko.md
+index 7660da4604f934d523cd4125fe49abaef2dc4b4b..dde0a6f215d212b614ec538c1975df7b9172b5ae 100644
+--- a/apps/codemap-search/README.ko.md
++++ b/apps/codemap-search/README.ko.md
+@@ -4,11 +4,7 @@
+ 
+ `codemap-search`는 코딩 에이전트를 위한 독립 실행형 MCP 표준 입출력 서버이자 CLI입니다. 하나의 Rust 바이너리 안에 ripgrep 라이브러리 크레이트, tree-sitter 문법, Tantivy 검색 엔진이 들어 있습니다. 시스템에 `rg`, 언어 서버, 외부 런타임 바이너리를 따로 설치하지 않아도 저장소 구조를 훑고, 심볼과 문서 문자열을 검색하고, 파일 내용을 정확히 확인할 수 있습니다.
+ 
+-기본 흐름은 좁혀 들어가기입니다.
+-
+-1. `overview`로 저장소 루트, 폴더, 파일 단위 구조를 봅니다.
+-2. `search`로 심볼, 정의, 개념, 오류 메시지, 설정 기본값을 찾습니다.
+-3. `read`, `find`, `grep`으로 실제 파일 내용과 경로를 확인합니다.
++경로를 알면 `read`, `find`, `grep`을 바로 호출합니다. 색인 기반 탐색은 `initial_instructions`를 한 번 호출한 뒤 필요한 작업공간 범위를 선택하고, 개념은 `search`, 구조는 `overview`로 찾습니다. 검색 발췌만으로 근거가 충분하지 않을 때 필요한 원문 범위를 읽습니다.
+ 
+ 벤치마크 비교는 [benchmark](../../benchmark/README.md)를 참고하세요. 모든 저장소에서 항상 이기는 단일 백엔드는 없고, 공개된 측정에서 `codemap-search`가 가장 뚜렷하게 앞선 부분은 인덱스 생성 속도와 디스크 사용량입니다. 자세한 수치는 [인덱싱](#인덱싱)에 정리했습니다.
+ 
+@@ -43,7 +39,7 @@ command = "codemap-search"
+ args = ["mcp"]
+ ```
+ 
+-등록 후에는 클라이언트에서 `initial_instructions`를 한 번 호출하세요. 일부 MCP 클라이언트는 서버 수준 안내문을 표시하지 않기 때문에, 이 도구가 권장 탐색 흐름을 별도로 전달합니다.
++색인 기반 탐색 전에는 `initial_instructions`를 한 번 호출합니다. 권장 탐색 흐름과 실행 중인 바이너리의 패키지 버전을 알려줍니다. 경로를 명시한 `read`, `find`, `grep`은 초기 안내 없이 바로 호출할 수 있으며 활성 검색 범위를 설정하지 않습니다.
+ 
+ ## MCP 제공 범위
+ 
+@@ -244,7 +240,13 @@ codex mcp add codemap-search -- codemap-search mcp
+ | `search` | 심볼, 문서 문자열, 경로 토큰을 BM25로 검색합니다. 좁은 결과는 파일 상세, 넓은 결과는 코드맵 개요로 렌더링합니다. | `query`, `caller_context` |
+ | `read` | 파일을 줄 번호와 함께 읽습니다. 큰 파일은 창 단위로 읽습니다. | `file_path`, `offset`, `limit` |
+ | `find` | glob으로 파일을 찾습니다. 결과는 수정 시간순으로 정렬되고 상한이 있습니다. | `pattern`, `path`, `include_ignored` |
+-| `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
++| `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `fixed_strings` (`-F` 별칭), `head_limit`, `offset`, `include_ignored` |
++
++`grep`의 기본 검색은 정규식입니다. `fixed_strings: true`는 괄호·점·대괄호 등을 문자 그대로 찾으며 `-F`보다 우선합니다. `content`의 `head_limit`·`offset`은 일치 영역 수를 셉니다. 일반 검색은 일치 행 하나가 한 영역이고 같은 행의 여러 일치는 한 건이며, 여러 줄에 걸친 일치도 한 영역입니다. 각 영역에 요청 문맥을 붙이고 페이지 안에서 겹치는 문맥은 한 번만 출력합니다. `count`·`files_with_matches`는 기존처럼 파일 단위입니다. **호환성 변경:** 0.7.0의 `content` offset은 출력 행 단위였으므로 새 `next_offset`과 혼용할 수 없습니다. 동일한 질의·필터와 변경되지 않은 원문에서 반환된 이어보기 값을 사용합니다.
++
++모든 `grep` 모드는 요약·이어보기 안내까지 포함해 `grep_output_byte_cap`(기본 32,768바이트)을 적용합니다. `head_limit: 0`은 건수 제한만 해제합니다. 긴 행은 `grep_max_columns`(기본 500바이트) 예산으로 실제 일치 주위를 발췌하고 원문 바이트 열과 생략·부분 일치 여부를 표시합니다. `grep_max_columns: 0`은 행별 제한만 해제합니다. 이 예산에 일치하는 UTF-8 문자 하나도 담을 수 없으면 설정 오류를 반환합니다. 첫 영역이 너무 크면 먼 문맥부터 줄이며, 일치 자체가 잘리면 `read`로 확인할 원래 범위를 알립니다. 파일 읽기·순회 실패는 부분 검색으로 표시하고 0건 결과에는 실제 검색 파일 수를 포함합니다. `count`는 전체 검색 합계와 현재 페이지 합계를 구분합니다.
++
++모든 `overview` 형식에는 `overview_output_byte_cap`(기본 8,192바이트)을 적용합니다. 폴더는 직접 파일 최대 60개와 파일당 심볼 5개, 파일 상세는 심볼 최대 200개를 표시하고 생략 시 후속 조회를 안내합니다. 위치·상태 정보를 담을 수 없을 정도로 작은 상한은 오류를 반환합니다. `workspace_scope`는 후보 수집 전에 적용하며 인덱스 스키마 변경이나 재색인을 요구하지 않습니다. 명시적 범위가 활성 `overview` 범위보다 우선하고 `all`·`전체`는 해당 검색을 전체 범위로 실행합니다. `read_suggestion`은 모호함이나 잘림 없이 실제 원문 전체를 출력했음이 증명된 경우에만 제거하며, 선언·요약·리터럴·부분 발췌에는 유지합니다.
+ 
+ `read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.txt`는 기본 결과와 의미 기반 인덱스에서 제외됩니다. Markdown과 선택형 셸·인프라·인터페이스·빌드 그룹은 설정이 꺼져도 `find`·`grep`·`read`로 접근할 수 있으며, 설정은 색인·watcher·search·overview·codemap 포함 여부만 제어합니다. ignore 및 영구 파일 제외 규칙을 한 호출에서 우회하려면 `include_ignored: true`를 전달하세요. 직접 `parse`도 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
+ 
+diff --git a/apps/codemap-search/README.md b/apps/codemap-search/README.md
+index 34057a5c977b6ed6dde6afea6a2b02b6709110a5..d2d9b2c1a013d065aa893fcb5af3d3e7d7a8e7a9 100644
+--- a/apps/codemap-search/README.md
++++ b/apps/codemap-search/README.md
+@@ -9,12 +9,10 @@ literals with BM25, and confirm exact file content with embedded `read` / `find`
+ tree-sitter grammars, and Tantivy. No system `rg`, language server, or external runtime
+ binary is required.
+ 
+-The intended flow is hierarchical narrowing:
+-
+-1. **`overview`** — orient: repo root → folder → file symbol details.
+-2. **`search`** — locate by keyword; returns a codemap overview when many files match,
+-   per-file details when few.
+-3. **`read` / `find` / `grep`** — confirm exact content once the target is pinpointed.
++With a known path, call **`read`**, **`find`**, or **`grep`** directly. For index-backed
++discovery, load **`initial_instructions`** once, choose a workspace scope when needed,
++and use **`search`** for concepts or **`overview`** for structure. Read only the ranges
++needed when search snippets do not provide complete evidence.
+ 
+ > For how it compares to an agent's built-in Read/Grep and to other code-navigation MCP
+ > backends (serena, codegraph), see the [benchmark](../../benchmark/README.md): there is
+@@ -54,9 +52,9 @@ command = "codemap-search"
+ args = ["mcp"]
+ ```
+ 
+-After registration, ask the client to call `initial_instructions` once. That tool returns
+-the recommended navigation flow for clients that do not surface server-level MCP
+-instructions.
++Before index-backed discovery, call `initial_instructions` once for navigation guidance
++and the running binary’s package version. Explicit-path `read`, `find`, and `grep` can
++be called directly without it; these calls do not set an active search scope.
+ 
+ ## MCP surface
+ 
+@@ -332,9 +330,37 @@ server:
+ | `search` | BM25 keyword search over symbols/docstrings/path tokens. ≤ threshold → file details; above → codemap overview. | `query` (string, required) |
+ | `read` | Read a file with line numbers (`   N→content`). Pages large files. | `file_path` (required), `offset` (1-indexed), `limit` |
+ | `find` | Locate files by glob (`**/*.rs`), mtime-sorted, capped. | `pattern` (required), `path`, `include_ignored` |
+-| `grep` | Exact literal/regex over files on disk (sees comments + just-changed files). Mirrors Claude Code's Grep. | `pattern` (required), `path`, `glob`, `type`, `output_mode` (default `content` with line numbers; `files_with_matches` = file set only; `count` = per-file counts, no line content), `-i`, `-n`, `-A`/`-B`/`-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
++| `grep` | Exact literal/regex over files on disk (sees comments + just-changed files). Match-centered, byte-bounded pages. | `pattern` (required), `path`, `glob`, `type`, `output_mode` (default `content` with line numbers; `files_with_matches` = file set only; `count` = per-file counts, no line content), `-i`, `-n`, `-A`/`-B`/`-C`, `multiline`, `fixed_strings` (`-F` alias), `head_limit`, `offset`, `include_ignored` |
+ | `read` aliases | `read` also accepts `path`/`file` for `file_path`, and 1-based inclusive `start_line`/`end_line` for `offset`/`limit`. | — |
+ 
++`grep` uses regular expressions by default. `fixed_strings: true` treats punctuation
++literally and takes precedence over `-F`. In `content`, `head_limit` and `offset` count
++match regions: one matching line is one region, including multiple hits on that line;
++a multiline match is one region. Context accompanies each region and overlapping context
++is printed once per page. `count` and `files_with_matches` still paginate by file.
++**Compatibility change:** 0.7.0 content offsets counted rendered lines; do not mix those
++offsets with new `next_offset` values. Use the returned continuation with the same query
++and filters against an unchanged source tree.
++
++All grep modes obey `grep_output_byte_cap` (default 32,768 bytes), including summaries
++and continuation notices. `head_limit: 0` only removes the count limit. Long lines use
++`grep_max_columns` (default 500 bytes) for match-centered excerpts, with original byte
++columns and omission/partial-match notices. Setting it to `0` only removes the per-line
++limit. A line budget too small for even one UTF-8 character of the match returns a
++configuration error. An oversized first region trims distant context before match evidence, and a
++partial region identifies its original range for `read`. Read/walk failures mark a partial
++search; zero-result responses include searched-file counts. `count` distinguishes the
++whole-search total from the current page total.
++
++Every `overview` format obeys `overview_output_byte_cap` (default 8,192 bytes). Folder
++views list at most 60 direct files and 5 symbols per file; file views list at most 200
++symbols. Omitted content includes a follow-up hint. Caps too small to retain required
++location/status information return an error. `workspace_scope` filters candidates before
++ranking without changing the index schema or requiring reindexing. An explicit scope
++wins over the active `overview` scope, and `all` / `전체` overrides it for one search.
++Search omits `read_suggestion` only for provably complete source output without ambiguity
++or truncation; declarations, summaries, literals, and partial snippets retain the hint.
++
+ `find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
+ default. Lockfiles, source maps, minified/bundle files, and `.txt` are also excluded from
+ default live-tool results and the semantic index. Markdown and the optional shell,
+diff --git a/apps/codemap-search/docs/configuration.md b/apps/codemap-search/docs/configuration.md
+index ff610f5aa2680adfef034ca1ff55f4c585f63939..29568252d13b84bad47a9944f6cc783ceed358ab 100644
+--- a/apps/codemap-search/docs/configuration.md
++++ b/apps/codemap-search/docs/configuration.md
+@@ -76,8 +76,10 @@ Use this table as the source of truth for supported keys, accepted types, and de
+ | `[search].search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
+ | `[search].search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
+ | `[search].search_anchor_snippet_limit` | integer | `3` | Max anchor symbols given a full snippet per file in `search` detail view; further (lower-ranked) anchors degrade to a ≤3-line signature |
+-| `[tool_output].grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
++| `[tool_output].grep_max_columns` | integer (bytes) | `500` | Per-line excerpt budget around the first real match; `0` disables only this line limit |
++| `[tool_output].grep_output_byte_cap` | integer (bytes) | `32768` | Hard byte ceiling for one `grep` response, including locations, summaries, and continuation guidance |
+ | `[tool_output].read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; a rendered output exceeding this throws instead of emitting an unbounded blob |
++| `[tool_output].overview_output_byte_cap` | integer (bytes) | `8192` | Hard byte ceiling for one MCP `overview` response, including omission status and follow-up guidance |
+ | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
+ | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
+ | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
+@@ -142,7 +144,9 @@ All five language switches default to `false` and use the same boundary: disable
+ ### Tool output limits
+ 
+ - **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes) would exceed this throws rather than emitting an unbounded blob. Oversized errors include a concrete narrower `offset`/`limit` suggestion. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
+-- **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider than this many characters is replaced with `[Omitted long matching line]`, matching Claude Code's `--max-columns 500` default. Partial `grep` pages include the shown range, total count, and `next_offset`. Set `0` to disable the column cap (default 500).
++- **`grep_max_columns`** — per-line byte excerpt budget for `grep` content output. A long line is centered around its first actual match and reports byte-column and omission status. Set `0` to disable this per-line limit; `grep_output_byte_cap` still applies to the complete response (default 500 bytes).
++- **`grep_output_byte_cap`** — hard byte ceiling for one `grep` response, including rendered matches and context, file/line locations, summaries, and continuation guidance. Content-mode pagination counts match regions: one ordinary matched line is one region, one contiguous multiline match is one region, and multiple matches on the same line do not consume extra page entries. `count` and `files_with_matches` continue to paginate by file. An `offset` from an older release must not be mixed with a continuation offset produced under this match-region contract (default 32768 ≈ 32 KiB).
++- **`overview_output_byte_cap`** — hard byte ceiling for one MCP `overview` response. Root, folder, file, and `llms-txt` views keep the title and available totals or scope-selection status first, then mark partial output and point to `overview <dir>`, `overview <file>`, `find`, or `read`. A partial monorepo root also preserves `overview <scope>` active-scope guidance and the explicit `workspace_scope: "all"` / `전체` whole-repo choice. Folder views show at most 60 direct files and 5 symbols per file; file views show at most 200 symbols. A configured cap too small to carry the location/status block plus follow-up guidance returns a clear error (default 8192 = 8 KiB).
+ 
+ 한국어 요약: `read`와 `grep`은 실제 파일 시스템을 읽으므로 출력 상한이 안전장치입니다. 너무 큰 결과는 한 번에 내보내지 말고 줄 범위나 다음 페이지로 나누어 읽는 흐름을 권장합니다.
+ 
+@@ -230,7 +234,9 @@ search_anchor_snippet_limit = 3
+ 
+ [tool_output]
+ grep_max_columns = 500
++grep_output_byte_cap = 32768              # 32 KiB
+ read_output_byte_cap = 102400             # 100 KiB
++overview_output_byte_cap = 8192           # 8 KiB
+ 
+ [filesystem_permissions]
+ find = "workspace"
+diff --git a/apps/codemap-search/src/codemap/mod.rs b/apps/codemap-search/src/codemap/mod.rs
+index d375827b05df384e39751d22c6b6c02005ae5432..25d07142b59d13f80b1ab8ae44414610eba26cfb 100644
+--- a/apps/codemap-search/src/codemap/mod.rs
++++ b/apps/codemap-search/src/codemap/mod.rs
+@@ -32,6 +32,12 @@ const ROOT_DIRECTORY_LIMIT: usize = 60;
+ const ROOT_FILE_SUMMARY_LIMIT: usize = 60;
+ /// Max symbol names shown per kind inside a compact root file row.
+ const ROOT_SYMBOLS_PER_KIND_LIMIT: usize = 4;
++/// Max files that live directly in one folder view. Recursive totals remain complete.
++const FOLDER_FILE_LIMIT: usize = 60;
++/// Max significant symbol names shown under each direct file in a folder view.
++const FOLDER_SYMBOL_LIMIT: usize = 5;
++/// Max significant symbols shown in one file detail view.
++const DETAIL_SYMBOL_LIMIT: usize = 200;
+ /// Max file links in llms-txt root output. The full file set remains discoverable through
+ /// folder overview and find; llms-txt is a first-call orientation surface, not an index dump.
+ const LLMS_TXT_FILE_LIMIT: usize = 200;
+@@ -183,8 +189,13 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
+         }
+ 
+         if !self.files.is_empty() {
+-            writeln!(f, "## Files")?;
+-            for file in &self.files {
++            let shown_files = self.files.len().min(FOLDER_FILE_LIMIT);
++            writeln!(
++                f,
++                "## Files (first {shown_files} of {} direct files by path)",
++                self.files.len()
++            )?;
++            for file in self.files.iter().take(FOLDER_FILE_LIMIT) {
+                 writeln!(
+                     f,
+                     "- File: {} ({} lines, {} symbols)",
+@@ -193,9 +204,24 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
+                 // Significant symbols only, names/kinds without line ranges: the folder
+                 // view orients within a known folder but is not a locator — exact
+                 // positions come from search/grep (overview must not substitute for search).
+-                for symbol in &file.symbols {
++                for symbol in file.symbols.iter().take(FOLDER_SYMBOL_LIMIT) {
+                     writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
+                 }
++                if file.symbols.len() > FOLDER_SYMBOL_LIMIT {
++                    writeln!(
++                        f,
++                        "  - _{} more symbols not shown; use `overview {}` for line ranges._",
++                        file.symbols.len() - FOLDER_SYMBOL_LIMIT,
++                        file.file_path
++                    )?;
++                }
++            }
++            if self.files.len() > FOLDER_FILE_LIMIT {
++                writeln!(
++                    f,
++                    "- _{} more direct files not shown; use `find` for exact enumeration or a narrower `overview <dir>`._",
++                    self.files.len() - FOLDER_FILE_LIMIT
++                )?;
+             }
+         }
+ 
+@@ -211,25 +237,35 @@ impl<'a> CodemapView for FolderCodemap<'a> {
+ 
+ impl<'a> std::fmt::Display for DetailsCodemap<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        let significant_symbols = self
++            .symbols
++            .iter()
++            .filter(|s| is_significant_symbol(s, self.symbols))
++            .collect::<Vec<_>>();
+         writeln!(
+             f,
+             "# Detailed Codemap: {} ({} lines)",
+             self.file_path, self.total_lines
+         )?;
+         writeln!(f)?;
++        writeln!(f, "- **Total Symbols**: {}", significant_symbols.len())?;
++        writeln!(f)?;
+ 
+         writeln!(f, "## Symbols")?;
+-        for symbol in self
+-            .symbols
+-            .iter()
+-            .filter(|s| is_significant_symbol(s, self.symbols))
+-        {
++        for symbol in significant_symbols.iter().take(DETAIL_SYMBOL_LIMIT) {
+             writeln!(
+                 f,
+                 "- {} ({}) [L{}-{}]",
+                 symbol.name, symbol.kind, symbol.range.start_line, symbol.range.end_line
+             )?;
+         }
++        if significant_symbols.len() > DETAIL_SYMBOL_LIMIT {
++            writeln!(
++                f,
++                "- _{} more symbols not shown; use `search` or `grep` to locate a name, then `read` its range._",
++                significant_symbols.len() - DETAIL_SYMBOL_LIMIT
++            )?;
++        }
+ 
+         Ok(())
+     }
+@@ -636,6 +672,87 @@ mod tests {
+         assert!(formatted.contains("No files in this folder."));
+     }
+ 
++    #[test]
++    fn test_folder_view_limits_direct_files_and_symbols() {
++        let files = (0..61)
++            .map(|file_index| ExtractedFile {
++                file_path: format!("src/file_{file_index:03}.rs"),
++                total_lines: 10,
++                symbols: (0..6)
++                    .map(|symbol_index| ExtractedSymbol {
++                        name: format!("symbol_{file_index:03}_{symbol_index}"),
++                        kind: "fn".to_string(),
++                        range: CodeRange {
++                            start_line: symbol_index + 1,
++                            start_col: 1,
++                            end_line: symbol_index + 1,
++                            end_col: 2,
++                        },
++                        docstring: None,
++                        flags: SymbolFlags {
++                            has_todo: false,
++                            has_fixme: false,
++                            is_test: false,
++                            is_exported: true,
++                            is_deprecated: false,
++                        },
++                        owner: None,
++                    })
++                    .collect(),
++                literals: vec![],
++                docstrings: vec![],
++                navigation: None,
++            })
++            .collect::<Vec<_>>();
++
++        let output = CodemapGenerator::generate_folder_view(&files, "src").to_string();
++        assert_eq!(
++            output.matches("- File: src/file_").count(),
++            FOLDER_FILE_LIMIT
++        );
++        assert!(output.contains("1 more direct files not shown"));
++        assert!(output.contains("symbol_000_4"));
++        assert!(!output.contains("symbol_000_5"));
++        assert!(output.contains("1 more symbols not shown"));
++    }
++
++    #[test]
++    fn test_file_detail_view_limits_symbols() {
++        let file = ExtractedFile {
++            file_path: "src/large.rs".to_string(),
++            total_lines: 250,
++            symbols: (0..201)
++                .map(|index| ExtractedSymbol {
++                    name: format!("symbol_{index:03}"),
++                    kind: "fn".to_string(),
++                    range: CodeRange {
++                        start_line: index + 1,
++                        start_col: 1,
++                        end_line: index + 1,
++                        end_col: 2,
++                    },
++                    docstring: None,
++                    flags: SymbolFlags {
++                        has_todo: false,
++                        has_fixme: false,
++                        is_test: false,
++                        is_exported: true,
++                        is_deprecated: false,
++                    },
++                    owner: None,
++                })
++                .collect(),
++            literals: vec![],
++            docstrings: vec![],
++            navigation: None,
++        };
++
++        let output = CodemapGenerator::generate_detail_view(&file).to_string();
++        assert!(output.contains("symbol_199"));
++        assert!(!output.contains("symbol_200"));
++        assert!(output.contains("1 more symbols not shown"));
++    }
++
+     #[test]
+     fn test_details_codemap_formatting() {
+         let file = ExtractedFile {
+diff --git a/apps/codemap-search/src/codemap/monorepo.rs b/apps/codemap-search/src/codemap/monorepo.rs
+index de1f78f9f6ccf15fb47980838b2b0b9a2406be19..4c397af5d8e7bd45f414fabd7a57b2122902e600 100644
+--- a/apps/codemap-search/src/codemap/monorepo.rs
++++ b/apps/codemap-search/src/codemap/monorepo.rs
+@@ -219,7 +219,7 @@ impl std::fmt::Display for MonorepoRootCodemap {
+         writeln!(formatter)?;
+         writeln!(
+             formatter,
+-            "## Workspace Scopes (choose one before reading or editing)"
++            "## Workspace Scopes (choose one for broad index-backed discovery)"
+         )?;
+         for scope in &self.scopes {
+             writeln!(
+diff --git a/apps/codemap-search/src/config.rs b/apps/codemap-search/src/config.rs
+index 7ee3e2941d95b17db5bfe4db15340c0226f77194..2f6625baf5e6bbbe653f910f6aab466d61d4a284 100644
+--- a/apps/codemap-search/src/config.rs
++++ b/apps/codemap-search/src/config.rs
+@@ -83,7 +83,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
+ /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
+ /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
+ /// start. Comment-only localization does not bump this version.
+-const CONFIG_VERSION: u32 = 5;
++const CONFIG_VERSION: u32 = 6;
+ /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
+ /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
+ /// (each presence-guarded) so it converges to the current schema without duplicating any key
+@@ -176,15 +176,21 @@ pub struct ResolvedConfig {
+     /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
+     /// every tool workspace-confined unless configured otherwise.
+     pub filesystem_permissions: FilesystemPermissions,
+-    /// `grep` content-mode column cap (default 500, matching Claude Code's `--max-columns
+-    /// 500`). A matched line wider than this is replaced with `[Omitted long matching
+-    /// line]`; `0` disables the cap. Output-size only.
++    /// `grep` content-mode per-line excerpt budget (default 500 bytes). Long matching lines
++    /// are excerpted around the first match; `0` disables only this per-line limit. Output-size
++    /// only; [`Self::grep_output_byte_cap`] still limits the complete response.
+     pub grep_max_columns: usize,
++    /// Hard byte ceiling for one `grep` response (default 32768 ≈ 32 KiB), including content,
++    /// locations, summaries, and continuation guidance.
++    pub grep_output_byte_cap: usize,
+     /// `read` always-applied output ceiling in bytes (default 102400 ≈ 100 KiB). Even with
+     /// `offset`/`limit` set, a `read` whose rendered output exceeds this throws instead of
+     /// emitting an unbounded blob (approximates Claude Code's ~25,000-token cap). Distinct
+     /// from the 256 KiB whole-file cap that applies only when `limit` is omitted.
+     pub read_output_byte_cap: usize,
++    /// Hard byte ceiling for one MCP `overview` response (default 8192 = 8 KiB), including
++    /// titles, totals, omission status, and follow-up guidance.
++    pub overview_output_byte_cap: usize,
+     /// `search` detail-view per-symbol snippet line cap (default 80). A symbol body longer
+     /// than this is truncated with an elision marker. Output-size only.
+     pub search_detail_snippet_max_lines: usize,
+@@ -276,7 +282,9 @@ impl Default for ResolvedConfig {
+             is_build_support_enabled: false,
+             filesystem_permissions: FilesystemPermissions::default(),
+             grep_max_columns: 500,
++            grep_output_byte_cap: 32_768,
+             read_output_byte_cap: 102_400,
++            overview_output_byte_cap: 8_192,
+             search_detail_snippet_max_lines: 80,
+             search_detail_symbol_limit: 20,
+             search_detail_byte_cap: 32_768,
+@@ -320,7 +328,9 @@ struct ConfigLayer {
+     is_build_support_enabled: Option<bool>,
+     filesystem_permissions: FilesystemPermissionsLayer,
+     grep_max_columns: Option<usize>,
++    grep_output_byte_cap: Option<usize>,
+     read_output_byte_cap: Option<usize>,
++    overview_output_byte_cap: Option<usize>,
+     search_detail_snippet_max_lines: Option<usize>,
+     search_detail_symbol_limit: Option<usize>,
+     search_detail_byte_cap: Option<usize>,
+@@ -475,7 +485,13 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
+                 | "search_literal_limit"
+                 | "search_anchor_snippet_limit"
+         ),
+-        "tool_output" => matches!(key, "grep_max_columns" | "read_output_byte_cap"),
++        "tool_output" => matches!(
++            key,
++            "grep_max_columns"
++                | "grep_output_byte_cap"
++                | "read_output_byte_cap"
++                | "overview_output_byte_cap"
++        ),
+         "caller_context" => matches!(
+             key,
+             "caller_context_default"
+@@ -542,9 +558,15 @@ fn assign_config_key(
+             layer.is_build_support_enabled = as_bool(value, key_display, path)
+         }
+         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
++        "grep_output_byte_cap" => {
++            layer.grep_output_byte_cap = as_positive_usize(value, key_display, path)
++        }
+         "read_output_byte_cap" => {
+             layer.read_output_byte_cap = as_positive_usize(value, key_display, path)
+         }
++        "overview_output_byte_cap" => {
++            layer.overview_output_byte_cap = as_positive_usize(value, key_display, path)
++        }
+         "search_detail_snippet_max_lines" => {
+             layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
+         }
+@@ -668,10 +690,18 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
+             .grep_max_columns
+             .or(global.grep_max_columns)
+             .unwrap_or(defaults.grep_max_columns),
++        grep_output_byte_cap: repo
++            .grep_output_byte_cap
++            .or(global.grep_output_byte_cap)
++            .unwrap_or(defaults.grep_output_byte_cap),
+         read_output_byte_cap: repo
+             .read_output_byte_cap
+             .or(global.read_output_byte_cap)
+             .unwrap_or(defaults.read_output_byte_cap),
++        overview_output_byte_cap: repo
++            .overview_output_byte_cap
++            .or(global.overview_output_byte_cap)
++            .unwrap_or(defaults.overview_output_byte_cap),
+         search_detail_snippet_max_lines: repo
+             .search_detail_snippet_max_lines
+             .or(global.search_detail_snippet_max_lines)
+@@ -1155,6 +1185,22 @@ const MIGRATIONS: &[Migration] = &[
+         english_block: "# Shell scripts\n# Includes `.sh`, `.bash`, and `.zsh`.\n# Direct read/parse/find/grep remain available when false.\n# is_shell_support_enabled = false",
+         korean_block: "# 셸 스크립트\n# `.sh`, `.bash`, `.zsh`를 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_shell_support_enabled = false",
+     },
++    // Insert in reverse display order because both v6 keys belong immediately after the
++    // same `[tool_output]` header. The migrated file then reads grep cap before overview cap.
++    Migration {
++        version: 6,
++        key: "overview_output_byte_cap",
++        placement: KeyPlacement::Subtable("tool_output"),
++        english_block: "# Hard byte cap for one overview response, including omission status and follow-up guidance.\n# overview_output_byte_cap = 8192",
++        korean_block: "# 생략 상태와 후속 조회 안내를 포함한 overview 응답 하나의 바이트 상한입니다.\n# overview_output_byte_cap = 8192",
++    },
++    Migration {
++        version: 6,
++        key: "grep_output_byte_cap",
++        placement: KeyPlacement::Subtable("tool_output"),
++        english_block: "# Hard byte cap for one grep response, including locations, summaries, and continuation guidance.\n# grep_output_byte_cap = 32768",
++        korean_block: "# 위치, 요약, 이어보기 안내를 포함한 grep 응답 하나의 바이트 상한입니다.\n# grep_output_byte_cap = 32768",
++    },
+ ];
+ 
+ /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
+@@ -1561,6 +1607,10 @@ mod tests {
+         assert!(cfg.use_git_exclude);
+         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
+         assert_eq!(cfg.search_anchor_snippet_limit, 3);
++        assert_eq!(cfg.grep_max_columns, 500);
++        assert_eq!(cfg.grep_output_byte_cap, 32_768);
++        assert_eq!(cfg.read_output_byte_cap, 102_400);
++        assert_eq!(cfg.overview_output_byte_cap, 8_192);
+         // Caller/callee context: annotation on by default, caps at their tuned values.
+         assert!(cfg.caller_context_default);
+         assert_eq!(cfg.scan_cap, 500);
+@@ -1623,6 +1673,24 @@ mod tests {
+         assert_eq!(cfg.max_file_size, 10, "global wins where repo is silent");
+     }
+ 
++    #[test]
++    fn test_tool_output_caps_merge_per_key() {
++        let repo = tempdir().unwrap();
++        let global = tempdir().unwrap();
++        fs::write(
++            global.path().join(CONFIG_FILE_NAME),
++            "[tool_output]\ngrep_output_byte_cap = 12000\noverview_output_byte_cap = 6000\n",
++        )
++        .unwrap();
++        write_repo_config(
++            repo.path(),
++            "[tool_output]\noverview_output_byte_cap = 7000\n",
++        );
++        let cfg = load(repo.path(), global.path());
++        assert_eq!(cfg.grep_output_byte_cap, 12_000);
++        assert_eq!(cfg.overview_output_byte_cap, 7_000);
++    }
++
+     #[test]
+     fn test_language_support_repo_overrides_global_and_bad_type_falls_back() {
+         let repo = tempdir().unwrap();
+@@ -1956,7 +2024,7 @@ mod tests {
+             let migrated =
+                 apply_migrations_with_language(original, 3, CONFIG_VERSION, MIGRATIONS, language)
+                     .unwrap();
+-            assert!(migrated.contains("# codemap-config-version: 5"));
++            assert!(migrated.contains(&format!("# codemap-config-version: {CONFIG_VERSION}")));
+             assert!(migrated.contains("# [language_support]"));
+             assert!(migrated.contains("# is_document_support_enabled = false"));
+             assert!(migrated.contains("# is_shell_support_enabled = false"));
+@@ -1984,6 +2052,37 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn test_v6_output_cap_migrations_are_localized_additive_and_ordered() {
++        let original = "# codemap-config-version: 5\n\n[tool_output]\n# grep_max_columns = 500\n# read_output_byte_cap = 102400\n\n[filesystem_permissions]\nfind = \"workspace\"\n";
++        for (language, expected_comment) in [
++            (
++                ConfigCommentLanguage::English,
++                "Hard byte cap for one overview response",
++            ),
++            (
++                ConfigCommentLanguage::Korean,
++                "overview 응답 하나의 바이트 상한",
++            ),
++        ] {
++            let migrated =
++                apply_migrations_with_language(original, 5, 6, MIGRATIONS, language).unwrap();
++            assert!(migrated.contains("# codemap-config-version: 6"));
++            assert!(migrated.contains(expected_comment));
++            let tool_output = migrated.find("[tool_output]").unwrap();
++            let grep_cap = migrated.find("grep_output_byte_cap").unwrap();
++            let overview_cap = migrated.find("overview_output_byte_cap").unwrap();
++            let permissions = migrated.find("[filesystem_permissions]").unwrap();
++            assert!(
++                tool_output < grep_cap && grep_cap < overview_cap && overview_cap < permissions
++            );
++            assert_eq!(migrated.matches("grep_output_byte_cap").count(), 1);
++            assert_eq!(migrated.matches("overview_output_byte_cap").count(), 1);
++            assert!(migrated.contains("# grep_max_columns = 500"));
++            assert!(migrated.contains("find = \"workspace\""));
++        }
++    }
++
+     #[test]
+     fn test_set_version_marker_replaces_or_prepends() {
+         // replace an existing marker in place
+diff --git a/apps/codemap-search/src/config_template.ko.toml b/apps/codemap-search/src/config_template.ko.toml
+index 233f0548d9fab67bacaf572428e08abf742930f1..2ef682c22ca8a438550f0d2f3b027eae5e091180 100644
+--- a/apps/codemap-search/src/config_template.ko.toml
++++ b/apps/codemap-search/src/config_template.ko.toml
+@@ -1,4 +1,4 @@
+-# codemap-config-version: 5
++# codemap-config-version: 6
+ # 이 저장소의 codemap-search 설정입니다.
+ # 아래 값들은 확인하기 쉽도록 명시한 내장 기본값입니다.
+ # 저장소 설정은 항목별로 전역 설정보다 우선합니다: repo > global > built-in default.
+@@ -177,16 +177,26 @@ common_name_threshold = 2
+ caller_omit_def_threshold = 5
+ 
+ [tool_output]
+-# grep content 모드에서 매칭 줄에 표시할 최대 열 수입니다.
+-# 높을수록 긴 줄을 더 보존합니다. 0은 열 상한을 비활성화합니다.
+-# 낮을수록 긴 줄이나 minified 줄이 `[Omitted long matching line]`으로 더 많이 생략됩니다.
++# grep content 모드에서 매칭 줄 하나에 사용할 발췌 바이트 예산입니다.
++# 높을수록 첫 일치 주변의 긴 줄을 더 보존합니다. 0은 이 행별 제한만 비활성화합니다.
++# 낮을수록 긴 JSON/minified 줄이 짧아집니다. 전체 응답 상한은 계속 적용됩니다.
+ grep_max_columns = 500
+ 
++# grep 응답 하나가 반환할 최대 렌더링 바이트 수입니다.
++# 높을수록 이어보기 전까지 더 많은 일치/문맥 묶음을 완전히 표시합니다.
++# 낮을수록 페이지가 짧아지고 `next_offset`에 더 빨리 도달합니다.
++grep_output_byte_cap = 32768 # 32 KiB
++
+ # read가 반환할 최대 렌더링 바이트 수입니다.
+ # 높을수록 더 큰 read 창을 허용합니다.
+ # 낮을수록 더 좁은 read를 빨리 요구하고 큰 출력에서 클라이언트를 보호합니다.
+ read_output_byte_cap = 102400
+ 
++# overview 응답 하나가 반환할 최대 렌더링 바이트 수입니다.
++# 높을수록 디렉터리, 파일, 심볼을 한 응답에 더 많이 표시합니다.
++# 낮을수록 개요가 짧아지고 더 좁은 overview/find/read 후속 조회를 안내합니다.
++overview_output_byte_cap = 8192 # 8 KiB
++
+ [filesystem_permissions]
+ # find/grep/read에 허용되는 값:
+ # - "workspace": 현재 작업공간 안의 경로만 허용합니다.
+diff --git a/apps/codemap-search/src/config_template.toml b/apps/codemap-search/src/config_template.toml
+index e881bd84316b63320e78bd611bd9dd747de215fa..9cbf86374bd2319484ffbac50de8895402aec60f 100644
+--- a/apps/codemap-search/src/config_template.toml
++++ b/apps/codemap-search/src/config_template.toml
+@@ -1,4 +1,4 @@
+-# codemap-config-version: 5
++# codemap-config-version: 6
+ # codemap-search config for this repo.
+ # These values are the built-in defaults, written explicitly for discoverability.
+ # Repo config wins over global config per setting: repo > global > built-in default.
+@@ -177,16 +177,26 @@ common_name_threshold = 2
+ caller_omit_def_threshold = 5
+ 
+ [tool_output]
+-# Maximum columns shown for a grep content-mode matching line.
+-# Higher: preserves longer lines; 0 disables the column cap.
+-# Lower: omits more long/minified lines as `[Omitted long matching line]`.
++# Per-line excerpt byte budget for a grep content-mode matching line.
++# Higher: preserves more of a long line around its first match; 0 disables only this line cap.
++# Lower: keeps long JSON/minified lines compact. The complete response cap still applies.
+ grep_max_columns = 500
+ 
++# Maximum rendered bytes returned by one grep response.
++# Higher: shows more complete match/context groups before continuation.
++# Lower: returns shorter pages and reaches `next_offset` sooner.
++grep_output_byte_cap = 32768 # 32 KiB
++
+ # Maximum rendered bytes returned by read.
+ # Higher: larger read windows can succeed.
+ # Lower: forces narrower reads sooner and protects clients from large output.
+ read_output_byte_cap = 102400
+ 
++# Maximum rendered bytes returned by one overview response.
++# Higher: shows more directories, files, or symbols in one response.
++# Lower: keeps orientation compact and points to a narrower overview/find/read follow-up.
++overview_output_byte_cap = 8192 # 8 KiB
++
+ [filesystem_permissions]
+ # Valid values for find/grep/read:
+ # - "workspace": allow paths inside the current workspace only.
+diff --git a/apps/codemap-search/src/index/indexer.rs b/apps/codemap-search/src/index/indexer.rs
+index 4b5544a0bd93ede0aed9a91f2b0c20c2bee94111..863d282fce0e7bc30e2f6aecf4d297fe1cf184c1 100644
+--- a/apps/codemap-search/src/index/indexer.rs
++++ b/apps/codemap-search/src/index/indexer.rs
+@@ -282,9 +282,21 @@ impl IndexerHandle {
+         query: &str,
+         limit: usize,
+         context: &super::SearchQueryContext,
++    ) -> Result<(Vec<super::SearchResult>, Arc<PublishedIndexSnapshot>), String> {
++        self.search_with_context_and_scope(searcher, query, limit, context, None)
++    }
++
++    pub(crate) fn search_with_context_and_scope(
++        &self,
++        searcher: &super::SearcherHandle,
++        query: &str,
++        limit: usize,
++        context: &super::SearchQueryContext,
++        workspace_scope: Option<&str>,
+     ) -> Result<(Vec<super::SearchResult>, Arc<PublishedIndexSnapshot>), String> {
+         let _generation_guard = self.generation_gate.read().unwrap();
+-        let results = searcher.search_with_context(query, limit, context)?;
++        let results =
++            searcher.search_with_context_and_scope(query, limit, context, workspace_scope)?;
+         Ok((results, self.snapshot.lock().unwrap().clone()))
+     }
+ 
+diff --git a/apps/codemap-search/src/index/ranking.rs b/apps/codemap-search/src/index/ranking.rs
+index b43b383dba83b8aaaf599da626404da3c67d94c1..f58b62ccac7d4f7763660f4369a8f83e1821d572 100644
+--- a/apps/codemap-search/src/index/ranking.rs
++++ b/apps/codemap-search/src/index/ranking.rs
+@@ -1,11 +1,14 @@
+ use super::{SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle};
+ use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, QueryTokens};
+ use std::collections::{HashMap, HashSet};
++use std::ops::Bound;
+ use std::path::Path;
+ use tantivy::collector::TopDocs;
+-use tantivy::query::QueryParser;
+-use tantivy::schema::Value;
+-use tantivy::{DocAddress, TantivyDocument};
++use tantivy::query::{
++    BooleanQuery, ConstScoreQuery, Occur, Query, QueryParser, RangeQuery, TermQuery,
++};
++use tantivy::schema::{IndexRecordOption, Value};
++use tantivy::{DocAddress, TantivyDocument, Term};
+ 
+ /// Runs a query-parse attempt and converts a panic into `None`. tantivy 0.26's
+ /// query grammar `panic!`s instead of returning `Err` on some adversarial inputs
+@@ -462,6 +465,41 @@ fn is_test_like_path(path: &str) -> bool {
+ }
+ 
+ impl SearcherHandle {
++    /// Use the existing untokenized path field, so punctuation is literal and no schema
++    /// migration is needed. The slash/zero bounds select descendants at a path boundary.
++    fn apply_workspace_scope(&self, query: Box<dyn Query>, scope: Option<&str>) -> Box<dyn Query> {
++        let Some(scope) = scope else {
++            return query;
++        };
++        let descendants = RangeQuery::new(
++            Bound::Included(Term::from_field_text(
++                self.file_path_field,
++                &format!("{scope}/"),
++            )),
++            Bound::Excluded(Term::from_field_text(
++                self.file_path_field,
++                &format!("{scope}0"),
++            )),
++        );
++        let path_filter = BooleanQuery::new(vec![
++            (Occur::Should, Box::new(descendants)),
++            (
++                Occur::Should,
++                Box::new(TermQuery::new(
++                    Term::from_field_text(self.file_path_field, scope),
++                    IndexRecordOption::Basic,
++                )),
++            ),
++        ]);
++        Box::new(BooleanQuery::new(vec![
++            (Occur::Must, query),
++            (
++                Occur::Must,
++                Box::new(ConstScoreQuery::new(Box::new(path_filter), 0.0)),
++            ),
++        ]))
++    }
++
+     /// BM25 search over the committed index snapshot. Reads index/reader/field handles
+     /// only — moved verbatim from the former `TantivySearchEngine::search`.
+     pub fn search(&self, query_str: &str, limit: usize) -> Result<Vec<SearchResult>, String> {
+@@ -473,6 +511,16 @@ impl SearcherHandle {
+         query_str: &str,
+         limit: usize,
+         context: &SearchQueryContext,
++    ) -> Result<Vec<SearchResult>, String> {
++        self.search_with_context_and_scope(query_str, limit, context, None)
++    }
++
++    pub(crate) fn search_with_context_and_scope(
++        &self,
++        query_str: &str,
++        limit: usize,
++        context: &SearchQueryContext,
++        workspace_scope: Option<&str>,
+     ) -> Result<Vec<SearchResult>, String> {
+         if query_str.len() > 10000 {
+             return Err("Query too long".to_string());
+@@ -541,6 +589,7 @@ impl SearcherHandle {
+             }
+         };
+ 
++        let query = self.apply_workspace_scope(query, workspace_scope);
+         let top_docs = searcher
+             .search(&query, &TopDocs::with_limit(limit).order_by_score())
+             .map_err(|e| e.to_string())?;
+@@ -560,6 +609,7 @@ impl SearcherHandle {
+             if let Some(Ok(token_query)) =
+                 parse_query_catching_panic(|| query_parser.parse_query(query_tokens.search_text()))
+             {
++                let token_query = self.apply_workspace_scope(token_query, workspace_scope);
+                 let supplemental_top_docs = searcher
+                     .search(&token_query, &TopDocs::with_limit(limit).order_by_score())
+                     .map_err(|e| e.to_string())?;
+@@ -734,3 +784,120 @@ impl SearcherHandle {
+         Ok(results)
+     }
+ }
++
++#[cfg(test)]
++mod scope_tests {
++    use super::*;
++    use crate::index::TantivySearchEngine;
++    use tantivy::doc;
++
++    fn scoped_index(paths: &[(&str, &str)]) -> (tempfile::TempDir, TantivySearchEngine) {
++        let temp = tempfile::tempdir().unwrap();
++        let engine = TantivySearchEngine::new(temp.path().to_str().unwrap()).unwrap();
++        let mut writer = engine.index.writer::<TantivyDocument>(50_000_000).unwrap();
++        for (path, terms) in paths {
++            let extracted = serde_json::json!({
++                "filePath": path, "totalLines": 1, "literals": [], "docstrings": [],
++                "symbols": [{"name": "get", "kind": "method", "owner": "StorageFactory",
++                    "range": {"startLine": 1, "endLine": 1, "startCol": 0, "endCol": 1},
++                    "docstring": null,
++                    "flags": {"hasTodo": false, "hasFixme": false, "isTest": false,
++                        "isExported": true, "isDeprecated": false}}]
++            });
++            writer
++                .add_document(doc!(
++                    engine.file_path_field => *path,
++                    engine.symbol_field => *terms,
++                    engine.extracted_json_field => extracted.to_string(),
++                ))
++                .unwrap();
++        }
++        writer.commit().unwrap();
++        engine.reader.reload().unwrap();
++        drop(writer);
++        (temp, engine)
++    }
++
++    #[test]
++    fn test_workspace_scope_filters_before_candidate_limit_without_changing_scores() {
++        let mut paths = Vec::new();
++        for i in 0..510 {
++            paths.push((format!("apps/api2/strong{i}.rs"), "needle".to_string()));
++        }
++        for i in 0..101 {
++            paths.push((
++                format!("apps/api/weak{i}.rs"),
++                format!("needle {}", "padding ".repeat(100)),
++            ));
++        }
++        let refs: Vec<_> = paths
++            .iter()
++            .map(|(path, terms)| (path.as_str(), terms.as_str()))
++            .collect();
++        let (_temp, engine) = scoped_index(&refs);
++        let handle = engine.searcher_handle();
++        let unscoped = handle.search("needle", 500).unwrap();
++        assert!(unscoped
++            .iter()
++            .all(|result| result.file_path.starts_with("apps/api2/")));
++        let scoped = handle
++            .search_with_context_and_scope(
++                "needle",
++                100,
++                &SearchQueryContext::default(),
++                Some("apps/api"),
++            )
++            .unwrap();
++        assert_eq!(scoped.len(), 100);
++        assert!(scoped
++            .iter()
++            .all(|result| result.file_path.starts_with("apps/api/")));
++        let all = handle.search("needle", 1000).unwrap();
++        for result in scoped {
++            let original = all
++                .iter()
++                .find(|other| other.file_path == result.file_path)
++                .unwrap();
++            assert_eq!(
++                result.score, original.score,
++                "the path filter must contribute no score"
++            );
++        }
++    }
++
++    #[test]
++    fn test_workspace_scope_is_literal_and_reaches_fallback_and_qualified_supplement() {
++        let scope = "apps/api[legacy]+(v2) 한글";
++        let inside = format!("{scope}/target.rs");
++        let neighbor = format!("{scope}2/target.rs");
++        // Reversed tokens prevent the quoted phrase from matching the primary query;
++        // the owner-qualified plain-token supplement must find the in-scope document.
++        let (_temp, engine) = scoped_index(&[
++            (&inside, "get storagefactory storage factory"),
++            (&neighbor, "get storagefactory storage factory"),
++            ("apps/other/target.rs", "get storagefactory storage factory"),
++        ]);
++        let handle = engine.searcher_handle();
++        let parser = QueryParser::for_index(&engine.index, vec![engine.symbol_field]);
++        assert!(parser.parse_query("get(").is_err());
++        let primary_phrase = parser.parse_query("\"StorageFactory::get\"").unwrap();
++        assert!(engine
++            .reader
++            .searcher()
++            .search(&primary_phrase, &TopDocs::with_limit(100).order_by_score())
++            .unwrap()
++            .is_empty());
++        for query in ["get", "get(", "\"StorageFactory::get\""] {
++            let results = handle
++                .search_with_context_and_scope(
++                    query,
++                    100,
++                    &SearchQueryContext::default(),
++                    Some(scope),
++                )
++                .unwrap();
++            assert_eq!(results.len(), 1, "query {query:?}: {results:?}");
++            assert_eq!(results[0].file_path, inside);
++        }
++    }
++}
+diff --git a/apps/codemap-search/src/index/supervisor.rs b/apps/codemap-search/src/index/supervisor.rs
+index 4651237647efa7dc58acf04c5c32da91e8d086bf..8b759526c72be1b1f14409c4e2ff270dce8fe41e 100644
+--- a/apps/codemap-search/src/index/supervisor.rs
++++ b/apps/codemap-search/src/index/supervisor.rs
+@@ -173,6 +173,22 @@ impl EngineSupervisor {
+             .search_with_context(&self.searcher, query, limit, context)
+     }
+ 
++    pub(crate) fn search_scoped_with_context_and_snapshot(
++        &self,
++        query: &str,
++        limit: usize,
++        context: &SearchQueryContext,
++        workspace_scope: Option<&str>,
++    ) -> Result<(Vec<SearchResult>, Arc<super::PublishedIndexSnapshot>), String> {
++        self.indexer.search_with_context_and_scope(
++            &self.searcher,
++            query,
++            limit,
++            context,
++            workspace_scope,
++        )
++    }
++
+     /// The current immutable index generation. Relation rendering reads this alongside its
+     /// declaration evidence, so refreshes cannot mix codemap and edge generations.
+     pub fn published_snapshot(&self) -> Arc<super::PublishedIndexSnapshot> {
+diff --git a/apps/codemap-search/src/tools/grep.rs b/apps/codemap-search/src/tools/grep.rs
+index 2fefd9c263f3141cb828241bbadc91c26656f618..acb4358e3c074a4fb75b4c42da62cce01cc49b92 100644
+--- a/apps/codemap-search/src/tools/grep.rs
++++ b/apps/codemap-search/src/tools/grep.rs
+@@ -1,140 +1,204 @@
+-//! `grep` — literal/regex content search over file contents, powered by ripgrep's
+-//! `grep`/`grep-searcher`/`grep-regex` library crates. Mirrors Claude Code's Grep
+-//! (same parameter names `-i`/`-n`/`-A`/`-B`/`-C`, `output_mode`, `head_limit`,
+-//! `glob`, `type`) so an agent can swap its built-in. Respects `.gitignore` +
+-//! `.codemapignore` by default (decided divergence) with an `include_ignored`
+-//! override. Reads disk directly, so it sees comments and just-changed files the
+-//! BM25 index can miss — this realizes the spec's "rg 역할" alongside `search`.
++//! `grep` — exact regex or fixed-string search over live files.
+ 
+ use super::{
+     arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
+ };
+ use crate::workspace::{build_walker, current_dir, resolve_for_filesystem_tool, FilesystemTool};
++use grep::matcher::Matcher;
+ use grep::regex::RegexMatcherBuilder;
+ use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
+ use serde_json::Value;
++use std::collections::BTreeMap;
++use std::ops::Range;
+ use std::time::SystemTime;
+ 
+ const DEFAULT_HEAD_LIMIT: usize = 250;
++const MIN_EXCERPT_BYTES: usize = 16;
+ 
+-struct LineHit {
++#[derive(Clone)]
++struct SourceLine {
++    bytes: Vec<u8>,
++}
++
++#[derive(Clone, Debug)]
++struct MatchLine {
+     line_number: u64,
+-    text: String,
+-    is_match: bool,
++    ranges: Vec<Range<usize>>,
++}
++
++#[derive(Clone, Debug)]
++struct MatchRegion {
++    start_line: u64,
++    end_line: u64,
++    absolute_byte_offset: u64,
++    lines: Vec<MatchLine>,
++}
++
++struct CollectSink<'m, M: Matcher> {
++    matcher: &'m M,
++    lines: BTreeMap<u64, SourceLine>,
++    regions: Vec<MatchRegion>,
+ }
+ 
+-/// Collects matched + context lines for a single file. `occurrences` counts match
+-/// regions (ripgrep "count" semantics), not physical lines.
+-struct CollectSink {
+-    hits: Vec<LineHit>,
+-    occurrences: usize,
++fn strip_eol_bytes(mut bytes: &[u8]) -> &[u8] {
++    if bytes.last() == Some(&b'\n') {
++        bytes = &bytes[..bytes.len() - 1];
++    }
++    if bytes.last() == Some(&b'\r') {
++        bytes = &bytes[..bytes.len() - 1];
++    }
++    bytes
+ }
+ 
+-fn strip_eol(s: &str) -> &str {
+-    let s = s.strip_suffix('\n').unwrap_or(s);
+-    s.strip_suffix('\r').unwrap_or(s)
++fn split_lines_with_offsets(bytes: &[u8]) -> Vec<(usize, &[u8])> {
++    let mut lines = Vec::new();
++    let mut start = 0;
++    for (index, byte) in bytes.iter().enumerate() {
++        if *byte == b'\n' {
++            lines.push((start, strip_eol_bytes(&bytes[start..=index])));
++            start = index + 1;
++        }
++    }
++    if start < bytes.len() {
++        lines.push((start, strip_eol_bytes(&bytes[start..])));
++    }
++    if lines.is_empty() {
++        lines.push((0, &[]));
++    }
++    lines
+ }
+ 
+-impl Sink for CollectSink {
++impl<M: Matcher> Sink for CollectSink<'_, M> {
+     type Error = std::io::Error;
+ 
+-    fn matched(
+-        &mut self,
+-        _searcher: &Searcher,
+-        mat: &SinkMatch<'_>,
+-    ) -> Result<bool, std::io::Error> {
+-        let start = mat.line_number().unwrap_or(0);
+-        let cow = String::from_utf8_lossy(mat.bytes());
+-        let text: &str = cow.as_ref();
+-        let text = text.strip_suffix('\n').unwrap_or(text);
+-        // A match region may span several physical lines under multiline search.
+-        for (i, line) in text.split('\n').enumerate() {
+-            let line = line.strip_suffix('\r').unwrap_or(line);
+-            self.hits.push(LineHit {
+-                line_number: start + i as u64,
+-                text: line.to_string(),
+-                is_match: true,
++    fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> Result<bool, Self::Error> {
++        let bytes = mat.bytes();
++        let mut actual_matches = Vec::new();
++        self.matcher
++            .find_iter(bytes, |found| {
++                actual_matches.push(found.start()..found.end());
++                true
++            })
++            .map_err(|error| std::io::Error::other(error.to_string()))?;
++
++        let first_line = mat.line_number().unwrap_or(0);
++        let physical_lines = split_lines_with_offsets(bytes);
++        let mut match_lines = Vec::new();
++        for (line_index, (line_start, line_bytes)) in physical_lines.iter().enumerate() {
++            let line_number = first_line + line_index as u64;
++            self.lines.insert(
++                line_number,
++                SourceLine {
++                    bytes: line_bytes.to_vec(),
++                },
++            );
++            let line_end = line_start.saturating_add(line_bytes.len());
++            let raw_line_end = physical_lines
++                .get(line_index + 1)
++                .map(|(next_start, _)| *next_start)
++                .unwrap_or(bytes.len());
++            let mut ranges = Vec::new();
++            for found in &actual_matches {
++                if found.start == found.end {
++                    if found.start >= *line_start && found.start <= line_end {
++                        let point = found
++                            .start
++                            .saturating_sub(*line_start)
++                            .min(line_bytes.len());
++                        ranges.push(point..point);
++                    }
++                    continue;
++                }
++                let start = found.start.max(*line_start);
++                let end = found.end.min(raw_line_end);
++                if start < end {
++                    ranges.push(start - *line_start..end - *line_start);
++                }
++            }
++            if ranges.is_empty() && actual_matches.is_empty() && line_index == 0 {
++                ranges.push(0..0);
++            }
++            if !ranges.is_empty() {
++                match_lines.push(MatchLine {
++                    line_number,
++                    ranges,
++                });
++            }
++        }
++
++        if match_lines.is_empty() {
++            match_lines.push(MatchLine {
++                line_number: first_line,
++                ranges: vec![0..0],
+             });
+         }
+-        self.occurrences += 1;
++        let start_line = match_lines
++            .first()
++            .map(|line| line.line_number)
++            .unwrap_or(first_line);
++        let end_line = match_lines
++            .last()
++            .map(|line| line.line_number)
++            .unwrap_or(first_line);
++        self.regions.push(MatchRegion {
++            start_line,
++            end_line,
++            absolute_byte_offset: mat.absolute_byte_offset(),
++            lines: match_lines,
++        });
+         Ok(true)
+     }
+ 
+     fn context(
+         &mut self,
+         _searcher: &Searcher,
+-        ctx: &SinkContext<'_>,
+-    ) -> Result<bool, std::io::Error> {
+-        let cow = String::from_utf8_lossy(ctx.bytes());
+-        let line = strip_eol(cow.as_ref());
+-        self.hits.push(LineHit {
+-            line_number: ctx.line_number().unwrap_or(0),
+-            text: line.to_string(),
+-            is_match: false,
+-        });
++        context: &SinkContext<'_>,
++    ) -> Result<bool, Self::Error> {
++        self.lines
++            .entry(context.line_number().unwrap_or(0))
++            .or_insert_with(|| SourceLine {
++                bytes: strip_eol_bytes(context.bytes()).to_vec(),
++            });
+         Ok(true)
+     }
+ }
+ 
+ struct FileResult {
+     path: String,
+-    hits: Vec<LineHit>,
+-    occurrences: usize,
+-    /// Modification time, used only to sort `files_with_matches` output (newest first).
++    lines: BTreeMap<u64, SourceLine>,
++    regions: Vec<MatchRegion>,
+     mtime: SystemTime,
+ }
+ 
+-/// Cap a line at the column limit, replacing an over-long line with ripgrep's omission
+-/// marker (`--max-columns` parity). Matched lines and context lines get distinct markers.
+-/// `max_columns == 0` disables the cap. Width is measured in bytes, matching ripgrep.
+-fn cap_line(text: &str, max_columns: usize, is_match: bool) -> String {
+-    if max_columns > 0 && text.len() > max_columns {
+-        if is_match {
+-            "[Omitted long matching line]".to_string()
+-        } else {
+-            "[Omitted long context line]".to_string()
+-        }
+-    } else {
+-        text.to_string()
+-    }
++#[derive(Clone, Copy)]
++struct RegionRef {
++    file_index: usize,
++    region_index: usize,
+ }
+ 
+-/// Slice `items` to one page and produce a pagination footer when truncated.
+-fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>, Option<String>) {
+-    let total = items.len();
+-    let start = offset.min(total);
+-    let limit = if head_limit == 0 { total } else { head_limit };
+-    let end = (start + limit).min(total);
+-    let page = items[start..end].to_vec();
+-    let truncated = start > 0 || end < total;
+-    let footer = if !truncated {
+-        None
+-    } else if page.is_empty() {
+-        Some(format!("[No results at offset {offset}; {total} total.]"))
+-    } else if end < total {
+-        Some(format!(
+-            "[Showing results {}-{} of {}; next_offset={}. Continue with offset={} and the same head_limit, or raise head_limit if you want a larger page.]",
+-            start + 1,
+-            end,
+-            total,
+-            end,
+-            end
+-        ))
+-    } else {
+-        Some(format!(
+-            "[Showing results {}-{} of {}; this is the last page.]",
+-            start + 1,
+-            end,
+-            total
+-        ))
+-    };
+-    (page, footer)
++#[derive(Clone, Copy)]
++struct RenderLimits {
++    before: usize,
++    after: usize,
++    requested_before: usize,
++    requested_after: usize,
++    line_bytes: usize,
++    region_lines: usize,
++}
++
++#[derive(Clone, Copy)]
++struct SelectedRegion {
++    region: RegionRef,
++    limits: RenderLimits,
++}
++
++#[derive(Clone, Copy)]
++struct SearchStats {
++    searched_files: usize,
++    traversal_errors: usize,
++    read_errors: usize,
+ }
+ 
+-/// Appended to every empty result so the agent knows which narrowing filters were in
+-/// effect and what to do next. Observed failure mode without it: agents rerun the same
+-/// pattern through a shell grep, or repeat the call unchanged. Names filters only — never
+-/// echoes argument values — to keep the reply short.
+ fn empty_result_hint(
+     path: &str,
+     glob_opt: Option<&str>,
+@@ -143,55 +207,639 @@ fn empty_result_hint(
+     multiline: bool,
+     include_ignored: bool,
+ ) -> String {
+-    let mut active_filters: Vec<&str> = Vec::new();
++    let mut filters = Vec::new();
+     if path != "." {
+-        active_filters.push("path");
++        filters.push("path");
+     }
+     if glob_opt.is_some() {
+-        active_filters.push("glob");
++        filters.push("glob");
+     }
+     if type_opt.is_some() {
+-        active_filters.push("type");
++        filters.push("type");
+     }
+     if !case_insensitive {
+-        active_filters.push("case-sensitive");
++        filters.push("case-sensitive");
+     }
+     if !multiline {
+-        active_filters.push("single-line");
++        filters.push("single-line");
+     }
+     if !include_ignored {
+-        active_filters.push("ignore files respected");
++        filters.push("ignore files respected");
+     }
+-    let active = if active_filters.is_empty() {
++    let active = if filters.is_empty() {
+         "none".to_string()
+     } else {
+-        active_filters.join(", ")
++        filters.join(", ")
+     };
++    format!("_Active filters: {active}. Do not rerun unchanged: check the pattern spelling and relax one filter (path, glob, type, -i, multiline, include_ignored). If the wording or location is only a guess, switch to `search` (scoped in a monorepo)._" )
++}
++
++fn partial_search_status(stats: SearchStats) -> Option<String> {
++    (stats.traversal_errors > 0 || stats.read_errors > 0).then(|| {
++        format!(
++            "[Partial search: {} traversal error(s) and {} file read error(s).]",
++            stats.traversal_errors, stats.read_errors
++        )
++    })
++}
++
++fn utf8_floor_boundary(bytes: &[u8], mut index: usize) -> usize {
++    index = index.min(bytes.len());
++    while index > 0 && index < bytes.len() && (bytes[index] & 0b1100_0000) == 0b1000_0000 {
++        index -= 1;
++    }
++    index
++}
++
++fn render_context_text(bytes: &[u8], byte_budget: usize) -> String {
++    if byte_budget == 0 || bytes.len() <= byte_budget {
++        return String::from_utf8_lossy(bytes).into_owned();
++    }
++    let end = utf8_floor_boundary(bytes, byte_budget);
+     format!(
+-        "_Active filters: {active}. Do not rerun unchanged: check the pattern spelling and relax one filter (path, glob, type, -i, multiline, include_ignored). If the wording or location is only a guess, switch to `search` (scoped in a monorepo)._"
++        "{}[…] [context bytes 1-{end} of {}]",
++        String::from_utf8_lossy(&bytes[..end]),
++        bytes.len()
+     )
+ }
+ 
++fn render_match_text(bytes: &[u8], ranges: &[Range<usize>], byte_budget: usize) -> String {
++    let has_line_terminator_match = ranges.iter().any(|range| range.end > bytes.len());
++    if (byte_budget == 0 || bytes.len() <= byte_budget) && !has_line_terminator_match {
++        return String::from_utf8_lossy(bytes).into_owned();
++    }
++    let first = ranges.first().cloned().unwrap_or(0..0);
++    if has_line_terminator_match && (byte_budget == 0 || bytes.len() <= byte_budget) {
++        let location = if first.start == first.end {
++            format!("match byte {}", first.start + 1)
++        } else {
++            format!("match bytes {}-{}", first.start + 1, first.end)
++        };
++        return format!(
++            "{} [{location}; includes line terminator]",
++            String::from_utf8_lossy(bytes)
++        );
++    }
++    let match_length = first.end.saturating_sub(first.start);
++    let mut start = if match_length >= byte_budget {
++        first.start
++    } else {
++        first
++            .start
++            .saturating_sub((byte_budget.saturating_sub(match_length)) / 2)
++    };
++    let mut end = start.saturating_add(byte_budget).min(bytes.len());
++    if end == bytes.len() {
++        start = end.saturating_sub(byte_budget);
++    }
++    start = utf8_floor_boundary(bytes, start);
++    end = utf8_floor_boundary(bytes, start.saturating_add(byte_budget).min(bytes.len()));
++    if end <= start {
++        let location = if first.start == first.end {
++            format!("match byte {}", first.start + 1)
++        } else {
++            format!("match bytes {}-{}", first.start + 1, first.end)
++        };
++        return format!(
++            "[…] [{location}; no complete UTF-8 code point fits the {byte_budget}-byte excerpt; partial match]"
++        );
++    }
++    let location = if first.start == first.end {
++        format!("match byte {}", first.start + 1)
++    } else {
++        format!("match bytes {}-{}", first.start + 1, first.end)
++    };
++    let mut annotations = vec![
++        location,
++        format!("excerpt bytes {}-{end} of {}", start + 1, bytes.len()),
++    ];
++    if has_line_terminator_match {
++        annotations.push("includes line terminator".to_string());
++    }
++    if ranges.len() > 1 {
++        annotations.push(format!("{} additional match(es)", ranges.len() - 1));
++    }
++    if first.start < start || first.end > end {
++        annotations.push("partial match".to_string());
++    }
++    format!(
++        "{}{}{} [{}]",
++        if start > 0 { "[…]" } else { "" },
++        String::from_utf8_lossy(&bytes[start..end]),
++        if end < bytes.len() { "[…]" } else { "" },
++        annotations.join("; ")
++    )
++}
++
++fn content_status(
++    start: usize,
++    end: usize,
++    total_regions: usize,
++    matching_files: usize,
++    stats: SearchStats,
++) -> String {
++    let mut status = if start == end {
++        format!("[No match regions at offset {start}; {total_regions} total.]")
++    } else if end < total_regions {
++        format!(
++            "[Showing match regions {}-{end} of {total_regions}; next_offset={end}. Continue with offset={end} and the same head_limit.]",
++            start + 1
++        )
++    } else if start > 0 {
++        format!(
++            "[Showing match regions {}-{end} of {total_regions}; this is the last page.]",
++            start + 1
++        )
++    } else {
++        format!("[Found {total_regions} match region(s) in {matching_files} file(s).]")
++    };
++    status.push_str(&format!("\n[Searched {} file(s).]", stats.searched_files));
++    if let Some(partial) = partial_search_status(stats) {
++        status.push('\n');
++        status.push_str(&partial);
++    }
++    status
++}
++
++fn render_content(
++    files: &[FileResult],
++    selected: &[SelectedRegion],
++    start: usize,
++    total_regions: usize,
++    stats: SearchStats,
++    show_line_numbers: bool,
++) -> String {
++    let mut requested_lines: BTreeMap<(usize, u64), (bool, usize)> = BTreeMap::new();
++    let mut partial_regions = Vec::new();
++    for selection in selected {
++        let selected_region = selection.region;
++        let limits = selection.limits;
++        let file = &files[selected_region.file_index];
++        let region = &file.regions[selected_region.region_index];
++        let shown_match_lines = region.lines.len().min(limits.region_lines);
++        let shown_end_line = region
++            .lines
++            .get(shown_match_lines.saturating_sub(1))
++            .map(|line| line.line_number)
++            .unwrap_or(region.start_line);
++        let context_start = region.start_line.saturating_sub(limits.before as u64);
++        let context_end = shown_end_line.saturating_add(limits.after as u64);
++        for (&line_number, _) in file.lines.range(context_start..=context_end) {
++            let entry = requested_lines
++                .entry((selected_region.file_index, line_number))
++                .or_insert((false, limits.line_bytes));
++            if entry.1 != 0 {
++                entry.1 = if limits.line_bytes == 0 {
++                    0
++                } else {
++                    entry.1.max(limits.line_bytes)
++                };
++            }
++        }
++        for line in region.lines.iter().take(shown_match_lines) {
++            let entry = requested_lines
++                .entry((selected_region.file_index, line.line_number))
++                .or_insert((true, limits.line_bytes));
++            entry.0 = true;
++            if entry.1 != 0 {
++                entry.1 = if limits.line_bytes == 0 {
++                    0
++                } else {
++                    entry.1.max(limits.line_bytes)
++                };
++            }
++        }
++        if shown_match_lines < region.lines.len() {
++            partial_regions.push(format!(
++                "[Partial match region in {}: showing lines {}-{shown_end_line} of original lines {}-{}; source byte offset {}.]",
++                file.path,
++                region.start_line,
++                region.start_line,
++                region.end_line,
++                region.absolute_byte_offset
++            ));
++        }
++        if limits.before < limits.requested_before || limits.after < limits.requested_after {
++            partial_regions.push(format!(
++                "[Context reduced for {}:lines {}-{}: showing up to {} before/{} after of requested {} before/{} after.]",
++                file.path,
++                region.start_line,
++                region.end_line,
++                limits.before,
++                limits.after,
++                limits.requested_before,
++                limits.requested_after
++            ));
++        }
++    }
++
++    let mut output_lines = Vec::new();
++    for ((file_index, line_number), (is_match, line_byte_budget)) in requested_lines {
++        let file = &files[file_index];
++        let Some(source) = file.lines.get(&line_number) else {
++            continue;
++        };
++        let separator = if is_match { ':' } else { '-' };
++        let rendered = if is_match {
++            let ranges: Vec<Range<usize>> = selected
++                .iter()
++                .filter(|selection| selection.region.file_index == file_index)
++                .flat_map(|selection| {
++                    files[file_index].regions[selection.region.region_index]
++                        .lines
++                        .iter()
++                        .filter(move |line| line.line_number == line_number)
++                        .flat_map(|line| line.ranges.clone())
++                })
++                .collect();
++            render_match_text(&source.bytes, &ranges, line_byte_budget)
++        } else {
++            render_context_text(&source.bytes, line_byte_budget)
++        };
++        if show_line_numbers {
++            output_lines.push(format!(
++                "{}{separator}{line_number}{separator}{rendered}",
++                file.path
++            ));
++        } else {
++            output_lines.push(format!("{}{separator}{rendered}", file.path));
++        }
++    }
++    output_lines.extend(partial_regions);
++    output_lines.push(content_status(
++        start,
++        start + selected.len(),
++        total_regions,
++        files.len(),
++        stats,
++    ));
++    output_lines.join("\n")
++}
++
++fn shrink_context(limits: RenderLimits) -> Option<RenderLimits> {
++    if limits.before == 0 && limits.after == 0 {
++        return None;
++    }
++    let mut next = limits;
++    if next.before >= next.after && next.before > 0 {
++        next.before = next.before.saturating_sub(next.before.max(2) / 2);
++    } else {
++        next.after = next.after.saturating_sub(next.after.max(2) / 2);
++    }
++    Some(next)
++}
++
++#[allow(clippy::too_many_arguments)]
++fn render_first_region_within_cap(
++    files: &[FileResult],
++    selected: RegionRef,
++    start: usize,
++    total_regions: usize,
++    stats: SearchStats,
++    show_line_numbers: bool,
++    initial_limits: RenderLimits,
++    byte_cap: usize,
++) -> Result<(String, RenderLimits), (i64, String)> {
++    let mut limits = initial_limits;
++    loop {
++        let output = render_content(
++            files,
++            &[SelectedRegion {
++                region: selected,
++                limits,
++            }],
++            start,
++            total_regions,
++            stats,
++            show_line_numbers,
++        );
++        if output.len() <= byte_cap {
++            return Ok((output, limits));
++        }
++        if let Some(smaller) = shrink_context(limits) {
++            limits = smaller;
++            continue;
++        }
++        if limits.line_bytes == 0 {
++            limits.line_bytes = files[selected.file_index]
++                .lines
++                .values()
++                .map(|line| line.bytes.len())
++                .max()
++                .unwrap_or(MIN_EXCERPT_BYTES);
++        }
++        if limits.line_bytes > MIN_EXCERPT_BYTES {
++            limits.line_bytes = (limits.line_bytes / 2).max(MIN_EXCERPT_BYTES);
++            continue;
++        }
++        if limits.region_lines > 1 {
++            limits.region_lines = (limits.region_lines / 2).max(1);
++            continue;
++        }
++        return Err((
++            -32602,
++            format!(
++                "grep_output_byte_cap ({byte_cap} bytes) is too small to include the first match location, excerpt, and continuation status"
++            ),
++        ));
++    }
++}
++
++#[allow(clippy::too_many_arguments)]
++fn render_content_page(
++    files: &[FileResult],
++    regions: &[RegionRef],
++    offset: usize,
++    head_limit: usize,
++    stats: SearchStats,
++    show_line_numbers: bool,
++    before: usize,
++    after: usize,
++    max_columns: usize,
++    byte_cap: usize,
++) -> Result<String, (i64, String)> {
++    let start = offset.min(regions.len());
++    let count_limit = if head_limit == 0 {
++        regions.len().saturating_sub(start)
++    } else {
++        head_limit.min(regions.len().saturating_sub(start))
++    };
++    if count_limit == 0 {
++        let mut output = format!(
++            "[No match regions at offset {offset}; {} total.]\n[Searched {} file(s).]",
++            regions.len(),
++            stats.searched_files
++        );
++        if let Some(partial) = partial_search_status(stats) {
++            output.push('\n');
++            output.push_str(&partial);
++        }
++        return if output.len() <= byte_cap {
++            Ok(output)
++        } else {
++            Err((
++                -32602,
++                format!(
++                    "grep_output_byte_cap ({byte_cap} bytes) is too small to include result status"
++                ),
++            ))
++        };
++    }
++
++    let first = regions[start];
++    let first_region_lines = files[first.file_index].regions[first.region_index]
++        .lines
++        .len()
++        .max(1);
++    let initial_limits = RenderLimits {
++        before,
++        after,
++        requested_before: before,
++        requested_after: after,
++        line_bytes: max_columns,
++        region_lines: first_region_lines,
++    };
++    let (mut best, limits) = render_first_region_within_cap(
++        files,
++        first,
++        start,
++        regions.len(),
++        stats,
++        show_line_numbers,
++        initial_limits,
++        byte_cap,
++    )?;
++    let mut selected = vec![SelectedRegion {
++        region: first,
++        limits,
++    }];
++    for region in regions
++        .iter()
++        .skip(start + 1)
++        .take(count_limit.saturating_sub(1))
++    {
++        let mut candidate = selected.clone();
++        let region_line_count = files[region.file_index].regions[region.region_index]
++            .lines
++            .len()
++            .max(1);
++        candidate.push(SelectedRegion {
++            region: *region,
++            limits: RenderLimits {
++                before,
++                after,
++                requested_before: before,
++                requested_after: after,
++                line_bytes: max_columns,
++                region_lines: region_line_count,
++            },
++        });
++        let output = render_content(
++            files,
++            &candidate,
++            start,
++            regions.len(),
++            stats,
++            show_line_numbers,
++        );
++        if output.len() > byte_cap {
++            break;
++        }
++        selected = candidate;
++        best = output;
++    }
++    Ok(best)
++}
++
++fn render_file_page(
++    files: &[FileResult],
++    offset: usize,
++    head_limit: usize,
++    byte_cap: usize,
++    stats: SearchStats,
++    count_mode: bool,
++) -> Result<String, (i64, String)> {
++    let start = offset.min(files.len());
++    let count_limit = if head_limit == 0 {
++        files.len().saturating_sub(start)
++    } else {
++        head_limit.min(files.len().saturating_sub(start))
++    };
++    let target_end = start.saturating_add(count_limit);
++    let total_occurrences: usize = files.iter().map(|file| file.regions.len()).sum();
++    let render = |end: usize| {
++        let page = &files[start..end];
++        let mut lines = Vec::new();
++        if count_mode {
++            lines.extend(
++                page.iter()
++                    .map(|file| format!("{}:{}", file.path, file.regions.len())),
++            );
++            let page_occurrences: usize = page.iter().map(|file| file.regions.len()).sum();
++            lines.push(format!(
++                "Found {total_occurrences} total occurrence(s) across {} matching file(s); current page: {page_occurrences} occurrence(s) across {} file(s).",
++                files.len(), page.len()
++            ));
++        } else {
++            lines.push(format!("Found {} file(s)", files.len()));
++            lines.extend(page.iter().map(|file| file.path.clone()));
++        }
++        if page.is_empty() && offset > 0 {
++            lines.push(format!(
++                "[No files at offset {offset}; {} total.]",
++                files.len()
++            ));
++        } else if end < files.len() {
++            lines.push(format!(
++                "[Showing files {}-{end} of {}; next_offset={end}. Continue with offset={end} and the same head_limit.]",
++                start + 1,
++                files.len()
++            ));
++        } else if start > 0 {
++            lines.push(format!(
++                "[Showing files {}-{end} of {}; this is the last page.]",
++                start + 1,
++                files.len()
++            ));
++        }
++        lines.push(format!("[Searched {} file(s).]", stats.searched_files));
++        if let Some(partial) = partial_search_status(stats) {
++            lines.push(partial);
++        }
++        lines.join("\n")
++    };
++
++    if count_limit == 0 {
++        let output = render(start);
++        return if output.len() <= byte_cap {
++            Ok(output)
++        } else {
++            Err((
++                -32602,
++                format!(
++                    "grep_output_byte_cap ({byte_cap} bytes) is too small to include result status"
++                ),
++            ))
++        };
++    }
++    let mut end = start;
++    let mut best = String::new();
++    while end < target_end {
++        let candidate = render(end + 1);
++        if candidate.len() > byte_cap {
++            break;
++        }
++        end += 1;
++        best = candidate;
++    }
++    if end == start {
++        return Err((
++            -32602,
++            format!(
++                "grep_output_byte_cap ({byte_cap} bytes) is too small to include the first file location and status"
++            ),
++        ));
++    }
++    Ok(best)
++}
++
++fn render_empty(
++    stats: SearchStats,
++    hint: String,
++    count_mode: bool,
++    byte_cap: usize,
++) -> Result<String, (i64, String)> {
++    let mut required = if count_mode {
++        format!(
++            "Found 0 total occurrence(s) across 0 matching file(s); current page: 0 occurrence(s) across 0 file(s).\n[Searched {} file(s).]",
++            stats.searched_files
++        )
++    } else {
++        format!(
++            "No matches found across {} searched file(s).",
++            stats.searched_files
++        )
++    };
++    if let Some(partial) = partial_search_status(stats) {
++        required.push('\n');
++        required.push_str(&partial);
++    }
++    if required.len() > byte_cap {
++        return Err((
++            -32602,
++            format!(
++                "grep_output_byte_cap ({byte_cap} bytes) is too small to include empty-result status"
++            ),
++        ));
++    }
++    if required.len().saturating_add(1).saturating_add(hint.len()) <= byte_cap {
++        required.push('\n');
++        required.push_str(&hint);
++    }
++    Ok(required)
++}
++
++fn validate_match_excerpt_budget(
++    files: &[FileResult],
++    max_columns: usize,
++) -> Result<(), (i64, String)> {
++    if max_columns == 0 {
++        return Ok(());
++    }
++    for file in files {
++        for region in &file.regions {
++            for match_line in &region.lines {
++                let Some(source) = file.lines.get(&match_line.line_number) else {
++                    continue;
++                };
++                if source.bytes.len() <= max_columns {
++                    continue;
++                }
++                let Some(first_match) = match_line.ranges.first() else {
++                    continue;
++                };
++                if first_match.start >= source.bytes.len() {
++                    continue;
++                }
++                let Ok(tail) = std::str::from_utf8(&source.bytes[first_match.start..]) else {
++                    continue;
++                };
++                let Some(first_character) = tail.chars().next() else {
++                    continue;
++                };
++                let required_bytes = first_character.len_utf8();
++                if required_bytes > max_columns {
++                    return Err((
++                        -32602,
++                        format!(
++                            "grep_max_columns ({max_columns} bytes) is too small to include the first matched UTF-8 character ({required_bytes} bytes) at {}:{}; increase grep_max_columns or set it to 0",
++                            file.path, match_line.line_number
++                        ),
++                    ));
++                }
++            }
++        }
++    }
++    Ok(())
++}
++
+ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+     let pattern = arg_required_str(args, "pattern")?;
+-    let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+-    // Accept `include`/`file_pattern` as aliases for `glob`: agents were observed sending both,
+-    // and a wrong key was silently ignored → an unintended whole-repo search. Canonical wins;
+-    // earlier aliases win over later ones.
++    let path = args.get("path").and_then(Value::as_str).unwrap_or(".");
+     let glob_opt = ["glob", "include", "file_pattern"]
+         .iter()
+-        .find_map(|key| args.get(*key).and_then(|v| v.as_str()));
+-    let type_opt = args.get("type").and_then(|v| v.as_str());
+-    // Default to `content` so a grep returns `file:line:text` with line numbers up front:
+-    // agents overwhelmingly want the exact match location, and a file-list-only default
+-    // sent them re-querying in loops to recover line numbers. `files_with_matches` stays
+-    // available for cheap enumeration when only the set of matching files is needed.
++        .find_map(|key| args.get(*key).and_then(Value::as_str));
++    let type_opt = args.get("type").and_then(Value::as_str);
+     let output_mode = args
+         .get("output_mode")
+-        .and_then(|v| v.as_str())
++        .and_then(Value::as_str)
+         .unwrap_or("content");
+     let case_insensitive = arg_bool(args, "-i", false);
+     let multiline = arg_bool(args, "multiline", false);
++    let fixed_strings = args
++        .get("fixed_strings")
++        .and_then(Value::as_bool)
++        .unwrap_or_else(|| arg_bool(args, "-F", false));
+     let show_line_numbers = arg_bool(args, "-n", true);
+     let context_both = arg_usize(args, "-C", 0);
+     let (before, after) = if context_both > 0 {
+@@ -202,6 +850,9 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+     let head_limit = arg_usize(args, "head_limit", DEFAULT_HEAD_LIMIT);
+     let offset = arg_usize(args, "offset", 0);
+     let include_ignored = arg_bool(args, "include_ignored", false);
++    let config = crate::config::get();
++    let max_columns = config.grep_max_columns;
++    let output_byte_cap = config.grep_output_byte_cap;
+ 
+     let base = resolve_for_filesystem_tool(path, FilesystemTool::Grep)?;
+     if !base.exists() {
+@@ -210,22 +861,23 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+     let cwd = current_dir()?;
+     let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
+ 
+-    // `dot_matches_new_line(multiline)` makes `.` cross lines under multiline search —
+-    // the only place dotall lives in the grep API (equivalent to `rg -U --multiline-dotall`).
+-    // Without multiline, set the line terminator to `\n` so a `\n`-containing pattern errors
+-    // with rg's guidance (and the searcher keeps its fast line-by-line path) instead of
+-    // silently returning no matches — matching ripgrep's non-`-U` behavior.
+     let mut matcher_builder = RegexMatcherBuilder::new();
+     matcher_builder
+         .case_insensitive(case_insensitive)
+         .multi_line(multiline)
+-        .dot_matches_new_line(multiline);
++        .dot_matches_new_line(multiline)
++        .fixed_strings(fixed_strings);
+     if !multiline {
+         matcher_builder.line_terminator(Some(b'\n'));
+     }
+-    let matcher = matcher_builder
+-        .build(pattern)
+-        .map_err(|e| (-32602, format!("Invalid regex pattern '{pattern}': {e}")))?;
++    let matcher = matcher_builder.build(pattern).map_err(|error| {
++        let kind = if fixed_strings {
++            "fixed string"
++        } else {
++            "regex pattern"
++        };
++        (-32602, format!("Invalid {kind} '{pattern}': {error}"))
++    })?;
+ 
+     let mut searcher = SearcherBuilder::new()
+         .line_number(true)
+@@ -234,76 +886,87 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+         .multi_line(multiline)
+         .binary_detection(BinaryDetection::quit(0))
+         .build();
+-
+-    // Shared gitignore-style glob (child 01's helper): a slash-less glob matches the
+-    // basename at any depth, identical to `rg --glob`. The glob arg is split on whitespace,
+-    // then brace-free tokens on commas, yielding multiple patterns (Claude Code behavior).
+     let glob_matcher: Option<GlobMatcher> = match glob_opt {
+-        Some(g) => Some(build_glob_matcher(&base, &split_grep_globs(g))?),
++        Some(glob) => Some(build_glob_matcher(&base, &split_grep_globs(glob))?),
+         None => None,
+     };
+-
+     let mut walker = build_walker(&base, include_ignored);
+-    if let Some(t) = type_opt {
+-        let mut tb = ignore::types::TypesBuilder::new();
+-        tb.add_defaults();
+-        tb.select(t);
+-        let types = tb
+-            .build()
+-            .map_err(|e| (-32602, format!("Unknown type filter '{t}': {e}")))?;
++    if let Some(file_type) = type_opt {
++        let mut types_builder = ignore::types::TypesBuilder::new();
++        types_builder.add_defaults();
++        types_builder.select(file_type);
++        let types = types_builder.build().map_err(|error| {
++            (
++                -32602,
++                format!("Unknown type filter '{file_type}': {error}"),
++            )
++        })?;
+         walker.types(types);
+     }
+ 
+-    let mut files: Vec<FileResult> = Vec::new();
++    let mut files = Vec::new();
++    let mut stats = SearchStats {
++        searched_files: 0,
++        traversal_errors: 0,
++        read_errors: 0,
++    };
+     for result in walker.build() {
+         let entry = match result {
+-            Ok(e) => e,
+-            Err(_) => continue,
++            Ok(entry) => entry,
++            Err(_) => {
++                stats.traversal_errors = stats.traversal_errors.saturating_add(1);
++                continue;
++            }
+         };
+-        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
++        if !entry
++            .file_type()
++            .is_some_and(|file_type| file_type.is_file())
++        {
+             continue;
+         }
+-        let p = entry.path();
+-        if !include_ignored && crate::workspace::is_default_live_tool_excluded_file(p) {
++        let file_path = entry.path();
++        if !include_ignored && crate::workspace::is_default_live_tool_excluded_file(file_path) {
+             continue;
+         }
+-        if let Some(ref gm) = glob_matcher {
+-            let rel = p.strip_prefix(&base).unwrap_or(p);
+-            // 명시적으로 지정된 단일 파일 `path`는 strip 결과가 빈 문자열이다. ripgrep은
+-            // 명시적으로 지정된 파일을 `-g`와 무관하게 항상 검색하고 글롭은 디렉터리 순회
+-            // 중에만 적용하므로, 이 경우 글롭 필터를 건너뛴다.
+-            if !rel.as_os_str().is_empty() && !gm.is_match(rel) {
++        if let Some(ref glob_matcher) = glob_matcher {
++            let relative = file_path.strip_prefix(&base).unwrap_or(file_path);
++            if !relative.as_os_str().is_empty() && !glob_matcher.is_match(relative) {
+                 continue;
+             }
+         }
+         let mut sink = CollectSink {
+-            hits: Vec::new(),
+-            occurrences: 0,
++            matcher: &matcher,
++            lines: BTreeMap::new(),
++            regions: Vec::new(),
+         };
+-        if searcher.search_path(&matcher, p, &mut sink).is_err() {
++        if searcher
++            .search_path(&matcher, file_path, &mut sink)
++            .is_err()
++        {
++            stats.read_errors = stats.read_errors.saturating_add(1);
+             continue;
+         }
+-        if sink.occurrences > 0 {
+-            let display = p
++        stats.searched_files = stats.searched_files.saturating_add(1);
++        if !sink.regions.is_empty() {
++            let display = file_path
+                 .strip_prefix(&cwd_canonical)
+-                .unwrap_or(p)
++                .unwrap_or(file_path)
+                 .to_string_lossy()
+                 .replace('\\', "/");
+             let mtime = entry
+                 .metadata()
+                 .ok()
+-                .and_then(|m| m.modified().ok())
++                .and_then(|metadata| metadata.modified().ok())
+                 .unwrap_or(SystemTime::UNIX_EPOCH);
+             files.push(FileResult {
+                 path: display,
+-                hits: sink.hits,
+-                occurrences: sink.occurrences,
++                lines: sink.lines,
++                regions: sink.regions,
+                 mtime,
+             });
+         }
+     }
+ 
+-    let max_columns = crate::config::get().grep_max_columns;
+     let no_match_hint = || {
+         empty_result_hint(
+             path,
+@@ -314,83 +977,61 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+             include_ignored,
+         )
+     };
++    if files.is_empty() {
++        return render_empty(
++            stats,
++            no_match_hint(),
++            output_mode == "count",
++            output_byte_cap,
++        );
++    }
+ 
+     match output_mode {
+-        "count" => {
+-            // Per-file `path:count` rows (ripgrep's count output) + summary, paginated.
+-            // `content`/`count` keep ripgrep's native (walk) order — only
+-            // `files_with_matches` is mtime-sorted.
+-            if files.is_empty() {
+-                // Keep the summary line first: `test_grep_count_mode` pins "total occurrence".
+-                return Ok(format!(
+-                    "Found 0 total occurrence(s) across 0 file(s).\n{}",
+-                    no_match_hint()
+-                ));
++        "content" => {
++            validate_match_excerpt_budget(&files, max_columns)?;
++            files.sort_by(|left, right| left.path.cmp(&right.path));
++            for file in &mut files {
++                file.regions.sort_by(|left, right| {
++                    left.start_line
++                        .cmp(&right.start_line)
++                        .then_with(|| left.absolute_byte_offset.cmp(&right.absolute_byte_offset))
++                });
+             }
+-            let rows: Vec<(String, usize)> = files
++            let regions: Vec<RegionRef> = files
+                 .iter()
+-                .map(|f| (f.path.clone(), f.occurrences))
++                .enumerate()
++                .flat_map(|(file_index, file)| {
++                    (0..file.regions.len()).map(move |region_index| RegionRef {
++                        file_index,
++                        region_index,
++                    })
++                })
+                 .collect();
+-            let (page, footer) = paginate(&rows, offset, head_limit);
+-            // Summary counts the post-head_limit rows (Claude Code sums the truncated slice).
+-            let total_occ: usize = page.iter().map(|(_, c)| c).sum();
+-            let mut out = String::new();
+-            for (p, c) in &page {
+-                out.push_str(&format!("{p}:{c}\n"));
+-            }
+-            out.push_str(&format!(
+-                "Found {total_occ} total occurrence(s) across {} file(s).",
+-                page.len()
+-            ));
+-            if let Some(f) = footer {
+-                out.push('\n');
+-                out.push_str(&f);
+-            }
+-            Ok(out)
++            render_content_page(
++                &files,
++                &regions,
++                offset,
++                head_limit,
++                stats,
++                show_line_numbers,
++                before,
++                after,
++                max_columns,
++                output_byte_cap,
++            )
+         }
+-        "content" => {
+-            let mut lines: Vec<String> = Vec::new();
+-            for f in &files {
+-                for hit in &f.hits {
+-                    let sep = if hit.is_match { ':' } else { '-' };
+-                    let text = cap_line(&hit.text, max_columns, hit.is_match);
+-                    if show_line_numbers {
+-                        lines.push(format!("{}{sep}{}{sep}{}", f.path, hit.line_number, text));
+-                    } else {
+-                        lines.push(format!("{}{sep}{}", f.path, text));
+-                    }
+-                }
+-            }
+-            if lines.is_empty() {
+-                return Ok(format!("No matches found\n{}", no_match_hint()));
+-            }
+-            let (page, footer) = paginate(&lines, offset, head_limit);
+-            let mut out = page.join("\n");
+-            if let Some(f) = footer {
+-                out.push('\n');
+-                out.push_str(&f);
+-            }
+-            Ok(out)
++        "count" => {
++            files.sort_by(|left, right| left.path.cmp(&right.path));
++            render_file_page(&files, offset, head_limit, output_byte_cap, stats, true)
+         }
+-        // default: files_with_matches
+         _ => {
+-            if files.is_empty() {
+-                return Ok(format!("No matches found\n{}", no_match_hint()));
+-            }
+-            // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
+-            // Code parity). `content`/`count` above stay in ripgrep's native order.
+-            let mut sorted: Vec<&FileResult> = files.iter().collect();
+-            sorted.sort_by(|a, b| b.mtime.cmp(&a.mtime).then_with(|| a.path.cmp(&b.path)));
+-            let total = sorted.len();
+-            let paths: Vec<String> = sorted.iter().map(|f| f.path.clone()).collect();
+-            let (page, footer) = paginate(&paths, offset, head_limit);
+-            let mut out = format!("Found {total} file(s)\n");
+-            out.push_str(&page.join("\n"));
+-            if let Some(f) = footer {
+-                out.push('\n');
+-                out.push_str(&f);
+-            }
+-            Ok(out)
++            files.sort_by(|left, right| {
++                right
++                    .mtime
++                    .cmp(&left.mtime)
++                    .then_with(|| left.path.cmp(&right.path))
++            });
++            render_file_page(&files, offset, head_limit, output_byte_cap, stats, false)
+         }
+     }
+ }
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.md b/apps/codemap-search/src/tools/instructions/navigation.md
+index 465d9bdf1c0f133abec6991d4211c2e7d2043ffa..3deb3a591579c67b9afd4a50144f4cd5414ea73b 100644
+--- a/apps/codemap-search/src/tools/instructions/navigation.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.md
+@@ -1,7 +1,7 @@
+-Five read-only navigation tools, available after the `initial_instructions` preflight. Pick by intent, not order.
++Five read-only navigation tools. Explicit-path `read`, `find`, and `grep` are available directly without initial guidance and do not set an active search scope. Load `initial_instructions` before index-backed `search` or `overview`. Pick by intent, not order.
+ * `grep`: use first for an exact identifier, quoted literal, config key/default, exact error text, regex, exhaustive enumeration, comments/non-code, or a just-edited file. It reads disk directly and avoids semantic ranking when the requested text is already known. More pages include `next_offset`. If an exact lookup fails, check path/glob/case first. Switch to `search` when the pattern is guessing the wording (synonyms or spellings for one concept) or the location is unknown; keep exhaustive enumeration of known names in `grep`.
+ * `search`: use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, relationships between files, or 'where is this done?' questions where the exact text is unknown. BM25 + identifier splitting find what exact grep misses. Top files include `match_reason`, ambiguity hints, `read_suggestion`, snippets, depth-1 callers/callees, and bounded static collection write/read hints when direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every hinted endpoint in source. Set `caller_context=false` to disable call context. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed `read_suggestion` range once; if absent, narrow the query or use `overview`, then read only needed ranges. Do not reread same ranges to confirm. Caller/callee attribution is approximate unless marked tree-sitter precise.
+ * `overview`: use to orient in unfamiliar code or get symbol line ranges before `read`. No path returns a bounded repo map with compact file/symbol groups. Folder path narrows. File path gives exact symbol ranges. Not for locating a named symbol — use `search`; it orients, so don't call it repeatedly as a search substitute.
+-* `read`: read after discovery. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+-* `find`: locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
++* `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
++* `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+ Typical flow: choose `grep` for known exact text or `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges. Use `overview` first only when the repository area itself is unfamiliar.
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+index d2863c4fe6f4a87bab5cac897ad74690d7a25ad0..253cc4931d9dfea281bd8139a692a40526a6d08e 100644
+--- a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+@@ -1,7 +1,7 @@
+-Five read-only navigation tools, available after the `initial_instructions` preflight. In a ready monorepo, that response already includes the root overview and its selectable scopes; do not immediately repeat a no-argument `overview`. Repeat it only when the initial response says the index is warming or stopped. Pick by intent, not order.
++Five read-only navigation tools. Explicit-path `read`, `find`, and `grep` are available directly without initial guidance and do not set an active search scope. Load `initial_instructions` before index-backed `search` or `overview`. In a ready monorepo, that response already includes the root overview and its selectable scopes; do not immediately repeat a no-argument `overview`. Repeat it only when the initial response says the index is warming or stopped. Pick by intent, not order.
+ * `overview`: use for broad or underspecified repo requests after the initial root overview, or to narrow a selected scope. Every scope listed in the root overview, including conventional workspaces and top-level source roots such as `api`, `app`, or `sdk`, is valid for `overview <scope>` and `workspace_scope`. Ask scope before broad work unless the user explicitly wants repo-wide `all` / `전체`. `overview <scope>` narrows and sets the active scope for later `search`.
+-* `grep`: after scope is clear, use first for an exact identifier, quoted literal, config key/default, exact error text, regex, exhaustive enumeration, comments/non-code, or a just-edited file. It reads disk directly; constrain `path` to the chosen workspace. More pages include `next_offset`. Switch to scoped `search` when the pattern is guessing the wording (synonyms or spellings for one concept) or the location is unknown; keep exhaustive enumeration of known names in `grep`.
++* `grep`: with an explicit path, call directly and use first for an exact identifier, quoted literal, config key/default, exact error text, regex, exhaustive enumeration, comments/non-code, or a just-edited file. It reads disk directly; constrain `path` to the chosen workspace. More pages include `next_offset`. Switch to scoped `search` when the pattern is guessing the wording (synonyms or spellings for one concept) or the location is unknown; keep exhaustive enumeration of known names in `grep`.
+ * `search`: after scope is clear, use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, relationships between files, or 'where is this done?' questions where exact text is unknown. It uses the active `overview <scope>` unless `workspace_scope` overrides it; pass `all` / `전체` for repo-wide search. Top files include `match_reason`, ambiguity hints, `read_suggestion`, snippets, depth-1 callers/callees, and bounded static collection write/read hints when both endpoints are inside the selected scope and direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every hinted endpoint in source. Set `caller_context=false` to disable call context. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed `read_suggestion` range once; if absent, narrow the query or use `overview`, then read only needed ranges. Do not reread same ranges to confirm.
+-* `read`: read after discovery. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+-* `find`: locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+-Typical monorepo flow: `initial_instructions` (includes ready root overview) → ask/choose scope (or explicit `all`/`전체`) → choose scoped `grep` for known exact text or scoped `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges.
++* `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
++* `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
++For known paths, call `read`/`find`/`grep` directly. For index-backed discovery: `initial_instructions` (includes ready root overview) → ask/choose scope (or explicit `all`/`전체`) → choose scoped `grep` for known exact text or scoped `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges.
+diff --git a/apps/codemap-search/src/tools/instructions/server.md b/apps/codemap-search/src/tools/instructions/server.md
+index ab20394af1069bb06b767dedd4640b96c668f80d..b8b3aac3cb4782f5d07ed6dd2a3c1808e431163f 100644
+--- a/apps/codemap-search/src/tools/instructions/server.md
++++ b/apps/codemap-search/src/tools/instructions/server.md
+@@ -1,4 +1,4 @@
+-codemap-search: six read-only code-navigation tools — `initial_instructions` plus five navigation tools (`search`, `grep`, `overview`, `read`, `find`). Call `initial_instructions` once with no arguments before the navigation tools to load the usage rules and navigation flow. Some clients hide or compress these server instructions, so do not rely on them alone.
++codemap-search: six read-only code-navigation tools — `initial_instructions` plus five navigation tools (`search`, `grep`, `overview`, `read`, `find`). Call `initial_instructions` once before index-backed `search` or `overview`. With an explicit path, `read`, `find`, and `grep` can be called directly without this preflight; they do not select an active search scope. Some clients hide or compress these server instructions, so do not rely on them alone.
+ 
+ Filesystem permissions for `read`, `find`, and `grep`:
+ 1. `workspace`: only paths inside the current workspace.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/find.md b/apps/codemap-search/src/tools/instructions/tools/find.md
+index fc52deec23c1e63d1322c9de92995cf3b93640c1..d76e7453fc94f89f9574801fed52f249734795bf 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/find.md
++++ b/apps/codemap-search/src/tools/instructions/tools/find.md
+@@ -1 +1 @@
+-Locate files by glob, e.g. '**/*.rs', to confirm exact files exist. Results are mtime-sorted and capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without slash, e.g. '*rpc*', matches filenames only, never directory segments. To match a path component, use '**/*rpc*' or '**/rpc/**'. Finds file paths only, not contents — to search code use search or grep.
++With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Locate files by glob, e.g. '**/*.rs', to confirm exact files exist. Results are mtime-sorted and capped. Respects .gitignore and .codemapignore; set include_ignored to bypass. A pattern without slash, e.g. '*rpc*', matches filenames only, never directory segments. To match a path component, use '**/*rpc*' or '**/rpc/**'. Finds file paths only, not contents — to search code use search or grep.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/grep.md b/apps/codemap-search/src/tools/instructions/tools/grep.md
+index 56509d424bb2b9f50d3e1edc640dcbb3171c66f3..92115a5fb2fbfe37a9b37b47f48c58ddaaec07e4 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/grep.md
++++ b/apps/codemap-search/src/tools/instructions/tools/grep.md
+@@ -1 +1 @@
+-Use first for exact identifiers, quoted literals, config keys/defaults, exact error text, regexes, exhaustive matches, comments/non-code, or just-edited files with no index lag. It searches disk directly and avoids semantic ranking when the requested text is already known. Params mirror Claude Code Grep. output_mode: content (default) returns exact file:line locations; files_with_matches returns only the set of matching files; count returns per-file counts with no line content — use count only to size a result set, never to locate code. If a scoped pattern returns 0, do not rerun unchanged: check path, glob, type, -i, multiline, or include_ignored. Exhaustive enumeration of known names stays with grep; but when the pattern is a list of guessed synonyms or spellings for one concept, or the location is unknown, that is a search question — switch to search (scoped in a monorepo) instead of widening the regex. Partial output gives total count and next_offset; page with offset. Respects .gitignore and .codemapignore; set include_ignored to bypass.
++With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Use first for exact identifiers, quoted literals, config keys/defaults, exact error text, regexes, exhaustive matches, comments/non-code, or just-edited files with no index lag. It searches disk directly and avoids semantic ranking when the requested text is already known. Regular expressions are the default; fixed_strings=true (alias -F) searches literal text. output_mode: content (default) returns exact file:line locations; files_with_matches returns only the set of matching files; count returns per-file counts with no line content — use count only to size a result set, never to locate code. If a scoped pattern returns 0, do not rerun unchanged: check path, glob, type, -i, multiline, or include_ignored. Exhaustive enumeration of known names stays with grep; but when the pattern is a list of guessed synonyms or spellings for one concept, or the location is unknown, that is a search question — switch to search (scoped in a monorepo) instead of widening the regex. Content pages count match regions, keeping requested context with each match and deduplicating overlapping context; count and files_with_matches pages count files. Use next_offset to continue. head_limit=0 removes only the count limit. Every response stays within grep_output_byte_cap, including status and continuation; oversized matches show a positioned partial excerpt. Long lines show a match-centered excerpt with byte columns and omission markers. Read/walk errors mark a partial search; zero-result responses include searched file counts, and count distinguishes all-search and page totals. Respects .gitignore and .codemapignore; set include_ignored to bypass.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/initial_instructions.md b/apps/codemap-search/src/tools/instructions/tools/initial_instructions.md
+index 8a806c9769ce370e031a0e585a39dd056bb92f15..6e1c74bef01a5d70fe902e11bfdebedf65cca78f 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/initial_instructions.md
++++ b/apps/codemap-search/src/tools/instructions/tools/initial_instructions.md
+@@ -1 +1 @@
+-REQUIRED FIRST CODEMAP CALL: call this once with no arguments before search/grep/read/find/overview. Do not rely on MCP initialize instructions alone; this tool returns the live codemap-search navigation rules for clients that hide or compress server instructions.
++Call once with no arguments before index-backed search/overview. Explicit-path read/find/grep can be called directly without this tool and do not set an active search scope. Do not rely on MCP initialize instructions alone; this tool returns the live codemap-search navigation rules for clients that hide or compress server instructions.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/initial_instructions.monorepo.md b/apps/codemap-search/src/tools/instructions/tools/initial_instructions.monorepo.md
+index e0b3eb9d895f012e820a1a5a28d149a9702f4272..f2e6f55fe56e62dc13b3efa8a5e6fe307844c5be 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/initial_instructions.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/tools/initial_instructions.monorepo.md
+@@ -1 +1 @@
+-REQUIRED FIRST CODEMAP CALL: call this once with no arguments before search/grep/read/find/overview. Do not rely on MCP initialize instructions alone; this tool returns the live codemap-search navigation rules for clients that hide or compress server instructions. In a ready monorepo it also includes the root overview and selectable scopes, so do not immediately call no-argument `overview`; retry `overview` only if the response says the index is warming or stopped.
++Call once with no arguments before index-backed search/overview. Explicit-path read/find/grep can be called directly without this tool and do not set an active search scope. Do not rely on MCP initialize instructions alone; this tool returns the live codemap-search navigation rules for clients that hide or compress server instructions. In a ready monorepo it also includes the root overview and selectable scopes, so do not immediately call no-argument `overview`; retry `overview` only if the response says the index is warming or stopped.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/overview.md b/apps/codemap-search/src/tools/instructions/tools/overview.md
+index a2ec1287ecdba84a6d4a7a03a0620e6acd623fd0..d1bae62052b0a5a44e89c19ff2ed5aa9eadeeaec 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/overview.md
++++ b/apps/codemap-search/src/tools/instructions/tools/overview.md
+@@ -1 +1 @@
+-Use to orient in unfamiliar code or to get a symbol's line range before `read`. No path returns a bounded repo-root map with recursive file/symbol counts per directory plus the first files by path (grouped significant symbol names, no line ranges); pass `format='llms-txt'` for a bounded LLM-friendly text map instead. A folder path narrows to that folder and lists its files' significant symbol names and kinds, without line ranges. A file path lists that file's significant symbols with exact line ranges. To get a symbol range before reading, run `overview`, then `read` that window. Not for locating a named symbol or concept — use `search`; `overview` orients, so don't call it repeatedly as a search substitute.
++Use to orient in unfamiliar code or to get a symbol's line range before `read`. No path returns a bounded repo-root map with recursive file/symbol counts per directory plus the first files by path (grouped significant symbol names, no line ranges); pass `format='llms-txt'` for a bounded LLM-friendly text map instead. A folder path narrows to that folder and lists its files' significant symbol names and kinds, without line ranges. A file path lists that file's significant symbols with exact line ranges. To get a symbol range before reading, run `overview`, then `read` that window. Not for locating a named symbol or concept — use `search`; `overview` orients, so don't call it repeatedly as a search substitute. All formats are byte-bounded; omitted content includes a follow-up hint. Folder views show at most 60 direct files and 5 symbols per file; file views show at most 200 symbols.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/overview.monorepo.md b/apps/codemap-search/src/tools/instructions/tools/overview.monorepo.md
+index d001947cc66178e813b4830b6c68b95866dc0b53..a25c2cc0ba45b2ff3eaa776ce3da7c699963bbad 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/overview.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/tools/overview.monorepo.md
+@@ -1 +1 @@
+-Use to orient in unfamiliar code or to choose a monorepo workspace scope before acting. In a ready monorepo, `initial_instructions` already returns this root overview, so do not immediately repeat a no-path call. No path returns workspace scopes and tells the agent to ask which scope to use for broad work, while allowing an explicit all/전체 choice for repo-wide work. Every scope it lists is valid: conventional workspaces such as `apps/api` and top-level source roots such as `api`, `app`, or `sdk`; unique basenames are accepted unless ambiguous. Passing a workspace scope narrows overview and sets that active scope for following `search` calls. A folder path narrows to that folder and lists its files' significant symbol names and kinds, without line ranges. A file path lists that file's significant symbols with exact line ranges. To get a symbol range before reading, run `overview`, then `read` that window. Not for locating a named symbol or concept — use `search`; `overview` orients, so don't call it repeatedly as a search substitute.
++Use to orient in unfamiliar code or to choose a monorepo workspace scope before acting. In a ready monorepo, `initial_instructions` already returns this root overview, so do not immediately repeat a no-path call. No path returns workspace scopes and tells the agent to ask which scope to use for broad work, while allowing an explicit all/전체 choice for repo-wide work. Every scope it lists is valid: conventional workspaces such as `apps/api` and top-level source roots such as `api`, `app`, or `sdk`; unique basenames are accepted unless ambiguous. Passing a workspace scope narrows overview and sets that active scope for following `search` calls. A folder path narrows to that folder and lists its files' significant symbol names and kinds, without line ranges. A file path lists that file's significant symbols with exact line ranges. To get a symbol range before reading, run `overview`, then `read` that window. Not for locating a named symbol or concept — use `search`; `overview` orients, so don't call it repeatedly as a search substitute. All formats are byte-bounded; omitted content includes a follow-up hint. Folder views show at most 60 direct files and 5 symbols per file; file views show at most 200 symbols.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/read.md b/apps/codemap-search/src/tools/instructions/tools/read.md
+index 406696740a3b9398374f2da26c11e02e4237b18f..83a2348ce65c5d54c161facdebbe9d9b5d5719b7 100644
+--- a/apps/codemap-search/src/tools/instructions/tools/read.md
++++ b/apps/codemap-search/src/tools/instructions/tools/read.md
+@@ -1 +1 @@
+-Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
++With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
+diff --git a/apps/codemap-search/src/tools/mod.rs b/apps/codemap-search/src/tools/mod.rs
+index 5118b7216f0255afa21cf84367891bafde8bce1b..2afb0004c79662fecf5cb12b893e0a46a2180599 100644
+--- a/apps/codemap-search/src/tools/mod.rs
++++ b/apps/codemap-search/src/tools/mod.rs
+@@ -213,7 +213,11 @@ pub fn instructions() -> String {
+     } else {
+         include_str!("instructions/navigation.md")
+     };
+-    text.trim_end().to_string()
++    format!(
++        "codemap-search {}\n\n{}",
++        env!("CARGO_PKG_VERSION"),
++        text.trim_end()
++    )
+ }
+ 
+ /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
+@@ -376,7 +380,9 @@ pub fn list_tools() -> Value {
+                         "inputSchema": {
+                             "type": "object",
+                             "properties": {
+-                                "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
++                                "pattern": { "type": "string", "description": "Regular expression by default; literal text when fixed_strings=true." },
++                                "fixed_strings": { "type": "boolean", "description": "Search literal text instead of a regular expression (default false). Takes precedence over -F." },
++                                "-F": { "type": "boolean", "description": "Alias for fixed_strings; the canonical key wins when both are present." },
+                                 "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
+                                 "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
+                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
+@@ -387,8 +393,8 @@ pub fn list_tools() -> Value {
+                                 "-B": { "type": "integer", "description": "Lines of context before each match." },
+                                 "-C": { "type": "integer", "description": "Lines of context before and after (overrides -A/-B)." },
+                                 "multiline": { "type": "boolean", "description": "Allow matches to span lines (default false)." },
+-                                "head_limit": { "type": "integer", "description": "Max results (default 250; 0 = unlimited)." },
+-                                "offset": { "type": "integer", "description": "0-indexed result offset for pagination (default 0)." },
++                                "head_limit": { "type": "integer", "description": "Max match regions in content mode, or files in count/files_with_matches (default 250). 0 removes only the count limit; the output byte cap still applies." },
++                                "offset": { "type": "integer", "description": "0-indexed match-region offset in content mode, or file offset in count/files_with_matches (default 0). Continue using next_offset from this version; old line-based offsets are incompatible." },
+                                 "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
+                             },
+                             "required": ["pattern"]
+diff --git a/apps/codemap-search/src/tools/overview.rs b/apps/codemap-search/src/tools/overview.rs
+index 1e9024681087efccaa41df162ec252d56ac319eb..3665e647ceda46552e2bb9edba7080a9ec23855d 100644
+--- a/apps/codemap-search/src/tools/overview.rs
++++ b/apps/codemap-search/src/tools/overview.rs
+@@ -8,6 +8,73 @@ mod monorepo;
+ 
+ use crate::tools::ToolContext;
+ 
++const OVERVIEW_CAP_FOOTER: &str = "\n\n_Partial overview: reached `overview_output_byte_cap`. Continue with a narrower `overview <dir>` or `overview <file>`; use `find` for exact files and `read` for source._\n";
++const MONOREPO_OVERVIEW_CAP_FOOTER: &str = "\n\n_Partial overview: reached `overview_output_byte_cap`. Choose a shown scope with `overview <scope>` to set the active search scope; use `workspace_scope: \"all\"` (or `전체`) for the whole repo._\n";
++
++/// Keep the orientation block (title plus totals/scope status) and a useful continuation
++/// footer inside the configured byte cap. Cutting only happens on UTF-8 boundaries and prefers
++/// a complete line. A cap too small for both pieces is a configuration error rather than a
++/// misleading fragment without location or status.
++fn cap_overview_output(text: String, byte_cap: usize) -> Result<String, (i64, String)> {
++    if text.len() <= byte_cap {
++        return Ok(text);
++    }
++
++    let footer = if text.contains("## Workspace Scopes") {
++        MONOREPO_OVERVIEW_CAP_FOOTER
++    } else {
++        OVERVIEW_CAP_FOOTER
++    };
++    let priority_end = overview_priority_prefix_end(&text);
++    let required_bytes = priority_end.saturating_add(footer.len());
++    if required_bytes > byte_cap {
++        return Err((
++            -32603,
++            format!(
++                "Configured overview_output_byte_cap ({byte_cap} bytes) is too small to include the overview location/status and truncation guidance; use at least {required_bytes} bytes for this response"
++            ),
++        ));
++    }
++
++    let content_budget = byte_cap - footer.len();
++    let mut cut = content_budget.min(text.len());
++    while cut > priority_end && !text.is_char_boundary(cut) {
++        cut -= 1;
++    }
++    if let Some(line_end) = text[..cut].rfind('\n') {
++        let complete_line_end = line_end + 1;
++        if complete_line_end >= priority_end {
++            cut = complete_line_end;
++        }
++    }
++
++    let mut output = String::with_capacity(byte_cap);
++    output.push_str(&text[..cut]);
++    output.push_str(footer);
++    debug_assert!(output.len() <= byte_cap);
++    Ok(output)
++}
++
++fn overview_priority_prefix_end(text: &str) -> usize {
++    if let Some(scopes) = text.find("## Workspace Scopes") {
++        let heading_end = end_of_line(text, scopes);
++        return end_of_line(text, heading_end);
++    }
++    if let Some(total_symbols) = text.find("- **Total Symbols**:") {
++        return end_of_line(text, total_symbols);
++    }
++    if let Some(showing) = text.find("> Showing the first ") {
++        return end_of_line(text, showing);
++    }
++    end_of_line(text, 0)
++}
++
++fn end_of_line(text: &str, start: usize) -> usize {
++    text[start..]
++        .find('\n')
++        .map_or(text.len(), |relative| start + relative + 1)
++}
++
+ /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
+ /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
+ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+@@ -61,7 +128,10 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+         } else {
+             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
+         };
+-        return Ok(text.to_string());
++        return cap_overview_output(
++            text.to_string(),
++            crate::config::get().overview_output_byte_cap,
++        );
+     }
+ 
+     use crate::codemap::CodemapView;
+@@ -115,5 +185,61 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+         }
+     };
+ 
+-    Ok(codemap_text)
++    cap_overview_output(codemap_text, crate::config::get().overview_output_byte_cap)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::parser::ExtractedFile;
++
++    #[test]
++    fn cap_preserves_utf8_and_orientation_metadata() {
++        let text = format!(
++            "# Codemap: 소스🙂\n\n- **Total Files**: 80\n- **Total Symbols**: 400\n\n{}",
++            "- 파일: 한글🙂\n".repeat(100)
++        );
++        let cap = 420;
++        let output = cap_overview_output(text, cap).unwrap();
++        assert!(output.len() <= cap);
++        assert!(output.contains("# Codemap: 소스🙂"));
++        assert!(output.contains("- **Total Files**: 80"));
++        assert!(output.contains("- **Total Symbols**: 400"));
++        assert!(output.contains("Partial overview"));
++        assert!(std::str::from_utf8(output.as_bytes()).is_ok());
++    }
++
++    #[test]
++    fn cap_preserves_workspace_scope_selection() {
++        let files = (0..20)
++            .map(|index| ExtractedFile {
++                file_path: format!("apps/workspace_{index:02}/src/lib.rs"),
++                total_lines: 1,
++                symbols: vec![],
++                literals: vec![],
++                docstrings: vec![],
++                navigation: None,
++            })
++            .collect::<Vec<_>>();
++        let text = crate::codemap::generate_monorepo_root_view(&files).unwrap();
++        let output = cap_overview_output(text, 500).unwrap();
++        assert!(output.len() <= 500);
++        assert!(output.contains("## Workspace Scopes"));
++        assert!(output.contains("- apps/workspace_00"));
++        assert!(output.contains("Partial overview"));
++        assert!(output.contains("`overview <scope>`"));
++        assert!(output.contains("`workspace_scope: \"all\"`"));
++        assert!(output.contains("`전체`"));
++    }
++
++    #[test]
++    fn cap_rejects_budget_too_small_for_status_and_guidance() {
++        let text =
++            "# Root Codemap Overview\n\n- **Total Files**: 100\n- **Total Symbols**: 500\n\nbody"
++                .repeat(20);
++        let error = cap_overview_output(text, 32).unwrap_err();
++        assert_eq!(error.0, -32603);
++        assert!(error.1.contains("too small"));
++        assert!(error.1.contains("overview_output_byte_cap"));
++    }
+ }
+diff --git a/apps/codemap-search/src/tools/search/mod.rs b/apps/codemap-search/src/tools/search/mod.rs
+index ade7fb85c493352d8206b388aba7733ddeba974b..c2634f88dbf3449aafd2b716d33e9d8d07296035 100644
+--- a/apps/codemap-search/src/tools/search/mod.rs
++++ b/apps/codemap-search/src/tools/search/mod.rs
+@@ -260,9 +260,8 @@ fn ambiguity_note(
+     (!ambiguous.is_empty()).then(|| ambiguous.join(", "))
+ }
+ 
+-/// Compact read-suggestion (Child 05 byte-flatten): a short `read <path>:<offset> (<limit> lines)`
+-/// form instead of the full JSON argument object. Shortened, not removed — codex may still parse
+-/// the path:line hint to drive a targeted `read` (offset/limit are recoverable from the form).
++/// Compact `read <path>:<offset> (<limit> lines)` guidance. The renderer retains this unless
++/// it proves the source was shown completely and the final response has no byte truncation.
+ fn format_read_suggestion(file_path: &str, offset: usize, limit: usize) -> String {
+     format!("read {file_path}:{offset} ({limit} lines)")
+ }
+@@ -553,14 +552,15 @@ pub(crate) fn run_inner_with_metadata(
+             .map(ToString::to_string),
+     };
+ 
+-    let (mut results, published_snapshot) = ctx
++    let (results, published_snapshot) = ctx
+         .engine
+-        .search_with_context_and_snapshot(query, search_limit, &search_context)
++        .search_scoped_with_context_and_snapshot(
++            query,
++            search_limit,
++            &search_context,
++            workspace_scope,
++        )
+         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
+-    if let Some(scope) = workspace_scope {
+-        results.retain(|result| monorepo::result_is_under_scope(result, scope));
+-        results.truncate(DEFAULT_SEARCH_LIMIT);
+-    }
+ 
+     // Result-branch threshold: at or below it, return file details;
+     // above it, return a codemap overview. Config-driven (Child 05),
+@@ -568,6 +568,9 @@ pub(crate) fn run_inner_with_metadata(
+     let result_branch_threshold = crate::config::get().result_threshold;
+ 
+     let mut text = String::new();
++    // Keep hints until final byte-budget decisions are known. Offsets refer to the original
++    // text, so eligible hints are removed in reverse order only for an uncapped response.
++    let mut redundant_read_hints = Vec::new();
+     // While the initial background index builds, results can be empty or
+     // partial — say so, and point at the always-live tools meanwhile.
+     if ctx.engine.is_dead() {
+@@ -724,15 +727,21 @@ pub(crate) fn run_inner_with_metadata(
+             // Hints, compressed (Child 05 byte-flatten): match_reason and the cross-path/ambiguity
+             // note share one line; the read suggestion is its own short line.
+             let mut hint_line = format!("- match: {}", match_reason(res));
+-            if let Some(ambiguity) = ambiguity_note(res, &cross_path) {
++            let ambiguity = ambiguity_note(res, &cross_path);
++            if let Some(ambiguity) = &ambiguity {
+                 hint_line.push_str(&format!("; {ambiguity}"));
+             }
+             let mut hints = format!("{hint_line}\n");
++            let mut read_hint_range = None;
+             if let Some(suggestion) = read_suggestion(res) {
++                let hint_start = text.len() + hints.len();
+                 hints.push_str(&format!("- {suggestion}\n"));
++                read_hint_range = Some(hint_start..text.len() + hints.len());
+             }
+             if text.len() + hints.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
+                 text.push_str(&hints);
++            } else {
++                read_hint_range = None;
+             }
+             if anchor_maps_enabled {
+                 if let Some(anchor_map) = anchor_map(res, &query_tokens) {
+@@ -869,6 +878,19 @@ pub(crate) fn run_inner_with_metadata(
+                     budget_hit = true;
+                     break 'files;
+                 }
++                if ambiguity.is_none()
++                    && skipped_for_cap == 0
++                    && outcome.complete_ranges.len() == res.matched_symbols.len()
++                    && res.matched_symbols.iter().all(|symbol| {
++                        outcome
++                            .complete_ranges
++                            .contains(&(symbol.range.start_line, symbol.range.end_line))
++                    })
++                {
++                    if let Some(range) = read_hint_range {
++                        redundant_read_hints.push(range);
++                    }
++                }
+                 if skipped_for_cap > 0 {
+                     text.push_str(&format!(
+                         "- _… {skipped_for_cap} more symbols not shown; use overview/read to inspect._\n"
+@@ -976,6 +998,11 @@ pub(crate) fn run_inner_with_metadata(
+     }
+ 
+     let is_partial = output_was_capped || text.len() > byte_cap;
++    if !is_partial {
++        for range in redundant_read_hints.into_iter().rev() {
++            text.replace_range(range, "");
++        }
++    }
+     let text = finish_search_output(text, byte_cap, is_partial);
+     Ok(append_static_collection_relations(
+         &results,
+diff --git a/apps/codemap-search/src/tools/search/monorepo.rs b/apps/codemap-search/src/tools/search/monorepo.rs
+index 3333683dd1477f7d324aba14defe2439f72b81d2..cc96fb38dad06b8750c9b7eb2053650b80b35c67 100644
+--- a/apps/codemap-search/src/tools/search/monorepo.rs
++++ b/apps/codemap-search/src/tools/search/monorepo.rs
+@@ -1,17 +1,11 @@
+ use crate::tools::ToolContext;
+ 
+-const SCOPED_SEARCH_LIMIT: usize = 500;
+-
+ pub(crate) fn should_use(ctx: &ToolContext) -> bool {
+     ctx.active_workspace_scope.is_some()
+         || crate::tools::get_arg(ctx.arguments, "workspace_scope").is_some()
+         || crate::tools::get_arg(ctx.arguments, "scope").is_some()
+ }
+ 
+-pub(crate) fn result_is_under_scope(result: &crate::index::SearchResult, scope: &str) -> bool {
+-    path_is_under_scope(&result.file_path, scope)
+-}
+-
+ pub(crate) fn path_is_under_scope(path: &str, scope: &str) -> bool {
+     path == scope || path.starts_with(&format!("{scope}/"))
+ }
+@@ -50,7 +44,9 @@ fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64,
+ pub(crate) fn run_with_metadata(ctx: &ToolContext) -> Result<super::SearchOutput, (i64, String)> {
+     let workspace_scope = requested_workspace_scope(ctx)?;
+     match workspace_scope {
+-        Some(scope) => super::run_inner_with_metadata(ctx, Some(&scope), SCOPED_SEARCH_LIMIT),
++        Some(scope) => {
++            super::run_inner_with_metadata(ctx, Some(&scope), super::DEFAULT_SEARCH_LIMIT)
++        }
+         None => super::run_inner_with_metadata(ctx, None, super::DEFAULT_SEARCH_LIMIT),
+     }
+ }
+diff --git a/apps/codemap-search/src/tools/search/render.rs b/apps/codemap-search/src/tools/search/render.rs
+index 8ceef480b2147d3926cdb93c8806fce11a922126..ba7eccf0d0cf17a29df4be01a94ddf2d3ab14f2f 100644
+--- a/apps/codemap-search/src/tools/search/render.rs
++++ b/apps/codemap-search/src/tools/search/render.rs
+@@ -439,6 +439,9 @@ pub(super) struct AnchoredRenderCaps {
+ pub(super) struct AnchoredRenderOutcome {
+     pub(super) budget_hit: bool,
+     pub(super) emitted_starts: std::collections::HashSet<usize>,
++    /// Original ranges directly rendered in full, excluding summaries, signatures and
++    /// deduplicated nested symbols. Used only to decide whether a read hint is redundant.
++    pub(super) complete_ranges: std::collections::HashSet<(usize, usize)>,
+ }
+ 
+ /// The shared P1 2-tier anchoring + P2-loop-2 C1/C3 render path for a name-matched file's
+@@ -464,6 +467,7 @@ pub(super) fn render_anchored_symbols(
+     caller_block_dedup: &mut crate::callers::CallerBlockDedup,
+ ) -> AnchoredRenderOutcome {
+     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
++    let mut complete_ranges = std::collections::HashSet::new();
+     let AnchoredRenderCaps {
+         snippet_max_lines,
+         anchor_snippet_limit,
+@@ -543,6 +547,7 @@ pub(super) fn render_anchored_symbols(
+             return AnchoredRenderOutcome {
+                 budget_hit: true,
+                 emitted_starts,
++                complete_ranges,
+             };
+         }
+         text.push_str(&format!(
+@@ -601,6 +606,14 @@ pub(super) fn render_anchored_symbols(
+         if !snippet.is_empty() {
+             let capped = cap_snippet(&snippet, snippet_max_lines, byte_cap);
+             text.push_str(&format!("```\n{}\n```\n", capped));
++            if !is_summary_container
++                && start > 0
++                && end >= start
++                && snippet_lines == end - start + 1
++                && capped == snippet
++            {
++                complete_ranges.insert((start, end));
++            }
+         }
+         if !is_summary_container {
+             if let Some(annotations) = caller_annotations {
+@@ -621,5 +634,6 @@ pub(super) fn render_anchored_symbols(
+     AnchoredRenderOutcome {
+         budget_hit: false,
+         emitted_starts,
++        complete_ranges,
+     }
+ }
+diff --git a/apps/codemap-search/tests/e2e/config.rs b/apps/codemap-search/tests/e2e/config.rs
+index b4f0a768442e338ebc68849076157c2aed79c65c..59752a509305bae324720e3653de5f6bfec43850 100644
+--- a/apps/codemap-search/tests/e2e/config.rs
++++ b/apps/codemap-search/tests/e2e/config.rs
+@@ -1,7 +1,9 @@
+ use crate::e2e::helpers::{create_mock_repo, run_cli, McpClient};
+ use assert_cmd::prelude::*;
+ use predicates::prelude::*;
++use std::fs;
+ use std::process::Command;
++use std::time::Duration;
+ 
+ #[tokio::test]
+ async fn test_config_threshold_override_changes_branching() {
+@@ -35,6 +37,79 @@ async fn test_config_threshold_override_changes_branching() {
+     );
+ }
+ 
++#[tokio::test]
++async fn test_overview_output_cap_reaches_final_mcp_response_and_reloads() {
++    let temp = tempfile::tempdir().unwrap();
++    let config_dir = temp.path().join(".codemap");
++    let source_dir = temp.path().join("src");
++    fs::create_dir_all(&config_dir).unwrap();
++    fs::create_dir_all(&source_dir).unwrap();
++    fs::write(
++        config_dir.join("config.toml"),
++        "[update]\nconfig_auto_update = false\n[tool_output]\noverview_output_byte_cap = 700\n",
++    )
++    .unwrap();
++    for index in 0..100 {
++        fs::write(
++            source_dir.join(format!("file_{index:03}.rs")),
++            format!("pub fn symbol_{index:03}() {{}}\n"),
++        )
++        .unwrap();
++    }
++
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let first = client
++        .send_request(
++            "tools/call",
++            serde_json::json!({ "name": "overview", "arguments": {} }),
++        )
++        .await
++        .unwrap();
++    let first_text = first["result"]["content"][0]["text"].as_str().unwrap();
++    assert!(first_text.len() <= 700, "{first_text:?}");
++    assert!(first_text.contains("Total Files"));
++    assert!(first_text.contains("Partial overview"));
++
++    fs::write(
++        config_dir.join("config.toml"),
++        "[update]\nconfig_auto_update = false\n[tool_output]\noverview_output_byte_cap = 420\n",
++    )
++    .unwrap();
++    tokio::time::sleep(Duration::from_millis(1_200)).await;
++    let reloaded = client
++        .send_tool_until("overview", serde_json::json!({}), |text| text.len() <= 420)
++        .await
++        .unwrap();
++    let reloaded_text = reloaded["result"]["content"][0]["text"].as_str().unwrap();
++    assert!(reloaded_text.len() <= 420, "{reloaded_text:?}");
++    assert!(reloaded_text.contains("Total Files"));
++    assert!(reloaded_text.contains("Partial overview"));
++}
++
++#[tokio::test]
++async fn test_overview_output_cap_too_small_returns_clear_error() {
++    let temp = create_mock_repo(&[
++        (
++            ".codemap/config.toml",
++            "[update]\nconfig_auto_update = false\n[tool_output]\noverview_output_byte_cap = 32\n",
++        ),
++        ("src/lib.rs", "pub fn visible_symbol() {}\n"),
++        ("src/other.rs", "pub fn another_symbol() {}\n"),
++    ])
++    .unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            serde_json::json!({ "name": "overview", "arguments": {} }),
++        )
++        .await
++        .unwrap();
++    let message = response["error"]["message"].as_str().unwrap();
++    assert!(message.contains("overview_output_byte_cap"), "{message:?}");
++    assert!(message.contains("too small"), "{message:?}");
++}
++
+ #[tokio::test]
+ async fn test_config_excluded_directories_augment() {
+     // A configured exclude dir is ADDED to the built-ins: a source file inside it is not
+diff --git a/apps/codemap-search/tests/e2e/cross_feature.rs b/apps/codemap-search/tests/e2e/cross_feature.rs
+index 2a40f78dbc66e7225128c0aa97677cad6818eb48..b24f8632dae9eeaa2b003f8c0785cde1fe4263ab 100644
+--- a/apps/codemap-search/tests/e2e/cross_feature.rs
++++ b/apps/codemap-search/tests/e2e/cross_feature.rs
+@@ -241,10 +241,10 @@ async fn test_cross_mcp_overview_accepts_slash_and_backslash_file_paths() {
+ #[tokio::test]
+ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
+     let temp = create_mock_repo(&[
+-        ("src/lib.rs", "pub fn searchable_path_symbol() {}\n"),
++        ("src/lib.rs", "pub fn searchable_path_symbol() {\n    let value = 1;\n}\n"),
+         (
+             ".codemap/config.toml",
+-            "watch = false\nindex_staleness_ms = 1\n",
++            "watch = false\nindex_staleness_ms = 1\n[search]\nsearch_detail_snippet_max_lines = 1\n",
+         ),
+     ])
+     .unwrap();
+diff --git a/apps/codemap-search/tests/e2e/mcp.rs b/apps/codemap-search/tests/e2e/mcp.rs
+index 5d829f98dcd40d0186d0c26b3efb230ae543289b..3084a52d16cd9bee1cc2694dd8a6efe44439f990 100644
+--- a/apps/codemap-search/tests/e2e/mcp.rs
++++ b/apps/codemap-search/tests/e2e/mcp.rs
+@@ -45,6 +45,130 @@ async fn test_mcp_list_tools() {
+     let tool_names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+     assert!(tool_names.contains(&"search"));
+     assert!(tool_names.contains(&"overview"));
++    let grep = tools.iter().find(|tool| tool["name"] == "grep").unwrap();
++    let properties = &grep["inputSchema"]["properties"];
++    assert_eq!(properties["fixed_strings"]["type"], "boolean");
++    assert_eq!(properties["-F"]["type"], "boolean");
++    assert!(properties["offset"]["description"]
++        .as_str()
++        .unwrap()
++        .contains("match-region"));
++}
++
++#[tokio::test]
++async fn test_mcp_direct_filesystem_calls_preserve_scope_and_initial_version() {
++    let temp = create_mock_repo(&[
++        ("package.json", r#"{"workspaces":["apps/*"]}"#),
++        (
++            "apps/api/src/lib.rs",
++            "pub fn shared_marker() { println!(\"api\"); }",
++        ),
++        (
++            "apps/web/src/lib.rs",
++            "pub fn shared_marker() { println!(\"web\"); }",
++        ),
++    ])
++    .unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    // These are the first tool calls, before any initial guidance or overview.
++    for (name, arguments) in [
++        (
++            "read",
++            serde_json::json!({"file_path":"apps/api/src/lib.rs", "offset":1,"limit":1}),
++        ),
++        (
++            "find",
++            serde_json::json!({"path":"apps/api","pattern":"*.rs"}),
++        ),
++        (
++            "grep",
++            serde_json::json!({"path":"apps/api","pattern":"shared_marker"}),
++        ),
++    ] {
++        let response = client
++            .send_request(
++                "tools/call",
++                serde_json::json!({"name":name,"arguments":arguments}),
++            )
++            .await
++            .unwrap();
++        assert!(response.get("error").is_none(), "{response}");
++        assert!(
++            response["result"]["content"][0]["text"]
++                .as_str()
++                .unwrap()
++                .contains("lib.rs")
++                || name == "read",
++            "{response}"
++        );
++    }
++    let initial = client
++        .send_request(
++            "tools/call",
++            serde_json::json!({"name":"initial_instructions","arguments":{}}),
++        )
++        .await
++        .unwrap();
++    let initial_text = initial["result"]["content"][0]["text"].as_str().unwrap();
++    let version = format!("codemap-search {}", env!("CARGO_PKG_VERSION"));
++    assert_eq!(initial_text.matches(&version).count(), 1, "{initial_text}");
++    assert!(
++        initial_text.contains("apps/api") && initial_text.contains("apps/web"),
++        "{initial_text}"
++    );
++
++    let all = client
++        .send_request(
++            "tools/call",
++            serde_json::json!({"name":"search","arguments":{"query":"shared_marker"}}),
++        )
++        .await
++        .unwrap();
++    let all_text = all["result"]["content"][0]["text"].as_str().unwrap();
++    assert!(
++        all_text.contains("apps/api/src/lib.rs") && all_text.contains("apps/web/src/lib.rs"),
++        "direct calls must not set scope: {all_text}"
++    );
++
++    client
++        .send_request(
++            "tools/call",
++            serde_json::json!({"name":"overview","arguments":{"path":"apps/api"}}),
++        )
++        .await
++        .unwrap();
++    client.send_request("tools/call", serde_json::json!({"name":"grep","arguments":{"path":"apps/web","pattern":"shared_marker"}})).await.unwrap();
++    for (scope, expected_api, expected_web) in [
++        (None, true, false),
++        (Some("apps/web"), false, true),
++        (Some("all"), true, true),
++        (Some("전체"), true, true),
++        (None, true, false),
++    ] {
++        let mut arguments = serde_json::json!({"query":"shared_marker"});
++        if let Some(scope) = scope {
++            arguments["workspace_scope"] = scope.into();
++        }
++        let response = client
++            .send_request(
++                "tools/call",
++                serde_json::json!({"name":"search","arguments":arguments}),
++            )
++            .await
++            .unwrap();
++        let text = response["result"]["content"][0]["text"].as_str().unwrap();
++        assert_eq!(
++            text.contains("apps/api/src/lib.rs"),
++            expected_api,
++            "{scope:?}: {text}"
++        );
++        assert_eq!(
++            text.contains("apps/web/src/lib.rs"),
++            expected_web,
++            "{scope:?}: {text}"
++        );
++    }
++    client.kill().await.unwrap();
+ }
+ 
+ #[tokio::test]
+diff --git a/apps/codemap-search/tests/e2e/search.rs b/apps/codemap-search/tests/e2e/search.rs
+index 294b6e51cba69eaa14f7fde2df39b8b269b5d0f1..529e8a9d6463d38df2c0ccae774dcfd73fa52465 100644
+--- a/apps/codemap-search/tests/e2e/search.rs
++++ b/apps/codemap-search/tests/e2e/search.rs
+@@ -5,6 +5,90 @@ use std::fs;
+ use std::thread::sleep;
+ use std::time::Duration;
+ 
++#[tokio::test]
++async fn test_search_read_hint_requires_complete_unambiguous_uncapped_source() {
++    use crate::e2e::helpers::McpClient;
++
++    let wide_source = format!(
++        "pub fn pinpoint() {{ let value = \"{}\"; }}\n",
++        "x".repeat(500)
++    );
++    let cases = [
++        ("complete", "pub fn pinpoint() {}\n", "", false),
++        (
++            "line cap",
++            "pub fn pinpoint() {\n    let value = 1;\n}\n",
++            "search_detail_snippet_max_lines = 1\n",
++            true,
++        ),
++        (
++            "byte cap",
++            wide_source.as_str(),
++            "search_detail_byte_cap = 650\n",
++            true,
++        ),
++        (
++            "ambiguity",
++            "pub fn pinpoint() {}\nmod other { pub fn pinpoint() {} }\n",
++            "",
++            true,
++        ),
++        (
++            "summary",
++            "pub struct Pinpoint;\nimpl Pinpoint {\n pub fn pinpoint(&self) {}\n}\n",
++            "",
++            true,
++        ),
++        (
++            "nested dedup",
++            "pub fn pinpoint() {\n fn pinpoint_inner() {}\n}\n",
++            "",
++            true,
++        ),
++        (
++            "signature",
++            "pub fn pinpoint() {}\npub fn pinpoint_secondary() {}\n",
++            "",
++            true,
++        ),
++        (
++            "literal",
++            "pub fn unrelated() { let value = \"pinpoint\"; }\n",
++            "",
++            true,
++        ),
++    ];
++    for (case, source, settings, should_have_hint) in cases {
++        let config = format!("watch = false\n[search]\n{settings}");
++        let temp =
++            create_mock_repo(&[("src/lib.rs", source), (".codemap/config.toml", &config)]).unwrap();
++        let mut client = McpClient::spawn(temp.path()).await.unwrap();
++        let response = client
++            .send_request(
++                "tools/call",
++                serde_json::json!({
++                    "name": "search", "arguments": {"query": "pinpoint", "caller_context": false}
++                }),
++            )
++            .await
++            .unwrap();
++        let text = response["result"]["content"][0]["text"].as_str().unwrap();
++        assert!(text.contains("### File: src/lib.rs"), "{case}: {text}");
++        assert_eq!(
++            text.contains("- read src/lib.rs:"),
++            should_have_hint,
++            "{case}: {text}"
++        );
++        if case == "complete" {
++            assert!(text.contains("1→pub fn pinpoint() {}"), "{text}");
++        }
++        if case == "byte cap" {
++            assert!(text.contains("Partial search output"), "{text}");
++            assert!(text.len() <= 650, "{text}");
++        }
++    }
++}
++
+ #[test]
+ fn test_bm25_basic_search() {
+     let temp = create_mock_repo(&[("src/lib.rs", "pub fn find_my_function_name() {}")]).unwrap();
+diff --git a/apps/codemap-search/tests/e2e/tools.rs b/apps/codemap-search/tests/e2e/tools.rs
+index 534b8a035335a888e7812b577e5568d967d92f76..5f782b6ca2360ff3663e667b45bd5cc038ec7bf9 100644
+--- a/apps/codemap-search/tests/e2e/tools.rs
++++ b/apps/codemap-search/tests/e2e/tools.rs
+@@ -643,3 +643,555 @@ async fn test_grep_path_param_escape_is_rejected() {
+         "a path param escaping the workspace must error"
+     );
+ }
++
++#[tokio::test]
++async fn test_grep_content_pages_match_regions_and_deduplicates_context() {
++    let source = "zero\nMATCH MATCH\nbetween\nMATCH\nafter\n";
++    let temp = create_mock_repo(&[("src/page.rs", source)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++
++    let first = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "src/page.rs",
++                    "head_limit": 1,
++                    "-C": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let first_text = text(&first);
++    assert!(
++        first_text.contains("src/page.rs:2:MATCH MATCH"),
++        "{first_text}"
++    );
++    assert!(first_text.contains("next_offset=1"), "{first_text}");
++    assert_eq!(
++        first_text
++            .lines()
++            .filter(|line| line.contains("src/page.rs-3-between"))
++            .count(),
++        1,
++        "overlapping context must render once: {first_text}"
++    );
++
++    let second = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "src/page.rs",
++                    "head_limit": 1,
++                    "offset": 1,
++                    "-C": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let second_text = text(&second);
++    assert!(second_text.contains("src/page.rs:4:MATCH"), "{second_text}");
++    assert!(second_text.contains("last page"), "{second_text}");
++
++    let unlimited = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "src/page.rs",
++                    "head_limit": 0,
++                    "-C": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let unlimited_text = text(&unlimited);
++    assert!(unlimited_text.contains("src/page.rs:2:MATCH MATCH"));
++    assert!(unlimited_text.contains("src/page.rs:4:MATCH"));
++    assert_eq!(
++        unlimited_text
++            .lines()
++            .filter(|line| line.contains("src/page.rs-3-between"))
++            .count(),
++        1,
++        "overlapping context must render once: {unlimited_text}"
++    );
++}
++
++#[tokio::test]
++async fn test_grep_large_context_keeps_the_match_in_the_first_response() {
++    let mut source = String::new();
++    for line in 1..=60 {
++        if line == 30 {
++            source.push_str("THE_NEEDLE\n");
++        } else {
++            source.push_str(&format!("context-{line}\n"));
++        }
++    }
++    let temp = create_mock_repo(&[("large.rs", &source)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "THE_NEEDLE",
++                    "path": "large.rs",
++                    "-B": 25,
++                    "-A": 25,
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(output.contains("large.rs:30:THE_NEEDLE"), "{output}");
++}
++
++#[tokio::test]
++async fn test_grep_multiline_match_is_one_paginated_region() {
++    let source = "BEGIN\nmiddle\nEND\ngap\nBEGIN\nmiddle\nEND\n";
++    let temp = create_mock_repo(&[("multi.rs", source)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let first = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "BEGIN\\nmiddle\\nEND",
++                    "path": "multi.rs",
++                    "multiline": true,
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&first);
++    assert!(output.contains("multi.rs:1:BEGIN"), "{output}");
++    assert!(output.contains("multi.rs:3:END"), "{output}");
++    assert!(!output.contains("multi.rs:5:BEGIN"), "{output}");
++    assert!(output.contains("next_offset=1"), "{output}");
++}
++
++#[tokio::test]
++async fn test_grep_fixed_strings_and_canonical_precedence() {
++    let temp = create_mock_repo(&[("literal.rs", "call(a.b)[c]\ncallaxbxc\nregex123\n")]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++
++    let fixed = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "call(a.b)[c]",
++                    "path": "literal.rs",
++                    "fixed_strings": true
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    assert!(text(&fixed).contains("literal.rs:1:call(a.b)[c]"));
++
++    let regex = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "regex[0-9]+",
++                    "path": "literal.rs"
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    assert!(text(&regex).contains("regex123"));
++
++    let canonical_wins = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "regex[0-9]+",
++                    "path": "literal.rs",
++                    "fixed_strings": false,
++                    "-F": true
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    assert!(text(&canonical_wins).contains("regex123"));
++}
++
++#[tokio::test]
++async fn test_grep_long_utf8_line_reports_exact_byte_location_and_more_matches() {
++    let prefix = "한🙂".repeat(50);
++    let source = format!("{prefix}NEEDLE-tail-NEEDLE\n");
++    let config =
++        "watch = false\n[tool_output]\ngrep_max_columns = 48\ngrep_output_byte_cap = 512\n";
++    let temp =
++        create_mock_repo(&[("unicode.rs", &source), (".codemap/config.toml", config)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "NEEDLE",
++                    "path": "unicode.rs",
++                    "fixed_strings": true
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(output.len() <= 512, "{} bytes: {output}", output.len());
++    assert!(output.contains("match bytes 351-356"), "{output}");
++    assert!(output.contains("1 additional match(es)"), "{output}");
++    assert!(std::str::from_utf8(output.as_bytes()).is_ok());
++}
++
++#[tokio::test]
++async fn test_grep_output_cap_stops_before_next_region_and_makes_progress() {
++    let line = format!("{} MATCH {}\n", "x".repeat(100), "y".repeat(100));
++    let source = line.repeat(8);
++    let config =
++        "watch = false\n[tool_output]\ngrep_max_columns = 64\ngrep_output_byte_cap = 420\n";
++    let temp =
++        create_mock_repo(&[("capped.rs", &source), (".codemap/config.toml", config)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let first = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "capped.rs",
++                    "head_limit": 0
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let first_output = text(&first);
++    assert!(
++        first_output.len() <= 420,
++        "{} bytes: {first_output}",
++        first_output.len()
++    );
++    assert!(first_output.contains("next_offset="), "{first_output}");
++    let next_offset: usize = first_output
++        .split("next_offset=")
++        .nth(1)
++        .and_then(|rest| {
++            rest.split(|character: char| !character.is_ascii_digit())
++                .next()
++        })
++        .unwrap()
++        .parse()
++        .unwrap();
++    assert!(next_offset > 0 && next_offset < 8, "{first_output}");
++
++    let next = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "capped.rs",
++                    "head_limit": 0,
++                    "offset": next_offset
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let next_output = text(&next);
++    assert!(
++        next_output.len() <= 420,
++        "{} bytes: {next_output}",
++        next_output.len()
++    );
++    assert!(
++        next_output.contains(&format!("capped.rs:{}:", next_offset + 1)),
++        "{next_output}"
++    );
++}
++
++#[tokio::test]
++async fn test_grep_count_distinguishes_total_and_current_page() {
++    let temp = create_mock_repo(&[("a.rs", "MATCH\nMATCH\n"), ("b.rs", "MATCH\n")]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "output_mode": "count",
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(
++        output.contains("Found 3 total occurrence(s) across 2 matching file(s)"),
++        "{output}"
++    );
++    assert!(
++        output.contains("current page: 2 occurrence(s) across 1 file(s)"),
++        "{output}"
++    );
++    assert!(output.contains("next_offset=1"), "{output}");
++
++    let beyond = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "output_mode": "count",
++                    "offset": 99,
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let beyond_output = text(&beyond);
++    assert!(
++        beyond_output.contains("No files at offset 99; 2 total"),
++        "{beyond_output}"
++    );
++    assert!(!beyond_output.contains("3-2"), "{beyond_output}");
++}
++
++#[tokio::test]
++async fn test_grep_empty_result_reports_searched_file_count() {
++    let temp = create_mock_repo(&[("a.rs", "alpha\n"), ("b.rs", "beta\n")]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call("grep", serde_json::json!({ "pattern": "absent" })),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(
++        output.contains("No matches found across 2 searched file(s)."),
++        "{output}"
++    );
++    assert!(!output.contains("Partial search"), "{output}");
++}
++
++#[tokio::test]
++async fn test_grep_later_multiline_region_is_not_truncated_by_first_region_limits() {
++    let source = "ONE\ngap\nBEGIN\nmiddle\nEND\n";
++    let temp = create_mock_repo(&[("mixed.rs", source)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "ONE|BEGIN\\nmiddle\\nEND",
++                    "path": "mixed.rs",
++                    "multiline": true,
++                    "head_limit": 0
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(output.contains("mixed.rs:1:ONE"), "{output}");
++    assert!(output.contains("mixed.rs:3:BEGIN"), "{output}");
++    assert!(output.contains("mixed.rs:5:END"), "{output}");
++    assert!(!output.contains("Partial match region"), "{output}");
++}
++
++#[tokio::test]
++async fn test_grep_cap_reduces_context_before_match_and_discloses_it() {
++    let mut source = String::new();
++    for line in 1..=60 {
++        if line == 30 {
++            source.push_str("MATCH\n");
++        } else {
++            source.push_str(&format!("{}-{line}\n", "context".repeat(8)));
++        }
++    }
++    let config = "watch = false\n[tool_output]\ngrep_output_byte_cap = 360\n";
++    let temp =
++        create_mock_repo(&[("context.rs", &source), (".codemap/config.toml", config)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "MATCH",
++                    "path": "context.rs",
++                    "-C": 25,
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(output.len() <= 360, "{} bytes: {output}", output.len());
++    assert!(output.contains("context.rs:30:MATCH"), "{output}");
++    assert!(
++        output.contains("Context reduced for context.rs:lines 30-30"),
++        "{output}"
++    );
++}
++
++#[tokio::test]
++async fn test_grep_oversized_multiline_region_is_partial_with_original_range() {
++    let mut source = String::from("BEGIN\n");
++    source.push_str(&"body\n".repeat(100));
++    source.push_str("END\n");
++    let config = "watch = false\n[tool_output]\ngrep_output_byte_cap = 400\n";
++    let temp = create_mock_repo(&[("huge.rs", &source), (".codemap/config.toml", config)]).unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "BEGIN.*END",
++                    "path": "huge.rs",
++                    "multiline": true
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let output = text(&response);
++    assert!(output.len() <= 400, "{} bytes: {output}", output.len());
++    assert!(output.contains("huge.rs:1:BEGIN"), "{output}");
++    assert!(
++        output.contains("Partial match region in huge.rs")
++            && output.contains("original lines 1-102"),
++        "{output}"
++    );
++}
++
++#[tokio::test]
++async fn test_grep_newline_match_and_tiny_utf8_excerpt_are_explicit() {
++    let config = "watch = false\n[tool_output]\ngrep_max_columns = 1\ngrep_output_byte_cap = 512\n";
++    let temp = create_mock_repo(&[
++        ("newline.rs", "alpha\nbeta\n"),
++        ("emoji.rs", "🙂 trailing text\n"),
++        (".codemap/config.toml", config),
++    ])
++    .unwrap();
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++
++    let newline = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "\\n",
++                    "path": "newline.rs",
++                    "multiline": true,
++                    "head_limit": 1
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    let newline_output = text(&newline);
++    assert!(
++        newline_output.contains("includes line terminator"),
++        "{newline_output}"
++    );
++    assert!(
++        newline_output.contains("match bytes 6-6"),
++        "{newline_output}"
++    );
++
++    let emoji = client
++        .send_request(
++            "tools/call",
++            call(
++                "grep",
++                serde_json::json!({
++                    "pattern": "🙂",
++                    "path": "emoji.rs",
++                    "fixed_strings": true
++                }),
++            ),
++        )
++        .await
++        .unwrap();
++    assert!(is_error(&emoji), "{emoji}");
++    let emoji_error = emoji["error"]["message"].as_str().unwrap_or("");
++    assert!(
++        emoji_error.contains("grep_max_columns (1 bytes)"),
++        "{emoji_error}"
++    );
++    assert!(
++        emoji_error.contains("UTF-8 character (4 bytes)"),
++        "{emoji_error}"
++    );
++}
++
++#[cfg(unix)]
++#[tokio::test]
++async fn test_grep_read_failure_marks_partial_results() {
++    use std::os::unix::fs::PermissionsExt;
++
++    let temp = create_mock_repo(&[("good.rs", "MATCH\n"), ("blocked.rs", "MATCH\n")]).unwrap();
++    let blocked = temp.path().join("blocked.rs");
++    let original_permissions = std::fs::metadata(&blocked).unwrap().permissions();
++    std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(0o000)).unwrap();
++
++    let mut client = McpClient::spawn(temp.path()).await.unwrap();
++    let response = client
++        .send_request(
++            "tools/call",
++            call("grep", serde_json::json!({ "pattern": "MATCH" })),
++        )
++        .await
++        .unwrap();
++    std::fs::set_permissions(&blocked, original_permissions).unwrap();
++
++    let output = text(&response);
++    assert!(output.contains("good.rs:1:MATCH"), "{output}");
++    assert!(output.contains("Partial search"), "{output}");
++    assert!(output.contains("1 file read error(s)"), "{output}");
++}

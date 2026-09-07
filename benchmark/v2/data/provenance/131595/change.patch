@@ -1,0 +1,483 @@
+diff --git a/pkg/storage/unified/apistore/store.go b/pkg/storage/unified/apistore/store.go
+index 5016ff7b394b5..4927eab414e16 100644
+--- a/pkg/storage/unified/apistore/store.go
++++ b/pkg/storage/unified/apistore/store.go
+@@ -322,13 +322,12 @@ func (s *Storage) Create(ctx context.Context, key string, obj runtime.Object, ou
+ 	}
+ 
+ 	rsp, err := s.store.Create(ctx, req)
+-	if err != nil {
+-		return v.finish(ctx, resource.GetError(resource.AsErrorResult(err)), s.opts.SecureValues)
+-	}
+-	if rsp.Error != nil {
+-		err = resource.GetError(rsp.Error)
+-		if rsp.Error.Code == http.StatusConflict {
++	if err := resource.ErrorFromResponse(rsp.GetError(), err); err != nil {
++		resErr := resource.AsErrorResult(err)
++		if resErr.Code == http.StatusConflict {
+ 			err = storage.NewKeyExistsError(key, 0)
++		} else {
++			err = resource.GetError(resErr)
+ 		}
+ 		return v.finish(ctx, err, s.opts.SecureValues)
+ 	}
+@@ -426,12 +425,11 @@ func (s *Storage) Delete(
+ 			return resource.GetError(resource.AsErrorResult(err))
+ 		}
+ 		rsp, err := s.store.Delete(ctx, cmd)
+-		if err != nil {
+-			return resource.GetError(resource.AsErrorResult(err))
+-		}
+-		if rsp.Error != nil {
+-			err := resource.GetError(rsp.Error)
+-			if isRetryableStorageError(err) {
++		if err := resource.ErrorFromResponse(rsp.GetError(), err); err != nil {
++			// Classify before normalization so attached gRPC status details remain available.
++			retryable := isRetryableStorageError(err)
++			err = resource.GetError(resource.AsErrorResult(err))
++			if retryable {
+ 				lastErr = err
+ 				bo.Wait()
+ 				continue
+@@ -516,17 +514,15 @@ func (s *Storage) Get(ctx context.Context, key string, opts storage.GetOptions,
+ 	}
+ 
+ 	rsp, err := s.store.Read(ctx, req)
+-	if err != nil {
+-		return resource.GetError(resource.AsErrorResult(err))
+-	}
+-	if rsp.Error != nil {
+-		if rsp.Error.Code == http.StatusNotFound {
++	if err := resource.ErrorFromResponse(rsp.GetError(), err); err != nil {
++		resErr := resource.AsErrorResult(err)
++		if resErr.Code == http.StatusNotFound {
+ 			if opts.IgnoreNotFound {
+ 				return runtime.SetZeroValue(objPtr)
+ 			}
+ 			return storage.NewKeyNotFoundError(key, req.ResourceVersion)
+ 		}
+-		return resource.GetError(rsp.Error)
++		return resource.GetError(resErr)
+ 	}
+ 
+ 	_, err = s.convertToObject(ctx, rsp.Value, objPtr)
+@@ -719,18 +715,17 @@ func (s *Storage) GuaranteedUpdate(
+ 	for bo.Ongoing() {
+ 		// Read the latest value
+ 		readResponse, err := s.store.Read(ctx, &resourcepb.ReadRequest{Key: req.Key})
+-		if err != nil {
+-			return resource.GetError(resource.AsErrorResult(err))
+-		}
+-
+-		if readResponse.Error != nil {
+-			if readResponse.Error.Code == http.StatusNotFound {
+-				if !ignoreNotFound {
+-					return apierrors.NewNotFound(s.gr, req.Key.Name)
+-				}
+-			} else {
+-				return resource.GetError(readResponse.Error)
++		if err := resource.ErrorFromResponse(readResponse.GetError(), err); err != nil {
++			resErr := resource.AsErrorResult(err)
++			if resErr.Code != http.StatusNotFound {
++				return resource.GetError(resErr)
+ 			}
++			if !ignoreNotFound {
++				return apierrors.NewNotFound(s.gr, req.Key.Name)
++			}
++			// A NotFound reported as a transport error leaves readResponse nil, so
++			// substitute an empty response and let the upsert path below handle it.
++			readResponse = &resourcepb.ReadResponse{}
+ 		}
+ 
+ 		// Upsert?  (create because it does not already exist)
+@@ -788,11 +783,11 @@ func (s *Storage) GuaranteedUpdate(
+ 		req.Value = v.raw.Bytes()
+ 		req.ResourceVersion = readResponse.ResourceVersion
+ 		updateResponse, err := s.store.Update(ctx, req) // Also does RBAC check
+-		if err != nil {
++		if err = resource.ErrorFromResponse(updateResponse.GetError(), err); err != nil {
++			// Classify before normalization so attached gRPC status details remain available.
++			retryable := isRetryableStorageError(err)
+ 			err = resource.GetError(resource.AsErrorResult(err))
+-		} else if updateResponse.Error != nil {
+-			err = resource.GetError(updateResponse.Error)
+-			if isRetryableStorageError(err) {
++			if retryable {
+ 				// Delete the secure values this attempt created; the next attempt recreates them.
+ 				// finish only echoes the conflict back and logs any cleanup failure itself, so we
+ 				// discard its return and retry instead of surfacing it.
+@@ -802,7 +797,6 @@ func (s *Storage) GuaranteedUpdate(
+ 				continue
+ 			}
+ 		}
+-
+ 		// Cleanup secure values
+ 		if err = v.finish(ctx, err, s.opts.SecureValues); err != nil {
+ 			return err
+@@ -825,7 +819,7 @@ func (s *Storage) GuaranteedUpdate(
+ }
+ 
+ func isRetryableStorageError(err error) bool {
+-	return apierrors.IsConflict(err)
++	return resource.IsConflict(err)
+ }
+ 
+ func retriesExhausted(ctx context.Context, bo *backoff.Backoff, lastErr error) error {
+diff --git a/pkg/storage/unified/apistore/store_grpcerrors_test.go b/pkg/storage/unified/apistore/store_grpcerrors_test.go
+new file mode 100644
+index 0000000000000..62de0019bcf05
+--- /dev/null
++++ b/pkg/storage/unified/apistore/store_grpcerrors_test.go
+@@ -0,0 +1,280 @@
++package apistore
++
++import (
++	"bytes"
++	"context"
++	"net/http"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"google.golang.org/grpc"
++	grpccodes "google.golang.org/grpc/codes"
++	grpcstatus "google.golang.org/grpc/status"
++	apierrors "k8s.io/apimachinery/pkg/api/errors"
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
++	"k8s.io/apimachinery/pkg/runtime"
++	"k8s.io/apiserver/pkg/storage"
++
++	claims "github.com/grafana/authlib/types"
++	"github.com/grafana/grafana/pkg/apimachinery/identity"
++	"github.com/grafana/grafana/pkg/storage/unified/resource"
++	"github.com/grafana/grafana/pkg/storage/unified/resourcepb"
++)
++
++// grpcErrorWithResult builds the error shape a newer unified storage server returns: a gRPC
++// status carrying the detailed ErrorResult, with no response message.
++func grpcErrorWithResult(code grpccodes.Code, res *resourcepb.ErrorResult) error {
++	st := grpcstatus.New(code, res.Message)
++	if withDetails, err := st.WithDetails(res); err == nil {
++		st = withDetails
++	}
++	return st.Err()
++}
++
++func testStorage(t *testing.T, client resource.ResourceClient) *Storage {
++	t.Helper()
++	return &Storage{
++		codec:     unstructured.UnstructuredJSONScheme,
++		newFunc:   func() runtime.Object { return &unstructured.Unstructured{} },
++		versioner: &storage.APIObjectVersioner{},
++		store:     client,
++		getKey: func(string) (*resourcepb.ResourceKey, error) {
++			return &resourcepb.ResourceKey{Namespace: "default", Group: "example.grafana.app", Resource: "examples", Name: "test"}, nil
++		},
++	}
++}
++
++func testContext(t *testing.T) context.Context {
++	requester := &identity.StaticRequester{Type: claims.TypeUser, UserID: 1, OrgRole: identity.RoleAdmin, IsGrafanaAdmin: true}
++	return identity.WithRequester(t.Context(), requester)
++}
++
++func testObject(t *testing.T) []byte {
++	t.Helper()
++	obj := &unstructured.Unstructured{Object: map[string]any{
++		"apiVersion": "example.grafana.app/v1",
++		"kind":       "Example",
++		"metadata": map[string]any{
++			"namespace": "default",
++			"name":      "test",
++			"uid":       "u1",
++		},
++	}}
++	var raw bytes.Buffer
++	require.NoError(t, unstructured.UnstructuredJSONScheme.Encode(obj, &raw))
++	return raw.Bytes()
++}
++
++// notFoundReadClient reports NotFound the way the newer server does: as a gRPC error with no
++// ReadResponse at all.
++type notFoundReadClient struct {
++	resource.ResourceClient
++	readErr error
++	created int
++}
++
++func (c *notFoundReadClient) Read(context.Context, *resourcepb.ReadRequest, ...grpc.CallOption) (*resourcepb.ReadResponse, error) {
++	return nil, c.readErr
++}
++
++func (c *notFoundReadClient) Create(context.Context, *resourcepb.CreateRequest, ...grpc.CallOption) (*resourcepb.CreateResponse, error) {
++	c.created++
++	return &resourcepb.CreateResponse{ResourceVersion: 1}, nil
++}
++
++func TestGuaranteedUpdateNotFoundAsGRPCError(t *testing.T) {
++	notFound := grpcErrorWithResult(grpccodes.NotFound, &resourcepb.ErrorResult{Code: http.StatusNotFound, Message: "not found"})
++
++	tryUpdate := func(runtime.Object, storage.ResponseMeta) (runtime.Object, *uint64, error) {
++		return &unstructured.Unstructured{Object: map[string]any{
++			"apiVersion": "example.grafana.app/v1",
++			"kind":       "Example",
++			"metadata":   map[string]any{"namespace": "default", "name": "test"},
++		}}, nil, nil
++	}
++
++	t.Run("ignoreNotFound upserts instead of dereferencing the missing response", func(t *testing.T) {
++		client := &notFoundReadClient{readErr: notFound}
++		s := testStorage(t, client)
++
++		err := s.GuaranteedUpdate(testContext(t), "example/test", &unstructured.Unstructured{}, true, nil, tryUpdate, nil)
++		require.NoError(t, err)
++		require.Equal(t, 1, client.created)
++	})
++
++	t.Run("without ignoreNotFound returns NotFound", func(t *testing.T) {
++		client := &notFoundReadClient{readErr: notFound}
++		s := testStorage(t, client)
++
++		err := s.GuaranteedUpdate(testContext(t), "example/test", &unstructured.Unstructured{}, false, nil, tryUpdate, nil)
++		require.True(t, apierrors.IsNotFound(err), "expected NotFound, got: %v", err)
++		require.Equal(t, 0, client.created)
++	})
++}
++
++// conflictClient fails the first update or delete with a conflict, then succeeds, so a test can
++// assert the retry loop classified the conflict.
++type conflictClient struct {
++	resource.ResourceClient
++	value    []byte
++	conflict func() (*resourcepb.ErrorResult, error)
++	updates  int
++	deletes  int
++}
++
++func (c *conflictClient) Read(context.Context, *resourcepb.ReadRequest, ...grpc.CallOption) (*resourcepb.ReadResponse, error) {
++	return &resourcepb.ReadResponse{Value: c.value, ResourceVersion: 1}, nil
++}
++
++func (c *conflictClient) Update(context.Context, *resourcepb.UpdateRequest, ...grpc.CallOption) (*resourcepb.UpdateResponse, error) {
++	c.updates++
++	if c.updates == 1 {
++		res, err := c.conflict()
++		return &resourcepb.UpdateResponse{Error: res}, err
++	}
++	return &resourcepb.UpdateResponse{ResourceVersion: 2}, nil
++}
++
++func (c *conflictClient) Delete(context.Context, *resourcepb.DeleteRequest, ...grpc.CallOption) (*resourcepb.DeleteResponse, error) {
++	c.deletes++
++	if c.deletes == 1 {
++		res, err := c.conflict()
++		return &resourcepb.DeleteResponse{Error: res}, err
++	}
++	return &resourcepb.DeleteResponse{ResourceVersion: 2}, nil
++}
++
++func TestRetriesConflictFromBothErrorShapes(t *testing.T) {
++	conflicts := map[string]func() (*resourcepb.ErrorResult, error){
++		"response error": func() (*resourcepb.ErrorResult, error) {
++			return &resourcepb.ErrorResult{Code: http.StatusConflict, Message: "conflict"}, nil
++		},
++		"grpc status with details": func() (*resourcepb.ErrorResult, error) {
++			return nil, grpcErrorWithResult(grpccodes.AlreadyExists, &resourcepb.ErrorResult{Code: http.StatusConflict, Message: "conflict"})
++		},
++	}
++
++	for name, conflict := range conflicts {
++		t.Run(name+"/GuaranteedUpdate", func(t *testing.T) {
++			client := &conflictClient{value: testObject(t), conflict: conflict}
++			s := testStorage(t, client)
++
++			tryUpdate := func(in runtime.Object, _ storage.ResponseMeta) (runtime.Object, *uint64, error) {
++				return in.(*unstructured.Unstructured).DeepCopy(), nil, nil
++			}
++
++			err := s.GuaranteedUpdate(testContext(t), "example/test", &unstructured.Unstructured{}, false, &storage.Preconditions{}, tryUpdate, nil)
++			require.NoError(t, err)
++			require.Equal(t, 2, client.updates, "the conflict must be retried")
++		})
++
++		t.Run(name+"/Delete", func(t *testing.T) {
++			client := &conflictClient{value: testObject(t), conflict: conflict}
++			s := testStorage(t, client)
++
++			err := s.Delete(testContext(t), "example/test", &unstructured.Unstructured{}, nil, nil, nil, storage.DeleteOptions{})
++			require.NoError(t, err)
++			require.Equal(t, 2, client.deletes, "the conflict must be retried")
++		})
++	}
++}
++
++// alwaysFailsClient returns the same failure on every attempt, so a test can drive the retry
++// budget to exhaustion or assert a non-retryable error is returned immediately.
++type alwaysFailsClient struct {
++	resource.ResourceClient
++	value   []byte
++	err     error
++	updates int
++	deletes int
++}
++
++func (c *alwaysFailsClient) Read(context.Context, *resourcepb.ReadRequest, ...grpc.CallOption) (*resourcepb.ReadResponse, error) {
++	return &resourcepb.ReadResponse{Value: c.value, ResourceVersion: 1}, nil
++}
++
++func (c *alwaysFailsClient) Update(context.Context, *resourcepb.UpdateRequest, ...grpc.CallOption) (*resourcepb.UpdateResponse, error) {
++	c.updates++
++	return nil, c.err
++}
++
++func (c *alwaysFailsClient) Delete(context.Context, *resourcepb.DeleteRequest, ...grpc.CallOption) (*resourcepb.DeleteResponse, error) {
++	c.deletes++
++	return nil, c.err
++}
++
++// requireKubernetesError asserts the storage boundary converted the error to a Kubernetes status
++// error rather than leaking the raw transport error.
++func requireKubernetesError(t *testing.T, err error) {
++	t.Helper()
++	require.Error(t, err)
++	var apistatus apierrors.APIStatus
++	require.ErrorAs(t, err, &apistatus, "expected a Kubernetes status error, got %T: %v", err, err)
++	_, isGRPC := grpcstatus.FromError(err)
++	require.False(t, isGRPC, "raw gRPC status leaked out of the storage boundary: %v", err)
++}
++
++func TestNonRetryableGRPCErrorIsConverted(t *testing.T) {
++	forbidden := grpcErrorWithResult(grpccodes.PermissionDenied, &resourcepb.ErrorResult{
++		Code:    http.StatusForbidden,
++		Reason:  string(metav1.StatusReasonForbidden),
++		Message: "forbidden",
++	})
++
++	t.Run("GuaranteedUpdate", func(t *testing.T) {
++		client := &alwaysFailsClient{value: testObject(t), err: forbidden}
++		s := testStorage(t, client)
++
++		tryUpdate := func(in runtime.Object, _ storage.ResponseMeta) (runtime.Object, *uint64, error) {
++			return in.(*unstructured.Unstructured).DeepCopy(), nil, nil
++		}
++
++		err := s.GuaranteedUpdate(testContext(t), "example/test", &unstructured.Unstructured{}, false, &storage.Preconditions{}, tryUpdate, nil)
++		require.True(t, apierrors.IsForbidden(err), "expected Forbidden, got: %v", err)
++		requireKubernetesError(t, err)
++		require.Equal(t, 1, client.updates, "a non-retryable error must not be retried")
++	})
++
++	t.Run("Delete", func(t *testing.T) {
++		client := &alwaysFailsClient{value: testObject(t), err: forbidden}
++		s := testStorage(t, client)
++
++		err := s.Delete(testContext(t), "example/test", &unstructured.Unstructured{}, nil, nil, nil, storage.DeleteOptions{})
++		require.True(t, apierrors.IsForbidden(err), "expected Forbidden, got: %v", err)
++		requireKubernetesError(t, err)
++		require.Equal(t, 1, client.deletes, "a non-retryable error must not be retried")
++	})
++}
++
++func TestExhaustedConflictRetriesReturnKubernetesError(t *testing.T) {
++	conflict := grpcErrorWithResult(grpccodes.AlreadyExists, &resourcepb.ErrorResult{
++		Code:    http.StatusConflict,
++		Reason:  string(metav1.StatusReasonConflict),
++		Message: "conflict",
++	})
++
++	t.Run("GuaranteedUpdate", func(t *testing.T) {
++		client := &alwaysFailsClient{value: testObject(t), err: conflict}
++		s := testStorage(t, client)
++
++		tryUpdate := func(in runtime.Object, _ storage.ResponseMeta) (runtime.Object, *uint64, error) {
++			return in.(*unstructured.Unstructured).DeepCopy(), nil, nil
++		}
++
++		err := s.GuaranteedUpdate(testContext(t), "example/test", &unstructured.Unstructured{}, false, &storage.Preconditions{}, tryUpdate, nil)
++		require.True(t, apierrors.IsConflict(err), "expected Conflict, got: %v", err)
++		requireKubernetesError(t, err)
++		require.Greater(t, client.updates, 1, "the conflict must be retried before giving up")
++	})
++
++	t.Run("Delete", func(t *testing.T) {
++		client := &alwaysFailsClient{value: testObject(t), err: conflict}
++		s := testStorage(t, client)
++
++		err := s.Delete(testContext(t), "example/test", &unstructured.Unstructured{}, nil, nil, nil, storage.DeleteOptions{})
++		require.True(t, apierrors.IsConflict(err), "expected Conflict, got: %v", err)
++		requireKubernetesError(t, err)
++		require.Greater(t, client.deletes, 1, "the conflict must be retried before giving up")
++	})
++}
+diff --git a/pkg/storage/unified/resource/errors.go b/pkg/storage/unified/resource/errors.go
+index 2b25e99dcecf0..87d4817424531 100644
+--- a/pkg/storage/unified/resource/errors.go
++++ b/pkg/storage/unified/resource/errors.go
+@@ -89,6 +89,15 @@ func IsResourceVersionExpired(err error) bool {
+ 	return false
+ }
+ 
++// IsConflict reports whether err is a storage conflict, whether it arrived as a typed
++// Kubernetes error or as a gRPC status whose ErrorResult apierrors cannot inspect.
++func IsConflict(err error) bool {
++	if apierrors.IsConflict(err) {
++		return true
++	}
++	return apierrors.IsConflict(GetError(errorResultFromGRPCDetails(err)))
++}
++
+ // ErrorFromResponse resolves the outcome of a unified storage call — which
+ // reports failure either through a transport error or through a response that
+ // embeds an ErrorResult — into a single error, so callers need one error
+diff --git a/pkg/storage/unified/resource/errors_test.go b/pkg/storage/unified/resource/errors_test.go
+index 98fff4ebd7bed..702bdcc13848b 100644
+--- a/pkg/storage/unified/resource/errors_test.go
++++ b/pkg/storage/unified/resource/errors_test.go
+@@ -14,6 +14,7 @@ import (
+ 	"google.golang.org/protobuf/testing/protocmp"
+ 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+ 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/apimachinery/pkg/runtime/schema"
+ 	"k8s.io/apimachinery/pkg/util/validation/field"
+ )
+ 
+@@ -152,3 +153,39 @@ func TestGRPCCodeFromHTTPStatus(t *testing.T) {
+ 		require.Equal(t, codes.Unknown, grpcCodeFromHTTPStatus(httpCode), "http status %d", httpCode)
+ 	}
+ }
++
++func TestIsConflict(t *testing.T) {
++	t.Parallel()
++
++	grpcConflict := status.New(codes.Aborted, "conflict")
++	withDetails, err := grpcConflict.WithDetails(&resourcepb.ErrorResult{Code: http.StatusConflict, Message: "conflict"})
++	require.NoError(t, err)
++
++	withReasonOnly, err := status.New(codes.Aborted, "conflict").
++		WithDetails(&resourcepb.ErrorResult{Reason: string(metav1.StatusReasonConflict), Message: "conflict"})
++	require.NoError(t, err)
++
++	withOtherDetails, err := status.New(codes.NotFound, "missing").
++		WithDetails(&resourcepb.ErrorResult{Code: http.StatusNotFound, Reason: string(metav1.StatusReasonNotFound)})
++	require.NoError(t, err)
++
++	tests := map[string]struct {
++		err      error
++		expected bool
++	}{
++		"nil":                         {err: nil, expected: false},
++		"typed conflict":              {err: apierrors.NewConflict(schema.GroupResource{Resource: "pods"}, "foo", nil), expected: true},
++		"grpc status details":         {err: withDetails.Err(), expected: true},
++		"grpc status reason only":     {err: withReasonOnly.Err(), expected: true},
++		"grpc status no details":      {err: grpcConflict.Err(), expected: false},
++		"grpc status other details":   {err: withOtherDetails.Err(), expected: false},
++		"wrapped grpc status details": {err: fmt.Errorf("update failed: %w", withDetails.Err()), expected: true},
++		"unrelated error":             {err: apierrors.NewBadRequest("nope"), expected: false},
++	}
++
++	for name, tc := range tests {
++		t.Run(name, func(t *testing.T) {
++			require.Equal(t, tc.expected, IsConflict(tc.err))
++		})
++	}
++}

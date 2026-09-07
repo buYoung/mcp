@@ -1,0 +1,1266 @@
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookCellRenderer.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookCellRenderer.tsx
+index bab69654ff6cc..8b99fe710ff99 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookCellRenderer.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookCellRenderer.tsx
+@@ -30,8 +30,10 @@ interface NarrativeCellFocusProps {
+   autoFocus?: boolean;
+   focusRequestId?: number;
+   caretOffset?: number;
++  scrollAlign?: ScrollLogicalPosition;
+   onAdvance?: (remainder: string, marker?: string) => void;
+   onFocusRequest?: () => void;
++  onNavigate?: (direction: 'up' | 'down') => void;
+ }
+ 
+ // A notebook cell is one of two things: a panel (a chart) or narrative content (a markdown or
+@@ -43,11 +45,16 @@ export function NotebookCellRenderer({
+   autoFocus,
+   focusRequestId,
+   caretOffset,
++  scrollAlign,
+   onAdvance,
+   onFocusRequest,
++  onNavigate,
+ }: { cell: NotebookCellItem } & NarrativeCellFocusProps) {
+   const { body: panel, content: narrative, collapsed, elementName } = cell.useState();
+ 
++  // Panel and Collapsed cells have no caret of their own to detect an ArrowUp/Down boundary with —
++  // NotebookCellFrame's own frame wrapper already handles that case, so `onNavigate` isn't threaded
++  // any further down for either of them.
+   if (collapsed) {
+     return <CollapsedCell name={elementName} />;
+   }
+@@ -65,8 +72,10 @@ export function NotebookCellRenderer({
+         autoFocus={autoFocus}
+         focusRequestId={focusRequestId}
+         caretOffset={caretOffset}
++        scrollAlign={scrollAlign}
+         onAdvance={onAdvance}
+         onFocusRequest={onFocusRequest}
++        onNavigate={onNavigate}
+       />
+     );
+   }
+@@ -127,8 +136,10 @@ function NarrativeCell({
+   autoFocus,
+   focusRequestId,
+   caretOffset,
++  scrollAlign,
+   onAdvance,
+   onFocusRequest,
++  onNavigate,
+ }: { cell: NotebookCellItem; content: CellContentKind } & NarrativeCellFocusProps) {
+   const styles = useStyles2(getStyles);
+ 
+@@ -142,8 +153,10 @@ function NarrativeCell({
+           autoFocus={autoFocus}
+           focusRequestId={focusRequestId}
+           caretOffset={caretOffset}
++          scrollAlign={scrollAlign}
+           onAdvance={onAdvance}
+           onFocusRequest={onFocusRequest}
++          onNavigate={onNavigate}
+         />
+       </div>
+     );
+@@ -162,8 +175,12 @@ function NarrativeCell({
+           content={content}
+           isEditing={isEditing}
+           autoFocus={autoFocus}
++          focusRequestId={focusRequestId}
++          caretOffset={caretOffset}
++          scrollAlign={scrollAlign}
+           cell={cell}
+           onChange={(updated) => cell.onContentChange(updated)}
++          onNavigate={onNavigate}
+         />
+       </Suspense>
+     </div>
+@@ -191,8 +208,10 @@ function SpecialMarkdownCell({
+   autoFocus,
+   focusRequestId,
+   caretOffset,
++  scrollAlign,
+   onAdvance,
+   onFocusRequest,
++  onNavigate,
+ }: {
+   cell: NotebookCellItem;
+   content: Extract<CellContentKind, { kind: 'Markdown' }>;
+@@ -266,9 +285,14 @@ function SpecialMarkdownCell({
+         autoFocus={autoFocus}
+         focusRequestId={focusRequestId}
+         caretOffset={caretOffset}
++        scrollAlign={scrollAlign}
+         placeholder={t('notebook.add-block.prompt', 'Type to start writing — press / for blocks')}
+         onChange={handleChange}
+         onSubmit={onAdvance}
++        // The "/" menu is a click-only typeahead popover with no arrow-key handling of its own, and
++        // "/" is always this cell's only line — without this guard, ArrowUp/Down would immediately
++        // read as "at the boundary" and jump to a different cell out from under the open menu.
++        onNavigate={menuOpen ? undefined : onNavigate}
+       />
+       {menuOpen && (
+         <Portal>
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
+index 552d7b777d4fc..ac0adad6342f3 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
+@@ -15,14 +15,6 @@ import { NotebookScene } from '../NotebookScene';
+ // propagation is observable end to end. It stands in for the caret the same way CodeCell.test.tsx
+ // does — a new `extensions` identity is what rebuilds CodeMirror's view plugins — which makes the
+ // manager -> frame -> renderer -> cell wiring observable here.
+-//
+-// CodeCell passes only its (optional) focus request as `extensions`, so any non-empty array means one
+-// was made. A markdown cell's baseline is higher and fixed, not merely "non-empty": every markdown
+-// cell rendered through this tree gets the live-preview extension, the placeholder (SpecialMarkdownCell
+-// passes one to every markdown cell unconditionally — see NotebookCellRenderer), and the Enter/
+-// Shift-Enter keymap (also unconditional now — Shift-Enter's list-continuation binding no longer
+-// depends on onSubmit), for a baseline of 3. A focus request adds exactly one more on top of that.
+-//
+ // Real CodeMirrorEditor never sees a raw re-render-fresh `extensions` array either: CodeEditor.tsx
+ // wraps it in useShallowStable precisely because callers pass inline literals on every render (its own
+ // doc comment says so). Without reproducing that here, every markdown cell's own three-item baseline
+@@ -61,7 +53,7 @@ jest.mock('@grafana/ui/unstable', () => {
+     }) => {
+       const ref = useRef(null);
+       const stableExtensions = useStableExtensions(extensions);
+-      const focusThreshold = ariaLabel === 'Markdown' ? 4 : 1;
++      const focusThreshold = ariaLabel === 'Markdown' ? 6 : 3;
+ 
+       useEffect(() => {
+         if (!stableExtensions || stableExtensions.length < focusThreshold) {
+@@ -1428,6 +1420,101 @@ describe('NotebookLayoutManager', () => {
+       expect(clone.state.cells[0].state.content).not.toBe(original.state.content);
+     });
+   });
++
++  // A Markdown/Code cell's own boundary-aware ArrowUp/Down keymap lives inside a real CodeMirror
++  // keymap, which — same as onAdvance/Enter above — this file's mocked CodeMirrorEditor never
++  // actually runs (see navigationKeymap's own dedicated test in focusExtension.test.ts for that
++  // part). A Collapsed cell has no editor at all, so its own frame is what ArrowUp/Down reaches
++  // instead — real DOM/React the whole way, and so exercised here for the manager's own resolution
++  // of "which cell is next" and the resulting focus grant.
++  describe('arrow-key navigation between cells', () => {
++    function collapsedFrame() {
++      return screen.getByText('hidden-panel').closest('[tabindex]') as HTMLElement;
++    }
++
++    it('moves focus down from a collapsed cell into the markdown cell after it', async () => {
++      const cells = [
++        new NotebookCellItem({ elementName: 'hidden-panel', source: 'user', collapsed: true }),
++        new NotebookCellItem({
++          elementName: 'md1',
++          source: 'user',
++          content: { kind: 'Markdown', spec: { text: 'Hello' } },
++        }),
++      ];
++      renderManager(buildManager(cells, true));
++
++      const frame = collapsedFrame();
++      frame.focus();
++      fireEvent.keyDown(frame, { key: 'ArrowDown' });
++
++      // The trailing-empty-cell invariant adds its own second markdown cell once "Hello" lands, so
++      // more than one "Markdown" editor exists by now — the focused one is the one that matters.
++      await waitFor(() => {
++        const editors = screen.getAllByLabelText('Markdown');
++        expect(editors.some((editor) => editor === document.activeElement)).toBe(true);
++      });
++      expect(screen.getByDisplayValue('Hello')).toHaveFocus();
++    });
++
++    it('does nothing pressing ArrowUp on the first cell — no wraparound', () => {
++      const cells = [
++        new NotebookCellItem({ elementName: 'hidden-panel', source: 'user', collapsed: true }),
++        new NotebookCellItem({
++          elementName: 'md1',
++          source: 'user',
++          content: { kind: 'Markdown', spec: { text: 'Hello' } },
++        }),
++      ];
++      renderManager(buildManager(cells, true));
++
++      const frame = collapsedFrame();
++      frame.focus();
++      fireEvent.keyDown(frame, { key: 'ArrowUp' });
++
++      expect(frame).toHaveFocus();
++    });
++
++    // The rest of every other affordance on this frame (drag handle, actions bar, the add-block
++    // divider) is edit-mode-only too — arrow-key navigation follows the same rule rather than being
++    // a special case, which is also why the frame is not even a tab stop outside edit mode.
++    it('does not respond to arrow keys outside edit mode', () => {
++      const cells = [
++        new NotebookCellItem({ elementName: 'hidden-panel', source: 'user', collapsed: true }),
++        new NotebookCellItem({
++          elementName: 'md1',
++          source: 'user',
++          content: { kind: 'Markdown', spec: { text: 'Hello' } },
++        }),
++      ];
++      renderManager(buildManager(cells, false));
++
++      expect(screen.getByText('hidden-panel').closest('[tabindex]')).toBeNull();
++    });
++
++    it.each([
++      ['down', 'ArrowDown', 'a', 'tall', 'start'],
++      ['up', 'ArrowUp', 'tall', 'a', 'end'],
++    ] as const)(
++      'scrolls to reveal the caret edge moving %s',
++      (_direction, key, sourceName, targetName, expectedBlock) => {
++        const cells = [
++          new NotebookCellItem({ elementName: 'a', source: 'user', collapsed: true }),
++          new NotebookCellItem({ elementName: 'tall', source: 'user', collapsed: true }),
++        ];
++        renderManager(buildManager(cells, true));
++
++        const sourceFrame = screen.getByText(sourceName).closest('[tabindex]') as HTMLElement;
++        const targetFrame = screen.getByText(targetName).closest('[tabindex]') as HTMLElement;
++        jest.spyOn(targetFrame, 'getBoundingClientRect').mockReturnValue({ height: 2000 } as DOMRect);
++        const scrollIntoView = jest.spyOn(targetFrame, 'scrollIntoView');
++
++        sourceFrame.focus();
++        fireEvent.keyDown(sourceFrame, { key });
++
++        expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: expectedBlock }));
++      }
++    );
++  });
+ });
+ 
+ // What NotebookLayoutManagerRenderer's onAdvance hands to insertCellAfter on Enter — pulled out here
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
+index 15392076cf47d..aad25a058affe 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
+@@ -768,19 +768,25 @@ function NotebookLayoutManagerRenderer({ model }: SceneComponentProps<NotebookLa
+   // handful of times per drag.
+   const [drag, setDrag] = useState<NotebookDragState | null>(null);
+ 
+-  const [focusRequest, setFocusRequest] = useState<{ key: string; id: number; caretOffset?: number } | null>(null);
++  const [focusRequest, setFocusRequest] = useState<{
++    key: string;
++    id: number;
++    caretOffset?: number;
++    scrollAlign?: ScrollLogicalPosition;
++  } | null>(null);
+   const nextFocusId = useRef(0);
+-  // `caretOffset` only matters for a split (see onAdvance below): the new cell's content there isn't
+-  // just short starter text but carries the reader's own text along with it, so the default "end of
+-  // document" would land the caret after that carried-over text instead of at the actual split point.
+-  const requestFocus = useCallback((key: string | null | undefined, caretOffset?: number) => {
+-    if (!key) {
+-      setFocusRequest(null);
+-      return;
+-    }
+-    nextFocusId.current += 1;
+-    setFocusRequest({ key, id: nextFocusId.current, caretOffset });
+-  }, []);
++
++  const requestFocus = useCallback(
++    (key: string | null | undefined, caretOffset?: number, scrollAlign?: ScrollLogicalPosition) => {
++      if (!key) {
++        setFocusRequest(null);
++        return;
++      }
++      nextFocusId.current += 1;
++      setFocusRequest({ key, id: nextFocusId.current, caretOffset, scrollAlign });
++    },
++    []
++  );
+ 
+   useEffect(() => {
+     if (!isEditing) {
+@@ -804,6 +810,20 @@ function NotebookLayoutManagerRenderer({ model }: SceneComponentProps<NotebookLa
+     [model, requestFocus]
+   );
+ 
++  // ArrowUp/ArrowDown once the caret (or, for a Panel/Collapsed cell, the frame itself — see
++  // NotebookCellFrame) has nowhere further to go within the current cell. No wraparound at the
++  // first/last cell, matching every other block editor.
++  const onNavigate = useCallback(
++    (fromIndex: number, direction: 'up' | 'down') => {
++      const target = cells[direction === 'up' ? fromIndex - 1 : fromIndex + 1];
++      if (!target) {
++        return;
++      }
++      requestFocus(target.state.key, direction === 'down' ? 0 : undefined, direction === 'down' ? 'start' : 'end');
++    },
++    [cells, requestFocus]
++  );
++
+   const onDragStart = useCallback((start: DragStart) => {
+     setDrag({ source: start.source.index, destination: start.source.index });
+   }, []);
+@@ -868,6 +888,9 @@ function NotebookLayoutManagerRenderer({ model }: SceneComponentProps<NotebookLa
+                     caretOffset={
+                       focusRequest && cell.state.key === focusRequest.key ? focusRequest.caretOffset : undefined
+                     }
++                    scrollAlign={
++                      focusRequest && cell.state.key === focusRequest.key ? focusRequest.scrollAlign : undefined
++                    }
+                     isDragActive={drag !== null}
+                     dropIndicator={getCellDropIndicator(drag, index)}
+                     // Bound here rather than resolved inside the frame: the cells list belongs to the
+@@ -888,6 +911,10 @@ function NotebookLayoutManagerRenderer({ model }: SceneComponentProps<NotebookLa
+                       requestFocus(created?.state.key, caretOffset);
+                     }}
+                     onFocusRequest={() => requestFocus(cell.state.key)}
++                    // Undefined outside edit mode, same as every other affordance here — a read-only
++                    // Code cell still mounts a (readOnly) CodeMirror instance, so without this its own
++                    // ArrowUp/Down keymap would happily fire while just reading the notebook.
++                    onNavigate={isEditing ? (direction) => onNavigate(index, direction) : undefined}
+                   />
+                 ))}
+                 {dropProvided.placeholder}
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.test.tsx b/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.test.tsx
+index 29a6ac25757c4..6d1fa0ac80387 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.test.tsx
+@@ -38,7 +38,7 @@ jest.mock('@grafana/ui/unstable', () => {
+       const ref = useRef(null);
+ 
+       useEffect(() => {
+-        if (!extensions?.length) {
++        if (!extensions || extensions.length < 2) {
+           return;
+         }
+ 
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.tsx b/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.tsx
+index af843345ea260..0e08bc3887926 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/CodeCell.tsx
+@@ -1,9 +1,9 @@
+ import { css } from '@emotion/css';
+-import { useCallback, useState } from 'react';
++import { useCallback, useMemo, useRef, useState } from 'react';
+ 
+ import { type GrafanaTheme2 } from '@grafana/data';
+ import { t } from '@grafana/i18n';
+-import { Box, Combobox, type ComboboxOption, Stack, Text, useStyles2 } from '@grafana/ui';
++import { Box, Combobox, type ComboboxOption, Stack, Text, useStyles2, useTheme2 } from '@grafana/ui';
+ import { CodeMirrorEditor } from '@grafana/ui/unstable';
+ import { type CellContentKind } from 'app/features/notebook/types';
+ 
+@@ -14,7 +14,7 @@ import {
+   normalizeLanguage,
+   toCodeMirrorLanguage,
+ } from './codeLanguages';
+-import { useFocusExtension } from './focusExtension';
++import { navigationKeymap, scrollMarginExtension, useFocusExtension } from './focusExtension';
+ 
+ // Reading a notebook should look like reading a document, so everything that makes CodeMirror feel
+ // like an IDE is off. The gutter goes in both modes: the design has no line numbers.
+@@ -46,28 +46,79 @@ interface Props {
+   isEditing: boolean;
+   /** Set on a cell the reader just inserted, so they can type into it without clicking it first. */
+   autoFocus?: boolean;
++  /**
++   * A nonce for an external focus grant — e.g. arrow-key navigation from a sibling cell (see
++   * NotebookLayoutManagerRenderer's own `focusRequest` state). Merged below into the same local nonce
++   * the language picker already uses, so useFocusExtension only ever watches one at a time
++   */
++  focusRequestId?: number;
++  /** Where the caret should land on that grant. */
++  caretOffset?: number;
++  /** Which edge of the cell to reveal on that same grant. */
++  scrollAlign?: ScrollLogicalPosition;
+   onChange: (content: CellContentKind) => void;
++  /** ArrowUp/ArrowDown once the caret has nowhere further to go inside this cell. See navigationKeymap. */
++  onNavigate?: (direction: 'up' | 'down') => void;
+ }
+ 
+-export function CodeCell({ content, isEditing, autoFocus, onChange }: Props) {
++export function CodeCell({
++  content,
++  isEditing,
++  autoFocus,
++  focusRequestId,
++  caretOffset,
++  scrollAlign,
++  onChange,
++  onNavigate,
++}: Props) {
+   const styles = useStyles2(getStyles);
++  const theme = useTheme2();
++  const scrollMargin = useMemo(() => scrollMarginExtension(theme), [theme]);
+ 
+-  // Counts requests for the caret rather than holding a boolean, so a second request after the reader
+-  // has clicked away is still a change — fed into useFocusExtension as its nonce (0 reads as "no
+-  // request yet", matching that hook's own `undefined` convention).
+-  const [focusRequests, setFocusRequests] = useState(0);
+-  const requestFocus = useCallback(() => setFocusRequests((count) => count + 1), []);
++  const [localRequest, setLocalRequest] = useState<{
++    id: number;
++    caret?: number | 'preserve';
++    scrollAlign?: ScrollLogicalPosition;
++  }>();
++  const requestFocus = useCallback(
++    () => setLocalRequest((prev) => ({ id: (prev?.id ?? 0) + 1, caret: 'preserve' })),
++    []
++  );
++
++  // Bridges a fresh external `focusRequestId` into that same local nonce — the same "compare against
++  // what was last seen" pattern MarkdownCell's own `lastEmittedText` uses during render, rather than
++  // an effect (and the extra render an effect would cost).
++  const pendingExternalRequest = useRef(focusRequestId !== undefined);
++  const previousExternalId = useRef(focusRequestId);
++  if (
++    pendingExternalRequest.current ||
++    (focusRequestId !== undefined && focusRequestId !== previousExternalId.current)
++  ) {
++    pendingExternalRequest.current = false;
++    previousExternalId.current = focusRequestId;
++    setLocalRequest((prev) => ({ id: (prev?.id ?? 0) + 1, caret: caretOffset, scrollAlign }));
++  }
+ 
+-  // The language picker's own re-request (see requestFocus below) only restores focus — the code
+-  // itself is untouched by picking a language, so the caret should stay exactly where the reader
+-  // left it rather than jump to the end the way a freshly-seeded cell's content would want.
+   const focusExtension = useFocusExtension({
+     autoFocus,
+     isEditing,
+-    focusRequestId: focusRequests || undefined,
+-    caretOnFocus: 'preserve',
++    focusRequestId: localRequest?.id,
++    caretOnFocus: localRequest?.caret,
++    scrollAlign: localRequest?.scrollAlign,
+   });
+ 
++  // Same ref-backed pattern MarkdownCell's own onSubmitRef uses: onNavigate's identity changes every
++  // render, but whether this cell has the behavior at all doesn't.
++  const onNavigateRef = useRef(onNavigate);
++  onNavigateRef.current = onNavigate;
++  const navigateExt = useMemo(() => {
++    if (!onNavigate) {
++      return [];
++    }
++    return navigationKeymap((direction) => onNavigateRef.current?.(direction));
++    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref is always current; only whether onNavigate exists at all should rebuild this
++  }, [Boolean(onNavigate)]);
++
+   if (content.kind !== 'Code') {
+     return null;
+   }
+@@ -123,7 +174,7 @@ export function CodeCell({ content, isEditing, autoFocus, onChange }: Props) {
+           readOnly={!isEditing}
+           lineWrapping
+           basicSetup={isEditing ? EDIT_SETUP : VIEW_SETUP}
+-          extensions={focusExtension}
++          extensions={[scrollMargin, ...navigateExt, ...(focusExtension ?? [])]}
+           aria-label={t('notebook.cell.code.aria-label-editor', 'Code')}
+           // The editor is a lazily loaded chunk; without this the cell is a blank gap mid-document
+           // until it arrives.
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.test.tsx b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.test.tsx
+index a96b9164ac773..79c4e0c58f4e5 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.test.tsx
+@@ -25,7 +25,9 @@ jest.mock('@grafana/ui/unstable', () => {
+       const ref = useRef(null);
+ 
+       useEffect(() => {
+-        if (!extensions || extensions.length < 3) {
++        // Baseline is 3 now (livePreview + the permanent scrollMarginExtension + the Enter/Shift-Enter
++        // keymap) — a real focus grant adds exactly one more on top of that.
++        if (!extensions || extensions.length < 4) {
+           return;
+         }
+ 
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.tsx b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.tsx
+index 121ed3ef26c93..8f0ff1976946a 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCell.tsx
+@@ -21,9 +21,13 @@ export interface MarkdownCellProps {
+   autoFocus?: boolean;
+   focusRequestId?: number;
+   caretOffset?: number;
++  /** Which edge of the cell to reveal on that same grant — see useFocusExtension's own doc comment. */
++  scrollAlign?: ScrollLogicalPosition;
+   onChange: (content: CellContentKind) => void;
+   placeholder?: string;
+   onSubmit?: (remainder: string, marker?: string) => void;
++  /** ArrowUp/ArrowDown once the caret has nowhere further to go inside this cell. See navigationKeymap. */
++  onNavigate?: (direction: 'up' | 'down') => void;
+ }
+ 
+ export function MarkdownCell({
+@@ -32,12 +36,20 @@ export function MarkdownCell({
+   autoFocus,
+   focusRequestId,
+   caretOffset,
++  scrollAlign,
+   onChange,
+   placeholder,
+   onSubmit,
++  onNavigate,
+ }: MarkdownCellProps) {
+   const styles = useStyles2(getStyles);
+-  const focusExtension = useFocusExtension({ autoFocus, isEditing, focusRequestId, caretOnFocus: caretOffset });
++  const focusExtension = useFocusExtension({
++    autoFocus,
++    isEditing,
++    focusRequestId,
++    caretOnFocus: caretOffset,
++    scrollAlign,
++  });
+ 
+   if (content.kind !== 'Markdown') {
+     return null;
+@@ -58,6 +70,7 @@ export function MarkdownCell({
+         onChange={onChange}
+         placeholder={placeholder}
+         onSubmit={onSubmit}
++        onNavigate={onNavigate}
+         focusExtension={focusExtension}
+       />
+     </Suspense>
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.test.tsx b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.test.tsx
+index 8792a0d48ddff..1880f02ac030f 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.test.tsx
+@@ -25,7 +25,7 @@ jest.mock('@grafana/ui/unstable', () => {
+       const ref = useRef(null);
+ 
+       useEffect(() => {
+-        if (!extensions || extensions.length < 3) {
++        if (!extensions || extensions.length < 4) {
+           return;
+         }
+ 
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.tsx b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.tsx
+index de7a4dde03c5f..a69d45b28b065 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/cells/MarkdownCellEditor.tsx
+@@ -10,6 +10,7 @@ import { CodeMirrorEditor } from '@grafana/ui/unstable';
+ import { type CellContentKind } from 'app/features/notebook/types';
+ 
+ import { MarkdownFormatToolbar } from './MarkdownFormatToolbar';
++import { navigationKeymap, scrollMarginExtension } from './focusExtension';
+ import {
+   enclosingListKind,
+   markdownLivePreview,
+@@ -28,6 +29,8 @@ export interface MarkdownCellEditorProps {
+   onChange: (content: CellContentKind) => void;
+   placeholder?: string;
+   onSubmit?: (remainder: string, marker?: string) => void;
++  /** ArrowUp/ArrowDown once the caret has nowhere further to go inside this cell. See navigationKeymap. */
++  onNavigate?: (direction: 'up' | 'down') => void;
+   focusExtension?: Extension[];
+ }
+ 
+@@ -36,10 +39,12 @@ export function MarkdownCellEditor({
+   onChange,
+   placeholder,
+   onSubmit,
++  onNavigate,
+   focusExtension,
+ }: MarkdownCellEditorProps) {
+   const theme = useTheme2();
+   const livePreview = useMemo(() => markdownLivePreview(theme), [theme]);
++  const scrollMargin = useMemo(() => scrollMarginExtension(theme), [theme]);
+ 
+   const editorContainerRef = useRef<HTMLDivElement>(null);
+ 
+@@ -123,6 +128,18 @@ export function MarkdownCellEditor({
+     // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref is always current; only whether onSubmit exists at all should rebuild this
+   }, [Boolean(onSubmit)]);
+ 
++  // Same ref-backed pattern as onSubmitRef above: onNavigate's identity changes every render, but
++  // whether this cell has the behavior at all doesn't.
++  const onNavigateRef = useRef(onNavigate);
++  onNavigateRef.current = onNavigate;
++  const navigateExt = useMemo(() => {
++    if (!onNavigate) {
++      return [];
++    }
++    return navigationKeymap((direction) => onNavigateRef.current?.(direction));
++    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref is always current; only whether onNavigate exists at all should rebuild this
++  }, [Boolean(onNavigate)]);
++
+   if (content.kind !== 'Markdown') {
+     return null;
+   }
+@@ -135,7 +152,14 @@ export function MarkdownCellEditor({
+         lineWrapping
+         basicSetup={EDIT_SETUP}
+         theme={livePreview.theme}
+-        extensions={[livePreview.extensions, ...placeholderExt, ...enterExt, ...(focusExtension ?? [])]}
++        extensions={[
++          livePreview.extensions,
++          scrollMargin,
++          ...placeholderExt,
++          ...enterExt,
++          ...navigateExt,
++          ...(focusExtension ?? []),
++        ]}
+         aria-label={t('notebook.cell.markdown.aria-label-editor', 'Markdown')}
+         onChange={(value) => {
+           setText(value);
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/cellTypeRegistry.ts b/public/app/features/notebook/scene/layout-notebook/cells/cellTypeRegistry.ts
+index f62ec2aed4fdb..34c3b0fe841d0 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/cellTypeRegistry.ts
++++ b/public/app/features/notebook/scene/layout-notebook/cells/cellTypeRegistry.ts
+@@ -17,17 +17,16 @@ const CodeCell = lazy(() =>
+ // real Panel element instead (see NotebookLayoutManager's buildCellFor), rendered through the `body`
+ // branch in NotebookCellRenderer rather than through this registry.
+ export interface CellTypeRegistryItem extends RegistryItem {
+-  // id matches CellContentKind['kind']; each renderer narrows the content by that kind. `isEditing`,
+-  // `autoFocus` and `onChange` are offered to every cell type; a renderer with nothing to use one
+-  // simply does not accept it. `cell` is the scene object this content belongs to — a real node in the
+-  // scene graph, parented under the notebook's own `$timeRange` — available to a renderer that needs
+-  // the shared time range, without it being threaded down as a prop by ones that don't care about it.
+   render: ComponentType<{
+     content: CellContentKind;
+     isEditing: boolean;
+     autoFocus?: boolean;
++    focusRequestId?: number;
++    caretOffset?: number;
++    scrollAlign?: ScrollLogicalPosition;
+     cell: NotebookCellItem;
+     onChange: (content: CellContentKind) => void;
++    onNavigate?: (direction: 'up' | 'down') => void;
+   }>;
+ }
+ 
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.test.ts b/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.test.ts
+new file mode 100644
+index 0000000000000..4f4c308f9ea25
+--- /dev/null
++++ b/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.test.ts
+@@ -0,0 +1,75 @@
++import { EditorSelection, EditorState } from '@codemirror/state';
++import { EditorView } from '@codemirror/view';
++
++import { navigationKeymap } from './focusExtension';
++
++// CodeMirror's own state/view layer (unlike the React-wrapped, lazily loaded editor component) runs
++// fine outside a browser, so navigationKeymap's boundary detection is tested directly against a real
++// EditorView rather than through a jsdom-mocked textarea — see markdownLivePreview.test.ts for the
++// same rationale applied to the syntax-tree-driven logic in this same directory.
++function createView(doc: string, pos: number, selectionEnd = pos) {
++  const onNavigate = jest.fn();
++  const view = new EditorView({
++    state: EditorState.create({
++      doc,
++      selection: EditorSelection.range(pos, selectionEnd),
++      extensions: [navigationKeymap(onNavigate)],
++    }),
++    parent: document.createElement('div'),
++  });
++  return { view, onNavigate };
++}
++
++function pressKey(view: EditorView, key: string) {
++  view.contentDOM.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
++}
++
++describe('navigationKeymap', () => {
++  it('reports up once the caret is already on the first line', () => {
++    const { view, onNavigate } = createView('one\ntwo\nthree', 0);
++
++    pressKey(view, 'ArrowUp');
++
++    expect(onNavigate).toHaveBeenCalledWith('up');
++  });
++
++  it('does not report up while a line above still exists', () => {
++    const { view, onNavigate } = createView('one\ntwo\nthree', 5); // inside "two"
++
++    pressKey(view, 'ArrowUp');
++
++    expect(onNavigate).not.toHaveBeenCalled();
++  });
++
++  // The absolute end of the document, not just anywhere on its last line: jsdom reports every line
++  // as zero-height, so moveVertically's real pixel-geometry clamping at an *interior* point on the
++  // last line isn't something a jsdom test can faithfully reproduce — only the unambiguous "nothing
++  // at all comes after this position" case is. The middle-of-the-last-line case is covered by this
++  // plan's own manual verification step instead.
++  it('reports down once the caret is already at the end of the document', () => {
++    const { view, onNavigate } = createView('one\ntwo\nthree', 13);
++
++    pressKey(view, 'ArrowDown');
++
++    expect(onNavigate).toHaveBeenCalledWith('down');
++  });
++
++  it('does not report down while a line below still exists', () => {
++    const { view, onNavigate } = createView('one\ntwo\nthree', 0);
++
++    pressKey(view, 'ArrowDown');
++
++    expect(onNavigate).not.toHaveBeenCalled();
++  });
++
++  // Matches how a real text editor behaves: an arrow key collapses a selection first, rather than
++  // discarding it by jumping straight to a different cell.
++  it('leaves a non-empty selection alone rather than jumping cells', () => {
++    const { view, onNavigate } = createView('one', 0, 3);
++
++    pressKey(view, 'ArrowUp');
++    pressKey(view, 'ArrowDown');
++
++    expect(onNavigate).not.toHaveBeenCalled();
++  });
++});
+diff --git a/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.ts b/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.ts
+index b62edf178ef9b..01bd10a8bd05a 100644
+--- a/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.ts
++++ b/public/app/features/notebook/scene/layout-notebook/cells/focusExtension.ts
+@@ -1,7 +1,9 @@
+-import { EditorSelection, type Extension } from '@codemirror/state';
+-import { ViewPlugin } from '@codemirror/view';
++import { EditorSelection, Prec, type Extension } from '@codemirror/state';
++import { EditorView, keymap, ViewPlugin } from '@codemirror/view';
+ import { useMemo, useRef } from 'react';
+ 
++import { type GrafanaTheme2 } from '@grafana/data';
++
+ /**
+  * Where a focus grant should leave the caret: a specific document position, `'preserve'` to leave the
+  * current selection untouched (CodeCell's language picker — the code itself didn't change, so there's
+@@ -9,6 +11,16 @@ import { useMemo, useRef } from 'react';
+  */
+ type CaretOnFocus = number | 'preserve';
+ 
++export function resolveScrollAlign(
++  element: Element,
++  fallback: ScrollLogicalPosition | undefined
++): ScrollLogicalPosition {
++  if (!fallback) {
++    return 'nearest';
++  }
++  return element.getBoundingClientRect().height > window.innerHeight ? fallback : 'nearest';
++}
++
+ /**
+  * An extension that puts the caret in the editor. Deferred a frame because a plugin is constructed
+  * before its view is attached to the DOM (focusing a detached node does nothing), and because things
+@@ -17,15 +29,17 @@ type CaretOnFocus = number | 'preserve';
+  * A fresh call is how a caller asks for the caret again — CodeMirror rebuilds its plugins whenever the
+  * `extensions` array identity changes.
+  */
+-function buildFocusExtension(caretOnFocus: CaretOnFocus | undefined) {
++function buildFocusExtension(caretOnFocus: CaretOnFocus | undefined, scrollAlign: ScrollLogicalPosition | undefined) {
+   return [
+     ViewPlugin.define((view) => {
+       requestAnimationFrame(() => {
+-        view.focus();
+-        if (caretOnFocus === 'preserve') {
+-          return;
+-        }
+-        view.dispatch({ selection: EditorSelection.cursor(caretOnFocus ?? view.state.doc.length) });
++        view.contentDOM.focus({ preventScroll: true });
++        const pos =
++          caretOnFocus === 'preserve' ? view.state.selection.main.head : (caretOnFocus ?? view.state.doc.length);
++        view.dispatch({
++          selection: caretOnFocus === 'preserve' ? undefined : EditorSelection.cursor(pos),
++        });
++        view.dom.scrollIntoView({ block: resolveScrollAlign(view.dom, scrollAlign), inline: 'nearest' });
+       });
+       return {};
+     }),
+@@ -53,17 +67,24 @@ function buildFocusExtension(caretOnFocus: CaretOnFocus | undefined) {
+  * so the caller passes the exact offset to land on instead (see NotebookLayoutManager's own onAdvance).
+  * CodeCell's language picker passes `'preserve'`, the one case where nothing about the content changed
+  * at all.
++ *
++ * `scrollAlign` is a fallback for a cell taller than the viewport, not the literal alignment used
++ * Arrow-key navigation is the one caller that passes
++ * 'start'/'end' here at all; everything else always gets plain 'nearest'.
+  */
+ export function useFocusExtension({
+   autoFocus,
+   isEditing,
+   focusRequestId,
+   caretOnFocus,
++  scrollAlign,
+ }: {
+   autoFocus?: boolean;
+   isEditing: boolean;
+   focusRequestId?: number;
+   caretOnFocus?: CaretOnFocus;
++  /** Which edge of the cell to reveal on this grant, for a cell taller than the viewport — 'nearest' when omitted. */
++  scrollAlign?: ScrollLogicalPosition;
+ }): Extension[] | undefined {
+   const pendingAutoFocus = useRef(autoFocus && isEditing);
+   const previousFocusRequestId = useRef(focusRequestId);
+@@ -76,11 +97,57 @@ export function useFocusExtension({
+     if (pendingAutoFocus.current) {
+       pendingAutoFocus.current = false;
+       previousFocusRequestId.current = focusRequestId;
+-      return buildFocusExtension(caretOnFocus);
++      return buildFocusExtension(caretOnFocus, scrollAlign);
+     }
+ 
+     const isFreshRequest = focusRequestId !== undefined && focusRequestId !== previousFocusRequestId.current;
+     previousFocusRequestId.current = focusRequestId;
+-    return isFreshRequest ? buildFocusExtension(caretOnFocus) : undefined;
+-  }, [isEditing, focusRequestId, caretOnFocus]);
++    return isFreshRequest ? buildFocusExtension(caretOnFocus, scrollAlign) : undefined;
++  }, [isEditing, focusRequestId, caretOnFocus, scrollAlign]);
++}
++
++/**
++ * An ArrowUp/ArrowDown keymap that only fires `onNavigate` once the caret has nowhere further to go
++ * *inside this editor* — shared by CodeCell and MarkdownCell, the notebook's two caret-based cells.
++ *
++ * `view.moveVertically` is the same primitive CodeMirror's own `cursorLineUp`/`cursorLineDown`
++ * commands use internally, so it already accounts for soft-wrapped lines: if moving vertically from
++ * the current position doesn't actually move it, there is truly no line above/below to go to (not
++ * just no more *logical* lines), and the notebook should hand off to the sibling cell instead of
++ * leaving the key a no-op. A non-empty selection is left alone, matching how a real text editor
++ * collapses a selection on an arrow key before doing anything else with it.
++ */
++export function navigationKeymap(onNavigate: (direction: 'up' | 'down') => void): Extension[] {
++  const run = (forward: boolean) => (view: EditorView) => {
++    const range = view.state.selection.main;
++    if (!range.empty) {
++      return false;
++    }
++    const moved = view.moveVertically(range, forward);
++    if (moved.head !== range.head) {
++      return false;
++    }
++    onNavigate(forward ? 'down' : 'up');
++    return true;
++  };
++
++  // Prec.highest for the same reason MarkdownCell's own Enter/Shift-Enter keymap needs it — it must
++  // win over basicSetup's bundled default ArrowUp/ArrowDown bindings.
++  return [
++    Prec.highest(
++      keymap.of([
++        { key: 'ArrowUp', run: run(false) },
++        { key: 'ArrowDown', run: run(true) },
++      ])
++    ),
++  ];
++}
++
++export function scrollMarginExtension(theme: GrafanaTheme2): Extension {
++  return EditorView.theme({
++    '&': {
++      scrollMarginTop: theme.spacing(14),
++      scrollMarginBottom: theme.spacing(4),
++    },
++  });
+ }
+diff --git a/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.test.tsx b/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.test.tsx
+index 6bbb9dd0de0b1..ad07b2abd5bd3 100644
+--- a/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.test.tsx
+@@ -1,5 +1,5 @@
+ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+-import { render, screen } from 'test/test-utils';
++import { fireEvent, render, screen } from 'test/test-utils';
+ 
+ import { NotebookCellItem } from '../NotebookCellItem';
+ 
+@@ -13,32 +13,53 @@ function buildCell() {
+   });
+ }
+ 
++// Collapsed and Panel cells have no caret of their own, so the frame itself is what ArrowUp/Down and
++// a focus grant land on — see NotebookCellFrame's own `isEditorCell`.
++function buildCollapsedCell() {
++  return new NotebookCellItem({ elementName: 'hidden-panel', source: 'user', collapsed: true });
++}
++
++interface FrameProps {
++  cell?: NotebookCellItem;
++  index?: number;
++  isEditing?: boolean;
++  autoFocus?: boolean;
++  focusRequestId?: number;
++  onAdd?: (type: string, index: number) => void;
++  onDuplicate?: () => void;
++  onDelete?: () => void;
++  onNavigate?: (direction: 'up' | 'down') => void;
++}
++
+ // Draggable throws outside a DragDropContext, so the frame always needs the dnd wrappers around it.
+-function renderFrame({
++// A plain function (rather than render() directly) so a test that needs `rerender` — a fresh focus
++// grant arriving on an already-mounted, non-editor cell — can build the same tree with new props.
++function frameTree({
++  cell = buildCell(),
+   index = 1,
+   isEditing,
++  autoFocus,
++  focusRequestId,
+   onAdd,
+   onDuplicate,
+   onDelete,
+-}: {
+-  index?: number;
+-  isEditing?: boolean;
+-  onAdd?: (type: string, index: number) => void;
+-  onDuplicate?: () => void;
+-  onDelete?: () => void;
+-} = {}) {
+-  return render(
++  onNavigate,
++}: FrameProps = {}) {
++  return (
+     <DragDropContext onDragEnd={() => {}}>
+       <Droppable droppableId="test">
+         {(dropProvided) => (
+           <div ref={dropProvided.innerRef} {...dropProvided.droppableProps}>
+             <NotebookCellFrame
+-              cell={buildCell()}
++              cell={cell}
+               index={index}
+               isEditing={isEditing}
++              autoFocus={autoFocus}
++              focusRequestId={focusRequestId}
+               onAdd={onAdd}
+               onDuplicate={onDuplicate}
+               onDelete={onDelete}
++              onNavigate={onNavigate}
+             />
+             {dropProvided.placeholder}
+           </div>
+@@ -48,6 +69,10 @@ function renderFrame({
+   );
+ }
+ 
++function renderFrame(props?: FrameProps) {
++  return render(frameTree(props));
++}
++
+ describe('NotebookCellFrame', () => {
+   it('renders the cell content outside edit mode', async () => {
+     renderFrame();
+@@ -94,6 +119,112 @@ describe('NotebookCellFrame', () => {
+ 
+     expect(getComputedStyle(actions!).pointerEvents).toBe('none');
+   });
++
++  // A Panel or Collapsed cell has no caret of its own to hand ArrowUp/Down or a focus grant to, so
++  // the frame itself stands in for both — a Markdown/Code cell's own editor does this instead (see
++  // MarkdownCell/CodeCell's own navigationKeymap and useFocusExtension), so the frame never needs to.
++  describe('a cell with no caret of its own', () => {
++    it('is a tab stop while editing', () => {
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true });
++
++      expect(screen.getByText('hidden-panel').closest('[tabindex]')).toHaveAttribute('tabindex', '0');
++    });
++
++    it('is not a tab stop while reading', () => {
++      renderFrame({ cell: buildCollapsedCell(), isEditing: false });
++
++      expect(screen.getByText('hidden-panel').closest('[tabindex]')).toBeNull();
++    });
++
++    it('keeps the drag handle outside the content wrapper the focus ring targets', () => {
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true });
++
++      const handle = screen.getByRole('button', { name: 'Drag to reorder' });
++      const content = screen.getByText('hidden-panel').closest('.notebook-cell-content');
++
++      expect(content).not.toBeNull();
++      expect(content?.contains(handle)).toBe(false);
++    });
++
++    it('reports ArrowUp/ArrowDown once the frame itself has focus', () => {
++      const onNavigate = jest.fn();
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true, onNavigate });
++      const frame = screen.getByText('hidden-panel').closest('[tabindex]') as HTMLElement;
++
++      fireEvent.keyDown(frame, { key: 'ArrowDown' });
++      fireEvent.keyDown(frame, { key: 'ArrowUp' });
++
++      expect(onNavigate).toHaveBeenNthCalledWith(1, 'down');
++      expect(onNavigate).toHaveBeenNthCalledWith(2, 'up');
++    });
++
++    // Never for a key that bubbles up from something interactive inside the cell (a panel's own
++    // legend or menu button, say) — only the bare frame owns arrow keys.
++    it('ignores an arrow key that bubbles up from something inside the cell', () => {
++      const onNavigate = jest.fn();
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true, onNavigate });
++
++      fireEvent.keyDown(screen.getByText('hidden-panel'), { key: 'ArrowDown' });
++
++      expect(onNavigate).not.toHaveBeenCalled();
++    });
++
++    it.each([{ ctrlKey: true }, { altKey: true }, { shiftKey: true }, { metaKey: true }])(
++      'ignores an arrow key held with a modifier (%o)',
++      (modifier) => {
++        const onNavigate = jest.fn();
++        renderFrame({ cell: buildCollapsedCell(), isEditing: true, onNavigate });
++        const frame = screen.getByText('hidden-panel').closest('[tabindex]') as HTMLElement;
++
++        fireEvent.keyDown(frame, { key: 'ArrowDown', ...modifier });
++
++        expect(onNavigate).not.toHaveBeenCalled();
++      }
++    );
++
++    it('labels the frame with the cell element name for an assistive-technology user', () => {
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true });
++
++      expect(screen.getByRole('group', { name: 'Collapsed block: hidden-panel' })).toBeInTheDocument();
++    });
++
++    it('takes DOM focus once a fresh grant targets it', () => {
++      const cell = buildCollapsedCell();
++      const { rerender } = render(frameTree({ cell, isEditing: true, focusRequestId: 1 }));
++      const frame = screen.getByText('hidden-panel').closest('[tabindex]') as HTMLElement;
++      expect(frame).not.toHaveFocus();
++
++      rerender(frameTree({ cell, isEditing: true, focusRequestId: 2 }));
++
++      expect(frame).toHaveFocus();
++    });
++
++    it('takes DOM focus once at mount when it was already the target', () => {
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true, autoFocus: true });
++
++      expect(screen.getByText('hidden-panel').closest('[tabindex]')).toHaveFocus();
++    });
++
++    it('scrolls the frame into view once a fresh grant targets it', () => {
++      const cell = buildCollapsedCell();
++      const { rerender } = render(frameTree({ cell, isEditing: true, focusRequestId: 1 }));
++      const frame = screen.getByText('hidden-panel').closest('[tabindex]') as HTMLElement;
++      const scrollIntoView = jest.spyOn(frame, 'scrollIntoView');
++
++      rerender(frameTree({ cell, isEditing: true, focusRequestId: 2 }));
++
++      expect(scrollIntoView).toHaveBeenCalled();
++    });
++
++    it('scrolls the frame into view once at mount when it was already the target', () => {
++      const scrollIntoView = jest.spyOn(HTMLElement.prototype, 'scrollIntoView');
++
++      renderFrame({ cell: buildCollapsedCell(), isEditing: true, autoFocus: true });
++
++      expect(scrollIntoView).toHaveBeenCalled();
++      scrollIntoView.mockRestore();
++    });
++  });
+ });
+ 
+ describe('getCellDropIndicator', () => {
+diff --git a/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.tsx b/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.tsx
+index ae7df3901ad0b..e7aee0c254f1d 100644
+--- a/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/edit/NotebookCellFrame.tsx
+@@ -1,5 +1,6 @@
+ import { css, cx } from '@emotion/css';
+ import { Draggable } from '@hello-pangea/dnd';
++import { type KeyboardEvent, useEffect, useRef } from 'react';
+ 
+ import { type GrafanaTheme2 } from '@grafana/data';
+ import { t } from '@grafana/i18n';
+@@ -8,6 +9,7 @@ import { getFocusStyles } from '@grafana/ui/internal';
+ 
+ import { type NotebookCellItem } from '../NotebookCellItem';
+ import { NotebookCellRenderer } from '../NotebookCellRenderer';
++import { resolveScrollAlign } from '../cells/focusExtension';
+ 
+ import { NotebookAddBlockDivider } from './NotebookAddBlockDivider';
+ import { type NotebookBlockType } from './NotebookBlockTypeMenu';
+@@ -20,6 +22,8 @@ import { NotebookCellActions } from './NotebookCellActions';
+  */
+ const NOTEBOOK_CELL_AFFORDANCES_CLASS = 'notebook-cell-affordances';
+ 
++const NOTEBOOK_CELL_CONTENT_CLASS = 'notebook-cell-content';
++
+ /** Which edge of a cell the drop line is drawn on while a drag is in flight. */
+ export type NotebookCellDropIndicator = 'top' | 'bottom';
+ 
+@@ -54,6 +58,7 @@ interface Props {
+    * MarkdownCell's own `caretOffset` doc comment. Only meaningful together with `focusRequestId`.
+    */
+   caretOffset?: number;
++  scrollAlign?: ScrollLogicalPosition;
+   /** True while any cell in the notebook is being dragged, not only this one. */
+   isDragActive?: boolean;
+   dropIndicator?: NotebookCellDropIndicator;
+@@ -78,6 +83,13 @@ interface Props {
+    * currently just the "/" menu any empty markdown cell offers.
+    */
+   onFocusRequest?: () => void;
++  /**
++   * ArrowUp/ArrowDown once there's nowhere further to go inside this cell — a Markdown/Code cell
++   * decides that itself (see their own boundary-aware keymaps) and calls this the same way a
++   * Panel/Collapsed cell does from the frame's own onKeyDown below, since neither has a caret of its
++   * own to ask.
++   */
++  onNavigate?: (direction: 'up' | 'down') => void;
+ }
+ 
+ /**
+@@ -92,6 +104,7 @@ export function NotebookCellFrame({
+   autoFocus,
+   focusRequestId,
+   caretOffset,
++  scrollAlign,
+   isDragActive,
+   dropIndicator,
+   onAdd,
+@@ -99,18 +112,86 @@ export function NotebookCellFrame({
+   onDelete,
+   onAdvance,
+   onFocusRequest,
++  onNavigate,
+ }: Props) {
+   const styles = useStyles2(getStyles);
++  const { collapsed, body, content, elementName } = cell.useState();
++  // Markdown/Code hand a focus grant to their own editor's caret (via useFocusExtension) and detect
++  // an ArrowUp/Down boundary themselves. A Panel or Collapsed cell has no caret to do either with, so
++  // the frame itself stands in for both below.
++  const isEditorCell = !collapsed && !body && (content?.kind === 'Markdown' || content?.kind === 'Code');
++
++  const frameLabel = collapsed
++    ? t('notebook.cell.frame.aria-label-collapsed', 'Collapsed block: {{name}}', { name: elementName })
++    : t('notebook.cell.frame.aria-label-panel', 'Visualization block: {{name}}', { name: elementName });
++
++  const frameRef = useRef<HTMLDivElement>(null);
++  const pendingAutoFocus = useRef(Boolean(autoFocus && isEditing && !isEditorCell));
++  const previousFocusRequestId = useRef(focusRequestId);
++
++  const focusFrame = () => {
++    const node = frameRef.current;
++    if (!node) {
++      return;
++    }
++    node.focus({ preventScroll: true });
++    node.scrollIntoView({ block: resolveScrollAlign(node, scrollAlign), inline: 'nearest' });
++  };
++
++  useEffect(() => {
++    if (isEditorCell || !isEditing) {
++      return;
++    }
++    if (pendingAutoFocus.current) {
++      pendingAutoFocus.current = false;
++      previousFocusRequestId.current = focusRequestId;
++      focusFrame();
++      return;
++    }
++    const isFreshRequest = focusRequestId !== undefined && focusRequestId !== previousFocusRequestId.current;
++    previousFocusRequestId.current = focusRequestId;
++    if (isFreshRequest) {
++      focusFrame();
++    }
++    // eslint-disable-next-line react-hooks/exhaustive-deps -- focusFrame is a fresh closure every render over the same ref/callback shape; only the nonce/mode inputs should re-run this
++  }, [focusRequestId, isEditing, isEditorCell]);
++
++  const onFrameKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
++    // Only when the bare frame itself is focused — never for a key bubbling up from something
++    // interactive inside it (a panel's own legend, menu, etc.), which owns its own arrow keys.
++    if (event.target !== event.currentTarget) {
++      return;
++    }
++
++    if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
++      return;
++    }
++    if (event.key === 'ArrowUp') {
++      event.preventDefault();
++      onNavigate?.('up');
++    } else if (event.key === 'ArrowDown') {
++      event.preventDefault();
++      onNavigate?.('down');
++    }
++  };
+ 
+   return (
+     <Draggable draggableId={cell.state.key!} index={index} isDragDisabled={!isEditing}>
+       {(dragProvided, dragSnapshot) => (
+         <div
+-          ref={dragProvided.innerRef}
++          ref={(node) => {
++            dragProvided.innerRef(node);
++            frameRef.current = node;
++          }}
+           {...dragProvided.draggableProps}
++          tabIndex={isEditing && !isEditorCell ? 0 : undefined}
++          onKeyDown={!isEditorCell ? onFrameKeyDown : undefined}
++          role={!isEditorCell ? 'group' : undefined}
++          aria-label={!isEditorCell ? frameLabel : undefined}
+           className={cx(
+             styles.frame,
+             isEditing && styles.frameEditing,
++            !isEditorCell && styles.frameFocusable,
+             dragSnapshot.isDragging && styles.dragging,
+             (dragSnapshot.isDragging || isDragActive) && styles.affordancesHidden,
+             dropIndicator === 'top' && styles.dropLineTop,
+@@ -145,15 +226,19 @@ export function NotebookCellFrame({
+             </>
+           )}
+ 
+-          <NotebookCellRenderer
+-            cell={cell}
+-            isEditing={Boolean(isEditing)}
+-            autoFocus={autoFocus}
+-            focusRequestId={focusRequestId}
+-            caretOffset={caretOffset}
+-            onAdvance={onAdvance}
+-            onFocusRequest={onFocusRequest}
+-          />
++          <div className={NOTEBOOK_CELL_CONTENT_CLASS}>
++            <NotebookCellRenderer
++              cell={cell}
++              isEditing={Boolean(isEditing)}
++              autoFocus={autoFocus}
++              focusRequestId={focusRequestId}
++              caretOffset={caretOffset}
++              scrollAlign={scrollAlign}
++              onAdvance={onAdvance}
++              onFocusRequest={onFocusRequest}
++              onNavigate={onNavigate}
++            />
++          </div>
+ 
+           {/* index + 1: this divider inserts *after* the cell it belongs to. */}
+           {isEditing && (
+@@ -183,6 +268,8 @@ export function getCellDropIndicator(
+ const getStyles = (theme: GrafanaTheme2) => ({
+   frame: css({
+     position: 'relative',
++    scrollMarginTop: theme.spacing(14),
++    scrollMarginBottom: theme.spacing(4),
+   }),
+   frameEditing: css({
+     paddingLeft: theme.spacing(4),
+@@ -203,6 +290,16 @@ const getStyles = (theme: GrafanaTheme2) => ({
+       pointerEvents: 'auto',
+     },
+   }),
++  frameFocusable: css({
++    '&:focus': {
++      outline: 'none',
++    },
++    [`&:focus > .${NOTEBOOK_CELL_CONTENT_CLASS}`]: {
++      outline: `1px dashed ${theme.colors.accent.main}`,
++      outlineOffset: 0,
++      borderRadius: theme.shape.radius.default,
++    },
++  }),
+   handle: css({
+     position: 'absolute',
+     // frameEditing's padding-left now reserves exactly this gutter, so the handle sits flush at the
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index ebf6b0c349255..8ec96d7e6e19b 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -12976,6 +12976,10 @@
+       "delete-confirm-yes": "Delete",
+       "drag-handle": "Drag to reorder",
+       "duplicate": "Duplicate block",
++      "frame": {
++        "aria-label-collapsed": "Collapsed block: {{name}}",
++        "aria-label-panel": "Visualization block: {{name}}"
++      },
+       "markdown": {
+         "aria-label-editor": "Markdown",
+         "format-bold": "B",

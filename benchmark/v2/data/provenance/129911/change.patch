@@ -1,0 +1,112 @@
+diff --git a/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.test.tsx b/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.test.tsx
+new file mode 100644
+index 0000000000000..ab9ace642d1ba
+--- /dev/null
++++ b/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.test.tsx
+@@ -0,0 +1,59 @@
++import { renderHook } from 'test/test-utils';
++
++import { RECEIVER_META_KEY } from './constants';
++import { useContactPointsSearch } from './useContactPointsSearch';
++import { type ContactPointWithMetadata } from './utils';
++
++const makeContactPoint = (name: string, receiverTypeName: string): ContactPointWithMetadata => ({
++  id: name,
++  name,
++  grafana_managed_receiver_configs: [
++    {
++      name: receiverTypeName,
++      type: 'email',
++      disableResolveMessage: false,
++      settings: {},
++      [RECEIVER_META_KEY]: {
++        name: receiverTypeName,
++      },
++    },
++  ],
++});
++
++describe('useContactPointsSearch', () => {
++  const contactPoints: ContactPointWithMetadata[] = [
++    makeContactPoint('team-primary-email', 'Email'),
++    makeContactPoint('pagerduty-critical', 'PagerDuty'),
++    makeContactPoint('RBAC_Team_Alert_Writer-UPDATED-admin-contact-point-1784911123489', 'Webhook'),
++  ];
++
++  it('returns all contact points when search is empty', () => {
++    const { result } = renderHook(() => useContactPointsSearch(contactPoints, ''));
++
++    expect(result.current).toHaveLength(3);
++  });
++
++  it('uses fuzzy matching for short queries', () => {
++    const { result } = renderHook(() => useContactPointsSearch(contactPoints, 'pagerduty'));
++
++    expect(result.current).toEqual([contactPoints[1]]);
++  });
++
++  it('uses contains matching for long queries and still finds exact-ish contact point names', () => {
++    const longSearch = 'RBAC_Team_Alert_Writer-UPDATED-admin-contact-point-1784911123489';
++
++    const { result } = renderHook(() => useContactPointsSearch(contactPoints, longSearch));
++
++    expect(result.current).toEqual([contactPoints[2]]);
++  });
++
++  it('uses contains matching for long queries against receiver type names', () => {
++    const longSearch = 'pagerduty-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
++
++    const cpWithLongType = makeContactPoint('alerts-oncall', longSearch);
++
++    const { result } = renderHook(() => useContactPointsSearch([...contactPoints, cpWithLongType], longSearch));
++
++    expect(result.current).toEqual([cpWithLongType]);
++  });
++});
+diff --git a/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.tsx b/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.tsx
+index 3c386bdfdb1dd..89c339f35116f 100644
+--- a/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.tsx
++++ b/public/app/features/alerting/unified/components/contact-points/useContactPointsSearch.tsx
+@@ -1,23 +1,17 @@
+-import uFuzzy from '@leeoniya/ufuzzy';
+ import { uniq } from 'lodash';
+ import { useMemo } from 'react';
+ 
++import { fuzzySearch } from '@grafana/data';
+ import { RECEIVER_META_KEY } from 'app/features/alerting/unified/components/contact-points/constants';
+ import { type ContactPointWithMetadata } from 'app/features/alerting/unified/components/contact-points/utils';
+ 
+-const fuzzyFinder = new uFuzzy({
+-  intraMode: 1,
+-  intraIns: 1,
+-  intraSub: 1,
+-  intraDel: 1,
+-  intraTrn: 1,
+-});
+-
+ // let's search in two different haystacks, the name of the contact point and the type of the receiver(s)
+ export const useContactPointsSearch = (
+   contactPoints: ContactPointWithMetadata[],
+   search?: string | null
+ ): ContactPointWithMetadata[] => {
++  const normalizedSearch = search?.trim();
++
+   const nameHaystack = useMemo(() => {
+     return contactPoints.map((contactPoint) => contactPoint.name);
+   }, [contactPoints]);
+@@ -29,12 +23,12 @@ export const useContactPointsSearch = (
+     );
+   }, [contactPoints]);
+ 
+-  if (!search) {
++  if (!normalizedSearch) {
+     return contactPoints;
+   }
+ 
+-  const nameHits = fuzzyFinder.filter(nameHaystack, search) ?? [];
+-  const typeHits = fuzzyFinder.filter(typeHaystack, search) ?? [];
++  const nameHits = fuzzySearch(nameHaystack, normalizedSearch);
++  const typeHits = fuzzySearch(typeHaystack, normalizedSearch);
+ 
+   const hits = [...nameHits, ...typeHits];
+ 

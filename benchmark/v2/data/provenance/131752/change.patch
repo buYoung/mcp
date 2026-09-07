@@ -1,0 +1,151 @@
+diff --git a/packages/grafana-ui/src/components/CodeMirror/CodeEditor.test.tsx b/packages/grafana-ui/src/components/CodeMirror/CodeEditor.test.tsx
+index cfe27d8741d09..6f5dd7fea94b3 100644
+--- a/packages/grafana-ui/src/components/CodeMirror/CodeEditor.test.tsx
++++ b/packages/grafana-ui/src/components/CodeMirror/CodeEditor.test.tsx
+@@ -152,8 +152,14 @@ describe('CodeMirror CodeEditor', () => {
+     expect(tabBinding).toEqual(expect.objectContaining({ key: 'Tab', run: acceptCompletion }));
+   });
+ 
+-  it('binds Space to insert a space and start completions when completion sources are configured', () => {
+-    render(<CodeEditor value="SELECT" onChange={jest.fn()} completionSources={[jest.fn()]} />);
++  it('leaves Space unbound by default, so a space cannot open the popup as an explicit request', () => {
++    render(<CodeEditor value="a sentence" onChange={jest.fn()} completionSources={[jest.fn()]} />);
++
++    expect(getKeyBindings().find((binding) => binding.key === 'Space')).toBeUndefined();
++  });
++
++  it('binds Space to insert a space and start completions when completeOnSpace is set', () => {
++    render(<CodeEditor value="SELECT" onChange={jest.fn()} completionSources={[jest.fn()]} completeOnSpace />);
+ 
+     const spaceBinding = getKeyBindings().find((binding) => binding.key === 'Space');
+     const replaceSelection = jest.fn(() => ({ changes: { from: 6, insert: ' ' } }));
+diff --git a/packages/grafana-ui/src/components/CodeMirror/CodeEditor.tsx b/packages/grafana-ui/src/components/CodeMirror/CodeEditor.tsx
+index d7e6ea5c550f0..adb1bc28a6eee 100644
+--- a/packages/grafana-ui/src/components/CodeMirror/CodeEditor.tsx
++++ b/packages/grafana-ui/src/components/CodeMirror/CodeEditor.tsx
+@@ -21,21 +21,24 @@ import { useShallowStable, useStableCallback } from './useStableProps';
+ 
+ const getCompletionExtensions = (
+   sources: readonly CodeMirrorCompletionSource[] | undefined,
+-  mode: CodeMirrorCompletionMode
++  mode: CodeMirrorCompletionMode,
++  completeOnSpace: boolean
+ ): CodeMirrorExtension[] => {
+   if (!sources || sources.length === 0) {
+     return [];
+   }
+ 
++  const spaceKeymap = completeOnSpace ? [autocompleteSpaceKeymap] : [];
++
+   if (mode === 'override') {
+-    return [autocompletion({ override: [...sources] }), autocompleteSpaceKeymap];
++    return [autocompletion({ override: [...sources] }), ...spaceKeymap];
+   }
+ 
+   // Merge: enable autocompletion and contribute the sources via language data
+   // so they're combined with whatever the active language registers.
+   return [
+     autocompletion(),
+-    autocompleteSpaceKeymap,
++    ...spaceKeymap,
+     ...sources.map((source) => EditorState.languageData.of(() => [{ autocomplete: source }])),
+   ];
+ };
+@@ -93,6 +96,7 @@ export const CodeEditor = memo(function CodeEditor({
+   'aria-labelledby': ariaLabelledby,
+   completionSources,
+   completionMode = 'merge',
++  completeOnSpace = false,
+   extensions: additionalExtensionsProp,
+   theme: themeOverride,
+   basicSetup: basicSetupProp,
+@@ -115,11 +119,20 @@ export const CodeEditor = memo(function CodeEditor({
+       autocompleteTabKeymap,
+       ...getAccessibilityExtensions(ariaLabel, ariaLabelledby),
+       ...(languageExtension ? [languageExtension] : []),
+-      ...getCompletionExtensions(sources, completionMode),
++      ...getCompletionExtensions(sources, completionMode, completeOnSpace),
+       ...(lineWrapping ? [EditorView.lineWrapping] : []),
+       ...(additionalExtensions ?? []),
+     ],
+-    [ariaLabel, ariaLabelledby, languageExtension, sources, completionMode, lineWrapping, additionalExtensions]
++    [
++      ariaLabel,
++      ariaLabelledby,
++      languageExtension,
++      sources,
++      completionMode,
++      completeOnSpace,
++      lineWrapping,
++      additionalExtensions,
++    ]
+   );
+   return (
+     <>
+diff --git a/packages/grafana-ui/src/components/CodeMirror/types.ts b/packages/grafana-ui/src/components/CodeMirror/types.ts
+index ff61f61adde17..39f61d553313e 100644
+--- a/packages/grafana-ui/src/components/CodeMirror/types.ts
++++ b/packages/grafana-ui/src/components/CodeMirror/types.ts
+@@ -136,6 +136,17 @@ export interface CodeMirrorEditorProps {
+    * - `'override'` — replace any language-default completions with just these sources.
+    */
+   completionMode?: CodeMirrorCompletionMode;
++  /**
++   * When `true`, a typed space opens the completion popup as an explicit
++   * request. Suits a language where a space starts a new clause and the
++   * suggestions are keywords or identifiers, as after `SELECT ` in SQL.
++   *
++   * Leave it off (the default) for prose. A source is free to answer an explicit
++   * request with its whole list — the variable source does, so that Ctrl+Space
++   * offers every variable — and binding that to the space bar would open the
++   * popup on every word.
++   */
++  completeOnSpace?: boolean;
+   /**
+    * Additional CodeMirror extensions to layer on top of the defaults.
+    * Use this for linting, custom keymaps, themes, etc.
+diff --git a/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.test.tsx b/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.test.tsx
+index 1649ce14afe7e..385b7dc3a858d 100644
+--- a/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.test.tsx
++++ b/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.test.tsx
+@@ -2,12 +2,27 @@ import { render } from '@testing-library/react';
+ 
+ import { SqlEditor } from './SqlEditor';
+ 
++let editorProps: Record<string, unknown> | undefined;
++
+ jest.mock('@grafana/ui/unstable', () => ({
+-  CodeMirrorEditor: () => <div className="cm-scroller" />,
++  CodeMirrorEditor: (props: Record<string, unknown>) => {
++    editorProps = props;
++    return <div className="cm-scroller" />;
++  },
+   signatureHelp: jest.fn(),
+ }));
+ 
+ describe('SqlEditor', () => {
++  beforeEach(() => {
++    editorProps = undefined;
++  });
++
++  it('completes on space, so suggestions still open after FROM and in the SELECT list', () => {
++    render(<SqlEditor value="SELECT * FROM " onChange={jest.fn()} completionProvider={{ tables: () => [] }} />);
++
++    expect(editorProps?.completeOnSpace).toBe(true);
++  });
++
+   it('contains horizontal overscroll within the editor', () => {
+     render(<SqlEditor value="SELECT * FROM A" onChange={jest.fn()} />);
+ 
+diff --git a/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.tsx b/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.tsx
+index d67b713620686..aba5b8391bf4b 100644
+--- a/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.tsx
++++ b/public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.tsx
+@@ -78,6 +78,7 @@ export const SqlEditor = ({
+           height={typeof height === 'number' ? `${height}px` : height}
+           aria-label={ariaLabel}
+           completionSources={completionSources}
++          completeOnSpace
+           extensions={extensions}
+         />
+       </div>

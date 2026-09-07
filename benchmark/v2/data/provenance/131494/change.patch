@@ -1,0 +1,246 @@
+diff --git a/public/app/features/connections/components/AdvisorRedirectNotice/AdvisorRedirectNotice.tsx b/public/app/features/connections/components/AdvisorRedirectNotice/AdvisorRedirectNotice.tsx
+index 7e5a0f6ad3c06..eb40b0cedbc31 100644
+--- a/public/app/features/connections/components/AdvisorRedirectNotice/AdvisorRedirectNotice.tsx
++++ b/public/app/features/connections/components/AdvisorRedirectNotice/AdvisorRedirectNotice.tsx
+@@ -1,7 +1,7 @@
+ import { css } from '@emotion/css';
+ import { useEffect, useState } from 'react';
+ 
+-import { type GrafanaTheme2 } from '@grafana/data';
++import { locationUtil, type GrafanaTheme2 } from '@grafana/data';
+ import { Trans, t } from '@grafana/i18n';
+ import { useAppPluginInstalled } from '@grafana/runtime';
+ import { UserStorage } from '@grafana/runtime/internal';
+@@ -71,7 +71,7 @@ export function AdvisorRedirectNotice() {
+         <LinkButton
+           aria-label={t('connections.advisor-redirect-notice.aria-label-link-to-advisor', 'Link to Advisor')}
+           icon="arrow-right"
+-          href="/a/grafana-advisor-app"
++          href={locationUtil.assureBaseUrl('/a/grafana-advisor-app')}
+           fill="text"
+         >
+           <Trans i18nKey="connections.advisor-redirect-notice.go-to-advisor">Go to Advisor</Trans>
+diff --git a/public/app/features/connections/components/PageCard/PageCard.test.tsx b/public/app/features/connections/components/PageCard/PageCard.test.tsx
+new file mode 100644
+index 0000000000000..7fa110e35d942
+--- /dev/null
++++ b/public/app/features/connections/components/PageCard/PageCard.test.tsx
+@@ -0,0 +1,40 @@
++import { render, screen } from '@testing-library/react';
++
++import { type GrafanaConfig, locationUtil } from '@grafana/data';
++
++import PageCard from './PageCard';
++
++const defaultProps = {
++  title: 'Data sources',
++  description: 'View and manage your connected data source connections',
++  icon: 'database' as const,
++  index: 0,
++};
++
++describe('PageCard', () => {
++  describe('with appSubUrl', () => {
++    beforeAll(() => {
++      locationUtil.initialize({
++        config: { appSubUrl: '/grafana' } as GrafanaConfig,
++        getVariablesUrlParams: jest.fn(),
++        getTimeRangeForUrl: jest.fn(),
++      });
++    });
++
++    afterAll(() => {
++      locationUtil.initialize({
++        config: { appSubUrl: '' } as GrafanaConfig,
++        getVariablesUrlParams: jest.fn(),
++        getTimeRangeForUrl: jest.fn(),
++      });
++    });
++
++    it('renders the card link with the subpath applied exactly once, given a url already carrying it', () => {
++      render(<PageCard {...defaultProps} url="/grafana/connections/datasources" />);
++      expect(screen.getByRole('link', { name: 'Data sources' })).toHaveAttribute(
++        'href',
++        '/grafana/connections/datasources'
++      );
++    });
++  });
++});
+diff --git a/public/app/features/datasources/components/BuildDashboardButton.test.tsx b/public/app/features/datasources/components/BuildDashboardButton.test.tsx
+index 35e1df1c3c2a0..0805937decd3e 100644
+--- a/public/app/features/datasources/components/BuildDashboardButton.test.tsx
++++ b/public/app/features/datasources/components/BuildDashboardButton.test.tsx
+@@ -90,7 +90,7 @@ describe('BuildDashboardButton', () => {
+ 
+       const link = screen.getByRole('link', { name: /Build a dashboard/i });
+       expect(link).toBeInTheDocument();
+-      expect(link).toHaveAttribute('href', 'dashboard/new-with-ds/test-uid');
++      expect(link).toHaveAttribute('href', '/dashboard/new-with-ds/test-uid');
+     });
+ 
+     it('should not render the dropdown menu items', () => {
+diff --git a/public/app/features/datasources/components/BuildDashboardButton.tsx b/public/app/features/datasources/components/BuildDashboardButton.tsx
+index 41e284e897041..282105e8a91ed 100644
+--- a/public/app/features/datasources/components/BuildDashboardButton.tsx
++++ b/public/app/features/datasources/components/BuildDashboardButton.tsx
+@@ -1,6 +1,6 @@
+ import { css } from '@emotion/css';
+ 
+-import { type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';
++import { locationUtil, type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';
+ import { selectors } from '@grafana/e2e-selectors';
+ import { Trans, t } from '@grafana/i18n';
+ import { config } from '@grafana/runtime';
+@@ -33,7 +33,7 @@ export const BuildDashboardButton = ({ dataSource, size, fill, context }: BuildD
+         size={size}
+         variant="secondary"
+         fill={fill}
+-        href={`dashboard/new-with-ds/${dataSource.uid}`}
++        href={locationUtil.assureBaseUrl(`/dashboard/new-with-ds/${dataSource.uid}`)}
+         onClick={() => {
+           trackDsConfigClicked('build_a_dashboard');
+           trackCreateDashboardClicked({
+@@ -93,7 +93,7 @@ export const BuildDashboardButton = ({ dataSource, size, fill, context }: BuildD
+               <Menu.Item
+                 label={t('datasources.build-a-dashboard-button.blank', 'Blank')}
+                 icon="plus"
+-                url={`dashboard/new-with-ds/${dataSource.uid}`}
++                url={locationUtil.assureBaseUrl(`/dashboard/new-with-ds/${dataSource.uid}`)}
+                 onClick={() => {
+                   trackDsConfigClicked('build_a_dashboard');
+                   trackCreateDashboardClicked({
+diff --git a/public/app/features/datasources/components/DataSourceCategories.test.tsx b/public/app/features/datasources/components/DataSourceCategories.test.tsx
+new file mode 100644
+index 0000000000000..c0a4a3a1bfa01
+--- /dev/null
++++ b/public/app/features/datasources/components/DataSourceCategories.test.tsx
+@@ -0,0 +1,34 @@
++import { render, screen } from '@testing-library/react';
++
++import { type GrafanaConfig, locationUtil } from '@grafana/data';
++
++import { DataSourceCategories } from './DataSourceCategories';
++
++describe('DataSourceCategories', () => {
++  describe('with appSubUrl', () => {
++    beforeAll(() => {
++      locationUtil.initialize({
++        config: { appSubUrl: '/grafana' } as GrafanaConfig,
++        getVariablesUrlParams: jest.fn(),
++        getTimeRangeForUrl: jest.fn(),
++      });
++    });
++
++    afterAll(() => {
++      locationUtil.initialize({
++        config: { appSubUrl: '' } as GrafanaConfig,
++        getVariablesUrlParams: jest.fn(),
++        getTimeRangeForUrl: jest.fn(),
++      });
++    });
++
++    it('prefixes the "Find more data source plugins" link with the subpath exactly once', () => {
++      render(<DataSourceCategories categories={[]} onClickDataSourceType={jest.fn()} />);
++
++      expect(screen.getByRole('link', { name: 'Find more data source plugins' })).toHaveAttribute(
++        'href',
++        '/grafana/connections/add-new-connection?cat=data-source'
++      );
++    });
++  });
++});
+diff --git a/public/app/features/datasources/components/DataSourceCategories.tsx b/public/app/features/datasources/components/DataSourceCategories.tsx
+index 3188f017458de..f03de6d8199b9 100644
+--- a/public/app/features/datasources/components/DataSourceCategories.tsx
++++ b/public/app/features/datasources/components/DataSourceCategories.tsx
+@@ -1,6 +1,6 @@
+ import { css } from '@emotion/css';
+ 
+-import { type DataSourcePluginMeta, type GrafanaTheme2 } from '@grafana/data';
++import { locationUtil, type DataSourcePluginMeta, type GrafanaTheme2 } from '@grafana/data';
+ import { Trans } from '@grafana/i18n';
+ import { LinkButton, useStyles2 } from '@grafana/ui';
+ import { type DataSourcePluginCategory } from 'app/types/datasources';
+@@ -18,7 +18,7 @@ export type Props = {
+ };
+ 
+ export function DataSourceCategories({ categories, onClickDataSourceType }: Props) {
+-  const moreDataSourcesLink = `${ROUTES.AddNewConnection}?cat=data-source`;
++  const moreDataSourcesLink = locationUtil.assureBaseUrl(`${ROUTES.AddNewConnection}?cat=data-source`);
+   const styles = useStyles2(getStyles);
+ 
+   return (
+@@ -35,7 +35,7 @@ export function DataSourceCategories({ categories, onClickDataSourceType }: Prop
+ 
+       {/* Find more */}
+       <div className={styles.more}>
+-        <LinkButton variant="secondary" href={moreDataSourcesLink} target="_self" rel="noopener">
++        <LinkButton variant="secondary" href={moreDataSourcesLink} rel="noopener">
+           <Trans i18nKey="datasources.data-source-categories.find-more-data-source-plugins">
+             Find more data source plugins
+           </Trans>
+diff --git a/public/app/features/datasources/components/DataSourcesList.tsx b/public/app/features/datasources/components/DataSourcesList.tsx
+index 1545bac272b05..7848a82b97547 100644
+--- a/public/app/features/datasources/components/DataSourcesList.tsx
++++ b/public/app/features/datasources/components/DataSourcesList.tsx
+@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
+ import { useVirtualizer } from '@tanstack/react-virtual';
+ import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+ 
+-import { type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';
++import { locationUtil, type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';
+ import { selectors } from '@grafana/e2e-selectors';
+ import { Trans, t } from '@grafana/i18n';
+ import { useFavoriteDatasources, type FavoriteDatasources } from '@grafana/runtime';
+@@ -126,7 +126,7 @@ export function DataSourcesListView({
+         button={
+           <LinkButton
+             disabled={!hasCreateRights}
+-            href={ROUTES.DataSourcesNew}
++            href={locationUtil.assureBaseUrl(ROUTES.DataSourcesNew)}
+             icon="database"
+             size="lg"
+             data-testid={selectors.pages.DataSources.dataSourceAddButton}
+diff --git a/public/app/features/datasources/components/EditDataSourceActions.test.tsx b/public/app/features/datasources/components/EditDataSourceActions.test.tsx
+index 9c4097a9c8226..0571f305fcffd 100644
+--- a/public/app/features/datasources/components/EditDataSourceActions.test.tsx
++++ b/public/app/features/datasources/components/EditDataSourceActions.test.tsx
+@@ -51,7 +51,7 @@ jest.mock('./BuildDashboardButton', () => {
+   const { LinkButton } = jest.requireActual('@grafana/ui');
+   return {
+     BuildDashboardButton: ({ dataSource }: { dataSource: { uid: string } }) => (
+-      <LinkButton href={`dashboard/new-with-ds/${dataSource.uid}`}>Build a dashboard</LinkButton>
++      <LinkButton href={`/dashboard/new-with-ds/${dataSource.uid}`}>Build a dashboard</LinkButton>
+     ),
+   };
+ });
+@@ -220,7 +220,7 @@ describe('EditDataSourceActions', () => {
+       render(<EditDataSourceActions uid="test-uid" />);
+ 
+       const dashboardLink = screen.getByText('Build a dashboard').closest('a');
+-      expect(dashboardLink).toHaveAttribute('href', 'dashboard/new-with-ds/test-uid');
++      expect(dashboardLink).toHaveAttribute('href', '/dashboard/new-with-ds/test-uid');
+     });
+   });
+ 
+diff --git a/public/app/features/datasources/components/NewDataSource.tsx b/public/app/features/datasources/components/NewDataSource.tsx
+index 30d29db98b387..be7b80e6d08fa 100644
+--- a/public/app/features/datasources/components/NewDataSource.tsx
++++ b/public/app/features/datasources/components/NewDataSource.tsx
+@@ -1,6 +1,6 @@
+ import { type Action } from 'redux';
+ 
+-import { type DataSourcePluginMeta, PluginType } from '@grafana/data';
++import { locationUtil, type DataSourcePluginMeta, PluginType } from '@grafana/data';
+ import { selectors } from '@grafana/e2e-selectors';
+ import { Trans, t } from '@grafana/i18n';
+ import { reportInteraction } from '@grafana/runtime';
+@@ -76,7 +76,7 @@ function NewDataSourceView({
+         />
+         <div className="page-action-bar__spacer" />
+         <LinkButton
+-          href={ROUTES.DataSources}
++          href={locationUtil.assureBaseUrl(ROUTES.DataSources)}
+           fill="outline"
+           variant="secondary"
+           icon="arrow-left"

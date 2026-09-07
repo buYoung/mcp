@@ -1,0 +1,110 @@
+[
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FAdvisorRedirectNotice%2FAdvisorRedirectNotice.tsx",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FAdvisorRedirectNotice%2FAdvisorRedirectNotice.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 2,
+    "filename": "public/app/features/connections/components/AdvisorRedirectNotice/AdvisorRedirectNotice.tsx",
+    "patch": "@@ -1,7 +1,7 @@\n import { css } from '@emotion/css';\n import { useEffect, useState } from 'react';\n \n-import { type GrafanaTheme2 } from '@grafana/data';\n+import { locationUtil, type GrafanaTheme2 } from '@grafana/data';\n import { Trans, t } from '@grafana/i18n';\n import { useAppPluginInstalled } from '@grafana/runtime';\n import { UserStorage } from '@grafana/runtime/internal';\n@@ -71,7 +71,7 @@ export function AdvisorRedirectNotice() {\n         <LinkButton\n           aria-label={t('connections.advisor-redirect-notice.aria-label-link-to-advisor', 'Link to Advisor')}\n           icon=\"arrow-right\"\n-          href=\"/a/grafana-advisor-app\"\n+          href={locationUtil.assureBaseUrl('/a/grafana-advisor-app')}\n           fill=\"text\"\n         >\n           <Trans i18nKey=\"connections.advisor-redirect-notice.go-to-advisor\">Go to Advisor</Trans>",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FAdvisorRedirectNotice%2FAdvisorRedirectNotice.tsx",
+    "sha": "eb40b0cedbc31cb4f20ce9bc984d63321570f1fc",
+    "status": "modified"
+  },
+  {
+    "additions": 40,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FPageCard%2FPageCard.test.tsx",
+    "changes": 40,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FPageCard%2FPageCard.test.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 0,
+    "filename": "public/app/features/connections/components/PageCard/PageCard.test.tsx",
+    "patch": "@@ -0,0 +1,40 @@\n+import { render, screen } from '@testing-library/react';\n+\n+import { type GrafanaConfig, locationUtil } from '@grafana/data';\n+\n+import PageCard from './PageCard';\n+\n+const defaultProps = {\n+  title: 'Data sources',\n+  description: 'View and manage your connected data source connections',\n+  icon: 'database' as const,\n+  index: 0,\n+};\n+\n+describe('PageCard', () => {\n+  describe('with appSubUrl', () => {\n+    beforeAll(() => {\n+      locationUtil.initialize({\n+        config: { appSubUrl: '/grafana' } as GrafanaConfig,\n+        getVariablesUrlParams: jest.fn(),\n+        getTimeRangeForUrl: jest.fn(),\n+      });\n+    });\n+\n+    afterAll(() => {\n+      locationUtil.initialize({\n+        config: { appSubUrl: '' } as GrafanaConfig,\n+        getVariablesUrlParams: jest.fn(),\n+        getTimeRangeForUrl: jest.fn(),\n+      });\n+    });\n+\n+    it('renders the card link with the subpath applied exactly once, given a url already carrying it', () => {\n+      render(<PageCard {...defaultProps} url=\"/grafana/connections/datasources\" />);\n+      expect(screen.getByRole('link', { name: 'Data sources' })).toHaveAttribute(\n+        'href',\n+        '/grafana/connections/datasources'\n+      );\n+    });\n+  });\n+});",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fconnections%2Fcomponents%2FPageCard%2FPageCard.test.tsx",
+    "sha": "7fa110e35d942373c2f7e55a794bc6acb1d88dbb",
+    "status": "added"
+  },
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.test.tsx",
+    "changes": 2,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.test.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 1,
+    "filename": "public/app/features/datasources/components/BuildDashboardButton.test.tsx",
+    "patch": "@@ -90,7 +90,7 @@ describe('BuildDashboardButton', () => {\n \n       const link = screen.getByRole('link', { name: /Build a dashboard/i });\n       expect(link).toBeInTheDocument();\n-      expect(link).toHaveAttribute('href', 'dashboard/new-with-ds/test-uid');\n+      expect(link).toHaveAttribute('href', '/dashboard/new-with-ds/test-uid');\n     });\n \n     it('should not render the dropdown menu items', () => {",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.test.tsx",
+    "sha": "0805937decd3e1811a6845ff80f8c765ac866a83",
+    "status": "modified"
+  },
+  {
+    "additions": 3,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.tsx",
+    "changes": 6,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 3,
+    "filename": "public/app/features/datasources/components/BuildDashboardButton.tsx",
+    "patch": "@@ -1,6 +1,6 @@\n import { css } from '@emotion/css';\n \n-import { type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';\n+import { locationUtil, type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';\n import { selectors } from '@grafana/e2e-selectors';\n import { Trans, t } from '@grafana/i18n';\n import { config } from '@grafana/runtime';\n@@ -33,7 +33,7 @@ export const BuildDashboardButton = ({ dataSource, size, fill, context }: BuildD\n         size={size}\n         variant=\"secondary\"\n         fill={fill}\n-        href={`dashboard/new-with-ds/${dataSource.uid}`}\n+        href={locationUtil.assureBaseUrl(`/dashboard/new-with-ds/${dataSource.uid}`)}\n         onClick={() => {\n           trackDsConfigClicked('build_a_dashboard');\n           trackCreateDashboardClicked({\n@@ -93,7 +93,7 @@ export const BuildDashboardButton = ({ dataSource, size, fill, context }: BuildD\n               <Menu.Item\n                 label={t('datasources.build-a-dashboard-button.blank', 'Blank')}\n                 icon=\"plus\"\n-                url={`dashboard/new-with-ds/${dataSource.uid}`}\n+                url={locationUtil.assureBaseUrl(`/dashboard/new-with-ds/${dataSource.uid}`)}\n                 onClick={() => {\n                   trackDsConfigClicked('build_a_dashboard');\n                   trackCreateDashboardClicked({",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FBuildDashboardButton.tsx",
+    "sha": "282105e8a91ed14ca172980e7ae3ed8fdf4d61bc",
+    "status": "modified"
+  },
+  {
+    "additions": 34,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.test.tsx",
+    "changes": 34,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.test.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 0,
+    "filename": "public/app/features/datasources/components/DataSourceCategories.test.tsx",
+    "patch": "@@ -0,0 +1,34 @@\n+import { render, screen } from '@testing-library/react';\n+\n+import { type GrafanaConfig, locationUtil } from '@grafana/data';\n+\n+import { DataSourceCategories } from './DataSourceCategories';\n+\n+describe('DataSourceCategories', () => {\n+  describe('with appSubUrl', () => {\n+    beforeAll(() => {\n+      locationUtil.initialize({\n+        config: { appSubUrl: '/grafana' } as GrafanaConfig,\n+        getVariablesUrlParams: jest.fn(),\n+        getTimeRangeForUrl: jest.fn(),\n+      });\n+    });\n+\n+    afterAll(() => {\n+      locationUtil.initialize({\n+        config: { appSubUrl: '' } as GrafanaConfig,\n+        getVariablesUrlParams: jest.fn(),\n+        getTimeRangeForUrl: jest.fn(),\n+      });\n+    });\n+\n+    it('prefixes the \"Find more data source plugins\" link with the subpath exactly once', () => {\n+      render(<DataSourceCategories categories={[]} onClickDataSourceType={jest.fn()} />);\n+\n+      expect(screen.getByRole('link', { name: 'Find more data source plugins' })).toHaveAttribute(\n+        'href',\n+        '/grafana/connections/add-new-connection?cat=data-source'\n+      );\n+    });\n+  });\n+});",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.test.tsx",
+    "sha": "c0a4a3a1bfa01bbf5f014bbe21cec0f3f3d4b8eb",
+    "status": "added"
+  },
+  {
+    "additions": 3,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.tsx",
+    "changes": 6,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 3,
+    "filename": "public/app/features/datasources/components/DataSourceCategories.tsx",
+    "patch": "@@ -1,6 +1,6 @@\n import { css } from '@emotion/css';\n \n-import { type DataSourcePluginMeta, type GrafanaTheme2 } from '@grafana/data';\n+import { locationUtil, type DataSourcePluginMeta, type GrafanaTheme2 } from '@grafana/data';\n import { Trans } from '@grafana/i18n';\n import { LinkButton, useStyles2 } from '@grafana/ui';\n import { type DataSourcePluginCategory } from 'app/types/datasources';\n@@ -18,7 +18,7 @@ export type Props = {\n };\n \n export function DataSourceCategories({ categories, onClickDataSourceType }: Props) {\n-  const moreDataSourcesLink = `${ROUTES.AddNewConnection}?cat=data-source`;\n+  const moreDataSourcesLink = locationUtil.assureBaseUrl(`${ROUTES.AddNewConnection}?cat=data-source`);\n   const styles = useStyles2(getStyles);\n \n   return (\n@@ -35,7 +35,7 @@ export function DataSourceCategories({ categories, onClickDataSourceType }: Prop\n \n       {/* Find more */}\n       <div className={styles.more}>\n-        <LinkButton variant=\"secondary\" href={moreDataSourcesLink} target=\"_self\" rel=\"noopener\">\n+        <LinkButton variant=\"secondary\" href={moreDataSourcesLink} rel=\"noopener\">\n           <Trans i18nKey=\"datasources.data-source-categories.find-more-data-source-plugins\">\n             Find more data source plugins\n           </Trans>",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourceCategories.tsx",
+    "sha": "f03de6d8199b90d090a8126c7a895ef97dd82951",
+    "status": "modified"
+  },
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourcesList.tsx",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourcesList.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 2,
+    "filename": "public/app/features/datasources/components/DataSourcesList.tsx",
+    "patch": "@@ -2,7 +2,7 @@ import { css } from '@emotion/css';\n import { useVirtualizer } from '@tanstack/react-virtual';\n import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';\n \n-import { type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';\n+import { locationUtil, type DataSourceSettings, type GrafanaTheme2 } from '@grafana/data';\n import { selectors } from '@grafana/e2e-selectors';\n import { Trans, t } from '@grafana/i18n';\n import { useFavoriteDatasources, type FavoriteDatasources } from '@grafana/runtime';\n@@ -126,7 +126,7 @@ export function DataSourcesListView({\n         button={\n           <LinkButton\n             disabled={!hasCreateRights}\n-            href={ROUTES.DataSourcesNew}\n+            href={locationUtil.assureBaseUrl(ROUTES.DataSourcesNew)}\n             icon=\"database\"\n             size=\"lg\"\n             data-testid={selectors.pages.DataSources.dataSourceAddButton}",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FDataSourcesList.tsx",
+    "sha": "7848a82b9754766ee5e5334dc2d275a92f3450b7",
+    "status": "modified"
+  },
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FEditDataSourceActions.test.tsx",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FEditDataSourceActions.test.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 2,
+    "filename": "public/app/features/datasources/components/EditDataSourceActions.test.tsx",
+    "patch": "@@ -51,7 +51,7 @@ jest.mock('./BuildDashboardButton', () => {\n   const { LinkButton } = jest.requireActual('@grafana/ui');\n   return {\n     BuildDashboardButton: ({ dataSource }: { dataSource: { uid: string } }) => (\n-      <LinkButton href={`dashboard/new-with-ds/${dataSource.uid}`}>Build a dashboard</LinkButton>\n+      <LinkButton href={`/dashboard/new-with-ds/${dataSource.uid}`}>Build a dashboard</LinkButton>\n     ),\n   };\n });\n@@ -220,7 +220,7 @@ describe('EditDataSourceActions', () => {\n       render(<EditDataSourceActions uid=\"test-uid\" />);\n \n       const dashboardLink = screen.getByText('Build a dashboard').closest('a');\n-      expect(dashboardLink).toHaveAttribute('href', 'dashboard/new-with-ds/test-uid');\n+      expect(dashboardLink).toHaveAttribute('href', '/dashboard/new-with-ds/test-uid');\n     });\n   });\n ",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FEditDataSourceActions.test.tsx",
+    "sha": "0571f305fcffd55a0da40a78269be9b978527238",
+    "status": "modified"
+  },
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FNewDataSource.tsx",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FNewDataSource.tsx?ref=053001b80896218f3ae3dcee12b25984375d82b2",
+    "deletions": 2,
+    "filename": "public/app/features/datasources/components/NewDataSource.tsx",
+    "patch": "@@ -1,6 +1,6 @@\n import { type Action } from 'redux';\n \n-import { type DataSourcePluginMeta, PluginType } from '@grafana/data';\n+import { locationUtil, type DataSourcePluginMeta, PluginType } from '@grafana/data';\n import { selectors } from '@grafana/e2e-selectors';\n import { Trans, t } from '@grafana/i18n';\n import { reportInteraction } from '@grafana/runtime';\n@@ -76,7 +76,7 @@ function NewDataSourceView({\n         />\n         <div className=\"page-action-bar__spacer\" />\n         <LinkButton\n-          href={ROUTES.DataSources}\n+          href={locationUtil.assureBaseUrl(ROUTES.DataSources)}\n           fill=\"outline\"\n           variant=\"secondary\"\n           icon=\"arrow-left\"",
+    "raw_url": "https://github.com/grafana/grafana/raw/053001b80896218f3ae3dcee12b25984375d82b2/public%2Fapp%2Ffeatures%2Fdatasources%2Fcomponents%2FNewDataSource.tsx",
+    "sha": "be7b80e6d08fae7c147b255326f9e501dfae6ab3",
+    "status": "modified"
+  }
+]

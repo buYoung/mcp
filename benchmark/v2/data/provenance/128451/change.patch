@@ -1,0 +1,1089 @@
+diff --git a/packages/grafana-data/src/field/fieldOverrides.test.ts b/packages/grafana-data/src/field/fieldOverrides.test.ts
+index 9e226c9c0cce5..56570105d4e80 100644
+--- a/packages/grafana-data/src/field/fieldOverrides.test.ts
++++ b/packages/grafana-data/src/field/fieldOverrides.test.ts
+@@ -447,6 +447,56 @@ describe('applyFieldOverrides', () => {
+     expect(config.decimals).toEqual(1);
+   });
+ 
++  it('resolves threshold valueExpr steps from defaults into a sorted numeric config', () => {
++    const variables: Record<string, unknown> = { warn: '25', multi: ['1', '2'] };
++    // mimics the function-format convention of sceneGraph.interpolate/templateSrv.replace:
++    // the custom format function receives the raw variable value (an array when multi-value)
++    const replaceVariables: InterpolateFunction = (value, _scopedVars, format) => {
++      return value.replace(/\$(\w+)/g, (match, name) => {
++        if (!(name in variables)) {
++          return match;
++        }
++        if (typeof format === 'function') {
++          return format(variables[name]);
++        }
++        return String(variables[name]);
++      });
++    };
++
++    const data = applyFieldOverrides({
++      data: [f0],
++      fieldConfig: {
++        defaults: {
++          thresholds: {
++            mode: ThresholdsMode.Absolute,
++            steps: [
++              { value: -Infinity, color: 'green' },
++              { value: 80, color: 'red' },
++              { value: 50, valueExpr: '$warn', color: 'orange' },
++              { value: 90, valueExpr: '$multi', color: 'blue' },
++            ],
++          },
++        },
++        overrides: [],
++      },
++      replaceVariables,
++      theme: createTheme(),
++      fieldConfigRegistry: customFieldRegistry,
++    })[0];
++
++    // resolved ($warn -> 25), fallen back ($multi has 2 values selected -> 90),
++    // sorted ascending with the base step first, and no valueExpr left anywhere
++    expect(data.fields[1].config.thresholds).toEqual({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: 'green' },
++        { value: 25, color: 'orange' },
++        { value: 80, color: 'red' },
++        { value: 90, color: 'blue' },
++      ],
++    });
++  });
++
+   it('should skip overrides with unknown matcher ids', () => {
+     const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+ 
+diff --git a/packages/grafana-data/src/field/overrides/processors.test.ts b/packages/grafana-data/src/field/overrides/processors.test.ts
+new file mode 100644
+index 0000000000000..4cf11da218d21
+--- /dev/null
++++ b/packages/grafana-data/src/field/overrides/processors.test.ts
+@@ -0,0 +1,215 @@
++import { type FieldOverrideContext } from '../../types/fieldOverrides';
++import { type InterpolateFunction } from '../../types/panel';
++import { ThresholdsMode } from '../../types/thresholds';
++
++import { thresholdsOverrideProcessor } from './processors';
++
++/**
++ * Emulates the function-format calling convention shared by sceneGraph.interpolate and
++ * templateSrv.replace: the custom format function receives the raw variable value,
++ * which is an array for multi-value variables. Unknown variables are left as-is.
++ */
++function makeReplaceVariables(vars: Record<string, unknown>): InterpolateFunction {
++  return (value, _scopedVars, format) => {
++    return value.replace(/\$\{(\w+)\}|\$(\w+)/g, (match, braced, plain) => {
++      const name = braced ?? plain;
++      if (!(name in vars)) {
++        return match;
++      }
++      const raw = vars[name];
++      if (typeof format === 'function') {
++        return format(raw);
++      }
++      return String(raw);
++    });
++  };
++}
++
++function makeContext(vars?: Record<string, unknown>): FieldOverrideContext {
++  return {
++    data: [],
++    replaceVariables: vars ? makeReplaceVariables(vars) : undefined,
++  };
++}
++
++describe('thresholdsOverrideProcessor', () => {
++  const baseStep = { value: -Infinity, color: 'green' };
++
++  it('returns configs without valueExpr untouched (same reference)', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 80, color: 'red' }],
++    };
++
++    expect(thresholdsOverrideProcessor(value, makeContext({}))).toBe(value);
++  });
++
++  it('passes through null/undefined values', () => {
++    expect(thresholdsOverrideProcessor(null, makeContext({}))).toBeNull();
++    expect(thresholdsOverrideProcessor(undefined, makeContext({}))).toBeUndefined();
++  });
++
++  it('resolves valueExpr steps and re-sorts ascending, keeping the base step first', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 80, color: 'red' }, { value: 20, valueExpr: '$low', color: 'yellow' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ low: '10' }));
++
++    expect(result.steps).toEqual([baseStep, { value: 10, color: 'yellow' }, { value: 80, color: 'red' }]);
++  });
++
++  it('resolves ${var} syntax and numbers passed as raw values', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 1, valueExpr: '${t}', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ t: 50 }));
++
++    expect(result.steps).toEqual([baseStep, { value: 50, color: 'red' }]);
++  });
++
++  it('falls back to the numeric value for unknown variables', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 70, valueExpr: '$nope', color: 'red' }, { value: 50, color: 'yellow' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({}));
++
++    expect(result.steps).toEqual([baseStep, { value: 50, color: 'yellow' }, { value: 70, color: 'red' }]);
++  });
++
++  it('falls back to the numeric value for non-numeric variable values', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$word', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ word: 'hello' }));
++
++    expect(result.steps).toEqual([baseStep, { value: 30, color: 'red' }]);
++  });
++
++  it('falls back to the numeric value when the expression resolves to an empty string', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$empty', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ empty: '  ' }));
++
++    expect(result.steps).toEqual([baseStep, { value: 30, color: 'red' }]);
++  });
++
++  it('parses strictly: values like "80ms" fall back instead of parsing as 80', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$latency', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ latency: '80ms' }));
++
++    expect(result.steps).toEqual([baseStep, { value: 30, color: 'red' }]);
++  });
++
++  it('accepts numeric values with surrounding whitespace', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$padded', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ padded: ' 42 ' }));
++
++    expect(result.steps).toEqual([baseStep, { value: 42, color: 'red' }]);
++  });
++
++  it('falls back to the numeric value for multi-value variables with more than one selected value', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 50, color: 'yellow' }, { value: 90, valueExpr: '$multi', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ multi: ['25', '75'] }));
++
++    expect(result.steps).toEqual([baseStep, { value: 50, color: 'yellow' }, { value: 90, color: 'red' }]);
++  });
++
++  it('accepts a multi-value variable with exactly one selected value', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 90, valueExpr: '$multi', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ multi: ['42'] }));
++
++    expect(result.steps).toEqual([baseStep, { value: 42, color: 'red' }]);
++  });
++
++  it('falls back to the numeric value when replaceVariables is missing', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$t', color: 'red' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext());
++
++    expect(result.steps).toEqual([baseStep, { value: 30, color: 'red' }]);
++  });
++
++  it('keeps the base step first even when expressions resolve below other steps', () => {
++    const value = {
++      mode: ThresholdsMode.Percentage,
++      steps: [baseStep, { value: 95, valueExpr: '$high', color: 'red' }, { value: 50, color: 'yellow' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ high: 90 }));
++
++    expect(result.mode).toBe(ThresholdsMode.Percentage);
++    expect(result.steps).toEqual([baseStep, { value: 50, color: 'yellow' }, { value: 90, color: 'red' }]);
++  });
++
++  it('ignores and strips a valueExpr on the base step', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, valueExpr: '$t', color: 'green' },
++        { value: 30, valueExpr: '$t', color: 'red' },
++      ],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ t: '50' }));
++
++    expect(result.steps).toEqual([
++      { value: -Infinity, color: 'green' },
++      { value: 50, color: 'red' },
++    ]);
++  });
++
++  it('strips valueExpr from every output step, including fallbacks', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 30, valueExpr: '$nope', color: 'red' }, { value: 60, valueExpr: '$t', color: 'blue' }],
++    };
++
++    const result = thresholdsOverrideProcessor(value, makeContext({ t: '50' }));
++
++    for (const step of result.steps) {
++      expect(step).not.toHaveProperty('valueExpr');
++    }
++  });
++
++  it('does not mutate the raw config', () => {
++    const value = {
++      mode: ThresholdsMode.Absolute,
++      steps: [baseStep, { value: 90, valueExpr: '$t', color: 'red' }, { value: 30, color: 'yellow' }],
++    };
++    const stepsCopy = value.steps.map((s) => ({ ...s }));
++
++    thresholdsOverrideProcessor(value, makeContext({ t: '5' }));
++
++    expect(value.steps).toEqual(stepsCopy);
++  });
++});
+diff --git a/packages/grafana-data/src/field/overrides/processors.ts b/packages/grafana-data/src/field/overrides/processors.ts
+index d92ff63e755a2..3a1bd02ed9ed9 100644
+--- a/packages/grafana-data/src/field/overrides/processors.ts
++++ b/packages/grafana-data/src/field/overrides/processors.ts
+@@ -4,8 +4,9 @@ import { type DataLink } from '../../types/dataLink';
+ import { type FieldOverrideContext } from '../../types/fieldOverrides';
+ import { type SelectableValue } from '../../types/select';
+ import { type SliderMarks } from '../../types/slider';
+-import { type ThresholdsConfig } from '../../types/thresholds';
++import { type Threshold, type ThresholdsConfig } from '../../types/thresholds';
+ import { type ValueMapping } from '../../types/valueMapping';
++import { sortThresholds } from '../thresholds';
+ 
+ export const identityOverrideProcessor = <T>(value: T) => {
+   return value;
+@@ -127,12 +128,63 @@ export interface ThresholdsFieldConfigSettings {
+   // Anything?
+ }
+ 
++/**
++ * Resolves a threshold step's optional `valueExpr` (a dashboard-variable expression)
++ * against the current variable values. Falls back to the numeric `value` when the
++ * expression is missing, resolves to something non-numeric, or the variable currently
++ * has more than one value selected. The returned step never carries `valueExpr`.
++ */
++function resolveThreshold(step: Threshold, context: FieldOverrideContext): Threshold {
++  const { valueExpr, ...resolved } = step;
++
++  if (!valueExpr || !context.replaceVariables) {
++    return resolved;
++  }
++
++  // The function format exposes raw variable values at interpolation time:
++  // multi-value selections arrive as arrays and are only valid with exactly one value selected
++  let multiInvalid = false;
++  const text = context.replaceVariables(valueExpr, context.field?.state?.scopedVars, (v: unknown) => {
++    if (Array.isArray(v)) {
++      if (v.length > 1) {
++        multiInvalid = true;
++        return '';
++      }
++      return String(v[0]);
++    }
++    return String(v);
++  });
++
++  // Strict parsing: Number() rejects partial-numeric strings like '80ms';
++  // unknown variables are left uninterpolated and fail parsing the same way
++  const trimmed = text.trim();
++  const num = trimmed === '' ? NaN : Number(trimmed);
++
++  if (multiInvalid || !Number.isFinite(num)) {
++    return resolved;
++  }
++
++  return { ...resolved, value: num };
++}
++
+ export const thresholdsOverrideProcessor = (
+   value: any,
+-  _context: FieldOverrideContext,
++  context: FieldOverrideContext,
+   _settings?: ThresholdsFieldConfigSettings
+ ): ThresholdsConfig => {
+-  return value; // !!!! likely not !!!!
++  if (!value || !Array.isArray(value.steps) || !value.steps.some((step: Threshold) => step.valueExpr != null)) {
++    return value;
++  }
++
++  // The base step is always -Infinity (null in JSON); an expression there is meaningless and ignored
++  const [{ valueExpr: baseExpr, ...base }, ...rawRest] = value.steps;
++  const rest: Threshold[] = rawRest.map((step: Threshold) => resolveThreshold(step, context));
++
++  // Edit-time sorting cannot know variable values, so re-sort the resolved copy,
++  // keeping the base step first
++  sortThresholds(rest);
++
++  return { ...value, steps: [base, ...rest] };
+ };
+ 
+ export interface UnitFieldConfigSettings {
+diff --git a/packages/grafana-data/src/types/thresholds.ts b/packages/grafana-data/src/types/thresholds.ts
+index 4b3079850f0d8..aefd161977966 100644
+--- a/packages/grafana-data/src/types/thresholds.ts
++++ b/packages/grafana-data/src/types/thresholds.ts
+@@ -1,6 +1,13 @@
+ export interface Threshold {
+   value: number;
+   color: string;
++  /**
++   *  Optional dashboard-variable expression (e.g. `$myVar`) resolved during
++   *  `applyFieldOverrides`; the numeric `value` is the fallback used when the
++   *  expression cannot be resolved to a single finite number. Resolved
++   *  (runtime) configs never carry this property.
++   */
++  valueExpr?: string;
+   /**
+    *  Warning, Error, LowLow, Low, OK, High, HighHigh etc
+    */
+diff --git a/packages/grafana-data/src/utils/tests/mockStandardProperties.ts b/packages/grafana-data/src/utils/tests/mockStandardProperties.ts
+index 729a55e55e8cf..d95b337e7e661 100644
+--- a/packages/grafana-data/src/utils/tests/mockStandardProperties.ts
++++ b/packages/grafana-data/src/utils/tests/mockStandardProperties.ts
+@@ -1,4 +1,8 @@
+-import { displayNameOverrideProcessor, identityOverrideProcessor } from '../../field/overrides/processors';
++import {
++  displayNameOverrideProcessor,
++  identityOverrideProcessor,
++  thresholdsOverrideProcessor,
++} from '../../field/overrides/processors';
+ import { ThresholdsMode } from '../../types/thresholds';
+ 
+ export const mockStandardProperties = () => {
+@@ -112,7 +116,8 @@ export const mockStandardProperties = () => {
+ 
+     editor: () => null,
+     override: () => null,
+-    process: identityOverrideProcessor,
++    // the real processor, so applyFieldOverrides-level tests exercise valueExpr resolution
++    process: thresholdsOverrideProcessor,
+     settings: {},
+     defaultValue: {
+       mode: ThresholdsMode.Absolute,
+diff --git a/public/app/features/dashboard-scene/scene/PanelFieldConfigVariables.test.tsx b/public/app/features/dashboard-scene/scene/PanelFieldConfigVariables.test.tsx
+new file mode 100644
+index 0000000000000..2166228d35366
+--- /dev/null
++++ b/public/app/features/dashboard-scene/scene/PanelFieldConfigVariables.test.tsx
+@@ -0,0 +1,190 @@
++import { of } from 'rxjs';
++
++import {
++  FieldType,
++  LoadingState,
++  type PanelData,
++  ThresholdsMode,
++  getDefaultTimeRange,
++  standardEditorsRegistry,
++  standardFieldConfigEditorRegistry,
++  toDataFrame,
++} from '@grafana/data';
++import { getPanelPlugin } from '@grafana/data/test';
++import { setPluginImportUtils, setRunRequest } from '@grafana/runtime';
++import {
++  ConstantVariable,
++  CustomVariable,
++  SceneQueryRunner,
++  SceneVariableSet,
++  VizPanel,
++  sceneGraph,
++} from '@grafana/scenes';
++import { getAllOptionEditors, getAllStandardFieldConfigs } from 'app/core/components/OptionsUI/registry';
++
++import { activateFullSceneTree } from '../utils/test-utils';
++
++import { DashboardScene } from './DashboardScene';
++import { DefaultGridLayoutManager } from './layout-default/DefaultGridLayoutManager';
++
++// use the real standard field config registry so thresholds run through the real processor
++standardEditorsRegistry.setInit(getAllOptionEditors);
++standardFieldConfigEditorRegistry.setInit(getAllStandardFieldConfigs);
++
++setPluginImportUtils({
++  // useFieldConfig() pulls in the standard field config properties (incl. thresholds)
++  importPanelPlugin: () => Promise.resolve(getPanelPlugin({}).useFieldConfig()),
++  getPanelPluginFromCache: () => undefined,
++});
++
++jest.mock('@grafana/runtime', () => ({
++  ...jest.requireActual('@grafana/runtime'),
++  getDataSourceSrv: () => {
++    return {
++      get: jest.fn().mockResolvedValue({ getRef: () => ({ uid: 'ds1' }) }),
++      getInstanceSettings: jest.fn().mockResolvedValue({ uid: 'ds1' }),
++    };
++  },
++}));
++
++setRunRequest(
++  jest.fn().mockReturnValue(
++    of<PanelData>({
++      state: LoadingState.Done,
++      timeRange: getDefaultTimeRange(),
++      series: [
++        toDataFrame({
++          fields: [{ name: 'value', type: FieldType.number, values: [1, 50, 100] }],
++        }),
++      ],
++    })
++  )
++);
++
++function buildPanel(fieldConfigDefaults: VizPanel['state']['fieldConfig']['defaults']) {
++  return new VizPanel({
++    title: 'Panel',
++    pluginId: 'timeseries',
++    key: 'panel-1',
++    $data: new SceneQueryRunner({
++      datasource: { uid: 'ds1' },
++      queries: [{ refId: 'A' }],
++    }),
++    fieldConfig: { defaults: fieldConfigDefaults, overrides: [] },
++  });
++}
++
++function buildScene(panel: VizPanel, variables: SceneVariableSet) {
++  return new DashboardScene({
++    title: 'Test dashboard',
++    uid: 'test-uid',
++    $variables: variables,
++    body: DefaultGridLayoutManager.fromVizPanels([panel]),
++  });
++}
++
++async function tick() {
++  await new Promise((r) => setTimeout(r, 1));
++}
++
++describe('Variables in panel threshold steps (dashboard scene)', () => {
++  it('resolves valueExpr through the real sceneGraph.interpolate path and updates on variable change', async () => {
++    const warnVariable = new CustomVariable({ name: 'warn', query: '80,85', value: '80', text: '80' });
++    const panel = buildPanel({
++      thresholds: {
++        mode: ThresholdsMode.Absolute,
++        steps: [
++          { value: -Infinity, color: 'green' },
++          { value: 90, color: 'red' },
++          { value: 40, valueExpr: '$warn', color: 'orange' },
++          { value: 95, valueExpr: '$doesNotExist', color: 'blue' },
++        ],
++      },
++    });
++    const scene = buildScene(
++      panel,
++      new SceneVariableSet({
++        variables: [warnVariable, new ConstantVariable({ name: 'unrelated', value: '10' })],
++      })
++    );
++
++    const deactivate = activateFullSceneTree(scene);
++    await tick();
++
++    const data = sceneGraph.getData(panel).state.data!;
++    expect(data.series).toHaveLength(1);
++
++    const processed = panel.applyFieldConfig(data);
++    const config = processed.series[0].fields[0].config;
++
++    // $warn resolved to 80, the unknown variable fell back to 95,
++    // re-sorted ascending with the base step first, valueExpr stripped
++    expect(config.thresholds?.steps).toEqual([
++      { value: -Infinity, color: 'green' },
++      { value: 80, color: 'orange' },
++      { value: 90, color: 'red' },
++      { value: 95, color: 'blue' },
++    ]);
++
++    // changing the variable must re-process the field config even though the data is unchanged
++    warnVariable.changeValueTo('85', '85');
++    await tick();
++
++    const reprocessed = panel.applyFieldConfig(sceneGraph.getData(panel).state.data!);
++    expect(reprocessed.series[0].fields[0].config.thresholds?.steps).toEqual([
++      { value: -Infinity, color: 'green' },
++      { value: 85, color: 'orange' },
++      { value: 90, color: 'red' },
++      { value: 95, color: 'blue' },
++    ]);
++
++    deactivate();
++  });
++
++  it('falls back to the numeric value for multi-value variables with more than one selection', async () => {
++    const multiVariable = new CustomVariable({
++      name: 'multi',
++      query: '1,2,3',
++      isMulti: true,
++      value: ['1', '2'],
++      text: ['1', '2'],
++    });
++    const panel = buildPanel({
++      thresholds: {
++        mode: ThresholdsMode.Absolute,
++        steps: [
++          { value: -Infinity, color: 'green' },
++          { value: 90, valueExpr: '$multi', color: 'red' },
++          { value: 50, color: 'orange' },
++        ],
++      },
++    });
++    const scene = buildScene(panel, new SceneVariableSet({ variables: [multiVariable] }));
++
++    const deactivate = activateFullSceneTree(scene);
++    await tick();
++
++    const processed = panel.applyFieldConfig(sceneGraph.getData(panel).state.data!);
++    const config = processed.series[0].fields[0].config;
++
++    // more than one value selected: the step keeps its numeric fallback of 90
++    expect(config.thresholds?.steps).toEqual([
++      { value: -Infinity, color: 'green' },
++      { value: 50, color: 'orange' },
++      { value: 90, color: 'red' },
++    ]);
++
++    // narrowing the selection to a single value makes the expression resolvable again
++    multiVariable.changeValueTo(['2'], ['2']);
++    await tick();
++
++    const reprocessed = panel.applyFieldConfig(sceneGraph.getData(panel).state.data!);
++    expect(reprocessed.series[0].fields[0].config.thresholds?.steps).toEqual([
++      { value: -Infinity, color: 'green' },
++      { value: 2, color: 'red' },
++      { value: 50, color: 'orange' },
++    ]);
++
++    deactivate();
++  });
++});
+diff --git a/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.test.tsx b/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.test.tsx
+index c6091390f8129..91cc6444b2317 100644
+--- a/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.test.tsx
++++ b/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.test.tsx
+@@ -1,7 +1,9 @@
+-import { render, screen, within } from '@testing-library/react';
++import { screen, within } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
++import { render } from 'test/test-utils';
+ 
+ import { createTheme, type Threshold, ThresholdsMode } from '@grafana/data';
++import { setTestFlags } from '@grafana/test-utils/unstable';
+ import { mockThemeContext } from '@grafana/ui';
+ 
+ import { ThresholdsEditor, type Props } from './ThresholdsEditor';
+@@ -25,6 +27,10 @@ describe('ThresholdsEditor', () => {
+     restoreThemeContext = mockThemeContext(createTheme());
+   });
+ 
++  beforeEach(() => {
++    setTestFlags({ 'grafana.thresholdsInterpolation': true });
++  });
++
+   afterAll(() => {
+     restoreThemeContext();
+   });
+@@ -46,7 +52,8 @@ describe('ThresholdsEditor', () => {
+   it('can add thresholds', async () => {
+     setup();
+ 
+-    expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
++    // only the base threshold input
++    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+ 
+     let baseThreshold = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -55,12 +62,12 @@ describe('ThresholdsEditor', () => {
+ 
+     await userEvent.click(screen.getByRole('button', { name: 'Add threshold' }));
+ 
+-    expect(screen.getAllByRole('spinbutton')).toHaveLength(1);
++    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+ 
+-    let customThreshold = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    let customThreshold = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(customThreshold).toBeInTheDocument();
+     expect(customThreshold).not.toBeDisabled();
+-    expect(customThreshold).toHaveValue(0);
++    expect(customThreshold).toHaveValue('0');
+ 
+     baseThreshold = screen.getByRole('textbox', { name: 'Threshold 2' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -69,17 +76,17 @@ describe('ThresholdsEditor', () => {
+ 
+     await userEvent.click(screen.getByRole('button', { name: 'Add threshold' }));
+ 
+-    expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
++    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+ 
+-    let customThreshold2 = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    let customThreshold2 = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(customThreshold2).toBeInTheDocument();
+     expect(customThreshold2).not.toBeDisabled();
+-    expect(customThreshold2).toHaveValue(10);
++    expect(customThreshold2).toHaveValue('10');
+ 
+-    customThreshold = screen.getByRole('spinbutton', { name: 'Threshold 2' });
++    customThreshold = screen.getByRole('textbox', { name: 'Threshold 2' });
+     expect(customThreshold).toBeInTheDocument();
+     expect(customThreshold).not.toBeDisabled();
+-    expect(customThreshold).toHaveValue(0);
++    expect(customThreshold).toHaveValue('0');
+ 
+     baseThreshold = screen.getByRole('textbox', { name: 'Threshold 3' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -98,17 +105,17 @@ describe('ThresholdsEditor', () => {
+     };
+     setup({ thresholds });
+ 
+-    expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
++    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+ 
+-    let customThreshold2 = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    let customThreshold2 = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(customThreshold2).toBeInTheDocument();
+     expect(customThreshold2).not.toBeDisabled();
+-    expect(customThreshold2).toHaveValue(75);
++    expect(customThreshold2).toHaveValue('75');
+ 
+-    let customThreshold = screen.getByRole('spinbutton', { name: 'Threshold 2' });
++    let customThreshold = screen.getByRole('textbox', { name: 'Threshold 2' });
+     expect(customThreshold).toBeInTheDocument();
+     expect(customThreshold).not.toBeDisabled();
+-    expect(customThreshold).toHaveValue(50);
++    expect(customThreshold).toHaveValue('50');
+ 
+     let baseThreshold = screen.getByRole('textbox', { name: 'Threshold 3' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -117,12 +124,12 @@ describe('ThresholdsEditor', () => {
+ 
+     await userEvent.click(screen.getByRole('button', { name: 'Remove threshold 1' }));
+ 
+-    expect(screen.getAllByRole('spinbutton')).toHaveLength(1);
++    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+ 
+-    customThreshold = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    customThreshold = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(customThreshold).toBeInTheDocument();
+     expect(customThreshold).not.toBeDisabled();
+-    expect(customThreshold).toHaveValue(50);
++    expect(customThreshold).toHaveValue('50');
+ 
+     baseThreshold = screen.getByRole('textbox', { name: 'Threshold 2' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -131,7 +138,7 @@ describe('ThresholdsEditor', () => {
+ 
+     await userEvent.click(screen.getByRole('button', { name: 'Remove threshold 1' }));
+ 
+-    expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
++    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+ 
+     baseThreshold = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(baseThreshold).toBeInTheDocument();
+@@ -157,14 +164,197 @@ describe('ThresholdsEditor', () => {
+     };
+     setup({ thresholds });
+ 
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 1' })).toHaveValue(75);
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 2' })).toHaveValue(50);
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('75');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('50');
++
++    await userEvent.clear(screen.getByRole('textbox', { name: 'Threshold 2' }));
++    await userEvent.type(screen.getByRole('textbox', { name: 'Threshold 2' }), '100');
++
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('100');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('75');
++  });
++
++  it('stores a typed variable expression as valueExpr, keeping the numeric value as fallback', async () => {
++    const onChange = jest.fn();
++    const thresholds = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, color: '#EAB839' },
++        { value: 75, color: '#6ED0E0' },
++      ],
++    };
++    setup({ thresholds, onChange });
++
++    // Threshold 2 is the step with value 50; replace its text in one edit so the
++    // numeric value survives as the fallback
++    const input = screen.getByRole('textbox', { name: 'Threshold 2' });
++    await userEvent.tripleClick(input);
++    await userEvent.paste('$warn');
++
++    // steps keep sorting by their numeric (fallback) value: 50 stays below 75
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('75');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('$warn');
++
++    await userEvent.tab();
++
++    expect(onChange).toHaveBeenCalledWith({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, valueExpr: '$warn', color: '#EAB839' },
++        { value: 75, color: '#6ED0E0' },
++      ],
++    });
++  });
++
++  it('falls back to 0 when the field is cleared before typing an expression', async () => {
++    const onChange = jest.fn();
++    const thresholds = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, color: '#EAB839' },
++      ],
++    };
++    setup({ thresholds, onChange });
++
++    // clearing fires a change event that empties the numeric value before the
++    // expression is typed; the fallback must still persist as a number
++    const input = screen.getByRole('textbox', { name: 'Threshold 1' });
++    await userEvent.clear(input);
++    await userEvent.type(input, '$warn');
++    await userEvent.tab();
++
++    expect(onChange).toHaveBeenCalledWith({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 0, valueExpr: '$warn', color: '#EAB839' },
++      ],
++    });
++  });
++
++  it('persists an emptied field as 0 on blur', async () => {
++    const onChange = jest.fn();
++    const thresholds = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, color: '#EAB839' },
++      ],
++    };
++    setup({ thresholds, onChange });
++
++    await userEvent.clear(screen.getByRole('textbox', { name: 'Threshold 1' }));
++    await userEvent.tab();
++
++    expect(onChange).toHaveBeenCalledWith({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 0, color: '#EAB839' },
++      ],
++    });
++  });
++
++  it('clears valueExpr when a numeric value is typed', async () => {
++    const onChange = jest.fn();
++    const thresholds = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, valueExpr: '$warn', color: '#EAB839' },
++      ],
++    };
++    setup({ thresholds, onChange });
++
++    const input = screen.getByRole('textbox', { name: 'Threshold 1' });
++    expect(input).toHaveValue('$warn');
++
++    await userEvent.tripleClick(input);
++    // paste to exercise the comma-to-dot conversion in one change event
++    await userEvent.paste('4,2');
++    await userEvent.tab();
++
++    expect(onChange).toHaveBeenCalledWith({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 4.2, color: '#EAB839' },
++      ],
++    });
++  });
++
++  it('renders valueExpr steps from saved thresholds and ignores an expression on the base step', () => {
++    setup({
++      thresholds: {
++        mode: ThresholdsMode.Absolute,
++        steps: [
++          { value: -Infinity, valueExpr: '$ignored', color: '#7EB26D' },
++          { value: 50, color: '#EAB839' },
++          { value: 75, valueExpr: '$warn', color: '#6ED0E0' },
++        ],
++      },
++    });
++
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('$warn');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('50');
++
++    const baseThreshold = screen.getByRole('textbox', { name: 'Threshold 3' });
++    expect(baseThreshold).toBeDisabled();
++    expect(baseThreshold).toHaveValue('Base');
++  });
++
++  it('keeps numeric-only inputs and does not store expressions when the feature toggle is disabled', async () => {
++    setTestFlags({ 'grafana.thresholdsInterpolation': false });
+ 
+-    await userEvent.clear(screen.getByRole('spinbutton', { name: 'Threshold 2' }));
+-    await userEvent.type(screen.getByRole('spinbutton', { name: 'Threshold 2' }), '100');
++    const onChange = jest.fn();
++    const thresholds = {
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 50, valueExpr: '$warn', color: '#EAB839' },
++      ],
++    };
++    setup({ thresholds, onChange });
++
++    // number input (spinbutton) showing the numeric fallback, not the expression
++    const input = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    expect(input).toHaveValue(50);
++
++    await userEvent.tripleClick(input);
++    await userEvent.paste('42');
++    await userEvent.tab();
++
++    // the edited step is written back numeric-only
++    expect(onChange).toHaveBeenCalledWith({
++      mode: ThresholdsMode.Absolute,
++      steps: [
++        { value: -Infinity, color: '#7EB26D' },
++        { value: 42, color: '#EAB839' },
++      ],
++    });
++  });
++
++  it('adds the next threshold based on the highest numeric value, including fallbacks', async () => {
++    setup({
++      thresholds: {
++        mode: ThresholdsMode.Absolute,
++        steps: [
++          { value: -Infinity, color: '#7EB26D' },
++          { value: 50, color: '#EAB839' },
++          { value: 70, valueExpr: '$warn', color: '#6ED0E0' },
++        ],
++      },
++    });
++
++    await userEvent.click(screen.getByRole('button', { name: 'Add threshold' }));
+ 
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 1' })).toHaveValue(100);
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 2' })).toHaveValue(75);
++    // next value is 70 + 10, sorted above the expression step's fallback of 70
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('80');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('$warn');
++    expect(screen.getByRole('textbox', { name: 'Threshold 3' })).toHaveValue('50');
+   });
+ 
+   it('should not steal focus on mount', () => {
+@@ -191,7 +381,7 @@ describe('ThresholdsEditor', () => {
+ 
+     await userEvent.click(screen.getByRole('button', { name: 'Add threshold' }));
+ 
+-    const newInput = screen.getByRole('spinbutton', { name: 'Threshold 1' });
++    const newInput = screen.getByRole('textbox', { name: 'Threshold 1' });
+     expect(newInput).toHaveFocus();
+   });
+ 
+@@ -230,7 +420,7 @@ describe('ThresholdsEditor', () => {
+       />
+     );
+ 
+-    expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
++    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+ 
+     rerender(
+       <ThresholdsEditor
+@@ -246,9 +436,9 @@ describe('ThresholdsEditor', () => {
+       />
+     );
+ 
+-    expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 1' })).toHaveValue(80);
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 2' })).toHaveValue(60);
++    expect(screen.getAllByRole('textbox')).toHaveLength(3);
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('80');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('60');
+   });
+ 
+   it('should exclude invalid steps and render a proper list', () => {
+@@ -266,8 +456,8 @@ describe('ThresholdsEditor', () => {
+       },
+     });
+ 
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 1' })).toHaveValue(78);
+-    expect(screen.getByRole('spinbutton', { name: 'Threshold 2' })).toHaveValue(75);
++    expect(screen.getByRole('textbox', { name: 'Threshold 1' })).toHaveValue('78');
++    expect(screen.getByRole('textbox', { name: 'Threshold 2' })).toHaveValue('75');
+     const baseThreshold = screen.getByRole('textbox', { name: 'Threshold 3' });
+     expect(baseThreshold).toBeInTheDocument();
+     expect(baseThreshold).toBeDisabled();
+diff --git a/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.tsx b/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.tsx
+index 288d40b9fccd4..bac6769aecc54 100644
+--- a/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.tsx
++++ b/public/app/features/dimensions/editors/ThresholdsEditor/ThresholdsEditor.tsx
+@@ -11,6 +11,7 @@ import {
+   ThresholdsMode,
+ } from '@grafana/data';
+ import { Trans, t } from '@grafana/i18n';
++import { useFlagGrafanaThresholdsInterpolation } from '@grafana/runtime/internal';
+ import { Button, ColorPicker, colors, IconButton, Input, Label, RadioButtonGroup, useStyles2 } from '@grafana/ui';
+ 
+ export interface Props {
+@@ -28,6 +29,7 @@ export const ThresholdsEditor = memo(function ThresholdsEditor({ thresholds, onC
+   const isMounted = useRef(false);
+   const userAddedThreshold = useRef(false);
+   const styles = useStyles2(getStyles);
++  const interpolationEnabled = useFlagGrafanaThresholdsInterpolation();
+ 
+   const stepsRef = useRef(steps);
+   stepsRef.current = steps;
+@@ -38,7 +40,12 @@ export const ThresholdsEditor = memo(function ThresholdsEditor({ thresholds, onC
+     const currentSteps = stepsRef.current;
+     const changed =
+       currentSteps.length !== nextSteps.length ||
+-      currentSteps.some((s, i) => s.color !== nextSteps[i].color || s.value !== (nextSteps[i].value ?? -Infinity));
++      currentSteps.some(
++        (s, i) =>
++          s.color !== nextSteps[i].color ||
++          s.value !== (nextSteps[i].value ?? -Infinity) ||
++          s.valueExpr !== nextSteps[i].valueExpr
++      );
+     if (changed) {
+       const newSteps = toThresholdsWithKey(thresholds.steps);
+       newSteps[0].value = -Infinity;
+@@ -101,15 +108,22 @@ export const ThresholdsEditor = memo(function ThresholdsEditor({ thresholds, onC
+   }
+ 
+   function onChangeThresholdValue(event: ChangeEvent<HTMLInputElement>, threshold: ThresholdWithKey) {
+-    const cleanValue = event.target.value.replace(/,/g, '.');
+-    const parsedValue = parseFloat(cleanValue);
+-    const value = isNaN(parsedValue) ? '' : parsedValue;
++    const rawValue = event.target.value;
+ 
+     const newSteps = steps.map((t) => {
+-      if (t.key === threshold.key) {
+-        t = { ...t, value: value as number };
++      if (t.key !== threshold.key) {
++        return t;
+       }
+-      return t;
++
++      if (interpolationEnabled && rawValue.includes('$')) {
++        // a variable expression: store it alongside the numeric value, which stays as the fallback
++        return { ...t, valueExpr: rawValue };
++      }
++
++      const cleanValue = rawValue.replace(/,/g, '.');
++      const parsedValue = parseFloat(cleanValue);
++      const { valueExpr, ...numericStep } = t;
++      return { ...numericStep, value: (isNaN(parsedValue) ? '' : parsedValue) as number };
+     });
+ 
+     if (newSteps.length) {
+@@ -134,7 +148,8 @@ export const ThresholdsEditor = memo(function ThresholdsEditor({ thresholds, onC
+   }
+ 
+   function onBlur() {
+-    const newSteps = [...steps];
++    // an input left empty holds '' as its value — settle it to 0
++    const newSteps = steps.map((t) => (isNumber(t.value) ? t : { ...t, value: 0 }));
+     sortThresholds(newSteps);
+     setSteps(newSteps);
+     fireOnChange(newSteps);
+@@ -176,11 +191,12 @@ export const ThresholdsEditor = memo(function ThresholdsEditor({ thresholds, onC
+ 
+     return (
+       <Input
+-        type="number"
+-        step="0.0001"
++        // with interpolation enabled, a text input so variable expressions (e.g. $myVar) can be typed
++        type={interpolationEnabled ? 'text' : 'number'}
++        step={interpolationEnabled ? undefined : '0.0001'}
+         key={isPercent.toString()}
+         onChange={(event: ChangeEvent<HTMLInputElement>) => onChangeThresholdValue(event, threshold)}
+-        value={threshold.value}
++        value={interpolationEnabled ? (threshold.valueExpr ?? threshold.value) : threshold.value}
+         aria-label={ariaLabel}
+         ref={idx === 0 ? latestThresholdInputRef : null}
+         onBlur={onBlur}
+@@ -273,12 +289,17 @@ function toThresholdsWithKey(steps?: Threshold[]): ThresholdWithKey[] {
+ 
+   return steps
+     .filter((t, i) => isNumber(t.value) || i === 0)
+-    .map((t) => {
+-      return {
++    .map((t, i) => {
++      const step: ThresholdWithKey = {
+         color: t.color,
+         value: t.value === null ? -Infinity : t.value,
+         key: counter++,
+       };
++      // the base step never carries an expression
++      if (t.valueExpr && i > 0) {
++        step.valueExpr = t.valueExpr;
++      }
++      return step;
+     });
+ }
+ 
+@@ -288,7 +309,8 @@ function thresholdsWithoutKey(thresholds: ThresholdsConfig, steps: ThresholdWith
+     mode,
+     steps: steps.map((t) => {
+       const { key, ...rest } = t;
+-      return rest; // everything except key
++      // never persist the '' an input cleared mid-edit holds — the backend requires a number
++      return isNumber(rest.value) ? rest : { ...rest, value: 0 };
+     }),
+   };
+ }

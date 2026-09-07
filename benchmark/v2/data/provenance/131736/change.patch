@@ -1,0 +1,112 @@
+diff --git a/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.test.tsx b/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.test.tsx
+index c0a6ffdd5a419..17d301518f3f9 100644
+--- a/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.test.tsx
++++ b/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.test.tsx
+@@ -3,11 +3,12 @@
+ import { render, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+ import type { JSX } from 'react';
++import { lastValueFrom } from 'rxjs';
+ 
+ import { selectors } from '@grafana/e2e-selectors';
+ import { DataSourceVariable } from '@grafana/scenes';
+ 
+-import { DataSourceVariableEditor } from './DataSourceVariableEditor';
++import { DataSourceVariableEditor, getDataSourceVariableOptions } from './DataSourceVariableEditor';
+ 
+ //mock getDataSourceInstanceList() to return a list of datasources
+ const dsList = [
+@@ -159,6 +160,56 @@ describe('DataSourceVariableEditor', () => {
+   });
+ });
+ 
++describe('getDataSourceVariableOptions', () => {
++  const renderPreviewItem = (variable: DataSourceVariable) => {
++    const previewItem = getDataSourceVariableOptions(variable).find(
++      (item) => item.props.id === 'datasource-options-preview'
++    );
++    expect(previewItem).toBeDefined();
++
++    return render(previewItem!.props.render(previewItem!));
++  };
++
++  const previewedValues = async (findAllByTestId: ReturnType<typeof render>['findAllByTestId']) => {
++    const rendered = await findAllByTestId(
++      selectors.pages.Dashboard.Settings.Variables.Edit.General.previewOfValuesOption
++    );
++
++    return rendered.map((option) => option.textContent);
++  };
++
++  it('renders a values preview listing the resolved data source instances', async () => {
++    const variable = new DataSourceVariable({
++      name: 'dsVariable',
++      type: 'datasource',
++      pluginId: 'dsTestDataSource',
++    });
++    await lastValueFrom(variable.validateAndUpdate!());
++
++    const { findAllByTestId } = renderPreviewItem(variable);
++
++    expect(await previewedValues(findAllByTestId)).toEqual([
++      'DataSourceInstance1',
++      'DataSourceInstance2',
++      'ABCDataSourceInstance',
++    ]);
++  });
++
++  it('narrows the previewed values to those matching the name filter', async () => {
++    const variable = new DataSourceVariable({
++      name: 'dsVariable',
++      type: 'datasource',
++      pluginId: 'dsTestDataSource',
++      regex: '/Instance2$/',
++    });
++    await lastValueFrom(variable.validateAndUpdate!());
++
++    const { findAllByTestId } = renderPreviewItem(variable);
++
++    expect(await previewedValues(findAllByTestId)).toEqual(['DataSourceInstance2']);
++  });
++});
++
+ // based on styleguide recomendation
+ function setup(jsx: JSX.Element) {
+   return {
+diff --git a/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.tsx b/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.tsx
+index 2a25acbfec8b1..3fb747c3e0ecd 100644
+--- a/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.tsx
++++ b/public/app/features/dashboard-scene/settings/variables/editors/DataSourceVariableEditor.tsx
+@@ -10,6 +10,7 @@ import { Combobox, type ComboboxOption, Input } from '@grafana/ui';
+ import { OptionsPaneItemDescriptor } from 'app/features/dashboard/components/PanelEditor/OptionsPaneItemDescriptor';
+ 
+ import { DataSourceVariableForm } from '../components/DataSourceVariableForm';
++import { useGetAllVariableOptions, VariableValuesPreview } from '../components/VariableValuesPreview';
+ import { getOptionDataSourceTypes } from '../utils';
+ 
+ interface DataSourceVariableEditorProps {
+@@ -93,6 +94,11 @@ export function getDataSourceVariableOptions(variable: SceneVariable): OptionsPa
+       ),
+       render: ({ props }) => <DataSourceNameFilter id={props.id} variable={variable} />,
+     }),
++    new OptionsPaneItemDescriptor({
++      id: 'datasource-options-preview',
++      skipField: true,
++      render: () => <DataSourceValuesPreview variable={variable} />,
++    }),
+   ];
+ }
+ 
+@@ -101,6 +107,12 @@ interface InputProps {
+   id?: string;
+ }
+ 
++function DataSourceValuesPreview({ variable }: InputProps) {
++  const { options, staticOptions } = useGetAllVariableOptions(variable);
++
++  return <VariableValuesPreview options={options} staticOptions={staticOptions} pageSize={5} />;
++}
++
+ function DataSourceTypeSelect({ variable, id }: InputProps) {
+   const { pluginId } = variable.useState();
+   const { value: options = [] } = useAsync(getOptionDataSourceTypes, []);

@@ -1,0 +1,227 @@
+diff --git a/pkg/server/bootstrap/wire/wire_gen.go b/pkg/server/bootstrap/wire/wire_gen.go
+index 58517f1a5bb94..5f6d2ecc5958f 100644
+--- a/pkg/server/bootstrap/wire/wire_gen.go
++++ b/pkg/server/bootstrap/wire/wire_gen.go
+@@ -1010,7 +1010,7 @@ func Initialize(ctx context.Context, cfg *setting.Cfg, opts server.Options, apiO
+ 		return nil, err
+ 	}
+ 	ossUserProtectionImpl := authinfoimpl.ProvideOSSUserProtectionService()
+-	registration, err := authnimpl.ProvideRegistration(ctx, configProvider, authnService, orgService, userAuthTokenService, acimplService, permissionRegistry, apikeyService, userimplService, authService, ossUserProtectionImpl, loginattemptimplService, quotaService, authinfoimplService, renderingService, featureToggles, oauthtokenService, socialService, remoteCache, ldapImpl, tracingService, tempuserService, notificationService)
++	registration, err := authnimpl.ProvideRegistration(ctx, configProvider, authnService, orgService, userAuthTokenService, acimplService, permissionRegistry, apikeyService, userimplService, authService, ossUserProtectionImpl, loginattemptimplService, quotaService, authinfoimplService, renderingService, featureToggles, oauthtokenService, socialService, remoteCache, ldapImpl, ossImpl, tracingService, tempuserService, notificationService)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -1777,7 +1777,7 @@ func InitializeForTest(ctx context.Context, t sqlutil.ITestDB, testingT interfac
+ 		return nil, err
+ 	}
+ 	ossUserProtectionImpl := authinfoimpl.ProvideOSSUserProtectionService()
+-	registration, err := authnimpl.ProvideRegistration(ctx, configProvider, authnService, orgService, userAuthTokenService, acimplService, permissionRegistry, apikeyService, userimplService, authService, ossUserProtectionImpl, loginattemptimplService, quotaService, authinfoimplService, renderingService, featureToggles, oauthtokentestService, socialService, remoteCache, ldapImpl, tracingService, tempuserService, notificationServiceMock)
++	registration, err := authnimpl.ProvideRegistration(ctx, configProvider, authnService, orgService, userAuthTokenService, acimplService, permissionRegistry, apikeyService, userimplService, authService, ossUserProtectionImpl, loginattemptimplService, quotaService, authinfoimplService, renderingService, featureToggles, oauthtokentestService, socialService, remoteCache, ldapImpl, ossImpl, tracingService, tempuserService, notificationServiceMock)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/pkg/services/authn/authnimpl/registration.go b/pkg/services/authn/authnimpl/registration.go
+index 8fe08d6853133..ab609f942fbb1 100644
+--- a/pkg/services/authn/authnimpl/registration.go
++++ b/pkg/services/authn/authnimpl/registration.go
+@@ -28,6 +28,7 @@ import (
+ 	"github.com/grafana/grafana/pkg/services/rendering"
+ 	tempuser "github.com/grafana/grafana/pkg/services/temp_user"
+ 	"github.com/grafana/grafana/pkg/services/user"
++	"github.com/grafana/grafana/pkg/setting"
+ )
+ 
+ type Registration struct{}
+@@ -42,7 +43,7 @@ func ProvideRegistration(
+ 	authInfoService login.AuthInfoService, renderService rendering.Service,
+ 	features featuremgmt.FeatureToggles, oauthTokenService oauthtoken.OAuthTokenService,
+ 	socialService social.Service, cache *remotecache.RemoteCache,
+-	ldapService service.LDAP,
++	ldapService service.LDAP, settingsProvider setting.Provider,
+ 	tracer tracing.Tracer, tempUserService tempuser.Service, notificationService notifications.Service,
+ ) (Registration, error) {
+ 	logger := log.New("authn.registration")
+@@ -102,7 +103,7 @@ func ProvideRegistration(
+ 		authnSvc.RegisterClient(clients.ProvideExtendedJWT(cfg, tracer))
+ 	}
+ 
+-	registerOAuthClients(ctx, logger, authnSvc, cfgProvider, oauthTokenService, socialService, features, tracer)
++	registerOAuthClients(ctx, logger, authnSvc, cfgProvider, oauthTokenService, socialService, settingsProvider, features, tracer)
+ 
+ 	if cfg.ProvisioningEnabled {
+ 		authnSvc.RegisterClient(clients.ProvideProvisioning())
+@@ -147,7 +148,8 @@ func ProvideRegistration(
+ func registerOAuthClients(
+ 	ctx context.Context, logger log.Logger, authnSvc authn.Service,
+ 	cfgProvider configprovider.ConfigProvider, oauthTokenService oauthtoken.OAuthTokenService,
+-	socialService social.Service, features featuremgmt.FeatureToggles, tracer tracing.Tracer,
++	socialService social.Service, settingsProvider setting.Provider,
++	features featuremgmt.FeatureToggles, tracer tracing.Tracer,
+ ) {
+ 	oauthProviders, err := socialService.GetOAuthProviders(ctx)
+ 	if err != nil {
+@@ -160,6 +162,6 @@ func registerOAuthClients(
+ 
+ 	for name := range oauthProviders {
+ 		clientName := authn.ClientWithPrefix(name)
+-		authnSvc.RegisterClient(clients.ProvideOAuth(clientName, cfgProvider, oauthTokenService, socialService, features, tracer))
++		authnSvc.RegisterClient(clients.ProvideOAuth(clientName, cfgProvider, oauthTokenService, socialService, settingsProvider, features, tracer))
+ 	}
+ }
+diff --git a/pkg/services/authn/authnimpl/registration_test.go b/pkg/services/authn/authnimpl/registration_test.go
+index 38de4382c7a6d..1b70b225d54c8 100644
+--- a/pkg/services/authn/authnimpl/registration_test.go
++++ b/pkg/services/authn/authnimpl/registration_test.go
+@@ -10,6 +10,7 @@ import (
+ 	"github.com/grafana/grafana/pkg/login/social/socialtest"
+ 	"github.com/grafana/grafana/pkg/services/authn/authntest"
+ 	"github.com/grafana/grafana/pkg/services/featuremgmt"
++	"github.com/grafana/grafana/pkg/setting"
+ )
+ 
+ func TestRegisterOAuthClients(t *testing.T) {
+@@ -24,6 +25,7 @@ func TestRegisterOAuthClients(t *testing.T) {
+ 
+ 		registerOAuthClients(
+ 			t.Context(), log.NewNopLogger(), authnService, nil, nil, socialService,
++			setting.ProvideProvider(setting.NewCfg()),
+ 			featuremgmt.WithFeatures(), tracing.InitializeTracerForTest(),
+ 		)
+ 
+@@ -40,6 +42,7 @@ func TestRegisterOAuthClients(t *testing.T) {
+ 
+ 		registerOAuthClients(
+ 			t.Context(), log.NewNopLogger(), authnService, nil, nil, socialService,
++			setting.ProvideProvider(setting.NewCfg()),
+ 			featuremgmt.WithFeatures(), tracing.InitializeTracerForTest(),
+ 		)
+ 
+diff --git a/pkg/services/authn/clients/oauth.go b/pkg/services/authn/clients/oauth.go
+index ade5ccd608790..a42b2b6d4ba44 100644
+--- a/pkg/services/authn/clients/oauth.go
++++ b/pkg/services/authn/clients/oauth.go
+@@ -74,14 +74,14 @@ var (
+ 
+ func ProvideOAuth(
+ 	name string, cfgProvider configprovider.ConfigProvider, oauthService oauthtoken.OAuthTokenService,
+-	socialService social.Service,
++	socialService social.Service, settingsProvider setting.Provider,
+ 	features featuremgmt.FeatureToggles, tracer trace.Tracer,
+ ) *OAuth {
+ 	providerName := strings.TrimPrefix(name, "auth.client.")
+ 	return &OAuth{
+ 		name, fmt.Sprintf("oauth_%s", providerName), providerName,
+ 		log.New(name), cfgProvider, tracer, oauthService,
+-		socialService, features,
++		socialService, settingsProvider, features,
+ 	}
+ }
+ 
+@@ -93,9 +93,10 @@ type OAuth struct {
+ 	cfgProvider  configprovider.ConfigProvider
+ 	tracer       trace.Tracer
+ 
+-	oauthService  oauthtoken.OAuthTokenService
+-	socialService social.Service
+-	features      featuremgmt.FeatureToggles
++	oauthService     oauthtoken.OAuthTokenService
++	socialService    social.Service
++	settingsProvider setting.Provider
++	features         featuremgmt.FeatureToggles
+ }
+ 
+ func (c *OAuth) Name() string {
+@@ -213,6 +214,13 @@ func (c *OAuth) Authenticate(ctx context.Context, r *authn.Request) (*authn.Iden
+ 
+ 	lookupParams := login.UserLookupParams{}
+ 	allowInsecureEmailLookup := cfg.OAuthAllowInsecureEmailLookup
++	// This setting is still writable through /api/admin/settings and stored by
++	// the runtime settings provider. ConfigProvider does not include those
++	// database overrides, so keep this read on the legacy provider until that
++	// write path is migrated to the settings service.
++	if c.settingsProvider != nil {
++		allowInsecureEmailLookup = c.settingsProvider.KeyValue("auth", "oauth_allow_insecure_email_lookup").MustBool(allowInsecureEmailLookup)
++	}
+ 	if allowInsecureEmailLookup {
+ 		lookupParams.Email = &userInfo.Email
+ 	}
+diff --git a/pkg/services/authn/clients/oauth_test.go b/pkg/services/authn/clients/oauth_test.go
+index a63a8033bb36c..125ca5825cb83 100644
+--- a/pkg/services/authn/clients/oauth_test.go
++++ b/pkg/services/authn/clients/oauth_test.go
+@@ -4,6 +4,7 @@ import (
+ 	"context"
+ 	"net/http"
+ 	"net/url"
++	"strconv"
+ 	"strings"
+ 	"testing"
+ 	"time"
+@@ -189,7 +190,7 @@ func TestOAuth_Authenticate(t *testing.T) {
+ 			},
+ 		},
+ 		{
+-			desc: "should return identity for valid request - and lookup user by email",
++			desc: "should use the runtime settings override to look up the user by email",
+ 			req: &authn.Request{
+ 				HTTPRequest: &http.Request{
+ 					Header: map[string][]string{},
+@@ -325,8 +326,14 @@ func TestOAuth_Authenticate(t *testing.T) {
+ 
+ 	for _, tt := range tests {
+ 		t.Run(tt.desc, func(t *testing.T) {
++			// Keep ConfigProvider at its false default. runtimeCfg models the
++			// database-backed override written through /api/admin/settings.
+ 			cfg := setting.NewCfg()
+-			cfg.OAuthAllowInsecureEmailLookup = tt.allowInsecureTakeover
++			runtimeCfg := setting.NewCfg()
++			auth, err := runtimeCfg.Raw.NewSection("auth")
++			assert.NoError(t, err)
++			_, err = auth.NewKey("oauth_allow_insecure_email_lookup", strconv.FormatBool(tt.allowInsecureTakeover))
++			assert.NoError(t, err)
+ 
+ 			if tt.addStateCookie {
+ 				v := tt.stateCookieValue
+@@ -350,7 +357,7 @@ func TestOAuth_Authenticate(t *testing.T) {
+ 				},
+ 			}
+ 
+-			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, cfg), nil, fakeSocialSvc, featuremgmt.WithFeatures(tt.features...), tracing.InitializeTracerForTest())
++			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, cfg), nil, fakeSocialSvc, setting.ProvideProvider(runtimeCfg), featuremgmt.WithFeatures(tt.features...), tracing.InitializeTracerForTest())
+ 
+ 			identity, err := c.Authenticate(context.Background(), tt.req)
+ 			assert.ErrorIs(t, err, tt.expectedErr)
+@@ -431,7 +438,7 @@ func TestOAuth_RedirectURL(t *testing.T) {
+ 
+ 			cfg := setting.NewCfg()
+ 
+-			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, cfg), nil, fakeSocialSvc, featuremgmt.WithFeatures(), tracing.InitializeTracerForTest())
++			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, cfg), nil, fakeSocialSvc, nil, featuremgmt.WithFeatures(), tracing.InitializeTracerForTest())
+ 
+ 			redirect, err := c.RedirectURL(context.Background(), nil)
+ 			assert.ErrorIs(t, err, tt.expectedErr)
+@@ -544,7 +551,7 @@ func TestOAuth_Logout(t *testing.T) {
+ 			fakeSocialSvc := &socialtest.FakeSocialService{
+ 				ExpectedAuthInfoProvider: tt.oauthCfg,
+ 			}
+-			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, tt.cfg), mockService, fakeSocialSvc, featuremgmt.WithFeatures(), tracing.InitializeTracerForTest())
++			c := ProvideOAuth(authn.ClientWithPrefix("azuread"), testConfigProvider(t, tt.cfg), mockService, fakeSocialSvc, nil, featuremgmt.WithFeatures(), tracing.InitializeTracerForTest())
+ 
+ 			redirect, ok := c.Logout(context.Background(), &authn.Identity{ID: "1", Type: claims.TypeUser}, &usertoken.UserToken{})
+ 
+@@ -603,6 +610,7 @@ func TestIsEnabled(t *testing.T) {
+ 				testConfigProvider(t, cfg),
+ 				nil,
+ 				fakeSocialSvc,
++				nil,
+ 				featuremgmt.WithFeatures(),
+ 				tracing.InitializeTracerForTest())
+ 			assert.Equal(t, tt.expected, c.IsEnabled(t.Context()))
+@@ -628,6 +636,7 @@ func TestOAuthProviderLookupUsesCallerContext(t *testing.T) {
+ 		testConfigProvider(t, setting.NewCfg()),
+ 		nil,
+ 		fakeSocialSvc,
++		nil,
+ 		featuremgmt.WithFeatures(),
+ 		tracing.InitializeTracerForTest(),
+ 	)

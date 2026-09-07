@@ -1,0 +1,664 @@
+diff --git a/eslint-suppressions.json b/eslint-suppressions.json
+index 39acd5b085659..25c2fb1d41556 100644
+--- a/eslint-suppressions.json
++++ b/eslint-suppressions.json
+@@ -799,11 +799,6 @@
+       "count": 2
+     }
+   },
+-  "public/app/core/components/OptionsUI/NumberInput.tsx": {
+-    "@grafana/require-no-margin": {
+-      "count": 1
+-    }
+-  },
+   "public/app/core/components/OptionsUI/fieldColor.tsx": {
+     "@grafana/require-no-margin": {
+       "count": 1
+diff --git a/public/app/core/components/OptionsUI/NumberInput.test.tsx b/public/app/core/components/OptionsUI/NumberInput.test.tsx
+index 4bc7baa2fa064..4afcde6640966 100644
+--- a/public/app/core/components/OptionsUI/NumberInput.test.tsx
++++ b/public/app/core/components/OptionsUI/NumberInput.test.tsx
+@@ -1,4 +1,7 @@
+-import { render, screen, fireEvent } from '@testing-library/react';
++import { act, render, screen, fireEvent } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++
++import { InlineField } from '@grafana/ui';
+ 
+ import { NumberInput } from './NumberInput';
+ 
+@@ -6,12 +9,16 @@ const setup = (min?: number, max?: number) => {
+   const onChange = jest.fn();
+   render(<NumberInput value={15} onChange={onChange} max={max} min={min} />);
+   return {
+-    input: screen.getByTestId('input-wrapper').firstChild?.firstChild as HTMLInputElement,
++    input: screen.getByRole('spinbutton'),
+     onChange,
+   };
+ };
+ 
+ describe('NumberInput', () => {
++  afterEach(() => {
++    jest.useRealTimers();
++  });
++
+   it('updated input correctly', () => {
+     const data = setup();
+ 
+@@ -59,13 +66,28 @@ describe('NumberInput', () => {
+     ];
+ 
+     tests.forEach((test, i) => {
+-      fireEvent.blur(data.input, { target: { value: test.value } });
++      const input = screen.getByRole('spinbutton');
++      fireEvent.change(input, { target: { value: test.value } });
++      fireEvent.blur(input);
+       expect(data.onChange).toHaveBeenCalledWith(test.onChangeCalledWith);
+       expect(data.onChange).toBeCalledTimes(i + 1);
+-      expect(data.input).toHaveValue(test.expected);
++      expect(screen.getByRole('spinbutton')).toHaveValue(test.expected);
+     });
+   });
+ 
++  it.each([
++    ['a finite number', 25, 25],
++    ['zero', 0, 0],
++    ['undefined', undefined, null],
++    ['NaN', Number.NaN, null],
++  ])('synchronizes the input when the controlled value changes to %s', (_description, value, expected) => {
++    const { rerender } = render(<NumberInput value={15} onChange={jest.fn()} />);
++
++    rerender(<NumberInput value={value} onChange={jest.fn()} />);
++
++    expect(screen.getByRole('spinbutton')).toHaveValue(expected);
++  });
++
+   it('corrects input as per min and max', async () => {
+     const data = setup(-10, 10);
+     let input = data.input;
+@@ -99,11 +121,221 @@ describe('NumberInput', () => {
+     ];
+ 
+     tests.forEach((test, i) => {
+-      input = screen.getByTestId('input-wrapper').firstChild?.firstChild as HTMLInputElement;
+-      fireEvent.blur(input, { target: { value: test.value } });
++      input = screen.getByRole('spinbutton');
++      fireEvent.change(input, { target: { value: test.value } });
++      fireEvent.blur(input);
+       expect(data.onChange).toHaveBeenCalledWith(test.onChangeCalledWith);
+       expect(data.onChange).toBeCalledTimes(i + 1);
+-      expect(screen.getByTestId('input-wrapper').firstChild?.firstChild).toHaveValue(test.expected);
++      expect(screen.getByRole('spinbutton')).toHaveValue(test.expected);
++    });
++  });
++
++  it('shows the allowed range while the value is in range', () => {
++    render(<NumberInput value={5} onChange={jest.fn()} min={1} max={200} />);
++
++    expect(screen.getByText('Range: 1 to 200')).toBeInTheDocument();
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
++  });
++
++  it('does not clamp or show an error while typing an out of range value', async () => {
++    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    await user.clear(input);
++    await user.type(input, '-9');
++    await act(async () => {
++      jest.advanceTimersByTime(500);
++    });
++
++    expect(input).toHaveValue(-9);
++    expect(onChange).not.toHaveBeenCalled();
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
++    expect(screen.getByText('Range: 1 to 200')).toBeInTheDocument();
++
++    jest.useRealTimers();
++  });
++
++  it('clamps on blur and keeps the out of range message until the value is edited', async () => {
++    const user = userEvent.setup();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    await user.clear(input);
++    await user.type(input, '-9');
++    await user.tab();
++
++    expect(onChange).toHaveBeenCalledWith(1);
++    expect(screen.getByRole('spinbutton')).toHaveValue(1);
++    expect(screen.getByRole('alert')).toHaveTextContent('Out of range. Range: 1 to 200');
++    expect(screen.getByText('Range: 1 to 200')).toBeInTheDocument();
++
++    await user.type(input, '2');
++
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
++  });
++
++  it('emits in-range values after the debounce without showing an error', async () => {
++    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    await user.clear(input);
++    await user.type(input, '8');
++    expect(onChange).not.toHaveBeenCalled();
++
++    await act(async () => {
++      jest.advanceTimersByTime(500);
++    });
++
++    expect(onChange).toHaveBeenCalledWith(8);
++    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
++
++    jest.useRealTimers();
++  });
++
++  it('emits zero after the debounce', () => {
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={-1} max={200} />);
++
++    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '0' } });
++    act(() => jest.advanceTimersByTime(500));
++
++    expect(onChange).toHaveBeenCalledWith(0);
++  });
++
++  it.each([
++    ['blur', (input: HTMLInputElement) => fireEvent.blur(input)],
++    ['Enter', (input: HTMLInputElement) => fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 })],
++  ])('commits immediately on %s and cancels the pending debounced change', (_event, commit) => {
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole<HTMLInputElement>('spinbutton');
++    fireEvent.change(input, { target: { value: '8' } });
++    commit(input);
++
++    expect(onChange).toHaveBeenCalledTimes(1);
++    expect(onChange).toHaveBeenCalledWith(8);
++
++    act(() => jest.advanceTimersByTime(500));
++
++    expect(onChange).toHaveBeenCalledTimes(1);
++  });
++
++  it('emits a pending in-range value after a parent rerender', () => {
++    jest.useFakeTimers();
++    const firstOnChange = jest.fn();
++    const secondOnChange = jest.fn();
++    const { rerender } = render(<NumberInput value={5} onChange={firstOnChange} min={1} max={200} />);
++
++    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '8' } });
++    rerender(<NumberInput value={5} onChange={secondOnChange} min={1} max={200} />);
++    act(() => jest.advanceTimersByTime(500));
++
++    expect(firstOnChange).not.toHaveBeenCalled();
++    expect(secondOnChange).toHaveBeenCalledWith(8);
++  });
++
++  it('does not emit a pending value outside updated bounds', () => {
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    const { rerender } = render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '8' } });
++    rerender(<NumberInput value={5} onChange={onChange} min={1} max={7} />);
++    act(() => jest.advanceTimersByTime(500));
++
++    expect(onChange).not.toHaveBeenCalled();
++  });
++
++  it('keeps a parent InlineField label when no id is passed', () => {
++    render(
++      <InlineField label="Window size">
++        <NumberInput value={5} onChange={jest.fn()} min={1} max={10} />
++      </InlineField>
++    );
++
++    expect(screen.getByRole('spinbutton', { name: 'Window size' })).toBeInTheDocument();
++  });
++
++  it('preserves parent InlineField validation semantics alongside the range hint', () => {
++    render(
++      <InlineField label="Window size" invalid error="Required">
++        <NumberInput value={5} onChange={jest.fn()} min={1} max={10} />
++      </InlineField>
++    );
++
++    const input = screen.getByRole('spinbutton', { name: 'Window size' });
++    const error = screen.getByRole('alert');
++    const range = screen.getByText('Range: 1 to 10');
++
++    expect(input).toHaveAttribute('aria-invalid', 'true');
++    expect(input.getAttribute('aria-describedby')?.split(' ')).toEqual([error.id, range.id]);
++  });
++
++  it('keeps a trailing decimal after the debounce so typing can continue', async () => {
++    jest.useFakeTimers();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    fireEvent.change(input, { target: { value: '1.' } });
++    await act(async () => {
++      jest.advanceTimersByTime(500);
++    });
++
++    expect(onChange).not.toHaveBeenCalled();
++
++    fireEvent.change(input, { target: { value: '1.5' } });
++    await act(async () => {
++      jest.advanceTimersByTime(500);
+     });
++
++    expect(onChange).toHaveBeenCalledWith(1.5);
++
++    jest.useRealTimers();
++  });
++
++  it('keeps the out of range message after a second blur without editing', async () => {
++    const user = userEvent.setup();
++    const onChange = jest.fn();
++    render(<NumberInput value={5} onChange={onChange} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    await user.clear(input);
++    await user.type(input, '-9');
++    await user.tab();
++
++    expect(screen.getByRole('alert')).toHaveTextContent('Out of range. Range: 1 to 200');
++
++    fireEvent.blur(screen.getByRole('spinbutton'));
++
++    expect(screen.getByRole('alert')).toHaveTextContent('Out of range. Range: 1 to 200');
++  });
++
++  it('describes the input with the range when valid and only the error when invalid', async () => {
++    const user = userEvent.setup();
++    render(<NumberInput value={5} onChange={jest.fn()} min={1} max={200} />);
++
++    const input = screen.getByRole('spinbutton');
++    const range = screen.getByText('Range: 1 to 200');
++    expect(input).toHaveAttribute('aria-describedby', range.id);
++
++    await user.clear(input);
++    await user.type(input, '-9');
++    await user.tab();
++
++    const alert = screen.getByRole('alert');
++    expect(input).toHaveAttribute('aria-describedby', alert.id);
++    expect(alert.id).not.toBe(range.id);
++    expect(alert).toHaveTextContent('Out of range. Range: 1 to 200');
+   });
+ });
+diff --git a/public/app/core/components/OptionsUI/NumberInput.tsx b/public/app/core/components/OptionsUI/NumberInput.tsx
+index 456bf5ced49ae..b2c6edc124138 100644
+--- a/public/app/core/components/OptionsUI/NumberInput.tsx
++++ b/public/app/core/components/OptionsUI/NumberInput.tsx
+@@ -1,8 +1,11 @@
++import { css } from '@emotion/css';
+ import { debounce } from 'lodash';
+-import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
++import { memo, useState, useRef, useEffect, useLayoutEffect, useCallback, useId, useMemo } from 'react';
+ import * as React from 'react';
+ 
+-import { Field, Input } from '@grafana/ui';
++import { type GrafanaTheme2 } from '@grafana/data';
++import { t } from '@grafana/i18n';
++import { FieldValidationMessage, Input, useFieldContext, useStyles2 } from '@grafana/ui';
+ 
+ interface Props {
+   id?: string;
+@@ -18,115 +21,226 @@ interface Props {
+   suffix?: React.ReactNode;
+ }
+ 
++function formatValue(value?: number): string {
++  return value == null || Number.isNaN(value) ? '' : String(value);
++}
++
++function isInRange(n: number, min?: number, max?: number) {
++  if (min != null && n < min) {
++    return false;
++  }
++  if (max != null && n > max) {
++    return false;
++  }
++  return true;
++}
++
++function isIncompleteNumericInput(txt: string) {
++  return txt === '-' || txt === '+' || txt === '.' || txt === '-.' || txt.endsWith('.');
++}
++
++function parseInRangeValue(text: string, min?: number, max?: number): number | undefined {
++  if (text === '' || isIncompleteNumericInput(text)) {
++    return undefined;
++  }
++
++  const parsed = Number(text);
++  if (!Number.isFinite(parsed) || !isInRange(parsed, min, max)) {
++    return undefined;
++  }
++
++  return parsed;
++}
++
++function getRangeText(min?: number, max?: number) {
++  if (min != null && max != null) {
++    return t('options-ui.number-input.range-min-max', 'Range: {{min}} to {{max}}', { min, max });
++  }
++  if (min != null) {
++    return t('options-ui.number-input.range-min', 'Minimum: {{min}}', { min });
++  }
++  if (max != null) {
++    return t('options-ui.number-input.range-max', 'Maximum: {{max}}', { max });
++  }
++  return undefined;
++}
++
+ /**
+- * This is an Input field that will call `onChange` for blur and enter
++ * This is an Input field that will call `onChange` for blur and enter.
++ * In-range values also emit after a short debounce so panel options can preview
++ * while typing. Out of range values are not corrected until blur or Enter.
+  *
+  * @internal this is not exported to the `@grafana/ui` library, it is used
+  * by options editor (number and slider), and direclty with in grafana core
+  */
++export const NumberInput = memo(function NumberInput({
++  id,
++  value,
++  placeholder,
++  autoFocus,
++  onChange,
++  min,
++  max,
++  step,
++  width,
++  fieldDisabled,
++  suffix,
++}: Props) {
++  const [text, setText] = useState('');
++  const [showCorrectionError, setShowCorrectionError] = useState(false);
++  const latestPropsRef = useRef({ value, min, max, onChange });
++  const rangeId = useId();
++  const errorId = useId();
++  const styles = useStyles2(getStyles);
++  const rangeText = getRangeText(min, max);
++  const fieldContext = useFieldContext();
++
++  useEffect(() => {
++    setText((current) => {
++      if (current !== '' && Number.isFinite(Number(current)) && Number(current) === value) {
++        return current;
++      }
++      return formatValue(value);
++    });
++  }, [value]);
++
++  useLayoutEffect(() => {
++    latestPropsRef.current = { value, min, max, onChange };
++  }, [value, min, max, onChange]);
++
++  const emitInRangeValueDebounced = useMemo(
++    () =>
++      debounce((txt: string) => {
++        const { value, min, max, onChange } = latestPropsRef.current;
++        const parsed = parseInRangeValue(txt, min, max);
++        if (parsed === undefined) {
++          return;
++        }
++        if (parsed !== value) {
++          onChange(parsed);
++        }
++      }, 500),
++    []
++  );
++
++  const commitValue = useCallback(
++    (txt: string) => {
++      if (txt === '') {
++        setShowCorrectionError(false);
++        if (value !== undefined) {
++          onChange(undefined);
++        }
++        return;
++      }
+ 
+-export const NumberInput = memo(
+-  ({ id, value, placeholder, autoFocus, onChange, min, max, step, width, fieldDisabled, suffix }: Props) => {
+-    const [text, setText] = useState('');
+-    const [inputCorrected, setInputCorrected] = useState(false);
+-    const inputRef = useRef<HTMLInputElement>(null);
+-
+-    useEffect(() => {
+-      setText(isNaN(value!) ? '' : `${value}`);
+-    }, [value]);
++      const parsed = Number(txt);
++      if (!Number.isFinite(parsed)) {
++        setText(formatValue(value));
++        setShowCorrectionError(false);
++        return;
++      }
+ 
+-    const updateValue = useCallback(() => {
+-      const txt = inputRef.current?.value;
++      let next = parsed;
+       let corrected = false;
+-      let newValue = '';
+-      let currentValue = txt !== '' ? Number(txt) : undefined;
+-
+-      if (currentValue && !Number.isNaN(currentValue)) {
+-        if (min != null && currentValue < min) {
+-          newValue = min.toString();
+-          corrected = true;
+-        } else if (max != null && currentValue > max) {
+-          newValue = max.toString();
+-          corrected = true;
+-        } else {
+-          newValue = txt ?? '';
+-        }
+-
+-        setText(newValue);
+-        setInputCorrected(corrected);
++      if (min != null && next < min) {
++        next = min;
++        corrected = true;
++      } else if (max != null && next > max) {
++        next = max;
++        corrected = true;
+       }
+ 
+-      if (!Number.isNaN(currentValue) && currentValue !== value) {
+-        onChange(currentValue);
++      setText(`${next}`);
++      if (corrected) {
++        setShowCorrectionError(true);
+       }
+-    }, [min, max, value, onChange]);
+-
+-    const updateValueDebounced = useMemo(() => debounce(updateValue, 500), [updateValue]);
+-
+-    const handleChange = useCallback(
+-      (e: React.FocusEvent<HTMLInputElement>) => {
+-        setText(e.currentTarget.value);
+-        updateValueDebounced();
+-      },
+-      [updateValueDebounced]
+-    );
+-
+-    const handleKeyPress = useCallback(
+-      (e: React.KeyboardEvent<HTMLInputElement>) => {
+-        if (e.key === 'Enter') {
+-          updateValue();
+-        }
+-      },
+-      [updateValue]
+-    );
+-
+-    const renderInput = () => {
+-      return (
+-        <Input
+-          type="number"
+-          id={id}
+-          ref={inputRef}
+-          min={min}
+-          max={max}
+-          step={step}
+-          autoFocus={autoFocus}
+-          value={text}
+-          onChange={handleChange}
+-          onBlur={updateValue}
+-          onKeyPress={handleKeyPress}
+-          placeholder={placeholder}
+-          disabled={fieldDisabled}
+-          width={width}
+-          suffix={suffix}
+-        />
+-      );
+-    };
+-
+-    if (inputCorrected) {
+-      let range = '';
+-      if (max == null) {
+-        if (min != null) {
+-          range = `< ${min}`;
+-        }
+-      } else if (min != null) {
+-        range = `${min} < > ${max}`;
+-      } else {
+-        range = `> ${max}`;
++      if (next !== value) {
++        onChange(next);
+       }
+-      return (
+-        <Field
+-          invalid={inputCorrected}
+-          error={`Out of range ${range}`}
+-          validationMessageHorizontalOverflow={true}
+-          style={{ direction: 'rtl' }}
+-        >
+-          {renderInput()}
+-        </Field>
+-      );
+-    }
+-
+-    return renderInput();
+-  }
+-);
++    },
++    [min, max, value, onChange]
++  );
++
++  useEffect(() => {
++    return () => emitInRangeValueDebounced.cancel();
++  }, [emitInRangeValueDebounced]);
++
++  const handleChange = useCallback(
++    (e: React.ChangeEvent<HTMLInputElement>) => {
++      const next = e.currentTarget.value;
++      setText(next);
++      setShowCorrectionError(false);
++
++      if (parseInRangeValue(next, min, max) === undefined) {
++        emitInRangeValueDebounced.cancel();
++        return;
++      }
++
++      emitInRangeValueDebounced(next);
++    },
++    [min, max, emitInRangeValueDebounced]
++  );
++
++  const handleBlur = useCallback(
++    (e: React.FocusEvent<HTMLInputElement>) => {
++      emitInRangeValueDebounced.cancel();
++      commitValue(e.currentTarget.value);
++    },
++    [commitValue, emitInRangeValueDebounced]
++  );
++
++  const handleKeyPress = useCallback(
++    (e: React.KeyboardEvent<HTMLInputElement>) => {
++      if (e.key === 'Enter') {
++        emitInRangeValueDebounced.cancel();
++        commitValue(e.currentTarget.value);
++      }
++    },
++    [commitValue, emitInRangeValueDebounced]
++  );
++
++  const localDescribedBy = showCorrectionError ? errorId : rangeText ? rangeId : undefined;
++  const describedBy = [fieldContext['aria-describedby'], localDescribedBy].filter(Boolean).join(' ') || undefined;
++  const errorMessage = rangeText
++    ? t('options-ui.number-input.error-out-of-range', 'Out of range. {{range}}', { range: rangeText })
++    : t('options-ui.number-input.error-out-of-range-generic', 'Out of range');
++
++  return (
++    <div>
++      <Input
++        type="number"
++        id={id}
++        min={min}
++        max={max}
++        step={step}
++        autoFocus={autoFocus}
++        value={text}
++        onChange={handleChange}
++        onBlur={handleBlur}
++        onKeyPress={handleKeyPress}
++        placeholder={placeholder}
++        disabled={fieldDisabled}
++        width={width}
++        suffix={suffix}
++        invalid={showCorrectionError || fieldContext.invalid}
++        aria-describedby={describedBy}
++      />
++      {rangeText && (
++        <div id={rangeId} className={styles.rangeHint}>
++          {rangeText}
++        </div>
++      )}
++      {showCorrectionError && <FieldValidationMessage id={errorId}>{errorMessage}</FieldValidationMessage>}
++    </div>
++  );
++});
+ 
+ NumberInput.displayName = 'NumberInput';
++
++const getStyles = (theme: GrafanaTheme2) => ({
++  rangeHint: css({
++    color: theme.colors.text.secondary,
++    fontSize: theme.typography.size.sm,
++    marginTop: theme.spacing(0.25),
++  }),
++});
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index 603ed82c5d536..861055015057b 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -13104,6 +13104,13 @@
+     "field-color": {
+       "color-by-label": "Color series by"
+     },
++    "number-input": {
++      "error-out-of-range": "Out of range. {{range}}",
++      "error-out-of-range-generic": "Out of range",
++      "range-max": "Maximum: {{max}}",
++      "range-min": "Minimum: {{min}}",
++      "range-min-max": "Range: {{min}} to {{max}}"
++    },
+     "registry": {
+       "get-all-option-editors": {
+         "description-time-zone": "Time zone selection",

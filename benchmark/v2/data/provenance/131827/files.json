@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 20,
+    "blob_url": "https://github.com/grafana/grafana/blob/11cff4761bfb6c11ae828f0022a45aa8499d05a9/pkg%2Frouter%2Fopenapi_cache.go",
+    "changes": 20,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Frouter%2Fopenapi_cache.go?ref=11cff4761bfb6c11ae828f0022a45aa8499d05a9",
+    "deletions": 0,
+    "filename": "pkg/router/openapi_cache.go",
+    "patch": "@@ -27,6 +27,26 @@ func stripConditionalHeaders(req *http.Request) {\n \treq.Header.Del(\"If-Modified-Since\")\n }\n \n+// stripHashQueryParam removes the \"hash\" query parameter before proxying a\n+// request upstream. Our discovery doc (buildOpenAPIV3Index) hash-busts each\n+// group-version's serverRelativeURL with our own RV, an opaque cache token\n+// with no relation to the backend's content. But kube-openapi's own\n+// handler3 treats a client-supplied \"hash\" as a claim about ITS content\n+// hash and 301-redirects to the correct one on mismatch -- a redirect\n+// rejectBackendRedirects then turns into a 502. Since our RV essentially\n+// never matches the backend's real hash, forwarding it verbatim breaks\n+// every cold-cache request. Stripping it here keeps the RV-based\n+// busting meaningful for our own cache/ETag while never surfacing our\n+// token to a protocol that expects its own.\n+func stripHashQueryParam(req *http.Request) {\n+\tq := req.URL.Query()\n+\tif !q.Has(\"hash\") {\n+\t\treturn\n+\t}\n+\tq.Del(\"hash\")\n+\treq.URL.RawQuery = q.Encode()\n+}\n+\n // captureWriter records a proxied response (status + body) so it can be\n // cached on success before being relayed to the real client, without letting\n // the backend write directly to the real ResponseWriter first.",
+    "raw_url": "https://github.com/grafana/grafana/raw/11cff4761bfb6c11ae828f0022a45aa8499d05a9/pkg%2Frouter%2Fopenapi_cache.go",
+    "sha": "0ea9293bd5242f9845268fa490ef09c3338cbdce",
+    "status": "modified"
+  },
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/11cff4761bfb6c11ae828f0022a45aa8499d05a9/pkg%2Frouter%2Frouter.go",
+    "changes": 1,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Frouter%2Frouter.go?ref=11cff4761bfb6c11ae828f0022a45aa8499d05a9",
+    "deletions": 0,
+    "filename": "pkg/router/router.go",
+    "patch": "@@ -268,6 +268,7 @@ func (cr *GrafanaRouter) serveOpenAPIGroupVersion(w http.ResponseWriter, req *ht\n \t// call to the backend, so an outage must fail fast here too.\n \tproxyReq := req.Clone(req.Context())\n \tstripConditionalHeaders(proxyReq)\n+\tstripHashQueryParam(proxyReq)\n \trec := newCaptureWriter()\n \t_, err := entry.breaker.Execute(func() (struct{}, error) {\n \t\tentry.handler.ServeHTTP(rec, proxyReq)",
+    "raw_url": "https://github.com/grafana/grafana/raw/11cff4761bfb6c11ae828f0022a45aa8499d05a9/pkg%2Frouter%2Frouter.go",
+    "sha": "d13d797c9e75a62efe68148f3e6ae6296ddcc0d5",
+    "status": "modified"
+  }
+]

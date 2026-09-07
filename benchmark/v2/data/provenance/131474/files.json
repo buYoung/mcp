@@ -1,0 +1,62 @@
+[
+  {
+    "additions": 4,
+    "blob_url": "https://github.com/grafana/grafana/blob/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Faccesscontrol%2Ffilter.go",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Faccesscontrol%2Ffilter.go?ref=a159aa79bdbefeebf870d27fbd22325c36cd85e0",
+    "deletions": 0,
+    "filename": "pkg/services/accesscontrol/filter.go",
+    "patch": "@@ -32,6 +32,10 @@ type SQLFilter struct {\n \tArgs  []any\n }\n \n+func (f SQLFilter) AllowsAllRecords() bool {\n+\treturn f.Where == allowAllQuery.Where\n+}\n+\n // Filter creates a where clause to restrict the view of a query based on a users permissions\n // Scopes that exists for all actions will be parsed and compared against the supplied sqlID\n // Prefix parameter is the prefix of the scope that we support (e.g. \"users:id:\")",
+    "raw_url": "https://github.com/grafana/grafana/raw/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Faccesscontrol%2Ffilter.go",
+    "sha": "1d53daa9e4d28f6736dd601a24814cf7a0d9cb1f",
+    "status": "modified"
+  },
+  {
+    "additions": 37,
+    "blob_url": "https://github.com/grafana/grafana/blob/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Faccesscontrol%2Ffilter_test.go",
+    "changes": 37,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Faccesscontrol%2Ffilter_test.go?ref=a159aa79bdbefeebf870d27fbd22325c36cd85e0",
+    "deletions": 0,
+    "filename": "pkg/services/accesscontrol/filter_test.go",
+    "patch": "@@ -35,6 +35,43 @@ func TestManagedPermissionsActionSetsFilter(t *testing.T) {\n \tassert.Contains(t, filter, \"'folders:admin'\")\n }\n \n+func TestSQLFilterAllowsAllRecords(t *testing.T) {\n+\ttests := []struct {\n+\t\tname        string\n+\t\tpermissions []string\n+\t\taccessAll   bool\n+\t\targs        []any\n+\t}{\n+\t\t{\n+\t\t\tname:        \"allows all records\",\n+\t\t\tpermissions: []string{\"global.users:*\"},\n+\t\t\taccessAll:   true,\n+\t\t},\n+\t\t{\n+\t\t\tname:        \"returns filtered record arguments\",\n+\t\t\tpermissions: []string{\"global.users:id:1\"},\n+\t\t\targs:        []any{int64(1)},\n+\t\t},\n+\t\t{\n+\t\t\tname: \"denies all records\",\n+\t\t},\n+\t}\n+\n+\tfor _, tt := range tests {\n+\t\tt.Run(tt.name, func(t *testing.T) {\n+\t\t\tfilter, err := accesscontrol.Filter(&user.SignedInUser{\n+\t\t\t\tOrgID: 1,\n+\t\t\t\tPermissions: map[int64]map[string][]string{\n+\t\t\t\t\t1: {accesscontrol.ActionUsersRead: tt.permissions},\n+\t\t\t\t},\n+\t\t\t}, \"u.id\", \"global.users:id:\", accesscontrol.ActionUsersRead)\n+\t\t\trequire.NoError(t, err)\n+\t\t\tassert.Equal(t, tt.accessAll, filter.AllowsAllRecords())\n+\t\t\tassert.Equal(t, tt.args, filter.Args)\n+\t\t})\n+\t}\n+}\n+\n type filterDatasourcesTestCase struct {\n \tdesc        string\n \tsqlID       string",
+    "raw_url": "https://github.com/grafana/grafana/raw/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Faccesscontrol%2Ffilter_test.go",
+    "sha": "eb207f5f31df50fcb7c4f282181759dfbc107485",
+    "status": "modified"
+  },
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Forg%2Forgimpl%2Fstore.go",
+    "changes": 6,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Forg%2Forgimpl%2Fstore.go?ref=a159aa79bdbefeebf870d27fbd22325c36cd85e0",
+    "deletions": 5,
+    "filename": "pkg/services/org/orgimpl/store.go",
+    "patch": "@@ -845,10 +845,6 @@ type searchOrgUsersQuery struct {\n \n func (q searchOrgUsersQuery) Validate() error { return nil }\n \n-func accessControlQueryFields(filter accesscontrol.SQLFilter) (bool, []any) {\n-\treturn strings.TrimSpace(filter.Where) == \"1 = 1\", filter.Args\n-}\n-\n func filteredHiddenUsers(requester identity.Requester, hiddenUsersMap map[string]struct{}) []string {\n \tif requester != nil && requester.GetIsGrafanaAdmin() {\n \t\treturn nil\n@@ -915,7 +911,7 @@ func (ss *sqlStore) SearchOrgUsers(ctx context.Context, query *org.SearchOrgUser\n \t\t\tif err != nil {\n \t\t\t\treturn err\n \t\t\t}\n-\t\t\taccessAll, accessUserIDs = accessControlQueryFields(acFilter)\n+\t\t\taccessAll, accessUserIDs = acFilter.AllowsAllRecords(), acFilter.Args\n \t\t}\n \n \t\tvar hiddenUserLogins []string",
+    "raw_url": "https://github.com/grafana/grafana/raw/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Forg%2Forgimpl%2Fstore.go",
+    "sha": "08846fdf995089da5d9195efa5ac819a6c069bd1",
+    "status": "modified"
+  },
+  {
+    "additions": 3,
+    "blob_url": "https://github.com/grafana/grafana/blob/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Fteam%2Fteamimpl%2Fstore.go",
+    "changes": 11,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fteam%2Fteamimpl%2Fstore.go?ref=a159aa79bdbefeebf870d27fbd22325c36cd85e0",
+    "deletions": 8,
+    "filename": "pkg/services/team/teamimpl/store.go",
+    "patch": "@@ -4,7 +4,6 @@ import (\n \t\"context\"\n \t\"errors\"\n \t\"fmt\"\n-\t\"strings\"\n \t\"text/template\"\n \t\"time\"\n \n@@ -268,10 +267,6 @@ type searchTeamsQuery struct {\n \n func (q searchTeamsQuery) Validate() error { return nil }\n \n-func accessControlQueryFields(filter ac.SQLFilter) (bool, []any) {\n-\treturn strings.TrimSpace(filter.Where) == \"1 = 1\", filter.Args\n-}\n-\n func (ss *xormStore) Search(ctx context.Context, query *team.SearchTeamsQuery) (team.SearchTeamQueryResult, error) {\n \tqueryResult := team.SearchTeamQueryResult{\n \t\tTeams: make([]*team.TeamDTO, 0),\n@@ -288,7 +283,7 @@ func (ss *xormStore) Search(ctx context.Context, query *team.SearchTeamsQuery) (\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n-\t\taccessAll, accessTeamIDs := accessControlQueryFields(acFilter)\n+\t\taccessAll, accessTeamIDs := acFilter.AllowsAllRecords(), acFilter.Args\n \n \t\tsorts := make([]string, 0, len(query.SortOpts))\n \t\tfor i := range query.SortOpts {\n@@ -455,7 +450,7 @@ func (ss *xormStore) GetByUser(ctx context.Context, query *team.GetTeamsByUserQu\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n-\t\taccessAll, accessTeamIDs := accessControlQueryFields(acFilter)\n+\t\taccessAll, accessTeamIDs := acFilter.AllowsAllRecords(), acFilter.Args\n \n \t\tsqlQuery := getTeamsByUserQuery{\n \t\t\tSQLTemplate:     sqltemplate.New(dbHelper.DialectForDriver()),\n@@ -813,7 +808,7 @@ func (ss *xormStore) getTeamMembers(ctx context.Context, dbHelper *legacysql.Leg\n \t\taccessAll := true\n \t\tvar accessUserIDs []any\n \t\tif acUserFilter != nil {\n-\t\t\taccessAll, accessUserIDs = accessControlQueryFields(*acUserFilter)\n+\t\t\taccessAll, accessUserIDs = acUserFilter.AllowsAllRecords(), acUserFilter.Args\n \t\t}\n \n \t\tsqlQuery := getTeamMembersQuery{",
+    "raw_url": "https://github.com/grafana/grafana/raw/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Fteam%2Fteamimpl%2Fstore.go",
+    "sha": "22ee00c19b58dc790a1feb6e5ad17590f8ffc0c0",
+    "status": "modified"
+  },
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Fuser%2Fuserimpl%2Fstore.go",
+    "changes": 4,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fuser%2Fuserimpl%2Fstore.go?ref=a159aa79bdbefeebf870d27fbd22325c36cd85e0",
+    "deletions": 2,
+    "filename": "pkg/services/user/userimpl/store.go",
+    "patch": "@@ -835,7 +835,7 @@ func (ss *sqlStore) Search(ctx context.Context, query *user.SearchUsersQuery) (*\n \t\t\treturn err\n \t\t}\n \n-\t\taccessAll := strings.TrimSpace(acFilter.Where) == \"1 = 1\"\n+\t\taccessAll, accessUserIDs := acFilter.AllowsAllRecords(), acFilter.Args\n \t\tjoins, inFilters, whereFilters, err := buildSearchUserFilters(dbHelper, query.Filters)\n \t\tif err != nil {\n \t\t\treturn err\n@@ -858,7 +858,7 @@ func (ss *sqlStore) Search(ctx context.Context, query *user.SearchUsersQuery) (*\n \t\t\tJoins:         joins,\n \t\t\tOrgID:         query.OrgID,\n \t\t\tAccessAll:     accessAll,\n-\t\t\tAccessUserIDs: acFilter.Args,\n+\t\t\tAccessUserIDs: accessUserIDs,\n \t\t\tQueryPattern:  searchQueryPattern(query.Query),\n \t\t\tIsDisabled:    query.IsDisabled,\n \t\t\tInFilters:     inFilters,",
+    "raw_url": "https://github.com/grafana/grafana/raw/a159aa79bdbefeebf870d27fbd22325c36cd85e0/pkg%2Fservices%2Fuser%2Fuserimpl%2Fstore.go",
+    "sha": "9c2d2c5dedb13060fce91b6648ed56c1276a1f5a",
+    "status": "modified"
+  }
+]

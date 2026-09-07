@@ -1,0 +1,956 @@
+diff --git a/pkg/services/navtree/navtreeimpl/navtree.go b/pkg/services/navtree/navtreeimpl/navtree.go
+index c9b9abb527789..2714a5331386d 100644
+--- a/pkg/services/navtree/navtreeimpl/navtree.go
++++ b/pkg/services/navtree/navtreeimpl/navtree.go
+@@ -377,10 +377,7 @@ func (s *ServiceImpl) buildDashboardNavLinks(c *contextmodel.ReqContext) []*navt
+ 		})
+ 
+ 		if openfeature.NewDefaultClient().Boolean(c.Req.Context(), featuremgmt.FlagGrafanaDashboardGlobalVariables, false, openfeature.TransactionContext(c.Req.Context())) &&
+-			hasAccess(ac.EvalAny(
+-				ac.EvalPermission(dashboards.ActionDashboardsCreate),
+-				ac.EvalPermission(dashboards.ActionDashboardsWrite),
+-			)) {
++			hasAccess(ac.EvalPermission(ac.ActionVariablesRead)) {
+ 			dashboardChildNavs = append(dashboardChildNavs, &navtree.NavLink{
+ 				Text:     "Variables",
+ 				SubTitle: "Template variables shared across dashboards, globally or per folder",
+diff --git a/public/app/features/browse-dashboards/BrowseFolderVariablesPage.test.tsx b/public/app/features/browse-dashboards/BrowseFolderVariablesPage.test.tsx
+index f67a1203d1297..13374bad9cfce 100644
+--- a/public/app/features/browse-dashboards/BrowseFolderVariablesPage.test.tsx
++++ b/public/app/features/browse-dashboards/BrowseFolderVariablesPage.test.tsx
+@@ -10,6 +10,7 @@ import { type VariableSpec } from 'app/api/clients/dashboard/v2beta1';
+ import { backendSrv } from 'app/core/services/backend_srv';
+ import { contextSrv } from 'app/core/services/context_srv';
+ import { AnnoKeyFolder } from 'app/features/apiserver/types';
++import { AccessControlAction } from 'app/types/accessControl';
+ 
+ import BrowseFolderVariablesPage from './BrowseFolderVariablesPage';
+ import * as permissions from './permissions';
+@@ -126,9 +127,10 @@ describe('browse-dashboards BrowseFolderVariablesPage', () => {
+ 
+     expect(await screen.findByText('env')).toBeInTheDocument();
+     expect(await screen.findByRole('button', { name: 'New folder variable' })).toBeEnabled();
++    expect(screen.getByRole('button', { name: 'env' })).toBeInTheDocument();
+   });
+ 
+-  it('disables "New folder variable" when the user cannot edit the folder', async () => {
++  it('does not display "New folder variable" when the user cannot edit the folder', async () => {
+     server.use(
+       http.get('/api/folders/:uid', () => {
+         return HttpResponse.json({
+@@ -144,7 +146,28 @@ describe('browse-dashboards BrowseFolderVariablesPage', () => {
+     );
+     render(<BrowseFolderVariablesPage />);
+ 
+-    expect(await screen.findByRole('button', { name: 'New folder variable' })).toBeDisabled();
++    expect(await screen.findByText('env')).toBeInTheDocument();
++    expect(screen.queryByRole('button', { name: 'New folder variable' })).not.toBeInTheDocument();
++  });
++
++  it('does not display "New folder variable" without variables:create', async () => {
++    jest
++      .spyOn(contextSrv, 'hasPermission')
++      .mockImplementation((action) => action !== AccessControlAction.VariablesCreate);
++    render(<BrowseFolderVariablesPage />);
++
++    expect(await screen.findByText('env')).toBeInTheDocument();
++    expect(screen.queryByRole('button', { name: 'New folder variable' })).not.toBeInTheDocument();
++  });
++
++  it('does not make variable names edit links without variables:write', async () => {
++    jest
++      .spyOn(contextSrv, 'hasPermission')
++      .mockImplementation((action) => action !== AccessControlAction.VariablesWrite);
++    render(<BrowseFolderVariablesPage />);
++
++    expect(await screen.findByText('env')).toBeInTheDocument();
++    expect(screen.queryByRole('button', { name: 'env' })).not.toBeInTheDocument();
+   });
+ 
+   it('displays an empty state when the folder has no variables', async () => {
+diff --git a/public/app/features/browse-dashboards/BrowseFolderVariablesPage.tsx b/public/app/features/browse-dashboards/BrowseFolderVariablesPage.tsx
+index 916fe79f179a9..0d9481469be12 100644
+--- a/public/app/features/browse-dashboards/BrowseFolderVariablesPage.tsx
++++ b/public/app/features/browse-dashboards/BrowseFolderVariablesPage.tsx
+@@ -6,6 +6,8 @@ import { t, Trans } from '@grafana/i18n';
+ import { Alert, Button, Stack, Text } from '@grafana/ui';
+ import { useGetFolderQueryFacade, useUpdateFolder } from 'app/api/clients/folder/v1beta1/hooks';
+ import { Page } from 'app/core/components/Page/Page';
++import { contextSrv } from 'app/core/services/context_srv';
++import { AccessControlAction } from 'app/types/accessControl';
+ 
+ import { useListAllVariablesQuery } from '../variables-management/api';
+ import { VariablesTable } from '../variables-management/components/VariablesTable';
+@@ -51,6 +53,8 @@ export function BrowseFolderVariablesPage() {
+     : undefined;
+ 
+   const isLoading = isFolderLoading || isVariablesLoading;
++  const canCreate = contextSrv.hasPermission(AccessControlAction.VariablesCreate);
++  const canWrite = contextSrv.hasPermission(AccessControlAction.VariablesWrite);
+ 
+   return (
+     <Page
+@@ -72,14 +76,15 @@ export function BrowseFolderVariablesPage() {
+                 <Text element="h3">
+                   <Trans i18nKey="browse-dashboards.folder-variables.list-heading">Folder variables</Trans>
+                 </Text>
+-                <Button
+-                  disabled={!folderDTO.canEdit}
+-                  onClick={() =>
+-                    navigate(locationUtil.assureBaseUrl(`/dashboards/variables/new?folderUid=${folderUID}`))
+-                  }
+-                >
+-                  <Trans i18nKey="browse-dashboards.folder-variables.new">New folder variable</Trans>
+-                </Button>
++                {canCreate && folderDTO.canEdit && (
++                  <Button
++                    onClick={() =>
++                      navigate(locationUtil.assureBaseUrl(`/dashboards/variables/new?folderUid=${folderUID}`))
++                    }
++                  >
++                    <Trans i18nKey="browse-dashboards.folder-variables.new">New folder variable</Trans>
++                  </Button>
++                )}
+               </Stack>
+               {folderVariables.length === 0 ? (
+                 <Text color="secondary">
+@@ -94,12 +99,17 @@ export function BrowseFolderVariablesPage() {
+                   selected={new Set()}
+                   onToggleFolder={() => {}}
+                   onSetSelected={() => {}}
+-                  onEdit={(variable) => {
+-                    const name = variable.metadata.name;
+-                    if (name) {
+-                      navigate(locationUtil.assureBaseUrl(`/dashboards/variables/edit/${name}`));
+-                    }
+-                  }}
++                  selectable={false}
++                  onEdit={
++                    canWrite
++                      ? (variable) => {
++                          const name = variable.metadata.name;
++                          if (name) {
++                            navigate(locationUtil.assureBaseUrl(`/dashboards/variables/edit/${name}`));
++                          }
++                        }
++                      : undefined
++                  }
+                 />
+               )}
+             </div>
+diff --git a/public/app/features/variables-management/VariableEditorView.test.tsx b/public/app/features/variables-management/VariableEditorView.test.tsx
+new file mode 100644
+index 0000000000000..e166eff1702df
+--- /dev/null
++++ b/public/app/features/variables-management/VariableEditorView.test.tsx
+@@ -0,0 +1,112 @@
++import { render, screen } from 'test/test-utils';
++
++import { type Variable, type VariableSpec } from 'app/api/clients/dashboard/v2beta1';
++import { contextSrv } from 'app/core/services/context_srv';
++import { AnnoKeyFolder } from 'app/features/apiserver/types';
++import { AccessControlAction } from 'app/types/accessControl';
++
++import { VariableEditorView } from './VariableEditorView';
++
++jest.mock('app/core/components/Select/FolderPicker', () => ({
++  FolderPicker: () => <div data-testid="folder-picker" />,
++}));
++
++jest.mock('app/features/dashboard-scene/settings/variables/VariableEditorForm', () => ({
++  VariableEditorForm: () => <div data-testid="variable-editor-form" />,
++}));
++
++jest.mock('app/api/clients/folder/v1beta1/hooks', () => ({
++  useGetFolderQueryFacade: (uid?: string) => ({
++    data: uid ? { uid, canEdit: true } : undefined,
++  }),
++}));
++
++jest.mock('./useVariableNameCollisionCheck', () => ({
++  useVariableNameCollisionCheck: () => ({ isChecking: false, collisionError: undefined }),
++}));
++
++const customSpec = {
++  kind: 'CustomVariable',
++  spec: { name: 'env', query: 'dev,prod' },
++} as unknown as VariableSpec;
++
++const folderVariable: Variable = {
++  metadata: {
++    name: 'env--folder-a',
++    annotations: { [AnnoKeyFolder]: 'folder-a' },
++  },
++  spec: customSpec,
++};
++
++const globalVariable: Variable = {
++  metadata: { name: 'env' },
++  spec: customSpec,
++};
++
++const globalFolderHelp =
++  'Scope the variable to a folder, or choose the root Dashboards folder to make it global (available to all dashboards)';
++const folderOnlyHelp = 'Scope the variable to a folder you can edit';
++
++describe('VariableEditorView delete action', () => {
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('enables Delete when the user has variables:delete and can edit the source folder', async () => {
++    jest.spyOn(contextSrv, 'hasRole').mockReturnValue(false);
++    jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++
++    render(<VariableEditorView source={folderVariable} onBack={jest.fn()} />);
++
++    expect(await screen.findByRole('button', { name: 'Delete' })).toBeEnabled();
++  });
++
++  it('disables Delete when the user can write but lacks variables:delete', async () => {
++    jest.spyOn(contextSrv, 'hasRole').mockReturnValue(false);
++    jest
++      .spyOn(contextSrv, 'hasPermission')
++      .mockImplementation((action) => action !== AccessControlAction.VariablesDelete);
++
++    render(<VariableEditorView source={folderVariable} onBack={jest.fn()} />);
++
++    expect(await screen.findByRole('button', { name: 'Delete' })).toBeDisabled();
++  });
++
++  it('keeps Save enabled for an in-place edit when the user cannot delete', async () => {
++    jest.spyOn(contextSrv, 'hasRole').mockReturnValue(false);
++    jest
++      .spyOn(contextSrv, 'hasPermission')
++      .mockImplementation((action) => action !== AccessControlAction.VariablesDelete);
++
++    render(<VariableEditorView source={folderVariable} onBack={jest.fn()} />);
++
++    expect(await screen.findByRole('button', { name: 'Save' })).toBeEnabled();
++    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
++  });
++});
++
++describe('VariableEditorView folder help', () => {
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('describes root when inspecting a global variable without root rights', async () => {
++    jest.spyOn(contextSrv, 'hasRole').mockReturnValue(false);
++    jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++
++    render(<VariableEditorView source={globalVariable} onBack={jest.fn()} />);
++
++    expect(await screen.findByText(globalFolderHelp)).toBeInTheDocument();
++    expect(screen.queryByText(folderOnlyHelp)).not.toBeInTheDocument();
++  });
++
++  it('does not mention root when inspecting a folder-scoped variable without root rights', async () => {
++    jest.spyOn(contextSrv, 'hasRole').mockReturnValue(false);
++    jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++
++    render(<VariableEditorView source={folderVariable} onBack={jest.fn()} />);
++
++    expect(await screen.findByText(folderOnlyHelp)).toBeInTheDocument();
++    expect(screen.queryByText(globalFolderHelp)).not.toBeInTheDocument();
++  });
++});
+diff --git a/public/app/features/variables-management/VariableEditorView.tsx b/public/app/features/variables-management/VariableEditorView.tsx
+index 7c5f71242848e..358c21944bc3c 100644
+--- a/public/app/features/variables-management/VariableEditorView.tsx
++++ b/public/app/features/variables-management/VariableEditorView.tsx
+@@ -16,6 +16,7 @@ import { useGetFolderQueryFacade } from 'app/api/clients/folder/v1beta1/hooks';
+ import { FolderPicker } from 'app/core/components/Select/FolderPicker';
+ import { createSuccessNotification } from 'app/core/copy/appNotification';
+ import { notifyApp } from 'app/core/reducers/appNotification';
++import { contextSrv } from 'app/core/services/context_srv';
+ import { sceneVariablesSetToSchemaV2Variables } from 'app/features/dashboard-scene/serialization/sceneVariablesSetToVariables';
+ import {
+   createSceneVariableFromVariableModel,
+@@ -24,6 +25,7 @@ import {
+ import { VariableEditorForm } from 'app/features/dashboard-scene/settings/variables/VariableEditorForm';
+ import { type EditableVariableType, getVariableScene } from 'app/features/dashboard-scene/settings/variables/utils';
+ import { dispatch } from 'app/store/store';
++import { AccessControlAction } from 'app/types/accessControl';
+ 
+ import { invalidatePredefinedVariableCaches, recreateVariable } from './api';
+ import { useVariableNameCollisionCheck } from './useVariableNameCollisionCheck';
+@@ -31,6 +33,7 @@ import {
+   buildVariableResource,
+   canManageGlobalVariables,
+   canManageVariableScope,
++  isRecreateVariableSave,
+   getNextAvailableVariableName,
+   getVariableFolderPickerExcludeUIDs,
+   getVariableFolderUid,
+@@ -103,7 +106,7 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+   const isNew = !source;
+   const allowGlobalScope = canManageGlobalVariables();
+   const [searchParams] = useSearchParams();
+-  // '' is the FolderPicker root/global uid. For non-editors root is hidden, so start
++  // '' is the FolderPicker root/global uid. Without root rights, start
+   // with undefined (empty selection) — NestedFolderPicker labels '' as "Dashboards"
+   // even when showRootFolder is false. New variables may preselect a folder via
+   // ?folderUid= from the folder Variables tab.
+@@ -118,7 +121,6 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+     return allowGlobalScope ? '' : undefined;
+   });
+   const [sceneVariable, setSceneVariable] = useState(initialVariable);
+-
+   const [createVariable, { isLoading: isCreating }] = useCreateVariableMutation();
+   const [updateVariable, { isLoading: isUpdating }] = useUpdateVariableMutation();
+   const [deleteVariable, { isLoading: isDeleting }] = useDeleteVariableMutation();
+@@ -158,13 +160,17 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+   const sourceScopeReady =
+     !sourceFolderUid || (needsSeparateSourceFolder ? sourceFolderMatches : selectedFolderMatches);
+ 
+-  // Non-editors may only save folder-scoped variables (root/global requires Editor/Admin),
+-  // and only into folders they can edit. Edit also requires source-scope rights so rename/move
+-  // (create-then-delete) cannot leave a duplicate when the original cannot be deleted.
++  // Root/global is Admin-only (seeded writer). Folder-scoped saves require folder CanEdit.
++  // Edit also requires source-scope rights so rename/move (create-then-delete) cannot
++  // leave a duplicate when the original cannot be deleted.
+   const hasValidFolderScope = allowGlobalScope || Boolean(folderUid);
+   const canManageSelectedScope = canManageVariableScope(folderUid, selectedFolderCanEdit, allowGlobalScope);
+   const canManageSourceScope =
+     sourceScopeReady && canManageVariableScope(sourceFolderUid ?? '', sourceFolderCanEdit, allowGlobalScope);
++  const canDeleteVariables = contextSrv.hasPermission(AccessControlAction.VariablesDelete);
++  // Renaming or re-scoping goes through recreateVariable (create-then-delete),
++  // so it needs delete rights or it leaves the original behind.
++  const isRecreate = isRecreateVariableSave(source, logicalName, folderUid);
+   const canSave =
+     !isBusy &&
+     !hasNameError &&
+@@ -173,8 +179,11 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+     hasValidFolderScope &&
+     selectedScopeReady &&
+     canManageSelectedScope &&
+-    (isNew || canManageSourceScope);
+-  const canDelete = !isBusy && Boolean(source) && canManageSourceScope;
++    (isNew || canManageSourceScope) &&
++    (!isRecreate || canDeleteVariables);
++  // variables:write (or create) can open /edit/:name, but delete is a separate action —
++  // same variables:delete gate as the list page, plus source-scope rights.
++  const canDelete = !isBusy && Boolean(source) && canManageSourceScope && canDeleteVariables;
+   // Viewers can open unmanageable scopes to inspect them, but must not relocate (copy-as-move).
+   const canChangeFolder = isNew || canManageSourceScope;
+ 
+@@ -281,10 +290,10 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+         className={styles.folderField}
+         label={t('variables-management.editor.folder-label', 'Folder')}
+         description={
+-          allowGlobalScope || !isNew
++          allowGlobalScope || folderUid === ''
+             ? t(
+                 'variables-management.editor.folder-description',
+-                'Scope the variable to a folder, or choose the root Dashboards folder to make it global (available everywhere in the organization)'
++                'Scope the variable to a folder, or choose the root Dashboards folder to make it global (available to all dashboards)'
+               )
+             : t(
+                 'variables-management.editor.folder-description-folder-only',
+@@ -300,7 +309,7 @@ function VariableEditorLoaded({ source, onBack, initialVariable }: VariableEdito
+           permission={canChangeFolder ? 'edit' : 'view'}
+           value={folderUid}
+           disabled={!canChangeFolder}
+-          onChange={(uid) => setFolderUid(allowGlobalScope || !isNew ? (uid ?? '') : uid)}
++          onChange={(uid) => setFolderUid(allowGlobalScope ? (uid ?? '') : uid)}
+           excludeUIDs={getVariableFolderPickerExcludeUIDs()}
+         />
+       </Field>
+diff --git a/public/app/features/variables-management/VariablesManagementPage.tsx b/public/app/features/variables-management/VariablesManagementPage.tsx
+index 0fd9920b60c74..93aafe1c5e086 100644
+--- a/public/app/features/variables-management/VariablesManagementPage.tsx
++++ b/public/app/features/variables-management/VariablesManagementPage.tsx
+@@ -13,7 +13,9 @@ import { Page } from 'app/core/components/Page/Page';
+ import { PageNotFound } from 'app/core/components/PageNotFound/PageNotFound';
+ import { createErrorNotification, createSuccessNotification } from 'app/core/copy/appNotification';
+ import { notifyApp } from 'app/core/reducers/appNotification';
++import { contextSrv } from 'app/core/services/context_srv';
+ import { dispatch } from 'app/store/store';
++import { AccessControlAction } from 'app/types/accessControl';
+ 
+ import { VariableEditorView } from './VariableEditorView';
+ import {
+@@ -77,7 +79,7 @@ export default function VariablesManagementPage() {
+   );
+   const folderCanEdit = useFolderCanEdit(selectedFolderUids);
+   // Disable Move/Delete when any selected variable is outside scopes the user can manage
+-  // (global without Editor, or a folder without CanEdit). Reuses the same folder-access map.
++  // (global without Admin, or a folder without CanEdit). Reuses the same folder-access map.
+   const canMutateSelection =
+     selectedVariables.length > 0 &&
+     selectedVariables.every((variable) => {
+@@ -89,6 +91,12 @@ export default function VariablesManagementPage() {
+       );
+     });
+ 
++  const canCreate = contextSrv.hasPermission(AccessControlAction.VariablesCreate);
++  const canWrite = contextSrv.hasPermission(AccessControlAction.VariablesWrite);
++  const canDelete = contextSrv.hasPermission(AccessControlAction.VariablesDelete);
++  // Move is create-then-delete under the hood (see bulkMoveVariables).
++  const canMove = canCreate && canDelete;
++
+   const onToggleFolder = (folderUid: string) => {
+     setExpandedFolders((prev) => {
+       const next = new Set(prev);
+@@ -244,7 +252,8 @@ export default function VariablesManagementPage() {
+     <Page
+       navId="dashboards/variables"
+       actions={
+-        !isEmpty && (
++        !isEmpty &&
++        canCreate && (
+           <Button icon="plus" onClick={() => locationService.push(`${LIST_URL}/new`)}>
+             <Trans i18nKey="variables-management.page.new-variable">New variable</Trans>
+           </Button>
+@@ -255,24 +264,24 @@ export default function VariablesManagementPage() {
+         {isError ? (
+           <LoadVariablesError error={error} />
+         ) : isEmpty ? (
+-          <div className={styles.content}>
+-            <EmptyState
+-              variant="call-to-action"
+-              message={t('variables-management.page.empty-title', "You haven't created any variables yet")}
+-              button={
++          <EmptyState
++            variant={canCreate ? 'call-to-action' : 'not-found'}
++            message={t('variables-management.page.empty-title', "You haven't created any variables yet")}
++            button={
++              canCreate ? (
+                 <Button icon="plus" size="lg" onClick={() => locationService.push(`${LIST_URL}/new`)}>
+                   <Trans i18nKey="variables-management.page.empty-cta">New variable</Trans>
+                 </Button>
+-              }
+-            >
+-              <Trans i18nKey="variables-management.page.empty-body">
+-                Variables created here can be shared across dashboards, either globally or scoped to a folder.
+-              </Trans>
+-            </EmptyState>
+-          </div>
++              ) : undefined
++            }
++          >
++            <Trans i18nKey="variables-management.page.empty-body">
++              Variables created here can be shared across dashboards, either globally or scoped to a folder.
++            </Trans>
++          </EmptyState>
+         ) : (
+           <div className={styles.content}>
+-            {selected.size > 0 && (
++            {selected.size > 0 && canDelete && (
+               <Stack gap={1} alignItems="center">
+                 <Text color="secondary">
+                   {t('variables-management.page.selected-count', '', {
+@@ -281,13 +290,15 @@ export default function VariablesManagementPage() {
+                     defaultValue_other: '{{count}} selected',
+                   })}
+                 </Text>
+-                <Button
+-                  variant="secondary"
+-                  onClick={() => setPendingAction('move')}
+-                  disabled={isProcessing || !canMutateSelection}
+-                >
+-                  <Trans i18nKey="variables-management.page.move">Move</Trans>
+-                </Button>
++                {canMove && (
++                  <Button
++                    variant="secondary"
++                    onClick={() => setPendingAction('move')}
++                    disabled={isProcessing || !canMutateSelection}
++                  >
++                    <Trans i18nKey="variables-management.page.move">Move</Trans>
++                  </Button>
++                )}
+                 <Button
+                   variant="destructive"
+                   onClick={() => setPendingAction('delete')}
+@@ -303,7 +314,8 @@ export default function VariablesManagementPage() {
+               onToggleFolder={onToggleFolder}
+               selected={selected}
+               onSetSelected={onSetSelected}
+-              onEdit={onEdit}
++              onEdit={canWrite ? onEdit : undefined}
++              selectable={canDelete}
+             />
+           </div>
+         )}
+diff --git a/public/app/features/variables-management/components/MoveVariablesModal.tsx b/public/app/features/variables-management/components/MoveVariablesModal.tsx
+index c2bf93d18dad6..e9337a63ab99a 100644
+--- a/public/app/features/variables-management/components/MoveVariablesModal.tsx
++++ b/public/app/features/variables-management/components/MoveVariablesModal.tsx
+@@ -16,11 +16,9 @@ export interface MoveVariablesModalProps {
+ 
+ export function MoveVariablesModal({ count, isMoving, onConfirm, onDismiss }: MoveVariablesModalProps) {
+   const allowGlobalScope = canManageGlobalVariables();
+-  // '' is root/global. Non-editors hide root, so start empty (undefined) — NestedFolderPicker
++  // '' is root/global. Without root rights, start empty (undefined) — NestedFolderPicker
+   // labels '' as "Dashboards" even when showRootFolder is false.
+-  const [targetFolderUid, setTargetFolderUid] = useState<string | undefined>(() =>
+-    canManageGlobalVariables() ? '' : undefined
+-  );
++  const [targetFolderUid, setTargetFolderUid] = useState<string | undefined>(() => (allowGlobalScope ? '' : undefined));
+   const { data: targetFolder } = useGetFolderQueryFacade(targetFolderUid || undefined);
+   // Match the editor Save gate: require CanEdit on folder targets (picker alone is not enough
+   // for team folders / other surfaces that may still appear without Edit).
+@@ -36,9 +34,9 @@ export function MoveVariablesModal({ count, isMoving, onConfirm, onDismiss }: Mo
+           ? t('variables-management.move-modal.body', '', {
+               count,
+               defaultValue_one:
+-                'Move {{count}} selected variable. Choosing the root Dashboards folder makes it global (available everywhere in the organization).',
++                'Move {{count}} selected variable. Choosing the root Dashboards folder makes it global (available to all dashboards).',
+               defaultValue_other:
+-                'Move {{count}} selected variables. Choosing the root Dashboards folder makes them global (available everywhere in the organization).',
++                'Move {{count}} selected variables. Choosing the root Dashboards folder makes them global (available to all dashboards).',
+             })
+           : t('variables-management.move-modal.body-folder-only', '', {
+               count,
+diff --git a/public/app/features/variables-management/components/VariablesTable.tsx b/public/app/features/variables-management/components/VariablesTable.tsx
+index cc0a09164203a..ae1bea2905e3b 100644
+--- a/public/app/features/variables-management/components/VariablesTable.tsx
++++ b/public/app/features/variables-management/components/VariablesTable.tsx
+@@ -20,7 +20,8 @@ export interface VariablesTableProps {
+   onToggleFolder: (folderUid: string) => void;
+   selected: Set<string>;
+   onSetSelected: (names: string[], isSelected: boolean) => void;
+-  onEdit: (variable: Variable) => void;
++  onEdit?: (variable: Variable) => void;
++  selectable?: boolean;
+ }
+ 
+ export function VariablesTable({
+@@ -30,6 +31,7 @@ export function VariablesTable({
+   selected,
+   onSetSelected,
+   onEdit,
++  selectable = true,
+ }: VariablesTableProps) {
+   const styles = useStyles2(getStyles);
+ 
+@@ -44,14 +46,16 @@ export function VariablesTable({
+     <table className={styles.table} role="grid">
+       <thead>
+         <tr>
+-          <th className={styles.checkboxCell}>
+-            <Checkbox
+-              value={allSelected}
+-              indeterminate={someSelected && !allSelected}
+-              aria-label={t('variables-management.table.select-all', 'Select all variables')}
+-              onChange={() => onSetSelected(allNames, !allSelected)}
+-            />
+-          </th>
++          {selectable && (
++            <th className={styles.checkboxCell}>
++              <Checkbox
++                value={allSelected}
++                indeterminate={someSelected && !allSelected}
++                aria-label={t('variables-management.table.select-all', 'Select all variables')}
++                onChange={() => onSetSelected(allNames, !allSelected)}
++              />
++            </th>
++          )}
+           <th>
+             <Trans i18nKey="variables-management.table.header-name">Name</Trans>
+           </th>
+@@ -70,6 +74,7 @@ export function VariablesTable({
+             selected={selected}
+             onSetSelected={onSetSelected}
+             onEdit={onEdit}
++            selectable={selectable}
+           />
+         ))}
+         {tree.global.map((variable) => (
+@@ -80,6 +85,7 @@ export function VariablesTable({
+             selected={selected}
+             onSetSelected={onSetSelected}
+             onEdit={onEdit}
++            selectable={selectable}
+           />
+         ))}
+       </tbody>
+@@ -93,10 +99,19 @@ interface FolderRowsProps {
+   onToggleFolder: (folderUid: string) => void;
+   selected: Set<string>;
+   onSetSelected: (names: string[], isSelected: boolean) => void;
+-  onEdit: (variable: Variable) => void;
++  onEdit?: (variable: Variable) => void;
++  selectable: boolean;
+ }
+ 
+-function FolderRows({ folder, isExpanded, onToggleFolder, selected, onSetSelected, onEdit }: FolderRowsProps) {
++function FolderRows({
++  folder,
++  isExpanded,
++  onToggleFolder,
++  selected,
++  onSetSelected,
++  onEdit,
++  selectable,
++}: FolderRowsProps) {
+   const styles = useStyles2(getStyles);
+   const names = folder.variables.map((v) => v.metadata.name ?? '').filter(Boolean);
+   const allSelected = names.length > 0 && names.every((name) => selected.has(name));
+@@ -105,16 +120,18 @@ function FolderRows({ folder, isExpanded, onToggleFolder, selected, onSetSelecte
+   return (
+     <Fragment>
+       <tr>
+-        <td className={styles.checkboxCell}>
+-          <Checkbox
+-            value={allSelected}
+-            indeterminate={someSelected && !allSelected}
+-            aria-label={t('variables-management.table.select-folder', 'Select all variables in folder {{title}}', {
+-              title: folder.title,
+-            })}
+-            onChange={() => onSetSelected(names, !allSelected)}
+-          />
+-        </td>
++        {selectable && (
++          <td className={styles.checkboxCell}>
++            <Checkbox
++              value={allSelected}
++              indeterminate={someSelected && !allSelected}
++              aria-label={t('variables-management.table.select-folder', 'Select all variables in folder {{title}}', {
++                title: folder.title,
++              })}
++              onChange={() => onSetSelected(names, !allSelected)}
++            />
++          </td>
++        )}
+         <td colSpan={2}>
+           <button
+             type="button"
+@@ -138,6 +155,7 @@ function FolderRows({ folder, isExpanded, onToggleFolder, selected, onSetSelecte
+             selected={selected}
+             onSetSelected={onSetSelected}
+             onEdit={onEdit}
++            selectable={selectable}
+           />
+         ))}
+     </Fragment>
+@@ -149,10 +167,11 @@ interface VariableRowProps {
+   indented: boolean;
+   selected: Set<string>;
+   onSetSelected: (names: string[], isSelected: boolean) => void;
+-  onEdit: (variable: Variable) => void;
++  onEdit?: (variable: Variable) => void;
++  selectable: boolean;
+ }
+ 
+-function VariableRow({ variable, indented, selected, onSetSelected, onEdit }: VariableRowProps) {
++function VariableRow({ variable, indented, selected, onSetSelected, onEdit, selectable }: VariableRowProps) {
+   const styles = useStyles2(getStyles);
+   const metadataName = variable.metadata.name ?? '';
+   const specName = getVariableSpecName(variable);
+@@ -162,22 +181,31 @@ function VariableRow({ variable, indented, selected, onSetSelected, onEdit }: Va
+ 
+   return (
+     <tr>
+-      <td className={styles.checkboxCell}>
+-        <Checkbox
+-          value={selected.has(metadataName)}
+-          aria-label={t('variables-management.table.select-variable', 'Select variable {{name}}', { name: specName })}
+-          onChange={() => onSetSelected([metadataName], !selected.has(metadataName))}
+-        />
+-      </td>
++      {selectable && (
++        <td className={styles.checkboxCell}>
++          <Checkbox
++            value={selected.has(metadataName)}
++            aria-label={t('variables-management.table.select-variable', 'Select variable {{name}}', { name: specName })}
++            onChange={() => onSetSelected([metadataName], !selected.has(metadataName))}
++          />
++        </td>
++      )}
+       <td>
+-        <button
+-          type="button"
+-          className={cx(styles.nameButton, indented && styles.indented)}
+-          onClick={() => onEdit(variable)}
+-        >
+-          <Icon name="gf-variable" />
+-          <span>{specName}</span>
+-        </button>
++        {onEdit ? (
++          <button
++            type="button"
++            className={cx(styles.nameButton, indented && styles.indented)}
++            onClick={() => onEdit(variable)}
++          >
++            <Icon name="gf-variable" />
++            <span>{specName}</span>
++          </button>
++        ) : (
++          <span className={cx(styles.namePlain, indented && styles.indented)}>
++            <Icon name="gf-variable" />
++            <span>{specName}</span>
++          </span>
++        )}
+       </td>
+       <td>{typeLabel}</td>
+     </tr>
+@@ -238,6 +266,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
+       textDecoration: 'underline',
+     },
+   }),
++  namePlain: css({
++    display: 'flex',
++    alignItems: 'center',
++    gap: theme.spacing(1),
++    marginLeft: theme.spacing(3),
++    color: theme.colors.text.primary,
++  }),
+   indented: css({
+     marginLeft: theme.spacing(6),
+   }),
+diff --git a/public/app/features/variables-management/utils.test.ts b/public/app/features/variables-management/utils.test.ts
+index e680a6ed71b64..d14cce6daa1e4 100644
+--- a/public/app/features/variables-management/utils.test.ts
++++ b/public/app/features/variables-management/utils.test.ts
+@@ -8,6 +8,7 @@ import {
+   buildVariablesTree,
+   canManageGlobalVariables,
+   canManageVariableScope,
++  isRecreateVariableSave,
+   getNextAvailableVariableName,
+   getVariableEditableType,
+   getVariableFolderPickerExcludeUIDs,
+@@ -77,23 +78,44 @@ describe('getVariableFolderPickerExcludeUIDs', () => {
+ });
+ 
+ describe('canManageGlobalVariables', () => {
+-  const originalIsEditor = contextSrv.isEditor;
++  const originalHasRole = contextSrv.hasRole;
+ 
+   afterEach(() => {
+-    contextSrv.isEditor = originalIsEditor;
++    contextSrv.hasRole = originalHasRole;
+   });
+ 
+-  it('returns true for editors', () => {
+-    contextSrv.isEditor = true;
++  it('returns true for org Admins', () => {
++    contextSrv.hasRole = jest.fn((role: string) => role === 'Admin');
+     expect(canManageGlobalVariables()).toBe(true);
+   });
+ 
+-  it('returns false for non-editors', () => {
+-    contextSrv.isEditor = false;
++  it('returns false for Editors', () => {
++    contextSrv.hasRole = jest.fn((role: string) => role === 'Editor');
+     expect(canManageGlobalVariables()).toBe(false);
+   });
+ });
+ 
++describe('isRecreateVariableSave', () => {
++  it('is false for a new variable', () => {
++    expect(isRecreateVariableSave(undefined, 'env', 'folder-a')).toBe(false);
++  });
++
++  it('is false for an in-place spec edit', () => {
++    expect(isRecreateVariableSave(makeVariable('env', 'folder-a'), 'env', 'folder-a')).toBe(false);
++    expect(isRecreateVariableSave(makeVariable('env'), 'env', '')).toBe(false);
++  });
++
++  it('is true when the logical name changes', () => {
++    expect(isRecreateVariableSave(makeVariable('env', 'folder-a'), 'region', 'folder-a')).toBe(true);
++  });
++
++  it('is true when the folder scope changes', () => {
++    expect(isRecreateVariableSave(makeVariable('env', 'folder-a'), 'env', 'folder-b')).toBe(true);
++    expect(isRecreateVariableSave(makeVariable('env', 'folder-a'), 'env', '')).toBe(true);
++    expect(isRecreateVariableSave(makeVariable('env'), 'env', 'folder-a')).toBe(true);
++  });
++});
++
+ describe('canManageVariableScope', () => {
+   it('returns false when no folder is selected', () => {
+     expect(canManageVariableScope(undefined, undefined, false)).toBe(false);
+diff --git a/public/app/features/variables-management/utils.ts b/public/app/features/variables-management/utils.ts
+index 14ede52eb237b..71a30365c2cc5 100644
+--- a/public/app/features/variables-management/utils.ts
++++ b/public/app/features/variables-management/utils.ts
+@@ -10,14 +10,36 @@ export function getVariableFolderPickerExcludeUIDs(): string[] | undefined {
+   return config.sharedWithMeFolderUID ? [config.sharedWithMeFolderUID] : undefined;
+ }
+ 
+-/** Org Editors/Admins can create org-wide (global) variables; folder editors cannot. */
++/**
++ * Root/global variable mutations are Admin-only in the default RBAC model
++ * (`fixed:variables:writer` is seeded on Admin). Boot-data permissions are
++ * unscoped, so `variables:create` is also true for folder editors — it cannot
++ * distinguish folders:* / folders:uid:general from a single-folder grant.
++ * `/api/access-control/user/permissions` would, but that dump is not safe in
++ * multi-tenant (and has no generally-available app-platform replacement yet).
++ */
+ export function canManageGlobalVariables(): boolean {
+-  return contextSrv.isEditor;
++  return contextSrv.hasRole('Admin');
++}
++
++/**
++ * Rename or re-scope changes the derived metadata.name, so Save is create-then-delete
++ * (see recreateVariable). In-place spec-only edits are a PATCH.
++ */
++export function isRecreateVariableSave(
++  source: Variable | undefined,
++  logicalName: string,
++  folderUid: string | undefined
++): boolean {
++  if (!source) {
++    return false;
++  }
++  return logicalName !== getVariableSpecName(source) || folderUid !== (getVariableFolderUid(source) ?? '');
+ }
+ 
+ /**
+  * Whether the user may mutate a variable in the given scope.
+- * - `undefined` — no folder selected yet (non-editors creating)
++ * - `undefined` — no folder selected yet (creating without root rights)
+  * - `''` — org-global / root; requires {@link canManageGlobalVariables}
+  * - otherwise — folder UID; requires that folder's CanEdit
+  */
+diff --git a/public/app/routes/routes.test.tsx b/public/app/routes/routes.test.tsx
+index ab66837e3af7c..b2b318afb59b1 100644
+--- a/public/app/routes/routes.test.tsx
++++ b/public/app/routes/routes.test.tsx
+@@ -85,3 +85,67 @@ describe('notebooks route guards', () => {
+     expect(getRouteRolesGuard(path)()).toEqual([]);
+   });
+ });
++
++describe('variables route guards', () => {
++  const previousPermissions = contextSrv.user.permissions;
++
++  afterEach(() => {
++    contextSrv.user.permissions = previousPermissions;
++  });
++
++  function getRouteRolesGuard(path: string) {
++    const route = getAppRoutes().find((r) => r.path === path);
++    if (!route?.roles) {
++      throw new Error(`Route not found or has no roles guard: ${path}`);
++    }
++    return route.roles;
++  }
++
++  const permissionGatedRoutes: Array<[string, AccessControlAction]> = [
++    ['/dashboards/variables', AccessControlAction.VariablesRead],
++    ['/dashboards/variables/new', AccessControlAction.VariablesCreate],
++  ];
++
++  it.each(permissionGatedRoutes)('rejects %s without the required permission', (path) => {
++    contextSrv.user.permissions = {};
++
++    expect(getRouteRolesGuard(path)()).toEqual(['Reject']);
++  });
++
++  it.each(permissionGatedRoutes)('allows %s with the required permission', (path, action) => {
++    contextSrv.user.permissions = { [action]: true };
++
++    expect(getRouteRolesGuard(path)()).toEqual([]);
++  });
++
++  // Route guards look at flattened user.permissions, not orgRole. Viewers always have
++  // variables:read (fixed:variables:reader); folder Edit also grants variables:create/write.
++  it('allows a Viewer (variables:read only) to open the list but not create or edit', () => {
++    contextSrv.user.permissions = { [AccessControlAction.VariablesRead]: true };
++
++    expect(getRouteRolesGuard('/dashboards/variables')()).toEqual([]);
++    expect(getRouteRolesGuard('/dashboards/variables/new')()).toEqual(['Reject']);
++    expect(getRouteRolesGuard('/dashboards/variables/edit/:name')()).toEqual(['Reject']);
++  });
++
++  it('allows a Viewer with folder Edit to open list, create, and edit', () => {
++    contextSrv.user.permissions = {
++      [AccessControlAction.VariablesRead]: true,
++      [AccessControlAction.VariablesCreate]: true,
++      [AccessControlAction.VariablesWrite]: true,
++    };
++
++    expect(getRouteRolesGuard('/dashboards/variables')()).toEqual([]);
++    expect(getRouteRolesGuard('/dashboards/variables/new')()).toEqual([]);
++    expect(getRouteRolesGuard('/dashboards/variables/edit/:name')()).toEqual([]);
++  });
++
++  it.each([AccessControlAction.VariablesWrite, AccessControlAction.VariablesCreate])(
++    'allows /dashboards/variables/edit/:name with %s',
++    (action) => {
++      contextSrv.user.permissions = { [action]: true };
++
++      expect(getRouteRolesGuard('/dashboards/variables/edit/:name')()).toEqual([]);
++    }
++  );
++});
+diff --git a/public/app/routes/routes.tsx b/public/app/routes/routes.tsx
+index a600bbe162e8c..d120283cf4b76 100644
+--- a/public/app/routes/routes.tsx
++++ b/public/app/routes/routes.tsx
+@@ -182,8 +182,7 @@ export function getAppRoutes(): RouteDescriptor[] {
+     },
+     {
+       path: '/dashboards/variables',
+-      roles: () =>
+-        contextSrv.evaluatePermission([AccessControlAction.DashboardsCreate, AccessControlAction.DashboardsWrite]),
++      roles: () => contextSrv.evaluatePermission([AccessControlAction.VariablesRead]),
+       component: SafeDynamicImport(
+         () =>
+           import(
+@@ -193,8 +192,7 @@ export function getAppRoutes(): RouteDescriptor[] {
+     },
+     {
+       path: '/dashboards/variables/new',
+-      roles: () =>
+-        contextSrv.evaluatePermission([AccessControlAction.DashboardsCreate, AccessControlAction.DashboardsWrite]),
++      roles: () => contextSrv.evaluatePermission([AccessControlAction.VariablesCreate]),
+       component: SafeDynamicImport(
+         () =>
+           import(
+@@ -207,7 +205,7 @@ export function getAppRoutes(): RouteDescriptor[] {
+       // metadata.name is literally "new" can never collide with the create route.
+       path: '/dashboards/variables/edit/:name',
+       roles: () =>
+-        contextSrv.evaluatePermission([AccessControlAction.DashboardsCreate, AccessControlAction.DashboardsWrite]),
++        contextSrv.evaluatePermission([AccessControlAction.VariablesWrite, AccessControlAction.VariablesCreate]),
+       component: SafeDynamicImport(
+         () =>
+           import(
+diff --git a/public/app/types/accessControl.ts b/public/app/types/accessControl.ts
+index 36d7a342a8c82..e7849fa3ddf8a 100644
+--- a/public/app/types/accessControl.ts
++++ b/public/app/types/accessControl.ts
+@@ -95,6 +95,11 @@ export enum AccessControlAction {
+   PlaylistsRead = 'playlists:read',
+   PlaylistsWrite = 'playlists:write',
+ 
++  VariablesCreate = 'variables:create',
++  VariablesRead = 'variables:read',
++  VariablesWrite = 'variables:write',
++  VariablesDelete = 'variables:delete',
++
+   // Support bundle actions
+   ActionSupportBundlesCreate = 'support.bundles:create',
+   ActionSupportBundlesRead = 'support.bundles:read',
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index 0d62f99d98f53..935de4198742d 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -17894,7 +17894,7 @@
+       "delete-modal-body": "Are you sure you want to delete \"{{name}}\"?",
+       "delete-modal-confirm": "Delete",
+       "delete-modal-title": "Delete variable",
+-      "folder-description": "Scope the variable to a folder, or choose the root Dashboards folder to make it global (available everywhere in the organization)",
++      "folder-description": "Scope the variable to a folder, or choose the root Dashboards folder to make it global (available to all dashboards)",
+       "folder-description-folder-only": "Scope the variable to a folder you can edit",
+       "folder-label": "Folder",
+       "moved": "Variable moved",
+@@ -17909,8 +17909,8 @@
+       "not-found": "Variable not found"
+     },
+     "move-modal": {
+-      "body_one": "Move {{count}} selected variable. Choosing the root Dashboards folder makes it global (available everywhere in the organization).",
+-      "body_other": "Move {{count}} selected variables. Choosing the root Dashboards folder makes them global (available everywhere in the organization).",
++      "body_one": "Move {{count}} selected variable. Choosing the root Dashboards folder makes it global (available to all dashboards).",
++      "body_other": "Move {{count}} selected variables. Choosing the root Dashboards folder makes them global (available to all dashboards).",
+       "body-folder-only_one": "Move {{count}} selected variable to a folder you can edit.",
+       "body-folder-only_other": "Move {{count}} selected variables to a folder you can edit.",
+       "cancel": "Cancel",

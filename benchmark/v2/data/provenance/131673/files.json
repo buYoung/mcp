@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 3,
+    "blob_url": "https://github.com/grafana/grafana/blob/6e314f9c693b0391321452a739609295dbeb70af/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator.go",
+    "changes": 3,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator.go?ref=6e314f9c693b0391321452a739609295dbeb70af",
+    "deletions": 0,
+    "filename": "pkg/storage/unified/sql/list_iterator.go",
+    "patch": "@@ -69,5 +69,8 @@ func (l *listIter) Next() bool {\n \t\tl.err = l.rows.Scan(&l.guid, &l.rv, &l.namespace, &l.group, &l.resource, &l.name, &l.folder, &l.value)\n \t\treturn true\n \t}\n+\tif l.err == nil {\n+\t\tl.err = l.rows.Err()\n+\t}\n \treturn false\n }",
+    "raw_url": "https://github.com/grafana/grafana/raw/6e314f9c693b0391321452a739609295dbeb70af/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator.go",
+    "sha": "1c00dbebb32f2e2f69cb159fbdeff1bd18095791",
+    "status": "modified"
+  },
+  {
+    "additions": 32,
+    "blob_url": "https://github.com/grafana/grafana/blob/6e314f9c693b0391321452a739609295dbeb70af/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator_test.go",
+    "changes": 32,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator_test.go?ref=6e314f9c693b0391321452a739609295dbeb70af",
+    "deletions": 0,
+    "filename": "pkg/storage/unified/sql/list_iterator_test.go",
+    "patch": "@@ -4,9 +4,11 @@ import (\n \t\"context\"\n \t\"encoding/base64\"\n \t\"encoding/json\"\n+\t\"errors\"\n \t\"fmt\"\n \t\"testing\"\n \n+\t\"github.com/stretchr/testify/mock\"\n \t\"github.com/stretchr/testify/require\"\n \n \t\"github.com/grafana/grafana/pkg/infra/db\"\n@@ -16,6 +18,7 @@ import (\n \t\"github.com/grafana/grafana/pkg/storage/unified/resourcepb\"\n \tdbsql \"github.com/grafana/grafana/pkg/storage/unified/sql/db\"\n \t\"github.com/grafana/grafana/pkg/storage/unified/sql/db/dbimpl\"\n+\tdbmocks \"github.com/grafana/grafana/pkg/storage/unified/sql/db/mocks\"\n \t\"github.com/grafana/grafana/pkg/storage/unified/sql/dbutil\"\n \t\"github.com/grafana/grafana/pkg/storage/unified/sql/rvmanager\"\n \t\"github.com/grafana/grafana/pkg/storage/unified/sql/sqltemplate\"\n@@ -26,6 +29,35 @@ import (\n func TestMain(m *testing.M) {\n \ttestsuite.Run(m)\n }\n+\n+func TestListIterReturnsRowsError(t *testing.T) {\n+\trowsErr := errors.New(\"row iteration failed\")\n+\trows := dbmocks.NewRows(t)\n+\trows.EXPECT().Next().Return(false).Once()\n+\trows.EXPECT().Err().Return(rowsErr).Once()\n+\n+\titer := &listIter{rows: rows}\n+\n+\trequire.False(t, iter.Next())\n+\trequire.ErrorIs(t, iter.Error(), rowsErr)\n+}\n+\n+func TestListIterPreservesScanError(t *testing.T) {\n+\tscanErr := errors.New(\"row scan failed\")\n+\trows := dbmocks.NewRows(t)\n+\trows.EXPECT().Next().Return(true).Once()\n+\trows.On(\"Scan\", mock.Anything, mock.Anything, mock.Anything, mock.Anything,\n+\t\tmock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scanErr).Once()\n+\trows.EXPECT().Next().Return(false).Once()\n+\n+\titer := &listIter{rows: rows}\n+\n+\trequire.True(t, iter.Next())\n+\trequire.ErrorIs(t, iter.Error(), scanErr)\n+\trequire.False(t, iter.Next())\n+\trequire.ErrorIs(t, iter.Error(), scanErr)\n+}\n+\n func TestIntegrationListIter(t *testing.T) {\n \ttestutil.SkipIntegrationTestInShortMode(t)\n ",
+    "raw_url": "https://github.com/grafana/grafana/raw/6e314f9c693b0391321452a739609295dbeb70af/pkg%2Fstorage%2Funified%2Fsql%2Flist_iterator_test.go",
+    "sha": "871c7a0890d118525beb69b560a0fa5aee879bc4",
+    "status": "modified"
+  }
+]

@@ -1,0 +1,60 @@
+diff --git a/packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx b/packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx
+index 8b5d5fceb0327..b4defdff5b062 100644
+--- a/packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx
++++ b/packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx
+@@ -186,6 +186,7 @@ export const MultiCombobox = <T extends string | number>(props: MultiComboboxPro
+     inputId: id,
+     inputValue,
+     selectedItem: null,
++    defaultHighlightedIndex: 0,
+     isItemDisabled: (item) => !!item?.infoOption,
+     stateReducer: (state, actionAndChanges) => {
+       const { type } = actionAndChanges;
+@@ -261,6 +262,7 @@ export const MultiCombobox = <T extends string | number>(props: MultiComboboxPro
+           } else if (newSelectedItem) {
+             addSelectedItem(newSelectedItem);
+           }
++
+           break;
+         case useCombobox.stateChangeTypes.InputChange:
+           // setInputValue is intentionally NOT called here. It is called synchronously in the
+diff --git a/public/app/features/provisioning/Repository/ResourceTreeView.test.tsx b/public/app/features/provisioning/Repository/ResourceTreeView.test.tsx
+index fa52c638de51e..0ac99a84e5ef5 100644
+--- a/public/app/features/provisioning/Repository/ResourceTreeView.test.tsx
++++ b/public/app/features/provisioning/Repository/ResourceTreeView.test.tsx
+@@ -146,7 +146,7 @@ describe('ResourceTreeView', () => {
+       const { user } = render(<ResourceTreeView repo={repo} />);
+ 
+       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));
+-      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 1: Not in sync
++      await user.keyboard('{ArrowDown}{Enter}'); // index 1: Not in sync
+ 
+       expect(await screen.findByText('Pending Dashboard')).toBeInTheDocument();
+       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();
+@@ -156,7 +156,7 @@ describe('ResourceTreeView', () => {
+       const { user } = render(<ResourceTreeView repo={repo} />);
+ 
+       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));
+-      await user.keyboard('{ArrowDown}{Enter}'); // index 0: Synced
++      await user.keyboard('{Enter}'); // index 0: Synced
+ 
+       expect(await screen.findByText('Synced Dashboard')).toBeInTheDocument();
+       expect(screen.queryByText('Pending Dashboard')).not.toBeInTheDocument();
+@@ -169,7 +169,7 @@ describe('ResourceTreeView', () => {
+       // parent folder must not linger just because it aggregates a (now hidden) pending child.
+       await user.type(screen.getByPlaceholderText('Search by path or title'), 'synced');
+       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));
+-      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 1: Not in sync
++      await user.keyboard('{ArrowDown}{Enter}'); // index 1: Not in sync
+ 
+       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();
+       expect(screen.queryByText('Pending Dashboard')).not.toBeInTheDocument();
+@@ -181,7 +181,7 @@ describe('ResourceTreeView', () => {
+       const { user } = render(<ResourceTreeView repo={repo} />);
+ 
+       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));
+-      await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{Enter}'); // index 2: Warnings
++      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 2: Warnings
+ 
+       // None of the sample resources are missing metadata, so filtering by Warnings hides them all.
+       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();

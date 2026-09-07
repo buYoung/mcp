@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 21,
+    "blob_url": "https://github.com/grafana/grafana/blob/0699c98d5b86e4d5641075233c661ce11656edce/pkg%2Fstorage%2Funified%2Fresource%2Faccess.go",
+    "changes": 23,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fstorage%2Funified%2Fresource%2Faccess.go?ref=0699c98d5b86e4d5641075233c661ce11656edce",
+    "deletions": 2,
+    "filename": "pkg/storage/unified/resource/access.go",
+    "patch": "@@ -55,7 +55,7 @@ func newMetrics(reg prometheus.Registerer) *accessMetrics {\n \t\t\t\tNativeHistogramBucketFactor:     1.1,\n \t\t\t\tNativeHistogramMaxBucketNumber:  160,\n \t\t\t\tNativeHistogramMinResetDuration: time.Hour,\n-\t\t\t}, []string{\"check_count\"}),\n+\t\t\t}, []string{\"check_count_bucket\"}),\n \t\terrorsTotal: promauto.With(reg).NewCounterVec(\n \t\t\tprometheus.CounterOpts{\n \t\t\t\tName: \"grafana_grpc_authz_limited_client_errors_total\",\n@@ -64,6 +64,25 @@ func newMetrics(reg prometheus.Registerer) *accessMetrics {\n \t}\n }\n \n+// batchSizeBucket keeps the batch size out of the label value, which would\n+// otherwise add a series per size. Ranges cover 1 to batchCheckChunkSize (50),\n+// the sizes search produces, and are spelled out so changing that constant\n+// cannot reshape existing series unnoticed.\n+func batchSizeBucket(n int) string {\n+\tswitch {\n+\tcase n <= 1:\n+\t\treturn \"1\"\n+\tcase n <= 10:\n+\t\treturn \"2-10\"\n+\tcase n <= 25:\n+\t\treturn \"11-25\"\n+\tcase n <= 50:\n+\t\treturn \"26-50\"\n+\tdefault:\n+\t\treturn \"51+\"\n+\t}\n+}\n+\n // rbacAllowlist is a map of group to resources that are compatible with RBAC.\n var rbacAllowlist = groupResource{\n \t\"dashboard.grafana.app\": map[string]interface{}{\"dashboards\": nil, \"variables\": nil},\n@@ -288,7 +307,7 @@ func (c authzLimitedClient) BatchCheck(ctx context.Context, id claims.AuthInfo,\n \t// Merge results from underlying client\n \tmaps.Copy(results, resp.Results)\n \n-\tc.metrics.batchCheckDuration.WithLabelValues(fmt.Sprintf(\"%d\", len(req.Checks))).Observe(time.Since(t).Seconds())\n+\tc.metrics.batchCheckDuration.WithLabelValues(batchSizeBucket(len(req.Checks))).Observe(time.Since(t).Seconds())\n \treturn claims.BatchCheckResponse{Results: results}, nil\n }\n ",
+    "raw_url": "https://github.com/grafana/grafana/raw/0699c98d5b86e4d5641075233c661ce11656edce/pkg%2Fstorage%2Funified%2Fresource%2Faccess.go",
+    "sha": "d6976ba820aab1e9a59a9f2b4f05a3bb10cff142",
+    "status": "modified"
+  },
+  {
+    "additions": 23,
+    "blob_url": "https://github.com/grafana/grafana/blob/0699c98d5b86e4d5641075233c661ce11656edce/pkg%2Fstorage%2Funified%2Fresource%2Faccess_test.go",
+    "changes": 23,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fstorage%2Funified%2Fresource%2Faccess_test.go?ref=0699c98d5b86e4d5641075233c661ce11656edce",
+    "deletions": 0,
+    "filename": "pkg/storage/unified/resource/access_test.go",
+    "patch": "@@ -321,3 +321,26 @@ func TestAuthzLimitedClientExemptionGate(t *testing.T) {\n \t\t})\n \t}\n }\n+\n+func TestBatchSizeBucket(t *testing.T) {\n+\t// Ranges below assume this chunk size; revisit them before changing it.\n+\trequire.Equal(t, 50, batchCheckChunkSize)\n+\n+\tfor _, tt := range []struct {\n+\t\tsize int\n+\t\twant string\n+\t}{\n+\t\t{0, \"1\"},\n+\t\t{1, \"1\"},\n+\t\t{2, \"2-10\"},\n+\t\t{10, \"2-10\"},\n+\t\t{11, \"11-25\"},\n+\t\t{25, \"11-25\"},\n+\t\t{26, \"26-50\"},\n+\t\t{50, \"26-50\"},\n+\t\t{51, \"51+\"},\n+\t\t{500, \"51+\"},\n+\t} {\n+\t\trequire.Equal(t, tt.want, batchSizeBucket(tt.size), \"size %d\", tt.size)\n+\t}\n+}",
+    "raw_url": "https://github.com/grafana/grafana/raw/0699c98d5b86e4d5641075233c661ce11656edce/pkg%2Fstorage%2Funified%2Fresource%2Faccess_test.go",
+    "sha": "9fbd0a285d5f43b7c0e5728d3e5da1ea40a94ef3",
+    "status": "modified"
+  }
+]

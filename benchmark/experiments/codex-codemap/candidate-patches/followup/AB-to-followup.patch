@@ -1,0 +1,385 @@
+diff --git a/apps/codemap-search/src/index/mod.rs b/apps/codemap-search/src/index/mod.rs
+--- a/apps/codemap-search/src/index/mod.rs
++++ b/apps/codemap-search/src/index/mod.rs
+@@ -24,3 +24,5 @@
+ };
+ pub use supervisor::EngineSupervisor;
+ pub use watcher::{spawn_watcher, WatcherHandle, WatcherStatus};
++
++pub(crate) use ranking::is_test_like_path;
+diff --git a/apps/codemap-search/src/index/named_imports.rs b/apps/codemap-search/src/index/named_imports.rs
+--- a/apps/codemap-search/src/index/named_imports.rs
++++ b/apps/codemap-search/src/index/named_imports.rs
+@@ -1,7 +1,7 @@
+ //! Derived, in-memory navigation data. Never persisted or used for ranking.
+ use std::collections::{BTreeMap, BTreeSet};
+ 
+-use crate::parser::{CodeRange, ExtractedFile, ImportEntry, ImportKind};
++use crate::parser::{CodeRange, ExtractedFile, ImportEntry, ImportKind, split_identifier};
+ 
+ pub(crate) fn is_type_declaration(kind: &str) -> bool {
+     matches!(kind, "class" | "struct" | "interface" | "record" | "object" | "enum" | "union" | "type" | "trait")
+@@ -16,6 +16,7 @@
+ #[derive(Debug, Clone, Default)]
+ pub(crate) struct NamedImportIndex {
+     pub by_name: BTreeMap<String, Vec<NamedImportRecord>>,
++    pub implementation_tokens: BTreeMap<String, BTreeSet<String>>,
+     pub declarations_by_name: BTreeMap<String, Vec<(String, CodeRange)>>,
+ }
+ 
+@@ -36,6 +37,18 @@
+                 }
+             }
+             let Some(navigation) = &file.navigation else { continue };
++            // Context is only a hint for ordering observed imports. It does not resolve
++            // their module or prove that a reference consumes the displayed declaration.
++            let mut context_tokens = BTreeSet::new();
++            for symbol in file.symbols.iter().filter(|symbol| {
++                matches!(symbol.kind.as_str(), "class" | "struct" | "object" | "record" | "enum" | "union")
++            }) {
++                context_tokens.insert(symbol.name.to_lowercase());
++                context_tokens.extend(split_identifier(&symbol.name));
++            }
++            if !context_tokens.is_empty() {
++                index.implementation_tokens.insert(file.file_path.clone(), context_tokens);
++            }
+             for import in &navigation.imports {
+                 if import.kind != ImportKind::Named { continue; }
+                 let (Some(name), Some(source)) = (&import.imported_name, &import.source) else { continue };
+diff --git a/apps/codemap-search/src/index/ranking.rs b/apps/codemap-search/src/index/ranking.rs
+--- a/apps/codemap-search/src/index/ranking.rs
++++ b/apps/codemap-search/src/index/ranking.rs
+@@ -450,7 +450,7 @@
+ }
+ 
+ /// True for paths that look like test/bench scaffolding rather than implementation.
+-fn is_test_like_path(path: &str) -> bool {
++pub(crate) fn is_test_like_path(path: &str) -> bool {
+     let lower = path.to_lowercase();
+     let in_test_dir = ["tests/", "test/", "benches/", "bench/", "__tests__/"]
+         .iter()
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.md b/apps/codemap-search/src/tools/instructions/navigation.md
+--- a/apps/codemap-search/src/tools/instructions/navigation.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.md
+@@ -5,4 +5,4 @@
+ * `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+ * `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+ Typical flow: choose `grep` for known exact text or `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges. Use `overview` first only when the repository area itself is unfamiliar.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+--- a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+@@ -5,5 +5,5 @@
+ * `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+ * `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+ For known paths, call `read`/`find`/`grep` directly. For index-backed discovery: `initial_instructions` (includes ready root overview) → ask/choose scope (or explicit `all`/`전체`) → choose scoped `grep` for known exact text or scoped `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
+ When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/grep.md b/apps/codemap-search/src/tools/instructions/tools/grep.md
+--- a/apps/codemap-search/src/tools/instructions/tools/grep.md
++++ b/apps/codemap-search/src/tools/instructions/tools/grep.md
+@@ -1,3 +1,3 @@
+ With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Use first for exact identifiers, quoted literals, config keys/defaults, exact error text, regexes, exhaustive matches, comments/non-code, or just-edited files with no index lag. It searches disk directly and avoids semantic ranking when the requested text is already known. Regular expressions are the default; fixed_strings=true (alias -F) searches literal text. output_mode: content (default) returns exact file:line locations; files_with_matches returns only the set of matching files; count returns per-file counts with no line content — use count only to size a result set, never to locate code. If a scoped pattern returns 0, do not rerun unchanged: check path, glob, type, -i, multiline, or include_ignored. Exhaustive enumeration of known names stays with grep; but when the pattern is a list of guessed synonyms or spellings for one concept, or the location is unknown, that is a search question — switch to search (scoped in a monorepo) instead of widening the regex. Content pages count match regions, keeping requested context with each match and deduplicating overlapping context; count and files_with_matches pages count files. Use next_offset to continue. head_limit=0 removes only the count limit. Every response stays within grep_output_byte_cap, including status and continuation; oversized matches show a positioned partial excerpt. Long lines show a match-centered excerpt with byte columns and omission markers. Read/walk errors mark a partial search; zero-result responses include searched file counts, and count distinguishes all-search and page totals. Respects .gitignore and .codemapignore; set include_ignored to bypass.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
+ When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/read.md b/apps/codemap-search/src/tools/instructions/tools/read.md
+--- a/apps/codemap-search/src/tools/instructions/tools/read.md
++++ b/apps/codemap-search/src/tools/instructions/tools/read.md
+@@ -1,3 +1,3 @@
+ With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
+ When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/search.md b/apps/codemap-search/src/tools/instructions/tools/search.md
+--- a/apps/codemap-search/src/tools/instructions/tools/search.md
++++ b/apps/codemap-search/src/tools/instructions/tools/search.md
+@@ -1,2 +1,4 @@
+ Use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, cross-file relationships, or 'where is this done?' when exact text is unknown. BM25 over indexed symbols, docstrings, and string literals; identifier splitting finds what exact patterns miss. For a known exact identifier, quoted literal, config key/default, exact error, regex, exhaustive enumeration, or just-edited file, use grep first. Come here instead when a grep pattern would only be guessing the wording (synonyms or alternative spellings for one concept, or an unknown location), or when a path/glob/case-checked grep still returned 0. Top files show snippets, symbol ranges, read_suggestion, matched function depth-1 callers/callees, and bounded static collection write/read hints when direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every endpoint in source. Set caller_context=false to skip call context. Snippet lines and caller file:line are exact; caller/callee attribution is approximate unless marked tree-sitter precise. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed read_suggestion range once; if absent, narrow the query or use overview, then read only needed ranges. Do not reread same ranges to confirm or re-search returned info.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
++
++Displayed types may include observed named-import candidates ordered by the queried name, non-test paths, and matching implementation type context. These are name matches, not resolved declarations or confirmed consumers; inspect the relevant use in source.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md b/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
+--- a/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
+@@ -1,3 +1,5 @@
+ After monorepo scope is clear, use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, cross-file relationships, or 'where is this done?' when exact text is unknown. Uses the active `overview <scope>` selection; pass `workspace_scope` to override, or `all` / `전체` for repo-wide search. Every scope listed in the root overview is accepted, including conventional workspaces and top-level source roots such as `api`, `app`, or `sdk`; a basename must remain unique. For a known exact identifier, quoted literal, config key/default, exact error, regex, exhaustive enumeration, or just-edited file, use grep first with a scoped path. Come here instead when a grep pattern would only be guessing the wording (synonyms or alternative spellings for one concept, or an unknown location), or when a path/glob/case-checked grep still returned 0. Top files show snippets, symbol ranges, read_suggestion, matched function depth-1 callers/callees, and bounded static collection write/read hints only when both endpoints are inside the selected scope and direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every endpoint in source. Set caller_context=false to skip call context. Snippet lines and caller file:line are exact; caller/callee attribution is approximate unless marked tree-sitter precise. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed read_suggestion range once; if absent, narrow the query or use overview, then read only needed ranges. Do not reread same ranges to confirm or re-search returned info.
+-For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. Identify whether each subject defines, builds, calls, or consumes the value. For consumption, confirm a use in that consumer (property access, argument passing, or return handling); another builder with a similar output shape is insufficient. Reuse source already obtained to make each requested relationship explicit in the answer with source locations. Do not infer execution order from listing order or similar names. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Inspect only missing relationships or ranges and state any unconfirmed link. Do not force extra explanations outside the question.
+ When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
++
++Displayed types may include observed named-import candidates ordered by the queried name, non-test paths, and matching implementation type context. These are name matches, not resolved declarations or confirmed consumers; inspect the relevant use in source.
+diff --git a/apps/codemap-search/src/tools/search/import_candidates.rs b/apps/codemap-search/src/tools/search/import_candidates.rs
+--- a/apps/codemap-search/src/tools/search/import_candidates.rs
++++ b/apps/codemap-search/src/tools/search/import_candidates.rs
+@@ -1,20 +1,38 @@
+ //! Name-only import observations, appended after all existing search output.
++use std::cmp::Reverse;
+ use std::collections::BTreeSet;
+ 
+-use crate::{index::NamedImportIndex, parser::CodeRange};
++use crate::{index::{is_test_like_path, NamedImportIndex}, parser::{CodeRange, QueryTokens, split_identifier}};
+ 
+ const MAX_BYTES: usize = 1536;
+ const MAX_GROUPS: usize = 2;
+ const MAX_FILES: usize = 4;
+ const HEADER: &str = "\n\n## Observed named import candidates\n_Name match only: same declaration and actual consumption are not confirmed. Read source to verify._\n";
+ 
++struct CandidateGroup {
++    title: String,
++    rows: Vec<String>,
++    file_count: usize,
++    is_query_name: bool,
++    query_token_hits: usize,
++}
++
++impl CandidateGroup {
++    fn text(&self, shown_files: usize) -> String {
++        format!("{}{}  - Showing {} of {} files (first import per shown file).\n",
++            self.title, self.rows[..shown_files].concat(), shown_files, self.file_count)
++    }
++}
++
+ pub(super) fn render(
+     displayed_types: &[(String, String, CodeRange)],
+     index: &NamedImportIndex,
+     workspace_scope: Option<&str>,
++    query: &QueryTokens,
+     available_bytes: usize,
+ ) -> String {
+     let byte_cap = available_bytes.min(MAX_BYTES);
++    if byte_cap <= HEADER.len() { return String::new(); }
+     let in_scope = |path: &str| workspace_scope.is_none_or(|scope| super::monorepo::path_is_under_scope(path, scope));
+     let mut seen_names = BTreeSet::new();
+     let mut groups = Vec::new();
+@@ -22,48 +40,77 @@
+     for (path, name, range) in displayed_types {
+         if !in_scope(path) || !seen_names.insert(name.as_str()) { continue; }
+         let Some(records) = index.by_name.get(name) else { continue };
+-        let scoped_records: Vec<_> = records.iter().filter(|record| in_scope(&record.file_path)).collect();
++        let mut scoped_records: Vec<_> = records.iter().filter(|record| in_scope(&record.file_path)).collect();
+         let file_count = scoped_records.iter().map(|record| &record.file_path).collect::<BTreeSet<_>>().len();
+         if file_count == 0 { continue; }
+         total_files += file_count;
+-        groups.push((path, name, range, scoped_records, file_count));
+-    }
+-    if groups.is_empty() { return String::new(); }
+-    let scope = serde_json::to_string(workspace_scope.unwrap_or(".")).unwrap();
+-    let footer = format!("- Total: {total_files} candidate files across {} names (per-name counts). For all observations, exact `grep` with `fixed_strings=true`, `pattern=<type name>`, `path={scope}`; follow `next_offset`, then read the needed import/use ranges.\n", groups.len());
+-    let mut text = HEADER.to_string();
+-    let mut shown_groups = 0usize;
+-    for (path, name, range, records, file_count) in groups {
+-        if shown_groups >= MAX_GROUPS { break; }
+-        let declaration_count = index.declarations_by_name.get(name).map_or(0, |declarations| declarations.iter().filter(|(path, _)| in_scope(path)).count());
++        // Keep test imports available for follow-up, but do not let their lexical
++        // path order displace implementation code. The normal search score is untouched.
++        scoped_records.sort_by_cached_key(|record| {
++            let context_hits = index.implementation_tokens.get(&record.file_path).map_or(0,
++                |tokens| tokens.iter().filter(|token| query.contains_token(token)).count());
++            (is_test_like_path(&record.file_path), Reverse(context_hits))
++        });
++        let declaration_count = index.declarations_by_name.get(name).map_or(0, |declarations|
++            declarations.iter().filter(|(path, _)| in_scope(path)).count());
+         let ambiguity = if declaration_count > 1 {
+             format!("; ambiguous: {declaration_count} same-name declarations in scope")
+         } else { String::new() };
+-        let title = format!("- `{name}` displayed at {path}:{}; {file_count} candidate files / {} import observations{ambiguity}\n", range.start_line, records.len());
++        let title = format!("- `{name}` displayed at {path}:{}; {file_count} candidate files / {} import observations{ambiguity}\n", range.start_line, scoped_records.len());
+         let mut seen_files = BTreeSet::new();
+         let mut rows = Vec::new();
+-        for record in records {
++        for record in scoped_records {
+             if !seen_files.insert(record.file_path.as_str()) { continue; }
+-            if rows.len() >= MAX_FILES { break; }
+             let import = &record.import;
+             let source = serde_json::to_string(import.source.as_deref().unwrap_or("")).unwrap();
+             let alias = serde_json::to_string(&import.local_name).unwrap();
+             let offset = import.range.start_line;
+             let limit = import.range.end_line - offset + 1;
+-            rows.push(format!("  - {}:{}:{} module={source}; local={alias}; read offset={offset} limit={limit}\n", record.file_path, offset, import.range.start_col));
+-        }
+-        while !rows.is_empty() {
+-            let shown = format!("  - Showing {} of {file_count} files (first import per shown file).\n", rows.len());
+-            let group = format!("{title}{}{shown}", rows.concat());
+-            if text.len() + group.len() + footer.len() <= byte_cap {
+-                text.push_str(&group);
+-                shown_groups += 1;
+-                break;
++            let row = format!("  - {}:{}:{} module={source}; local={alias}; read offset={offset} limit={limit}\n", record.file_path, offset, import.range.start_col);
++            // A huge single import must not hide the next readable observation.
++            if HEADER.len() + title.len() + row.len() <= byte_cap { rows.push(row); }
++            if rows.len() >= MAX_FILES { break; }
++        }
++        let name_tokens = split_identifier(name);
++        groups.push(CandidateGroup { title, rows, file_count,
++            is_query_name: query.contains_word(&name.to_lowercase()),
++            query_token_hits: name_tokens.iter().filter(|token| query.contains_token(token)).count(),
++        });
++    }
++    if groups.is_empty() { return String::new(); }
++    // Stable ordering keeps the original displayed declaration order for equal matches.
++    groups.sort_by_key(|group| (Reverse(group.is_query_name), Reverse(group.query_token_hits)));
++    let scope = serde_json::to_string(workspace_scope.unwrap_or(".")).unwrap();
++    let footer = format!("- Total: {total_files} candidate files across {} names (per-name counts). Order: queried names, non-test paths, matching type context. Exact `grep` with `fixed_strings=true`, `pattern=<type name>`, `path={scope}`; follow `next_offset` and verify use in source.\n", groups.len());
++    let mut used_bytes = HEADER.len() + footer.len();
++    let mut selected = Vec::new();
++    // Reserve a first row for each group before any group can consume all remaining
++    // bytes. This is solely an optional suffix; primary source/call output has priority.
++    for group in &groups {
++        if selected.len() >= MAX_GROUPS { break; }
++        if group.rows.is_empty() { continue; }
++        let first_bytes = group.text(1).len();
++        if used_bytes + first_bytes <= byte_cap {
++            used_bytes += first_bytes;
++            selected.push((group, 1usize));
++        }
++    }
++    if selected.is_empty() { return String::new(); }
++    loop {
++        let mut has_added_file = false;
++        for (group, shown_files) in &mut selected {
++            if *shown_files == group.rows.len() { continue; }
++            let added_bytes = group.text(*shown_files + 1).len() - group.text(*shown_files).len();
++            if used_bytes + added_bytes <= byte_cap {
++                *shown_files += 1;
++                used_bytes += added_bytes;
++                has_added_file = true;
+             }
+-            rows.pop();
+-        }
+-    }
+-    if shown_groups == 0 { return String::new(); }
++        }
++        if !has_added_file { break; }
++    }
++    let mut text = HEADER.to_string();
++    for (group, shown_files) in selected { text.push_str(&group.text(shown_files)); }
+     text.push_str(&footer);
+     text
+ }
+@@ -110,7 +157,7 @@
+             file("elsewhere/model.ts", Some(("Packet", "class")), serde_json::Value::Null),
+             file("elsewhere/use.ts", None, serde_json::json!([import("Packet", "Foreign", "named")])),
+         ]);
+-        let text = render(&[display("app/model.ts", "Packet")], data.named_imports(), Some("app"), MAX_BYTES);
++        let text = render(&[display("app/model.ts", "Packet")], data.named_imports(), Some("app"), &QueryTokens::parse(""), MAX_BYTES);
+         assert!(text.contains("Observed named import candidates"), "{text}");
+         assert!(text.contains("same declaration and actual consumption are not confirmed"));
+         assert!(text.contains("module=\"./model\"; local=\"LocalPacket\"; read offset=2 limit=2"));
+@@ -120,8 +167,8 @@
+         for excluded in ["elsewhere", "default.ts", "namespace.ts", "glob.ts", "missing.ts"] {
+             assert!(!text.contains(excluded), "{text}");
+         }
+-        assert!(render(&[display("elsewhere/model.ts", "Packet")], data.named_imports(), Some("app"), MAX_BYTES).is_empty());
+-        assert!(render(&[], data.named_imports(), Some("app"), MAX_BYTES).is_empty());
++        assert!(render(&[display("elsewhere/model.ts", "Packet")], data.named_imports(), Some("app"), &QueryTokens::parse(""), MAX_BYTES).is_empty());
++        assert!(render(&[], data.named_imports(), Some("app"), &QueryTokens::parse(""), MAX_BYTES).is_empty());
+         assert!(crate::index::is_type_declaration("type"));
+     }
+ 
+@@ -138,7 +185,7 @@
+             }
+         }
+         let data = snapshot(files);
+-        let text = render(&displayed, data.named_imports(), Some("app"), usize::MAX);
++        let text = render(&displayed, data.named_imports(), Some("app"), &QueryTokens::parse(""), usize::MAX);
+         assert!(text.len() <= MAX_BYTES);
+         assert!(text.matches("displayed at").count() <= MAX_GROUPS);
+         assert!(text.matches("module=").count() <= MAX_GROUPS * MAX_FILES);
+@@ -146,7 +193,7 @@
+         assert!(text.contains("fixed_strings=true"));
+         for budget in [0,1,100,500,800,1200,1536] {
+             let primary = "p".repeat(2000-budget);
+-            let suffix = render(&displayed, data.named_imports(), Some("app"), budget);
++            let suffix = render(&displayed, data.named_imports(), Some("app"), &QueryTokens::parse(""), budget);
+             assert!(suffix.len() <= budget);
+             let final_text = format!("{primary}{suffix}");
+             assert!(final_text.starts_with(&primary));
+@@ -157,14 +204,68 @@
+     #[test]
+     fn test_missing_metadata_and_oversized_candidate_are_omitted() {
+         let absent = snapshot(vec![file("app/model.ts", Some(("Packet", "type")), serde_json::Value::Null)]);
+-        assert!(render(&[display("app/model.ts", "Packet")], absent.named_imports(), Some("app"), MAX_BYTES).is_empty());
++        assert!(render(&[display("app/model.ts", "Packet")], absent.named_imports(), Some("app"), &QueryTokens::parse(""), MAX_BYTES).is_empty());
+         let mut huge = import("Packet", "Packet", "named");
+         huge["source"] = serde_json::json!("x".repeat(MAX_BYTES * 2));
+         let huge = snapshot(vec![
+             file("app/model.ts", Some(("Packet", "type")), serde_json::Value::Null),
+             file("app/use.ts", None, serde_json::json!([huge])),
+         ]);
+-        assert!(render(&[display("app/model.ts", "Packet")], huge.named_imports(), Some("app"), MAX_BYTES).is_empty());
+-    }
+-
+-}
++        assert!(render(&[display("app/model.ts", "Packet")], huge.named_imports(), Some("app"), &QueryTokens::parse(""), MAX_BYTES).is_empty());
++    }
++
++    #[test]
++    fn test_queried_type_and_implementation_context_precede_lexical_test_paths() {
++        let data = snapshot(vec![
++            file("lib/noise.ts", Some(("Envelope", "type")), serde_json::Value::Null),
++            file("lib/model.ts", Some(("Packet", "type")), serde_json::Value::Null),
++            file("api/aaa.test.ts", None, serde_json::json!([import("Packet", "Packet", "named")])),
++            file("api/aaa-helper.ts", Some(("PacketServiceFields", "interface")), serde_json::json!([import("Packet", "Packet", "named")])),
++            file("api/zz-service.ts", Some(("DeliveryService", "class")), serde_json::json!([import("Packet", "LocalPacket", "named")])),
++            file("api/envelope.ts", None, serde_json::json!([import("Envelope", "Envelope", "named")])),
++        ]);
++        let text = render(&[display("lib/noise.ts", "Envelope"), display("lib/model.ts", "Packet")],
++            data.named_imports(), None, &QueryTokens::parse("`Packet` API service"), MAX_BYTES);
++        assert!(text.find("`Packet` displayed").unwrap() < text.find("`Envelope` displayed").unwrap(), "{text}");
++        assert!(text.find("api/zz-service.ts").unwrap() < text.find("api/aaa-helper.ts").unwrap(), "{text}");
++        if let Some(test_position) = text.find("api/aaa.test.ts") {
++            assert!(text.find("api/aaa-helper.ts").unwrap() < test_position, "{text}");
++        }
++        assert!(text.contains("local=\"LocalPacket\""), "{text}");
++        assert!(text.contains("same declaration and actual consumption are not confirmed"));
++    }
++
++    #[test]
++    fn test_group_budget_reserves_each_first_candidate_before_extra_files() {
++        let mut files = Vec::new();
++        let mut displayed = Vec::new();
++        for name in ["Packet", "Envelope"] {
++            let path = format!("app/{name}.ts");
++            files.push(file(&path, Some((name, "type")), serde_json::Value::Null));
++            displayed.push(display(&path, name));
++            for i in 0..6 {
++                files.push(file(&format!("app/{name}_{i}.ts"), None, serde_json::json!([import(name, name, "named")])));
++            }
++        }
++        let data = snapshot(files);
++        let text = render(&displayed, data.named_imports(), Some("app"), &QueryTokens::parse("Packet Envelope"), 1000);
++        assert_eq!(text.matches("displayed at").count(), 2, "{text}");
++        assert!(text.contains("app/Packet_0.ts") && text.contains("app/Envelope_0.ts"), "{text}");
++        assert!(text.len() <= 1000);
++    }
++
++    #[test]
++    fn test_test_only_scope_stays_available_and_context_does_not_expand_scope() {
++        let data = snapshot(vec![
++            file("tests/model.ts", Some(("Packet", "type")), serde_json::Value::Null),
++            file("tests/use.test.ts", None, serde_json::json!([import("Packet", "Packet", "named")])),
++            file("src/service.ts", Some(("PacketService", "class")), serde_json::json!([import("Packet", "Packet", "named")])),
++        ]);
++        let text = render(&[display("tests/model.ts", "Packet")], data.named_imports(), Some("tests"),
++            &QueryTokens::parse("Packet service"), MAX_BYTES);
++        assert!(text.contains("tests/use.test.ts"), "{text}");
++        assert!(!text.contains("src/service.ts"), "{text}");
++        assert!(text.contains("1 candidate files"));
++    }
++
++}
+diff --git a/apps/codemap-search/src/tools/search/mod.rs b/apps/codemap-search/src/tools/search/mod.rs
+--- a/apps/codemap-search/src/tools/search/mod.rs
++++ b/apps/codemap-search/src/tools/search/mod.rs
+@@ -1017,6 +1017,7 @@
+     if !is_partial {
+         let candidates = import_candidates::render(
+             &displayed_types, published_snapshot.named_imports(), workspace_scope,
++            &crate::parser::QueryTokens::parse(query),
+             byte_cap.saturating_sub(output.text.len()),
+         );
+         output.text.push_str(&candidates);

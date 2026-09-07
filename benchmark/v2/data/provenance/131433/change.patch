@@ -1,0 +1,1320 @@
+diff --git a/pkg/registry/apis/dashboard/accesscontrol.go b/pkg/registry/apis/dashboard/accesscontrol.go
+index b23857dcb7acd..5ce4d02a3537a 100644
+--- a/pkg/registry/apis/dashboard/accesscontrol.go
++++ b/pkg/registry/apis/dashboard/accesscontrol.go
+@@ -40,9 +40,7 @@ func folderUIDFromVariableMetadataName(metadataName string) string {
+ // VariableUIDScopeResolver converts a scope prefixed with "variables:uid:" into
+ // the variable UID scope plus its parent folder (and ancestors).
+ // When the parent folder no longer exists, it still returns the direct folder and
+-// variable scopes so folders:* grants can authorize (e.g. Admin get/list of
+-// orphans). Root-writer orphan cleanup for update/delete is handled by admission
+-// allowMissingFolder (requires folders:uid:general / folders:*).
++// variable scopes so folders:* grants can authorize get/list.
+ func VariableUIDScopeResolver(folderSvc folder.Service) (string, ac.ScopeAttributeResolver) {
+ 	prefix := ScopeVariablesProvider.GetResourceScopeUID("")
+ 	return prefix, ac.ScopeAttributeResolverFunc(func(ctx context.Context, orgID int64, scope string) ([]string, error) {
+diff --git a/pkg/registry/apis/dashboard/register.go b/pkg/registry/apis/dashboard/register.go
+index bcb8123c983f7..884a2a590f2b4 100644
+--- a/pkg/registry/apis/dashboard/register.go
++++ b/pkg/registry/apis/dashboard/register.go
+@@ -772,7 +772,7 @@ func (b *DashboardsAPIBuilder) validateVariableCreate(ctx context.Context, a adm
+ 		return apierrors.NewBadRequest(err.Error())
+ 	}
+ 
+-	if err := b.validateVariableMutationPermissions(ctx, folderUID, ActionVariablesCreate, false); err != nil {
++	if err := b.validateVariableMutationPermissions(ctx, folderUID, ActionVariablesCreate); err != nil {
+ 		return err
+ 	}
+ 
+@@ -823,9 +823,7 @@ func (b *DashboardsAPIBuilder) validateVariableUpdate(ctx context.Context, a adm
+ 		return apierrors.NewBadRequest("folder scope cannot be changed; delete the variable and create a new one")
+ 	}
+ 
+-	// allowMissingFolder: users with stack-wide (root) variable write can still update
+-	// variables whose folder was deleted.
+-	return b.validateVariableMutationPermissions(ctx, oldAccessor.GetFolder(), ActionVariablesWrite, true)
++	return b.validateVariableMutationPermissions(ctx, oldAccessor.GetFolder(), ActionVariablesWrite)
+ }
+ 
+ func (b *DashboardsAPIBuilder) validateVariableDelete(ctx context.Context, a admission.Attributes) error {
+@@ -843,17 +841,12 @@ func (b *DashboardsAPIBuilder) validateVariableDelete(ctx context.Context, a adm
+ 		return fmt.Errorf("error getting variable meta accessor: %w", err)
+ 	}
+ 
+-	// allowMissingFolder: users with stack-wide (root) variable delete can still delete
+-	// variables whose folder was deleted.
+-	return b.validateVariableMutationPermissions(ctx, accessor.GetFolder(), ActionVariablesDelete, true)
++	return b.validateVariableMutationPermissions(ctx, accessor.GetFolder(), ActionVariablesDelete)
+ }
+ 
+ // validateVariableMutationPermissions authorizes variable create/update/delete via
+ // variables:* RBAC actions scoped to the target folder (general/root when empty).
+-// When allowMissingFolder is true (update/delete) and the folder no longer exists,
+-// users who have the action at stack-wide/root scope (folders:uid:general, or
+-// folders:* which matches it) may still mutate so orphaned variables can be cleaned up.
+-func (b *DashboardsAPIBuilder) validateVariableMutationPermissions(ctx context.Context, folderUID string, action string, allowMissingFolder bool) error {
++func (b *DashboardsAPIBuilder) validateVariableMutationPermissions(ctx context.Context, folderUID string, action string) error {
+ 	requester, err := identity.GetRequester(ctx)
+ 	if err != nil {
+ 		return apierrors.NewForbidden(dashv2beta1.VariableResourceInfo.GroupResource(), "", fmt.Errorf("valid user is required"))
+@@ -866,11 +859,8 @@ func (b *DashboardsAPIBuilder) validateVariableMutationPermissions(ctx context.C
+ 	folderScope := variableFolderScope(folderUID)
+ 	ok, err := b.accessControl.Evaluate(ctx, requester, accesscontrol.EvalPermission(action, folderScope))
+ 	if err != nil {
+-		// FolderUIDScopeResolver errors with folder-not-found when the parent is
+-		// gone. Treat that as a failed scope check so allowMissingFolder can run
+-		// (root writers with folders:uid:general only never match the missing
+-		// folder scope before resolution, and returning the resolver error would
+-		// incorrectly deny orphan cleanup).
++		// FolderUIDScopeResolver errors when the parent is gone. Treat that as
++		// a failed scope check rather than leaking a resolver error.
+ 		if !isFolderNotFound(err) {
+ 			return err
+ 		}
+@@ -880,25 +870,6 @@ func (b *DashboardsAPIBuilder) validateVariableMutationPermissions(ctx context.C
+ 		return nil
+ 	}
+ 
+-	if allowMissingFolder && folderUID != "" {
+-		if _, ferr := b.validateFolderExists(ctx, folderUID, requester.GetOrgID()); ferr != nil {
+-			if !apierrors.IsNotFound(ferr) {
+-				// Transient / infra failures must not be reported as access denied.
+-				return ferr
+-			}
+-			// Folder gone: allow cleanup only for stack-wide/root writers.
+-			// Unscoped EvalPermission(action) would let any folder-scoped writer
+-			// mutate orphans from a different deleted folder.
+-			ok, err = b.accessControl.Evaluate(ctx, requester, accesscontrol.EvalPermission(action, variableFolderScope("")))
+-			if err != nil {
+-				return err
+-			}
+-			if ok {
+-				return nil
+-			}
+-		}
+-	}
+-
+ 	return apierrors.NewForbidden(dashv2beta1.VariableResourceInfo.GroupResource(), "", fmt.Errorf("access denied to %s variables", action))
+ }
+ 
+diff --git a/pkg/registry/apis/dashboard/variable_authorizer.go b/pkg/registry/apis/dashboard/variable_authorizer.go
+index 239e3c17d2103..45f2a06c5cbdb 100644
+--- a/pkg/registry/apis/dashboard/variable_authorizer.go
++++ b/pkg/registry/apis/dashboard/variable_authorizer.go
+@@ -15,16 +15,18 @@ import (
+ // newVariableAuthorizer authorizes dashboard.grafana.app/variables requests.
+ //
+ // It first gates on FlagGrafanaDashboardGlobalVariables via OpenFeature (when
+-// storage is registered, enablement is enforced here). When enabled, it maps
+-// k8s verbs to variables:* RBAC actions. A nil accessControl denies cleanly
+-// (standalone NewAPIService does not wire classic RBAC).
++// storage is registered, enablement is enforced here). Service identity may
++// get/list/watch/delete leftovers after a flag flip so folder cleanup still
++// works; create/update/patch stay denied. Users are denied while the flag is
++// off. When enabled, it maps k8s verbs to variables:* RBAC actions. A nil
++// accessControl denies cleanly (standalone NewAPIService does not wire
++// classic RBAC).
+ //
+ // Create/update/delete/list/watch use a coarse (any-scope) check. Admission
+-// narrows mutations to the target folder (and allowMissingFolder orphan
+-// cleanup). List/watch per-item filtering is the unified-storage checker
+-// (variables is on rbacAllowlist; the RBAC mapper has folder support).
+-// Named get evaluates against variables:uid:<name>, which the scope resolver
+-// expands to folder scopes.
++// narrows mutations to the target folder. List/watch per-item filtering is
++// the unified-storage checker (variables is on rbacAllowlist; the RBAC mapper
++// has folder support). Named get evaluates against variables:uid:<name>,
++// which the scope resolver expands to folder scopes.
+ func newVariableAuthorizer(accessControl ac.AccessControl) authorizer.Authorizer {
+ 	return authorizer.AuthorizerFunc(
+ 		func(ctx context.Context, attr authorizer.Attributes) (authorizer.Decision, string, error) {
+@@ -33,6 +35,16 @@ func newVariableAuthorizer(accessControl ac.AccessControl) authorizer.Authorizer
+ 			}
+ 
+ 			if !openfeature.NewDefaultClient().Boolean(ctx, featuremgmt.FlagGrafanaDashboardGlobalVariables, false, openfeature.TransactionContext(ctx)) {
++				if identity.IsServiceIdentity(ctx) {
++					// Folder cleanup must still list and delete leftovers after a flag
++					// flip. Do not allow create/update/patch — IsServiceIdentity also
++					// matches Git Sync provisioning, which must not write variables
++					// while the feature is off.
++					switch attr.GetVerb() {
++					case "get", "list", "watch", "delete", "deletecollection":
++						return authorizer.DecisionAllow, "", nil
++					}
++				}
+ 				return authorizer.DecisionDeny, "global dashboard variables feature is not enabled", nil
+ 			}
+ 
+@@ -63,10 +75,8 @@ func newVariableAuthorizer(accessControl ac.AccessControl) authorizer.Authorizer
+ 
+ 			var eval ac.Evaluator
+ 			verb := attr.GetVerb()
+-			// Named get stays scoped. Mutations must stay coarse: a scoped check
+-			// resolves variables:uid:<name> via the parent folder, and when that
+-			// folder is gone the resolver fails before admission's
+-			// allowMissingFolder orphan-cleanup path can run.
++			// Named get stays scoped. Mutations stay coarse; admission applies
++			// the folder-scoped variables:* check.
+ 			if verb == "get" && attr.GetName() != "" {
+ 				eval = ac.EvalPermission(action, ScopeVariablesProvider.GetResourceScopeUID(attr.GetName()))
+ 			} else {
+diff --git a/pkg/registry/apis/dashboard/variable_authorizer_test.go b/pkg/registry/apis/dashboard/variable_authorizer_test.go
+index 9b6482b767b61..5ffeb44130e9a 100644
+--- a/pkg/registry/apis/dashboard/variable_authorizer_test.go
++++ b/pkg/registry/apis/dashboard/variable_authorizer_test.go
+@@ -141,10 +141,9 @@ func TestVariableAuthorizer_NilAccessControl(t *testing.T) {
+ 	require.Equal(t, "access control is not configured", reason)
+ }
+ 
+-func TestVariableAuthorizer_OrphanedFolderScopedUpdate(t *testing.T) {
+-	// Regression: scoped update/delete used to resolve variables:uid via
+-	// GetInheritedScopes; when the parent folder was gone the resolver erred and
+-	// the authorizer denied before admission allowMissingFolder could run.
++func TestVariableAuthorizer_CoarseUpdateDoesNotResolveParentFolder(t *testing.T) {
++	// Mutations are any-scope; a missing parent must not fail the authorizer.
++	// Admission applies the folder-scoped variables:* check.
+ 	setGlobalVariablesToggle(t, true)
+ 	acSvc := acimpl.ProvideAccessControl(featuremgmt.WithFeatures())
+ 	folderSvc := foldertest.NewFakeService()
+@@ -226,6 +225,45 @@ func TestDashboardsAPIBuilderVariableAuthorizer(t *testing.T) {
+ 		}
+ 	})
+ 
++	t.Run("denies user requests when disabled even with a requester", func(t *testing.T) {
++		setGlobalVariablesToggle(t, false)
++		userCtx := identity.WithRequester(context.Background(), &identity.StaticRequester{OrgID: 1})
++		for _, verb := range []string{"get", "list", "watch", "create", "update", "delete", "deletecollection"} {
++			t.Run(verb, func(t *testing.T) {
++				decision, reason, err := authz.Authorize(userCtx, authzAttributes(dashv2beta1.VariableResourceInfo.GetName(), verb))
++				require.NoError(t, err)
++				require.Equal(t, authorizer.DecisionDeny, decision)
++				require.Equal(t, "global dashboard variables feature is not enabled", reason)
++			})
++		}
++	})
++
++	t.Run("allows service identity read and delete when disabled so folder cleanup can remove leftovers", func(t *testing.T) {
++		setGlobalVariablesToggle(t, false)
++		svcCtx := identity.WithServiceIdentityContext(context.Background(), 1)
++		for _, verb := range []string{"get", "list", "watch", "delete", "deletecollection"} {
++			t.Run(verb, func(t *testing.T) {
++				decision, reason, err := authz.Authorize(svcCtx, authzAttributes(dashv2beta1.VariableResourceInfo.GetName(), verb))
++				require.NoError(t, err)
++				require.Equal(t, authorizer.DecisionAllow, decision)
++				require.Empty(t, reason)
++			})
++		}
++	})
++
++	t.Run("denies service identity writes when disabled", func(t *testing.T) {
++		setGlobalVariablesToggle(t, false)
++		svcCtx := identity.WithServiceIdentityContext(context.Background(), 1)
++		for _, verb := range []string{"create", "update", "patch"} {
++			t.Run(verb, func(t *testing.T) {
++				decision, reason, err := authz.Authorize(svcCtx, authzAttributes(dashv2beta1.VariableResourceInfo.GetName(), verb))
++				require.NoError(t, err)
++				require.Equal(t, authorizer.DecisionDeny, decision)
++				require.Equal(t, "global dashboard variables feature is not enabled", reason)
++			})
++		}
++	})
++
+ 	t.Run("checks RBAC when the feature is enabled", func(t *testing.T) {
+ 		setGlobalVariablesToggle(t, true)
+ 		// With the flag on, the authorizer proceeds past the feature gate and
+diff --git a/pkg/registry/apis/dashboard/variable_test.go b/pkg/registry/apis/dashboard/variable_test.go
+index efc0d76f1376a..254bca079a3ad 100644
+--- a/pkg/registry/apis/dashboard/variable_test.go
++++ b/pkg/registry/apis/dashboard/variable_test.go
+@@ -2,7 +2,6 @@ package dashboard
+ 
+ import (
+ 	"context"
+-	"errors"
+ 	"strings"
+ 	"testing"
+ 
+@@ -438,7 +437,6 @@ func TestVariableMutationPermissionsMissingFolder(t *testing.T) {
+ 	newVariable := newCustomVariable("region", "region--missing-folder")
+ 	newVariable.SetAnnotations(map[string]string{utils.AnnoKeyFolder: folderUID})
+ 	generalScope := folder.ScopeFoldersProvider.GetResourceScopeUID(accesscontrol.GeneralFolderUID)
+-
+ 	otherFolderScope := folder.ScopeFoldersProvider.GetResourceScopeUID("other-folder")
+ 
+ 	tests := []struct {
+@@ -447,18 +445,17 @@ func TestVariableMutationPermissionsMissingFolder(t *testing.T) {
+ 		op       admission.Operation
+ 		expected bool
+ 	}{
+-		{name: "root delete grant can delete orphaned folder variable", perms: map[string][]string{ActionVariablesDelete: {generalScope}}, op: admission.Delete, expected: true},
+-		{name: "all-folders write can update orphaned folder variable", perms: map[string][]string{ActionVariablesWrite: {folder.ScopeFoldersAll}}, op: admission.Update, expected: true},
+-		{name: "other-folder write cannot update orphaned folder variable", perms: map[string][]string{ActionVariablesWrite: {otherFolderScope}}, op: admission.Update, expected: false},
+-		{name: "other-folder delete cannot delete orphaned folder variable", perms: map[string][]string{ActionVariablesDelete: {otherFolderScope}}, op: admission.Delete, expected: false},
+-		{name: "read-only cannot delete orphaned folder variable", perms: map[string][]string{ActionVariablesRead: {generalScope}}, op: admission.Delete, expected: false},
++		{name: "root delete grant cannot delete variable whose folder is gone", perms: map[string][]string{ActionVariablesDelete: {generalScope}}, op: admission.Delete, expected: false},
++		// folders:* matches folders:uid:<gone> without a second-chance root check.
++		{name: "all-folders write can update variable whose folder is gone", perms: map[string][]string{ActionVariablesWrite: {folder.ScopeFoldersAll}}, op: admission.Update, expected: true},
++		{name: "other-folder write cannot update variable whose folder is gone", perms: map[string][]string{ActionVariablesWrite: {otherFolderScope}}, op: admission.Update, expected: false},
++		{name: "other-folder delete cannot delete variable whose folder is gone", perms: map[string][]string{ActionVariablesDelete: {otherFolderScope}}, op: admission.Delete, expected: false},
++		{name: "read-only cannot delete variable whose folder is gone", perms: map[string][]string{ActionVariablesRead: {generalScope}}, op: admission.Delete, expected: false},
+ 		{name: "root create cannot create into missing folder", perms: map[string][]string{ActionVariablesCreate: {generalScope}}, op: admission.Create, expected: false},
+ 	}
+ 
+ 	for _, tc := range tests {
+ 		t.Run(tc.name, func(t *testing.T) {
+-			// Production registers FolderUIDScopeResolver; without it, Evaluate never
+-			// errors on a missing folder and the general-scope orphan path is untested.
+ 			acSvc := acimpl.ProvideAccessControl(featuremgmt.WithFeatures())
+ 			folderSvc := foldertest.NewFakeService()
+ 			folderSvc.ExpectedError = folder.ErrFolderNotFound
+@@ -477,49 +474,18 @@ func TestVariableMutationPermissionsMissingFolder(t *testing.T) {
+ 					1: tc.perms,
+ 				},
+ 			})
+-			attrs := buildVariableAttributesForOp(tc.op, newVariable, oldVariable)
+ 
+-			err := builder.Validate(ctx, attrs, nil)
++			err := builder.Validate(ctx, buildVariableAttributesForOp(tc.op, newVariable, oldVariable), nil)
+ 			if tc.expected {
+ 				require.NoError(t, err)
+ 				return
+ 			}
+-
+ 			require.Error(t, err)
+ 			require.True(t, apierrors.IsNotFound(err) || apierrors.IsForbidden(err))
+ 		})
+ 	}
+ }
+ 
+-func TestVariableMutationPermissionsFolderLookupError(t *testing.T) {
+-	folderUID := "folder-a"
+-	oldVariable := newCustomVariable("region", "region--folder-a")
+-	oldVariable.SetAnnotations(map[string]string{utils.AnnoKeyFolder: folderUID})
+-	newVariable := newCustomVariable("region", "region--folder-a")
+-	newVariable.SetAnnotations(map[string]string{utils.AnnoKeyFolder: folderUID})
+-
+-	lookupErr := errors.New("folder lookup timed out")
+-	builder := &DashboardsAPIBuilder{
+-		accessControl: acimpl.ProvideAccessControl(featuremgmt.WithFeatures()),
+-		folderClientProvider: &staticHandlerProvider{
+-			handler: &variableFolderAccessHandler{getError: lookupErr},
+-		},
+-	}
+-
+-	ctx := k8srequest.WithNamespace(context.Background(), "stacks-1")
+-	ctx = identity.WithRequester(ctx, &identity.StaticRequester{
+-		OrgID: 1,
+-		// No folder-scoped grant so Evaluate fails and allowMissingFolder path runs.
+-		Permissions: map[int64]map[string][]string{
+-			1: {ActionVariablesWrite: {folder.ScopeFoldersProvider.GetResourceScopeUID("other-folder")}},
+-		},
+-	})
+-
+-	err := builder.Validate(ctx, buildVariableAttributesForOp(admission.Update, newVariable, oldVariable), nil)
+-	require.ErrorIs(t, err, lookupErr)
+-	require.False(t, apierrors.IsForbidden(err))
+-}
+-
+ func newCustomVariable(variableName, metadataName string) *dashv2beta1.Variable {
+ 	customVariable := dashv2beta1.NewDashboardCustomVariableKind()
+ 	customVariable.Spec.Name = variableName
+diff --git a/pkg/registry/apis/folders/cascade_delete.go b/pkg/registry/apis/folders/cascade_delete.go
+index 32e4e71e061b6..28b0c8990c6b7 100644
+--- a/pkg/registry/apis/folders/cascade_delete.go
++++ b/pkg/registry/apis/folders/cascade_delete.go
+@@ -9,7 +9,8 @@ import (
+ 
+ // kubernetesFolderCascadeDeleteEnabled is the master switch for folder.grafana.app cascade
+ // deletion: opt-in non-empty delete via DeleteOptions.gracePeriodSeconds=0, which removes the
+-// folder's subtree — child folders, dashboards, and (in the monolith) alert rules and library elements.
++// folder's subtree — child folders, dashboards, variables, and (in the monolith) alert rules and
++// library elements.
+ func kubernetesFolderCascadeDeleteEnabled(ctx context.Context) bool {
+ 	return openfeature.NewDefaultClient().Boolean(
+ 		ctx,
+@@ -18,3 +19,15 @@ func kubernetesFolderCascadeDeleteEnabled(ctx context.Context) bool {
+ 		openfeature.TransactionContext(ctx),
+ 	)
+ }
++
++// grafanaDashboardGlobalVariablesEnabled is the gate for deleting folder-scoped variables during
++// cascade. The variables:delete preflight is skipped when this is off so roles that never needed
++// that action are not 403'd on folder delete.
++func grafanaDashboardGlobalVariablesEnabled(ctx context.Context) bool {
++	return openfeature.NewDefaultClient().Boolean(
++		ctx,
++		featuremgmt.FlagGrafanaDashboardGlobalVariables,
++		false,
++		openfeature.TransactionContext(ctx),
++	)
++}
+diff --git a/pkg/registry/apis/folders/cascade_delete_storage.go b/pkg/registry/apis/folders/cascade_delete_storage.go
+index d76eee2c53016..058bdb8c30b76 100644
+--- a/pkg/registry/apis/folders/cascade_delete_storage.go
++++ b/pkg/registry/apis/folders/cascade_delete_storage.go
+@@ -16,6 +16,7 @@ import (
+ 	authlib "github.com/grafana/authlib/types"
+ 	"github.com/grafana/grafana-app-sdk/logging"
+ 	dashv1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1"
++	dashboardV2beta1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2beta1"
+ 	foldersv1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1"
+ 	"github.com/grafana/grafana/pkg/apimachinery/identity"
+ 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+@@ -52,6 +53,9 @@ type cascadeDeleteStorage struct {
+ 	// dashboardClient resolves the dashboard apiserver client; nil when none is configured, in which
+ 	// case dashboard cleanup is skipped.
+ 	dashboardClient func(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error)
++	// variableClient resolves the variable apiserver client; nil when none is configured, in which
++	// case variable cleanup is skipped.
++	variableClient func(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error)
+ 	// contentsDeleter removes alert rules and library elements in each folder; nil when not wired
+ 	// (e.g. MT), in which case that cleanup is skipped.
+ 	contentsDeleter FolderContentsDeleter
+@@ -63,8 +67,8 @@ type cascadeDeleteStorage struct {
+ // newCascadeDeleteStorage wraps store, re-exposing the watch/deletecollection interfaces the wrapper
+ // would otherwise hide. The wrapped store implements both (MT generic store) or neither
+ // (folderStorage), so one check keeps the advertised verbs unchanged.
+-func newCascadeDeleteStorage(store grafanarest.Storage, searcher resourcepb.ResourceIndexClient, dashboardClient func(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error), contentsDeleter FolderContentsDeleter, accessClient authlib.AccessClient) grafanarest.Storage {
+-	base := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: dashboardClient, contentsDeleter: contentsDeleter, accessClient: accessClient}
++func newCascadeDeleteStorage(store grafanarest.Storage, searcher resourcepb.ResourceIndexClient, dashboardClient func(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error), variableClient func(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error), contentsDeleter FolderContentsDeleter, accessClient authlib.AccessClient) grafanarest.Storage {
++	base := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: dashboardClient, variableClient: variableClient, contentsDeleter: contentsDeleter, accessClient: accessClient}
+ 	watcher, hasWatch := store.(rest.Watcher)
+ 	collectionDeleter, hasCollectionDelete := store.(rest.CollectionDeleter)
+ 	if hasWatch && hasCollectionDelete {
+@@ -183,9 +187,10 @@ func (s *cascadeDeleteStorage) cascadeDelete(ctx context.Context, user identity.
+ 		return nil, false, err
+ 	}
+ 
+-	// Authorize the requester to delete this folder's alert rules and library elements, mirroring the
+-	// per-folder permissions legacy enforced. Runs after the NotFound skip so a stale or already-deleted
+-	// child folder is skipped idempotently instead of 403-ing on an un-walkable inheritance chain.
++	// Authorize the requester to delete this folder's contained resources, mirroring the per-folder
++	// permissions legacy enforced (plus variables:delete when global variables are enabled). Runs
++	// after the NotFound skip so a stale or already-deleted child folder is skipped idempotently
++	// instead of 403-ing on an un-walkable inheritance chain.
+ 	if err := s.checkFolderContentsAccess(ctx, user, namespace, name, parentUID); err != nil {
+ 		return nil, false, err
+ 	}
+@@ -206,6 +211,11 @@ func (s *cascadeDeleteStorage) cascadeDelete(ctx context.Context, user identity.
+ 		return nil, false, err
+ 	}
+ 
++	// Remove the variables contained directly in this folder before deleting the folder itself.
++	if err := s.deleteVariablesInFolder(ctx, namespace, name, options); err != nil {
++		return nil, false, err
++	}
++
+ 	// Then the alert rules and library elements in this folder. Runs in the request path so a
+ 	// failure aborts the cascade, same as the dashboard sweep above. Skipped on dry-run: the
+ 	// RegistryService cleanups mutate the DB directly and have no dry-run mode.
+@@ -313,6 +323,84 @@ func (s *cascadeDeleteStorage) dashboardsInFolder(ctx context.Context, namespace
+ 	}
+ }
+ 
++func (s *cascadeDeleteStorage) deleteVariablesInFolder(ctx context.Context, namespace, folderUID string, options *metav1.DeleteOptions) error {
++	svc, err := s.variableClient(ctx)
++	if err != nil {
++		return fmt.Errorf("get variable client: %w", err)
++	}
++	if svc == nil {
++		// No variable apiserver client configured (e.g. legacy mode); nothing to clean up here.
++		return nil
++	}
++	client := (*svc).Namespace(namespace)
++
++	// options are already the sanitized cascade options (dry-run + grace period only).
++	varOpts := cascadeDeleteOptions(options)
++
++	// Enumerate fully before deleting: offset paging is only valid against a stable collection, and
++	// deleting mid-pagination would shift later pages and skip variables.
++	names, err := s.variablesInFolder(ctx, namespace, folderUID)
++	if err != nil {
++		return err
++	}
++
++	for _, name := range names {
++		if err := client.Delete(ctx, name, *varOpts); err != nil && !apierrors.IsNotFound(err) {
++			return fmt.Errorf("delete variable %q: %w", name, err)
++		}
++	}
++	return nil
++}
++
++func (s *cascadeDeleteStorage) variablesInFolder(ctx context.Context, namespace, folderUID string) ([]string, error) {
++	gvr := dashboardV2beta1.VariableResourceInfo.GroupVersionResource()
++
++	var (
++		names  []string
++		offset int64
++	)
++	for {
++		resp, err := s.searcher.Search(ctx, &resourcepb.ResourceSearchRequest{
++			Options: &resourcepb.ListOptions{
++				Key: &resourcepb.ResourceKey{
++					Namespace: namespace,
++					Group:     gvr.Group,
++					Resource:  gvr.Resource,
++				},
++				Fields: []*resourcepb.Requirement{{
++					Key:      resource.SEARCH_FIELD_FOLDER,
++					Operator: string(selection.Equals),
++					Values:   []string{folderUID},
++				}},
++			},
++			Limit:  childFolderPageSize,
++			Offset: offset,
++		})
++		if err != nil {
++			return nil, fmt.Errorf("search variables in folder %q: %w", folderUID, err)
++		}
++		if resp.Error != nil {
++			return nil, fmt.Errorf("search variables in folder %q: %s", folderUID, resp.Error.Message)
++		}
++		if resp.Results == nil || len(resp.Results.Rows) == 0 {
++			return names, nil
++		}
++
++		for _, row := range resp.Results.Rows {
++			if row.Key != nil {
++				names = append(names, row.Key.Name)
++			}
++		}
++
++		// The bleve Search path drives pagination off TotalHits + offset rather than a page token.
++		// Advance by the rows actually returned so a short page doesn't skip the remainder.
++		offset += int64(len(resp.Results.Rows))
++		if offset >= resp.TotalHits {
++			return names, nil
++		}
++	}
++}
++
+ // markTerminating stamps the terminating label on the folder so the in-progress subtree deletion is
+ // observable before its leaves are removed. It honors the delete dry-run so a dry-run folder delete
+ // does not actually mutate folders.
+@@ -370,14 +458,22 @@ func (s *cascadeDeleteStorage) childFolders(ctx context.Context, namespace, pare
+ 
+ // Legacy folder delete gated contained resources on alert.rules:delete and folders:write; the authz
+ // mapper resolves the tuples below to those actions (see pkg/services/authz/rbac/mapper.go).
++// variables:delete is added when global variables are enabled: the cascade deletes variables under a
++// service identity, so this is the only user-level gate (same reason as the alert-rules check).
+ const (
+ 	cascadeAlertRuleGroup    = "rules.alerting.grafana.app"
+ 	cascadeAlertRuleResource = "alertrules"
+ )
+ 
++type contentsAccessCheck struct {
++	req    authlib.CheckRequest
++	folder string
++}
++
+ // checkFolderContentsAccess denies the delete unless the requester may delete the alert rules
+ // (alert.rules:delete) and library elements (folders:write) in folderUID; parentUID lets folder
+-// permissions resolve through inheritance. No-op when no access client is wired (e.g. tests).
++// permissions resolve through inheritance. When global variables are enabled it also requires
++// variables:delete. No-op when no access client is wired (e.g. tests).
+ func (s *cascadeDeleteStorage) checkFolderContentsAccess(ctx context.Context, user identity.Requester, namespace, folderUID, parentUID string) error {
+ 	if s.accessClient == nil {
+ 		return nil
+@@ -392,13 +488,17 @@ func (s *cascadeDeleteStorage) checkFolderContentsAccess(ctx context.Context, us
+ 	}
+ 	// One homogeneous Check per resource: a mixed-resource BatchCheck is routed back to RBAC in
+ 	// Zanzana rollout mode, so tenants mid-rollout would be evaluated by the wrong engine.
+-	checks := []struct {
+-		req    authlib.CheckRequest
+-		folder string
+-	}{
++	checks := []contentsAccessCheck{
+ 		{authlib.CheckRequest{Namespace: namespace, Verb: utils.VerbDelete, Group: cascadeAlertRuleGroup, Resource: cascadeAlertRuleResource}, folderUID},
+ 		{authlib.CheckRequest{Namespace: namespace, Verb: utils.VerbUpdate, Group: folderGVR.Group, Resource: folderGVR.Resource, Name: folderUID}, writeParent},
+ 	}
++	if grafanaDashboardGlobalVariablesEnabled(ctx) {
++		varGVR := dashboardV2beta1.VariableResourceInfo.GroupVersionResource()
++		checks = append(checks, contentsAccessCheck{
++			req:    authlib.CheckRequest{Namespace: namespace, Verb: utils.VerbDelete, Group: varGVR.Group, Resource: varGVR.Resource},
++			folder: folderUID,
++		})
++	}
+ 	for _, c := range checks {
+ 		resp, err := s.accessClient.Check(ctx, user, c.req, c.folder)
+ 		if err != nil {
+diff --git a/pkg/registry/apis/folders/cascade_delete_storage_test.go b/pkg/registry/apis/folders/cascade_delete_storage_test.go
+index c8d6d2853c073..c5579f8be7b05 100644
+--- a/pkg/registry/apis/folders/cascade_delete_storage_test.go
++++ b/pkg/registry/apis/folders/cascade_delete_storage_test.go
+@@ -21,10 +21,15 @@ import (
+ 	dynamicfake "k8s.io/client-go/dynamic/fake"
+ 	k8stesting "k8s.io/client-go/testing"
+ 
++	authlib "github.com/grafana/authlib/types"
+ 	dashv1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1"
++	dashv2beta1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2beta1"
+ 	foldersv1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1"
+ 	"github.com/grafana/grafana/pkg/apimachinery/identity"
++	"github.com/grafana/grafana/pkg/apimachinery/utils"
+ 	grafanarest "github.com/grafana/grafana/pkg/apiserver/rest"
++	"github.com/grafana/grafana/pkg/services/featuremgmt"
++	"github.com/grafana/grafana/pkg/services/folder"
+ 	"github.com/grafana/grafana/pkg/storage/unified/resource"
+ 	"github.com/grafana/grafana/pkg/storage/unified/resourcepb"
+ )
+@@ -37,7 +42,18 @@ func newDashboardCascade(store grafanarest.Storage, searcher resourcepb.Resource
+ 	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: func(context.Context) (*dynamic.NamespaceableResourceInterface, error) {
+ 		c := dyn.Resource(gvr)
+ 		return &c, nil
+-	}}
++	}, variableClient: nilVariableClient}
++	return s, dyn
++}
++
++func newVariableCascade(store grafanarest.Storage, searcher resourcepb.ResourceIndexClient, objs ...runtime.Object) (*cascadeDeleteStorage, *dynamicfake.FakeDynamicClient) {
++	gvr := dashv2beta1.VariableResourceInfo.GroupVersionResource()
++	dyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
++		map[schema.GroupVersionResource]string{gvr: "VariableList"}, objs...)
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, variableClient: func(context.Context) (*dynamic.NamespaceableResourceInterface, error) {
++		c := dyn.Resource(gvr)
++		return &c, nil
++	}, dashboardClient: nilDashboardClient}
+ 	return s, dyn
+ }
+ 
+@@ -129,6 +145,7 @@ type fakeCascadeSearcher struct {
+ 	resourcepb.ResourceIndexClient
+ 	childrenByParent   map[string][]string
+ 	dashboardsByFolder map[string][]string
++	variablesByFolder  map[string][]string
+ 	searchCtx          context.Context
+ }
+ 
+@@ -141,6 +158,8 @@ func (s *fakeCascadeSearcher) Search(ctx context.Context, req *resourcepb.Resour
+ 			names = append(names, s.childrenByParent[uid]...)
+ 		case dashv1.DashboardResourceInfo.GroupVersionResource().Resource:
+ 			names = append(names, s.dashboardsByFolder[uid]...)
++		case dashv2beta1.VariableResourceInfo.GroupVersionResource().Resource:
++			names = append(names, s.variablesByFolder[uid]...)
+ 		}
+ 	}
+ 	rows := make([]*resourcepb.ResourceTableRow, 0, len(names))
+@@ -184,11 +203,23 @@ func unstructuredDashboard(namespace, name string) *unstructured.Unstructured {
+ 	return u
+ }
+ 
++func unstructuredVariable(namespace, name string) *unstructured.Unstructured {
++	u := &unstructured.Unstructured{}
++	u.SetGroupVersionKind(dashv2beta1.VariableResourceInfo.GroupVersionKind())
++	u.SetNamespace(namespace)
++	u.SetName(name)
++	return u
++}
++
+ // nilDashboardClient stands in for deployments where no dashboard apiserver client is configured.
+ func nilDashboardClient(context.Context) (*dynamic.NamespaceableResourceInterface, error) {
+ 	return nil, nil
+ }
+ 
++func nilVariableClient(context.Context) (*dynamic.NamespaceableResourceInterface, error) {
++	return nil, nil
++}
++
+ func ctxWithNamespace() context.Context {
+ 	ctx := apirequest.WithNamespace(context.Background(), "default")
+ 	// A requester is required now that Delete captures it before the cascade.
+@@ -296,6 +327,23 @@ func TestCascadeDelete_PropagatesDeleteOptionsToDashboards(t *testing.T) {
+ 	require.Equal(t, int64(0), *got.GracePeriodSeconds)
+ }
+ 
++func TestCascadeDelete_DeletesAllVariablesInFolder(t *testing.T) {
++	setKubernetesFolderCascadeDeleteToggle(t, true)
++	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
++	searcher := &fakeCascadeSearcher{variablesByFolder: map[string][]string{"root": {"var-1", "var-2"}}}
++	s, dyn := newVariableCascade(store, searcher,
++		unstructuredVariable("default", "var-1"), unstructuredVariable("default", "var-2"))
++
++	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
++	require.NoError(t, err)
++
++	gvr := dashv2beta1.VariableResourceInfo.GroupVersionResource()
++	for _, name := range []string{"var-1", "var-2"} {
++		_, err := dyn.Resource(gvr).Namespace("default").Get(ctxWithNamespace(), name, metav1.GetOptions{})
++		require.True(t, apierrors.IsNotFound(err), "variable %s should be deleted", name)
++	}
++}
++
+ // recordingContentsDeleter records the folders whose contents were requested for deletion.
+ type recordingContentsDeleter struct{ folders []string }
+ 
+@@ -312,7 +360,7 @@ func TestCascadeDelete_DeletesContentsPerFolder(t *testing.T) {
+ 	}}
+ 	searcher := &fakeCascadeSearcher{childrenByParent: map[string][]string{"root": {"child"}}}
+ 	deleter := &recordingContentsDeleter{}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, contentsDeleter: deleter}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient, contentsDeleter: deleter}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.NoError(t, err)
+@@ -325,7 +373,7 @@ func TestCascadeDelete_SkipsContentsOnDryRun(t *testing.T) {
+ 	// A server-side dry-run must not mutate contents: DeleteInFolders has no dry-run mode.
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
+ 	deleter := &recordingContentsDeleter{}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient, contentsDeleter: deleter}
++	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient, variableClient: nilVariableClient, contentsDeleter: deleter}
+ 
+ 	opts := forceDelete()
+ 	opts.DryRun = []string{metav1.DryRunAll}
+@@ -353,7 +401,7 @@ func TestCascadeDelete_DashboardClientNilSkips(t *testing.T) {
+ 	// No dashboard client configured: dashboards are skipped but the folder still cascades.
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
+ 	searcher := &fakeCascadeSearcher{dashboardsByFolder: map[string][]string{"root": {"dash-1"}}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.NoError(t, err)
+@@ -367,7 +415,7 @@ func TestCascadeDelete_DashboardClientErrorAborts(t *testing.T) {
+ 	searcher := &fakeCascadeSearcher{dashboardsByFolder: map[string][]string{"root": {"dash-1"}}}
+ 	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: func(context.Context) (*dynamic.NamespaceableResourceInterface, error) {
+ 		return nil, errors.New("boom")
+-	}}
++	}, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.Error(t, err)
+@@ -398,7 +446,7 @@ func TestCascadeDelete_IdempotentOnMissingChild(t *testing.T) {
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
+ 	searcher := &fakeCascadeSearcher{childrenByParent: map[string][]string{"root": {"ghost"}}}
+ 
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.NoError(t, err)
+@@ -434,7 +482,7 @@ func TestCascadeDelete_MissingRequestedFolderReturnsNotFound(t *testing.T) {
+ 
+ 	// Deleting a folder that doesn't exist must still return 404, not a fake success.
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "ghost", nil, forceDelete())
+ 	require.True(t, apierrors.IsNotFound(err))
+@@ -445,7 +493,7 @@ func TestCascadeDelete_DryRunDoesNotMutate(t *testing.T) {
+ 
+ 	// A dry-run force delete must not stamp or delete anything.
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: &fakeCascadeSearcher{}, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	opts := forceDelete()
+ 	opts.DryRun = []string{metav1.DryRunAll}
+@@ -487,7 +535,7 @@ func TestCascadeDelete_StalePreconditionAbortsBeforeCascade(t *testing.T) {
+ 	root.UID = "uid-1"
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": root, "child": newFolder("child")}}
+ 	searcher := &fakeCascadeSearcher{childrenByParent: map[string][]string{"root": {"child"}}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	stale := apitypes.UID("uid-stale")
+ 	opts := forceDelete()
+@@ -510,7 +558,7 @@ func TestCascadeDelete_MatchingPreconditionProceeds(t *testing.T) {
+ 	child.UID = "uid-2"
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": root, "child": child}}
+ 	searcher := &fakeCascadeSearcher{childrenByParent: map[string][]string{"root": {"child"}}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	uid := apitypes.UID("uid-1")
+ 	opts := forceDelete()
+@@ -525,7 +573,7 @@ func TestCascadeDelete_ForwardsOptionalInterfaces(t *testing.T) {
+ 	setKubernetesFolderCascadeDeleteToggle(t, false)
+ 
+ 	inner := &watchableFolderStorage{fakeFolderStorage: &fakeFolderStorage{existing: map[string]*foldersv1.Folder{}}}
+-	s := newCascadeDeleteStorage(inner, &fakeCascadeSearcher{}, nilDashboardClient, nil, nil)
++	s := newCascadeDeleteStorage(inner, &fakeCascadeSearcher{}, nilDashboardClient, nilVariableClient, nil, nil)
+ 
+ 	watcher, ok := s.(rest.Watcher)
+ 	require.True(t, ok, "watch must be exposed when the wrapped store supports it")
+@@ -545,7 +593,7 @@ func TestCascadeDelete_RejectsForcedCollectionDelete(t *testing.T) {
+ 
+ 	// A forced collection delete can't cascade, so it's rejected rather than orphaning content.
+ 	inner := &watchableFolderStorage{fakeFolderStorage: &fakeFolderStorage{existing: map[string]*foldersv1.Folder{}}}
+-	deleter := newCascadeDeleteStorage(inner, &fakeCascadeSearcher{}, nilDashboardClient, nil, nil).(rest.CollectionDeleter)
++	deleter := newCascadeDeleteStorage(inner, &fakeCascadeSearcher{}, nilDashboardClient, nilVariableClient, nil, nil).(rest.CollectionDeleter)
+ 
+ 	_, err := deleter.DeleteCollection(ctxWithNamespace(), nil, forceDelete(), nil)
+ 	require.True(t, apierrors.IsBadRequest(err))
+@@ -559,7 +607,7 @@ func TestCascadeDelete_RejectsForcedCollectionDelete(t *testing.T) {
+ 
+ func TestCascadeDelete_OptionalInterfacesNotExposedWhenUnsupported(t *testing.T) {
+ 	// Wrapped store lacks Watcher/CollectionDeleter: the wrapper must not advertise those verbs.
+-	s := newCascadeDeleteStorage(&fakeFolderStorage{}, &fakeCascadeSearcher{}, nilDashboardClient, nil, nil)
++	s := newCascadeDeleteStorage(&fakeFolderStorage{}, &fakeCascadeSearcher{}, nilDashboardClient, nilVariableClient, nil, nil)
+ 
+ 	_, isWatcher := s.(rest.Watcher)
+ 	require.False(t, isWatcher)
+@@ -575,7 +623,7 @@ func TestCascadeDelete_SearchesRunUnderServiceIdentity(t *testing.T) {
+ 	// context, so it enumerates resources the requester can't individually see.
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
+ 	searcher := &fakeCascadeSearcher{dashboardsByFolder: map[string][]string{"root": {"dash-1"}}}
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.NoError(t, err)
+@@ -591,7 +639,7 @@ func TestCascadeDelete_DisabledDelegates(t *testing.T) {
+ 	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root"), "child": newFolder("child")}}
+ 	searcher := &fakeCascadeSearcher{childrenByParent: map[string][]string{"root": {"child"}}}
+ 
+-	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient}
++	s := &cascadeDeleteStorage{Storage: store, searcher: searcher, dashboardClient: nilDashboardClient, variableClient: nilVariableClient}
+ 
+ 	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
+ 	require.NoError(t, err)
+@@ -600,3 +648,115 @@ func TestCascadeDelete_DisabledDelegates(t *testing.T) {
+ 	require.Equal(t, []string{"root"}, store.deleted)
+ 	require.Empty(t, store.stamped)
+ }
++
++// recordingAccessClient records Check calls and optionally filters by allow.
++type recordingAccessClient struct {
++	checks []contentsAccessCheck
++	allow  func(req authlib.CheckRequest, folder string) bool
++	err    error
++}
++
++func (c *recordingAccessClient) Check(_ context.Context, _ authlib.AuthInfo, req authlib.CheckRequest, folder string) (authlib.CheckResponse, error) {
++	c.checks = append(c.checks, contentsAccessCheck{req: req, folder: folder})
++	if c.err != nil {
++		return authlib.CheckResponse{}, c.err
++	}
++	allowed := true
++	if c.allow != nil {
++		allowed = c.allow(req, folder)
++	}
++	return authlib.CheckResponse{Allowed: allowed}, nil
++}
++
++func (c *recordingAccessClient) BatchCheck(context.Context, authlib.AuthInfo, authlib.BatchCheckRequest) (authlib.BatchCheckResponse, error) {
++	return authlib.BatchCheckResponse{}, nil
++}
++
++func (c *recordingAccessClient) Compile(context.Context, authlib.AuthInfo, authlib.ListRequest) (authlib.ItemChecker, authlib.Zookie, error) {
++	return func(string, string) bool { return false }, authlib.NoopZookie{}, nil
++}
++
++func TestCheckFolderContentsAccess(t *testing.T) {
++	user := &identity.StaticRequester{}
++	folderGVR := foldersv1.FolderResourceInfo.GroupVersionResource()
++	varGVR := dashv2beta1.VariableResourceInfo.GroupVersionResource()
++
++	t.Run("nil accessClient is a no-op", func(t *testing.T) {
++		s := &cascadeDeleteStorage{}
++		require.NoError(t, s.checkFolderContentsAccess(context.Background(), user, "default", "folder", "parent"))
++	})
++
++	t.Run("without global variables, checks alert.rules:delete and folders:write only", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: false})
++		ac := &recordingAccessClient{}
++		s := &cascadeDeleteStorage{accessClient: ac}
++		require.NoError(t, s.checkFolderContentsAccess(context.Background(), user, "default", "folder", "parent"))
++		require.Equal(t, []contentsAccessCheck{
++			{authlib.CheckRequest{Namespace: "default", Verb: utils.VerbDelete, Group: cascadeAlertRuleGroup, Resource: cascadeAlertRuleResource}, "folder"},
++			{authlib.CheckRequest{Namespace: "default", Verb: utils.VerbUpdate, Group: folderGVR.Group, Resource: folderGVR.Resource, Name: "folder"}, "parent"},
++		}, ac.checks)
++	})
++
++	t.Run("with global variables, also checks variables:delete on the folder", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: true})
++		ac := &recordingAccessClient{}
++		s := &cascadeDeleteStorage{accessClient: ac}
++		require.NoError(t, s.checkFolderContentsAccess(context.Background(), user, "default", "folder", "parent"))
++		require.Equal(t, []contentsAccessCheck{
++			{authlib.CheckRequest{Namespace: "default", Verb: utils.VerbDelete, Group: cascadeAlertRuleGroup, Resource: cascadeAlertRuleResource}, "folder"},
++			{authlib.CheckRequest{Namespace: "default", Verb: utils.VerbUpdate, Group: folderGVR.Group, Resource: folderGVR.Resource, Name: "folder"}, "parent"},
++			{authlib.CheckRequest{Namespace: "default", Verb: utils.VerbDelete, Group: varGVR.Group, Resource: varGVR.Resource}, "folder"},
++		}, ac.checks)
++	})
++
++	t.Run("root folder uses General as the folders:write parent, folder UID for variables", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: true})
++		ac := &recordingAccessClient{}
++		s := &cascadeDeleteStorage{accessClient: ac}
++		require.NoError(t, s.checkFolderContentsAccess(context.Background(), user, "default", "root", ""))
++		require.Equal(t, folder.GeneralFolderUID, ac.checks[1].folder)
++		require.Equal(t, "root", ac.checks[2].folder)
++	})
++
++	t.Run("denies when variables:delete is not allowed", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: true})
++		ac := &recordingAccessClient{allow: func(req authlib.CheckRequest, _ string) bool {
++			return req.Resource != varGVR.Resource
++		}}
++		s := &cascadeDeleteStorage{accessClient: ac}
++		err := s.checkFolderContentsAccess(context.Background(), user, "default", "folder", "parent")
++		require.True(t, apierrors.IsForbidden(err))
++	})
++
++	t.Run("surfaces Check transport error", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: false})
++		ac := &recordingAccessClient{err: errors.New("boom")}
++		s := &cascadeDeleteStorage{accessClient: ac}
++		err := s.checkFolderContentsAccess(context.Background(), user, "default", "folder", "parent")
++		require.ErrorContains(t, err, "boom")
++	})
++}
++
++func TestCascadeDelete_ForbiddenWithoutVariablesDelete(t *testing.T) {
++	setOpenFeatureToggles(t, map[string]bool{
++		featuremgmt.FlagKubernetesFolderCascadeDelete:   true,
++		featuremgmt.FlagGrafanaDashboardGlobalVariables: true,
++	})
++
++	store := &fakeFolderStorage{existing: map[string]*foldersv1.Folder{"root": newFolder("root")}}
++	varGVR := dashv2beta1.VariableResourceInfo.GroupVersionResource()
++	ac := &recordingAccessClient{allow: func(req authlib.CheckRequest, _ string) bool {
++		return req.Resource != varGVR.Resource
++	}}
++	s := &cascadeDeleteStorage{
++		Storage:         store,
++		searcher:        &fakeCascadeSearcher{},
++		dashboardClient: nilDashboardClient,
++		variableClient:  nilVariableClient,
++		accessClient:    ac,
++	}
++
++	_, _, err := s.Delete(ctxWithNamespace(), "root", nil, forceDelete())
++	require.True(t, apierrors.IsForbidden(err))
++	require.Empty(t, store.deleted, "folder must not be deleted when variables:delete is denied")
++}
+diff --git a/pkg/registry/apis/folders/cascade_delete_test.go b/pkg/registry/apis/folders/cascade_delete_test.go
+index a7a1ba8858168..fdd93b10d2fd1 100644
+--- a/pkg/registry/apis/folders/cascade_delete_test.go
++++ b/pkg/registry/apis/folders/cascade_delete_test.go
+@@ -22,27 +22,36 @@ func TestMain(m *testing.M) {
+ 	os.Exit(m.Run())
+ }
+ 
+-// setKubernetesFolderCascadeDeleteToggle scopes the kubernetesFolderCascadeDelete flag to t.
+-// Flag state is per-test (routed by goroutine), so this is safe under t.Parallel.
+-func setKubernetesFolderCascadeDeleteToggle(t *testing.T, enabled bool) {
++// setOpenFeatureToggles scopes the given OpenFeature flags to t. UsingFlags replaces the whole
++// flag map, so tests that need more than one flag must set them together. Flag state is per-test
++// (routed by goroutine), so this is safe under t.Parallel.
++func setOpenFeatureToggles(t *testing.T, flags map[string]bool) {
+ 	t.Helper()
+-	variant := "off"
+-	if enabled {
+-		variant = "on"
+-	}
+-	featureFlagsProvider.UsingFlags(t, map[string]memprovider.InMemoryFlag{
+-		featuremgmt.FlagKubernetesFolderCascadeDelete: {
+-			Key:            featuremgmt.FlagKubernetesFolderCascadeDelete,
++	inMemory := make(map[string]memprovider.InMemoryFlag, len(flags))
++	for key, enabled := range flags {
++		variant := "off"
++		if enabled {
++			variant = "on"
++		}
++		inMemory[key] = memprovider.InMemoryFlag{
++			Key:            key,
+ 			DefaultVariant: variant,
+ 			Variants: map[string]any{
+ 				"on":  true,
+ 				"off": false,
+ 			},
+-		},
+-	})
++		}
++	}
++	featureFlagsProvider.UsingFlags(t, inMemory)
+ 	t.Cleanup(featureFlagsProvider.Cleanup)
+ }
+ 
++// setKubernetesFolderCascadeDeleteToggle scopes the kubernetesFolderCascadeDelete flag to t.
++func setKubernetesFolderCascadeDeleteToggle(t *testing.T, enabled bool) {
++	t.Helper()
++	setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagKubernetesFolderCascadeDelete: enabled})
++}
++
+ func TestKubernetesFolderCascadeDeleteEnabled(t *testing.T) {
+ 	t.Run("disabled when toggle off", func(t *testing.T) {
+ 		setKubernetesFolderCascadeDeleteToggle(t, false)
+@@ -53,3 +62,14 @@ func TestKubernetesFolderCascadeDeleteEnabled(t *testing.T) {
+ 		require.True(t, kubernetesFolderCascadeDeleteEnabled(context.Background()))
+ 	})
+ }
++
++func TestGrafanaDashboardGlobalVariablesEnabled(t *testing.T) {
++	t.Run("disabled when toggle off", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: false})
++		require.False(t, grafanaDashboardGlobalVariablesEnabled(context.Background()))
++	})
++	t.Run("enabled when toggle on", func(t *testing.T) {
++		setOpenFeatureToggles(t, map[string]bool{featuremgmt.FlagGrafanaDashboardGlobalVariables: true})
++		require.True(t, grafanaDashboardGlobalVariablesEnabled(context.Background()))
++	})
++}
+diff --git a/pkg/registry/apis/folders/register.go b/pkg/registry/apis/folders/register.go
+index ea9a3eae1603d..7fef6532cf761 100644
+--- a/pkg/registry/apis/folders/register.go
++++ b/pkg/registry/apis/folders/register.go
+@@ -24,6 +24,7 @@ import (
+ 	"github.com/grafana/grafana-app-sdk/logging"
+ 	sdkres "github.com/grafana/grafana-app-sdk/resource"
+ 	dashv1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1"
++	dashV2beta1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2beta1"
+ 	foldersv1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1"
+ 	foldersv1beta1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1beta1"
+ 	iamv0alpha1 "github.com/grafana/grafana/apps/iam/pkg/apis/iam/v0alpha1"
+@@ -80,7 +81,8 @@ type FolderAPIBuilder struct {
+ 	cascadeConfigProvider apiserver.RestConfigProvider
+ 	dashboardSvc          *dynamic.NamespaceableResourceInterface
+ 	dashboardSvcMu        sync.Mutex
+-
++	variableSvc           *dynamic.NamespaceableResourceInterface
++	variableSvcMu         sync.Mutex
+ 	// contentsDeleter removes alert rules and library elements contained in a folder during cascade
+ 	// delete. Nil in MT (NewAPIService), where that cleanup is handled elsewhere.
+ 	contentsDeleter FolderContentsDeleter
+@@ -113,6 +115,31 @@ func (b *FolderAPIBuilder) dashboardClient(ctx context.Context) (*dynamic.Namesp
+ 	return b.dashboardSvc, nil
+ }
+ 
++func (b *FolderAPIBuilder) variableClient(ctx context.Context) (*dynamic.NamespaceableResourceInterface, error) {
++	if b.cascadeConfigProvider == nil {
++		return b.variableSvc, nil
++	}
++
++	b.variableSvcMu.Lock()
++	defer b.variableSvcMu.Unlock()
++
++	if b.variableSvc != nil {
++		return b.variableSvc, nil
++	}
++
++	cfg, err := b.cascadeConfigProvider.GetRestConfig(ctx)
++	if err != nil {
++		return nil, fmt.Errorf("get rest config: %w", err)
++	}
++	dyn, err := dynamic.NewForConfig(cfg)
++	if err != nil {
++		return nil, fmt.Errorf("create dynamic client: %w", err)
++	}
++	client := dyn.Resource(dashV2beta1.VariableResourceInfo.GroupVersionResource())
++	b.variableSvc = &client
++	return b.variableSvc, nil
++}
++
+ func RegisterAPIService(cfg *setting.Cfg,
+ 	features featuremgmt.FeatureToggles,
+ 	apiregistration builder.APIRegistrar,
+@@ -149,13 +176,14 @@ func RegisterAPIService(cfg *setting.Cfg,
+ 	return builder
+ }
+ 
+-func NewAPIService(ac authlib.AccessClient, searcher resource.ResourceClient, features featuremgmt.FeatureToggles, zanzanaClient zanzana.Client, resourcePermissionsSvc *dynamic.NamespaceableResourceInterface, dashboardSvc *dynamic.NamespaceableResourceInterface, maxNestedFolderDepth int) *FolderAPIBuilder {
++func NewAPIService(ac authlib.AccessClient, searcher resource.ResourceClient, features featuremgmt.FeatureToggles, zanzanaClient zanzana.Client, resourcePermissionsSvc *dynamic.NamespaceableResourceInterface, dashboardSvc *dynamic.NamespaceableResourceInterface, variableSvc *dynamic.NamespaceableResourceInterface, maxNestedFolderDepth int) *FolderAPIBuilder {
+ 	return &FolderAPIBuilder{
+ 		accessClient:           ac,
+ 		searcher:               searcher,
+ 		permissionStore:        NewZanzanaPermissionStore(zanzanaClient),
+ 		resourcePermissionsSvc: resourcePermissionsSvc,
+ 		dashboardSvc:           dashboardSvc, // injected so cascade delete can remove dashboards in MT
++		variableSvc:            variableSvc,  // injected so cascade delete can remove variables in MT
+ 		maxNestedFolderDepth:   maxNestedFolderDepth,
+ 		useZanzana:             features.IsEnabledGlobally(featuremgmt.FlagZanzana), //nolint:staticcheck
+ 	}
+@@ -253,7 +281,7 @@ func (b *FolderAPIBuilder) storageForVersion(
+ 
+ 	// Cascade delete wrapper -- always wired (both ST and MT). Recursively deletes a folder's
+ 	// subtree on delete; a no-op delegate unless kubernetesFolderCascadeDelete is enabled.
+-	b.storage = newCascadeDeleteStorage(b.storage, b.searcher, b.dashboardClient, b.contentsDeleter, b.accessClient)
++	b.storage = newCascadeDeleteStorage(b.storage, b.searcher, b.dashboardClient, b.variableClient, b.contentsDeleter, b.accessClient)
+ 
+ 	storage := map[string]rest.Storage{}
+ 	storage[folders.StoragePath()] = b.storage
+diff --git a/pkg/registry/apis/folders/register_test.go b/pkg/registry/apis/folders/register_test.go
+index b9f9e2f470b60..d8918c92691c5 100644
+--- a/pkg/registry/apis/folders/register_test.go
++++ b/pkg/registry/apis/folders/register_test.go
+@@ -201,6 +201,13 @@ func TestFolderAPIBuilder_Validate_Delete(t *testing.T) {
+ 			},
+ 			wantErr: true,
+ 		},
++		{
++			name: "should return folder not empty when folder contains variables",
++			statsResponse: []*resourcepb.ResourceStatsResponse_Stats{
++				{Count: 4, Resource: "variables", Group: "dashboard.grafana.app"},
++			},
++			wantErr: true,
++		},
+ 		{
+ 			name: "should return folder not empty when folder contains alertrules",
+ 			statsResponse: []*resourcepb.ResourceStatsResponse_Stats{
+diff --git a/pkg/registry/apis/folders/sub_count.go b/pkg/registry/apis/folders/sub_count.go
+index a47fa03801b5e..7f70d31efa391 100644
+--- a/pkg/registry/apis/folders/sub_count.go
++++ b/pkg/registry/apis/folders/sub_count.go
+@@ -23,6 +23,7 @@ import (
+ var countedKinds = []string{
+ 	"folder.grafana.app/folders",
+ 	"dashboard.grafana.app/dashboards",
++	"dashboard.grafana.app/variables",
+ 	"dashboard.grafana.app/librarypanels",
+ 	"rules.alerting.grafana.app/alertrules",
+ 	"rules.alerting.grafana.app/recordingrules",
+diff --git a/pkg/registry/apis/folders/sub_count_test.go b/pkg/registry/apis/folders/sub_count_test.go
+index 2821e8b8c32ea..039d9af253dd0 100644
+--- a/pkg/registry/apis/folders/sub_count_test.go
++++ b/pkg/registry/apis/folders/sub_count_test.go
+@@ -56,6 +56,7 @@ func TestSubCount_RequestIncludesRecordingRules(t *testing.T) {
+ 	require.NotNil(t, search.lastReq)
+ 	require.Contains(t, search.lastReq.Kinds, "rules.alerting.grafana.app/recordingrules")
+ 	require.Contains(t, search.lastReq.Kinds, "rules.alerting.grafana.app/alertrules")
++	require.Contains(t, search.lastReq.Kinds, "dashboard.grafana.app/variables")
+ }
+ 
+ func TestSubCount_SurfacesBothAlertAndRecordingRuleCounts(t *testing.T) {
+diff --git a/pkg/registry/apis/folders/validate.go b/pkg/registry/apis/folders/validate.go
+index e64378f28b864..5aa9099cfd376 100644
+--- a/pkg/registry/apis/folders/validate.go
++++ b/pkg/registry/apis/folders/validate.go
+@@ -573,7 +573,7 @@ func validateOnDelete(ctx context.Context,
+ 		return fmt.Errorf("could not verify if folder is empty: %v", resp.Error)
+ 	}
+ 
+-	allowedResourceTypes := []string{"alertrules", "recordingrules", "dashboards", "library_elements", "folders"}
++	allowedResourceTypes := []string{"alertrules", "recordingrules", "dashboards", "library_elements", "folders", "variables"}
+ 
+ 	for _, v := range resp.Stats {
+ 		if slices.Contains(allowedResourceTypes, v.Resource) && v.Count > 0 {
+diff --git a/pkg/registry/apis/folders/validate_test.go b/pkg/registry/apis/folders/validate_test.go
+index f7f205feb3f92..444add6a11976 100644
+--- a/pkg/registry/apis/folders/validate_test.go
++++ b/pkg/registry/apis/folders/validate_test.go
+@@ -1173,6 +1173,25 @@ func TestValidateDelete(t *testing.T) {
+ 			},
+ 		},
+ 		expectedErr: "[folder.not-empty]",
++	}, {
++		name: "folder not empty - contains variables",
++		folder: &folders.Folder{
++			ObjectMeta: metav1.ObjectMeta{
++				Name: "nnn",
++			},
++		},
++		searcher: &mockSearchClient{
++			stats: &resourcepb.ResourceStatsResponse{
++				Stats: []*resourcepb.ResourceStatsResponse_Stats{
++					{
++						Group:    "dashboard.grafana.app",
++						Resource: "variables",
++						Count:    4, // not empty
++					},
++				},
++			},
++		},
++		expectedErr: "[folder.not-empty]",
+ 	}, {
+ 		name: "folder not empty - contains alertrules",
+ 		folder: &folders.Folder{
+diff --git a/pkg/services/folder/folderimpl/folder.go b/pkg/services/folder/folderimpl/folder.go
+index 593750b752cfd..29a4d84e12040 100644
+--- a/pkg/services/folder/folderimpl/folder.go
++++ b/pkg/services/folder/folderimpl/folder.go
+@@ -14,6 +14,7 @@ import (
+ 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+ 
+ 	dashboardv1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1"
++	dashboardv2beta1 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2beta1"
+ 	folderv1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1"
+ 	"github.com/grafana/grafana/pkg/apimachinery/identity"
+ 	"github.com/grafana/grafana/pkg/services/accesscontrol"
+@@ -47,6 +48,7 @@ type Service struct {
+ 	maxNestedFolderDepth   int
+ 	dashboardK8sClient     client.K8sHandler
+ 	publicDashboardService publicdashboards.ServiceWrapper
++	variableK8sClient      client.K8sHandler
+ 
+ 	mutex    sync.RWMutex
+ 	registry map[string]folder.RegistryService
+@@ -103,6 +105,15 @@ func ProvideService(
+ 	)
+ 	srv.dashboardK8sClient = dashHandler
+ 
++	variableHandler := client.NewK8sHandler(
++		request.GetNamespaceMapper(cfg),
++		dashboardv2beta1.VariableResourceInfo.GroupVersionResource(),
++		restConfig.GetRestConfig,
++		userService,
++		resourceClient,
++	)
++	srv.variableK8sClient = variableHandler
++
+ 	return srv
+ }
+ 
+diff --git a/pkg/services/folder/folderimpl/folder_unifiedstorage.go b/pkg/services/folder/folderimpl/folder_unifiedstorage.go
+index a0f2c73d5b457..f57bf4da86450 100644
+--- a/pkg/services/folder/folderimpl/folder_unifiedstorage.go
++++ b/pkg/services/folder/folderimpl/folder_unifiedstorage.go
+@@ -7,6 +7,7 @@ import (
+ 	"strconv"
+ 	"strings"
+ 
++	apierrors "k8s.io/apimachinery/pkg/api/errors"
+ 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+ 	"k8s.io/apimachinery/pkg/selection"
+ 
+@@ -508,6 +509,43 @@ func (s *Service) Update(ctx context.Context, cmd *folder.UpdateFolderCommand) (
+ 	return folder, nil
+ }
+ 
++func (s *Service) deleteVariablesInFolders(ctx context.Context, orgID int64, folderUIDs []string) error {
++	ctx, span := s.tracer.Start(ctx, "folder.deleteVariablesInFolders")
++	defer span.End()
++
++	// Search is GET-scoped to the requester. Run as the service so leftover
++	// variables are found and deleted even when grafana.dashboardGlobalVariables
++	// is off (user-facing APIs deny) or the user cannot see every child.
++	ctx = identity.WithServiceIdentityContext(ctx, orgID)
++
++	request := &resourcepb.ResourceSearchRequest{
++		Options: &resourcepb.ListOptions{
++			Labels: []*resourcepb.Requirement{},
++			Fields: []*resourcepb.Requirement{
++				{
++					Key:      resource.SEARCH_FIELD_FOLDER,
++					Operator: string(selection.In),
++					Values:   folderUIDs,
++				},
++			},
++		},
++		Limit: folderSearchLimit}
++
++	hits, err := dashboardsearch.SearchAll(ctx, orgID, request, s.variableK8sClient.Search)
++	if err != nil {
++		return folder.ErrInternal.Errorf("failed to fetch variables: %w", err)
++	}
++
++	for _, hit := range hits.Hits {
++		variableUID := hit.Name
++		err = s.variableK8sClient.Delete(ctx, variableUID, orgID, metav1.DeleteOptions{})
++		if err != nil && !apierrors.IsNotFound(err) {
++			return folder.ErrInternal.Errorf("failed to delete variable %s: %w", variableUID, err)
++		}
++	}
++	return nil
++}
++
+ func (s *Service) Delete(ctx context.Context, cmd *folder.DeleteFolderCommand) error {
+ 	ctx, span := s.tracer.Start(ctx, "folder.Delete")
+ 	defer span.End()
+@@ -604,6 +642,10 @@ func (s *Service) Delete(ctx context.Context, cmd *folder.DeleteFolderCommand) e
+ 		}
+ 	}
+ 
++	if err := s.deleteVariablesInFolders(ctx, cmd.OrgID, folders); err != nil {
++		return err
++	}
++
+ 	err = s.unifiedStore.Delete(ctx, folders, cmd.OrgID)
+ 	if err != nil {
+ 		return err
+diff --git a/pkg/services/folder/folderimpl/folder_unifiedstorage_test.go b/pkg/services/folder/folderimpl/folder_unifiedstorage_test.go
+index 366c6276bc4ea..2f493ea4c42fe 100644
+--- a/pkg/services/folder/folderimpl/folder_unifiedstorage_test.go
++++ b/pkg/services/folder/folderimpl/folder_unifiedstorage_test.go
+@@ -307,6 +307,8 @@ func TestIntegrationFolderServiceViaUnifiedStorage(t *testing.T) {
+ 	publicDashboardService := publicdashboards.NewFakePublicDashboardServiceWrapper(t)
+ 
+ 	fakeK8sClient := new(client.MockK8sHandler)
++	variableK8sClient := new(client.MockK8sHandler)
++	variableK8sClient.On("Search", mock.Anything, mock.Anything, mock.Anything).Return(&resourcepb.ResourceSearchResponse{Results: &resourcepb.ResourceTable{}}, nil)
+ 	folderService := &Service{
+ 		log:                    slog.New(logtest.NewTestHandler(t)).With("logger", "test-folder-service"),
+ 		unifiedStore:           unifiedStore,
+@@ -316,6 +318,7 @@ func TestIntegrationFolderServiceViaUnifiedStorage(t *testing.T) {
+ 		tracer:                 tracer,
+ 		k8sclient:              k8sCli,
+ 		dashboardK8sClient:     fakeK8sClient,
++		variableK8sClient:      variableK8sClient,
+ 		publicDashboardService: publicDashboardService,
+ 	}
+ 
+@@ -957,12 +960,14 @@ func TestIntegrationDeleteFolders(t *testing.T) {
+ 	fakeK8sClient := new(client.MockK8sHandler)
+ 	fakeK8sClient.On("GetNamespace", mock.Anything, mock.Anything).Return("default")
+ 	dashboardK8sclient := new(client.MockK8sHandler)
++	variableK8sClient := new(client.MockK8sHandler)
+ 	fakeFolderStore := folder.NewFakeStore()
+ 	publicDashboardFakeService := publicdashboards.NewFakePublicDashboardServiceWrapper(t)
+ 	tracer := noop.NewTracerProvider().Tracer("TestDeleteFolders")
+ 	service := Service{
+ 		k8sclient:              fakeK8sClient,
+ 		dashboardK8sClient:     dashboardK8sclient,
++		variableK8sClient:      variableK8sClient,
+ 		unifiedStore:           fakeFolderStore,
+ 		publicDashboardService: publicDashboardFakeService,
+ 		accessControl:          actest.FakeAccessControl{ExpectedEvaluate: true},
+@@ -997,6 +1002,7 @@ func TestIntegrationDeleteFolders(t *testing.T) {
+ 	t.Run("Should delete folder", func(t *testing.T) {
+ 		publicDashboardFakeService.On("DeleteByDashboardUIDs", mock.Anything, int64(1), []string{}).Return(nil).Once()
+ 		dashboardK8sclient.On("Search", mock.Anything, int64(1), mock.Anything).Return(&resourcepb.ResourceSearchResponse{Results: &resourcepb.ResourceTable{}}, nil).Once()
++		variableK8sClient.On("Search", mock.Anything, int64(1), mock.Anything).Return(&resourcepb.ResourceSearchResponse{Results: &resourcepb.ResourceTable{}}, nil).Once()
+ 		err := service.Delete(ctx, &folder.DeleteFolderCommand{
+ 			UID:          "uid1",
+ 			OrgID:        1,
+@@ -1005,6 +1011,7 @@ func TestIntegrationDeleteFolders(t *testing.T) {
+ 		require.NoError(t, err)
+ 		dashboardK8sclient.AssertExpectations(t)
+ 		publicDashboardFakeService.AssertExpectations(t)
++		variableK8sClient.AssertExpectations(t)
+ 	})
+ 
+ 	t.Run("Should delete folders, dashboards, and public dashboards within the folder", func(t *testing.T) {
+@@ -1061,6 +1068,7 @@ func TestIntegrationDeleteFolders(t *testing.T) {
+ 			TotalHits: 1,
+ 		}, nil).Once()
+ 		publicDashboardFakeService.On("DeleteByDashboardUIDs", mock.Anything, int64(1), []string{"test", "test2"}).Return(nil).Once()
++		variableK8sClient.On("Search", mock.Anything, int64(1), mock.Anything).Return(&resourcepb.ResourceSearchResponse{Results: &resourcepb.ResourceTable{}}, nil).Once()
+ 		err := service.Delete(ctx, &folder.DeleteFolderCommand{
+ 			UID:          "uid",
+ 			OrgID:        1,
+@@ -1068,5 +1076,37 @@ func TestIntegrationDeleteFolders(t *testing.T) {
+ 		})
+ 		require.NoError(t, err)
+ 		publicDashboardFakeService.AssertExpectations(t)
++		variableK8sClient.AssertExpectations(t)
++	})
++
++	t.Run("Should delete variables within the folder", func(t *testing.T) {
++		fakeFolderStore.ExpectedFolders = nil
++		variableK8sClient.On("Search", mock.Anything, int64(1), mock.Anything).Return(&resourcepb.ResourceSearchResponse{
++			Results: &resourcepb.ResourceTable{
++				Columns: []*resourcepb.ResourceTableColumnDefinition{
++					{Name: "title", Type: resourcepb.ResourceTableColumnDefinition_STRING},
++				},
++				Rows: []*resourcepb.ResourceTableRow{
++					{
++						Key: &resourcepb.ResourceKey{
++							Name:     "var1",
++							Resource: "variables",
++						},
++						Cells: [][]byte{[]byte("my-var")},
++					},
++				},
++			},
++			TotalHits: 1,
++		}, nil).Once()
++		variableK8sClient.On("Delete", mock.Anything, "var1", int64(1), mock.Anything).Return(nil).Once()
++
++		err := service.Delete(ctx, &folder.DeleteFolderCommand{
++			UID:              "uid-vars",
++			OrgID:            1,
++			ForceDeleteRules: true,
++			SignedInUser:     user,
++		})
++		require.NoError(t, err)
++		variableK8sClient.AssertExpectations(t)
+ 	})
+ }

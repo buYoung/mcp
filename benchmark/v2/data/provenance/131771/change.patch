@@ -1,0 +1,473 @@
+diff --git a/pkg/storage/unified/resource/trash_authz.go b/pkg/storage/unified/resource/trash_authz.go
+index 5ab656f535ac4..715b4b070eacf 100644
+--- a/pkg/storage/unified/resource/trash_authz.go
++++ b/pkg/storage/unified/resource/trash_authz.go
+@@ -2,6 +2,8 @@ package resource
+ 
+ import (
+ 	"context"
++	"slices"
++	"strconv"
+ 
+ 	claims "github.com/grafana/authlib/types"
+ 
+@@ -51,18 +53,94 @@ func NewTrashAuthorizer(
+ 	}
+ }
+ 
++// k6FolderUID is hidden from anyone but a service account. The single check in
++// authlib denies it outright, and BatchCheck has no such rule, so batching a
++// decision for it would answer differently from every other path.
++//
++// Spelled here rather than imported from pkg/services/accesscontrol, which unified
++// storage does not depend on.
++const k6FolderUID = "k6-app"
++
++// TrashItem is one object Prepare may need a folder check for.
++type TrashItem struct {
++	Folder    string
++	DeletedBy string
++}
++
++// Prepare resolves the folder checks items will need in one call per batch, so the
++// Allowed calls that follow read the cache instead of waiting for a round trip each.
++//
++// Only a hint: a folder left undecided is checked on its own by FolderAdmin.
++func (a *TrashAuthorizer) Prepare(ctx context.Context, items []TrashItem) {
++	var pending []string
++	seen := make(map[string]bool, len(items))
++	for _, item := range items {
++		if a.deletedByCaller(item.DeletedBy) || seen[item.Folder] || item.Folder == k6FolderUID {
++			continue
++		}
++		if _, decided := a.folderAdmin[item.Folder]; decided {
++			continue
++		}
++		seen[item.Folder] = true
++		pending = append(pending, item.Folder)
++	}
++
++	for batch := range slices.Chunk(pending, claims.MaxBatchCheckItems) {
++		a.prepareBatch(ctx, batch)
++	}
++}
++
++func (a *TrashAuthorizer) prepareBatch(ctx context.Context, folders []string) {
++	checks := make([]claims.BatchCheckItem, 0, len(folders))
++	for i, folder := range folders {
++		checks = append(checks, claims.BatchCheckItem{
++			CorrelationID: strconv.Itoa(i),
++			Verb:          utils.VerbSetPermissions,
++			Group:         a.key.Group,
++			Resource:      a.key.Resource,
++			Folder:        folder,
++		})
++	}
++
++	resp, err := a.access.BatchCheck(ctx, a.user, claims.BatchCheckRequest{
++		Namespace: a.key.Namespace,
++		Checks:    checks,
++	})
++	if err != nil {
++		if a.onCheckError != nil {
++			a.onCheckError(err)
++		}
++		return
++	}
++
++	for i, folder := range folders {
++		// A folder left undecided here is checked on its own by FolderAdmin, which
++		// reports its own failure. Reporting again here would double every log line
++		// of an authz outage, once per item.
++		result, ok := resp.Results[strconv.Itoa(i)]
++		if !ok || result.Error != nil {
++			continue
++		}
++		a.folderAdmin[folder] = result.Allowed
++	}
++}
++
+ // Allowed reports whether the caller may see an object in folder deleted by
+ // deletedBy.
+ //
+ // deletedBy is compared first because it needs no authorization call. The two
+ // conditions are ORed, so the order affects only cost, not the answer.
+ func (a *TrashAuthorizer) Allowed(ctx context.Context, folder, deletedBy string) bool {
+-	if a.namespaceMatches && deletedBy != "" && deletedBy == a.user.GetUID() {
++	if a.deletedByCaller(deletedBy) {
+ 		return true
+ 	}
+ 	return a.FolderAdmin(ctx, folder)
+ }
+ 
++func (a *TrashAuthorizer) deletedByCaller(deletedBy string) bool {
++	return a.namespaceMatches && deletedBy != "" && deletedBy == a.user.GetUID()
++}
++
+ // FolderAdmin reports whether the caller administers folder.
+ //
+ // A kind with no folder is checked against the namespace instead, which is what
+diff --git a/pkg/storage/unified/resource/trash_authz_test.go b/pkg/storage/unified/resource/trash_authz_test.go
+index c41494a547d1c..d4f5d19c14e9a 100644
+--- a/pkg/storage/unified/resource/trash_authz_test.go
++++ b/pkg/storage/unified/resource/trash_authz_test.go
+@@ -1,6 +1,7 @@
+ package resource
+ 
+ import (
++	"context"
+ 	"errors"
+ 	"testing"
+ 
+@@ -165,3 +166,113 @@ func TestTrashAuthorizer_FolderlessKindChecksTheWholeNamespace(t *testing.T) {
+ 	assert.Equal(t, utils.VerbSetPermissions, (*calls)[0].verb)
+ 	assert.Empty(t, (*calls)[0].folder, "no folder means the check is not scoped to one")
+ }
++
++// batchAccessClient records round trips, so a test can tell one batch of many
++// folders from many single checks.
++type batchAccessClient struct {
++	callbackAccessClient
++	batches    [][]string
++	batchError error
++	// itemError answers every item in the batch with an error, which is what rbac
++	// does for an invalid namespace or subject.
++	itemError error
++}
++
++func (c *batchAccessClient) BatchCheck(ctx context.Context, id authlib.AuthInfo, req authlib.BatchCheckRequest) (authlib.BatchCheckResponse, error) {
++	folders := make([]string, 0, len(req.Checks))
++	for _, item := range req.Checks {
++		folders = append(folders, item.Folder)
++	}
++	c.batches = append(c.batches, folders)
++	if c.batchError != nil {
++		return authlib.BatchCheckResponse{}, c.batchError
++	}
++	if c.itemError != nil {
++		results := make(map[string]authlib.BatchCheckResult, len(req.Checks))
++		for _, item := range req.Checks {
++			results[item.CorrelationID] = authlib.BatchCheckResult{Error: c.itemError}
++		}
++		return authlib.BatchCheckResponse{Results: results}, nil
++	}
++	return c.callbackAccessClient.BatchCheck(ctx, id, req)
++}
++
++func newBatchAuthorizer(uid string, allow func(folder string) bool) (*TrashAuthorizer, *batchAccessClient, *[]error) {
++	var reported []error
++	ac := &batchAccessClient{}
++	ac.fn = func(req authlib.CheckRequest, folder string) (authlib.CheckResponse, error) {
++		return authlib.CheckResponse{Allowed: allow(folder), Zookie: authlib.NoopZookie{}}, nil
++	}
++	a := NewTrashAuthorizer(ac, trashTestUser(uid), trashTestKey(), func(e error) {
++		reported = append(reported, e)
++	})
++	return a, ac, &reported
++}
++
++// One round trip per page rather than one per folder is the point of Prepare.
++func TestTrashAuthorizer_PrepareResolvesEveryFolderInOneCall(t *testing.T) {
++	a, ac, _ := newBatchAuthorizer("carol", func(folder string) bool { return folder == "folder-1" })
++
++	a.Prepare(t.Context(), []TrashItem{
++		{Folder: "folder-1", DeletedBy: "user:alice"},
++		{Folder: "folder-2", DeletedBy: "user:alice"},
++		{Folder: "folder-1", DeletedBy: "user:alice"}, // repeat
++	})
++
++	require.Len(t, ac.batches, 1)
++	assert.Equal(t, []string{"folder-1", "folder-2"}, ac.batches[0], "a folder is asked about once")
++
++	assert.True(t, a.Allowed(t.Context(), "folder-1", "user:alice"))
++	assert.False(t, a.Allowed(t.Context(), "folder-2", "user:alice"))
++	assert.Len(t, ac.batches, 1, "the answers came from the cache")
++}
++
++// Objects the caller deleted are decided from the indexed field, so their folders
++// need no check.
++func TestTrashAuthorizer_PrepareSkipsFoldersItDoesNotNeed(t *testing.T) {
++	a, ac, _ := newBatchAuthorizer("alice", func(string) bool { return false })
++
++	a.Prepare(t.Context(), []TrashItem{{Folder: "folder-1", DeletedBy: "user:alice"}})
++
++	assert.Empty(t, ac.batches)
++}
++
++// A failed batch must leave the folder undecided rather than remembered as denied.
++func TestTrashAuthorizer_PrepareFailureFallsBackToSingleCheck(t *testing.T) {
++	boom := errors.New("batch failed")
++	a, ac, reported := newBatchAuthorizer("carol", func(string) bool { return true })
++	ac.batchError = boom
++
++	a.Prepare(t.Context(), []TrashItem{{Folder: "folder-1", DeletedBy: "user:alice"}})
++
++	require.Len(t, *reported, 1)
++	assert.ErrorIs(t, (*reported)[0], boom)
++	assert.True(t, a.Allowed(t.Context(), "folder-1", "user:alice"), "the single check still decides it")
++}
++
++// authlib denies k6-app in the single check and has no such rule for batches, so
++// batching a decision for it would disclose what every other path hides.
++func TestTrashAuthorizer_PrepareLeavesK6FolderToTheSingleCheck(t *testing.T) {
++	a, ac, _ := newBatchAuthorizer("carol", func(string) bool { return true })
++
++	a.Prepare(t.Context(), []TrashItem{
++		{Folder: "k6-app", DeletedBy: "user:alice"},
++		{Folder: "folder-1", DeletedBy: "user:alice"},
++	})
++
++	require.Len(t, ac.batches, 1)
++	assert.Equal(t, []string{"folder-1"}, ac.batches[0], "k6-app is not batched")
++}
++
++// A batch that answers some folders with an error leaves them to FolderAdmin, which
++// reports its own failure. Reporting here too would double every line of an outage.
++func TestTrashAuthorizer_PrepareDoesNotReportPerItemErrors(t *testing.T) {
++	boom := errors.New("item failed")
++	a, ac, reported := newBatchAuthorizer("carol", func(string) bool { return true })
++	ac.itemError = boom
++
++	a.Prepare(t.Context(), []TrashItem{{Folder: "folder-1", DeletedBy: "user:alice"}})
++
++	assert.Empty(t, *reported)
++	assert.True(t, a.Allowed(t.Context(), "folder-1", "user:alice"), "the single check still decides it")
++}
+diff --git a/pkg/storage/unified/search/trash_authz.go b/pkg/storage/unified/search/trash_authz.go
+index e80b0f8f8bf7e..67cda42853073 100644
+--- a/pkg/storage/unified/search/trash_authz.go
++++ b/pkg/storage/unified/search/trash_authz.go
+@@ -6,16 +6,21 @@ import (
+ 
+ 	"go.opentelemetry.io/otel/attribute"
+ 
++	authlib "github.com/grafana/authlib/types"
++
+ 	"github.com/grafana/grafana/pkg/storage/unified/resource"
+ )
+ 
++// Matches the read path's batch size, so both scans read equally far ahead of what
++// the caller consumes.
++const trashBatchSize = authlib.MaxBatchCheckItems
++
+ // trashAuthorized filters candidates by the trash rule instead of the read check.
+ // Shaped like authz.FilterAuthorized so it substitutes at the existing per-item
+ // authorization hook rather than forking the read path.
+ //
+-// Unbatched on purpose: FilterAuthorized batches because the read check costs one
+-// call per item, whereas the trash rule costs one per distinct folder and none for
+-// objects the caller deleted.
++// Batched because deciding folders one at a time cost a round trip each, which for
++// a listing spanning many folders added up to seconds.
+ func trashAuthorized(
+ 	ctx context.Context,
+ 	candidates iter.Seq[docInfo],
+@@ -33,19 +38,54 @@ func trashAuthorized(
+ 			)
+ 		}()
+ 
+-		for info := range candidates {
+-			considered++
++		// Reports whether the scan should continue.
++		flush := func(batch []docInfo) bool {
++			if len(batch) == 0 {
++				return true
++			}
+ 			if err := ctx.Err(); err != nil {
+ 				yield(docInfo{}, err)
+-				return
++				return false
++			}
++
++			items := make([]resource.TrashItem, 0, len(batch))
++			for _, info := range batch {
++				items = append(items, resource.TrashItem{Folder: info.folder, DeletedBy: info.deletedBy})
++			}
++			authorizer.Prepare(ctx, items)
++
++			for _, info := range batch {
++				// Per item, not per batch: a folder Prepare left undecided still costs a
++				// check, and on a dead context that reads as a denial rather than an error.
++				if err := ctx.Err(); err != nil {
++					yield(docInfo{}, err)
++					return false
++				}
++				if !authorizer.Allowed(ctx, info.folder, info.deletedBy) {
++					continue
++				}
++				allowed++
++				if !yield(info, nil) {
++					return false
++				}
+ 			}
+-			if !authorizer.Allowed(ctx, info.folder, info.deletedBy) {
++			return true
++		}
++
++		batch := make([]docInfo, 0, trashBatchSize)
++		for info := range candidates {
++			// Counted where the candidate is pulled, so a batch cut short by the caller
++			// still reports what the scan read.
++			considered++
++			batch = append(batch, info)
++			if len(batch) < trashBatchSize {
+ 				continue
+ 			}
+-			allowed++
+-			if !yield(info, nil) {
++			if !flush(batch) {
+ 				return
+ 			}
++			batch = batch[:0]
+ 		}
++		flush(batch)
+ 	}
+ }
+diff --git a/pkg/storage/unified/search/trash_authz_internal_test.go b/pkg/storage/unified/search/trash_authz_internal_test.go
+new file mode 100644
+index 0000000000000..7b488f092f1e1
+--- /dev/null
++++ b/pkg/storage/unified/search/trash_authz_internal_test.go
+@@ -0,0 +1,66 @@
++package search
++
++import (
++	"context"
++	"iter"
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++
++	authlib "github.com/grafana/authlib/types"
++
++	"github.com/grafana/grafana/pkg/apimachinery/identity"
++	"github.com/grafana/grafana/pkg/storage/unified/resource"
++	"github.com/grafana/grafana/pkg/storage/unified/resourcepb"
++)
++
++// denyingAccessClient answers every check, so a cancelled scan is the only thing a
++// test can be measuring.
++type denyingAccessClient struct{ authlib.AccessClient }
++
++func (denyingAccessClient) Check(context.Context, authlib.AuthInfo, authlib.CheckRequest, string) (authlib.CheckResponse, error) {
++	return authlib.CheckResponse{Allowed: false, Zookie: authlib.NoopZookie{}}, nil
++}
++
++func (denyingAccessClient) BatchCheck(_ context.Context, _ authlib.AuthInfo, req authlib.BatchCheckRequest) (authlib.BatchCheckResponse, error) {
++	results := make(map[string]authlib.BatchCheckResult, len(req.Checks))
++	for _, item := range req.Checks {
++		results[item.CorrelationID] = authlib.BatchCheckResult{Allowed: false}
++	}
++	return authlib.BatchCheckResponse{Results: results}, nil
++}
++
++// A cancelled scan must say so. Left to the folder check, cancellation reads as a
++// denial, and the caller gets a short page that looks like a complete one.
++func TestTrashAuthorized_CancellationIsReported(t *testing.T) {
++	ctx, cancel := context.WithCancel(t.Context())
++
++	authorizer := resource.NewTrashAuthorizer(
++		denyingAccessClient{},
++		&identity.StaticRequester{Type: authlib.TypeUser, UserUID: "carol", Namespace: "default"},
++		&resourcepb.ResourceKey{Namespace: "default", Group: "dashboard.grafana.app", Resource: "dashboards"},
++		nil,
++	)
++
++	candidates := func(yield func(docInfo) bool) {
++		for i := range 3 {
++			if !yield(docInfo{folder: "folder-1", deletedBy: "user:alice", name: string(rune('a' + i))}) {
++				return
++			}
++		}
++	}
++
++	cancel()
++
++	var err error
++	for _, e := range trashAuthorized(ctx, iter.Seq[docInfo](candidates), authorizer) {
++		if e != nil {
++			err = e
++			break
++		}
++	}
++
++	require.Error(t, err)
++	assert.ErrorIs(t, err, context.Canceled)
++}
+diff --git a/pkg/storage/unified/search/trash_authz_test.go b/pkg/storage/unified/search/trash_authz_test.go
+index 3ec4468967b55..49a117a898147 100644
+--- a/pkg/storage/unified/search/trash_authz_test.go
++++ b/pkg/storage/unified/search/trash_authz_test.go
+@@ -37,6 +37,9 @@ type trashAccessClient struct {
+ 	// Every folder checked, in order, including repeats, so tests can assert on the
+ 	// cache.
+ 	adminCheckFolders []string
++	// Round trips spent on folder admin checks, which is what the trash scan keeps
++	// low: a batch counts once, however many folders it carried.
++	adminCalls int
+ 	// Counted so a test can show which rule ran.
+ 	readChecks int
+ }
+@@ -44,6 +47,7 @@ type trashAccessClient struct {
+ func (c *trashAccessClient) Check(_ context.Context, _ authlib.AuthInfo, req authlib.CheckRequest, folder string) (authlib.CheckResponse, error) {
+ 	if req.Verb == utils.VerbSetPermissions {
+ 		c.adminCheckFolders = append(c.adminCheckFolders, folder)
++		c.adminCalls++
+ 		return authlib.CheckResponse{Allowed: c.adminFolders[folder], Zookie: authlib.NoopZookie{}}, nil
+ 	}
+ 	c.readChecks++
+@@ -59,10 +63,20 @@ func (c *trashAccessClient) Compile(_ context.Context, _ authlib.AuthInfo, _ aut
+ 
+ func (c *trashAccessClient) BatchCheck(_ context.Context, _ authlib.AuthInfo, req authlib.BatchCheckRequest) (authlib.BatchCheckResponse, error) {
+ 	results := make(map[string]authlib.BatchCheckResult, len(req.Checks))
++	admin := false
+ 	for _, item := range req.Checks {
++		if item.Verb == utils.VerbSetPermissions {
++			admin = true
++			c.adminCheckFolders = append(c.adminCheckFolders, item.Folder)
++			results[item.CorrelationID] = authlib.BatchCheckResult{Allowed: c.adminFolders[item.Folder]}
++			continue
++		}
+ 		c.readChecks++
+ 		results[item.CorrelationID] = authlib.BatchCheckResult{Allowed: c.readAll}
+ 	}
++	if admin {
++		c.adminCalls++
++	}
+ 	return authlib.BatchCheckResponse{Results: results}, nil
+ }
+ 
+@@ -281,6 +295,32 @@ func TestTrashAuthz_FolderAdminCheckIsCachedPerFolder(t *testing.T) {
+ 	}
+ }
+ 
++// Asked one at a time, a listing spanning many folders waits for one round trip
++// after another.
++func TestTrashAuthz_FolderChecksForAPageCostOneRoundTrip(t *testing.T) {
++	for _, path := range trashIndexBuilders() {
++		t.Run(path.name, func(t *testing.T) {
++			index := path.build(t)
++			const folderCount = 40
++			docs := make([]*resource.BulkIndexItem, 0, folderCount)
++			admin := map[string]bool{}
++			for i := range folderCount {
++				folder := fmt.Sprintf("folder-%02d", i)
++				admin[folder] = true
++				docs = append(docs, trashDoc("dash-"+folder, folder, trashAlice))
++			}
++			indexDocs(t, index, docs)
++
++			ac := &trashAccessClient{adminFolders: admin}
++			res := runTrashSearch(t, index, ac, "carol", trashQueryFor(nil))
++
++			require.Len(t, namesOf(res), folderCount)
++			assert.Equal(t, folderCount, ac.adminCheckCount(), "every folder is still decided")
++			assert.Equal(t, 1, ac.adminCalls, "in one round trip")
++		})
++	}
++}
++
+ // Live search must be untouched: the read check still decides.
+ func TestTrashAuthz_LiveSearchIsUnchanged(t *testing.T) {
+ 	for _, path := range trashIndexBuilders() {

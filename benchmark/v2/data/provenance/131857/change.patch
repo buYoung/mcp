@@ -1,0 +1,566 @@
+diff --git a/pkg/storage/unified/resource/bulk_test.go b/pkg/storage/unified/resource/bulk_test.go
+index 02f5e3d6382c9..9845490223403 100644
+--- a/pkg/storage/unified/resource/bulk_test.go
++++ b/pkg/storage/unified/resource/bulk_test.go
+@@ -345,6 +345,6 @@ func (b *panicBulkBackend) GetResourceStats(context.Context, NamespacedResource,
+ 	return nil, nil
+ }
+ 
+-func (b *panicBulkBackend) GetResourceLastImportTimes(context.Context) iter.Seq2[ResourceLastImportTime, error] {
+-	return nil
++func (b *panicBulkBackend) GetResourceLastImportTime(context.Context, NamespacedResource) (time.Time, error) {
++	panic("not implemented")
+ }
+diff --git a/pkg/storage/unified/resource/kv/last_import_time.go b/pkg/storage/unified/resource/kv/last_import_time.go
+index 1d730b92d4832..00430968a50f2 100644
+--- a/pkg/storage/unified/resource/kv/last_import_time.go
++++ b/pkg/storage/unified/resource/kv/last_import_time.go
+@@ -68,25 +68,55 @@ func (k *SqlKV) saveLastImportTime(ctx context.Context, key string) error {
+ }
+ 
+ func (k *SqlKV) lastImportTimeKeys(ctx context.Context, opt ListOptions, yield func(string, error) bool) {
+-	// This table doesn't have key_path column, and it is always read fully from the beginning.
+-	if opt.StartKey != "" || opt.EndKey != "" || opt.Sort != SortOrderAsc || opt.Limit != 0 {
+-		yield("", fmt.Errorf("unsupported options, only ascending all-keys list supported: %+v", opt))
++	if opt.Sort != SortOrderAsc || opt.Limit != 0 {
++		yield("", fmt.Errorf("unsupported options, only ascending unlimited list supported: %+v", opt))
+ 		return
+ 	}
+ 
+-	query := fmt.Sprintf(
+-		"SELECT %s, %s, %s, %s FROM %s ORDER BY %s ASC, %s ASC, %s ASC",
+-		k.dialect.QuoteIdent("namespace"),
+-		k.dialect.QuoteIdent("group"),
+-		k.dialect.QuoteIdent("resource"),
+-		k.dialect.QuoteIdent("last_import_time"),
+-		k.dialect.QuoteIdent(resourceLastImportTimeTable),
+-		k.dialect.QuoteIdent("namespace"),
+-		k.dialect.QuoteIdent("group"),
+-		k.dialect.QuoteIdent("resource"),
+-	)
++	var query string
++	var args []any
++	if opt.StartKey == "" && opt.EndKey == "" {
++		query = fmt.Sprintf(
++			"SELECT %s, %s, %s, %s FROM %s ORDER BY %s ASC, %s ASC, %s ASC",
++			k.dialect.QuoteIdent("namespace"),
++			k.dialect.QuoteIdent("group"),
++			k.dialect.QuoteIdent("resource"),
++			k.dialect.QuoteIdent("last_import_time"),
++			k.dialect.QuoteIdent(resourceLastImportTimeTable),
++			k.dialect.QuoteIdent("namespace"),
++			k.dialect.QuoteIdent("group"),
++			k.dialect.QuoteIdent("resource"),
++		)
++	} else {
++		if opt.EndKey != PrefixRangeEnd(opt.StartKey) {
++			yield("", fmt.Errorf("unsupported last import time key range: %+v", opt))
++			return
++		}
++		ns, group, resource, err := ParseLastImportTimeKeyPrefix(opt.StartKey)
++		if err != nil {
++			yield("", err)
++			return
++		}
+ 
+-	rows, err := k.conn(ctx).QueryContext(ctx, query)
++		placeholders := []string{"?", "?", "?"}
++		if k.dialect.Name() == "postgres" {
++			placeholders = []string{"$1", "$2", "$3"}
++		}
++		query = fmt.Sprintf(
++			"SELECT %s, %s, %s, %s FROM %s WHERE %s = %s AND %s = %s AND %s = %s",
++			k.dialect.QuoteIdent("namespace"),
++			k.dialect.QuoteIdent("group"),
++			k.dialect.QuoteIdent("resource"),
++			k.dialect.QuoteIdent("last_import_time"),
++			k.dialect.QuoteIdent(resourceLastImportTimeTable),
++			k.dialect.QuoteIdent("group"), placeholders[0],
++			k.dialect.QuoteIdent("resource"), placeholders[1],
++			k.dialect.QuoteIdent("namespace"), placeholders[2],
++		)
++		args = []any{group, resource, ns}
++	}
++
++	rows, err := k.conn(ctx).QueryContext(ctx, query, args...)
+ 	if err != nil {
+ 		yield("", err)
+ 		return
+@@ -149,9 +179,21 @@ func (k *SqlKV) deleteLastImportTime(ctx context.Context, key string) error {
+ 	return nil
+ }
+ 
++func LastImportTimeKeyPrefix(ns, group, resource string) string {
++	return fmt.Sprintf("%s~%s~%s~", ns, group, resource)
++}
++
++func ParseLastImportTimeKeyPrefix(prefix string) (ns, group, resource string, _ error) {
++	parts := strings.Split(strings.TrimSuffix(prefix, "~"), "~")
++	if len(parts) != 3 || !strings.HasSuffix(prefix, "~") {
++		return "", "", "", fmt.Errorf("invalid key prefix %q", prefix)
++	}
++	return parts[0], parts[1], parts[2], nil
++}
++
+ func LastImportTimeKey(ns, group, resource string, ts time.Time) string {
+ 	// We use unix seconds, as SQL implementation uses DATETIME which has seconds precision.
+-	return fmt.Sprintf("%s~%s~%s~%d", ns, group, resource, ts.Unix())
++	return fmt.Sprintf("%s%d", LastImportTimeKeyPrefix(ns, group, resource), ts.Unix())
+ }
+ 
+ func ParseLastImportTimeKey(key string) (ns, group, resource string, ts time.Time, _ error) {
+diff --git a/pkg/storage/unified/resource/last_import_time_store.go b/pkg/storage/unified/resource/last_import_time_store.go
+index 0871d6cdc8244..fec838b4c0008 100644
+--- a/pkg/storage/unified/resource/last_import_time_store.go
++++ b/pkg/storage/unified/resource/last_import_time_store.go
+@@ -47,13 +47,6 @@ func (k LastImportTimeKey) ToNamespacedResource() NamespacedResource {
+ 	}
+ }
+ 
+-func (k LastImportTimeKey) ToResourceLastImportTime() ResourceLastImportTime {
+-	return ResourceLastImportTime{
+-		NamespacedResource: k.ToNamespacedResource(),
+-		LastImportTime:     k.LastImportTime,
+-	}
+-}
+-
+ func ParseLastImportKey(key string) (LastImportTimeKey, error) {
+ 	ns, group, resource, t, err := kv.ParseLastImportTimeKey(key)
+ 	if err != nil {
+@@ -100,6 +93,40 @@ func (s *lastImportStore) Save(ctx context.Context, time ResourceLastImportTime)
+ 	return writer.Close()
+ }
+ 
++func (s *lastImportStore) GetLastImportTime(ctx context.Context, nsr NamespacedResource, lastImportTimeMaxAge time.Duration) (time.Time, error) {
++	key := LastImportTimeKey{
++		Namespace: nsr.Namespace,
++		Group:     nsr.Group,
++		Resource:  nsr.Resource,
++	}
++	if err := key.Validate(); err != nil {
++		return time.Time{}, fmt.Errorf("invalid last import time key: %w", err)
++	}
++
++	prefix := kv.LastImportTimeKeyPrefix(nsr.Namespace, nsr.Group, nsr.Resource)
++	var latest time.Time
++	for value, err := range s.kv.Keys(ctx, lastImportTimesSection, ListOptions{
++		StartKey: prefix,
++		EndKey:   kv.PrefixRangeEnd(prefix),
++	}) {
++		if err != nil {
++			return time.Time{}, err
++		}
++		importTime, err := ParseLastImportKey(value)
++		if err != nil {
++			return time.Time{}, err
++		}
++		if importTime.LastImportTime.After(latest) {
++			latest = importTime.LastImportTime
++		}
++	}
++
++	if lastImportTimeMaxAge > 0 && time.Since(latest) > lastImportTimeMaxAge {
++		return time.Time{}, nil
++	}
++	return latest, nil
++}
++
+ func (s *lastImportStore) ListLastImportTimes(ctx context.Context, lastImportTimeMaxAge time.Duration) (valid map[NamespacedResource]LastImportTimeKey, toDelete []LastImportTimeKey, _ error) {
+ 	valid = map[NamespacedResource]LastImportTimeKey{}
+ 	now := time.Now()
+diff --git a/pkg/storage/unified/resource/last_import_time_store_test.go b/pkg/storage/unified/resource/last_import_time_store_test.go
+index 8e4eb451d6446..ea4b8d6cc028f 100644
+--- a/pkg/storage/unified/resource/last_import_time_store_test.go
++++ b/pkg/storage/unified/resource/last_import_time_store_test.go
+@@ -54,6 +54,22 @@ func testLastImportStore(t *testing.T, kv kv.KV, allowDuplicateNamespaceGroupRes
+ 	require.NoError(t, store.Save(t.Context(), ResourceLastImportTime{NamespacedResource: onsr, LastImportTime: now.Add(1 * time.Minute)}))
+ 	require.NoError(t, store.Save(t.Context(), ResourceLastImportTime{NamespacedResource: o1nsr, LastImportTime: now.Add(1 * time.Minute)}))
+ 
++	lastImportTime, err := store.GetLastImportTime(t.Context(), dnsr, maxLastImportTimeAge)
++	require.NoError(t, err)
++	require.Equal(t, now.Add(2*time.Minute), lastImportTime)
++
++	lastImportTime, err = store.GetLastImportTime(t.Context(), pnsr, maxLastImportTimeAge)
++	require.NoError(t, err)
++	require.True(t, lastImportTime.IsZero())
++
++	lastImportTime, err = store.GetLastImportTime(t.Context(), NamespacedResource{
++		Namespace: "namespace",
++		Group:     "unknown",
++		Resource:  "unknown",
++	}, maxLastImportTimeAge)
++	require.NoError(t, err)
++	require.True(t, lastImportTime.IsZero())
++
+ 	// Keys are returned in byte-wise order of the full composite key, so
+ 	// "org1~..." precedes "org~...".
+ 	// SQLKV only stores a single import time per namespace/group/resource.
+diff --git a/pkg/storage/unified/resource/list_with_selectors_test.go b/pkg/storage/unified/resource/list_with_selectors_test.go
+index 55f2a6c217a58..6bc43c1d42f41 100644
+--- a/pkg/storage/unified/resource/list_with_selectors_test.go
++++ b/pkg/storage/unified/resource/list_with_selectors_test.go
+@@ -576,6 +576,6 @@ func (*fakeBackend) GetResourceStats(context.Context, NamespacedResource, int) (
+ 	return nil, nil
+ }
+ 
+-func (*fakeBackend) GetResourceLastImportTimes(context.Context) iter.Seq2[ResourceLastImportTime, error] {
+-	return func(func(ResourceLastImportTime, error) bool) {}
++func (*fakeBackend) GetResourceLastImportTime(context.Context, NamespacedResource) (time.Time, error) {
++	return time.Time{}, nil
+ }
+diff --git a/pkg/storage/unified/resource/search.go b/pkg/storage/unified/resource/search.go
+index 1ed7f4fdd1532..7d0533067af43 100644
+--- a/pkg/storage/unified/resource/search.go
++++ b/pkg/storage/unified/resource/search.go
+@@ -1285,7 +1285,7 @@ func (s *searchServer) RebuildIndexes(ctx context.Context, req *resourcepb.Rebui
+ 		})
+ 	}
+ 
+-	importTimes, err := s.getLastImportTimes(ctx)
++	importTimes, err := s.getLastImportTimes(ctx, filterKeys)
+ 	if err != nil {
+ 		return &resourcepb.RebuildIndexesResponse{
+ 			Error: AsErrorResult(err),
+@@ -1474,11 +1474,12 @@ func (s *searchServer) runPeriodicScanForIndexesToRebuild(ctx context.Context) {
+ 			s.log.Info("stopping periodic index rebuild due to context cancellation")
+ 			return
+ 		case <-ticker.C:
+-			importTimes, err := s.getLastImportTimes(ctx)
++			keys := s.search.GetOpenIndexes()
++			importTimes, err := s.getLastImportTimes(ctx, keys)
+ 			if err != nil {
+ 				s.log.Error("failed to get import times", "error", err)
+ 			}
+-			s.findIndexesToRebuild(importTimes, nil, time.Now(), true)
++			s.findIndexesToRebuild(importTimes, keys, time.Now(), true)
+ 		}
+ 	}
+ }
+@@ -1607,14 +1608,15 @@ func (s *searchServer) findIndexesToRebuild(lastImportTimes map[NamespacedResour
+ 	return completeChs
+ }
+ 
+-func (s *searchServer) getLastImportTimes(ctx context.Context) (map[NamespacedResource]time.Time, error) {
+-	result := map[NamespacedResource]time.Time{}
+-	for importTime, err := range s.storage.GetResourceLastImportTimes(ctx) {
++func (s *searchServer) getLastImportTimes(ctx context.Context, keys []NamespacedResource) (map[NamespacedResource]time.Time, error) {
++	result := make(map[NamespacedResource]time.Time, len(keys))
++	for _, key := range keys {
++		lastImportTime, err := s.storage.GetResourceLastImportTime(ctx, key)
+ 		if err != nil {
+-			// We return times that we have collected so far, if any.
++			// Return the times collected so far so periodic scans can still check those indexes.
+ 			return result, err
+ 		}
+-		result[importTime.NamespacedResource] = importTime.LastImportTime
++		result[key] = lastImportTime
+ 	}
+ 	return result, nil
+ }
+@@ -1892,13 +1894,10 @@ func (s *searchServer) getOrCreateIndex(ctx context.Context, stats *SearchStats,
+ 
+ 			// Get last import time to pass to BuildIndex, which will check if the file-based
+ 			// index needs to be rebuilt before opening it.
+-			var lastImportTime time.Time
+-			importTimes, err := s.getLastImportTimes(ctx)
++			lastImportTime, err := s.storage.GetResourceLastImportTime(ctx, key)
+ 			if err != nil {
+-				s.log.FromContext(ctx).Warn("failed to get last import times", "error", err)
++				s.log.FromContext(ctx).Warn("failed to get last import time", "error", err)
+ 				// Continue without import time check
+-			} else {
+-				lastImportTime = importTimes[key]
+ 			}
+ 
+ 			idx, err = s.build(ctx, key, unknownBuildSize, reason, false, lastImportTime)
+diff --git a/pkg/storage/unified/resource/search_test.go b/pkg/storage/unified/resource/search_test.go
+index ec41adc4a653c..bb1d097f2f8c2 100644
+--- a/pkg/storage/unified/resource/search_test.go
++++ b/pkg/storage/unified/resource/search_test.go
+@@ -115,12 +115,13 @@ func (f *fakeDocumentBuilder) BuildDocument(_ context.Context, _ *resourcepb.Res
+ // mockStorageBackend implements StorageBackend for testing
+ type mockStorageBackend struct {
+ 	UnimplementedStorageBackend
+-	resourceStats   []ResourceStats
+-	lastImportTimes []ResourceLastImportTime
+-	statsCalls      atomic.Int32
+-	listStoredCalls atomic.Int32
+-	listStoredErr   error
+-	lastCountLimit  atomic.Int64
++	resourceStats       []ResourceStats
++	lastImportTimes     []ResourceLastImportTime
++	statsCalls          atomic.Int32
++	listStoredCalls     atomic.Int32
++	listStoredErr       error
++	lastCountLimit      atomic.Int64
++	lastImportTimeCalls atomic.Int32
+ }
+ 
+ func (m *mockStorageBackend) GetResourceStats(ctx context.Context, nsr NamespacedResource, minCount int) ([]ResourceStats, error) {
+@@ -195,14 +196,14 @@ func (m *mockStorageBackend) ListModifiedSince(ctx context.Context, key Namespac
+ 	}
+ }
+ 
+-func (m *mockStorageBackend) GetResourceLastImportTimes(ctx context.Context) iter.Seq2[ResourceLastImportTime, error] {
+-	return func(yield func(ResourceLastImportTime, error) bool) {
+-		for _, ti := range m.lastImportTimes {
+-			if !yield(ti, nil) {
+-				return
+-			}
++func (m *mockStorageBackend) GetResourceLastImportTime(ctx context.Context, nsr NamespacedResource) (time.Time, error) {
++	m.lastImportTimeCalls.Add(1)
++	for _, importTime := range m.lastImportTimes {
++		if importTime.NamespacedResource == nsr {
++			return importTime.LastImportTime, nil
+ 		}
+ 	}
++	return time.Time{}, nil
+ }
+ 
+ // mockSearchBackend implements SearchBackend for testing with tracking capabilities
+@@ -490,6 +491,7 @@ func TestSearchGetOrCreateIndex(t *testing.T) {
+ 	require.Less(t, len(search.buildIndexCalls), concurrency, "Should not have built index more than a few times (ideally once)")
+ 	require.Equal(t, unknownBuildSize, search.buildIndexCalls[0].size)
+ 	require.Zero(t, storage.statsCalls.Load(), "lazy index build should not call GetResourceStats for a size hint")
++	require.Equal(t, int32(1), storage.lastImportTimeCalls.Load())
+ }
+ 
+ func TestSearchGetOrCreateIndexWithIndexUpdate(t *testing.T) {
+diff --git a/pkg/storage/unified/resource/server.go b/pkg/storage/unified/resource/server.go
+index b7d8c04b2699e..265edc8a507e9 100644
+--- a/pkg/storage/unified/resource/server.go
++++ b/pkg/storage/unified/resource/server.go
+@@ -207,8 +207,8 @@ type StorageBackend interface {
+ 	// returned identity may have no live objects by the time the caller queries it.
+ 	ListStoredResources(ctx context.Context, filter NamespacedResource) ([]NamespacedResource, error)
+ 
+-	// GetResourceLastImportTimes returns import times for all namespaced resources in the backend.
+-	GetResourceLastImportTimes(ctx context.Context) iter.Seq2[ResourceLastImportTime, error]
++	// GetResourceLastImportTime returns the import time for one namespaced resource, or zero if none exists.
++	GetResourceLastImportTime(ctx context.Context, nsr NamespacedResource) (time.Time, error)
+ }
+ 
+ type ModifiedResource struct {
+diff --git a/pkg/storage/unified/resource/storage_backend.go b/pkg/storage/unified/resource/storage_backend.go
+index 4554f0ece648e..f372d3d181232 100644
+--- a/pkg/storage/unified/resource/storage_backend.go
++++ b/pkg/storage/unified/resource/storage_backend.go
+@@ -2592,22 +2592,15 @@ func (k *kvStorageBackend) ListStoredResources(ctx context.Context, filter Names
+ 	return k.dataStore.ListStoredResources(ctx, filter)
+ }
+ 
+-func (k *kvStorageBackend) GetResourceLastImportTimes(ctx context.Context) iter.Seq2[ResourceLastImportTime, error] {
+-	ctx, span := tracer.Start(ctx, "resource.kvStorageBackend.GetResourceLastImportTimes")
++func (k *kvStorageBackend) GetResourceLastImportTime(ctx context.Context, nsr NamespacedResource) (time.Time, error) {
++	ctx, span := tracer.Start(ctx, "resource.kvStorageBackend.GetResourceLastImportTime", trace.WithAttributes(
++		attribute.String("namespace", nsr.Namespace),
++		attribute.String("group", nsr.Group),
++		attribute.String("resource", nsr.Resource),
++	))
++	defer span.End()
+ 
+-	return func(yield func(ResourceLastImportTime, error) bool) {
+-		defer span.End()
+-		valid, _, err := k.lastImportStore.ListLastImportTimes(ctx, k.lastImportTimeMaxAge)
+-		if err != nil {
+-			yield(ResourceLastImportTime{}, err)
+-			return
+-		}
+-		for _, v := range valid {
+-			if !yield(v.ToResourceLastImportTime(), nil) {
+-				return
+-			}
+-		}
+-	}
++	return k.lastImportStore.GetLastImportTime(ctx, nsr, k.lastImportTimeMaxAge)
+ }
+ 
+ type kvBulkImportItem struct {
+diff --git a/pkg/storage/unified/resource/unimplemented.go b/pkg/storage/unified/resource/unimplemented.go
+index 3c161d293a646..77920fa9e0426 100644
+--- a/pkg/storage/unified/resource/unimplemented.go
++++ b/pkg/storage/unified/resource/unimplemented.go
+@@ -78,8 +78,6 @@ func (UnimplementedStorageBackend) ListStoredResources(context.Context, Namespac
+ 	return nil, errUnimplemented
+ }
+ 
+-func (UnimplementedStorageBackend) GetResourceLastImportTimes(context.Context) iter.Seq2[ResourceLastImportTime, error] {
+-	return func(yield func(ResourceLastImportTime, error) bool) {
+-		yield(ResourceLastImportTime{}, errUnimplemented)
+-	}
++func (UnimplementedStorageBackend) GetResourceLastImportTime(context.Context, NamespacedResource) (time.Time, error) {
++	return time.Time{}, errUnimplemented
+ }
+diff --git a/pkg/storage/unified/search/embed/backfill/fakes_test.go b/pkg/storage/unified/search/embed/backfill/fakes_test.go
+index ece4f37a2896d..7436835224a16 100644
+--- a/pkg/storage/unified/search/embed/backfill/fakes_test.go
++++ b/pkg/storage/unified/search/embed/backfill/fakes_test.go
+@@ -177,10 +177,6 @@ func (f *fakeStorage) GetResourceStats(context.Context, resource.NamespacedResou
+ 	panic("not implemented")
+ }
+ 
+-func (f *fakeStorage) GetResourceLastImportTimes(context.Context) iter.Seq2[resource.ResourceLastImportTime, error] {
+-	panic("not implemented")
+-}
+-
+ // fakeVector records calls and lets tests preload GetSubresourceContent /
+ // stored rows. rows simulates the `embeddings` table (ns|model|resource|uid
+ // -> subresource -> stored row) so ContentVersion and the
+diff --git a/pkg/storage/unified/search/embed/reconciler/fakes_test.go b/pkg/storage/unified/search/embed/reconciler/fakes_test.go
+index ab849b085a82e..ec0a694b58c1b 100644
+--- a/pkg/storage/unified/search/embed/reconciler/fakes_test.go
++++ b/pkg/storage/unified/search/embed/reconciler/fakes_test.go
+@@ -141,10 +141,6 @@ func (f *fakeStorage) GetResourceStats(_ context.Context, nsr resource.Namespace
+ 	return out, nil
+ }
+ 
+-func (f *fakeStorage) GetResourceLastImportTimes(context.Context) iter.Seq2[resource.ResourceLastImportTime, error] {
+-	panic("not implemented")
+-}
+-
+ func (f *fakeStorage) ListModifiedSince(_ context.Context, key resource.NamespacedResource, sinceRv int64, _ *time.Time) (int64, iter.Seq2[*resource.ModifiedResource, error]) {
+ 	f.mu.Lock()
+ 	defer f.mu.Unlock()
+diff --git a/pkg/storage/unified/sql/backend.go b/pkg/storage/unified/sql/backend.go
+index fe30dcca031e5..bd0a956098eba 100644
+--- a/pkg/storage/unified/sql/backend.go
++++ b/pkg/storage/unified/sql/backend.go
+@@ -1616,6 +1616,18 @@ func (b *backend) lastImportTimeDB(ctx context.Context) db.ContextExecer {
+ 	return b.db
+ }
+ 
++func (b *backend) GetResourceLastImportTime(ctx context.Context, nsr resource.NamespacedResource) (time.Time, error) {
++	for importTime, err := range b.GetResourceLastImportTimes(ctx) {
++		if err != nil {
++			return time.Time{}, err
++		}
++		if importTime.NamespacedResource == nsr {
++			return importTime.LastImportTime, nil
++		}
++	}
++	return time.Time{}, nil
++}
++
+ func (b *backend) GetResourceLastImportTimes(ctx context.Context) iter.Seq2[resource.ResourceLastImportTime, error] {
+ 	b.logCall("GetResourceLastImportTimes")
+ 	ctx, span := tracer.Start(ctx, "sql.backend.GetResourceLastImportTimes")
+diff --git a/pkg/storage/unified/testing/storage_backend.go b/pkg/storage/unified/testing/storage_backend.go
+index b3a62eff772f2..5ac5faed65b46 100644
+--- a/pkg/storage/unified/testing/storage_backend.go
++++ b/pkg/storage/unified/testing/storage_backend.go
+@@ -1655,8 +1655,13 @@ func runTestIntegrationGetResourceLastImportTime(t *testing.T, backend resource.
+ 	ctx := testutil.NewTestContext(t, time.Now().Add(30*time.Second))
+ 
+ 	t.Run("no imported times by default", func(t *testing.T) {
+-		res := collectLastImportedTimes(t, backend, ctx)
+-		require.Empty(t, res)
++		lastImportTime, err := backend.GetResourceLastImportTime(ctx, resource.NamespacedResource{
++			Namespace: nsPrefix + "-not-imported",
++			Group:     "dashboards",
++			Resource:  "dashboard",
++		})
++		require.NoError(t, err)
++		require.True(t, lastImportTime.IsZero())
+ 	})
+ 
+ 	t.Run("last imported time after bulk import", func(t *testing.T) {
+@@ -1689,7 +1694,7 @@ func runTestIntegrationGetResourceLastImportTime(t *testing.T, backend resource.
+ 		require.Nil(t, resp.Error)
+ 		require.Empty(t, resp.Rejected)
+ 
+-		result := collectLastImportedTimes(t, backend, ctx)
++		result := collectLastImportedTimes(t, backend, ctx, collections)
+ 		require.Len(t, result, len(collections))
+ 
+ 		now := time.Now()
+@@ -1730,7 +1735,7 @@ func runTestIntegrationGetResourceLastImportTime(t *testing.T, backend resource.
+ 
+ 		const delta = 5 * time.Second
+ 		// Verify that last imported times are combination of both bulk imports
+-		result1 := collectLastImportedTimes(t, backend, ctx)
++		result1 := collectLastImportedTimes(t, backend, ctx, collections1)
+ 		require.WithinDuration(t, result1[resource.NamespacedResource{Namespace: ns1, Group: "dashboards", Resource: "dashboard"}], firstImport, delta)
+ 		require.WithinDuration(t, result1[resource.NamespacedResource{Namespace: ns1, Group: "folders", Resource: "folder"}], firstImport, delta)
+ 
+@@ -1762,7 +1767,10 @@ func runTestIntegrationGetResourceLastImportTime(t *testing.T, backend resource.
+ 		secondImport := time.Now()
+ 
+ 		// Verify that last imported times are combination of both bulk imports
+-		result2 := collectLastImportedTimes(t, backend, ctx)
++		allCollections := make([]*resourcepb.ResourceKey, 0, len(collections1)+len(collections2))
++		allCollections = append(allCollections, collections1...)
++		allCollections = append(allCollections, collections2...)
++		result2 := collectLastImportedTimes(t, backend, ctx, allCollections)
+ 
+ 		require.WithinDuration(t, result2[resource.NamespacedResource{Namespace: ns1, Group: "dashboards", Resource: "dashboard"}], secondImport, delta)
+ 		require.WithinDuration(t, result2[resource.NamespacedResource{Namespace: ns1, Group: "folders", Resource: "folder"}], firstImport, delta)
+@@ -1778,11 +1786,13 @@ func runTestIntegrationGetResourceLastImportTime(t *testing.T, backend resource.
+ 	})
+ }
+ 
+-func collectLastImportedTimes(t *testing.T, backend resource.StorageBackend, ctx context.Context) map[resource.NamespacedResource]time.Time {
+-	result := map[resource.NamespacedResource]time.Time{}
+-	for lm, err := range backend.GetResourceLastImportTimes(ctx) {
++func collectLastImportedTimes(t *testing.T, backend resource.StorageBackend, ctx context.Context, keys []*resourcepb.ResourceKey) map[resource.NamespacedResource]time.Time {
++	result := make(map[resource.NamespacedResource]time.Time, len(keys))
++	for _, key := range keys {
++		nsr := resource.NamespacedResource{Namespace: key.Namespace, Group: key.Group, Resource: key.Resource}
++		lastImportTime, err := backend.GetResourceLastImportTime(ctx, nsr)
+ 		require.NoError(t, err)
+-		result[lm.NamespacedResource] = lm.LastImportTime
++		result[nsr] = lastImportTime
+ 	}
+ 	return result
+ }
+diff --git a/pkg/storage/unified/testing/storage_backend_sql_compatibility.go b/pkg/storage/unified/testing/storage_backend_sql_compatibility.go
+index e74635b9a4070..e69311f86be44 100644
+--- a/pkg/storage/unified/testing/storage_backend_sql_compatibility.go
++++ b/pkg/storage/unified/testing/storage_backend_sql_compatibility.go
+@@ -1161,19 +1161,20 @@ func runTestLastImportTimeCrossBackend(t *testing.T, sqlBackend, kvBackend resou
+ 	sqlNS := nsPrefix + "-lit-sql"
+ 	sqlBulk, ok := sqlBackend.(resource.BulkProcessingBackend)
+ 	require.True(t, ok, "SQL backend must support BulkProcessingBackend")
++	sqlCollection := []*resourcepb.ResourceKey{{Namespace: sqlNS, Group: group, Resource: resourceType}}
+ 	sqlResp := sqlBulk.ProcessBulk(ctx, resource.BulkSettings{
+-		Collection: []*resourcepb.ResourceKey{{Namespace: sqlNS, Group: group, Resource: resourceType}},
++		Collection: sqlCollection,
+ 	}, toBulkIterator(buildSingleBulkRequest(sqlNS)))
+ 	require.Nil(t, sqlResp.Error)
+ 
+ 	// SQL backend should be able to read its own last import time
+-	sqlTimes := collectLastImportedTimes(t, sqlBackend, ctx)
++	sqlTimes := collectLastImportedTimes(t, sqlBackend, ctx, sqlCollection)
+ 	sqlNSR := resource.NamespacedResource{Namespace: sqlNS, Group: group, Resource: resourceType}
+ 	require.Contains(t, sqlTimes, sqlNSR, "SQL backend should return last import time for SQL-written namespace")
+ 	require.False(t, sqlTimes[sqlNSR].IsZero(), "SQL backend last import time should not be zero")
+ 
+ 	// KV backend should also be able to read the SQL-written last import time
+-	kvTimes := collectLastImportedTimes(t, kvBackend, ctx)
++	kvTimes := collectLastImportedTimes(t, kvBackend, ctx, sqlCollection)
+ 	require.Contains(t, kvTimes, sqlNSR, "KV backend should return last import time written by SQL backend")
+ 	require.False(t, kvTimes[sqlNSR].IsZero(), "KV backend last import time for SQL-written namespace should not be zero")
+ 
+@@ -1181,19 +1182,20 @@ func runTestLastImportTimeCrossBackend(t *testing.T, sqlBackend, kvBackend resou
+ 	kvNS := nsPrefix + "-lit-kv"
+ 	kvBulk, ok := kvBackend.(resource.BulkProcessingBackend)
+ 	require.True(t, ok, "KV backend must support BulkProcessingBackend")
++	kvCollection := []*resourcepb.ResourceKey{{Namespace: kvNS, Group: group, Resource: resourceType}}
+ 	kvResp := kvBulk.ProcessBulk(ctx, resource.BulkSettings{
+-		Collection: []*resourcepb.ResourceKey{{Namespace: kvNS, Group: group, Resource: resourceType}},
++		Collection: kvCollection,
+ 	}, toBulkIterator(buildSingleBulkRequest(kvNS)))
+ 	require.Nil(t, kvResp.Error)
+ 
+ 	// KV backend should be able to read its own last import time
+ 	kvNSR := resource.NamespacedResource{Namespace: kvNS, Group: group, Resource: resourceType}
+-	kvTimes2 := collectLastImportedTimes(t, kvBackend, ctx)
++	kvTimes2 := collectLastImportedTimes(t, kvBackend, ctx, kvCollection)
+ 	require.Contains(t, kvTimes2, kvNSR, "KV backend should return last import time for KV-written namespace")
+ 	require.False(t, kvTimes2[kvNSR].IsZero(), "KV backend last import time should not be zero")
+ 
+ 	// SQL backend should also be able to read the KV-written last import time
+-	sqlTimes2 := collectLastImportedTimes(t, sqlBackend, ctx)
++	sqlTimes2 := collectLastImportedTimes(t, sqlBackend, ctx, kvCollection)
+ 	require.Contains(t, sqlTimes2, kvNSR, "SQL backend should return last import time written by KV backend")
+ 	require.False(t, sqlTimes2[kvNSR].IsZero(), "SQL backend last import time for KV-written namespace should not be zero")
+ }

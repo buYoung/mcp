@@ -1,0 +1,44 @@
+{
+  "base_commit": "146d779a7d186327e765c2837637ad0543f802d1",
+  "status": "unadopted_product_patches_only",
+  "legacy_measurement_results": "discarded_at_user_request",
+  "new_harness_implemented": false,
+  "patches": [
+    {
+      "path": "candidate-patches/0.7.0-to-C.patch",
+      "base": "0.7.0",
+      "target": "C",
+      "bytes": 176805,
+      "sha256": "b252240d658495283db6a12355520ee327305f8f82ff280d00ed99d4ded1c90b"
+    },
+    {
+      "path": "candidate-patches/C-to-A.patch",
+      "base": "C",
+      "target": "A",
+      "bytes": 17066,
+      "sha256": "e8f61321b274d05427dcac7495414d0c7527ef259efaddad0b4a959afecef910"
+    },
+    {
+      "path": "candidate-patches/C-to-AB.patch",
+      "base": "C",
+      "target": "AB",
+      "bytes": 37049,
+      "sha256": "ae2b55d32642542a1b7132c0cdbc67a0caa19db83b83b680e5e6589bdc58045b"
+    },
+    {
+      "path": "candidate-patches/followup/C-to-followup.patch",
+      "base": "C",
+      "target": "followup",
+      "bytes": 47519,
+      "sha256": "66e3696fd763f50d6114d8d85eee4ca03b5b4b1a5423dc7917f6231fdb3f3a39"
+    },
+    {
+      "path": "candidate-patches/followup/AB-to-followup.patch",
+      "base": "AB",
+      "target": "followup",
+      "bytes": 35870,
+      "sha256": "0f31fd54cb13b90840c85e6500b70db09a424a20431374a87d1d634c1c29313f"
+    }
+  ],
+  "new_harness_required": true
+}

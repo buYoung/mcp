@@ -1,0 +1,311 @@
+diff --git a/packages/grafana-data/src/datetime/formatter.ts b/packages/grafana-data/src/datetime/formatter.ts
+index bf8ecbc55bd5c..8e2b586ed32f8 100644
+--- a/packages/grafana-data/src/datetime/formatter.ts
++++ b/packages/grafana-data/src/datetime/formatter.ts
+@@ -21,6 +21,10 @@ export interface DateTimeOptionsWithFormat extends DateTimeOptions {
+   defaultWithMS?: boolean;
+ }
+ 
++export interface DateTimeOptionsWithTimeAgo extends DateTimeOptions {
++  now?: DateTimeInput;
++}
++
+ type DateTimeFormatter<T extends DateTimeOptions = DateTimeOptions> = (dateInUtc: DateTimeInput, options?: T) => string;
+ 
+ // NOTE:
+@@ -62,8 +66,12 @@ export const dateTimeFormatISO: DateTimeFormatter = (dateInUtc, options?) =>
+  *
+  * @public
+  */
+-export const dateTimeFormatTimeAgo: DateTimeFormatter = (dateInUtc, options?) =>
+-  toTz(dateInUtc, getTimeZone(options)).fromNow();
++export const dateTimeFormatTimeAgo: DateTimeFormatter<DateTimeOptionsWithTimeAgo> = (dateInUtc, options?) => {
++  const timeZone = getTimeZone(options);
++  const date = toTz(dateInUtc, timeZone);
++
++  return options?.now == null ? date.fromNow() : date.from(toTz(options.now, timeZone));
++};
+ 
+ /**
+  * Helper function to format date and time according to the Grafana default formatting, but it
+diff --git a/packages/grafana-data/src/datetime/rangeutil.test.ts b/packages/grafana-data/src/datetime/rangeutil.test.ts
+index 0d7a0f8922926..4cf04e8c1bb47 100644
+--- a/packages/grafana-data/src/datetime/rangeutil.test.ts
++++ b/packages/grafana-data/src/datetime/rangeutil.test.ts
+@@ -4,15 +4,26 @@ import { dateTime } from './moment_wrapper';
+ import {
+   convertRawToRange,
+   describeInterval,
+-  describeTimeRange,
++  type describeTimeRange as DescribeTimeRange,
+   isRelativeTimeRange,
+   relativeToTimeRange,
+   roundInterval,
+   timeRangeToRelative,
+-  describeTextRange,
++  type describeTextRange as DescribeTextRange,
+ } from './rangeutil';
+ 
+ describe('Range Utils', () => {
++  const flagName = '__grafanaUseLuxon';
++  const originalDescriptor = Object.getOwnPropertyDescriptor(window, flagName);
++
++  afterEach(() => {
++    if (originalDescriptor) {
++      Object.defineProperty(window, flagName, originalDescriptor);
++    } else {
++      Reflect.deleteProperty(window, flagName);
++    }
++  });
++
+   // These tests probably wrap the dateTimeParser tests to some extent
+   describe('convertRawToRange', () => {
+     const DEFAULT_DATE_VALUE = '1996-07-30 16:00:00'; // Default format YYYY-MM-DD HH:mm:ss
+@@ -313,7 +324,18 @@ describe('Range Utils', () => {
+     });
+   });
+ 
+-  describe('describeTimeRange', () => {
++  describe.each([true, false])('describeTimeRange (luxon=%s)', (luxon) => {
++    let describeTimeRange: typeof DescribeTimeRange;
++    beforeEach(async () => {
++      Object.defineProperty(window, flagName, {
++        configurable: true,
++        value: luxon,
++      });
++      await jest.isolateModulesAsync(async () => {
++        describeTimeRange = (await import('./rangeutil')).describeTimeRange;
++      });
++    });
++
+     it.each([
+       ['now-5m', 'now', 'Last 5 minutes'],
+       ['now-15m', 'now', 'Last 15 minutes'],
+@@ -385,20 +407,53 @@ describe('Range Utils', () => {
+       expect(result).toBe('2023-01-15 05:30:00 to a few seconds ago');
+     });
+ 
+-    it('should handle absolute from, relative math to', () => {
++    it('should handle absolute from, relative math to distant past', () => {
++      // Loop to ensure we don't have an inconsistent 24 hours vs 1 day representation
++      for (let i = 0; i < 100; i++) {
++        const text = describeTimeRange({
++          from: dateTime([2014, 10, 10, 2, 3, 4]),
++          to: 'now-1d',
++        });
++        expect(text).toBe(`2014-11-10 02:03:04 to ${luxon ? '1' : 'a'} day ago`);
++      }
++    });
++
++    it('should handle absolute from, relative math to near past', () => {
+       const text = describeTimeRange({
+         from: dateTime([2014, 10, 10, 2, 3, 4]),
+-        to: 'now-1d',
++        to: 'now-5s',
+       });
+-      expect(text).toBe('2014-11-10 02:03:04 to a day ago');
++      expect(text).toBe('2014-11-10 02:03:04 to a few seconds ago');
++    });
++
++    it('should handle absolute from, relative math to distant future', () => {
++      // Loop to ensure we don't have an inconsistent 24 hours vs 1 day representation
++      for (let i = 0; i < 100; i++) {
++        const text = describeTimeRange({
++          from: dateTime([2014, 10, 10, 2, 3, 4]),
++          to: 'now+1d',
++        });
++        expect(text).toBe(`2014-11-10 02:03:04 to in ${luxon ? '1' : 'a'} day`);
++      }
++    });
++
++    it('should handle absolute from, relative math to near future', () => {
++      const text = describeTimeRange({
++        from: dateTime([2014, 10, 10, 2, 3, 4]),
++        to: 'now+5s',
++      });
++      expect(text).toBe('2014-11-10 02:03:04 to in a few seconds');
+     });
+ 
+     it('should handle relative from, absolute to', () => {
+-      const from = 'now-1h';
+-      const to = dateTime('2023-01-15T14:45:00Z');
++      // Loop to ensure we don't have an inconsistent 60 minutes vs 1 hour representation
++      for (let i = 0; i < 100; i++) {
++        const from = 'now-1h';
++        const to = dateTime('2023-01-15T14:45:00Z');
+ 
+-      const result = describeTimeRange({ from, to });
+-      expect(result).toBe('an hour ago to 2023-01-15 09:45:00');
++        const result = describeTimeRange({ from, to });
++        expect(result).toBe(`${luxon ? '1' : 'an'} hour ago to 2023-01-15 09:45:00`);
++      }
+     });
+ 
+     it('should handle invalid relative expressions', () => {
+@@ -417,49 +472,60 @@ describe('Range Utils', () => {
+       expect(describeTimeRange({ from: 'now-5m', to: 'now' }, undefined, undefined)).toBe('Last 5 minutes');
+     });
+   });
+-});
+ 
+-describe('describeTextRange', () => {
+-  it('should handle simple old expression with only amount and unit', () => {
+-    const info = describeTextRange('5m');
+-    expect(info.display).toBe('Last 5 minutes');
+-  });
++  describe.each([true, false])('describeTextRange (luxon=%s)', (luxon) => {
++    let describeTextRange: typeof DescribeTextRange;
++    beforeEach(async () => {
++      Object.defineProperty(window, flagName, {
++        configurable: true,
++        value: luxon,
++      });
++      await jest.isolateModulesAsync(async () => {
++        describeTextRange = (await import('./rangeutil')).describeTextRange;
++      });
++    });
+ 
+-  it('should have singular when amount is 1', () => {
+-    const info = describeTextRange('1h');
+-    expect(info.display).toBe('Last 1 hour');
+-  });
++    it('should handle simple old expression with only amount and unit', () => {
++      const info = describeTextRange('5m');
++      expect(info.display).toBe('Last 5 minutes');
++    });
+ 
+-  it('should handle non default amount', () => {
+-    const info = describeTextRange('13h');
+-    expect(info.display).toBe('Last 13 hours');
+-    expect(info.from).toBe('now-13h');
+-  });
++    it('should have singular when amount is 1', () => {
++      const info = describeTextRange('1h');
++      expect(info.display).toBe('Last 1 hour');
++    });
+ 
+-  it('should handle non default future amount', () => {
+-    const info = describeTextRange('+3h');
+-    expect(info.display).toBe('Next 3 hours');
+-    expect(info.from).toBe('now');
+-    expect(info.to).toBe('now+3h');
+-  });
++    it('should handle non default amount', () => {
++      const info = describeTextRange('13h');
++      expect(info.display).toBe('Last 13 hours');
++      expect(info.from).toBe('now-13h');
++    });
+ 
+-  it('should handle now/d', () => {
+-    const info = describeTextRange('now/d');
+-    expect(info.display).toBe('Today so far');
+-  });
++    it('should handle non default future amount', () => {
++      const info = describeTextRange('+3h');
++      expect(info.display).toBe('Next 3 hours');
++      expect(info.from).toBe('now');
++      expect(info.to).toBe('now+3h');
++    });
+ 
+-  it('should handle now/w', () => {
+-    const info = describeTextRange('now/w');
+-    expect(info.display).toBe('This week so far');
+-  });
++    it('should handle now/d', () => {
++      const info = describeTextRange('now/d');
++      expect(info.display).toBe('Today so far');
++    });
+ 
+-  it('should handle now/M', () => {
+-    const info = describeTextRange('now/M');
+-    expect(info.display).toBe('This month so far');
+-  });
++    it('should handle now/w', () => {
++      const info = describeTextRange('now/w');
++      expect(info.display).toBe('This week so far');
++    });
++
++    it('should handle now/M', () => {
++      const info = describeTextRange('now/M');
++      expect(info.display).toBe('This month so far');
++    });
+ 
+-  it('should handle now/y', () => {
+-    const info = describeTextRange('now/y');
+-    expect(info.display).toBe('This year so far');
++    it('should handle now/y', () => {
++      const info = describeTextRange('now/y');
++      expect(info.display).toBe('This year so far');
++    });
+   });
+ });
+diff --git a/packages/grafana-data/src/datetime/rangeutil.ts b/packages/grafana-data/src/datetime/rangeutil.ts
+index 86f2f30787f7a..32a2892341eaa 100644
+--- a/packages/grafana-data/src/datetime/rangeutil.ts
++++ b/packages/grafana-data/src/datetime/rangeutil.ts
+@@ -11,7 +11,7 @@ import {
+ 
+ import * as dateMath from './datemath';
+ import { timeZoneAbbrevation, dateTimeFormat, dateTimeFormatTimeAgo } from './formatter';
+-import { isDateTime, type DateTime, dateTime } from './moment_wrapper';
++import { isDateTime, type DateTime, dateTime, dateTimeForTimeZone } from './moment_wrapper';
+ import { dateTimeParse } from './parser';
+ 
+ // `fQ` and `fy` are synthesized lookup keys matching the regex group `f[Qy]`
+@@ -444,6 +444,7 @@ export function describeTextRange(expr: string): TimeOption {
+ export function describeTimeRange(range: RawTimeRange, timeZone?: TimeZone, quickRanges?: TimeOption[]): string {
+   const rangeOptions = quickRanges ? quickRanges.concat(getStandardRangeOptions()) : getStandardRangeOptions();
+   const option = findRangeInOptions(range, rangeOptions);
++  const now = dateTimeForTimeZone(timeZone);
+ 
+   if (option) {
+     return option.display;
+@@ -458,13 +459,13 @@ export function describeTimeRange(range: RawTimeRange, timeZone?: TimeZone, quic
+   // TODO: We could update these to all use Intl APIs.
+   // Could we use formatRangeToParts and replace the 'other side' with the ago formatting?
+   if (isDateTime(range.from)) {
+-    const parsed = dateMath.parse(range.to, true, 'utc');
+-    return parsed ? dateTimeFormat(range.from, options) + ' to ' + dateTimeFormatTimeAgo(parsed, options) : '';
++    const parsed = dateMath.toDateTime(range.to, { roundUp: true, timezone: 'utc', now });
++    return parsed ? dateTimeFormat(range.from, options) + ' to ' + describeTimeAgo(parsed, { ...options, now }) : '';
+   }
+ 
+   if (isDateTime(range.to)) {
+-    const parsed = dateMath.parse(range.from, false, 'utc');
+-    return parsed ? dateTimeFormatTimeAgo(parsed, options) + ' to ' + dateTimeFormat(range.to, options) : '';
++    const parsed = dateMath.toDateTime(range.from, { roundUp: false, timezone: 'utc', now });
++    return parsed ? describeTimeAgo(parsed, { ...options, now }) + ' to ' + dateTimeFormat(range.to, options) : '';
+   }
+ 
+   if (range.to.toString() === 'now') {
+@@ -475,6 +476,17 @@ export function describeTimeRange(range: RawTimeRange, timeZone?: TimeZone, quic
+   return range.from.toString() + ' to ' + range.to.toString();
+ }
+ 
++const describeTimeAgo = (parsed: DateTime, options: { timeZone?: TimeZone; now?: DateTime }) => {
++  const base = dateTimeForTimeZone(options.timeZone, options.now);
++  const diff = parsed.diff(base, 'seconds');
++  if (parsed.isValid() && Math.round(Math.abs(diff)) <= 44) {
++    return diff > 0
++      ? t('grafana-data.datetime.rangeutils.fewSecondsFuture', 'in a few seconds')
++      : t('grafana-data.datetime.rangeutils.fewSecondsPast', 'a few seconds ago');
++  }
++  return dateTimeFormatTimeAgo(parsed, options);
++};
++
+ export const isValidTimeSpan = (value: string) => {
+   if (value.indexOf('$') === 0 || value.indexOf('+$') === 0) {
+     return true;
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index ebf6b0c349255..9c6c8b738d099 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -9723,6 +9723,8 @@
+   "grafana-data": {
+     "datetime": {
+       "rangeutils": {
++        "fewSecondsFuture": "in a few seconds",
++        "fewSecondsPast": "a few seconds ago",
+         "getBaseRangeOptions": {
+           "dayBeforeYesterday": "Day before yesterday",
+           "previousFiscalQuarter": "Previous fiscal quarter",

@@ -1,0 +1,35 @@
+diff --git a/packages/grafana-ui/src/options/builder/axis.tsx b/packages/grafana-ui/src/options/builder/axis.tsx
+index 89f56b764cc13..b10e087f29c27 100644
+--- a/packages/grafana-ui/src/options/builder/axis.tsx
++++ b/packages/grafana-ui/src/options/builder/axis.tsx
+@@ -176,17 +176,19 @@ export const ScaleDistributionEditor = ({
+ 
+   return (
+     <Stack direction="column" gap={2}>
+-      <RadioButtonGroup
+-        value={type}
+-        options={DISTRIBUTION_OPTIONS}
+-        onChange={(v) => {
+-          onChange({
+-            ...value,
+-            type: v!,
+-            log: v === ScaleDistribution.Linear ? undefined : log,
+-          });
+-        }}
+-      />
++      <Stack direction="row">
++        <RadioButtonGroup
++          value={type}
++          options={DISTRIBUTION_OPTIONS}
++          onChange={(v) => {
++            onChange({
++              ...value,
++              type: v!,
++              log: v === ScaleDistribution.Linear ? undefined : log,
++            });
++          }}
++        />
++      </Stack>
+       {(type === ScaleDistribution.Log || type === ScaleDistribution.Symlog) && (
+         <Field label={t('grafana-ui.axis-builder.log-base', 'Log base')} noMargin>
+           <Select

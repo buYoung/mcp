@@ -1,0 +1,400 @@
+diff --git a/public/app/features/alerting/unified/components/rule-editor/QueryOptions.test.tsx b/public/app/features/alerting/unified/components/rule-editor/QueryOptions.test.tsx
+new file mode 100644
+index 0000000000000..5ca573ce53e00
+--- /dev/null
++++ b/public/app/features/alerting/unified/components/rule-editor/QueryOptions.test.tsx
+@@ -0,0 +1,148 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++
++import type { AlertQuery } from 'app/types/unified-alerting-dto';
++
++import { QueryOptions } from './QueryOptions';
++
++describe('QueryOptions', () => {
++  const defaultQuery: AlertQuery = {
++    refId: 'A',
++    queryType: '',
++    datasourceUid: 'ds-1',
++    model: {
++      refId: 'A',
++    },
++  };
++
++  const setup = async (overrides?: { maxDataPoints?: number; minInterval?: string }) => {
++    const user = userEvent.setup();
++    const onChangeQueryOptions = jest.fn();
++    const queryOptions = {
++      maxDataPoints: overrides?.maxDataPoints ?? 100,
++      minInterval: overrides?.minInterval ?? '1m',
++    };
++
++    render(
++      <QueryOptions
++        query={defaultQuery}
++        queryOptions={queryOptions}
++        onChangeQueryOptions={onChangeQueryOptions}
++        index={0}
++      />
++    );
++
++    const button = screen.getByRole('button', { name: /Options/i });
++    await user.click(button);
++
++    const maxDataPointsInput = screen.getByRole('spinbutton', { name: /Max data points/i });
++    const minIntervalInput = screen.getByRole('textbox', { name: /Interval/i });
++    const applyButton = screen.getByRole('button', { name: /Apply/i });
++
++    return { user, onChangeQueryOptions, maxDataPointsInput, minIntervalInput, applyButton };
++  };
++
++  it('should persist values only when Apply is clicked', async () => {
++    const { user, onChangeQueryOptions, maxDataPointsInput, minIntervalInput, applyButton } = await setup();
++
++    await user.clear(maxDataPointsInput);
++    await user.type(maxDataPointsInput, '200');
++    await user.clear(minIntervalInput);
++    await user.type(minIntervalInput, '5m');
++    expect(onChangeQueryOptions).not.toHaveBeenCalled();
++
++    await user.click(applyButton);
++
++    expect(onChangeQueryOptions).toHaveBeenCalledTimes(1);
++    expect(onChangeQueryOptions).toHaveBeenCalledWith({ maxDataPoints: 200, minInterval: '5m' }, 0);
++  });
++
++  it('should discard edits and reset inputs when tooltip is closed without Apply', async () => {
++    const { user, onChangeQueryOptions, maxDataPointsInput } = await setup();
++
++    await user.clear(maxDataPointsInput);
++    await user.type(maxDataPointsInput, '200');
++
++    const closeButton = screen.getByTestId('toggletip-header-close');
++    await user.click(closeButton);
++    expect(onChangeQueryOptions).not.toHaveBeenCalled();
++
++    const optionsButton = screen.getByRole('button', { name: /Options/i });
++    await user.click(optionsButton);
++
++    const applyButton = screen.getByRole('button', { name: /Apply/i });
++    await user.click(applyButton);
++
++    expect(onChangeQueryOptions).toHaveBeenCalledWith({ maxDataPoints: 100, minInterval: '1m' }, 0);
++  });
++
++  it('should treat zero maxDataPoints as cleared', async () => {
++    const { user, onChangeQueryOptions, maxDataPointsInput, applyButton } = await setup();
++
++    await user.clear(maxDataPointsInput);
++    await user.type(maxDataPointsInput, '0');
++    await user.click(applyButton);
++
++    expect(onChangeQueryOptions).toHaveBeenCalledWith({ maxDataPoints: undefined, minInterval: '1m' }, 0);
++  });
++
++  it('should block save and show error for invalid interval', async () => {
++    const { user, onChangeQueryOptions, minIntervalInput, applyButton } = await setup();
++
++    await user.clear(minIntervalInput);
++    await user.type(minIntervalInput, 'abc');
++    await user.click(applyButton);
++
++    expect(onChangeQueryOptions).not.toHaveBeenCalled();
++    expect(screen.getByText(/Invalid interval format/i)).toBeInTheDocument();
++  });
++
++  it('should clear interval error when user edits the field', async () => {
++    const { user, onChangeQueryOptions, minIntervalInput, applyButton } = await setup();
++
++    await user.clear(minIntervalInput);
++    await user.type(minIntervalInput, 'abc');
++    await user.click(applyButton);
++    expect(screen.getByText(/Invalid interval format/i)).toBeInTheDocument();
++
++    await user.clear(minIntervalInput);
++    await user.type(minIntervalInput, '5m');
++    expect(screen.queryByText(/Invalid interval format/i)).not.toBeInTheDocument();
++
++    await user.click(applyButton);
++    expect(onChangeQueryOptions).toHaveBeenCalledWith({ maxDataPoints: 100, minInterval: '5m' }, 0);
++  });
++
++  it('should sync local state when external props change', async () => {
++    const user = userEvent.setup();
++    const onChangeQueryOptions = jest.fn();
++
++    const { rerender } = render(
++      <QueryOptions
++        query={defaultQuery}
++        queryOptions={{ maxDataPoints: 100, minInterval: '1m' }}
++        onChangeQueryOptions={onChangeQueryOptions}
++        index={0}
++      />
++    );
++
++    const button = screen.getByRole('button', { name: /Options/i });
++    await user.click(button);
++
++    const maxDataPointsInput = screen.getByRole('spinbutton', { name: /Max data points/i });
++    await user.clear(maxDataPointsInput);
++    await user.type(maxDataPointsInput, '999');
++    expect(maxDataPointsInput).toHaveValue(999);
++
++    rerender(
++      <QueryOptions
++        query={defaultQuery}
++        queryOptions={{ maxDataPoints: 500, minInterval: '10s' }}
++        onChangeQueryOptions={onChangeQueryOptions}
++        index={0}
++      />
++    );
++
++    expect(maxDataPointsInput).toHaveValue(500);
++  });
++});
+diff --git a/public/app/features/alerting/unified/components/rule-editor/QueryOptions.tsx b/public/app/features/alerting/unified/components/rule-editor/QueryOptions.tsx
+index a46e8127d869f..d72cc82cd6943 100644
+--- a/public/app/features/alerting/unified/components/rule-editor/QueryOptions.tsx
++++ b/public/app/features/alerting/unified/components/rule-editor/QueryOptions.tsx
+@@ -1,9 +1,18 @@
+ import { css } from '@emotion/css';
+-import { useState } from 'react';
++import { useEffect, useState } from 'react';
+ 
+-import { type GrafanaTheme2, type RelativeTimeRange, getDefaultRelativeTimeRange } from '@grafana/data';
++import { type GrafanaTheme2, type RelativeTimeRange, getDefaultRelativeTimeRange, rangeUtil } from '@grafana/data';
+ import { Trans, t } from '@grafana/i18n';
+-import { Icon, InlineField, RelativeTimeRangePicker, Toggletip, clearButtonStyles, useStyles2 } from '@grafana/ui';
++import {
++  Button,
++  Icon,
++  InlineField,
++  RelativeTimeRangePicker,
++  Stack,
++  Toggletip,
++  clearButtonStyles,
++  useStyles2,
++} from '@grafana/ui';
+ import { type AlertQuery } from 'app/types/unified-alerting-dto';
+ 
+ import { TimeRangeLabel } from '../TimeRangeLabel';
+@@ -28,6 +37,67 @@ export const QueryOptions = ({
+   const styles = useStyles2(getStyles);
+ 
+   const [showOptions, setShowOptions] = useState(false);
++  const [localMaxDataPoints, setLocalMaxDataPoints] = useState(queryOptions?.maxDataPoints?.toString() ?? '');
++  const [localMinInterval, setLocalMinInterval] = useState(queryOptions?.minInterval ?? '');
++  const [intervalError, setIntervalError] = useState<string | undefined>(undefined);
++
++  useEffect(() => {
++    setLocalMaxDataPoints(queryOptions.maxDataPoints?.toString() ?? '');
++    setLocalMinInterval(queryOptions.minInterval ?? '');
++    setIntervalError(undefined);
++  }, [queryOptions.maxDataPoints, queryOptions.minInterval]);
++
++  const handleMinIntervalChange = (value: string) => {
++    setLocalMinInterval(value);
++    setIntervalError(undefined);
++  };
++
++  const resetOptions = () => {
++    setLocalMaxDataPoints(queryOptions?.maxDataPoints?.toString() ?? '');
++    setLocalMinInterval(queryOptions?.minInterval ?? '');
++    setIntervalError(undefined);
++  };
++
++  const applyOptions = () => {
++    let validatedMaxDataPoints: number | undefined = queryOptions.maxDataPoints;
++    let validatedMinInterval: string | undefined = queryOptions.minInterval;
++    let nextLocalMaxDataPoints = localMaxDataPoints;
++
++    const maxDataPointsNumber = parseInt(localMaxDataPoints, 10);
++    if (!isNaN(maxDataPointsNumber) && maxDataPointsNumber !== 0) {
++      validatedMaxDataPoints = maxDataPointsNumber;
++    } else {
++      validatedMaxDataPoints = undefined;
++      nextLocalMaxDataPoints = '';
++    }
++
++    if (localMinInterval !== '') {
++      try {
++        rangeUtil.intervalToMs(localMinInterval);
++        validatedMinInterval = localMinInterval;
++      } catch (e) {
++        setIntervalError(
++          t('alerting.query-options.invalid-interval-error', 'Invalid interval format. Examples: 1s, 5m, 1h')
++        );
++        return;
++      }
++    } else {
++      validatedMinInterval = undefined;
++    }
++
++    setLocalMaxDataPoints(nextLocalMaxDataPoints);
++    setIntervalError(undefined);
++
++    onChangeQueryOptions(
++      {
++        maxDataPoints: validatedMaxDataPoints,
++        minInterval: validatedMinInterval,
++      },
++      index
++    );
++
++    setShowOptions(false);
++  };
+ 
+   const separator = <span>, </span>;
+ 
+@@ -44,14 +114,30 @@ export const QueryOptions = ({
+                 />
+               </InlineField>
+             )}
+-            <MaxDataPointsOption options={queryOptions} onChange={(options) => onChangeQueryOptions(options, index)} />
+-            <MinIntervalOption options={queryOptions} onChange={(options) => onChangeQueryOptions(options, index)} />
++            <MaxDataPointsOption value={localMaxDataPoints} onChange={setLocalMaxDataPoints} />
++            <MinIntervalOption
++              value={localMinInterval}
++              onChange={handleMinIntervalChange}
++              invalid={!!intervalError}
++              error={intervalError}
++            />
++            <Stack direction="row" justifyContent="flex-end">
++              <Button size="sm" onClick={applyOptions}>
++                <Trans i18nKey="alerting.query-options.apply-button">Apply</Trans>
++              </Button>
++            </Stack>
+           </div>
+         }
+         closeButton={true}
+         placement="bottom-start"
++        show={showOptions}
++        onOpen={() => setShowOptions(true)}
++        onClose={() => {
++          resetOptions();
++          setShowOptions(false);
++        }}
+       >
+-        <button type="button" className={styles.actionLink} onClick={() => setShowOptions(!showOptions)}>
++        <button type="button" className={styles.actionLink}>
+           <Trans i18nKey="alerting.query-options.button-options">Options</Trans>{' '}
+           {showOptions ? <Icon name="angle-right" /> : <Icon name="angle-down" />}
+         </button>
+@@ -91,7 +177,7 @@ const getStyles = (theme: GrafanaTheme2) => {
+ 
+   return {
+     queryOptions: css({
+-      '> div': {
++      '> div:not(:last-child)': {
+         justifyContent: 'space-between',
+       },
+     }),
+diff --git a/public/app/features/alerting/unified/components/rule-editor/QueryWrapper.tsx b/public/app/features/alerting/unified/components/rule-editor/QueryWrapper.tsx
+index d8e0153b77393..4df79365a803c 100644
+--- a/public/app/features/alerting/unified/components/rule-editor/QueryWrapper.tsx
++++ b/public/app/features/alerting/unified/components/rule-editor/QueryWrapper.tsx
+@@ -221,28 +221,7 @@ export const EmptyQueryWrapper = ({ children }: React.PropsWithChildren<{}>) =>
+   return <div className={styles.wrapper}>{children}</div>;
+ };
+ 
+-export function MaxDataPointsOption({
+-  options,
+-  onChange,
+-}: {
+-  options: AlertQueryOptions;
+-  onChange: (options: AlertQueryOptions) => void;
+-}) {
+-  const value = options.maxDataPoints ?? '';
+-
+-  const onMaxDataPointsBlur = (event: ChangeEvent<HTMLInputElement>) => {
+-    const maxDataPointsNumber = parseInt(event.target.value, 10);
+-
+-    const maxDataPoints = isNaN(maxDataPointsNumber) || maxDataPointsNumber === 0 ? undefined : maxDataPointsNumber;
+-
+-    if (maxDataPoints !== options.maxDataPoints) {
+-      onChange({
+-        ...options,
+-        maxDataPoints,
+-      });
+-    }
+-  };
+-
++export function MaxDataPointsOption({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+   return (
+     <InlineField
+       labelWidth={24}
+@@ -257,32 +236,24 @@ export function MaxDataPointsOption({
+         width={10}
+         placeholder={DEFAULT_MAX_DATA_POINTS.toString()}
+         spellCheck={false}
+-        onBlur={onMaxDataPointsBlur}
+-        defaultValue={value}
++        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
++        value={value}
+       />
+     </InlineField>
+   );
+ }
+ 
+ export function MinIntervalOption({
+-  options,
++  value,
+   onChange,
++  invalid,
++  error,
+ }: {
+-  options: AlertQueryOptions;
+-  onChange: (options: AlertQueryOptions) => void;
++  value: string;
++  onChange: (value: string) => void;
++  invalid?: boolean;
++  error?: string;
+ }) {
+-  const value = options.minInterval ?? '';
+-
+-  const onMinIntervalBlur = (event: ChangeEvent<HTMLInputElement>) => {
+-    const minInterval = event.target.value;
+-    if (minInterval !== value) {
+-      onChange({
+-        ...options,
+-        minInterval,
+-      });
+-    }
+-  };
+-
+   return (
+     <InlineField
+       label={t('alerting.min-interval-option.label-interval', 'Interval')}
+@@ -293,14 +264,16 @@ export function MinIntervalOption({
+           your data is written every minute.
+         </Trans>
+       }
++      invalid={invalid}
++      error={error}
+     >
+       <Input
+         type="text"
+         width={10}
+         placeholder={DEFAULT_MIN_INTERVAL}
+         spellCheck={false}
+-        onBlur={onMinIntervalBlur}
+-        defaultValue={value}
++        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
++        value={value}
+       />
+     </InlineField>
+   );
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index b0d60c344e1d5..322637957bd43 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -2696,7 +2696,9 @@
+       "view-in-explore": "View in Explore"
+     },
+     "query-options": {
++      "apply-button": "Apply",
+       "button-options": "Options",
++      "invalid-interval-error": "Invalid interval format. Examples: 1s, 5m, 1h",
+       "label-time-range": "Time Range",
+       "max-data-points": "MD = {{maxDataPoints}}",
+       "min-interval": "Min. Interval = {{minInterval}}"

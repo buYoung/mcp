@@ -1,0 +1,50 @@
+{
+  "verified_at_utc": "2026-09-07T09:08:28.222172+00:00",
+  "automated_checks": 23,
+  "is_automated_verification_passed": true,
+  "is_runtime_probe_passed": true,
+  "dataset_questions": 36,
+  "dataset_sha256": "bfd752ccd22e316de1a2fb962bd0ea9f45b561cda1fe17d8d822b1c4bcf4113a",
+  "aggregation_sha256": "50c8c2cb6fcfb5f46dd6938cd66bb5d03dd9bb07488f40223c4874cd5679608a",
+  "preparation": {
+    "A": {
+      "calls_valid": 6,
+      "completed": 3,
+      "conditions_valid": 6,
+      "environment_or_unfinished": 0,
+      "limited": 3,
+      "quality_valid": 6,
+      "recorded": 6,
+      "scheduled": 6,
+      "statuses": {
+        "completed": 3,
+        "token_limit": 3
+      },
+      "tokens_valid": 3
+    },
+    "B": {
+      "calls_valid": 6,
+      "completed": 5,
+      "conditions_valid": 6,
+      "environment_or_unfinished": 0,
+      "limited": 1,
+      "quality_valid": 6,
+      "recorded": 6,
+      "scheduled": 6,
+      "statuses": {
+        "completed": 5,
+        "token_limit": 1
+      },
+      "tokens_valid": 5
+    }
+  },
+  "is_grading_controls_passed": true,
+  "is_reaggregation_verified": true,
+  "grading_total_tokens": 31753,
+  "is_main_started": false,
+  "main_block_reason": "제한 종료 4개 실행의 전체 토큰 계측 완전성을 확인하지 못해 준비 검증 조건 미충족",
+  "report": "../artifacts/preparation/report/report.md",
+  "raw_artifacts": "../artifacts/preparation/",
+  "is_product_unchanged": true,
+  "is_candidate_patches_preserved": true
+}

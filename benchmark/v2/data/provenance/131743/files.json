@@ -1,0 +1,50 @@
+[
+  {
+    "additions": 7,
+    "blob_url": "https://github.com/grafana/grafana/blob/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat.go",
+    "changes": 8,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat.go?ref=45d2a84897dbc1e94e84289b55dc6d2ccb79db67",
+    "deletions": 1,
+    "filename": "pkg/registry/apps/alerting/rules/alertrule/compat.go",
+    "patch": "@@ -462,7 +462,13 @@ func convertToBaseDomainModel(orgID int64, k8sRule *model.AlertRule) (*ngmodels.\n \t}\n \tdomainRule.IntervalSeconds = int64(time.Duration(interval).Seconds())\n \n-\tfor refID, expression := range k8sRule.Spec.Expressions {\n+\trefIDs := make([]string, 0, len(k8sRule.Spec.Expressions))\n+\tfor refID := range k8sRule.Spec.Expressions {\n+\t\trefIDs = append(refIDs, refID)\n+\t}\n+\tslices.Sort(refIDs)\n+\tfor _, refID := range refIDs {\n+\t\texpression := k8sRule.Spec.Expressions[refID]\n \t\tdomainQuery, err := convertToDomainQuery(expression, refID)\n \t\tif err != nil {\n \t\t\treturn nil, err",
+    "raw_url": "https://github.com/grafana/grafana/raw/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat.go",
+    "sha": "8b6a4c2ffc1cf626adf3091ebb967f40824b040a",
+    "status": "modified"
+  },
+  {
+    "additions": 23,
+    "blob_url": "https://github.com/grafana/grafana/blob/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat_test.go",
+    "changes": 23,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat_test.go?ref=45d2a84897dbc1e94e84289b55dc6d2ccb79db67",
+    "deletions": 0,
+    "filename": "pkg/registry/apps/alerting/rules/alertrule/compat_test.go",
+    "patch": "@@ -83,6 +83,29 @@ func TestConvertDeletedToK8sResources(t *testing.T) {\n \trequire.NotNil(t, got.DeletionTimestamp, \"deleted rule should carry a deletion timestamp\")\n }\n \n+func TestExpressionsConvertToDomainInRefIDOrder(t *testing.T) {\n+\trule := ngmodels.RuleGen.With(ngmodels.RuleGen.WithOrgID(1)).GenerateRef()\n+\trule.Record = nil\n+\tquery := rule.Data[0]\n+\trefIDs := []string{\"H\", \"G\", \"F\", \"E\", \"D\", \"C\", \"B\", \"A\"}\n+\trule.Data = make([]ngmodels.AlertQuery, 0, len(refIDs))\n+\tfor _, refID := range refIDs {\n+\t\tq := query\n+\t\tq.RefID = refID\n+\t\trule.Data = append(rule.Data, q)\n+\t}\n+\trule.Condition = \"D\"\n+\n+\tk8sRule, err := convertToK8sResource(1, rule, utils.ManagerProperties{}, nsMapperForTest())\n+\trequire.NoError(t, err)\n+\n+\tdomainRule, _, err := convertToDomainModel(1, k8sRule)\n+\trequire.NoError(t, err)\n+\tfor i, refID := range []string{\"A\", \"B\", \"C\", \"D\", \"E\", \"F\", \"G\", \"H\"} {\n+\t\tassert.Equal(t, refID, domainRule.Data[i].RefID)\n+\t}\n+}\n+\n func TestPrometheusRuleDefinitionRoundTrip(t *testing.T) {\n \tmapper := nsMapperForTest()\n \tgen := ngmodels.RuleGen",
+    "raw_url": "https://github.com/grafana/grafana/raw/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Falertrule%2Fcompat_test.go",
+    "sha": "2161764599943bfc6785b763252741ab2396c22c",
+    "status": "modified"
+  },
+  {
+    "additions": 7,
+    "blob_url": "https://github.com/grafana/grafana/blob/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat.go",
+    "changes": 8,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat.go?ref=45d2a84897dbc1e94e84289b55dc6d2ccb79db67",
+    "deletions": 1,
+    "filename": "pkg/registry/apps/alerting/rules/recordingrule/compat.go",
+    "patch": "@@ -307,7 +307,13 @@ func convertToBaseDomainModel(orgID int64, k8sRule *model.RecordingRule) (*ngmod\n \tfor k, v := range k8sRule.Spec.Labels {\n \t\tdomainRule.Labels[k] = string(v)\n \t}\n-\tfor refID, expression := range k8sRule.Spec.Expressions {\n+\trefIDs := make([]string, 0, len(k8sRule.Spec.Expressions))\n+\tfor refID := range k8sRule.Spec.Expressions {\n+\t\trefIDs = append(refIDs, refID)\n+\t}\n+\tslices.Sort(refIDs)\n+\tfor _, refID := range refIDs {\n+\t\texpression := k8sRule.Spec.Expressions[refID]\n \t\tdomainQuery, err := convertToDomainQuery(expression, refID)\n \t\tif err != nil {\n \t\t\treturn nil, err",
+    "raw_url": "https://github.com/grafana/grafana/raw/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat.go",
+    "sha": "5636d7d1accf7c036529576bb270c4e9f8a0ffe3",
+    "status": "modified"
+  },
+  {
+    "additions": 22,
+    "blob_url": "https://github.com/grafana/grafana/blob/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat_test.go",
+    "changes": 22,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat_test.go?ref=45d2a84897dbc1e94e84289b55dc6d2ccb79db67",
+    "deletions": 0,
+    "filename": "pkg/registry/apps/alerting/rules/recordingrule/compat_test.go",
+    "patch": "@@ -76,6 +76,28 @@ func TestConvertDeletedToK8sResources(t *testing.T) {\n \trequire.NotNil(t, got.DeletionTimestamp, \"deleted rule should carry a deletion timestamp\")\n }\n \n+func TestExpressionsConvertToDomainInRefIDOrder(t *testing.T) {\n+\trule := ngmodels.RuleGen.With(ngmodels.RuleGen.WithOrgID(1), ngmodels.RuleGen.WithAllRecordingRules()).GenerateRef()\n+\tquery := rule.Data[0]\n+\trefIDs := []string{\"H\", \"G\", \"F\", \"E\", \"D\", \"C\", \"B\", \"A\"}\n+\trule.Data = make([]ngmodels.AlertQuery, 0, len(refIDs))\n+\tfor _, refID := range refIDs {\n+\t\tq := query\n+\t\tq.RefID = refID\n+\t\trule.Data = append(rule.Data, q)\n+\t}\n+\trule.Record.From = \"D\"\n+\n+\tk8sRule, err := convertToK8sResource(1, rule, utils.ManagerProperties{}, nsMapperForTest())\n+\trequire.NoError(t, err)\n+\n+\tdomainRule, _, err := convertToDomainModel(1, k8sRule)\n+\trequire.NoError(t, err)\n+\tfor i, refID := range []string{\"A\", \"B\", \"C\", \"D\", \"E\", \"F\", \"G\", \"H\"} {\n+\t\tassert.Equal(t, refID, domainRule.Data[i].RefID)\n+\t}\n+}\n+\n func TestPrometheusRuleDefinitionRoundTrip(t *testing.T) {\n \tmapper := nsMapperForTest()\n \tgen := ngmodels.RuleGen",
+    "raw_url": "https://github.com/grafana/grafana/raw/45d2a84897dbc1e94e84289b55dc6d2ccb79db67/pkg%2Fregistry%2Fapps%2Falerting%2Frules%2Frecordingrule%2Fcompat_test.go",
+    "sha": "762dd69ef6214ca6f99703a9d18622a420aadfcc",
+    "status": "modified"
+  }
+]

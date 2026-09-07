@@ -1,0 +1,14 @@
+[
+  {
+    "additions": 13,
+    "blob_url": "https://github.com/grafana/grafana/blob/ec95a8078eaa697dbcb87a8e15f6d894dbef6079/packages%2Fgrafana-ui%2Fsrc%2Foptions%2Fbuilder%2Faxis.tsx",
+    "changes": 24,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/packages%2Fgrafana-ui%2Fsrc%2Foptions%2Fbuilder%2Faxis.tsx?ref=ec95a8078eaa697dbcb87a8e15f6d894dbef6079",
+    "deletions": 11,
+    "filename": "packages/grafana-ui/src/options/builder/axis.tsx",
+    "patch": "@@ -176,17 +176,19 @@ export const ScaleDistributionEditor = ({\n \n   return (\n     <Stack direction=\"column\" gap={2}>\n-      <RadioButtonGroup\n-        value={type}\n-        options={DISTRIBUTION_OPTIONS}\n-        onChange={(v) => {\n-          onChange({\n-            ...value,\n-            type: v!,\n-            log: v === ScaleDistribution.Linear ? undefined : log,\n-          });\n-        }}\n-      />\n+      <Stack direction=\"row\">\n+        <RadioButtonGroup\n+          value={type}\n+          options={DISTRIBUTION_OPTIONS}\n+          onChange={(v) => {\n+            onChange({\n+              ...value,\n+              type: v!,\n+              log: v === ScaleDistribution.Linear ? undefined : log,\n+            });\n+          }}\n+        />\n+      </Stack>\n       {(type === ScaleDistribution.Log || type === ScaleDistribution.Symlog) && (\n         <Field label={t('grafana-ui.axis-builder.log-base', 'Log base')} noMargin>\n           <Select",
+    "raw_url": "https://github.com/grafana/grafana/raw/ec95a8078eaa697dbcb87a8e15f6d894dbef6079/packages%2Fgrafana-ui%2Fsrc%2Foptions%2Fbuilder%2Faxis.tsx",
+    "sha": "b10e087f29c27dee749dddb73a0d83ab4d3d5ad0",
+    "status": "modified"
+  }
+]

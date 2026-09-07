@@ -1,0 +1,154 @@
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.md b/apps/codemap-search/src/tools/instructions/navigation.md
+--- a/apps/codemap-search/src/tools/instructions/navigation.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.md
+@@ -5,3 +5,4 @@
+ * `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+ * `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+ Typical flow: choose `grep` for known exact text or `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges. Use `overview` first only when the repository area itself is unfamiliar.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
+diff --git a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+--- a/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/navigation.monorepo.md
+@@ -5,3 +5,5 @@
+ * `read`: call directly when the file path is known. Prefer `offset`/`limit` windows from `search.read_suggestion` or `overview`; don't read a whole large file to find one symbol.
+ * `find`: call directly with an explicit base path to locate files by glob and confirm exact paths. Finds paths only; use `search` or `grep` for contents.
+ For known paths, call `read`/`find`/`grep` directly. For index-backed discovery: `initial_instructions` (includes ready root overview) → ask/choose scope (or explicit `all`/`전체`) → choose scoped `grep` for known exact text or scoped `search` for meaning/relationships → answer from sufficient snippets, or `read` only needed ranges.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/grep.md b/apps/codemap-search/src/tools/instructions/tools/grep.md
+--- a/apps/codemap-search/src/tools/instructions/tools/grep.md
++++ b/apps/codemap-search/src/tools/instructions/tools/grep.md
+@@ -1 +1,3 @@
+ With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Use first for exact identifiers, quoted literals, config keys/defaults, exact error text, regexes, exhaustive matches, comments/non-code, or just-edited files with no index lag. It searches disk directly and avoids semantic ranking when the requested text is already known. Regular expressions are the default; fixed_strings=true (alias -F) searches literal text. output_mode: content (default) returns exact file:line locations; files_with_matches returns only the set of matching files; count returns per-file counts with no line content — use count only to size a result set, never to locate code. If a scoped pattern returns 0, do not rerun unchanged: check path, glob, type, -i, multiline, or include_ignored. Exhaustive enumeration of known names stays with grep; but when the pattern is a list of guessed synonyms or spellings for one concept, or the location is unknown, that is a search question — switch to search (scoped in a monorepo) instead of widening the regex. Content pages count match regions, keeping requested context with each match and deduplicating overlapping context; count and files_with_matches pages count files. Use next_offset to continue. head_limit=0 removes only the count limit. Every response stays within grep_output_byte_cap, including status and continuation; oversized matches show a positioned partial excerpt. Long lines show a match-centered excerpt with byte columns and omission markers. Read/walk errors mark a partial search; zero-result responses include searched file counts, and count distinguishes all-search and page totals. Respects .gitignore and .codemapignore; set include_ignored to bypass.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/read.md b/apps/codemap-search/src/tools/instructions/tools/read.md
+--- a/apps/codemap-search/src/tools/instructions/tools/read.md
++++ b/apps/codemap-search/src/tools/instructions/tools/read.md
+@@ -1 +1,3 @@
+ With an explicit path, call directly without initial_instructions or overview; this does not set an active search scope. Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/search.md b/apps/codemap-search/src/tools/instructions/tools/search.md
+--- a/apps/codemap-search/src/tools/instructions/tools/search.md
++++ b/apps/codemap-search/src/tools/instructions/tools/search.md
+@@ -1 +1,2 @@
+ Use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, cross-file relationships, or 'where is this done?' when exact text is unknown. BM25 over indexed symbols, docstrings, and string literals; identifier splitting finds what exact patterns miss. For a known exact identifier, quoted literal, config key/default, exact error, regex, exhaustive enumeration, or just-edited file, use grep first. Come here instead when a grep pattern would only be guessing the wording (synonyms or alternative spellings for one concept, or an unknown location), or when a path/glob/case-checked grep still returned 0. Top files show snippets, symbol ranges, read_suggestion, matched function depth-1 callers/callees, and bounded static collection write/read hints when direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every endpoint in source. Set caller_context=false to skip call context. Snippet lines and caller file:line are exact; caller/callee attribution is approximate unless marked tree-sitter precise. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed read_suggestion range once; if absent, narrow the query or use overview, then read only needed ranges. Do not reread same ranges to confirm or re-search returned info.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
+diff --git a/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md b/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
+--- a/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
++++ b/apps/codemap-search/src/tools/instructions/tools/search.monorepo.md
+@@ -1 +1,3 @@
+ After monorepo scope is clear, use first for natural-language behavior, ambiguous concepts, mixed symbol-and-concept questions, cross-file relationships, or 'where is this done?' when exact text is unknown. Uses the active `overview <scope>` selection; pass `workspace_scope` to override, or `all` / `전체` for repo-wide search. Every scope listed in the root overview is accepted, including conventional workspaces and top-level source roots such as `api`, `app`, or `sdk`; a basename must remain unique. For a known exact identifier, quoted literal, config key/default, exact error, regex, exhaustive enumeration, or just-edited file, use grep first with a scoped path. Come here instead when a grep pattern would only be guessing the wording (synonyms or alternative spellings for one concept, or an unknown location), or when a path/glob/case-checked grep still returned 0. Top files show snippets, symbol ranges, read_suggestion, matched function depth-1 callers/callees, and bounded static collection write/read hints only when both endpoints are inside the selected scope and direct type identity is provable. Static collection hints cover TypeScript/JavaScript, Go, Rust, Java, Kotlin, Python, and C/C++; confirm every endpoint in source. Set caller_context=false to skip call context. Snippet lines and caller file:line are exact; caller/callee attribution is approximate unless marked tree-sitter precise. Cite snippets directly only when answer and context are visible with no partial, ambiguity, or list-only hints. Otherwise read each needed read_suggestion range once; if absent, narrow the query or use overview, then read only needed ranges. Do not reread same ranges to confirm or re-search returned info.
++For the question asked, connect the necessary inputs, transformations, returns, errors, and relationships to source; answer only what the inspected source establishes. A complete excerpt or an absent read_suggestion does not establish that the whole question is answered. Reuse source already obtained and inspect only missing relationships or ranges. Do not force extra explanations outside the question.
++When a question spans workspaces, explicitly explore each needed side in its own scope; never automatically widen to unrelated scopes or all.
+diff --git a/apps/codemap-search/src/tools/search/mod.rs b/apps/codemap-search/src/tools/search/mod.rs
+--- a/apps/codemap-search/src/tools/search/mod.rs
++++ b/apps/codemap-search/src/tools/search/mod.rs
+@@ -835,8 +835,8 @@
+                         break;
+                     }
+                     text.push_str(&format!(
+-                        "- Symbol: {} ({}) [L{}-{}]\n",
+-                        sym.name, sym.kind, sym.range.start_line, sym.range.end_line
++                        "- Symbol: {} ({}) [L{}-{}]{}\n",
++                        sym.name, sym.kind, sym.range.start_line, sym.range.end_line, render::symbol_owner_suffix(sym)
+                     ));
+                     listed += 1;
+                 }
+@@ -953,8 +953,8 @@
+             if !res.symbol_fallback {
+                 notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
+                     format!(
+-                        "{} [L{}-{}]",
+-                        sym.name, sym.range.start_line, sym.range.end_line
++                        "{} [L{}-{}]{}",
++                        sym.name, sym.range.start_line, sym.range.end_line, render::symbol_owner_suffix(sym)
+                     )
+                 }));
+             }
+diff --git a/apps/codemap-search/src/tools/search/render.rs b/apps/codemap-search/src/tools/search/render.rs
+--- a/apps/codemap-search/src/tools/search/render.rs
++++ b/apps/codemap-search/src/tools/search/render.rs
+@@ -12,6 +12,11 @@
+ //! record those callers in the dedup set. The render → fits-check → emit → commit sequence MUST
+ //! stay in that order: committing before the fit check would suppress a later block that was
+ //! never actually emitted.
++
++/// Keep the original symbol identity and add only the known enclosing type.
++pub(super) fn symbol_owner_suffix(symbol: &crate::parser::ExtractedSymbol) -> String {
++    symbol.owner.as_ref().map_or_else(String::new, |owner| format!("; owner: {owner}"))
++}
+ 
+ /// Cap a code snippet at `max_lines` AND `max_bytes`, appending an elision marker when
+ /// truncated, so the `search` detail view never emits a 1,000-line symbol body — nor a
+@@ -551,8 +556,8 @@
+             };
+         }
+         text.push_str(&format!(
+-            "- Symbol: {} ({}) [L{}-{}]\n",
+-            sym.name, sym.kind, sym.range.start_line, sym.range.end_line
++            "- Symbol: {} ({}) [L{}-{}]{}\n",
++            sym.name, sym.kind, sym.range.start_line, sym.range.end_line, symbol_owner_suffix(sym)
+         ));
+         emitted_starts.insert(start);
+         let is_anchor = is_anchor_sym(sym);
+@@ -637,3 +642,39 @@
+         complete_ranges,
+     }
+ }
++
++#[cfg(test)]
++mod evidence_guidance_tests {
++    #[test]
++    fn test_owner_suffix_preserves_symbol_identity() {
++        let symbol: crate::parser::ExtractedSymbol = serde_json::from_value(serde_json::json!({
++            "name":"apply", "kind":"method", "owner":"Channel",
++            "range":{"startLine":3,"startCol":0,"endLine":7,"endCol":1},
++            "docstring":null,
++            "flags":{"hasTodo":false,"hasFixme":false,"isTest":false,"isExported":false,"isDeprecated":false}
++        })).unwrap();
++        assert_eq!(super::symbol_owner_suffix(&symbol), "; owner: Channel");
++        let mut ownerless = symbol.clone();
++        ownerless.owner = None;
++        assert_eq!(super::symbol_owner_suffix(&ownerless), "");
++        assert_eq!((symbol.name.as_str(), symbol.kind.as_str(), symbol.range.start_line, symbol.range.end_line), ("apply", "method", 3, 7));
++    }
++
++    #[test]
++    fn test_guidance_requires_question_specific_source_without_extra_scope() {
++        for text in [
++            include_str!("../instructions/navigation.md"),
++            include_str!("../instructions/navigation.monorepo.md"),
++            include_str!("../instructions/tools/search.md"),
++            include_str!("../instructions/tools/search.monorepo.md"),
++            include_str!("../instructions/tools/read.md"),
++            include_str!("../instructions/tools/grep.md"),
++        ] {
++            assert!(text.contains("inputs, transformations, returns, errors, and relationships"));
++            assert!(text.contains("absent read_suggestion does not establish"));
++            assert!(text.contains("Reuse source already obtained"));
++            assert!(text.contains("Do not force extra explanations outside the question"));
++        }
++        assert!(include_str!("../instructions/navigation.monorepo.md").contains("each needed side in its own scope; never automatically widen"));
++    }
++}
+diff --git a/apps/codemap-search/tests/e2e/search.rs b/apps/codemap-search/tests/e2e/search.rs
+--- a/apps/codemap-search/tests/e2e/search.rs
++++ b/apps/codemap-search/tests/e2e/search.rs
+@@ -507,3 +507,15 @@
+         .success()
+         .stdout(predicates::str::contains("src/lib.rs"));
+ }
++
++#[tokio::test]
++async fn test_search_owner_is_rendered_with_original_symbol_and_source() {
++    let temp = create_mock_repo(&[("src/lib.rs", "pub struct Channel;\nimpl Channel {\n pub fn dispatch(&self) {}\n}\n")]).unwrap();
++    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path()).await.unwrap();
++    let response = client.send_request("tools/call", serde_json::json!({
++        "name":"search", "arguments":{"query":"dispatch", "caller_context":false}
++    })).await.unwrap();
++    let text = response["result"]["content"][0]["text"].as_str().unwrap();
++    assert!(text.contains("Symbol: dispatch (fn) [L3-3]; owner: Channel"), "{text}");
++    assert!(text.contains("3→ pub fn dispatch(&self) {}"), "{text}");
++}

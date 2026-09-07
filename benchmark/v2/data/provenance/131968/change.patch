@@ -1,0 +1,171 @@
+diff --git a/pkg/services/ngalert/ngalert.go b/pkg/services/ngalert/ngalert.go
+index 7b40c2c624e5f..c7fe4031ad79a 100644
+--- a/pkg/services/ngalert/ngalert.go
++++ b/pkg/services/ngalert/ngalert.go
+@@ -211,7 +211,11 @@ func (ng *AlertNG) newRuleSequenceStore() schedule.RuleSequenceStore {
+ 	if ng.clientGenerator == nil {
+ 		return nil
+ 	}
+-	return schedule.NewK8sRuleSequenceStore(ng.clientGenerator, log.New("ngalert.rulesequence.store"))
++	return schedule.NewK8sRuleSequenceStore(
++		ng.clientGenerator,
++		schedule.RuleSequenceNamespace(ng.Cfg),
++		log.New("ngalert.rulesequence.store"),
++	)
+ }
+ 
+ func (ng *AlertNG) init() error {
+diff --git a/pkg/services/ngalert/schedule/rule_sequence_store_k8s.go b/pkg/services/ngalert/schedule/rule_sequence_store_k8s.go
+index 7a7e1ed596100..5787a34f898dc 100644
+--- a/pkg/services/ngalert/schedule/rule_sequence_store_k8s.go
++++ b/pkg/services/ngalert/schedule/rule_sequence_store_k8s.go
+@@ -8,7 +8,9 @@ import (
+ 	"github.com/grafana/grafana-app-sdk/resource"
+ 	alertingv0alpha1 "github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
+ 	"github.com/grafana/grafana/pkg/infra/log"
++	reqns "github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
+ 	"github.com/grafana/grafana/pkg/services/ngalert/models"
++	"github.com/grafana/grafana/pkg/setting"
+ )
+ 
+ var _ RuleSequenceStore = (*K8sRuleSequenceStore)(nil)
+@@ -22,18 +24,31 @@ var _ RuleSequenceStore = (*K8sRuleSequenceStore)(nil)
+ // is ready. Transient initialization failures are retried on the next call.
+ type K8sRuleSequenceStore struct {
+ 	clientGenerator resource.ClientGenerator
++	namespace       string
+ 	log             log.Logger
+ 
+ 	mu     sync.Mutex
+ 	client *alertingv0alpha1.RuleSequenceClient
+ }
+ 
++// RuleSequenceNamespace returns the namespace the scheduler lists RuleSequences
++// in, mirroring how the app scopes its informer.
++func RuleSequenceNamespace(cfg *setting.Cfg) string {
++	if cfg == nil || cfg.StackID == "" {
++		return ""
++	}
++	// The cloud mapper ignores the org ID and returns the stack namespace.
++	return reqns.GetNamespaceMapper(cfg)(0)
++}
++
+ // NewK8sRuleSequenceStore creates a RuleSequenceStore backed by the k8s
+ // RuleSequence resource. The clientGenerator is used lazily: the actual k8s
+-// client is not created until the first scheduling poll.
+-func NewK8sRuleSequenceStore(clientGenerator resource.ClientGenerator, log log.Logger) *K8sRuleSequenceStore {
++// client is not created until the first scheduling poll. namespace comes from
++// RuleSequenceNamespace.
++func NewK8sRuleSequenceStore(clientGenerator resource.ClientGenerator, namespace string, log log.Logger) *K8sRuleSequenceStore {
+ 	return &K8sRuleSequenceStore{
+ 		clientGenerator: clientGenerator,
++		namespace:       namespace,
+ 		log:             log,
+ 	}
+ }
+@@ -58,9 +73,7 @@ func (s *K8sRuleSequenceStore) GetRuleSequencesForScheduling(ctx context.Context
+ 		return nil, fmt.Errorf("initializing rule sequence client: %w", err)
+ 	}
+ 
+-	// Empty namespace lists across all namespaces so the scheduler sees
+-	// sequences from every org.
+-	list, err := client.ListAll(ctx, "", resource.ListOptions{})
++	list, err := client.ListAll(ctx, s.namespace, resource.ListOptions{})
+ 	if err != nil {
+ 		return nil, fmt.Errorf("listing rule sequences: %w", err)
+ 	}
+diff --git a/pkg/services/ngalert/schedule/rule_sequence_store_k8s_test.go b/pkg/services/ngalert/schedule/rule_sequence_store_k8s_test.go
+index bef77469829c0..0a4db4d17c5ef 100644
+--- a/pkg/services/ngalert/schedule/rule_sequence_store_k8s_test.go
++++ b/pkg/services/ngalert/schedule/rule_sequence_store_k8s_test.go
+@@ -9,6 +9,7 @@ import (
+ 	alertingv0alpha1 "github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
+ 	"github.com/grafana/grafana/pkg/infra/log"
+ 	"github.com/grafana/grafana/pkg/services/ngalert/models"
++	"github.com/grafana/grafana/pkg/setting"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+@@ -18,8 +19,9 @@ import (
+ // fakeClientGenerator implements resource.ClientGenerator, returning a
+ // preconfigured error to simulate transient init failures.
+ type fakeClientGenerator struct {
+-	calls int
+-	err   error
++	calls  int
++	err    error
++	client resource.Client
+ }
+ 
+ func (f *fakeClientGenerator) ClientFor(_ resource.Kind) (resource.Client, error) {
+@@ -27,6 +29,9 @@ func (f *fakeClientGenerator) ClientFor(_ resource.Kind) (resource.Client, error
+ 	if f.err != nil {
+ 		return nil, f.err
+ 	}
++	if f.client != nil {
++		return f.client, nil
++	}
+ 	// Return nil client; NewRuleSequenceClient wraps it. The resulting
+ 	// RuleSequenceClient cannot serve real requests, but that is fine for
+ 	// testing the lazy-init retry logic (we only check that getClient
+@@ -42,9 +47,22 @@ func (f *fakeClientGenerator) DiscoveryClient() (resource.DiscoveryClient, error
+ 	return nil, errors.New("not implemented")
+ }
+ 
++// recordingClient records the namespace the store lists in. Only List is
++// implemented; the embedded nil interface panics on any other call, so widening
++// the store's use of the client surfaces here instead of passing silently.
++type recordingClient struct {
++	resource.Client
++	namespaces []string
++}
++
++func (r *recordingClient) List(_ context.Context, namespace string, _ resource.ListOptions) (resource.ListObject, error) {
++	r.namespaces = append(r.namespaces, namespace)
++	return &alertingv0alpha1.RuleSequenceList{}, nil
++}
++
+ func TestK8sRuleSequenceStore_getClient_retries_on_failure(t *testing.T) {
+ 	gen := &fakeClientGenerator{err: errors.New("apiserver not ready")}
+-	store := NewK8sRuleSequenceStore(gen, log.NewNopLogger())
++	store := NewK8sRuleSequenceStore(gen, "", log.NewNopLogger())
+ 
+ 	// First call should fail and propagate the error.
+ 	_, err := store.GetRuleSequencesForScheduling(context.Background())
+@@ -71,6 +89,36 @@ func TestK8sRuleSequenceStore_getClient_retries_on_failure(t *testing.T) {
+ 	assert.Equal(t, 3, gen.calls, "expected cached client, no new generator call")
+ }
+ 
++func TestRuleSequenceNamespace(t *testing.T) {
++	t.Run("cloud scopes the list to the stack namespace", func(t *testing.T) {
++		assert.Equal(t, "stacks-12345", RuleSequenceNamespace(&setting.Cfg{StackID: "12345"}))
++	})
++
++	t.Run("on-prem lists across all namespaces so every org is scheduled", func(t *testing.T) {
++		assert.Empty(t, RuleSequenceNamespace(&setting.Cfg{}))
++		assert.Empty(t, RuleSequenceNamespace(nil))
++	})
++}
++
++func TestK8sRuleSequenceStore_listsInConfiguredNamespace(t *testing.T) {
++	for _, tc := range []struct {
++		name      string
++		namespace string
++	}{
++		{name: "cloud lists only its own stack", namespace: "stacks-12345"},
++		{name: "on-prem lists across all namespaces", namespace: ""},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			cli := &recordingClient{}
++			store := NewK8sRuleSequenceStore(&fakeClientGenerator{client: cli}, tc.namespace, log.NewNopLogger())
++
++			_, err := store.GetRuleSequencesForScheduling(context.Background())
++			require.NoError(t, err)
++			assert.Equal(t, []string{tc.namespace}, cli.namespaces)
++		})
++	}
++}
++
+ func TestConvertRuleSequence(t *testing.T) {
+ 	tests := []struct {
+ 		name    string

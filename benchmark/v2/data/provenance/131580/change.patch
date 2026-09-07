@@ -1,0 +1,1863 @@
+diff --git a/public/app/features/notebook/api/notebookResource.test.ts b/public/app/features/notebook/api/notebookResource.test.ts
+index d7aa231a2d450..526391b425597 100644
+--- a/public/app/features/notebook/api/notebookResource.test.ts
++++ b/public/app/features/notebook/api/notebookResource.test.ts
+@@ -9,7 +9,7 @@ import { dashboardAPIv2beta1 } from 'app/api/clients/dashboard/v2beta1';
+ import { codeCell, markdownCell, notebookSpec } from '../mutation-api/test-utils';
+ import { type Spec as NotebookSpec } from '../types';
+ 
+-import { updateNotebook } from './notebookResource';
++import { createNotebook, updateNotebook } from './notebookResource';
+ 
+ // The write dispatches through the app store; route that dispatch to a test store carrying the dashboard
+ // v2beta1 API so the real RTK mutation, and the real base query that decides the patch content type, both
+@@ -127,3 +127,35 @@ describe('updateNotebook', () => {
+     ).rejects.toThrow();
+   });
+ });
++
++describe('createNotebook', () => {
++  beforeEach(() => {
++    testStore = createTestStore();
++  });
++
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('posts the notebook and returns the uid, url and generation the server assigned', async () => {
++    const spec = notebookSpec();
++    const fetch = fetchOf(savedNotebook(spec, 1));
++
++    const created = await createNotebook(spec);
++
++    expect(fetch).toHaveBeenCalledTimes(1);
++    expect(fetch.mock.calls[0][0].method).toBe('POST');
++    // The generation is what lets a notebook created by autosave be reopened without its scene being
++    // rebuilt from a fetch, so it has to come back rather than being dropped here.
++    expect(created).toEqual({ uid: 'nb-1', url: '/notebooks/nb-1', generation: 1 });
++  });
++
++  it('leaves the generation unset when the response carries none', async () => {
++    const spec = notebookSpec();
++    const saved = savedNotebook(spec);
++    // The field is optional on the wire even though the helper always fills it in.
++    fetchOf({ ...saved, metadata: { ...saved.metadata, generation: undefined } });
++
++    await expect(createNotebook(spec)).resolves.toEqual({ uid: 'nb-1', url: '/notebooks/nb-1' });
++  });
++});
+diff --git a/public/app/features/notebook/api/notebookResource.ts b/public/app/features/notebook/api/notebookResource.ts
+index 03d8e736948a0..43e75f6273191 100644
+--- a/public/app/features/notebook/api/notebookResource.ts
++++ b/public/app/features/notebook/api/notebookResource.ts
+@@ -26,6 +26,8 @@ const NOTEBOOK_API_VERSION = `${API_GROUP}/${API_VERSION}`;
+ export interface CreatedNotebook {
+   uid: string;
+   url: string;
++  /** The generation the server assigned it, when the response reported one. */
++  generation?: number;
+ }
+ 
+ /**
+@@ -70,7 +72,10 @@ export async function createNotebook(spec: NotebookSpec): Promise<CreatedNoteboo
+ 
+   // The route's own helper, not a path restated here: `opened` compares this against where the push
+   // landed, so a second spelling of the route reports success from a page with no notebook on it.
+-  return { uid, url: notebookViewUrl(uid) };
++  //
++  // The generation comes back so a notebook created by autosave can be reopened without rebuilding its
++  // scene: NotebookPageStateManager compares it, and a missing number reads as somebody else's write.
++  return { uid, url: notebookViewUrl(uid), generation: result.data?.metadata?.generation };
+ }
+ 
+ /**
+diff --git a/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.test.ts b/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.test.ts
+index 071139faec686..353f053ce04f0 100644
+--- a/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.test.ts
++++ b/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.test.ts
+@@ -112,6 +112,37 @@ describe('APPLY_NOTEBOOK_SPEC', () => {
+     expect(result.warnings).toEqual(['These cells were not applied and are missing from the notebook: ghost.']);
+   });
+ 
++  // The save model leaves out the empty block the editor keeps at the bottom, so a caller that sends one
++  // would otherwise be told its cell went missing when nothing did.
++  it('does not warn about a trailing empty block it was asked to apply', async () => {
++    const client = new NotebookMutationClient(notebookScene());
++
++    const next = notebookSpec({
++      elements: { intro: markdownCell('## Intro'), trailing: markdownCell('') },
++      cells: ['intro', 'trailing'],
++    });
++
++    const result = await client.execute({ type: 'APPLY_NOTEBOOK_SPEC', payload: { spec: next } });
++
++    expect(result.success).toBe(true);
++    expect(result.warnings).toBeUndefined();
++  });
++
++  // The exemption has to be precise: excusing the trailing block must not excuse a cell genuinely lost
++  // from in front of it. 'ghost' is referenced with no element, so it really does go missing.
++  it('still warns about a lost cell sitting in front of a trailing empty block', async () => {
++    const client = new NotebookMutationClient(notebookScene());
++
++    const next = notebookSpec({
++      elements: { intro: markdownCell('## Intro'), trailing: markdownCell('') },
++      cells: ['intro', 'ghost', 'trailing'],
++    });
++
++    const result = await client.execute({ type: 'APPLY_NOTEBOOK_SPEC', payload: { spec: next } });
++
++    expect(result.warnings).toEqual(['These cells were not applied and are missing from the notebook: ghost.']);
++  });
++
+   it('leaves the uid alone, including when the notebook has none', async () => {
+     const withUid = notebookScene();
+     await new NotebookMutationClient(withUid).execute({
+diff --git a/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.ts b/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.ts
+index f581c0d36efaa..75ee9ca07c16c 100644
+--- a/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.ts
++++ b/public/app/features/notebook/mutation-api/commands/applyNotebookSpec.ts
+@@ -5,6 +5,7 @@ import { type MutationCommand } from 'app/features/dashboard-scene/mutation-api/
+ 
+ import { notebookResourceFor } from '../../api/notebookResource';
+ import { type NotebookScene } from '../../scene/NotebookScene';
++import { isEmptyMarkdown } from '../../scene/layout-notebook/isEmptyMarkdown';
+ import { validateNotebookSpec } from '../../schema/notebookSpecSchema';
+ import { transformNotebookSceneToSaveModel } from '../../serialization/transformNotebookSceneToSaveModel';
+ import { type Spec as NotebookSpec } from '../../types';
+@@ -15,15 +16,26 @@ const UNKNOWN_SURVIVORS_WARNING =
+   'The notebook could not be checked after the write, so it is unknown which cells survived it.';
+ 
+ function droppedCellWarnings(requested: NotebookSpec, applied: NotebookSpec): string[] {
+-  const cellNames = (spec: NotebookSpec) => spec.layout.spec.cells.map((cell) => cell.spec.element.name);
+-  const survived = new Set(cellNames(applied));
+-  const dropped = [...new Set(cellNames(requested))].filter((name) => !survived.has(name));
++  const survived = new Set(applied.layout.spec.cells.map((cell) => cell.spec.element.name));
++  const dropped = [...new Set(requestedCellNames(requested))].filter((name) => !survived.has(name));
+ 
+   return dropped.length > 0
+     ? [`These cells were not applied and are missing from the notebook: ${dropped.join(', ')}.`]
+     : [];
+ }
+ 
++// The trailing empty block is excluded because the save model leaves it out too (see
++// NotebookLayoutManager.contentCells), so counting it would report a cell as lost when none was.
++// `cells` is guarded because the spec comes from the caller, and Go marshals an empty slice as null.
++function requestedCellNames(spec: NotebookSpec): string[] {
++  const cells = spec.layout.spec.cells ?? [];
++  const last = cells[cells.length - 1];
++  const lastElement = last ? spec.elements?.[last.spec.element.name] : undefined;
++  const endsWithEmptyBlock = lastElement?.kind === 'Cell' && isEmptyMarkdown(lastElement.spec.content);
++
++  return (endsWithEmptyBlock ? cells.slice(0, -1) : cells).map((cell) => cell.spec.element.name);
++}
++
+ const applyNotebookSpecPayloadSchema = z
+   .object({
+     spec: z
+diff --git a/public/app/features/notebook/pages/NotebookPageStateManager.test.ts b/public/app/features/notebook/pages/NotebookPageStateManager.test.ts
+index dccc0777e40f6..b6568eb8c2fdc 100644
+--- a/public/app/features/notebook/pages/NotebookPageStateManager.test.ts
++++ b/public/app/features/notebook/pages/NotebookPageStateManager.test.ts
+@@ -242,6 +242,131 @@ describe('NotebookPageStateManager', () => {
+     expect(manager.state.scene?.state.uid).toBe('nb-fast');
+   });
+ 
++  describe('newNotebook', () => {
++    /** Nobody is asked for a name, so the notebook arrives with one it made up. */
++    const TITLE_PATTERN = /^Notebook #[a-z0-9]{12}$/;
++
++    it('builds an empty notebook with no resource behind it and nothing fetched', () => {
++      const fetch = jest.fn();
++      setBackendSrv({ fetch } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++
++      expect(manager.state.scene?.state.uid).toBeUndefined();
++      expect(manager.state.scene?.state.title).toMatch(TITLE_PATTERN);
++      expect(manager.state.scene?.state.body.state.cells).toEqual([]);
++      expect(manager.state.isLoading).toBe(false);
++      expect(manager.state.loadError).toBeUndefined();
++      expect(fetch).not.toHaveBeenCalled();
++    });
++
++    // The reason for the token at all: autosave creates these without asking for a name, so two
++    // notebooks made one after the other have to be tellable apart in the list.
++    it('gives each new notebook a title of its own', () => {
++      setBackendSrv({ fetch: jest.fn() } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++      const first = manager.state.scene?.state.title;
++      manager.newNotebook();
++      const second = manager.state.scene?.state.title;
++
++      expect(first).toMatch(TITLE_PATTERN);
++      expect(second).toMatch(TITLE_PATTERN);
++      expect(second).not.toBe(first);
++    });
++
++    // The scene cache is keyed by uid and a blank notebook has none, so caching it would mean every
++    // blank page after the first reopened whatever the previous one was left holding.
++    it('does not keep the blank notebook, so a second one starts empty again', () => {
++      setBackendSrv({ fetch: jest.fn() } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++      const first = manager.state.scene;
++      manager.newNotebook();
++
++      expect(manager.state.scene).not.toBe(first);
++    });
++
++    // Clicking New notebook while a notebook is still loading. `await` does not cancel, so without
++    // the sequence bump the load would resolve on top of the blank page the user is now looking at.
++    it('is not replaced by a load that was already in flight', async () => {
++      setBackendSrv({
++        fetch: jest.fn(() => of(createFetchResponse(notebookResource('nb-slow'))).pipe(delay(50))),
++      } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      const slow = manager.loadNotebook('nb-slow');
++      manager.newNotebook();
++      await slow;
++
++      expect(manager.state.scene?.state.uid).toBeUndefined();
++      expect(manager.state.loadError).toBeUndefined();
++    });
++  });
++
++  /**
++   * Once a blank notebook's first save creates it, the page navigates to the real url and loads that uid.
++   * The scene being typed into has to survive that, or the caret and the undo history go with it.
++   */
++  describe('the blank notebook once it has been created', () => {
++    it('takes up the scene already on screen instead of fetching it', async () => {
++      const fetch = jest.fn();
++      setBackendSrv({ fetch } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++      const blank = manager.state.scene!;
++      // What autosave does when the create comes back.
++      blank.setState({ uid: 'nb-new' });
++
++      await manager.loadNotebook('nb-new');
++
++      expect(manager.state.scene?.state.key).toBe(blank.state.key);
++      expect(fetch).not.toHaveBeenCalled();
++      expect(manager.state.isLoading).toBe(false);
++      expect(manager.state.loadError).toBeUndefined();
++    });
++
++    it('caches it, so coming back to it later does not rebuild it either', async () => {
++      setBackendSrv({
++        fetch: jest.fn().mockReturnValue(of(createFetchResponse(notebookResource('nb-new')))),
++      } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++      const blank = manager.state.scene!;
++      blank.setState({ uid: 'nb-new' });
++      // Both of these are what a real create produces: the uid on the scene, and the generation the
++      // response reported. Without the generation a later load cannot tell this scene from a stale one.
++      blank.autosave.setState({ savedGeneration: 1 });
++      await manager.loadNotebook('nb-new');
++
++      manager.clearState();
++      await manager.loadNotebook('nb-new');
++
++      expect(manager.state.scene?.state.key).toBe(blank.state.key);
++    });
++
++    // Only the notebook it actually became. Anything else is a real load.
++    it('still fetches a different notebook while a blank one is held', async () => {
++      setBackendSrv({
++        fetch: jest.fn().mockReturnValue(of(createFetchResponse(notebookResource('nb-other')))),
++      } as unknown as BackendSrv);
++      const manager = new NotebookPageStateManager({ isLoading: false });
++
++      manager.newNotebook();
++      const blank = manager.state.scene!;
++
++      await manager.loadNotebook('nb-other');
++
++      expect(manager.state.scene?.state.key).not.toBe(blank.state.key);
++      expect(manager.state.scene?.state.uid).toBe('nb-other');
++    });
++  });
++
+   it('surfaces a fetch failure as loadError instead of a scene', async () => {
+     setBackendSrv({
+       fetch: jest.fn().mockReturnValue(throwError(() => new Error('nope'))),
+diff --git a/public/app/features/notebook/pages/NotebookPageStateManager.ts b/public/app/features/notebook/pages/NotebookPageStateManager.ts
+index fa842b679052e..940d4f8bd5fd5 100644
+--- a/public/app/features/notebook/pages/NotebookPageStateManager.ts
++++ b/public/app/features/notebook/pages/NotebookPageStateManager.ts
+@@ -1,12 +1,16 @@
++import { customAlphabet } from 'nanoid';
++
++import { t } from '@grafana/i18n';
+ import { dashboardAPIv2beta1 } from 'app/api/clients/dashboard/v2beta1';
+ import { StateManagerBase } from 'app/core/services/StateManagerBase';
+ import { getMessageFromError, getMessageIdFromError, getStatusFromError } from 'app/core/utils/errors';
+ import { type Resource } from 'app/features/apiserver/types';
+ import { dispatch } from 'app/store/store';
+ 
++import { notebookResourceFor } from '../api/notebookResource';
+ import { type NotebookScene } from '../scene/NotebookScene';
+ import { transformNotebookToScene } from '../serialization/transformNotebookToScene';
+-import { type Spec as NotebookSpec } from '../types';
++import { type Spec as NotebookSpec, defaultSpec as defaultNotebookSpec } from '../types';
+ 
+ /**
+  * A load failure normalized to the fields the error UI needs. RTK rejects with `{ status, data }`
+@@ -19,6 +23,16 @@ export interface NotebookLoadError {
+   message: string;
+ }
+ 
++/**
++ * Names a new notebook something you can tell apart from the last one, because autosave creates them
++ * without asking for a name and a library of identical titles is unreadable.
++ *
++ * The token is invented here and is not the notebook's uid. It cannot be: the title is part of the
++ * spec that creates the notebook, and the apiserver does not pick a name until it has created it.
++ * Alphabet and length copied from the provisioning drawer, which already needed a short readable one.
++ */
++const generateTitleToken = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);
++
+ export interface NotebookPageState {
+   scene?: NotebookScene;
+   isLoading: boolean;
+@@ -46,8 +60,19 @@ export class NotebookPageStateManager extends StateManagerBase<NotebookPageState
+   // outcome — but the counter is correct by construction and does not depend on that.
+   private requestSeq = 0;
+ 
++  // The blank notebook that newNotebook() hands out, kept here until it saves itself or gets replaced.
++  // It has no uid yet, so the cache above can't hold it. Once its first save creates it, the page moves
++  // to the real url. Without this field, that move would fetch the notebook fresh from the server and
++  // throw away the scene someone is typing in, along with its caret and undo history.
++  private unsavedScene?: NotebookScene;
++
+   public async loadNotebook(uid: string): Promise<void> {
+     const seq = ++this.requestSeq;
++
++    if (this.adoptUnsavedScene(uid)) {
++      return;
++    }
++
+     this.setState({ isLoading: true, loadError: undefined });
+ 
+     try {
+@@ -111,6 +136,51 @@ export class NotebookPageStateManager extends StateManagerBase<NotebookPageState
+     }
+   }
+ 
++  /**
++   * Builds an empty notebook with no resource behind it, for the blank route.
++   *
++   * Nothing is fetched and nothing is written: the notebook is created by its first save, which is
++   * what leaves `uid` unset here. It is deliberately not cached either, because the cache is keyed by
++   * uid and this notebook has none.
++   */
++  public newNotebook(): void {
++    // A load already in flight would otherwise resolve on top of this and replace the blank notebook
++    // with whichever one the page was previously asked for.
++    this.requestSeq++;
++
++    const spec: NotebookSpec = {
++      ...defaultNotebookSpec(),
++      title: t('notebooks.new.default-title', 'Notebook #{{token}}', { token: generateTitleToken() }),
++    };
++
++    // Held so the page can keep this exact scene once its first save gives it a uid.
++    this.unsavedScene = transformNotebookToScene(notebookResourceFor(undefined, spec));
++
++    this.setState({ scene: this.unsavedScene, isLoading: false, loadError: undefined });
++  }
++
++  /**
++   * Takes up the blank notebook once its first save has created it, instead of fetching a notebook we
++   * already have on screen.
++   *
++   * Reads the uid off the scene instead of having autosave report it. If autosave called into the page
++   * directly, that would create an import cycle back through `transformNotebookToScene`.
++   */
++  private adoptUnsavedScene(uid: string): boolean {
++    const scene = this.unsavedScene;
++    if (scene?.state.uid !== uid) {
++      return false;
++    }
++
++    this.unsavedScene = undefined;
++    // Into the keyed cache, so coming back to this notebook later reuses it too rather than rebuilding
++    // it from a fetch. The generation is the one its create returned.
++    this.cache.set(uid, { generation: scene.autosave.state.savedGeneration, scene });
++    this.setState({ scene, isLoading: false, loadError: undefined });
++
++    return true;
++  }
++
+   /** Whether a newer load (or a page teardown) has taken over since the given one started. */
+   private isSuperseded(seq: number): boolean {
+     return seq !== this.requestSeq;
+diff --git a/public/app/features/notebook/pages/NotebookScenePage.test.tsx b/public/app/features/notebook/pages/NotebookScenePage.test.tsx
+index 470c88c5f68f8..16ae1faf67395 100644
+--- a/public/app/features/notebook/pages/NotebookScenePage.test.tsx
++++ b/public/app/features/notebook/pages/NotebookScenePage.test.tsx
+@@ -1,5 +1,6 @@
+-import { act, render, screen } from 'test/test-utils';
++import { act, render, screen, waitFor } from 'test/test-utils';
+ 
++import { locationService } from '@grafana/runtime';
+ import { SceneRefreshPicker, SceneTimePicker, SceneTimeRange } from '@grafana/scenes';
+ import { setTestFlags } from '@grafana/test-utils/unstable';
+ import { contextSrv } from 'app/core/services/context_srv';
+@@ -15,9 +16,12 @@ const NOTEBOOKS_FLAG = 'dashboard.notebooks';
+ 
+ describe('NotebookScenePage', () => {
+   afterEach(async () => {
+-    // Wrap in act() because setTestFlags fires OpenFeature events that trigger React state
+-    // updates while the component is still mounted.
++    // Wrap in act() because both of these publish state while a component is still mounted:
++    // setTestFlags fires OpenFeature events, and clearing the state manager drops its scene. The
++    // manager is a module-level singleton, so a scene seeded by one test would otherwise still be
++    // there for the next one.
+     await act(async () => {
++      getNotebookPageStateManager().clearState();
+       setTestFlags({});
+     });
+   });
+@@ -66,6 +70,83 @@ describe('NotebookScenePage', () => {
+     expect(await screen.findByRole('button', { name: 'Copy link' })).toBeInTheDocument();
+   });
+ 
++  // Nothing is mocked here: building a blank notebook needs no request, which is the point of it.
++  describe('the blank new-notebook route', () => {
++    afterEach(() => {
++      jest.restoreAllMocks();
++    });
++
++    it('renders an empty notebook that has no resource behind it', async () => {
++      jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++      setTestFlags({ [NOTEBOOKS_FLAG]: true });
++
++      render(<NotebookScenePage />, { historyOptions: { initialEntries: ['/notebooks/new'] } });
++
++      // The scene rendered, so this is the document rather than the loading or not-found branch.
++      expect(await screen.findByRole('radio', { name: 'Edit' })).toBeInTheDocument();
++      expect(getNotebookPageStateManager().state.scene?.state.uid).toBeUndefined();
++      // Copying a link to a notebook and exporting one both need a notebook that exists, so the
++      // actions are refused until the first save creates it. The bar itself is rendered anyway: it
++      // used to be hidden, and then it appeared under whoever was typing and shifted the document.
++      expect(screen.getByRole('button', { name: 'Copy link' })).toHaveAttribute('aria-disabled', 'true');
++    });
++
++    // Its first save creates the notebook, and from then on the url has to point at the real thing.
++    it('points the url at the notebook once its first save created it', async () => {
++      jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++      setTestFlags({ [NOTEBOOKS_FLAG]: true });
++
++      render(<NotebookScenePage />, {
++        historyOptions: { initialEntries: ['/notebooks/new?edit=true&from=now-3h&to=now'] },
++      });
++      await screen.findByRole('radio', { name: 'Edit' });
++
++      // What autosave does when the create comes back.
++      await act(async () => {
++        getNotebookPageStateManager().state.scene!.setState({ uid: 'nb-new' });
++      });
++
++      await waitFor(() => expect(locationService.getLocation().pathname).toBe('/notebooks/nb-new'));
++      // The params carry over: dropping from/to would have the time range resync from nothing and lose
++      // the range on screen. The scene adds timezone of its own, so this checks the ones at risk.
++      const search = new URLSearchParams(locationService.getLocation().search);
++      expect(search.get('edit')).toBe('true');
++      expect(search.get('from')).toBe('now-3h');
++      expect(search.get('to')).toBe('now');
++    });
++
++    // Replace, not push: Back has to leave the notebook, not land on the blank route that made it.
++    it('replaces the blank route in history rather than pushing past it', async () => {
++      jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++      setTestFlags({ [NOTEBOOKS_FLAG]: true });
++
++      render(<NotebookScenePage />, {
++        historyOptions: { initialEntries: ['/notebooks', '/notebooks/new?edit=true'], initialIndex: 1 },
++      });
++      await screen.findByRole('radio', { name: 'Edit' });
++
++      await act(async () => {
++        getNotebookPageStateManager().state.scene!.setState({ uid: 'nb-new' });
++      });
++      await waitFor(() => expect(locationService.getLocation().pathname).toBe('/notebooks/nb-new'));
++
++      await act(async () => {
++        locationService.getHistory().goBack();
++      });
++
++      expect(locationService.getLocation().pathname).toBe('/notebooks');
++    });
++
++    it('opens in edit mode, since a blank notebook exists only to be written into', async () => {
++      jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
++      setTestFlags({ [NOTEBOOKS_FLAG]: true });
++
++      render(<NotebookScenePage />, { historyOptions: { initialEntries: ['/notebooks/new?edit=true'] } });
++
++      expect(await screen.findByRole('radio', { name: 'Edit' })).toBeChecked();
++    });
++  });
++
+   describe('edit mode from the url', () => {
+     afterEach(() => {
+       jest.restoreAllMocks();
+diff --git a/public/app/features/notebook/pages/NotebookScenePage.tsx b/public/app/features/notebook/pages/NotebookScenePage.tsx
+index 506a5bf1a3088..3d09b68fcd9d2 100644
+--- a/public/app/features/notebook/pages/NotebookScenePage.tsx
++++ b/public/app/features/notebook/pages/NotebookScenePage.tsx
+@@ -1,7 +1,8 @@
+ import { useEffect } from 'react';
+-import { useParams } from 'react-router-dom-v5-compat';
++import { useMatch, useParams } from 'react-router-dom-v5-compat';
+ 
+ import { PageLayoutType } from '@grafana/data';
++import { locationService } from '@grafana/runtime';
+ import { useFlagDashboardNotebooks } from '@grafana/runtime/internal';
+ import { UrlSyncContextProvider } from '@grafana/scenes';
+ import { Box } from '@grafana/ui';
+@@ -11,6 +12,7 @@ import { PageNotFound } from 'app/core/components/PageNotFound/PageNotFound';
+ 
+ import { type NotebookScene } from '../scene/NotebookScene';
+ import { NotebookToolbar } from '../toolbar/NotebookToolbar';
++import { NOTEBOOK_NEW_URL, notebookViewUrl } from '../urls';
+ 
+ import { NotebookPageError } from './NotebookPageError';
+ import { getNotebookPageStateManager } from './NotebookPageStateManager';
+@@ -24,18 +26,25 @@ export function NotebookScenePage() {
+   const notebooksEnabled = useFlagDashboardNotebooks();
+ 
+   const { uid } = useParams();
++  // Both routes render this page, and the blank one has no uid to tell them apart by. Matched against
++  // the path rather than read off a route prop, so the page stays driven by the url like its edit mode.
++  const isNew = Boolean(useMatch(NOTEBOOK_NEW_URL));
+   const stateManager = getNotebookPageStateManager();
+   const { scene, isLoading, loadError } = stateManager.useState();
+ 
+   useEffect(() => {
+-    if (notebooksEnabled && uid) {
+-      stateManager.loadNotebook(uid);
++    if (notebooksEnabled) {
++      if (uid) {
++        stateManager.loadNotebook(uid);
++      } else if (isNew) {
++        stateManager.newNotebook();
++      }
+     }
+ 
+     return () => {
+       stateManager.clearState();
+     };
+-  }, [stateManager, uid, notebooksEnabled]);
++  }, [stateManager, uid, isNew, notebooksEnabled]);
+ 
+   if (!notebooksEnabled) {
+     return <PageNotFound />;
+@@ -60,24 +69,37 @@ export function NotebookScenePage() {
+   // (editPanel, editview, shareView) at all.
+   return (
+     <UrlSyncContextProvider scene={scene} updateUrlOnInit={true} createBrowserHistorySteps={true}>
+-      <NotebookDocument scene={scene} />
++      <NotebookDocument scene={scene} isNew={isNew} />
+     </UrlSyncContextProvider>
+   );
+ }
+ 
+-function NotebookDocument({ scene }: { scene: NotebookScene }) {
++function NotebookDocument({ scene, isNew }: { scene: NotebookScene; isNew: boolean }) {
+   // uid comes off the scene rather than the route param: it is the notebook's identity
+   // (metadata.name), and the scene already carries it for the same reason it carries the title.
+   const { title, uid } = scene.useState();
+ 
+   useEffect(() => scene.activate(), [scene]);
+ 
++  // A blank notebook that has just been created by its first save: point the url at it instead of the
++  // route that made it. Replace rather than push, or Back lands back on the blank route and reads as a
++  // second empty notebook. Keep the current search params: they hold the scene's own time range, and
++  // dropping them would reset the range to nothing.
++  useEffect(() => {
++    if (isNew && uid) {
++      locationService.replace({ pathname: notebookViewUrl(uid), search: locationService.getLocation().search });
++    }
++  }, [isNew, uid]);
++
+   // The Notebooks nav section supplies the parent breadcrumb, so pageNav only carries the title.
+   const pageNav = { text: title };
+ 
+   return (
+     <Page navId="notebooks" pageNav={pageNav} layout={PageLayoutType.Custom}>
+-      {uid && <NotebookToolbar uid={uid} scene={scene} />}
++      {/* Rendered before the notebook exists too, with its actions disabled. Hiding it until the
++          first save produced a uid meant the bar appeared under someone who was already typing and
++          pushed the whole document down. The toolbar owns that distinction, not this page. */}
++      <NotebookToolbar uid={uid} scene={scene} />
+       <scene.Component model={scene} />
+     </Page>
+   );
+diff --git a/public/app/features/notebook/pages/NotebooksListPage.integration.test.tsx b/public/app/features/notebook/pages/NotebooksListPage.integration.test.tsx
+index ae40cfb302acd..040795612ca3e 100644
+--- a/public/app/features/notebook/pages/NotebooksListPage.integration.test.tsx
++++ b/public/app/features/notebook/pages/NotebooksListPage.integration.test.tsx
+@@ -1,7 +1,7 @@
+ import { HttpResponse, http } from 'msw';
+ import { render, screen, waitFor, act } from 'test/test-utils';
+ 
+-import { setBackendSrv } from '@grafana/runtime';
++import { locationService, setBackendSrv } from '@grafana/runtime';
+ import server, { setupMockServer } from '@grafana/test-utils/server';
+ import { setTestFlags } from '@grafana/test-utils/unstable';
+ import { backendSrv } from 'app/core/services/backend_srv';
+@@ -13,9 +13,8 @@ import { __resetSearchAvailabilityForTests, NOTEBOOKS_PAGE_LIMIT } from '../list
+ import { NotebooksListPage } from './NotebooksListPage';
+ 
+ // Deliberately no jest.mock of the api-client modules here: the point of this suite is to exercise
+-// the real RTK Query wiring, including the claim that creating a notebook invalidates the
+-// 'Notebook' tag and refetches the search-backed list. The mocked suite next door covers the
+-// rendering cases.
++// the real RTK Query wiring, and to hold the real endpoint still so the test can say whether it was
++// called at all. The mocked suite next door covers the rendering cases.
+ 
+ const NOTEBOOKS_FLAG = 'dashboard.notebooks';
+ const NOTEBOOKS_URL = '/apis/dashboard.grafana.app/v2beta1/namespaces/:namespace/notebooks';
+@@ -60,10 +59,11 @@ function hit(name: string, title: string) {
+   };
+ }
+ 
+-/** Serves a search-backed list that grows once the create endpoint is hit, counting searches. */
++/** Serves a search-backed list, counting searches and any attempt to create a notebook. */
+ function setupNotebooksApi() {
+   const items = [hit('nb1', 'Checkout error spike')];
+   let searchRequests = 0;
++  let createRequests = 0;
+   const bodies: Array<Record<string, unknown>> = [];
+ 
+   server.use(
+@@ -76,14 +76,20 @@ function setupNotebooksApi() {
+         items,
+       });
+     }),
++    // Still served, so a create would succeed rather than error. A test that only proved the request
++    // failed would pass for the wrong reason.
+     http.post(NOTEBOOKS_URL, async () => {
+-      const created = notebook('nb2', 'New notebook');
++      createRequests++;
+       items.push(hit('nb2', 'New notebook'));
+-      return HttpResponse.json(created);
++      return HttpResponse.json(notebook('nb2', 'New notebook'));
+     })
+   );
+ 
+-  return { getSearchRequests: () => searchRequests, getBodies: () => bodies };
++  return {
++    getSearchRequests: () => searchRequests,
++    getCreateRequests: () => createRequests,
++    getBodies: () => bodies,
++  };
+ }
+ 
+ describe('NotebooksListPage (integration)', () => {
+@@ -130,22 +136,24 @@ describe('NotebooksListPage (integration)', () => {
+     });
+   });
+ 
+-  it('refetches the list after creating a notebook', async () => {
++  // The whole point of the blank route: a click that somebody thinks better of should leave nothing
++  // behind. This asserts against the real endpoint rather than a mocked hook, because "no notebook was
++  // written" is a claim about the wire.
++  it('writes no notebook when the create button is clicked', async () => {
+     const api = setupNotebooksApi();
+ 
+     const { user } = render(<NotebooksListPage />);
+ 
+     expect(await screen.findByText('Checkout error spike')).toBeInTheDocument();
+-    const searchRequestsBefore = api.getSearchRequests();
+ 
+     await user.click(screen.getByRole('button', { name: 'New notebook' }));
+ 
+-    // The create mutation invalidates the 'Notebook' tag. The search query tags itself into that
+-    // same namespace rather than the 'Search' one, which is what makes this rerun.
+     await waitFor(() => {
+-      expect(api.getSearchRequests()).toBeGreaterThan(searchRequestsBefore);
++      expect(locationService.getLocation().pathname).toBe('/notebooks/new');
+     });
+-    expect(await screen.findByRole('link', { name: 'New notebook' })).toBeInTheDocument();
++    expect(api.getCreateRequests()).toBe(0);
++    // No new row either, so nothing was written that the list would have picked up.
++    expect(screen.queryByRole('link', { name: 'New notebook' })).not.toBeInTheDocument();
+   });
+ 
+   // The endpoint pages with an opaque cursor, and the list is only honest once the walk finishes:
+diff --git a/public/app/features/notebook/pages/NotebooksListPage.test.tsx b/public/app/features/notebook/pages/NotebooksListPage.test.tsx
+index f8d5bfe0ae7ea..9d0eff38dfc65 100644
+--- a/public/app/features/notebook/pages/NotebooksListPage.test.tsx
++++ b/public/app/features/notebook/pages/NotebooksListPage.test.tsx
+@@ -23,15 +23,12 @@ import { NotebooksListPage } from './NotebooksListPage';
+ // The route is registered unconditionally, so the page itself enforces this OpenFeature flag.
+ const NOTEBOOKS_FLAG = 'dashboard.notebooks';
+ 
+-const mockCreateNotebook = jest.fn();
+-
+ jest.mock('app/api/clients/iam/v0alpha1', () => ({
+   useGetDisplayMappingQuery: jest.fn(),
+ }));
+ 
+ jest.mock('app/api/clients/dashboard/v2beta1', () => ({
+   useListNotebookQuery: jest.fn(() => ({ data: undefined, isLoading: false, error: undefined })),
+-  useCreateNotebookMutation: () => [mockCreateNotebook],
+   // The row menu fetches a spec on demand for export; nothing here exercises the fetch itself.
+   useLazyGetNotebookQuery: () => [jest.fn()],
+   // The table mounts the delete hook for every row menu; deleting is covered in NotebooksTable's own tests.
+@@ -564,21 +561,21 @@ describe('NotebooksListPage', () => {
+     expect(screen.queryByRole('button', { name: 'New notebook' })).not.toBeInTheDocument();
+   });
+ 
+-  it('creates a notebook and navigates to it in edit mode', async () => {
++  // Writing a notebook on click left one behind in the library for every click somebody thought
++  // better of. The button now opens a blank page instead, and the notebook is created by its first
++  // save. Nothing in this suite mocks the create endpoint any more, so a click that still tried to
++  // create would fail rather than quietly pass.
++  it('opens a blank notebook in edit mode without creating one', async () => {
+     setTestFlags({ [NOTEBOOKS_FLAG]: true });
+     setNotebooks([makeHit('nb1', 'Checkout error spike')]);
+-    mockCreateNotebook.mockReturnValue({
+-      unwrap: () => Promise.resolve({ metadata: { name: 'nb-new' } }),
+-    });
+ 
+     render(<NotebooksListPage />);
+ 
+     await userEvent.click(await screen.findByRole('button', { name: 'New notebook' }));
+ 
+-    // A freshly created notebook is empty and exists only to be written into, so it should open ready
+-    // to edit rather than in the read-only view a reader would otherwise land on first.
++    // Edit mode, because a blank notebook exists only to be written into.
+     await waitFor(() => {
+-      expect(locationService.getLocation().pathname).toBe('/notebooks/nb-new');
++      expect(locationService.getLocation().pathname).toBe('/notebooks/new');
+       expect(locationService.getLocation().search).toBe('?edit=true');
+     });
+   });
+diff --git a/public/app/features/notebook/pages/NotebooksListPage.tsx b/public/app/features/notebook/pages/NotebooksListPage.tsx
+index df0eb335c391f..898911e23c477 100644
+--- a/public/app/features/notebook/pages/NotebooksListPage.tsx
++++ b/public/app/features/notebook/pages/NotebooksListPage.tsx
+@@ -1,24 +1,18 @@
+-import { useState } from 'react';
+ import Skeleton from 'react-loading-skeleton';
+ import { useNavigate } from 'react-router-dom-v5-compat';
+ 
+ import { Trans, t } from '@grafana/i18n';
+ import { useFlagDashboardNotebooks } from '@grafana/runtime/internal';
+ import { Alert, Box, Button, Checkbox, EmptyState, FilterInput, Stack, Text } from '@grafana/ui';
+-import { useCreateNotebookMutation } from 'app/api/clients/dashboard/v2beta1';
+-import { extractErrorMessage, handleError } from 'app/api/utils';
++import { extractErrorMessage } from 'app/api/utils';
+ import { Page } from 'app/core/components/Page/Page';
+ import { PageNotFound } from 'app/core/components/PageNotFound/PageNotFound';
+ import { contextSrv } from 'app/core/services/context_srv';
+-import { dispatch } from 'app/store/store';
+ import { AccessControlAction } from 'app/types/accessControl';
+ 
+ import { NotebooksTable, NotebooksTableSkeleton } from '../list/NotebooksTable';
+ import { useNotebooksList } from '../list/useNotebooksList';
+-// Notebook schema types come from this module and nowhere else, so the eventual stable-v2
+-// migration only has to change that one seam.
+-import { defaultSpec as defaultNotebookSpec } from '../types';
+-import { notebookEditUrl } from '../urls';
++import { notebookNewEditUrl } from '../urls';
+ 
+ export function NotebooksListPage() {
+   // The route is registered unconditionally (getAppRoutes is not a React component), so the
+@@ -46,48 +40,16 @@ export function NotebooksListPage() {
+     error,
+   } = useNotebooksList({ enabled: notebooksEnabled });
+ 
+-  const [createNotebook] = useCreateNotebookMutation();
+-  const [isCreating, setIsCreating] = useState(false);
+-
+   if (!notebooksEnabled) {
+     return <PageNotFound />;
+   }
+ 
+-  const onCreate = async () => {
+-    setIsCreating(true);
+-    try {
+-      const created = await createNotebook({
+-        notebook: {
+-          metadata: { generateName: 'nb' },
+-          spec: {
+-            ...defaultNotebookSpec(),
+-            // The schema and generated-client element unions are structurally identical but
+-            // nominally distinct; a new notebook has no elements, so state that here rather
+-            // than casting the whole spec across the seam.
+-            elements: {},
+-            title: t('notebooks.list.new-notebook-title', 'New notebook'),
+-          },
+-        },
+-      }).unwrap();
+-
+-      if (created.metadata.name) {
+-        // A freshly created notebook is empty and exists only to be written into, so land in edit
+-        // mode directly rather than the view a reader would otherwise see first.
+-        navigate(notebookEditUrl(created.metadata.name));
+-      } else {
+-        // The notebook was persisted but we have nowhere to send the user, so say so rather than
+-        // leaving the click looking like it did nothing.
+-        handleError(created, dispatch, t('notebooks.list.create-error', 'Failed to create notebook'));
+-      }
+-    } catch (e) {
+-      handleError(e, dispatch, t('notebooks.list.create-error', 'Failed to create notebook'));
+-    } finally {
+-      setIsCreating(false);
+-    }
+-  };
++  // Opens a blank notebook rather than writing one. Nothing is created until there is something to
++  // save, so a click that goes nowhere leaves no notebook behind in the library.
++  const onCreate = () => navigate(notebookNewEditUrl());
+ 
+   const createButton = canCreate ? (
+-    <Button icon="plus" onClick={onCreate} disabled={isCreating}>
++    <Button icon="plus" onClick={onCreate}>
+       <Trans i18nKey="notebooks.list.new-notebook">New notebook</Trans>
+     </Button>
+   ) : undefined;
+diff --git a/public/app/features/notebook/scene/NotebookAutosave.test.ts b/public/app/features/notebook/scene/NotebookAutosave.test.ts
+index e91d0730668b4..d26e7aeea6e33 100644
+--- a/public/app/features/notebook/scene/NotebookAutosave.test.ts
++++ b/public/app/features/notebook/scene/NotebookAutosave.test.ts
+@@ -1,7 +1,7 @@
+ import { SceneObjectBase, SceneRefreshPicker, SceneTimePicker, SceneTimeRange } from '@grafana/scenes';
+ import { contextSrv } from 'app/core/services/context_srv';
+ 
+-import { updateNotebook } from '../api/notebookResource';
++import { createNotebook, updateNotebook } from '../api/notebookResource';
+ 
+ import { NotebookScene } from './NotebookScene';
+ import { NotebookCellItem } from './layout-notebook/NotebookCellItem';
+@@ -10,6 +10,7 @@ import { NotebookLayoutManager } from './layout-notebook/NotebookLayoutManager';
+ // The network write is the only thing stubbed. Everything above it is the real scene, the real layout
+ // manager and the real serializer, so the spec these tests assert on is the one that would be sent.
+ jest.mock('../api/notebookResource', () => ({
++  createNotebook: jest.fn(),
+   updateNotebook: jest.fn(),
+ }));
+ 
+@@ -61,6 +62,10 @@ describe('NotebookAutosave', () => {
+     jest.useFakeTimers();
+     jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
+     jest.mocked(updateNotebook).mockReset().mockResolvedValue({ generation: 2 });
++    jest
++      .mocked(createNotebook)
++      .mockReset()
++      .mockResolvedValue({ uid: 'nb-new', url: '/notebooks/nb-new', generation: 1 });
+   });
+ 
+   afterEach(() => {
+@@ -237,6 +242,22 @@ describe('NotebookAutosave', () => {
+     expect(updateNotebook).not.toHaveBeenCalled();
+   });
+ 
++  // Time settings already have their own exclusion: buildSpecToSave substitutes the saved ones back in
++  // while timeSettingsEdited is false. That is why the test above already passed. Nothing else had that
++  // protection. A panel's fieldConfig, for example, changed like any other content and got swept into a
++  // save the moment the scene reactivated, with nothing checking whether editing was ever entered.
++  it('sends nothing when a notebook is reopened after something changed outside edit mode', async () => {
++    const scene = buildScene();
++    deactivate = scene.activate();
++
++    editFirstCell(scene, 'changed without ever entering edit mode');
++    deactivate();
++    deactivate = scene.activate();
++    await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++    expect(updateNotebook).not.toHaveBeenCalled();
++  });
++
+   it('reports nothing when edit mode is entered and nothing has been changed', async () => {
+     const scene = activateEditing();
+ 
+@@ -399,6 +420,218 @@ describe('NotebookAutosave', () => {
+     expect(savedTexts()).toEqual(['typed just before leaving']);
+   });
+ 
++  /**
++   * Editing keeps an empty block at the bottom ready to type in, appended by the layout renderer on
++   * every edit-mode entry. Nobody typed it, so none of these may write.
++   *
++   * These call appendSystemCell directly because there is no renderer here. It is the same method the
++   * renderer's bootstrap effect calls, not a test-only door into the manager.
++   */
++  describe("the editor's trailing empty block", () => {
++    function appendTrailingBlock(scene: NotebookScene) {
++      scene.state.body.appendSystemCell(scene.state.body.state.cells.length);
++    }
++
++    it('is not saved when entering edit mode is all that happened', async () => {
++      const scene = activateEditing();
++
++      appendTrailingBlock(scene);
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    // The blank-notebook case: no cells at all, so the block is the only thing in the document.
++    it('is not saved when it is the only cell in the notebook', async () => {
++      const scene = buildScene();
++      scene.state.body.setState({ cells: [] });
++      deactivate = scene.activate();
++      scene.onEnterEditMode();
++
++      appendTrailingBlock(scene);
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    it('is saved once it is typed into, and the block replacing it is not', async () => {
++      const scene = activateEditing();
++      appendTrailingBlock(scene);
++      const [, trailing] = scene.state.body.state.cells;
++
++      // Typing into the last empty block appends a fresh one behind it, so this is also the check that
++      // the replacement does not come back round as a second save.
++      scene.state.body.setCellContent(trailing, { kind: 'Markdown', spec: { text: 'a second thought' } });
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(updateNotebook).toHaveBeenCalledTimes(1);
++      const [, spec] = jest.mocked(updateNotebook).mock.calls[0];
++      expect(Object.keys(spec.elements)).toEqual(['md1', trailing.state.elementName]);
++      expect(spec.layout.spec.cells).toHaveLength(2);
++    });
++  });
++
++  /**
++   * A notebook nobody has saved yet has no uid, and its first write is what creates it. Clicking New
++   * notebook must leave nothing behind, so the create has to wait for something worth saving.
++   */
++  describe('a notebook that has not been created yet', () => {
++    function activateBlankEditing() {
++      const scene = buildScene();
++      scene.setState({ uid: undefined });
++      scene.state.body.setState({ cells: [] });
++      deactivate = scene.activate();
++      scene.onEnterEditMode();
++      return scene;
++    }
++
++    /** What the editor does: keep an empty block ready, then the person types into it. */
++    function typeIntoIt(scene: NotebookScene, text: string) {
++      const cell = scene.state.body.appendSystemCell(scene.state.body.state.cells.length)!;
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text } });
++      return cell;
++    }
++
++    function createdSpecs() {
++      return jest.mocked(createNotebook).mock.calls.map(([spec]) => spec);
++    }
++
++    it('is created by the first thing typed into it, and never updated instead', async () => {
++      const scene = activateBlankEditing();
++
++      typeIntoIt(scene, 'first thought');
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS);
++
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++      expect(updateNotebook).not.toHaveBeenCalled();
++      const [spec] = createdSpecs();
++      expect(Object.values(spec.elements)).toEqual([
++        { kind: 'Cell', spec: { content: { kind: 'Markdown', spec: { text: 'first thought' } } } },
++      ]);
++      expect(scene.state.uid).toBe('nb-new');
++    });
++
++    it('is not created at all when nothing was typed', async () => {
++      const scene = activateBlankEditing();
++
++      // The block the editor keeps ready is not content, so this is a notebook someone opened and left.
++      scene.state.body.appendSystemCell(0);
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++      deactivate?.();
++      deactivate = undefined;
++
++      expect(createNotebook).not.toHaveBeenCalled();
++      expect(scene.state.uid).toBeUndefined();
++    });
++
++    it('is created once when several edits land inside one debounce window', async () => {
++      const scene = activateBlankEditing();
++      const cell = typeIntoIt(scene, 'one');
++
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text: 'one two' } });
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text: 'one two three' } });
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++    });
++
++    // The dangerous case: a keystroke while the create is still in flight. The queued save has to update
++    // the notebook the create just made, not make a second one.
++    it('updates rather than creating twice when an edit arrives mid-create', async () => {
++      let finishCreate = (created: { uid: string; url: string; generation?: number }) => {};
++      jest.mocked(createNotebook).mockReturnValue(
++        new Promise((resolve) => {
++          finishCreate = resolve;
++        })
++      );
++
++      const scene = activateBlankEditing();
++      const cell = typeIntoIt(scene, 'typed before');
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS);
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text: 'typed during' } });
++      finishCreate({ uid: 'nb-new', url: '/notebooks/nb-new', generation: 1 });
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++      expect(updateNotebook).toHaveBeenCalledTimes(1);
++      expect(jest.mocked(updateNotebook).mock.calls[0][0]).toBe('nb-new');
++    });
++
++    // Waits for the debounce, not the ceiling the test below uses: the save an unguarded adoption
++    // schedules has cleared itself by then, so the longer wait hides this rather than catching it.
++    it('does not report unsaved changes when the uid it was just given lands on the scene', async () => {
++      const scene = activateBlankEditing();
++
++      typeIntoIt(scene, 'first thought');
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS);
++
++      expect(scene.autosave.state.status).toBe('saved');
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    // Taking the uid onto the scene is itself a state change, so it schedules another save. That save has
++    // nothing to write, and the notebook has to end up reported as saved rather than stuck on pending.
++    it('settles as saved after the create, without writing a second time', async () => {
++      const scene = activateBlankEditing();
++
++      typeIntoIt(scene, 'first thought');
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(scene.autosave.state.status).toBe('saved');
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    it('keeps the content and retries when the create failed', async () => {
++      jest.mocked(createNotebook).mockRejectedValueOnce(new Error('nope'));
++      const scene = activateBlankEditing();
++
++      typeIntoIt(scene, 'first thought');
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS);
++
++      expect(scene.autosave.state.status).toBe('error');
++      expect(scene.state.uid).toBeUndefined();
++
++      scene.autosave.retry();
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS);
++
++      expect(createNotebook).toHaveBeenCalledTimes(2);
++      // The failed attempt left the baseline alone, so the retry still carries what was typed.
++      expect(Object.values(createdSpecs()[1].elements)).toEqual([
++        { kind: 'Cell', spec: { content: { kind: 'Markdown', spec: { text: 'first thought' } } } },
++      ]);
++      expect(scene.state.uid).toBe('nb-new');
++    });
++
++    it('updates the notebook it created for every change after the first', async () => {
++      const scene = activateBlankEditing();
++      const cell = typeIntoIt(scene, 'first thought');
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text: 'second thought' } });
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++      expect(updateNotebook).toHaveBeenCalledTimes(1);
++      expect(jest.mocked(updateNotebook).mock.calls[0][0]).toBe('nb-new');
++    });
++
++    it('is created on the way out when it is left before the debounce fired', async () => {
++      const scene = activateBlankEditing();
++
++      typeIntoIt(scene, 'typed just before leaving');
++      await jest.advanceTimersByTimeAsync(IDLE_BEFORE_SAVE_MS / 4);
++      expect(createNotebook).not.toHaveBeenCalled();
++
++      deactivate?.();
++      deactivate = undefined;
++
++      expect(createNotebook).toHaveBeenCalledTimes(1);
++    });
++  });
++
+   it('flushes a pending edit when the page is hidden', async () => {
+     const scene = activateEditing();
+ 
+@@ -477,4 +710,96 @@ describe('NotebookAutosave', () => {
+       expect(scene.autosave.state.status).toBe('idle');
+     });
+   });
++
++  /**
++   * A reader must not be able to make a notebook save itself.
++   *
++   * The refusals themselves live in NotebookScene and NotebookSceneUrlSync and are tested there. What
++   * those tests cannot show is the thing that actually matters, which is that no request reaches the
++   * network. That is what these assert, and it is why they belong here rather than beside the refusals.
++   */
++  describe('a reader who cannot write', () => {
++    /**
++     * Everything that makes this a reader, in one place: the permission is taken away, then edit mode
++     * is asked for and refused because of that. The refusal is the only reason nothing gets written,
++     * so this test checks it directly. Without that check, every test below would still pass even for
++     * a notebook that had nothing to save.
++     *
++     * `blank` gives a notebook that does not exist yet, the state the /notebooks/new route leaves a
++     * reader in. Worth covering separately because that route only asks for `dashboards:create`, and
++     * being allowed to create is not the same as being allowed to write.
++     */
++    function activateAsReader({ blank = false } = {}) {
++      jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(false);
++
++      const scene = buildScene();
++      if (blank) {
++        scene.setState({ uid: undefined });
++        scene.state.body.setState({ cells: [] });
++      }
++
++      deactivate = scene.activate();
++      scene.onEnterEditMode();
++      expect(scene.state.isEditing).toBeFalsy();
++
++      return scene;
++    }
++
++    it('writes nothing when the document changes under a reader', async () => {
++      const scene = activateAsReader();
++
++      editFirstCell(scene, 'text a reader should not be able to save');
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++      expect(createNotebook).not.toHaveBeenCalled();
++      expect(scene.autosave.state.status).toBe('idle');
++    });
++
++    it('creates no notebook when the document is one that does not exist yet', async () => {
++      const scene = activateAsReader({ blank: true });
++
++      const cell = scene.state.body.appendSystemCell(0)!;
++      scene.state.body.setCellContent(cell, { kind: 'Markdown', spec: { text: 'first thought' } });
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(createNotebook).not.toHaveBeenCalled();
++    });
++
++    it('writes nothing when a reader leaves the notebook', async () => {
++      const scene = activateAsReader();
++
++      editFirstCell(scene, 'text a reader should not be able to save');
++      // Tearing down flushes whatever is pending, so this is where a scheduled save would escape.
++      deactivate?.();
++      deactivate = undefined;
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    // The change subscription above never sees this edit: it is gated on isEditing, and a reader never
++    // gets there. But start() used to reschedule on every reactivation anyway, with nothing checking
++    // where the difference came from. Reopening the notebook is where that difference used to turn into
++    // a real request.
++    it('writes nothing when a reader leaves and reopens the notebook', async () => {
++      const scene = activateAsReader();
++
++      editFirstCell(scene, 'text a reader should not be able to save');
++      deactivate?.();
++      deactivate = scene.activate();
++      await jest.advanceTimersByTimeAsync(MAX_WAIT_MS);
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++
++    it('writes nothing when a reader hides the tab', async () => {
++      const scene = activateAsReader();
++
++      editFirstCell(scene, 'text a reader should not be able to save');
++      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
++      document.dispatchEvent(new Event('visibilitychange'));
++
++      expect(updateNotebook).not.toHaveBeenCalled();
++    });
++  });
+ });
+diff --git a/public/app/features/notebook/scene/NotebookAutosave.ts b/public/app/features/notebook/scene/NotebookAutosave.ts
+index 453c3669b7c79..bf7b599e43cfc 100644
+--- a/public/app/features/notebook/scene/NotebookAutosave.ts
++++ b/public/app/features/notebook/scene/NotebookAutosave.ts
+@@ -4,7 +4,7 @@ import { type Unsubscribable } from 'rxjs';
+ import { SceneObjectStateChangedEvent, type SceneObjectStateChangedPayload } from '@grafana/scenes';
+ import { StateManagerBase } from 'app/core/services/StateManagerBase';
+ 
+-import { updateNotebook } from '../api/notebookResource';
++import { createNotebook, updateNotebook } from '../api/notebookResource';
+ import { transformNotebookSceneToSaveModel } from '../serialization/transformNotebookSceneToSaveModel';
+ import { type Spec as NotebookSpec } from '../types';
+ 
+@@ -48,8 +48,16 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+   private savedTimeSettings?: NotebookSpec['timeSettings'];
+   /** Whether the time settings now in the scene are the notebook's own, rather than one reader's. */
+   private timeSettingsEdited = false;
++  /**
++   * Whether the current difference from `baseline` came from an edit, not from a reader just looking at
++   * the notebook. A legend click changes scene state too. Without this flag, reopening the notebook
++   * would save that change as if it were a real edit.
++   */
++  private editedByWriter = false;
+   private changeSub?: Unsubscribable;
+   private inFlight = false;
++  /** Set while `write` adopts a freshly created uid, so that is not mistaken for someone's edit. */
++  private adoptingUid = false;
+   /** The save now running, so a caller that reports an outcome can wait for the write to land. */
+   private inFlightSave?: Promise<void>;
+   private saveAgainWhenIdle = false;
+@@ -68,18 +76,21 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+       // Entering edit mode publishes state changes of its own, so without a baseline the first
+       // comparison would write the notebook straight back unchanged.
+       this.recordWritten(this.buildSpecToSave());
+-    } else {
++    } else if (this.editedByWriter) {
+       // A scene is cached and reactivated when you come back to a notebook, so this can be the same
+-      // controller with edits that never reached the server. Waiting for a change that may never come
+-      // would lose them, and scheduling costs nothing when there is nothing to write.
++      // controller holding an edit that never reached the server. Reschedule only if that edit came from
++      // someone allowed to write. A reader clicking a legend leaves the same kind of difference behind,
++      // and reopening the notebook must not save it.
+       this.schedule();
+     }
+ 
+     this.changeSub = this.scene.subscribeToEvent(SceneObjectStateChangedEvent, ({ payload }) => {
+-      if (!this.scene.state.isEditing) {
++      if (!this.scene.state.isEditing || this.adoptingUid) {
+         return;
+       }
+ 
++      this.editedByWriter = true;
++
+       if (changesTimeSettings(payload, this.scene)) {
+         this.timeSettingsEdited = true;
+       }
+@@ -109,6 +120,7 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+     // These writers hand over a whole document, time settings included, so what is in the scene now is
+     // the notebook's own.
+     this.timeSettingsEdited = true;
++    this.editedByWriter = true;
+     this.schedule();
+     this.flush();
+ 
+@@ -239,6 +251,7 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+     this.baseline = serialized;
+     this.savedTimeSettings = spec.timeSettings;
+     this.timeSettingsEdited = false;
++    this.editedByWriter = false;
+   }
+ 
+   /** What to report when there is nothing waiting to be written. */
+@@ -257,11 +270,6 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+       return;
+     }
+ 
+-    const { uid } = this.scene.state;
+-    if (!uid) {
+-      return;
+-    }
+-
+     this.changePending = false;
+ 
+     let spec: NotebookSpec;
+@@ -286,7 +294,11 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+     this.inFlight = true;
+     this.setState({ status: 'saving', errorMessage: undefined });
+ 
+-    this.inFlightSave = updateNotebook(uid, spec)
++    // Read here rather than at the top: a notebook with no uid has not been created yet, and its first
++    // write is what creates it. Everything either branch does afterwards is the same.
++    const { uid } = this.scene.state;
++
++    this.inFlightSave = this.write(uid, spec)
+       .then(({ generation }) => {
+         this.recordWritten(spec, serialized);
+         this.hasSavedOnce = true;
+@@ -317,6 +329,29 @@ export class NotebookAutosave extends StateManagerBase<NotebookAutosaveState> {
+         }
+       });
+   }
++
++  /**
++   * Writes the spec, creating the notebook if this is its first save.
++   *
++   * The uid is adopted onto the scene before this resolves, so a save queued behind this one updates the
++   * notebook that was just created rather than creating a second. Only reached with something to write,
++   * which is what stops a blank notebook nobody typed in from being created at all.
++   */
++  private write(uid: string | undefined, spec: NotebookSpec): Promise<{ generation?: number }> {
++    if (uid) {
++      return updateNotebook(uid, spec);
++    }
++
++    return createNotebook(spec).then(({ uid: created, generation }) => {
++      this.adoptingUid = true;
++      try {
++        this.scene.setState({ uid: created });
++      } finally {
++        this.adoptingUid = false;
++      }
++      return { generation };
++    });
++  }
+ }
+ 
+ /**
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookDocumentHeader.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookDocumentHeader.tsx
+index 26d0a64f773db..c0f249c4d473b 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookDocumentHeader.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookDocumentHeader.tsx
+@@ -1,6 +1,6 @@
+ import { type GrafanaTheme2 } from '@grafana/data';
+ import { t } from '@grafana/i18n';
+-import { Badge, Stack, TagList, Text, useStyles2 } from '@grafana/ui';
++import { Stack, TagList, Text, useStyles2 } from '@grafana/ui';
+ 
+ import { getNeutralTagListStyle } from '../../tagColors';
+ 
+@@ -17,9 +17,9 @@ interface Props {
+   onTagsChange?: (tags: string[]) => void;
+ }
+ 
+-// The notebook document header: a "Published Notebook" badge, the title, and the document's metadata
+-// as labelled rows. Presentational only, so it stays out of the layout manager and can be tested on
+-// its own — editing arrives as a callback rather than by reaching for the scene.
++// The notebook document header: the title and the document's metadata as labelled rows.
++// Presentational only, so it stays out of the layout manager and can be tested on its own — editing
++// arrives as a callback rather than by reaching for the scene.
+ export function NotebookDocumentHeader({ title, tags, timeFrom, timeTo, isEditing, onTagsChange }: Props) {
+   const styles = useStyles2(getStyles);
+   const canEditTags = Boolean(isEditing && onTagsChange);
+@@ -30,7 +30,6 @@ export function NotebookDocumentHeader({ title, tags, timeFrom, timeTo, isEditin
+ 
+   return (
+     <Stack direction="column" gap={1} alignItems="flex-start">
+-      <Badge text={t('dashboard.notebook-layout.pill', 'Published Notebook')} color="blue" icon="book" />
+       {title ? (
+         <Text element="h1" variant="h1">
+           {title}
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
+index 552d7b777d4fc..3feba5164f048 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.test.tsx
+@@ -178,10 +178,9 @@ describe('NotebookLayoutManager', () => {
+     jest.restoreAllMocks();
+   });
+ 
+-  it('renders the document header with badge, title, time range and tags', async () => {
++  it('renders the document header with title, time range and tags', async () => {
+     renderNotebook();
+ 
+-    expect(screen.getByText('Published Notebook')).toBeInTheDocument();
+     expect(screen.getByRole('heading', { name: 'My notebook' })).toBeInTheDocument();
+     expect(screen.getByText(/now-6h/)).toBeInTheDocument();
+     expect(screen.getByText('incident')).toBeInTheDocument();
+@@ -1361,6 +1360,54 @@ describe('NotebookLayoutManager', () => {
+     });
+   });
+ 
++  /**
++   * Editing keeps an empty block at the bottom ready to type in. It belongs to the editor, not to the
++   * notebook, so it must not reach the saved document.
++   */
++  describe("serialize() and the editor's trailing empty block", () => {
++    const empty = { kind: 'Markdown' as const, spec: { text: '' } };
++    const written = { kind: 'Markdown' as const, spec: { text: 'Hello' } };
++
++    function managerWith(...contents: Array<typeof empty | undefined>) {
++      return new NotebookLayoutManager({
++        cells: contents.map(
++          (content, i) => new NotebookCellItem({ elementName: `md${i + 1}`, source: 'user', content })
++        ),
++      });
++    }
++
++    function names(manager: NotebookLayoutManager) {
++      return manager.serialize().spec.cells.map((cell) => cell.spec.element.name);
++    }
++
++    it('leaves out a trailing empty block', () => {
++      expect(names(managerWith(written, empty))).toEqual(['md1']);
++    });
++
++    it('keeps an empty block that somebody left in the middle', () => {
++      expect(names(managerWith(written, empty, written))).toEqual(['md1', 'md2', 'md3']);
++    });
++
++    // Only the last one. Two in a row means the one before it was left there deliberately.
++    it('leaves out only the last of two trailing empty blocks', () => {
++      expect(names(managerWith(written, empty, empty))).toEqual(['md1', 'md2']);
++    });
++
++    it('keeps a trailing cell that holds no content at all, which is not an empty block', () => {
++      expect(names(managerWith(written, undefined))).toEqual(['md1', 'md2']);
++    });
++
++    it('serializes an empty layout when the block is the only cell', () => {
++      expect(names(managerWith(empty))).toEqual([]);
++    });
++
++    // Two in a row usually means the first was left there on purpose, but not when there is no real
++    // content anywhere: clearing or undoing what was typed leaves exactly that, and it is still blank.
++    it('serializes an empty layout when every block is empty, not just the trailing one', () => {
++      expect(names(managerWith(empty, empty))).toEqual([]);
++    });
++  });
++
+   it('serializes to the notebook layout kind, not a dashboard layout kind', () => {
+     const manager = new NotebookLayoutManager({
+       cells: [new NotebookCellItem({ elementName: 'md1', source: 'assistant' })],
+diff --git a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
+index 15392076cf47d..4519247aa48db 100644
+--- a/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
++++ b/public/app/features/notebook/scene/layout-notebook/NotebookLayoutManager.tsx
+@@ -40,6 +40,7 @@ import { NotebookDocumentHeader } from './NotebookDocumentHeader';
+ import { NotebookAddBlockDivider } from './edit/NotebookAddBlockDivider';
+ import { type NotebookBlockType } from './edit/NotebookBlockTypeMenu';
+ import { getCellDropIndicator, NotebookCellFrame, type NotebookDragState } from './edit/NotebookCellFrame';
++import { isEmptyMarkdown } from './isEmptyMarkdown';
+ import { setQueryRunnerQueries } from './setQueryRunnerQueries';
+ 
+ interface NotebookLayoutManagerState extends SceneObjectState {
+@@ -157,11 +158,30 @@ export class NotebookLayoutManager
+     return undefined;
+   }
+ 
++  /**
++   * The cells that are part of the notebook, as opposed to the ones that are part of the editor.
++   *
++   * Editing keeps an empty block at the bottom ready to type in (see appendSystemCell), and nothing
++   * about it came from the person editing. Saving it wrote an empty paragraph into notebooks that were
++   * only opened, and it would have created a notebook out of a blank page nobody typed in.
++   *
++   * Only the last one, and only when it is empty: an empty block anywhere else is one somebody left
++   * there on purpose. Unless nothing else is real either: clearing or undoing what was typed can
++   * leave two empty cells and no content at all, and a notebook in that state is still blank.
++   */
++  public contentCells(): NotebookCellItem[] {
++    const { cells } = this.state;
++    const last = cells[cells.length - 1];
++    const withoutTrailingSlot = last && isEmptyMarkdown(last.state.content) ? cells.slice(0, -1) : cells;
++
++    return withoutTrailingSlot.every((cell) => isEmptyMarkdown(cell.state.content)) ? [] : withoutTrailingSlot;
++  }
++
+   // Serialization lives here instead of in a helper file, so that this file never has to import the
+   // serializer. If both files imported each other they would form a cycle, which is what this layout
+   // avoids. The serializer still imports this class to build it when reading a notebook, one way only.
+   public serialize(): NotebookLayoutKind {
+-    const cells: NotebookLayoutItemKind[] = this.state.cells.map((cell) => ({
++    const cells: NotebookLayoutItemKind[] = this.contentCells().map((cell) => ({
+       kind: 'NotebookLayoutItem',
+       spec: {
+         element: { kind: 'ElementReference', name: cell.state.elementName },
+@@ -924,17 +944,6 @@ function contentForBlockType(type: NotebookBlockType): CellContentKind | undefin
+   }
+ }
+ 
+-/**
+- * Whether `content` is an untouched, empty markdown cell — the shape the trailing-slot invariant (see
+- * setCellContent and the renderer's own bootstrap effect) watches for. `undefined` (a panel or
+- * collapsed cell, which carries no `content` at all) deliberately does *not* count: it isn't a
+- * typeable markdown slot either, so a panel ending up last must still get a fresh empty cell appended
+- * after it, exactly like any other non-empty trailing content would.
+- */
+-function isEmptyMarkdown(content: CellContentKind | undefined): boolean {
+-  return content?.kind === 'Markdown' && content.spec.text === '';
+-}
+-
+ /**
+  * What Enter's split-off cell (see NotebookLayoutManagerRenderer's onAdvance) should start with, and
+  * where its caret belongs. `remainder` is every line MarkdownCell found after the caret, exactly as
+diff --git a/public/app/features/notebook/scene/layout-notebook/isEmptyMarkdown.ts b/public/app/features/notebook/scene/layout-notebook/isEmptyMarkdown.ts
+new file mode 100644
+index 0000000000000..b62248b626268
+--- /dev/null
++++ b/public/app/features/notebook/scene/layout-notebook/isEmptyMarkdown.ts
+@@ -0,0 +1,18 @@
++import { type CellContentKind } from '../../types';
++
++/**
++ * Deliberately its own module, for the same kind of reason as `isNotebookLayoutManager`.
++ *
++ * APPLY_NOTEBOOK_SPEC needs this, and the mutation command registry it lives in is reachable from the
++ * app entrypoint. Importing it from NotebookLayoutManager therefore pulled that component, the
++ * drag-and-drop library and every cell editor into the main bundle, which CI rejects on size.
++ *
++ * Whether `content` is an untouched, empty markdown cell — the shape the trailing-slot invariant (see
++ * setCellContent and the renderer's own bootstrap effect) watches for. `undefined` (a panel or
++ * collapsed cell, which carries no `content` at all) deliberately does *not* count: it isn't a
++ * typeable markdown slot either, so a panel ending up last must still get a fresh empty cell appended
++ * after it, exactly like any other non-empty trailing content would.
++ */
++export function isEmptyMarkdown(content: CellContentKind | undefined): boolean {
++  return content?.kind === 'Markdown' && content.spec.text === '';
++}
+diff --git a/public/app/features/notebook/serialization/transformNotebook.test.ts b/public/app/features/notebook/serialization/transformNotebook.test.ts
+index c744392f7c990..3cbe663ce68cc 100644
+--- a/public/app/features/notebook/serialization/transformNotebook.test.ts
++++ b/public/app/features/notebook/serialization/transformNotebook.test.ts
+@@ -173,6 +173,34 @@ describe('transformNotebookToScene / transformNotebookSceneToSaveModel', () => {
+     expect(() => transformNotebookSceneToSaveModel(scene)).not.toThrow();
+   });
+ 
++  // The block the editor keeps at the bottom is dropped from the layout, so its element has to go too
++  // or `elements` keeps an entry that no layout item points at.
++  it('leaves no orphan element behind when the trailing empty block is dropped', () => {
++    const scene = transformNotebookToScene(notebookResource());
++    const trailing = scene.state.body.appendSystemCell(scene.state.body.state.cells.length)!;
++
++    const saveModel = transformNotebookSceneToSaveModel(scene);
++
++    expect(saveModel.elements[trailing.state.elementName]).toBeUndefined();
++    expect(saveModel.layout.spec.cells.map((cell) => cell.spec.element.name)).not.toContain(trailing.state.elementName);
++    // Everything else is untouched, so this drops one cell rather than changing the document.
++    expect(saveModel.layout.spec.cells).toHaveLength(4);
++  });
++
++  // The element survives being referenced twice even when one of the two references is the dropped
++  // trailing cell, because elements are keyed off the cells that stay.
++  it('keeps an element that the dropped block shares with a cell that stays', () => {
++    const scene = transformNotebookToScene(notebookResource());
++    const cells = scene.state.body.state.cells;
++    const shared = cells[0].state.elementName;
++    const trailing = scene.state.body.appendSystemCell(cells.length)!;
++    trailing.setState({ elementName: shared });
++
++    const saveModel = transformNotebookSceneToSaveModel(scene);
++
++    expect(saveModel.elements[shared]).toBeDefined();
++  });
++
+   // Two layout items referencing one element is legal, and the deserializer gives each its own cell.
+   // getElements folds them back into a single elements[name] entry by walking cells in order, so the
+   // last one wins: an edit applied to only the edited cell is silently dropped by the duplicate that
+diff --git a/public/app/features/notebook/serialization/transformNotebookSceneToSaveModel.ts b/public/app/features/notebook/serialization/transformNotebookSceneToSaveModel.ts
+index 6b70a6a6cef0c..87293a3494d5a 100644
+--- a/public/app/features/notebook/serialization/transformNotebookSceneToSaveModel.ts
++++ b/public/app/features/notebook/serialization/transformNotebookSceneToSaveModel.ts
+@@ -50,7 +50,9 @@ export function transformNotebookSceneToSaveModel(scene: NotebookScene): Noteboo
+ function getElements(scene: NotebookScene): Record<string, NotebookElement> {
+   const elements: Record<string, NotebookElement> = {};
+ 
+-  for (const cell of scene.state.body.state.cells) {
++  // The same cells the layout writes, or the block the editor keeps at the bottom would leave an
++  // element behind with nothing referencing it.
++  for (const cell of scene.state.body.contentCells()) {
+     const { elementName, body: panel, content } = cell.state;
+ 
+     if (panel) {
+diff --git a/public/app/features/notebook/toolbar/NotebookToolbar.test.tsx b/public/app/features/notebook/toolbar/NotebookToolbar.test.tsx
+index b8401568c6644..4e74061dcb440 100644
+--- a/public/app/features/notebook/toolbar/NotebookToolbar.test.tsx
++++ b/public/app/features/notebook/toolbar/NotebookToolbar.test.tsx
+@@ -282,4 +282,40 @@ describe('NotebookToolbar', () => {
+       expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument();
+     });
+   });
++
++  /**
++   * A notebook created by typing gets its uid part way through the first sentence. The bar has to be
++   * there before that, or it appears under the writer and pushes the document down.
++   */
++  describe('before the notebook exists', () => {
++    function setupUnsaved() {
++      const scene = buildScene();
++      scene.setState({ uid: undefined });
++      return render(<NotebookToolbar uid={undefined} scene={scene} />);
++    }
++
++    it('still renders both actions, so nothing moves when the notebook is created', () => {
++      setupUnsaved();
++
++      expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
++      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument();
++    });
++
++    // aria-disabled rather than the disabled attribute: Grafana's Button switches to it when there is
++    // a tooltip, so that the reason is reachable on an element a pointer can still reach.
++    it('disables them and says why', () => {
++      setupUnsaved();
++
++      expect(screen.getByRole('button', { name: 'Copy link' })).toHaveAttribute('aria-disabled', 'true');
++      expect(screen.getByRole('button', { name: /Export/ })).toHaveAttribute('aria-disabled', 'true');
++    });
++
++    it('opens no export menu, since there is nothing to export', async () => {
++      const { user } = setupUnsaved();
++
++      await user.click(screen.getByRole('button', { name: /Export/ }));
++
++      expect(screen.queryByRole('menuitem', { name: 'Copy as Markdown' })).not.toBeInTheDocument();
++    });
++  });
+ });
+diff --git a/public/app/features/notebook/toolbar/NotebookToolbar.tsx b/public/app/features/notebook/toolbar/NotebookToolbar.tsx
+index 6ecb55199ee15..5b97b155311eb 100644
+--- a/public/app/features/notebook/toolbar/NotebookToolbar.tsx
++++ b/public/app/features/notebook/toolbar/NotebookToolbar.tsx
+@@ -17,9 +17,20 @@ import { NOTEBOOKS_BASE_URL, notebookShareUrl } from '../urls';
+ 
+ /**
+  * The notebook view's header bar.
++ *
++ * Rendered for a notebook that does not exist yet as well, so that creating one by typing does not
++ * push the document down by the height of this bar while somebody is writing in it. Both actions need
++ * a notebook that exists, so until there is one they are disabled and say why.
+  */
+-export function NotebookToolbar({ uid, scene }: { uid: string; scene: NotebookScene }) {
++export function NotebookToolbar({ uid, scene }: { uid?: string; scene: NotebookScene }) {
+   const styles = useStyles2(getStyles);
++
++  return (
++    <div className={styles.toolbar}>{uid ? <NotebookActions uid={uid} scene={scene} /> : <UnavailableActions />}</div>
++  );
++}
++
++function NotebookActions({ uid, scene }: { uid: string; scene: NotebookScene }) {
+   const [isExportOpen, setIsExportOpen] = useState(false);
+   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+   const { remove, isDeleting } = useDeleteNotebook();
+@@ -65,7 +76,7 @@ export function NotebookToolbar({ uid, scene }: { uid: string; scene: NotebookSc
+   );
+ 
+   return (
+-    <div className={styles.toolbar}>
++    <>
+       <ClipboardButton variant="secondary" size="sm" icon="link" getText={() => notebookShareUrl(uid)}>
+         {t('notebooks.view.copy-link', 'Copy link')}
+       </ClipboardButton>
+@@ -97,7 +108,31 @@ export function NotebookToolbar({ uid, scene }: { uid: string; scene: NotebookSc
+           onDismiss={() => setIsConfirmingDelete(false)}
+         />
+       )}
+-    </div>
++    </>
++  );
++}
++
++/**
++ * The same two buttons, disabled: there is no notebook to link to or export yet. They keep the
++ * chevron and the sizing of the real ones so that nothing moves when the notebook is created.
++ *
++ * Grafana's Button swaps the native disabled attribute for aria-disabled when it has a tooltip, so
++ * the reason stays reachable instead of being on an element that ignores the pointer.
++ */
++function UnavailableActions() {
++  const reason = t('notebooks.view.available-once-created', 'Available once you write something');
++
++  return (
++    <>
++      <Button variant="secondary" size="sm" icon="link" disabled tooltip={reason}>
++        {t('notebooks.view.copy-link', 'Copy link')}
++      </Button>
++      <Button variant="secondary" size="sm" icon="download-alt" disabled tooltip={reason}>
++        <Trans i18nKey="notebooks.export.label">Export</Trans>
++        &nbsp;
++        <Icon name="angle-down" size="sm" aria-hidden="true" />
++      </Button>
++    </>
+   );
+ }
+ 
+diff --git a/public/app/features/notebook/urls.ts b/public/app/features/notebook/urls.ts
+index 3a0b8d706fc73..d9f8af97ec1dd 100644
+--- a/public/app/features/notebook/urls.ts
++++ b/public/app/features/notebook/urls.ts
+@@ -12,6 +12,20 @@ export const NOTEBOOKS_BASE_URL = '/notebooks';
+ export const NOTEBOOK_EDIT_PARAM = 'edit';
+ export const NOTEBOOK_EDIT_PARAM_ON = 'true';
+ 
++/**
++ * The blank-notebook route. Nothing exists behind it: the page renders an empty notebook and the
++ * resource is only created once there is something to save.
++ */
++export const NOTEBOOK_NEW_URL = `${NOTEBOOKS_BASE_URL}/new`;
++
++/**
++ * Where the list's create button goes. A blank notebook exists only to be written into, so it opens
++ * in edit mode, for the same reason `notebookEditUrl` below does.
++ */
++export function notebookNewEditUrl(): string {
++  return `${NOTEBOOK_NEW_URL}?${NOTEBOOK_EDIT_PARAM}=${NOTEBOOK_EDIT_PARAM_ON}`;
++}
++
+ /**
+  * The single-notebook destination, nested under the list so the two stay consistent. The list's
+  * title link points here; its Edit action points at the same page with the edit param.
+diff --git a/public/app/routes/routes.test.tsx b/public/app/routes/routes.test.tsx
+index ab66837e3af7c..3e05462b5507c 100644
+--- a/public/app/routes/routes.test.tsx
++++ b/public/app/routes/routes.test.tsx
+@@ -84,4 +84,32 @@ describe('notebooks route guards', () => {
+ 
+     expect(getRouteRolesGuard(path)()).toEqual([]);
+   });
++
++  // The blank route is the only notebook one that writes, so reading is not enough to reach it.
++  it('rejects /notebooks/new without dashboards:create', () => {
++    contextSrv.user.permissions = { [AccessControlAction.DashboardsRead]: true };
++
++    expect(getRouteRolesGuard('/notebooks/new')()).toEqual(['Reject']);
++  });
++
++  it('allows /notebooks/new with dashboards:create', () => {
++    contextSrv.user.permissions = { [AccessControlAction.DashboardsCreate]: true };
++
++    expect(getRouteRolesGuard('/notebooks/new')()).toEqual([]);
++  });
++
++  /**
++   * A notebook created by typing moves from /notebooks/new to /notebooks/<uid> while somebody is
++   * mid-sentence. Two SafeDynamicImport calls would give the two routes two component identities, so
++   * React would unmount one and mount the other, and every cell's editor was rebuilt underneath the
++   * writer. One shared component makes that a parameter change instead.
++   */
++  it('renders both notebook page routes through one component, so moving between them is not a remount', () => {
++    const routes = getAppRoutes();
++    const blank = routes.find((r) => r.path === '/notebooks/new');
++    const byUid = routes.find((r) => r.path === '/notebooks/:uid/:slug?');
++
++    expect(blank?.component).toBeDefined();
++    expect(blank?.component).toBe(byUid?.component);
++  });
+ });
+diff --git a/public/app/routes/routes.tsx b/public/app/routes/routes.tsx
+index a600bbe162e8c..d958bc39bc504 100644
+--- a/public/app/routes/routes.tsx
++++ b/public/app/routes/routes.tsx
+@@ -14,7 +14,7 @@ import { ROUTES as CONNECTIONS_ROUTES } from 'app/features/connections/constants
+ import { getRoutes as getDataConnectionsRoutes } from 'app/features/connections/routes';
+ import { DASHBOARD_LIBRARY_ROUTES } from 'app/features/dashboard/dashgrid/types';
+ import { DATASOURCES_ROUTES } from 'app/features/datasources/constants';
+-import { NOTEBOOKS_BASE_URL } from 'app/features/notebook/urls';
++import { NOTEBOOK_NEW_URL, NOTEBOOKS_BASE_URL } from 'app/features/notebook/urls';
+ import { getRoutes as getPluginCatalogRoutes } from 'app/features/plugins/admin/routes';
+ import { getAppPluginRoutes } from 'app/features/plugins/routes';
+ import { getProfileRoutes } from 'app/features/profile/routes';
+@@ -32,6 +32,18 @@ const LazyConfigureIRM = lazy(() =>
+     (module) => ({ default: module.ConfigureIRM })
+   )
+ );
++
++/**
++ * One component shared by both notebook page routes, rather than a SafeDynamicImport call in each.
++ *
++ * Two separate calls make two different components, and React unmounts one and mounts the other when
++ * you move between routes. That happened for real: `/notebooks/new` becomes `/notebooks/<uid>` the
++ * moment you create a notebook by typing, and the remount wiped out every cell's editor mid-sentence.
++ * One shared component means React treats this as the same page with a new url, so nothing unmounts.
++ */
++const NotebookPageComponent = SafeDynamicImport(
++  () => import(/* webpackChunkName: "NotebookScenePage" */ '../features/notebook/pages/NotebookScenePage')
++);
+ export const extraRoutes: RouteDescriptor[] = [];
+ 
+ export function getAppRoutes(): RouteDescriptor[] {
+@@ -62,19 +74,27 @@ export function getAppRoutes(): RouteDescriptor[] {
+         () => import(/* webpackChunkName: "DashboardPage" */ '../features/dashboard/containers/DashboardPageProxy')
+       ),
+     },
++    {
++      // A notebook that does not exist yet. Sits beside the route below for readability, not for
++      // precedence: routes are rendered by a v6 `<Routes>` (see AppWrapper), which ranks a static
++      // segment above a dynamic one, so this wins over `:uid` wherever it is in the list.
++      path: NOTEBOOK_NEW_URL,
++      roles: () => contextSrv.evaluatePermission([AccessControlAction.DashboardsCreate]),
++      pageClass: 'page-dashboard',
++      routeName: DashboardRoutes.Notebook,
++      component: NotebookPageComponent,
++    },
+     {
+       path: `${NOTEBOOKS_BASE_URL}/:uid/:slug?`,
+       roles: () => contextSrv.evaluatePermission([AccessControlAction.DashboardsRead]),
+       pageClass: 'page-dashboard',
+       routeName: DashboardRoutes.Notebook,
+-      component: SafeDynamicImport(
+-        () => import(/* webpackChunkName: "NotebookScenePage" */ '../features/notebook/pages/NotebookScenePage')
+-      ),
++      component: NotebookPageComponent,
+     },
+     {
+-      // Notebooks reuse dashboard RBAC actions, so dashboards:read is what gates both notebook
+-      // routes. The feature flag is enforced inside the pages instead, since getAppRoutes cannot
+-      // use hooks.
++      // Notebooks reuse dashboard RBAC actions: dashboards:read to read one, and dashboards:create
++      // for the blank route above. The feature flag is enforced inside the pages instead, since
++      // getAppRoutes cannot use hooks.
+       path: NOTEBOOKS_BASE_URL,
+       roles: () => contextSrv.evaluatePermission([AccessControlAction.DashboardsRead]),
+       component: SafeDynamicImport(
+diff --git a/public/locales/en-US/grafana.json b/public/locales/en-US/grafana.json
+index 0d62f99d98f53..aba20bc139f9a 100644
+--- a/public/locales/en-US/grafana.json
++++ b/public/locales/en-US/grafana.json
+@@ -6018,7 +6018,6 @@
+     "notebook-layout": {
+       "description": "A vertical sequence of panels, text, and code cells",
+       "name": "Notebook",
+-      "pill": "Published Notebook",
+       "tags": "Tags",
+       "tags-custom-value": "Add as a new tag",
+       "tags-placeholder": "Add a tag",
+@@ -13090,7 +13089,6 @@
+       "count-of-total-approx": "Showing {{shown}} of up to {{total}}",
+       "count-truncated_one": "First {{count}} notebook loaded",
+       "count-truncated_other": "First {{count}} notebooks loaded",
+-      "create-error": "Failed to create notebook",
+       "created-by-me": "Created by me",
+       "empty-body": "Notebooks capture an investigation as a document: narrative text and code alongside live visualizations from your dashboards, alerts, and incidents.",
+       "empty-title": "You haven't created any notebooks yet",
+@@ -13098,7 +13096,6 @@
+       "load-error": "Failed to load notebooks",
+       "loading": "Loading notebooks",
+       "new-notebook": "New notebook",
+-      "new-notebook-title": "New notebook",
+       "no-results": "No notebooks found",
+       "partial-load-error": "Some notebooks could not be loaded",
+       "search-placeholder": "Search notebooks by title...",
+@@ -13114,6 +13111,9 @@
+       },
+       "unknown-author": "Anonymous"
+     },
++    "new": {
++      "default-title": "Notebook #{{token}}"
++    },
+     "save-status": {
+       "failed": "Save failed",
+       "pending": "Unsaved changes",
+@@ -13122,6 +13122,7 @@
+       "saving": "Saving…"
+     },
+     "view": {
++      "available-once-created": "Available once you write something",
+       "copy-link": "Copy link",
+       "mode-edit": "Edit",
+       "mode-view": "View",

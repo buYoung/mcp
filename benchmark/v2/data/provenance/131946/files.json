@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/74c185dc8b8194bf423e29503db124e794c64ff8/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler.go",
+    "changes": 2,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler.go?ref=74c185dc8b8194bf423e29503db124e794c64ff8",
+    "deletions": 1,
+    "filename": "pkg/services/ngalert/api/api_ruler.go",
+    "patch": "@@ -300,7 +300,7 @@ func (srv RulerSrv) RouteGetRulesConfig(c *contextmodel.ReqContext) response.Res\n \t\treturn response.JSON(http.StatusOK, result)\n \t}\n \n-\tnamespaceUIDs := make([]string, len(namespaceMap))\n+\tnamespaceUIDs := make([]string, 0, len(namespaceMap))\n \tfor k := range namespaceMap {\n \t\tnamespaceUIDs = append(namespaceUIDs, k)\n \t}",
+    "raw_url": "https://github.com/grafana/grafana/raw/74c185dc8b8194bf423e29503db124e794c64ff8/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler.go",
+    "sha": "a758b4e9f56e721e5c21356112d1d68269bf5007",
+    "status": "modified"
+  },
+  {
+    "additions": 31,
+    "blob_url": "https://github.com/grafana/grafana/blob/74c185dc8b8194bf423e29503db124e794c64ff8/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler_test.go",
+    "changes": 31,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler_test.go?ref=74c185dc8b8194bf423e29503db124e794c64ff8",
+    "deletions": 0,
+    "filename": "pkg/services/ngalert/api/api_ruler_test.go",
+    "patch": "@@ -733,6 +733,37 @@ func TestRouteGetRulesConfig(t *testing.T) {\n \t\t})\n \t})\n \n+\tt.Run(\"should query only the namespaces visible to the user\", func(t *testing.T) {\n+\t\torgID := rand.Int63()\n+\t\truleStore := fakes.NewRuleStore(t)\n+\t\tfolders := []*folder.Folder{randFolder(), randFolder(), randFolder()}\n+\t\truleStore.Folders[orgID] = folders\n+\n+\t\trules := make([]*models.AlertRule, 0, len(folders))\n+\t\texpected := make([]string, 0, len(folders))\n+\t\tfor _, f := range folders {\n+\t\t\tgroupKey := models.GenerateGroupKey(orgID)\n+\t\t\tgroupKey.NamespaceUID = f.UID\n+\t\t\trules = append(rules, gen.With(gen.WithGroupKey(groupKey)).GenerateRef())\n+\t\t\texpected = append(expected, f.UID)\n+\t\t}\n+\t\truleStore.PutRule(context.Background(), rules...)\n+\n+\t\treq := createRequestContextWithPerms(orgID, createPermissionsForRules(rules, orgID), nil)\n+\t\tresponse := createService(ruleStore, usertest.NewUserServiceFake()).RouteGetRulesConfig(req)\n+\t\trequire.Equal(t, http.StatusOK, response.Status())\n+\n+\t\tqueries := ruleStore.GetRecordedCommands(func(cmd any) (any, bool) {\n+\t\t\tq, ok := cmd.(models.ListAlertRulesQuery)\n+\t\t\treturn q, ok\n+\t\t})\n+\t\trequire.Len(t, queries, 1)\n+\n+\t\t// make([]string, len(m)) followed by append would pad this with as many\n+\t\t// empty UIDs as there are folders, doubling the IN list in SQL.\n+\t\trequire.ElementsMatch(t, expected, queries[0].(models.ListAlertRulesQuery).NamespaceUIDs)\n+\t})\n+\n \tt.Run(\"should return rules in group sorted by group index\", func(t *testing.T) {\n \t\torgID := rand.Int63()\n \t\tfolder := randFolder()",
+    "raw_url": "https://github.com/grafana/grafana/raw/74c185dc8b8194bf423e29503db124e794c64ff8/pkg%2Fservices%2Fngalert%2Fapi%2Fapi_ruler_test.go",
+    "sha": "f45a897db3e1b85f5da8ee3522cd8e488bf3caeb",
+    "status": "modified"
+  }
+]

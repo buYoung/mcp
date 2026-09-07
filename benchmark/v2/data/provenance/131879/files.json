@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 5,
+    "blob_url": "https://github.com/grafana/grafana/blob/b054c47d9bd8a498d691a2d1a7799a0c00ed1e32/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.test.ts",
+    "changes": 10,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.test.ts?ref=b054c47d9bd8a498d691a2d1a7799a0c00ed1e32",
+    "deletions": 5,
+    "filename": "public/app/features/logs/components/otel/formats.test.ts",
+    "patch": "@@ -278,17 +278,17 @@ describe('getSuggestedFieldsForLogs', () => {\n     expect(result).toEqual([]);\n   });\n \n-  test('matches suggested fields against labels case-insensitively', () => {\n+  test('matches suggested fields against labels without changing them', () => {\n     const logs = [\n       createLogLine({\n         labels: { Service_Name: 'svc', MSG: 'hello', APP: 'web', TraceID: 'abc' },\n         entry: 'log',\n       }),\n     ];\n     const result = getSuggestedFieldsForLogs(logs);\n-    expect(result).toContain('service_name');\n-    expect(result).toContain('msg');\n-    expect(result).toContain('app');\n-    expect(result).toContain('traceid');\n+    expect(result).toContain('Service_Name');\n+    expect(result).toContain('MSG');\n+    expect(result).toContain('APP');\n+    expect(result).toContain('TraceID');\n   });\n });",
+    "raw_url": "https://github.com/grafana/grafana/raw/b054c47d9bd8a498d691a2d1a7799a0c00ed1e32/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.test.ts",
+    "sha": "38fc9155bd8c4b9533896b4c19fc7f43dcf8024c",
+    "status": "modified"
+  },
+  {
+    "additions": 17,
+    "blob_url": "https://github.com/grafana/grafana/blob/b054c47d9bd8a498d691a2d1a7799a0c00ed1e32/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.ts",
+    "changes": 25,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.ts?ref=b054c47d9bd8a498d691a2d1a7799a0c00ed1e32",
+    "deletions": 8,
+    "filename": "public/app/features/logs/components/otel/formats.ts",
+    "patch": "@@ -73,19 +73,28 @@ export function getSuggestedFieldsForLogs(logs: LogListModel[] | LogRowModel[]):\n \n   const fields = [...new Set([...suggestedFields, ...otelFields])];\n \n-  const availableLabels = new Set<string>();\n+  const labelsByLowerCase = new Map<string, string>();\n   logs.forEach((log) => {\n     for (const label in log.labels) {\n-      availableLabels.add(label.toLowerCase());\n+      labelsByLowerCase.set(label.toLowerCase(), label);\n     }\n   });\n \n-  return fields.filter(\n-    (field) =>\n-      field === LOG_LINE_BODY_FIELD_NAME ||\n-      field === OTEL_LOG_LINE_ATTRIBUTES_FIELD_NAME ||\n-      availableLabels.has(field.toLowerCase())\n-  );\n+  const suggestedFieldNames: string[] = [];\n+  for (const field of fields) {\n+    if (field === LOG_LINE_BODY_FIELD_NAME || field === OTEL_LOG_LINE_ATTRIBUTES_FIELD_NAME) {\n+      suggestedFieldNames.push(field);\n+      continue;\n+    }\n+    // Return the label as it appears in the logs, not the normalized suggestion:\n+    // consumers look the value up with `labels[field]`, which is case-sensitive.\n+    const label = labelsByLowerCase.get(field.toLowerCase());\n+    if (label !== undefined) {\n+      suggestedFieldNames.push(label);\n+    }\n+  }\n+\n+  return [...new Set(suggestedFieldNames)];\n }\n \n function getSuggestedFieldsForAnyLogs() {",
+    "raw_url": "https://github.com/grafana/grafana/raw/b054c47d9bd8a498d691a2d1a7799a0c00ed1e32/public%2Fapp%2Ffeatures%2Flogs%2Fcomponents%2Fotel%2Fformats.ts",
+    "sha": "a50d0fc0f10fe61c641158f4aa722ea082dad1fc",
+    "status": "modified"
+  }
+]

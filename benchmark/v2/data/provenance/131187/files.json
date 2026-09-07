@@ -1,0 +1,26 @@
+[
+  {
+    "additions": 2,
+    "blob_url": "https://github.com/grafana/grafana/blob/88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCombobox%2FMultiCombobox.tsx",
+    "changes": 2,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCombobox%2FMultiCombobox.tsx?ref=88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac",
+    "deletions": 0,
+    "filename": "packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx",
+    "patch": "@@ -186,6 +186,7 @@ export const MultiCombobox = <T extends string | number>(props: MultiComboboxPro\n     inputId: id,\n     inputValue,\n     selectedItem: null,\n+    defaultHighlightedIndex: 0,\n     isItemDisabled: (item) => !!item?.infoOption,\n     stateReducer: (state, actionAndChanges) => {\n       const { type } = actionAndChanges;\n@@ -261,6 +262,7 @@ export const MultiCombobox = <T extends string | number>(props: MultiComboboxPro\n           } else if (newSelectedItem) {\n             addSelectedItem(newSelectedItem);\n           }\n+\n           break;\n         case useCombobox.stateChangeTypes.InputChange:\n           // setInputValue is intentionally NOT called here. It is called synchronously in the",
+    "raw_url": "https://github.com/grafana/grafana/raw/88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCombobox%2FMultiCombobox.tsx",
+    "sha": "b4defdff5b062a87b4cffde6631ec91883f730df",
+    "status": "modified"
+  },
+  {
+    "additions": 4,
+    "blob_url": "https://github.com/grafana/grafana/blob/88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac/public%2Fapp%2Ffeatures%2Fprovisioning%2FRepository%2FResourceTreeView.test.tsx",
+    "changes": 8,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fprovisioning%2FRepository%2FResourceTreeView.test.tsx?ref=88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac",
+    "deletions": 4,
+    "filename": "public/app/features/provisioning/Repository/ResourceTreeView.test.tsx",
+    "patch": "@@ -146,7 +146,7 @@ describe('ResourceTreeView', () => {\n       const { user } = render(<ResourceTreeView repo={repo} />);\n \n       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));\n-      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 1: Not in sync\n+      await user.keyboard('{ArrowDown}{Enter}'); // index 1: Not in sync\n \n       expect(await screen.findByText('Pending Dashboard')).toBeInTheDocument();\n       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();\n@@ -156,7 +156,7 @@ describe('ResourceTreeView', () => {\n       const { user } = render(<ResourceTreeView repo={repo} />);\n \n       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));\n-      await user.keyboard('{ArrowDown}{Enter}'); // index 0: Synced\n+      await user.keyboard('{Enter}'); // index 0: Synced\n \n       expect(await screen.findByText('Synced Dashboard')).toBeInTheDocument();\n       expect(screen.queryByText('Pending Dashboard')).not.toBeInTheDocument();\n@@ -169,7 +169,7 @@ describe('ResourceTreeView', () => {\n       // parent folder must not linger just because it aggregates a (now hidden) pending child.\n       await user.type(screen.getByPlaceholderText('Search by path or title'), 'synced');\n       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));\n-      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 1: Not in sync\n+      await user.keyboard('{ArrowDown}{Enter}'); // index 1: Not in sync\n \n       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();\n       expect(screen.queryByText('Pending Dashboard')).not.toBeInTheDocument();\n@@ -181,7 +181,7 @@ describe('ResourceTreeView', () => {\n       const { user } = render(<ResourceTreeView repo={repo} />);\n \n       await user.click(screen.getByRole('combobox', { name: 'Filter by status' }));\n-      await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{Enter}'); // index 2: Warnings\n+      await user.keyboard('{ArrowDown}{ArrowDown}{Enter}'); // index 2: Warnings\n \n       // None of the sample resources are missing metadata, so filtering by Warnings hides them all.\n       expect(screen.queryByText('Synced Dashboard')).not.toBeInTheDocument();",
+    "raw_url": "https://github.com/grafana/grafana/raw/88e8cb5a4388c1eb98fa1b00c26d28b0ce365eac/public%2Fapp%2Ffeatures%2Fprovisioning%2FRepository%2FResourceTreeView.test.tsx",
+    "sha": "0ac99a84e5ef5ecd96a0b33cfa36b49b6f351a47",
+    "status": "modified"
+  }
+]

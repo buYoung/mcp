@@ -1,0 +1,50 @@
+[
+  {
+    "additions": 4,
+    "blob_url": "https://github.com/grafana/grafana/blob/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fhelper.go",
+    "changes": 5,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fhelper.go?ref=4b5c293be88f5b5176819f849b0a6b117e160e62",
+    "deletions": 1,
+    "filename": "pkg/services/apiserver/builder/helper.go",
+    "patch": "@@ -262,7 +262,10 @@ func SetupConfig(\n \tserverConfig.OpenAPIV3Config.Info.Version = buildVersion\n \n \tserverConfig.SkipOpenAPIInstallation = false\n-\tserverConfig.BuildHandlerChainFunc = buildHandlerChainFuncFromBuilders(builders, reg)\n+\t// The chain gets a registerer labelled with the server it belongs to, so a\n+\t// process that builds more than one chain can register the same collectors\n+\t// for each.\n+\tserverConfig.BuildHandlerChainFunc = buildHandlerChainFuncFromBuilders(builders, ServerRegisterer(reg, ServerMain))\n \n \t// set priority for aggregated discovery\n \tfor i, b := range builders {",
+    "raw_url": "https://github.com/grafana/grafana/raw/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fhelper.go",
+    "sha": "e3c755cb2103785f760956bac2edc356e3085453",
+    "status": "modified"
+  },
+  {
+    "additions": 29,
+    "blob_url": "https://github.com/grafana/grafana/blob/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics.go",
+    "changes": 51,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics.go?ref=4b5c293be88f5b5176819f849b0a6b117e160e62",
+    "deletions": 22,
+    "filename": "pkg/services/apiserver/builder/watch_metrics.go",
+    "patch": "@@ -1,42 +1,49 @@\n package builder\n \n import (\n-\t\"errors\"\n \t\"time\"\n \n \t\"github.com/prometheus/client_golang/prometheus\"\n+\t\"github.com/prometheus/client_golang/prometheus/promauto\"\n )\n \n+// Server names for the handler chains built in one process.\n+const (\n+\tServerMain          = \"main\"\n+\tServerAPIExtensions = \"apiextensions\"\n+)\n+\n+// ServerRegisterer labels everything registered through it with the server the\n+// handler chain belongs to. A process builds a chain per server, each with its\n+// own copy of the chain's metrics, so without the label they would collide on\n+// registration. A nil reg stays nil, leaving collectors unregistered.\n+func ServerRegisterer(reg prometheus.Registerer, server string) prometheus.Registerer {\n+\tif reg == nil {\n+\t\treturn nil\n+\t}\n+\treturn prometheus.WrapRegistererWith(prometheus.Labels{\"server\": server}, reg)\n+}\n+\n // watchMetrics records the watch establishment duration. Watch concurrency is\n // already covered by the upstream apiserver_longrunning_requests gauge, so this\n // only adds the setup latency upstream does not track.\n type watchMetrics struct {\n \testablishmentDuration *prometheus.HistogramVec\n }\n \n-// newWatchMetrics registers the watch metrics, tolerating repeated registration\n-// against the same registerer (the handler chain is built once for the main\n-// apiserver and again for the embedded apiextensions server).\n+// newWatchMetrics registers the watch metrics for one handler chain. Pass a\n+// registerer from ServerRegisterer, so chains built for different servers do not\n+// collide.\n func newWatchMetrics(reg prometheus.Registerer) *watchMetrics {\n-\th := prometheus.NewHistogramVec(prometheus.HistogramOpts{\n-\t\tNamespace: \"grafana\",\n-\t\tSubsystem: \"apiserver\",\n-\t\tName:      \"watch_establishment_duration_seconds\",\n-\t\tHelp:      \"Time from receiving a watch request to the first byte written to the client, by group and resource.\",\n-\t\tBuckets:   prometheus.DefBuckets,\n-\t}, []string{\"group\", \"resource\"})\n-\n-\tif reg != nil {\n-\t\tif err := reg.Register(h); err != nil {\n-\t\t\tvar already prometheus.AlreadyRegisteredError\n-\t\t\tif errors.As(err, &already) {\n-\t\t\t\th = already.ExistingCollector.(*prometheus.HistogramVec)\n-\t\t\t} else {\n-\t\t\t\tpanic(err)\n-\t\t\t}\n-\t\t}\n+\treturn &watchMetrics{\n+\t\testablishmentDuration: promauto.With(reg).NewHistogramVec(prometheus.HistogramOpts{\n+\t\t\tNamespace: \"grafana\",\n+\t\t\tSubsystem: \"apiserver\",\n+\t\t\tName:      \"watch_establishment_duration_seconds\",\n+\t\t\tHelp:      \"Time from receiving a watch request to the first byte written to the client, by server, group and resource.\",\n+\t\t\tBuckets:   prometheus.DefBuckets,\n+\t\t}, []string{\"group\", \"resource\"}),\n \t}\n-\treturn &watchMetrics{establishmentDuration: h}\n }\n \n // observeEstablishment matches filters.WatchEstablishmentRecorder.",
+    "raw_url": "https://github.com/grafana/grafana/raw/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics.go",
+    "sha": "14b2a9d662388cbaec418f001a5075609f2ad41e",
+    "status": "modified"
+  },
+  {
+    "additions": 39,
+    "blob_url": "https://github.com/grafana/grafana/blob/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics_test.go",
+    "changes": 39,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics_test.go?ref=4b5c293be88f5b5176819f849b0a6b117e160e62",
+    "deletions": 0,
+    "filename": "pkg/services/apiserver/builder/watch_metrics_test.go",
+    "patch": "@@ -0,0 +1,39 @@\n+package builder\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+\t\"time\"\n+\n+\t\"github.com/prometheus/client_golang/prometheus\"\n+\t\"github.com/prometheus/client_golang/prometheus/testutil\"\n+\t\"github.com/stretchr/testify/require\"\n+)\n+\n+// A process builds a handler chain per server against one registry, so both\n+// must register and stay apart in the scrape.\n+func TestNewWatchMetrics_PerServer(t *testing.T) {\n+\treg := prometheus.NewPedanticRegistry()\n+\n+\tmain := newWatchMetrics(ServerRegisterer(reg, ServerMain))\n+\tapiExtensions := newWatchMetrics(ServerRegisterer(reg, ServerAPIExtensions))\n+\n+\tmain.observeEstablishment(\"dashboard.grafana.app\", \"dashboards\", time.Second)\n+\tapiExtensions.observeEstablishment(\"example.grafana.app\", \"widgets\", time.Second)\n+\n+\trequire.NoError(t, testutil.GatherAndCompare(reg, strings.NewReader(`\n+# HELP grafana_apiserver_watch_establishment_duration_seconds Time from receiving a watch request to the first byte written to the client, by server, group and resource.\n+# TYPE grafana_apiserver_watch_establishment_duration_seconds histogram\n+grafana_apiserver_watch_establishment_duration_seconds_sum{group=\"dashboard.grafana.app\",resource=\"dashboards\",server=\"main\"} 1\n+grafana_apiserver_watch_establishment_duration_seconds_count{group=\"dashboard.grafana.app\",resource=\"dashboards\",server=\"main\"} 1\n+grafana_apiserver_watch_establishment_duration_seconds_sum{group=\"example.grafana.app\",resource=\"widgets\",server=\"apiextensions\"} 1\n+grafana_apiserver_watch_establishment_duration_seconds_count{group=\"example.grafana.app\",resource=\"widgets\",server=\"apiextensions\"} 1\n+`), \"grafana_apiserver_watch_establishment_duration_seconds_sum\",\n+\t\t\"grafana_apiserver_watch_establishment_duration_seconds_count\"))\n+}\n+\n+// A nil registerer leaves the collectors unregistered rather than panicking.\n+func TestNewWatchMetrics_NilRegisterer(t *testing.T) {\n+\tm := newWatchMetrics(ServerRegisterer(nil, ServerMain))\n+\trequire.NotPanics(t, func() { m.observeEstablishment(\"g\", \"r\", time.Second) })\n+}",
+    "raw_url": "https://github.com/grafana/grafana/raw/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fbuilder%2Fwatch_metrics_test.go",
+    "sha": "705d611adaf2de96c084d1f3b7d29a59835a3aff",
+    "status": "added"
+  },
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fservice.go",
+    "changes": 2,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/pkg%2Fservices%2Fapiserver%2Fservice.go?ref=4b5c293be88f5b5176819f849b0a6b117e160e62",
+    "deletions": 1,
+    "filename": "pkg/services/apiserver/service.go",
+    "patch": "@@ -464,7 +464,7 @@ func (s *service) start(ctx context.Context) error {\n \t\t\tStorageClient:         s.unified,\n \t\t\tAccessClient:          s.accessClient,\n \t\t\tAuthorizerRegistry:    s.authorizer,\n-\t\t\tBuildHandlerChainFunc: s.buildHandlerChainFuncFromBuilders(s.builders, s.metrics),\n+\t\t\tBuildHandlerChainFunc: s.buildHandlerChainFuncFromBuilders(s.builders, builder.ServerRegisterer(s.metrics, builder.ServerAPIExtensions)),\n \t\t\tSecureValues:          s.secrets,\n \t\t\tConfigProvider:        s.restConfigProvider,\n \t\t\tMetrics:               s.metrics,",
+    "raw_url": "https://github.com/grafana/grafana/raw/4b5c293be88f5b5176819f849b0a6b117e160e62/pkg%2Fservices%2Fapiserver%2Fservice.go",
+    "sha": "a3db43b4d988a5b7ee535f77da58237f24b1efd0",
+    "status": "modified"
+  }
+]

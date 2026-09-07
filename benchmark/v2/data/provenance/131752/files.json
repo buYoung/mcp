@@ -1,0 +1,62 @@
+[
+  {
+    "additions": 8,
+    "blob_url": "https://github.com/grafana/grafana/blob/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.test.tsx",
+    "changes": 10,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.test.tsx?ref=14e7774ab10cadae4e006de75770a39c80aa4ce3",
+    "deletions": 2,
+    "filename": "packages/grafana-ui/src/components/CodeMirror/CodeEditor.test.tsx",
+    "patch": "@@ -152,8 +152,14 @@ describe('CodeMirror CodeEditor', () => {\n     expect(tabBinding).toEqual(expect.objectContaining({ key: 'Tab', run: acceptCompletion }));\n   });\n \n-  it('binds Space to insert a space and start completions when completion sources are configured', () => {\n-    render(<CodeEditor value=\"SELECT\" onChange={jest.fn()} completionSources={[jest.fn()]} />);\n+  it('leaves Space unbound by default, so a space cannot open the popup as an explicit request', () => {\n+    render(<CodeEditor value=\"a sentence\" onChange={jest.fn()} completionSources={[jest.fn()]} />);\n+\n+    expect(getKeyBindings().find((binding) => binding.key === 'Space')).toBeUndefined();\n+  });\n+\n+  it('binds Space to insert a space and start completions when completeOnSpace is set', () => {\n+    render(<CodeEditor value=\"SELECT\" onChange={jest.fn()} completionSources={[jest.fn()]} completeOnSpace />);\n \n     const spaceBinding = getKeyBindings().find((binding) => binding.key === 'Space');\n     const replaceSelection = jest.fn(() => ({ changes: { from: 6, insert: ' ' } }));",
+    "raw_url": "https://github.com/grafana/grafana/raw/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.test.tsx",
+    "sha": "6f5dd7fea94b353dd3ea848db2159321fc159aa6",
+    "status": "modified"
+  },
+  {
+    "additions": 18,
+    "blob_url": "https://github.com/grafana/grafana/blob/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.tsx",
+    "changes": 23,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.tsx?ref=14e7774ab10cadae4e006de75770a39c80aa4ce3",
+    "deletions": 5,
+    "filename": "packages/grafana-ui/src/components/CodeMirror/CodeEditor.tsx",
+    "patch": "@@ -21,21 +21,24 @@ import { useShallowStable, useStableCallback } from './useStableProps';\n \n const getCompletionExtensions = (\n   sources: readonly CodeMirrorCompletionSource[] | undefined,\n-  mode: CodeMirrorCompletionMode\n+  mode: CodeMirrorCompletionMode,\n+  completeOnSpace: boolean\n ): CodeMirrorExtension[] => {\n   if (!sources || sources.length === 0) {\n     return [];\n   }\n \n+  const spaceKeymap = completeOnSpace ? [autocompleteSpaceKeymap] : [];\n+\n   if (mode === 'override') {\n-    return [autocompletion({ override: [...sources] }), autocompleteSpaceKeymap];\n+    return [autocompletion({ override: [...sources] }), ...spaceKeymap];\n   }\n \n   // Merge: enable autocompletion and contribute the sources via language data\n   // so they're combined with whatever the active language registers.\n   return [\n     autocompletion(),\n-    autocompleteSpaceKeymap,\n+    ...spaceKeymap,\n     ...sources.map((source) => EditorState.languageData.of(() => [{ autocomplete: source }])),\n   ];\n };\n@@ -93,6 +96,7 @@ export const CodeEditor = memo(function CodeEditor({\n   'aria-labelledby': ariaLabelledby,\n   completionSources,\n   completionMode = 'merge',\n+  completeOnSpace = false,\n   extensions: additionalExtensionsProp,\n   theme: themeOverride,\n   basicSetup: basicSetupProp,\n@@ -115,11 +119,20 @@ export const CodeEditor = memo(function CodeEditor({\n       autocompleteTabKeymap,\n       ...getAccessibilityExtensions(ariaLabel, ariaLabelledby),\n       ...(languageExtension ? [languageExtension] : []),\n-      ...getCompletionExtensions(sources, completionMode),\n+      ...getCompletionExtensions(sources, completionMode, completeOnSpace),\n       ...(lineWrapping ? [EditorView.lineWrapping] : []),\n       ...(additionalExtensions ?? []),\n     ],\n-    [ariaLabel, ariaLabelledby, languageExtension, sources, completionMode, lineWrapping, additionalExtensions]\n+    [\n+      ariaLabel,\n+      ariaLabelledby,\n+      languageExtension,\n+      sources,\n+      completionMode,\n+      completeOnSpace,\n+      lineWrapping,\n+      additionalExtensions,\n+    ]\n   );\n   return (\n     <>",
+    "raw_url": "https://github.com/grafana/grafana/raw/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2FCodeEditor.tsx",
+    "sha": "adb1bc28a6eee0380727dda04dd14f4b0f164217",
+    "status": "modified"
+  },
+  {
+    "additions": 11,
+    "blob_url": "https://github.com/grafana/grafana/blob/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2Ftypes.ts",
+    "changes": 11,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2Ftypes.ts?ref=14e7774ab10cadae4e006de75770a39c80aa4ce3",
+    "deletions": 0,
+    "filename": "packages/grafana-ui/src/components/CodeMirror/types.ts",
+    "patch": "@@ -136,6 +136,17 @@ export interface CodeMirrorEditorProps {\n    * - `'override'` — replace any language-default completions with just these sources.\n    */\n   completionMode?: CodeMirrorCompletionMode;\n+  /**\n+   * When `true`, a typed space opens the completion popup as an explicit\n+   * request. Suits a language where a space starts a new clause and the\n+   * suggestions are keywords or identifiers, as after `SELECT ` in SQL.\n+   *\n+   * Leave it off (the default) for prose. A source is free to answer an explicit\n+   * request with its whole list — the variable source does, so that Ctrl+Space\n+   * offers every variable — and binding that to the space bar would open the\n+   * popup on every word.\n+   */\n+  completeOnSpace?: boolean;\n   /**\n    * Additional CodeMirror extensions to layer on top of the defaults.\n    * Use this for linting, custom keymaps, themes, etc.",
+    "raw_url": "https://github.com/grafana/grafana/raw/14e7774ab10cadae4e006de75770a39c80aa4ce3/packages%2Fgrafana-ui%2Fsrc%2Fcomponents%2FCodeMirror%2Ftypes.ts",
+    "sha": "39f61d553313ebbe7685c7c4678a4a65b8374d97",
+    "status": "modified"
+  },
+  {
+    "additions": 16,
+    "blob_url": "https://github.com/grafana/grafana/blob/14e7774ab10cadae4e006de75770a39c80aa4ce3/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.test.tsx",
+    "changes": 17,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.test.tsx?ref=14e7774ab10cadae4e006de75770a39c80aa4ce3",
+    "deletions": 1,
+    "filename": "public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.test.tsx",
+    "patch": "@@ -2,12 +2,27 @@ import { render } from '@testing-library/react';\n \n import { SqlEditor } from './SqlEditor';\n \n+let editorProps: Record<string, unknown> | undefined;\n+\n jest.mock('@grafana/ui/unstable', () => ({\n-  CodeMirrorEditor: () => <div className=\"cm-scroller\" />,\n+  CodeMirrorEditor: (props: Record<string, unknown>) => {\n+    editorProps = props;\n+    return <div className=\"cm-scroller\" />;\n+  },\n   signatureHelp: jest.fn(),\n }));\n \n describe('SqlEditor', () => {\n+  beforeEach(() => {\n+    editorProps = undefined;\n+  });\n+\n+  it('completes on space, so suggestions still open after FROM and in the SELECT list', () => {\n+    render(<SqlEditor value=\"SELECT * FROM \" onChange={jest.fn()} completionProvider={{ tables: () => [] }} />);\n+\n+    expect(editorProps?.completeOnSpace).toBe(true);\n+  });\n+\n   it('contains horizontal overscroll within the editor', () => {\n     render(<SqlEditor value=\"SELECT * FROM A\" onChange={jest.fn()} />);\n ",
+    "raw_url": "https://github.com/grafana/grafana/raw/14e7774ab10cadae4e006de75770a39c80aa4ce3/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.test.tsx",
+    "sha": "385b7dc3a858d59d39435a8677fbe85fd48191ef",
+    "status": "modified"
+  },
+  {
+    "additions": 1,
+    "blob_url": "https://github.com/grafana/grafana/blob/14e7774ab10cadae4e006de75770a39c80aa4ce3/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.tsx",
+    "changes": 1,
+    "contents_url": "https://api.github.com/repos/grafana/grafana/contents/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.tsx?ref=14e7774ab10cadae4e006de75770a39c80aa4ce3",
+    "deletions": 0,
+    "filename": "public/app/features/expressions/components/SqlExpressions/SqlEditor/SqlEditor.tsx",
+    "patch": "@@ -78,6 +78,7 @@ export const SqlEditor = ({\n           height={typeof height === 'number' ? `${height}px` : height}\n           aria-label={ariaLabel}\n           completionSources={completionSources}\n+          completeOnSpace\n           extensions={extensions}\n         />\n       </div>",
+    "raw_url": "https://github.com/grafana/grafana/raw/14e7774ab10cadae4e006de75770a39c80aa4ce3/public%2Fapp%2Ffeatures%2Fexpressions%2Fcomponents%2FSqlExpressions%2FSqlEditor%2FSqlEditor.tsx",
+    "sha": "aba5b8391bf4b5ebcacf75ea56fe58e7af93cc63",
+    "status": "modified"
+  }
+]
