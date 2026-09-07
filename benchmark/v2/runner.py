@@ -44,7 +44,8 @@ def execution_digest(root: Path | None = None) -> str:
     import ast
     root = root or Path(__file__).parent
     names = {"PACKAGE_ROOT", "DISABLED_FEATURES", "ANSWER_PROMPT", "codex_options", "isolated_environment",
-             "execute_codex", "find_rollout", "read_live_jsonl", "kill_group", "copy_source", "source_manifest", "prepare_source"}
+             "execute_codex", "find_rollout", "read_live_jsonl", "ExecutionStop", "cleanup_relay", "signal_target",
+             "copy_source", "source_manifest", "prepare_source"}
     tree = ast.parse((root / "runner.py").read_text())
     selected = []
     for node in tree.body:
@@ -53,7 +54,8 @@ def execution_digest(root: Path | None = None) -> str:
         if names & node_names:
             selected.append(ast.dump(node, include_attributes=False))
     require(len(selected) == len(names), "incomplete execution signature")
-    return digest({"runner": selected, "transport": file_digest(root / "transport.py"), "core": file_digest(root / "core.py")})
+    return digest({"runner": selected, "transport": file_digest(root / "transport.py"),
+                   "usage": file_digest(root / "usage.py"), "core": file_digest(root / "core.py")})
 
 
 def build_product(repository: Path, output: Path) -> dict:
@@ -94,10 +96,6 @@ def codex_options(grading=False) -> list[str]:
     args = []
     for key, value in settings.items():
         args.extend(["-c", f"{key}={canonical(value)}"])
-    if not grading:
-        args.extend(["-c", "features.rollout_budget.enabled=true", "-c", "features.rollout_budget.limit_tokens=500000",
-                     "-c", "features.rollout_budget.reminder_at_remaining_tokens=[50000]",
-                     "-c", "features.rollout_budget.sampling_token_weight=1.0", "-c", "features.rollout_budget.prefill_token_weight=1.0"])
     return args
 
 
@@ -133,16 +131,117 @@ def read_live_jsonl(path: Path | None) -> list[dict]:
     return [json.loads(line) for line in lines if line]
 
 
-def kill_group(process):
+def signal_target(pid: int, signum: int, *, group=False) -> bool:
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        (os.killpg if group else os.kill)(pid, signum)
+        return True
     except ProcessLookupError:
-        pass
-    try:
-        process.wait(timeout=3)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        process.wait()
+        return False
+    except PermissionError:
+        # Darwin can return EPERM for an exiting, unreaped process group.
+        # A zero-signal permission failure still means it may exist; keep waiting.
+        if signum == 0:
+            return True
+        raise
+
+
+class ExecutionStop:
+    """Latch a cutoff once; collect stdout while escalating on monotonic deadlines."""
+    def __init__(self, folder: Path, process, start: float):
+        self.folder, self.process, self.start = folder, process, start
+        self.cutoff = None
+        self.steps = []
+
+    def request(self, reason: str, observed: dict):
+        import fcntl
+        if self.cutoff:
+            return
+        with (self.folder / ".navigation.lock").open("a") as gate:
+            fcntl.flock(gate, fcntl.LOCK_EX)
+            now = time.monotonic()
+            relay = read_live_jsonl(self.folder / "relay.jsonl")
+            pending = {r["id"] for r in relay if r.get("event") == "request"} - {r["id"] for r in relay if r.get("event") == "result"}
+            self.cutoff = {"reason": reason, "detected_monotonic": now, "detected_unix_seconds": time.time(),
+                           "elapsed_seconds": now - self.start, "observed_usage": observed,
+                           "incomplete_call_ids": sorted(pending)}
+            write_json(self.folder / "stop.json", self.cutoff, exclusive=True)
+        self._send(signal.SIGINT, False)
+
+    def _send(self, signum: int, group: bool):
+        sent = signal_target(self.process.pid, signum, group=group)
+        self.steps.append({"signal": signal.Signals(signum).name, "target": "codex_group" if group else "codex_process",
+                           "monotonic": time.monotonic(), "sent": sent})
+
+    def advance(self):
+        if not self.cutoff or self.process.poll() is not None:
+            return
+        if time.monotonic() - self.steps[-1]["monotonic"] >= 3:
+            if self.steps[-1]["signal"] == "SIGINT":
+                self._send(signal.SIGTERM, True)
+            elif self.steps[-1]["signal"] == "SIGTERM":
+                self._send(signal.SIGKILL, True)
+
+
+def cleanup_relay(folder: Path, pump) -> dict:
+    path = folder / "relay-runtime.json"
+    if not path.exists():
+        return {"complete": True, "started": False, "steps": []}
+    runtime = read_json(path)
+    pgid = runtime["pgid"]
+    require(pgid == runtime["pid"] and pgid != os.getpgrp(), "unsafe relay process group")
+    steps = []
+    for signum in (signal.SIGTERM, signal.SIGKILL):
+        if not signal_target(pgid, 0, group=True):
+            break
+        steps.append({"signal": signal.Signals(signum).name, "target": "relay_group",
+                      "monotonic": time.monotonic(), "sent": signal_target(pgid, signum, group=True)})
+        deadline = time.monotonic() + 3
+        while signal_target(pgid, 0, group=True) and time.monotonic() < deadline:
+            pump()
+    return {"complete": not signal_target(pgid, 0, group=True), "started": True, "steps": steps,
+            "evidence": str(path)}
+
+
+def recorded_usage(folder: Path) -> dict:
+    """One certification function for immediate execution and later reaggregation."""
+    folder = folder.resolve()
+    runtime = read_json(folder / "runtime.json")
+    records = read_live_jsonl(folder / "rollout.jsonl")
+    events = read_live_jsonl(folder / "events.jsonl")
+    reasons = []
+    completed_events = [(i, e) for i, e in enumerate(events, 1) if e.get("type") == "turn.completed"]
+    terminal_rows = [(i, r) for i, r in enumerate(records, 1) if r.get("type") == "event_msg"
+                     and r.get("payload", {}).get("type") == "task_complete"]
+    aborted = any(r.get("type") == "event_msg" and r.get("payload", {}).get("type") == "turn_aborted" for r in records)
+    if not completed_events or not terminal_rows or aborted:
+        reasons.append("normal turn completion not confirmed")
+    if runtime.get("exit_code") != 0 or runtime.get("launch_error"):
+        reasons.append("execution exited abnormally")
+    if any(step["signal"] in {"SIGTERM", "SIGKILL"} for step in runtime.get("shutdown", {}).get("steps", [])):
+        reasons.append("forced model termination")
+    usage_lines = [i for i, r in enumerate(records, 1) if r.get("type") == "token_usage_record"]
+    if terminal_rows and usage_lines and usage_lines[-1] > terminal_rows[-1][0]:
+        reasons.append("model usage recorded after terminal completion")
+    if not runtime.get("record_collection_complete"):
+        reasons.append("terminal record collection not confirmed")
+    pending = set()
+    for row in records:
+        payload = row.get("payload", {})
+        if row.get("type") == "response_item":
+            if payload.get("type") in {"function_call", "custom_tool_call"}:
+                pending.add(payload.get("call_id"))
+            elif payload.get("type") in {"function_call_output", "custom_tool_call_output"}:
+                pending.discard(payload.get("call_id"))
+    if pending:
+        reasons.append("unfinished host calls at model exit")
+    completion = {"complete": not reasons, "reasons": reasons, "pending_host_call_ids": sorted(pending, key=str),
+                  "limit_detected": runtime.get("termination") in {"token_limit", "call_limit", "timeout"},
+                  "terminal_usage": completed_events[-1][1].get("usage", {}) if completed_events else None,
+                  "normal_turn_completed": bool(completed_events and terminal_rows and not aborted),
+                  "evidence": [str(folder / "runtime.json")] +
+                  [f"{folder / 'events.jsonl'}:{i}" for i, _ in completed_events] +
+                  [f"{folder / 'rollout.jsonl'}:{i}" for i, _ in terminal_rows]}
+    return usage_metrics(records, terminal_complete=not reasons, evidence=str(folder / "rollout.jsonl"), completion=completion)
 
 
 def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None) -> dict:
@@ -178,70 +277,109 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     start = time.monotonic()
     started_unix_seconds = time.time()
     thread_id = None
-    termination = None
-    events = []
     launch_error = None
+    process = None
+    stop = None
+    relay_cleanup = {"complete": False, "steps": []}
+    is_stdout_eof = False
+    buffer = b""
+    model_exited_monotonic = None
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
-        process = None
+        selector = selectors.DefaultSelector()
+        def pump():
+            nonlocal buffer, thread_id, is_stdout_eof
+            for key, _ in selector.select(timeout=.05):
+                chunk = os.read(key.fileobj.fileno(), 65536)
+                if not chunk:
+                    is_stdout_eof = True
+                    selector.unregister(key.fileobj)
+                    continue
+                event_file.write(chunk)
+                event_file.flush()
+                buffer += chunk
+                while b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    if line:
+                        event = json.loads(line)
+                        if event.get("type") == "thread.started":
+                            thread_id = event["thread_id"]
         try:
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
+            stop = ExecutionStop(folder, process, start)
+            selector.register(process.stdout, selectors.EVENT_READ)
             process.stdin.write(prompt.encode())
             process.stdin.close()
-            selector = selectors.DefaultSelector()
-            selector.register(process.stdout, selectors.EVENT_READ)
-            buffer = b""
             while process.poll() is None:
-                for key, _ in selector.select(timeout=.1):
-                    chunk = os.read(key.fileobj.fileno(), 65536)
-                    event_file.write(chunk)
-                    event_file.flush()
-                    buffer += chunk
-                    while b"\n" in buffer:
-                        line, buffer = buffer.split(b"\n", 1)
-                        if line:
-                            event = json.loads(line)
-                            events.append(event)
-                            if event.get("type") == "thread.started":
-                                thread_id = event["thread_id"]
-                if time.monotonic() - start >= SPEC["limits"]["elapsed_seconds"]:
-                    termination = "timeout"
-                if not grading:
+                pump()
+                if not stop.cutoff:
                     live = read_live_jsonl(find_rollout(home, thread_id))
-                    unique = {r["payload"].get("response_id"): r["payload"].get("usage", {})
-                              for r in live if r.get("type") == "token_usage_record"}
-                    tokens = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in unique.values())
-                    if tokens >= SPEC["limits"]["total_tokens"]:
-                        termination = "token_limit"
-                    if relay_settings and any(r.get("event") == "limit" for r in read_live_jsonl(Path(relay_settings["log"]))):
-                        termination = "call_limit"
-                if termination:
-                    kill_group(process)
-                    break
-            selector.close()
-            remaining = process.stdout.read()
-            event_file.write(remaining)
+                    observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
+                    reason = None
+                    if time.monotonic() - start >= SPEC["limits"]["elapsed_seconds"]:
+                        reason = "timeout"
+                    elif not grading and observed["total_tokens"] >= SPEC["limits"]["total_tokens"]:
+                        reason = "token_limit"
+                    elif not grading and relay_settings and any(r.get("event") == "limit" for r in read_live_jsonl(Path(relay_settings["log"]))):
+                        reason = "call_limit"
+                    if reason:
+                        stop.request(reason, observed)
+                stop.advance()
             process.wait()
-        except (OSError, ValueError, KeyError) as exc:
-            launch_error = str(exc)
-            if process:
-                kill_group(process)
-        except KeyboardInterrupt:
-            termination = "interrupted"
-            if process:
-                kill_group(process)
+            model_exited_monotonic = time.monotonic()
+        except (OSError, ValueError, KeyError, KeyboardInterrupt) as exc:
+            reason = "interrupted" if isinstance(exc, KeyboardInterrupt) else "environment_error"
+            launch_error = None if reason == "interrupted" else str(exc)
+            if stop:
+                stop.request(reason, {})
+                while process.poll() is None:
+                    try:
+                        pump()
+                    except (ValueError, KeyError):
+                        pass
+                    stop.advance()
+                process.wait()
+                model_exited_monotonic = time.monotonic()
         finally:
-            # Never leave an authentication link in retained artifacts.
+            # Also clean independently grouped relays before any raw-file seal.
+            relay_cleanup = cleanup_relay(folder, pump)
+            deadline = time.monotonic() + 1
+            while process and not is_stdout_eof and time.monotonic() < deadline:
+                pump()
+            selector.close()
+            if process:
+                process.stdout.close()
             (home / "auth.json").unlink(missing_ok=True)
     elapsed = time.monotonic() - start
-    events = read_jsonl(folder / "events.jsonl")
+    termination = stop.cutoff["reason"] if stop and stop.cutoff else None
+    events = read_live_jsonl(folder / "events.jsonl")
     rollout_path = find_rollout(home, thread_id)
-    records = read_jsonl(rollout_path) if rollout_path else []
-    write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
-                                        "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
-                                        "launch_error": launch_error, "termination": termination})
     if rollout_path:
         shutil.copyfile(rollout_path, folder / "rollout.jsonl")
+    records = read_live_jsonl(folder / "rollout.jsonl")
+    relay_records = read_live_jsonl(folder / "relay.jsonl")
+    pending = {r["id"] for r in relay_records if r.get("event") == "request"} - {r["id"] for r in relay_records if r.get("event") == "result"}
+    partial_files = [name for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
+                     if (folder / name).exists() and (folder / name).stat().st_size and not (folder / name).read_bytes().endswith(b"\n")]
+    shutdown = {"cutoff": stop.cutoff if stop else None, "steps": stop.steps if stop else [],
+                "relay_cleanup": relay_cleanup, "incomplete_call_ids": sorted(pending),
+                "model_exited_monotonic": model_exited_monotonic,
+                "cleanup_elapsed_seconds": max(0, time.monotonic() - (stop.cutoff["detected_monotonic"] if stop and stop.cutoff else model_exited_monotonic or start)),
+                "partial_jsonl_files": partial_files, "evidence": str(folder / "runtime.json")}
+    final_observed = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"]
+    cutoff_tokens = (stop.cutoff.get("observed_usage", {}).get("total_tokens") if stop and stop.cutoff else None)
+    budget = {"unit": "cached-inclusive input_tokens + output_tokens", "limit_tokens": SPEC["limits"]["total_tokens"],
+              "observed_tokens_at_cutoff": cutoff_tokens,
+              "observed_tokens_after_collection": final_observed["total_tokens"],
+              "observed_overshoot_tokens": max(0, final_observed["total_tokens"] - SPEC["limits"]["total_tokens"]),
+              "observed_cleanup_tokens": final_observed["total_tokens"] - cutoff_tokens if cutoff_tokens is not None else 0,
+              "whole_cost_may_be_missing": True}
+    write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
+                                        "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
+                                        "model_exited_monotonic": model_exited_monotonic,
+                                        "launch_error": launch_error, "termination": termination,
+                                        "record_collection_complete": bool(is_stdout_eof and not buffer and rollout_path and not partial_files and relay_cleanup["complete"]),
+                                        "shutdown": shutdown, "budget": budget})
     final_messages = [r["payload"] for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
     answer = "\n".join(c.get("text", "") for r in final_messages[-1:] for c in r.get("content", []) if c.get("type") == "output_text")
@@ -254,9 +392,13 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     expected_model = SPEC["grader_model"] if grading else SPEC["model"]
     expected_effort = SPEC["grader_reasoning_effort"] if grading else SPEC["reasoning_effort"]
     conditions_valid = bool(contexts) and all(c.get("model") == expected_model and c.get("effort") == expected_effort for c in contexts)
-    usage = usage_metrics(records, terminal_complete=completed, evidence=str(folder / "rollout.jsonl"))
+    usage = recorded_usage(folder)
+    budget["whole_cost_may_be_missing"] = not usage["complete"]
+    runtime = read_json(folder / "runtime.json")
+    write_json(folder / "runtime.json", {**runtime, "budget": budget})
     result = {"status": status, "answer": answer, "elapsed_seconds": elapsed, "conditions_valid": conditions_valid,
-              "usage": usage, "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
+              "usage": usage, "shutdown": shutdown, "budget": budget,
+              "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
     write_json(folder / "execution.json", result)
     return result
 
@@ -312,11 +454,11 @@ def delivered_leaves(text: str) -> list[str]:
 
 
 def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
-    relay = read_jsonl(folder / "relay.jsonl")
-    rollout = read_jsonl(folder / "rollout.jsonl")
+    relay = read_live_jsonl(folder / "relay.jsonl")
+    rollout = read_live_jsonl(folder / "rollout.jsonl")
     runtime = read_json(folder / "runtime.json")
     requests, results = {}, {}
-    complete = True
+    complete = not runtime.get("shutdown", {}).get("partial_jsonl_files")
     violations = []
     for row in relay:
         if row.get("event") in {"request", "result"}:
@@ -369,7 +511,7 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
     for request_id, request in requests.items():
         response = results.get(request_id)
         status = response["status"] if response else "cancelled"
-        is_after_exit = bool(response and response.get("finished_monotonic", 0) > runtime["started_monotonic"] + runtime["elapsed_seconds"])
+        is_after_exit = bool(response and response.get("finished_monotonic", 0) > runtime.get("model_exited_monotonic", runtime["started_monotonic"] + runtime["elapsed_seconds"]))
         if is_after_exit:
             status = "cancelled"
         if response is None:
@@ -388,7 +530,7 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
         if match:
             match["used"] = True
             text = match["text"]
-            lines = source_lines(request["tool"], request["arguments"], text)
+            lines = source_lines(request["tool"], request["arguments"], text, partial=partial)
         else:
             text = None
             lines = None
@@ -512,7 +654,8 @@ def recover_observations(experiment: Path):
 
 def seal_run(folder: Path):
     names = ["run.json", "runtime.json", "command.json", "prompt.txt", "events.jsonl", "stderr.log",
-             "rollout.jsonl", "relay.jsonl", "answer.txt", "execution.json", "delivery.json", "relay-settings.json", "run-before-recovery.json"]
+             "rollout.jsonl", "relay.jsonl", "answer.txt", "execution.json", "delivery.json", "relay-settings.json", "run-before-recovery.json",
+             "stop.json", "relay-runtime.json", "product.stderr.log"]
     write_json(folder / "seal.json", {"files": {name: file_digest(folder / name) for name in names if (folder / name).is_file()}}, exclusive=True)
 
 
@@ -546,7 +689,7 @@ def verify_run_seal(folder: Path) -> list[dict]:
         prefix = [json.loads(line) for line in data[:boundary].splitlines()]
         pending = {r["id"] for r in prefix if r.get("event") == "request"} - {r["id"] for r in prefix if r.get("event") == "result"}
         runtime = read_json(folder / "runtime.json")
-        exit_time = runtime["started_monotonic"] + runtime["elapsed_seconds"]
+        exit_time = runtime.get("model_exited_monotonic", runtime["started_monotonic"] + runtime["elapsed_seconds"])
         late_results = []
         for line in data[boundary:].splitlines():
             row = json.loads(line)
@@ -583,11 +726,16 @@ def load_experiment_runs(experiment: Path) -> list[dict]:
                 calls, complete, host_calls, violations = normalize_calls(path.parent, write_delivery=False)
                 exploration = exploration_metrics(calls, complete=complete, evidence=str(path.with_name("relay.jsonl")))
                 exploration["delivered_output_bytes"] = run["exploration"]["delivered_output_bytes"]
-                terminal_complete = any(e.get("type") == "turn.completed" for e in read_jsonl(path.with_name("events.jsonl")))
+                usage = recorded_usage(path.parent)
                 run = {**run, "calls": calls, "host_calls": host_calls, "boundary_violations": violations,
                        "exploration": exploration,
-                       "usage": usage_metrics(read_jsonl(path.with_name("rollout.jsonl")), terminal_complete=terminal_complete,
-                                              evidence=str(path.with_name("rollout.jsonl")))}
+                       "usage": usage,
+                       "usage_reaggregation": {"original_total_tokens": run["usage"]["total_tokens"]["value"],
+                                               "reaggregated_total_tokens": usage["total_tokens"]["value"],
+                                               "changed": run["usage"]["total_tokens"]["value"] != usage["total_tokens"]["value"],
+                                               "original_evidence": str(path.with_name("execution.json"))}}
+                if "budget" in run:
+                    run["budget"] = {**run["budget"], "whole_cost_may_be_missing": not usage["complete"]}
         rows.append(run)
     return rows
 
@@ -614,6 +762,10 @@ def _run_experiment(dataset: dict, experiment: Path, source: Path, binary: Path,
                    "execution_sha256": execution_digest(),
                    "phase": phase, "preparation": preparation, "verification": verification}, exclusive=True)
         write_json(experiment / "dataset.json", dataset, exclusive=True)
+        archive = experiment / "harness-at-freeze"
+        archive.mkdir(exist_ok=False)
+        for path in Path(__file__).parent.glob("*.py"):
+            shutil.copyfile(path, archive / path.name)
         schedule = question_schedule(dataset, phase)
         write_json(experiment / "schedule.json", schedule, exclusive=True)
         for entry in schedule:

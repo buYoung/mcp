@@ -120,9 +120,10 @@ def make_bundles(dataset: dict, runs: list[dict]) -> tuple[list[dict], dict]:
         for run in sorted((r for r in runs if r["question_id"] == question_id), key=lambda r: r["id"]):
             answer_id = digest({"seed": SPEC["seed"], "run": run["id"], "answer": run["answer"]})[:24]
             require(answer_id not in registry, "blind answer ID collision")
-            answers.append({"answer_id": answer_id, "answer": run["answer"]})
+            blinded_answer = run["answer"].replace(run["id"], answer_id)
+            answers.append({"answer_id": answer_id, "answer": blinded_answer})
             registry[answer_id] = {"run_id": run["id"], "question_id": question_id,
-                                   "answer": run["answer"], "control": False}
+                                   "answer": run["answer"], "blinded_answer": blinded_answer, "control": False}
         for control in question["examples"]:
             answer_id = digest({"question": question_id, "control": control["id"], "seed": SPEC["seed"]})[:24]
             require(answer_id not in registry, "control ID collision")
@@ -167,6 +168,14 @@ def validate_batch(dataset: dict, bundle: dict, registry: dict, result: dict) ->
     for judgment in judgments:
         item = registry[judgment["answer_id"]]
         question = questions[item["question_id"]]
+        validate_judgment(question, judgment, judgment["answer_id"], item.get("blinded_answer", item["answer"]))
+        if "blinded_answer" in item:
+            # Preserve the raw grader response; map only derived exact quotations
+            # back to the unchanged original answer and validate them again.
+            import copy
+            judgment = copy.deepcopy(judgment)
+            for quote in judgment["facts"] + judgment["major_errors"]:
+                quote["answer_quote"] = quote["answer_quote"].replace(judgment["answer_id"], item["run_id"])
         validate_judgment(question, judgment, judgment["answer_id"], item["answer"])
         if item["control"]:
             require(control_signature(judgment) == control_signature(item["expected"]), "grading contrast control failed")

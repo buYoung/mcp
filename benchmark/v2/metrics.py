@@ -10,52 +10,7 @@ from .core import (DIFFICULTIES, MODEL_TERMINALS, SPEC, canonical, change, metri
 from .grading import classify, no_answer_judgment
 
 
-def usage_metrics(records: list[dict], *, terminal_complete: bool, evidence: str) -> dict:
-    unique = {}
-    errors = []
-    cumulative = None
-    for row in records:
-        if row.get("type") == "token_usage_record":
-            payload = row.get("payload", {})
-            response_id = payload.get("response_id")
-            usage = payload.get("usage")
-            if not response_id or not isinstance(usage, dict):
-                errors.append("missing response ID/usage")
-                continue
-            keys = ("input_tokens", "output_tokens", "cached_input_tokens")
-            if any(type(usage.get(k)) is not int or usage[k] < 0 for k in keys):
-                errors.append("missing/invalid token component")
-                continue
-            if usage["cached_input_tokens"] > usage["input_tokens"]:
-                errors.append("cache input exceeds input")
-            if usage.get("total_tokens", usage["input_tokens"] + usage["output_tokens"]) != usage["input_tokens"] + usage["output_tokens"]:
-                errors.append("inconsistent total tokens")
-            if response_id in unique and unique[response_id] != usage:
-                errors.append("conflicting duplicate response usage")
-            unique[response_id] = usage
-        if row.get("type") == "event_msg" and row.get("payload", {}).get("type") == "token_count":
-            total = (row["payload"].get("info") or {}).get("total_token_usage")
-            if total is not None:
-                cumulative = total
-    sums = {k: sum(u[k] for u in unique.values()) for k in ("input_tokens", "output_tokens", "cached_input_tokens")}
-    sums["total_tokens"] = sums["input_tokens"] + sums["output_tokens"]
-    if cumulative is None:
-        errors.append("missing cumulative reconciliation event")
-    elif any(cumulative.get(k) != value for k, value in sums.items()):
-        errors.append("request totals disagree with cumulative usage")
-    if not unique:
-        errors.append("no request usage records")
-    if not terminal_complete:
-        errors.append("in-flight/unfinished model usage cannot be certified")
-    result = {"complete": not errors, "errors": sorted(set(errors)), "observed": sums,
-              "response_ids": sorted(unique)}
-    for key, value in sums.items():
-        result[key] = metric(value if not errors else None, "tokens", reason="; ".join(sorted(set(errors))) or None,
-                             evidence=[evidence])
-    result["model_responses"] = metric(len(unique) if not errors else None, "responses",
-                                        reason="; ".join(sorted(set(errors))) or None, evidence=[evidence])
-    result["cached_input_ratio"] = ratio(result["cached_input_tokens"]["value"], result["input_tokens"]["value"], evidence=[evidence])
-    return result
+from .usage import usage_metrics
 
 
 def exploration_metrics(calls: list[dict], *, complete: bool, evidence: str) -> dict:
@@ -204,6 +159,9 @@ def normalize_run(question: dict, run: dict, judgment: dict | None) -> dict:
     return {"id": run["id"], "question_id": question["id"], "difficulty": question["difficulty"],
             "language": question["language"], "group": run["group"], "repeat": run["repeat"],
             "status": run["status"], "category": category, "quality": quality,
+            "answer": run["answer"], "usage": run["usage"],
+            "shutdown": run.get("shutdown"), "budget": run.get("budget"),
+            "usage_reaggregation": run.get("usage_reaggregation"),
             "cost": {**{k: v for k, v in run["usage"].items() if isinstance(v, dict) and "value" in v},
                      "exploration_calls": run["exploration"]["exploration_calls"],
                      "elapsed_seconds": metric(run.get("elapsed_seconds"), "seconds", reason=None if run.get("elapsed_seconds") is not None else "not executed", evidence=source),

@@ -6,6 +6,8 @@ import os
 import re
 import subprocess
 import sys
+import signal
+import fcntl
 import time
 from pathlib import Path
 
@@ -60,8 +62,7 @@ def baseline(root: Path, name: str, arguments: dict) -> tuple[dict, dict]:
         offset, limit = arguments.get("offset", 1), arguments.get("limit", SPEC["host"]["baseline_read_lines"])
         require(type(offset) is int and type(limit) is int and 1 <= offset and 1 <= limit <= 10000, "invalid read window")
         lines = path.read_text(encoding="utf-8").splitlines()
-        relative = path.relative_to(root.resolve()).as_posix()
-        text = "\n".join(f"{relative}:{i + 1}:{line}" for i, line in enumerate(lines) if offset <= i + 1 < offset + limit)
+        text = "\n".join(f"{i + 1:6}→{line}" for i, line in enumerate(lines) if offset <= i + 1 < offset + limit)
         return text_result(text), {"result_count": None, "product_truncated": False}
     pattern = arguments["pattern"]
     require(isinstance(pattern, str) and "\x00" not in pattern, "invalid search pattern")
@@ -100,10 +101,17 @@ def baseline(root: Path, name: str, arguments: dict) -> tuple[dict, dict]:
     return text_result(result), {"result_count": count, "product_truncated": count > limit}
 
 
-def source_lines(tool: str, arguments: dict, text: str) -> list[dict] | None:
+def source_lines(tool: str, arguments: dict, text: str, *, partial=False) -> list[dict] | None:
     lines = []
     current_path = arguments.get("file_path", arguments.get("path", arguments.get("file"))) if tool == "read" else None
     recognized = tool in {"find", "initial_instructions"}
+    # A byte cap may cut a line exactly at an apparently valid source prefix.
+    marker = "\n[host output truncated]"
+    if marker in text:
+        text = text.split(marker, 1)[0]
+        partial = True
+    if partial and not text.endswith("\n"):
+        text = text.rsplit("\n", 1)[0] if "\n" in text else ""
     for line in text.splitlines():
         match = re.match(r"^(.+\.(?:tsx?|jsx?|go|rs|py|json|yaml|yml|toml|md|html|css|sql))(?::|-)(\d+)(?::|-)(.*)$", line)
         if match:
@@ -177,15 +185,21 @@ class Relay:
         if name not in SPEC["groups"][self.group]:
             append_jsonl(self.log, {"event": "boundary_denied", "id": str(request_id), "tool": name, "successful_access": False})
             return text_result("code access denied: tool not allowed", True)
-        if self.count >= SPEC["limits"]["exploration_calls"]:
-            append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
-            return text_result("exploration call limit reached", True)
-        self.count += 1
         call_id = str(request_id)
-        start = time.monotonic()
-        append_jsonl(self.log, {"event": "request", "id": call_id, "tool": name, "arguments": arguments,
-                               "effective_scope": self.scope, "started_monotonic": start,
-                               "metadata": params.get("_meta", {})})
+        with self.log.with_name(".navigation.lock").open("a") as gate:
+            fcntl.flock(gate, fcntl.LOCK_EX)
+            if self.log.with_name("stop.json").exists():
+                append_jsonl(self.log, {"event": "stopping_denied", "id": call_id, "tool": name,
+                                       "observed_monotonic": time.monotonic()})
+                return text_result("execution stopping; new exploration denied", True)
+            if self.count >= SPEC["limits"]["exploration_calls"]:
+                append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
+                return text_result("exploration call limit reached", True)
+            self.count += 1
+            start = time.monotonic()
+            append_jsonl(self.log, {"event": "request", "id": call_id, "tool": name, "arguments": arguments,
+                                   "effective_scope": self.scope, "started_monotonic": start,
+                                   "metadata": params.get("_meta", {})})
         details = {"result_count": None, "product_truncated": None}
         try:
             for key in ["file_path", "path", "file"]:
@@ -247,12 +261,25 @@ class Relay:
 
 
 def main():
-    relay = Relay(read_json(Path(sys.argv[1])))
+    from .core import write_json
+    settings = read_json(Path(sys.argv[1]))
+    # Own the relay/product/subcommand group even when Codex uses a separate group.
+    if os.getpgrp() != os.getpid():
+        os.setsid()
+    runtime_path = Path(settings["log"]).with_name("relay-runtime.json")
+    runtime = {"pid": os.getpid(), "pgid": os.getpgrp(), "started_monotonic": time.monotonic(), "closed": False}
+    write_json(runtime_path, runtime, exclusive=True)
+    def terminate(signum, frame):
+        raise SystemExit(128 + signum)
+    signal.signal(signal.SIGTERM, terminate)
+    relay = None
     try:
+        relay = Relay(settings)
         relay.serve()
     finally:
-        if relay.product:
+        if relay and relay.product:
             relay.product.close()
+        write_json(runtime_path, {**runtime, "closed": True, "closed_monotonic": time.monotonic()})
 
 
 if __name__ == "__main__":

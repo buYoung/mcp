@@ -51,6 +51,9 @@ def main():
             print(result["output"], end="")
             result["harness_sha256"] = harness_digest()
             result["spec_sha256"] = digest(SPEC)
+            if not result["passed"]:
+                write_json(Path(__file__).parent / "artifacts" / "verification.json", result)
+                return 1
             if args.dataset:
                 from .dataset import validate_dataset
                 validate_dataset(read_json(args.dataset), args.source)

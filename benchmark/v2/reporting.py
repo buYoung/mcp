@@ -105,6 +105,7 @@ def create_summary(dataset: dict, runs: list[dict], grading: dict, phase: str, *
             "environment_or_unfinished": sum(n for status, n in statuses.items() if status not in MODEL_TERMINALS),
             "quality_valid": sum(r["quality"]["full_correct"]["value"] is not None for r in selected),
             "tokens_valid": sum(r["cost"]["total_tokens"]["value"] is not None for r in selected),
+            "usage_consistent": sum(r["usage"].get("consistency", {}).get("status") == "valid" for r in selected),
             "calls_valid": sum(r["cost"]["exploration_calls"]["value"] is not None for r in selected),
             "conditions_valid": sum(r["conditions_valid"] for r in selected), "statuses": dict(statuses)}
     batch_complete = bool(grading.get("batches")) and all(b["status"] == "complete" for b in grading["batches"])
@@ -118,6 +119,10 @@ def create_summary(dataset: dict, runs: list[dict], grading: dict, phase: str, *
                "construction": "사전 검증 완료" if complete and batch_complete else "구현됨; 실제 사전 검증 미완료"}
     from .runner import harness_digest
     harness["aggregation_sha256"] = harness_digest()
+    verification = frozen.get("verification", {})
+    harness["improvement_verified"] = bool(verification.get("passed") and verification.get("runtime_probe_passed"))
+    if harness["improvement_verified"]:
+        harness["construction"] = "하네스 개선 검증 완료; 준비 실행 전체 자료 " + ("확보" if complete and batch_complete else "일부 결측")
     harness["late_tool_results"] = [item for run in runs for item in run.get("late_tool_results", [])]
     harness["metrics"] = {group: {
         **{key: metric(value, "runs", evidence=[r["artifact"] for r in normalized if r["group"] == group])
@@ -137,7 +142,9 @@ def create_summary(dataset: dict, runs: list[dict], grading: dict, phase: str, *
 def render_report(summary: dict) -> str:
     overall = summary["overall"]
     lines = ["# codemap-search V2 평가 보고서", "", summary["verdict"]["decision"], "",
-             f"하네스: {summary['harness']['construction']}. 단계: `{summary['phase']}`.", "",
+             f"하네스: {summary['harness']['construction']}. 단계: `{summary['phase']}`. "
+             f"실행 상태 기록 {sum(c['recorded'] for c in summary['harness']['per_group'].values())}/"
+             f"{sum(c['scheduled'] for c in summary['harness']['per_group'].values())}.", "",
              "정확도와 비용은 별도로 판정한다. `null`은 결측·분모 0·불완전 자료이며 0이 아니다. "
              "신뢰구간은 난이도별 문제를 10,000회 재표집하고 A/B와 반복을 함께 유지한 95% 구간이다.", "",
              "## 1. 전체 비교", ""]
@@ -198,7 +205,27 @@ def render_report(summary: dict) -> str:
     lines += [table(["문제", "PR", "A 정답", "B 정답", "토큰 변화 %", "호출 변화 %", "누락·오류"], rows), "",
               f"문제별 관측 퇴행: {summary['observed_regressions']['count']}개. "
               f"분석 가능 문제: {summary['observed_regressions']['analyzable_questions']}개.", "",
-              "## 4. 비용 증가와 실패 원인", ""]
+              "### 실제 답변과 실행별 판정", ""]
+    categories = {"correct": "정답", "partial": "부분 정답", "incorrect": "오답", "no_answer": "답변 없음", "indeterminate": "판정 불가"}
+    for run in summary["normalized"]:
+        lines += [f"#### {run['id']} — {categories[run['category']]}", "",
+                  f"종료 상태: `{run['status']}`. [실제 답변]({Path(run['artifact']).with_name('answer.txt')}).", "",
+                  *["> " + line for line in (run["answer"].splitlines() or ["최종 답변 없음"])], ""]
+    lines += ["## 4. 비용 증가와 실패 원인", ""]
+    rows = []
+    for run in summary["normalized"]:
+        usage, shutdown, budget = run["usage"], run.get("shutdown") or {}, run.get("budget") or {}
+        rows.append([run["id"], run["status"], number(usage["total_tokens"]["value"], 0),
+                     number(usage["observed"]["total_tokens"], 0),
+                     "일치" if usage.get("consistency", {}).get("status") == "valid" else "불일치",
+                     number(run["cost"]["exploration_calls"]["value"], 0), number(run["cost"]["elapsed_seconds"]["value"]),
+                     number(budget.get("observed_overshoot_tokens"), 0), number(shutdown.get("cleanup_elapsed_seconds")),
+                     "; ".join(usage["errors"]) or "—"])
+    lines += [table(["실행", "종료", "전체 토큰", "기록된 토큰", "기록 일관성", "탐색 호출", "전체 시간(초)",
+                     "관측 상한 초과 토큰", "종료 정리(초)", "결측 사유"], rows), "",
+              "기록된 토큰은 응답 ID별 부분 합계다. 전체 비용을 확보하지 못한 실행에서는 상한 초과분도 관측한 최소치다. "
+              "종료 정리 시간은 제한 감지부터 정리 완료까지이며 전체 시간에 포함된다. "
+              "신규 탐색 차단 시각·신호 단계·미완료 호출은 실행별 `runtime.json`과 `normalized.json`에 보존한다.", ""]
     rows = [[r["question_id"], number(r["additional_tokens_per_run"]), number(100 * r["positive_additional_share"] if r["positive_additional_share"] is not None else None),
              number(100 * r["observed_positive_additional_share"]), r["cause"],
              " · ".join(f"[기록 {i + 1}]({path})" for i, path in enumerate(r["records"]))] for r in summary["cost_increases"]]
@@ -229,6 +256,11 @@ def render_report(summary: dict) -> str:
         total = sum(token_values) if None not in token_values else None
         lines += [f"별도 Astra 채점: {len(grading_cost)}개 실행, 총토큰 {number(total, 0)}. "
                   "불완전한 채점 실행의 토큰이 있으면 전체 합계를 확정하지 않는다.", ""]
+    runtime_cost = summary.get("runtime_probe_cost", [])
+    if runtime_cost:
+        tokens = [r["usage"]["total_tokens"]["value"] for r in runtime_cost]
+        lines += [f"별도 A/B 런타임 검사: {len(runtime_cost)}회, 총토큰 {number(sum(tokens) if None not in tokens else None, 0)}, "
+                  f"시간 합계 {number(sum(r['elapsed_seconds'] for r in runtime_cost))}초. 평가 실행 수·비용에 합산하지 않는다.", ""]
     if summary["verdict"]["accuracy_observation"]:
         lines += [summary["verdict"]["accuracy_observation"], ""]
     return "\n".join(lines)
@@ -258,6 +290,14 @@ def report(dataset: dict, experiment: Path) -> dict:
         execution = read_json(path)
         costs.append({"path": str(path), "status": execution["status"], "usage": execution["usage"], "elapsed_seconds": execution["elapsed_seconds"]})
     summary["grading_cost"] = costs
+    probe = frozen.get("verification", {}).get("runtime_probe")
+    summary["runtime_probe_cost"] = []
+    if probe:
+        for group in ["A", "B"]:
+            path = Path(probe) / group / "execution.json"
+            execution = read_json(path)
+            summary["runtime_probe_cost"].append({"group": group, "path": str(path), "usage": execution["usage"],
+                                                   "elapsed_seconds": execution["elapsed_seconds"]})
     summary["harness"]["reaggregation_verified"] = True
     write_json(output / "summary.json", summary)
     (output / "report.md").write_text(render_report(summary), encoding="utf-8")
