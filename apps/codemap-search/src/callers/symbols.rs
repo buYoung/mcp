@@ -12,7 +12,7 @@ use super::scan::ScanHit;
 /// A per-symbol view of where every snapshot symbol of a given name lives, used to
 /// resolve a bare callee name to its qualified form and to count definitions.
 pub(super) struct SymbolIndex<'a> {
-    /// name → all snapshot symbols (any kind) carrying that name.
+    /// name → all callable snapshot symbols carrying that name.
     pub(super) by_name: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
     /// Global set of `fn` names (callee intersection target).
     pub(super) fn_names: HashSet<String>,
@@ -44,10 +44,12 @@ pub(super) fn build_symbol_index(snapshot: &[ExtractedFile]) -> SymbolIndex<'_> 
     let mut fn_def_counts: HashMap<String, usize> = HashMap::new();
     for file in snapshot {
         for sym in &file.symbols {
-            by_name
-                .entry(sym.name.as_str())
-                .or_default()
-                .push((file, sym));
+            if is_callable_symbol(sym) {
+                by_name
+                    .entry(sym.name.as_str())
+                    .or_default()
+                    .push((file, sym));
+            }
             if sym.kind == "fn" {
                 fn_names.insert(sym.name.clone());
                 *fn_def_counts.entry(sym.name.clone()).or_insert(0) += 1;

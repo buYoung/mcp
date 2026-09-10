@@ -300,37 +300,55 @@ impl CodemapGenerator {
     ) -> FolderCodemap<'a> {
         let normalized_folder = normalize_path(folder_path).into_owned();
 
-        // Repo-wide summaries → repo-wide directory counts (so a directory reads the same
-        // here as in the root view); the renderer scopes the output to this folder.
-        let mut all_summaries: Vec<ExtractedFileSummary<'a>> =
-            files.iter().map(summarize_file).collect();
-        all_summaries.sort_by(|a, b| a.file_path.cmp(&b.file_path));
-        let directories = build_directory_summaries(&all_summaries);
-
-        // Walk the summaries once: accumulate this folder's recursive totals and collect
-        // the files that sit directly in it (parent directory == the folder).
+        // Keep repo-wide directory counts while retaining detailed symbols only for
+        // files rendered directly in this folder. Other files need only a count.
         let prefix = format!("{}/", normalized_folder);
         let mut total_files = 0usize;
         let mut total_symbols = 0usize;
         let mut files_in_folder = Vec::new();
-        for summary in &all_summaries {
-            let under_folder = normalized_folder.is_empty()
-                || summary.file_path == normalized_folder
-                || summary.file_path.starts_with(&prefix);
-            if !under_folder {
-                continue;
-            }
-            total_files += 1;
-            total_symbols += summary.symbol_count;
-
-            let parent = match summary.file_path.rfind('/') {
-                Some(slash) => &summary.file_path[..slash],
+        let mut dir_counts: std::collections::BTreeMap<String, (usize, usize)> =
+            std::collections::BTreeMap::new();
+        for file in files {
+            let file_path = normalize_path(&file.file_path);
+            let parent = match file_path.rfind('/') {
+                Some(slash) => &file_path[..slash],
                 None => "",
             };
-            if parent == normalized_folder {
-                files_in_folder.push(summary.clone());
+            let symbol_count = if parent == normalized_folder {
+                let summary = summarize_file(file);
+                let count = summary.symbol_count;
+                files_in_folder.push(summary);
+                count
+            } else {
+                significant_symbols(&file.symbols).count()
+            };
+            let under_folder = normalized_folder.is_empty()
+                || file_path == normalized_folder
+                || file_path.starts_with(&prefix);
+            if under_folder {
+                total_files += 1;
+                total_symbols += symbol_count;
+            }
+            let parts: Vec<&str> = file_path.split('/').collect();
+            for i in 1..parts.len() {
+                let dir_path = parts[0..i].join("/");
+                if dir_path.is_empty() {
+                    continue;
+                }
+                let entry = dir_counts.entry(dir_path).or_insert((0, 0));
+                entry.0 += 1;
+                entry.1 += symbol_count;
             }
         }
+        files_in_folder.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+        let directories = dir_counts
+            .into_iter()
+            .map(|(path, (file_count, symbol_count))| DirectorySummary {
+                path,
+                file_count,
+                symbol_count,
+            })
+            .collect();
 
         FolderCodemap {
             folder_path: normalized_folder,

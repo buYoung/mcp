@@ -47,11 +47,27 @@ pub(super) fn truncate_literal(literal: &str, max_len: usize) -> String {
     }
 }
 
+// Each file render owns this cache; nothing survives the current request.
+struct RenderSource<'a> {
+    file_path: &'a str,
+    content: std::cell::OnceCell<Option<String>>,
+}
+
+impl RenderSource<'_> {
+    fn content(&self) -> Option<&str> {
+        tracing::trace!(target: "codemap_search::render_source", file_path = self.file_path,
+            cache_hit = self.content.get().is_some(), "source access");
+        self.content
+            .get_or_init(|| std::fs::read_to_string(self.file_path).ok())
+            .as_deref()
+    }
+}
+
 /// Extract a symbol's source range with `read`-style line numbers (`␠␠␠␠␠1→content`).
 /// Numbered so the agent can cite exact lines straight from the detail view instead of
 /// re-reading the file to confirm them (the dominant post-discovery turn cost observed).
-fn get_code_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String {
-    if let Ok(content) = std::fs::read_to_string(file_path) {
+fn get_code_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange) -> String {
+    if let Some(content) = source.content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -365,9 +381,9 @@ pub(super) fn render_static_collection_edges(
 /// Bounded to at most 2 physical lines of the symbol's range. Applies to any container enclosing
 /// an anchor member — including a Tier-1 container that holds a Tier-1 member, which is demoted
 /// to this summary so the matched member's own full snippet is what carries the detail.
-fn get_summary_snippet(file_path: &str, range: &crate::parser::CodeRange) -> String {
+fn get_summary_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange) -> String {
     const SUMMARY_LINES: usize = 2;
-    if let Ok(content) = std::fs::read_to_string(file_path) {
+    if let Some(content) = source.content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -398,11 +414,11 @@ fn get_summary_snippet(file_path: &str, range: &crate::parser::CodeRange) -> Str
 /// measured regression). Returns `(snippet, more_lines)`: an empty snippet (unreadable file /
 /// out-of-range) carries `more_lines = 0` so the caller falls back to the bare stub line.
 fn get_signature_snippet(
-    file_path: &str,
+    source: &RenderSource<'_>,
     range: &crate::parser::CodeRange,
     max_lines: usize,
 ) -> (String, usize) {
-    if let Ok(content) = std::fs::read_to_string(file_path) {
+    if let Some(content) = source.content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -463,6 +479,10 @@ pub(super) fn render_anchored_symbols(
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
     caller_block_dedup: &mut crate::callers::CallerBlockDedup,
 ) -> AnchoredRenderOutcome {
+    let source = RenderSource {
+        file_path,
+        content: std::cell::OnceCell::new(),
+    };
     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
     let AnchoredRenderCaps {
         snippet_max_lines,
@@ -574,7 +594,7 @@ pub(super) fn render_anchored_symbols(
             } else {
                 1
             };
-            let (sig, more_lines) = get_signature_snippet(file_path, &sym.range, sig_lines);
+            let (sig, more_lines) = get_signature_snippet(&source, &sym.range, sig_lines);
             if sig.is_empty() {
                 emitted_ranges.push((start, start));
             } else {
@@ -591,9 +611,9 @@ pub(super) fn render_anchored_symbols(
             continue;
         }
         let snippet = if is_summary_container {
-            get_summary_snippet(file_path, &sym.range)
+            get_summary_snippet(&source, &sym.range)
         } else {
-            get_code_snippet(file_path, &sym.range)
+            get_code_snippet(&source, &sym.range)
         };
         let snippet_lines = snippet.lines().count();
         let displayed_lines = snippet_lines.min(snippet_max_lines);

@@ -229,16 +229,6 @@ fn term_hits_symbol_name(sym: &ExtractedSymbol, term: &str) -> bool {
         })
 }
 
-/// One query term hits one symbol when it appears in the name, the docstring, or any
-/// split sub-token of the name. The match-count criterion behind matched-symbol selection.
-fn symbol_matches_term(sym: &ExtractedSymbol, term: &str) -> bool {
-    term_hits_symbol_name(sym, term)
-        || sym
-            .docstring
-            .as_ref()
-            .is_some_and(|d| d.to_lowercase().contains(term))
-}
-
 /// Minimum matched-term count for the partial-coverage promotion: half the query terms,
 /// rounded up. Only consulted for 3+ term queries — at 1–2 terms it equals "all terms",
 /// so the strict baseline already covers it.
@@ -294,16 +284,18 @@ fn score_symbol_match<'a>(
         return None;
     }
 
-    let term_match_count = query
-        .tokens()
-        .iter()
-        .filter(|term| symbol_matches_term(sym, term))
-        .count();
-    let name_match_count = query
-        .tokens()
-        .iter()
-        .filter(|term| term_hits_symbol_name(sym, term))
-        .count();
+    let mut term_match_count = 0;
+    let mut name_match_count = 0;
+    for term in query.tokens() {
+        let name_hit = term_hits_symbol_name(sym, term);
+        name_match_count += usize::from(name_hit);
+        let term_hit = name_hit
+            || sym
+                .docstring
+                .as_ref()
+                .is_some_and(|d| d.to_lowercase().contains(term));
+        term_match_count += usize::from(term_hit);
+    }
     let owner_match_count = query
         .tokens()
         .iter()
@@ -634,10 +626,15 @@ impl SearcherHandle {
 
         let mut candidates = Vec::new();
         let mut seen_paths = HashSet::new();
+        let mut accepted_addresses = HashSet::new();
+        let mut candidate_decodes = 0usize;
+        let mut skipped_duplicate_decodes = 0usize;
 
         for (score, doc_address) in top_docs {
+            candidate_decodes += 1;
             let candidate = candidate_from_doc(&searcher, self, score, doc_address, 1.0)?;
             seen_paths.insert(candidate.file_path.clone());
+            accepted_addresses.insert(doc_address);
             candidates.push(candidate);
         }
 
@@ -653,6 +650,11 @@ impl SearcherHandle {
                     .search(&token_query, &TopDocs::with_limit(limit).order_by_score())
                     .map_err(|e| e.to_string())?;
                 for (score, doc_address) in supplemental_top_docs {
+                    if accepted_addresses.contains(&doc_address) {
+                        skipped_duplicate_decodes += 1;
+                        continue;
+                    }
+                    candidate_decodes += 1;
                     let candidate = candidate_from_doc(
                         &searcher,
                         self,
@@ -664,6 +666,8 @@ impl SearcherHandle {
                         continue;
                     }
                     if has_owner_exact_symbol(&candidate, &query_tokens) {
+                        // Rejected supplements must remain eligible for implementation recall.
+                        accepted_addresses.insert(doc_address);
                         seen_paths.insert(candidate.file_path.clone());
                         candidates.push(candidate);
                     }
@@ -702,8 +706,14 @@ impl SearcherHandle {
                 )
                 .map_err(|error| error.to_string())?
             {
+                if accepted_addresses.contains(&address) {
+                    skipped_duplicate_decodes += 1;
+                    continue;
+                }
+                candidate_decodes += 1;
                 let candidate = candidate_from_doc(&searcher, self, score, address, 1.0)?;
                 if seen_paths.insert(candidate.file_path.clone()) {
+                    accepted_addresses.insert(address);
                     candidates.push(candidate);
                 }
             }
@@ -871,6 +881,8 @@ impl SearcherHandle {
             total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
             implementation_recall_ms = recall_elapsed.as_secs_f64() * 1000.0,
             ranking_ms = ranking_started.elapsed().as_secs_f64() * 1000.0,
+            candidate_decodes,
+            skipped_duplicate_decodes,
             scope = workspace_scope.unwrap_or("all"),
             results = results.len(),
             "search candidate timings"
