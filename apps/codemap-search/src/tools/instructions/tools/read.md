@@ -1,1 +1,3 @@
 Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
+
+Returns `# symbols` (indexed members of the enclosing same-file class/struct/impl group, with depth-one caller/callee context) followed by `# results` (the original live output). Go groups methods by receiver type. Missing index or member context is reported without hiding live results.

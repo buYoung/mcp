@@ -64,6 +64,11 @@ async fn test_tools_list_includes_read_find_grep() {
 async fn test_read_basic_arrow_format() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    // Alias equality compares a stable symbol snapshot as well as the live source.
+    client
+        .send_request("tools/call", call("overview", serde_json::json!({})))
+        .await
+        .unwrap();
     let resp = client
         .send_request(
             "tools/call",
@@ -78,8 +83,16 @@ async fn test_read_basic_arrow_format() {
     );
     assert!(out.contains("run_engine"), "expected file content: {out:?}");
     assert!(
-        out.lines().next().unwrap().contains("1\u{2192}"),
-        "first line should be '1\u{2192}…': {out:?}"
+        out.starts_with("# symbols\n")
+            && out
+                .split_once("\n# results\n")
+                .unwrap()
+                .1
+                .lines()
+                .next()
+                .unwrap()
+                .contains("1\u{2192}"),
+        "symbol context should precede the numbered source results: {out:?}"
     );
 
     let backslash_resp = client
@@ -100,6 +113,11 @@ async fn test_read_basic_arrow_format() {
 async fn test_read_offset_and_limit() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    // Alias equality compares a stable symbol snapshot as well as the live source.
+    client
+        .send_request("tools/call", call("overview", serde_json::json!({})))
+        .await
+        .unwrap();
     let resp = client
         .send_request(
             "tools/call",
@@ -574,7 +592,12 @@ async fn test_grep_type_filter() {
         .unwrap();
     let out = text(&resp);
     assert!(
-        out.starts_with("Found "),
+        out.starts_with("# symbols\n")
+            && out
+                .split_once("\n# results\n")
+                .unwrap()
+                .1
+                .starts_with("Found "),
         "files_with_matches header expected: {out:?}"
     );
     assert!(out.contains("src/util.rs"), "{out:?}");

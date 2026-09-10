@@ -141,10 +141,12 @@ All five language switches default to `false` and use the same boundary: disable
 
 ### Tool output limits
 
-- **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes) would exceed this throws rather than emitting an unbounded blob. Oversized errors include a concrete narrower `offset`/`limit` suggestion. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
+- **`read_output_byte_cap`** — always-applied output ceiling for `read` in bytes. Even with `offset`/`limit` set, a `read` whose rendered output (including line-number prefixes, member/caller context, and the `# symbols` / `# results` headings) would exceed this throws rather than emitting an unbounded blob. Oversized errors include a concrete narrower `offset`/`limit` suggestion. This approximates Claude Code's ~25,000-token cap and is distinct from the 256 KiB whole-file cap that applies only when `limit` is omitted (default 102400 ≈ 100 KiB).
 - **`grep_max_columns`** — column cap for `grep` content-mode output. A matched line wider than this many characters is replaced with `[Omitted long matching line]`, matching Claude Code's `--max-columns 500` default. Partial `grep` pages include the shown range, total count, and `next_offset`. Set `0` to disable the column cap (default 500).
 
 한국어 요약: `read`와 `grep`은 실제 파일 시스템을 읽으므로 출력 상한이 안전장치입니다. 너무 큰 결과는 한 번에 내보내지 말고 줄 범위나 다음 페이지로 나누어 읽는 흐름을 권장합니다.
+
+MCP `read`/`grep` prepend indexed same-file member and caller/callee context. The two context payloads each have a fixed 8,192-byte cap and share the read response ceiling when applicable; at most eight returned files are outlined. These do not add config keys or change `search.caller_context` behavior.
 
 ### Filesystem permissions
 

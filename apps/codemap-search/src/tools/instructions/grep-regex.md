@@ -1,0 +1,1 @@
+grep.pattern is a regular expression. Escape regex metacharacters such as parentheses, asterisks, and dots when matching literal code. Zero matches do not prove the code is absent: first check whether the regex matches the intended characters. Escaping here refers to the string delivered to the tool; JSON/JavaScript string escaping is a separate layer.

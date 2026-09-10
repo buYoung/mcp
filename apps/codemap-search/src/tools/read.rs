@@ -2,8 +2,9 @@
 //! Code's Read tool so an agent can swap its built-in without surprises. Direct
 //! filesystem I/O, no index/engine dependency.
 
+use super::live_symbols::{LiveAnchor, LiveOutput};
 use super::{get_arg, lenient_usize};
-use crate::workspace::{resolve_for_filesystem_tool, FilesystemTool};
+use crate::workspace::{current_dir, resolve_for_filesystem_tool, FilesystemTool};
 use serde_json::Value;
 
 /// When `limit` is omitted, refuse to read files larger than this so a single call
@@ -106,6 +107,10 @@ fn resolve_window_args(args: &Value) -> (Option<usize>, Option<usize>) {
 }
 
 pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
+    read_file_with_metadata(args).map(|output| output.text)
+}
+
+pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, String)> {
     let file_path = resolve_file_path_arg(args)?;
     let (offset, limit) = resolve_window_args(args);
 
@@ -151,10 +156,11 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     let content = decoded.strip_prefix('\u{feff}').unwrap_or(decoded.as_ref());
 
     if content.is_empty() {
-        return Ok(
-            "<system-reminder>Warning: the file exists but the contents are empty.</system-reminder>"
+        return Ok(LiveOutput {
+            text: "<system-reminder>Warning: the file exists but the contents are empty.</system-reminder>"
                 .to_string(),
-        );
+            anchors: Vec::new(),
+        });
     }
 
     // Split on '\n' (stripping a trailing '\r' per line for CRLF) and KEEP the trailing
@@ -169,9 +175,12 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     let start_line = offset.unwrap_or(1).max(1);
 
     if start_line > total {
-        return Ok(format!(
-            "<system-reminder>Warning: the file exists but is shorter than the provided offset ({start_line}). The file has {total} lines.</system-reminder>"
-        ));
+        return Ok(LiveOutput {
+            text: format!(
+                "<system-reminder>Warning: the file exists but is shorter than the provided offset ({start_line}). The file has {total} lines.</system-reminder>"
+            ),
+            anchors: Vec::new(),
+        });
     }
 
     let window: Vec<&str> = match limit {
@@ -204,5 +213,24 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
             ),
         ));
     }
-    Ok(rendered)
+    let anchors = if window.is_empty() {
+        Vec::new()
+    } else {
+        let cwd = current_dir()?;
+        let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
+        let display_path = resolved
+            .strip_prefix(&cwd_canonical)
+            .unwrap_or(&resolved)
+            .to_string_lossy()
+            .replace('\\', "/");
+        vec![LiveAnchor {
+            file_path: display_path,
+            start_line: Some(start_line),
+            end_line: Some(start_line.saturating_add(window.len().saturating_sub(1))),
+        }]
+    };
+    Ok(LiveOutput {
+        text: rendered,
+        anchors,
+    })
 }

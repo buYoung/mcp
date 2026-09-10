@@ -65,6 +65,28 @@ instructions.
 `codemap-search` exposes MCP **tools** only. It does not register MCP resources or
 prompts. All tools are read-only over the configured filesystem scope.
 
+### Member context in read and grep
+
+Successful MCP `read` and `grep` responses have two sections: `# symbols` first,
+then `# results`. The symbol section lists indexed members of the enclosing
+same-file class/struct/impl group and their depth-one callers/callees. Go methods
+are grouped by receiver type, with fields, signatures, visibility and source ranges.
+Method-local declarations are not expanded as sibling members. The results section
+preserves the live source output, including line numbers and pagination.
+
+Symbol and relation payloads each have an 8,192-byte budget and cover at most eight
+returned files. A read's complete response also obeys `read_output_byte_cap`; narrow
+the window if source plus context exceeds it. Missing or warming index context is
+reported while live results remain available. File-list/count responses have no line
+anchor for selecting a member group. Indexed context can lag edits; confirm behavior
+in the live results.
+
+In a monorepo, `overview` on a subdirectory preserves that exact directory for later
+`search`; explicit `workspace_scope` does the same. A file selects its parent directory.
+Use `all` to search repo-wide. `grep.pattern` is a regular expression: escape metacharacters
+when matching literal code, and check the expression before treating zero matches as
+absence. JSON string escaping and regex escaping are separate layers.
+
 ## Supported languages
 
 Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),

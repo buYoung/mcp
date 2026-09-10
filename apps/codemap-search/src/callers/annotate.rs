@@ -695,6 +695,24 @@ impl PreparedAnnotation {
 }
 
 impl DetailAnnotations {
+    /// Live member context: retain depth-one call relations, excluding decorator and
+    /// non-call reference payloads. Native search continues to use `render` unchanged.
+    pub(crate) fn render_live_relations(
+        &self,
+        file_path: &str,
+        start_line: usize,
+    ) -> Option<String> {
+        self.annotations.get(&(file_path.to_string(), start_line)).map(|ann| {
+            if ann.caller_block.is_empty() && ann.suffix.is_empty() {
+                return ANNOTATION_OMITTED_MARKER.to_string();
+            }
+            let callers = if ann.caller_block.contains("referenced in a non-call position") {
+                format!("  - {OBSERVATION_SCOPE_CAVEAT} (non-call references excluded; scan may be capped)\n")
+            } else { ann.caller_block.clone() };
+            format!("{callers}{}", ann.suffix)
+        })
+    }
+
     /// Prepare the annotation for a specific symbol AT ITS EMISSION POINT, deduping its caller
     /// block against the symbols already emitted for this file (`seen`). Returns the prepared
     /// text + record intent, or `None` when the symbol has no annotation. Callers MUST invoke

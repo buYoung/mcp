@@ -8,6 +8,7 @@
 
 pub mod find;
 pub mod grep;
+pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
@@ -213,7 +214,7 @@ pub fn instructions() -> String {
     } else {
         include_str!("instructions/navigation.md")
     };
-    text.trim_end().to_string()
+    format!("{}\n\n{}", text.trim_end(), grep_regex_guidance())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -221,6 +222,10 @@ pub fn instructions() -> String {
 /// invokes this only for monorepos, preserving the non-monorepo response unchanged.
 pub fn instructions_with_root_overview(root_overview: &str) -> String {
     format!("{}\n\n{}", instructions(), root_overview)
+}
+
+pub(super) fn grep_regex_guidance() -> &'static str {
+    include_str!("instructions/grep-regex.md").trim_end()
 }
 
 fn filesystem_tool_description(
@@ -286,7 +291,11 @@ pub fn list_tools() -> Value {
         &permissions.allowed_roots,
     );
     let grep_description = filesystem_tool_description(
-        include_str!("instructions/tools/grep.md").trim_end(),
+        &format!(
+            "{}\n\n{}",
+            include_str!("instructions/tools/grep.md").trim_end(),
+            grep_regex_guidance()
+        ),
         permissions.grep,
         &permissions.allowed_roots,
     );
@@ -302,7 +311,7 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Optional monorepo scope named by root overview, such as conventional workspace 'apps/api' or top-level source root 'api'/'app'/'sdk'; a unique basename is accepted. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
+                    "description": "Optional monorepo scope named by root overview, such as conventional workspace 'apps/api' or top-level source root 'api'/'app'/'sdk'; a unique basename is accepted. Subdirectories are preserved; a file selects its parent directory. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
                 }),
             );
         }
@@ -376,7 +385,7 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "pattern": { "type": "string", "description": "Regex (or literal) to search for." },
+                                "pattern": { "type": "string", "description": "Regular expression to search for. Escape regex metacharacters to match literal code; this is not a fixed-string mode." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
                                 "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },

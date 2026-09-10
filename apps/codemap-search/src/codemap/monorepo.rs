@@ -237,6 +237,19 @@ impl WorkspaceCatalog {
             .cloned()
     }
 
+    /// Search keeps the resolved subdirectory; workspace identity remains separate.
+    /// A file selects its containing directory, matching directory-scope semantics.
+    pub(crate) fn search_scope_for_input(&self, input: &str) -> Option<String> {
+        let normalized = self.resolve_path(input)?;
+        let path = std::path::Path::new(&normalized);
+        if path.is_file() {
+            path.parent()
+                .map(|parent| parent.to_string_lossy().into_owned())
+        } else {
+            Some(normalized)
+        }
+    }
+
     pub(crate) fn root_view(&self) -> Option<String> {
         (!self.scopes.is_empty()).then(|| self.to_string())
     }

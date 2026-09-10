@@ -45,7 +45,7 @@ impl McpServer {
             return;
         }
         let snapshot = self.engine.published_snapshot();
-        self.active_workspace_scope = snapshot.workspace_catalog().scope_for_input(path);
+        self.active_workspace_scope = snapshot.workspace_catalog().search_scope_for_input(path);
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
@@ -205,7 +205,12 @@ impl McpServer {
                         }))
                     }
                     "read" => {
-                        let text = crate::tools::read::read_file(arguments)?;
+                        let output = crate::tools::read::read_file_with_metadata(arguments)?;
+                        let text = crate::tools::live_symbols::append(
+                            &self.engine,
+                            output,
+                            Some(crate::config::get().read_output_byte_cap),
+                        )?;
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
                         }))
@@ -217,7 +222,8 @@ impl McpServer {
                         }))
                     }
                     "grep" => {
-                        let text = crate::tools::grep::grep(arguments)?;
+                        let output = crate::tools::grep::grep_with_metadata(arguments)?;
+                        let text = crate::tools::live_symbols::append(&self.engine, output, None)?;
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
                         }))

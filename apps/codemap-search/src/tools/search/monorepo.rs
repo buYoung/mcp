@@ -32,7 +32,7 @@ fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, 
                     .to_string(),
             ))
         }
-        Some(raw_scope) => catalog.scope_for_input(raw_scope)
+        Some(raw_scope) => catalog.search_scope_for_input(raw_scope)
             .map(Some)
             .ok_or_else(|| {
                 (

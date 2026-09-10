@@ -6,6 +6,7 @@
 //! override. Reads disk directly, so it sees comments and just-changed files the
 //! BM25 index can miss — this realizes the spec's "rg 역할" alongside `search`.
 
+use super::live_symbols::{LiveAnchor, LiveOutput};
 use super::{
     arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
 };
@@ -82,6 +83,40 @@ struct FileResult {
     occurrences: usize,
     /// Modification time, used only to sort `files_with_matches` output (newest first).
     mtime: SystemTime,
+}
+
+#[derive(Clone)]
+struct ContentRow {
+    text: String,
+    path: String,
+    line_number: u64,
+    is_match: bool,
+}
+
+fn content_anchors(page: &[ContentRow]) -> Vec<LiveAnchor> {
+    let mut selected: Vec<usize> = page
+        .iter()
+        .enumerate()
+        .filter_map(|(index, row)| row.is_match.then_some(index))
+        .collect();
+    if selected.is_empty() {
+        selected.extend(page.iter().enumerate().map(|(index, _)| index));
+    }
+    selected.sort_unstable();
+    selected
+        .into_iter()
+        .filter_map(|index| {
+            let row = &page[index];
+            let line_number = usize::try_from(row.line_number)
+                .ok()
+                .filter(|line_number| *line_number > 0)?;
+            Some(LiveAnchor {
+                file_path: row.path.clone(),
+                start_line: Some(line_number),
+                end_line: Some(line_number),
+            })
+        })
+        .collect()
 }
 
 /// Cap a line at the column limit, replacing an over-long line with ripgrep's omission
@@ -167,12 +202,14 @@ fn empty_result_hint(
     } else {
         active_filters.join(", ")
     };
-    format!(
-        "_Active filters: {active}. Do not rerun unchanged: check the pattern spelling and relax one filter (path, glob, type, -i, multiline, include_ignored). If the wording or location is only a guess, switch to `search` (scoped in a monorepo)._"
-    )
+    format!("_Active filters: {active}. Do not rerun unchanged. {} If the regex is correct, check path, glob, type, -i, multiline, or include_ignored; relax a filter only when intended. If wording or location is uncertain, use scoped `search`._", super::grep_regex_guidance())
 }
 
 pub fn grep(args: &Value) -> Result<String, (i64, String)> {
+    grep_with_metadata(args).map(|output| output.text)
+}
+
+pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, String)> {
     let pattern = arg_required_str(args, "pattern")?;
     let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
     // Accept `include`/`file_pattern` as aliases for `glob`: agents were observed sending both,
@@ -322,10 +359,13 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
             // `files_with_matches` is mtime-sorted.
             if files.is_empty() {
                 // Keep the summary line first: `test_grep_count_mode` pins "total occurrence".
-                return Ok(format!(
-                    "Found 0 total occurrence(s) across 0 file(s).\n{}",
-                    no_match_hint()
-                ));
+                return Ok(LiveOutput {
+                    text: format!(
+                        "Found 0 total occurrence(s) across 0 file(s).\n{}",
+                        no_match_hint()
+                    ),
+                    anchors: Vec::new(),
+                });
             }
             let rows: Vec<(String, usize)> = files
                 .iter()
@@ -346,36 +386,61 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
                 out.push('\n');
                 out.push_str(&f);
             }
-            Ok(out)
+            let anchors = page
+                .iter()
+                .map(|(path, _)| LiveAnchor {
+                    file_path: path.clone(),
+                    start_line: None,
+                    end_line: None,
+                })
+                .collect();
+            Ok(LiveOutput { text: out, anchors })
         }
         "content" => {
-            let mut lines: Vec<String> = Vec::new();
+            let mut lines: Vec<ContentRow> = Vec::new();
             for f in &files {
                 for hit in &f.hits {
                     let sep = if hit.is_match { ':' } else { '-' };
                     let text = cap_line(&hit.text, max_columns, hit.is_match);
-                    if show_line_numbers {
-                        lines.push(format!("{}{sep}{}{sep}{}", f.path, hit.line_number, text));
+                    let rendered = if show_line_numbers {
+                        format!("{}{sep}{}{sep}{}", f.path, hit.line_number, text)
                     } else {
-                        lines.push(format!("{}{sep}{}", f.path, text));
-                    }
+                        format!("{}{sep}{}", f.path, text)
+                    };
+                    lines.push(ContentRow {
+                        text: rendered,
+                        path: f.path.clone(),
+                        line_number: hit.line_number,
+                        is_match: hit.is_match,
+                    });
                 }
             }
             if lines.is_empty() {
-                return Ok(format!("No matches found\n{}", no_match_hint()));
+                return Ok(LiveOutput {
+                    text: format!("No matches found\n{}", no_match_hint()),
+                    anchors: Vec::new(),
+                });
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
-            let mut out = page.join("\n");
+            let mut out = page
+                .iter()
+                .map(|row| row.text.as_str())
+                .collect::<Vec<_>>()
+                .join("\n");
             if let Some(f) = footer {
                 out.push('\n');
                 out.push_str(&f);
             }
-            Ok(out)
+            let anchors = content_anchors(&page);
+            Ok(LiveOutput { text: out, anchors })
         }
         // default: files_with_matches
         _ => {
             if files.is_empty() {
-                return Ok(format!("No matches found\n{}", no_match_hint()));
+                return Ok(LiveOutput {
+                    text: format!("No matches found\n{}", no_match_hint()),
+                    anchors: Vec::new(),
+                });
             }
             // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
             // Code parity). `content`/`count` above stay in ripgrep's native order.
@@ -390,7 +455,15 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
                 out.push('\n');
                 out.push_str(&f);
             }
-            Ok(out)
+            let anchors = page
+                .iter()
+                .map(|path| LiveAnchor {
+                    file_path: path.clone(),
+                    start_line: None,
+                    end_line: None,
+                })
+                .collect();
+            Ok(LiveOutput { text: out, anchors })
         }
     }
 }
