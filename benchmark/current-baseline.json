@@ -1268,7 +1268,20 @@
       "automatic_remeasurement": false,
       "automatic_regrading": false,
       "replace_with_future_result": false,
-      "role": "Historical fixed result with two indeterminate judgments and known interface errors; separate from the currently approved A tool contract."
+      "role": "Historical multi-repository A result only; excludes Grafana and must not be used as the Grafana formal baseline. Original values and indeterminate judgments remain preserved."
     }
+  },
+  "formal_evaluation_scope": {
+    "repository": "grafana/grafana",
+    "comparison": [
+      "A",
+      "current_approved_product"
+    ],
+    "source_preparation_command": "pnpm bench:ready",
+    "expand_to_six_repositories": false,
+    "historical_multi_repository_reference": "formal-r1-A",
+    "historical_multi_repository_reference_eligible_as_grafana_baseline": false,
+    "completed_grafana_formal_A_reference_status": "Not found in the inspected top-level frozen records; preparation and candidate evaluations are not formal results.",
+    "new_model_runs_in_scope_update": 0
   }
 }

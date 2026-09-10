@@ -2618,5 +2618,11 @@
     "new_grader_sessions": 0,
     "source_artifacts_unchanged": true,
     "actual_A_inventory_equal_across_runs": 60
+  },
+  "applicability": {
+    "adopted_formal_repository": "grafana/grafana",
+    "is_grafana_formal_reference": false,
+    "retained_role": "Historical multi-repository A results only; preserve original values and judgments.",
+    "authority": "User: 나는 정식벤치로 grafana만 채택할껀데..?"
   }
 }
