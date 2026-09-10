@@ -1,0 +1,127 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Search source contents with rg. Returns path:line:text. No shell syntax. Paths are source-relative.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "case_insensitive": {
+          "type": "boolean"
+        },
+        "context_lines": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "glob": {
+          "type": "string"
+        },
+        "path": {
+          "description": "Source-relative path; omit for the source root (default \".\"). Empty string is invalid. Paths outside the source root are denied.",
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "name": "rg"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Search source contents with grep. Returns path:line:text. No shell syntax. Paths are source-relative.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "case_insensitive": {
+          "type": "boolean"
+        },
+        "context_lines": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "glob": {
+          "type": "string"
+        },
+        "path": {
+          "description": "Source-relative path; omit for the source root (default \".\"). Empty string is invalid. Paths outside the source root are denied.",
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "name": "grep"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Find source files by filename glob (or relative path glob with '/').",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "description": "Source-relative path; omit for the source root (default \".\"). Empty string is invalid. Paths outside the source root are denied.",
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "name": "find"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read an explicit source file, returning numbered original lines. Default window: 200 lines.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "file_path": {
+          "description": "Required source-relative file path. Paths outside the source root are denied.",
+          "type": "string"
+        },
+        "limit": {
+          "description": "Number of lines (default 200); integer from 1 to 10000.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "offset": {
+          "description": "1-based starting line (default 1); 0 is invalid.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file_path"
+      ],
+      "type": "object"
+    },
+    "name": "read"
+  }
+]

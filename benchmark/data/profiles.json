@@ -1,0 +1,63 @@
+{
+  "candidate": {
+    "name": "후보군 탐색",
+    "question_ids": [
+      "simple-ts-1",
+      "medium-go-2",
+      "complex-go-1"
+    ],
+    "repeats": 3
+  },
+  "validation": {
+    "name": "오류 검증",
+    "question_ids": [
+      "simple-ts-1",
+      "simple-go-4",
+      "medium-ts-1",
+      "medium-ts-4",
+      "medium-go-2",
+      "medium-go-5",
+      "complex-ts-2",
+      "complex-ts-5",
+      "complex-go-1",
+      "complex-go-4"
+    ],
+    "repeats": 1
+  },
+  "formal": {
+    "name": "정식 벤치",
+    "question_ids": [
+      "simple-ts-1",
+      "simple-ts-2",
+      "simple-ts-3",
+      "simple-ts-4",
+      "simple-ts-5",
+      "simple-go-1",
+      "simple-go-2",
+      "simple-go-3",
+      "simple-go-4",
+      "simple-go-5",
+      "medium-ts-1",
+      "medium-ts-2",
+      "medium-ts-3",
+      "medium-ts-4",
+      "medium-ts-5",
+      "medium-go-1",
+      "medium-go-2",
+      "medium-go-3",
+      "medium-go-4",
+      "medium-go-5",
+      "complex-ts-1",
+      "complex-ts-2",
+      "complex-ts-3",
+      "complex-ts-4",
+      "complex-ts-5",
+      "complex-go-1",
+      "complex-go-2",
+      "complex-go-3",
+      "complex-go-4",
+      "complex-go-5"
+    ],
+    "repeats": 2
+  }
+}

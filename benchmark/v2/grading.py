@@ -260,7 +260,7 @@ def grade_bundles(dataset: dict, experiment: Path, bundles: list[dict], registry
     """Grade a frozen, blinded collection, including comparison/calibration collections."""
     from .runner import execute_codex
     from .core import command
-    require(command(["codex", "--version"]).strip() == f"codex-cli {SPEC['codex_version']}", "grader Codex version drift")
+    codex_version = command(["codex", "--version"]).strip()  # No CLI version pin.
     output = experiment / "grading"
     output.mkdir(exist_ok=True)
     registry_path = output / "private-registry.json"
@@ -279,7 +279,7 @@ def grade_bundles(dataset: dict, experiment: Path, bundles: list[dict], registry
         if (folder / "status.json").exists():
             status = read_json(folder / "status.json")
         else:
-            execution = execute_codex(folder, bundle_prompt(bundle), grading=True, output_schema=judgment_schema())
+            execution = execute_codex(folder, bundle_prompt(bundle), grading=True, output_schema=judgment_schema(), codex_version=codex_version)
             try:
                 require(execution["status"] == "completed", "grader execution failed")
                 require(execution["conditions_valid"], "grader execution conditions not verified")

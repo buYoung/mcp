@@ -9,6 +9,6 @@
 
 첫 수치는 소스 제어 흐름을 대조한 결과다. 두 번째 기준값 79회는 동일 helper 흐름에서 산출했고 후보의 25 miss·54 hit는 trace로 확인했다. CPU/RSS 또는 물리 디스크 입출력 측정값으로 바꾸어 해석하지 않는다. 렌더 원문 재사용은 요청 안에서만 유지하며, 파일이 그 사이 바뀌면 기존 구현과 관측 시점이 달라질 수 있다.
 
-[원 검증 보고서](v2/artifacts/candidate-screen-r1/report.md) · [기계 판독 기록과 원자료 해시](retained-improvements.json)
+원 검증 보고서 · [기계 판독 기록과 원자료 해시](retained-improvements.json)
 
-[채택 및 빌드 확인](v2/artifacts/b4-adoption-r1/build-verification.json) · [현재 기준](current-baseline.json)
+채택 및 빌드 확인 · [현재 기준](current-baseline.json)

@@ -9,7 +9,8 @@
         "format": "biome check --write .",
         "check-types": "turbo run check-types",
         "prepare": "husky",
-        "release": "release-it"
+        "release": "release-it",
+        "bench:start": "node benchmark/start.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.15",
@@ -17,7 +18,8 @@
         "lint-staged": "^17.0.4",
         "release-it": "^20.0.1",
         "turbo": "^2.9.12",
-        "typescript": "6.0.3"
+        "typescript": "6.0.3",
+        "@inquirer/prompts": "8.4.2"
     },
     "packageManager": "pnpm@11.1.1",
     "engines": {

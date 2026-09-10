@@ -1,0 +1,46 @@
+{
+  "harness_sha256": "567edefd4d7ef4ea5e06618350a2432d9f99cdff4b77ddc4298962b0f9be8422",
+  "limitations": [
+    "No real Codex model solver or grader benchmark was executed.",
+    "Future Codex model/log behavior is checked per run, not certified by offline substitutes."
+  ],
+  "navigation": {
+    "binary_sha256": "a2192cc5b73cb13669d3c4b77dfeeb83928ce11f494f8a731757aee206651c29",
+    "model_calls": 0,
+    "output_sha256": {
+      "grep": "a49a7293258b05fde07316f498de4600994fd2b60b76637a4046eefef5dac1fd",
+      "read": "7d3215153c95be7460759df9eac1340a2ad54320e0d840b6ebdfb4f55e26c9cf"
+    },
+    "passed": true,
+    "source_sha256": "2b062da1aaf1c4a92258c8e7e8fad8c22977b5105065a6af66d0a67ab66716ce",
+    "tools": [
+      "find",
+      "grep",
+      "initial_instructions",
+      "overview",
+      "read",
+      "search"
+    ]
+  },
+  "offline_checks": {
+    "command": "python3 -m unittest benchmark.v2.checks benchmark.checks benchmark.cui_checks",
+    "failed": 0,
+    "passed": 54,
+    "real_model_calls": 0
+  },
+  "product_source_changed": false,
+  "ready": {
+    "cache_reuse_passed": true,
+    "command": "pnpm bench:ready",
+    "environment": {
+      "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "codex_version": "codex-cli 0.154.0",
+      "node": "v24.14.0",
+      "python": "3.14.5",
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8"
+    },
+    "passed_after_legacy_paths_removed": true,
+    "release_build_and_index_passed": true
+  },
+  "recorded_at": "2026-09-10T13:43:47.196232+00:00"
+}

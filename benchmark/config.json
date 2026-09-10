@@ -1,0 +1,14 @@
+{
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "grader_model": "gpt-6-astra",
+  "grader_reasoning_effort": "high",
+  "limits": {
+    "elapsed_seconds": 300,
+    "exploration_calls": 80,
+    "total_tokens": 500000
+  },
+  "concurrency": 2,
+  "seed": 20260907,
+  "candidates": []
+}

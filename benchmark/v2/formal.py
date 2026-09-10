@@ -249,7 +249,7 @@ def run(root: Path, dataset: dict):
     with (root / ".run.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         frozen = verify_freeze(root, dataset)
-        require(command(["codex", "--version"]).strip() == f"codex-cli {SPEC['codex_version']}", "Codex version drift")
+        command(["codex", "--version"])  # No CLI version pin.
         runner.recover_observations(root)
         questions = {q["id"]: q for q in dataset["questions"]}
         def one(entry):

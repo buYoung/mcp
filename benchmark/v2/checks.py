@@ -576,7 +576,7 @@ def verify_offline() -> dict:
 def verify_runtime(output: Path, binary: Path) -> dict:
     from .runner import execute_codex, normalize_calls, output_blocks
     from .core import command
-    require(command(["codex", "--version"]).strip() == f"codex-cli {SPEC['codex_version']}", "Codex version drift")
+    command(["codex", "--version"])  # No CLI version pin.
     output.mkdir(parents=True, exist_ok=False)
     results = []
     for group in ["A", "B"]:

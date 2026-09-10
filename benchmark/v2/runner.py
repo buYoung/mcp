@@ -107,10 +107,11 @@ def verify_product_build(build: dict, binary: Path | None = None) -> None:
             "candidate build command does not identify the frozen source")
 
 
-def codex_options(grading=False) -> list[str]:
-    settings = {"model_reasoning_effort": SPEC["grader_reasoning_effort"] if grading else SPEC["reasoning_effort"],
+def codex_options(grading=False, settings: dict | None = None) -> list[str]:
+    spec = settings or SPEC
+    settings = {"model_reasoning_effort": spec["grader_reasoning_effort"] if grading else spec["reasoning_effort"],
                 "web_search": "disabled", "approval_policy": "never", "sandbox_mode": "read-only",
-                "project_doc_max_bytes": 0, "tool_output_token_limit": SPEC["host"]["tool_output_token_limit"],
+                "project_doc_max_bytes": 0, "tool_output_token_limit": spec["host"]["tool_output_token_limit"],
                 "suppress_unstable_features_warning": True, "tools.view_image": False,
                 "model_auto_compact_token_limit": 500000,
                 "features.code_mode_host": not grading,
@@ -195,6 +196,13 @@ class ExecutionStop:
         if not self.cutoff.get("usage_drain_seconds"):
             self._send(signal.SIGINT, False)
 
+    def cancel(self):
+        """User cancellation bypasses collection-only waiting without moving the cutoff."""
+        if not self.cutoff:
+            self.request("interrupted", {})
+        elif not self.steps:
+            self._send(signal.SIGINT, False)
+
     def _send(self, signum: int, group: bool):
         sent = signal_target(self.process.pid, signum, group=group)
         self.steps.append({"signal": signal.Signals(signum).name, "target": "codex_group" if group else "codex_process",
@@ -277,7 +285,9 @@ def recorded_usage(folder: Path) -> dict:
 
 
 def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
-                  usage_drain_seconds: float = 0) -> dict:
+                  usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
+                  codex_version: str | None = None) -> dict:
+    spec = settings or SPEC
     require(isinstance(usage_drain_seconds, (int, float)) and not isinstance(usage_drain_seconds, bool)
             and 0 <= usage_drain_seconds <= 30, "usage drain must be between 0 and 30 seconds")
     folder = folder.resolve()
@@ -286,13 +296,13 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     workspace.mkdir(exist_ok=True)
     env, home = isolated_environment(folder)
     args = ["codex", "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
-            "-C", str(workspace), "-m", SPEC["grader_model"] if grading else SPEC["model"]] + codex_options(grading)
+            "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
     if relay_settings:
         settings_path = folder / "relay-settings.json"
         write_json(settings_path, relay_settings, exclusive=True)
         server = {"command": sys.executable, "args": ["-m", "benchmark.v2.transport", str(settings_path)],
                   "cwd": str(PACKAGE_ROOT), "startup_timeout_sec": 120, "tool_timeout_sec": 60,
-                  "enabled_tools": SPEC["groups"][relay_settings["group"]],
+                  "enabled_tools": spec["groups"][relay_settings["group"]],
                   "env": {"PYTHONPATH": str(PACKAGE_ROOT)}, "required": True}
         # JSON object syntax is not TOML table syntax; encode this table explicitly.
         for key, value in server.items():
@@ -307,7 +317,7 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         args += ["--output-schema", str(schema_path)]
     args += ["-"]
     write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "model": args[args.index("-m") + 1],
-                                        "features_disabled": list(DISABLED_FEATURES)}, exclusive=True)
+                                        "features_disabled": list(DISABLED_FEATURES), "codex_version": codex_version}, exclusive=True)
     (folder / "prompt.txt").write_text(prompt, encoding="utf-8")
     start = time.monotonic()
     started_unix_seconds = time.time()
@@ -342,18 +352,22 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
             stop = ExecutionStop(folder, process, start, usage_drain_seconds)
+            write_json(folder / "process.json", {"pid": process.pid, "workspace": str(workspace),
+                                                 "started_unix_seconds": time.time()}, exclusive=True)
             selector.register(process.stdout, selectors.EVENT_READ)
             process.stdin.write(prompt.encode())
             process.stdin.close()
             while process.poll() is None:
                 pump()
+                if cancel_event is not None and cancel_event.is_set():
+                    stop.cancel()
                 if not stop.cutoff:
                     live = read_live_jsonl(find_rollout(home, thread_id))
                     observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
                     reason = None
-                    if time.monotonic() - start >= SPEC["limits"]["elapsed_seconds"]:
+                    if time.monotonic() - start >= spec["limits"]["elapsed_seconds"]:
                         reason = "timeout"
-                    elif not grading and observed["total_tokens"] >= SPEC["limits"]["total_tokens"]:
+                    elif not grading and observed["total_tokens"] >= spec["limits"]["total_tokens"]:
                         reason = "token_limit"
                     elif not grading and relay_settings and any(r.get("event") == "limit" for r in read_live_jsonl(Path(relay_settings["log"]))):
                         reason = "call_limit"
@@ -377,21 +391,41 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                 model_exited_monotonic = time.monotonic()
         finally:
             # Also clean independently grouped relays before any raw-file seal.
-            relay_cleanup = cleanup_relay(folder, pump)
+            def cleanup_pump():
+                nonlocal launch_error
+                try:
+                    pump()
+                except (OSError, ValueError, KeyError) as exc:
+                    launch_error = f"unsupported Codex event log during cleanup: {exc}"
+            relay_cleanup = cleanup_relay(folder, cleanup_pump)
             deadline = time.monotonic() + 1
             while process and not is_stdout_eof and time.monotonic() < deadline:
-                pump()
+                cleanup_pump()
             selector.close()
             if process:
                 process.stdout.close()
             (home / "auth.json").unlink(missing_ok=True)
     elapsed = time.monotonic() - start
     termination = stop.cutoff["reason"] if stop and stop.cutoff else None
-    events = read_live_jsonl(folder / "events.jsonl")
+    try:
+        events = read_live_jsonl(folder / "events.jsonl")
+    except (ValueError, KeyError) as exc:
+        events = []
+        launch_error = f"unsupported Codex event log: {exc}"
     rollout_path = find_rollout(home, thread_id)
     if rollout_path:
         shutil.copyfile(rollout_path, folder / "rollout.jsonl")
-    records = read_live_jsonl(folder / "rollout.jsonl")
+    try:
+        records = read_live_jsonl(folder / "rollout.jsonl")
+    except (ValueError, KeyError) as exc:
+        records = []
+        launch_error = f"unsupported Codex rollout log: {exc}"
+    session_versions = {r.get("payload", {}).get("cli_version") for r in records if r.get("type") == "session_meta"}
+    session_versions.discard(None)
+    if len(session_versions) == 1:
+        actual_version = next(iter(session_versions))
+        if isinstance(actual_version, str):
+            codex_version = actual_version if actual_version.startswith("codex-cli ") else f"codex-cli {actual_version}"
     relay_records = read_live_jsonl(folder / "relay.jsonl")
     pending = {r["id"] for r in relay_records if r.get("event") == "request"} - {r["id"] for r in relay_records if r.get("event") == "result"}
     partial_files = [name for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
@@ -403,17 +437,17 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                 "partial_jsonl_files": partial_files, "evidence": str(folder / "runtime.json")}
     final_observed = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"]
     cutoff_tokens = (stop.cutoff.get("observed_usage", {}).get("total_tokens") if stop and stop.cutoff else None)
-    budget = {"unit": "cached-inclusive input_tokens + output_tokens", "limit_tokens": SPEC["limits"]["total_tokens"],
+    budget = {"unit": "cached-inclusive input_tokens + output_tokens", "limit_tokens": spec["limits"]["total_tokens"],
               "observed_tokens_at_cutoff": cutoff_tokens,
               "observed_tokens_after_collection": final_observed["total_tokens"],
-              "observed_overshoot_tokens": max(0, final_observed["total_tokens"] - SPEC["limits"]["total_tokens"]),
+              "observed_overshoot_tokens": max(0, final_observed["total_tokens"] - spec["limits"]["total_tokens"]),
               "observed_cleanup_tokens": final_observed["total_tokens"] - cutoff_tokens if cutoff_tokens is not None else 0,
               "whole_cost_may_be_missing": True}
     write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
                                         "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
                                         "model_exited_monotonic": model_exited_monotonic,
                                         "launch_error": launch_error, "termination": termination,
-                                        "usage_drain_seconds": usage_drain_seconds,
+                                        "usage_drain_seconds": usage_drain_seconds, "codex_version": codex_version,
                                         "record_collection_complete": bool(is_stdout_eof and not buffer and rollout_path and not partial_files and relay_cleanup["complete"]),
                                         "shutdown": shutdown, "budget": budget})
     final_rows = [r for r in records if r.get("type") == "response_item"
@@ -435,15 +469,19 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         termination = "token_limit"
     status = termination or ("completed" if completed and process and process.returncode == 0 and not launch_error else "environment_error")
     contexts = [r["payload"] for r in records if r.get("type") == "turn_context"]
-    expected_model = SPEC["grader_model"] if grading else SPEC["model"]
-    expected_effort = SPEC["grader_reasoning_effort"] if grading else SPEC["reasoning_effort"]
+    expected_model = spec["grader_model"] if grading else spec["model"]
+    expected_effort = spec["grader_reasoning_effort"] if grading else spec["reasoning_effort"]
     conditions_valid = bool(contexts) and all(c.get("model") == expected_model and c.get("effort") == expected_effort for c in contexts)
-    usage = recorded_usage(folder)
+    try:
+        usage = recorded_usage(folder)
+    except (ValueError, KeyError):
+        usage = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"),
+                              completion={"complete": False, "reasons": [launch_error or "unsupported Codex log format"]})
     budget["whole_cost_may_be_missing"] = not usage["complete"]
     runtime = read_json(folder / "runtime.json")
     write_json(folder / "runtime.json", {**runtime, "budget": budget})
     result = {"status": status, "answer": answer, "elapsed_seconds": elapsed, "conditions_valid": conditions_valid,
-              "usage": usage, "shutdown": shutdown, "budget": budget,
+              "usage": usage, "shutdown": shutdown, "budget": budget, "codex_version": codex_version,
               "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
     if usage_drain_seconds:
         result["usage_collection"] = {"drain_seconds": usage_drain_seconds,
@@ -708,7 +746,7 @@ def recover_observations(experiment: Path):
 def seal_run(folder: Path):
     names = ["run.json", "runtime.json", "command.json", "prompt.txt", "events.jsonl", "stderr.log",
              "rollout.jsonl", "relay.jsonl", "answer.txt", "execution.json", "delivery.json", "relay-settings.json", "run-before-recovery.json",
-             "stop.json", "relay-runtime.json", "product.stderr.log"]
+             "stop.json", "relay-runtime.json", "product.stderr.log", "reuse.json", "copy.json", "post-cutoff-answer.txt", "process.json"]
     write_json(folder / "seal.json", {"files": {name: file_digest(folder / name) for name in names if (folder / name).is_file()}}, exclusive=True)
 
 
@@ -795,7 +833,7 @@ def load_experiment_runs(experiment: Path) -> list[dict]:
 
 def _run_experiment(dataset: dict, experiment: Path, source: Path, binary: Path, phase: str, preparation_experiment: Path | None = None):
     validate_dataset(dataset, source)
-    require(command(["codex", "--version"]).strip() == f"codex-cli {SPEC['codex_version']}", "Codex version drift")
+    command(["codex", "--version"])  # Availability only; historical version is metadata.
     if not (experiment / "frozen.json").exists():
         if phase == "main":
             require(preparation_experiment is not None, "main requires completed preparation experiment")
@@ -845,7 +883,8 @@ def _run_experiment(dataset: dict, experiment: Path, source: Path, binary: Path,
                         "log": str((folder / "relay.jsonl").resolve()), "product_binary": str(binary.resolve()),
                         "product_home": str((folder / "product-home").resolve())}
             prompt = ANSWER_PROMPT + "\n" + questions[entry["question_id"]]["prompt"]
-            execution = execute_codex(folder, prompt, settings)
+            execution = execute_codex(folder, prompt, settings, usage_drain_seconds=30,
+                                      codex_version=command(["codex", "--version"]).strip())
             calls, complete, host_calls, violations = normalize_calls(folder)
             run = {**entry, **execution, "calls": calls, "copy_elapsed_seconds": copy_seconds,
                    "host_calls": host_calls, "boundary_violations": violations,

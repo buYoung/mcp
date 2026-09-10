@@ -2,11 +2,11 @@
   "active_product_version": "B-4",
   "binary_sha256": "ee5883514ef219d373adfdf64a453d979f5887fc6841bb3df7fb6405b4430d79",
   "comparison_control": {
-    "approved_tools_manifest": "benchmark/v2/artifacts/grafana-b2-r1/a-tools-proposed.json",
+    "approved_tools_manifest": "benchmark/data/a-tools.json",
     "approved_tools_sha256": "00ec51d0ca1f2202942bb988db4f43ef530b473701bcdb07810a765b63bf64a0",
     "description_policy": "approved parameter descriptions; unchanged baseline functions",
     "name": "A",
-    "note": "The original harness is preserved. Use the approved parameter descriptions in each isolated evaluation harness and verify the contract before running."
+    "note": "Approved tool descriptions are now shared by the active harness; baseline functions are unchanged."
   },
   "evaluation_scope": "Latest completed measurement: Grafana complex-go-1, five additions to group-both, five repeats each (25 new solver sessions). Current source adoption follows user approval; general performance improvement is unconfirmed.",
   "local_release_binary": "apps/codemap-search/target/release/codemap-search",
@@ -1283,5 +1283,15 @@
     "historical_multi_repository_reference_eligible_as_grafana_baseline": false,
     "completed_grafana_formal_A_reference_status": "Not found in the inspected top-level frozen records; preparation and candidate evaluations are not formal results.",
     "new_model_runs_in_scope_update": 0
+  },
+  "interactive_benchmark": {
+    "ready": "pnpm bench:ready",
+    "start": "pnpm bench:start",
+    "config": "benchmark/config.json",
+    "profiles": "benchmark/data/profiles.json",
+    "source": "current worktree including uncommitted product changes",
+    "codex_version_policy": "unfixed; record actual version for each solver/grader session",
+    "historical_results_unchanged": true,
+    "historical_raw_artifacts_retained": false
   }
 }

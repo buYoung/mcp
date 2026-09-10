@@ -22,16 +22,7 @@ def tool_schema(name, description, properties, required):
 
 TEXT = {"type": "string"}
 INTEGER = {"type": "integer", "minimum": 1}
-BASELINE_TOOLS = [
-    tool_schema(name, f"Search source contents with {name}. Returns path:line:text. No shell syntax. Paths are source-relative.",
-                {"pattern": TEXT, "path": TEXT, "glob": TEXT, "case_insensitive": {"type": "boolean"},
-                 "context_lines": {"type": "integer", "minimum": 0, "maximum": 20}}, ["pattern"])
-    for name in ["rg", "grep"]
-] + [
-    tool_schema("find", "Find source files by filename glob (or relative path glob with '/').", {"pattern": TEXT, "path": TEXT}, ["pattern"]),
-    tool_schema("read", "Read an explicit source file, returning numbered original lines. Default window: 200 lines.",
-                {"file_path": TEXT, "offset": INTEGER, "limit": INTEGER}, ["file_path"]),
-]
+BASELINE_TOOLS = read_json(Path(__file__).resolve().parents[1] / "data/a-tools.json")
 
 
 def content_text(result: dict) -> str:
@@ -165,6 +156,7 @@ class Product:
 class Relay:
     def __init__(self, settings: dict):
         self.settings = settings
+        self.limits = settings.get("limits", SPEC["limits"])
         self.group = settings["group"]
         self.root = Path(settings["source"]).resolve()
         self.log = Path(settings["log"])
@@ -196,7 +188,7 @@ class Relay:
                 if stop.get("usage_drain_seconds"):
                     message += "; collection-only shutdown: make no more tool calls and finish this turn now. Any answer after the cutoff is excluded from evaluation."
                 return text_result(message, True)
-            if self.count >= SPEC["limits"]["exploration_calls"]:
+            if self.count >= self.limits["exploration_calls"]:
                 append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
                 return text_result("exploration call limit reached", True)
             self.count += 1
@@ -231,7 +223,7 @@ class Relay:
                                "finished_monotonic": time.monotonic(), "raw_result": result, "relay_result": delivered,
                                "raw_bytes": len(content_text(result).encode()), "relay_bytes": len(content_text(delivered).encode()),
                                "host_truncated": truncated, **details})
-        if self.count == SPEC["limits"]["exploration_calls"]:
+        if self.count == self.limits["exploration_calls"]:
             append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
         return delivered
 
