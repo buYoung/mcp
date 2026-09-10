@@ -1255,5 +1255,20 @@
       "semantics": "최신 관측의 위치이며 향후 평가의 고정 비교 기준을 채택하거나 기존 점수를 대체하는 참조가 아니다.",
       "legacy_latest_model_evaluation_semantics": "latest_model_evaluation은 이전 r1 관측을 보존한 필드다. 최신 관측은 이 참조와 latest_navigation_flow_screen을 따른다."
     }
-  ]
+  ],
+  "preserved_result_references": {
+    "formal-r1-A": {
+      "table": "benchmark/results/formal-r1/A.md",
+      "snapshot": "benchmark/results/formal-r1/A.json",
+      "source_experiment": "formal-r1",
+      "group": "A",
+      "scheduled_runs": 60,
+      "label": "A — formal-r1, 설명 보완 전 과거 실행",
+      "user_requested_permanent_preservation": true,
+      "automatic_remeasurement": false,
+      "automatic_regrading": false,
+      "replace_with_future_result": false,
+      "role": "Historical fixed result with two indeterminate judgments and known interface errors; separate from the currently approved A tool contract."
+    }
+  }
 }
