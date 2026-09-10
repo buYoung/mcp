@@ -171,8 +171,9 @@ def signal_target(pid: int, signum: int, *, group=False) -> bool:
 
 class ExecutionStop:
     """Latch a cutoff once; collect stdout while escalating on monotonic deadlines."""
-    def __init__(self, folder: Path, process, start: float):
+    def __init__(self, folder: Path, process, start: float, usage_drain_seconds: float = 0):
         self.folder, self.process, self.start = folder, process, start
+        self.usage_drain_seconds = usage_drain_seconds
         self.cutoff = None
         self.steps = []
 
@@ -188,8 +189,11 @@ class ExecutionStop:
             self.cutoff = {"reason": reason, "detected_monotonic": now, "detected_unix_seconds": time.time(),
                            "elapsed_seconds": now - self.start, "observed_usage": observed,
                            "incomplete_call_ids": sorted(pending)}
+            if self.usage_drain_seconds and reason in {"token_limit", "call_limit", "timeout"}:
+                self.cutoff["usage_drain_seconds"] = self.usage_drain_seconds
             write_json(self.folder / "stop.json", self.cutoff, exclusive=True)
-        self._send(signal.SIGINT, False)
+        if not self.cutoff.get("usage_drain_seconds"):
+            self._send(signal.SIGINT, False)
 
     def _send(self, signum: int, group: bool):
         sent = signal_target(self.process.pid, signum, group=group)
@@ -198,6 +202,10 @@ class ExecutionStop:
 
     def advance(self):
         if not self.cutoff or self.process.poll() is not None:
+            return
+        if not self.steps:
+            if time.monotonic() - self.cutoff["detected_monotonic"] >= self.cutoff["usage_drain_seconds"]:
+                self._send(signal.SIGINT, False)
             return
         if time.monotonic() - self.steps[-1]["monotonic"] >= 3:
             if self.steps[-1]["signal"] == "SIGINT":
@@ -268,7 +276,10 @@ def recorded_usage(folder: Path) -> dict:
     return usage_metrics(records, terminal_complete=not reasons, evidence=str(folder / "rollout.jsonl"), completion=completion)
 
 
-def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None) -> dict:
+def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
+                  usage_drain_seconds: float = 0) -> dict:
+    require(isinstance(usage_drain_seconds, (int, float)) and not isinstance(usage_drain_seconds, bool)
+            and 0 <= usage_drain_seconds <= 30, "usage drain must be between 0 and 30 seconds")
     folder = folder.resolve()
     folder.mkdir(parents=True, exist_ok=True)
     workspace = folder / "workspace"
@@ -330,7 +341,7 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         try:
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
-            stop = ExecutionStop(folder, process, start)
+            stop = ExecutionStop(folder, process, start, usage_drain_seconds)
             selector.register(process.stdout, selectors.EVENT_READ)
             process.stdin.write(prompt.encode())
             process.stdin.close()
@@ -402,11 +413,22 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                                         "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
                                         "model_exited_monotonic": model_exited_monotonic,
                                         "launch_error": launch_error, "termination": termination,
+                                        "usage_drain_seconds": usage_drain_seconds,
                                         "record_collection_complete": bool(is_stdout_eof and not buffer and rollout_path and not partial_files and relay_cleanup["complete"]),
                                         "shutdown": shutdown, "budget": budget})
-    final_messages = [r["payload"] for r in records if r.get("type") == "response_item"
+    final_rows = [r for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
-    answer = "\n".join(c.get("text", "") for r in final_messages[-1:] for c in r.get("content", []) if c.get("type") == "output_text")
+    final_text = "\n".join(c.get("text", "") for r in final_rows[-1:] for c in r["payload"].get("content", []) if c.get("type") == "output_text")
+    answer_eligible = True
+    if usage_drain_seconds and stop and stop.cutoff and final_rows:
+        try:
+            final_time = datetime.datetime.fromisoformat(final_rows[-1]["timestamp"].replace("Z", "+00:00")).timestamp()
+            answer_eligible = final_time <= stop.cutoff["detected_unix_seconds"]
+        except (AttributeError, KeyError, TypeError, ValueError):
+            answer_eligible = False
+    answer = final_text if answer_eligible else ""
+    if not answer_eligible:
+        (folder / "post-cutoff-answer.txt").write_text(final_text, encoding="utf-8")
     (folder / "answer.txt").write_text(answer, encoding="utf-8")
     completed = any(e.get("type") == "turn.completed" for e in events)
     if any("rollout budget" in canonical(event).lower() and "exhaust" in canonical(event).lower() for event in events):
@@ -423,6 +445,11 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     result = {"status": status, "answer": answer, "elapsed_seconds": elapsed, "conditions_valid": conditions_valid,
               "usage": usage, "shutdown": shutdown, "budget": budget,
               "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
+    if usage_drain_seconds:
+        result["usage_collection"] = {"drain_seconds": usage_drain_seconds,
+                                      "answer_within_cutoff": answer_eligible,
+                                      "post_cutoff_answer_excluded": not answer_eligible,
+                                      "whole_cost_includes_drain": True}
     write_json(folder / "execution.json", result)
     return result
 

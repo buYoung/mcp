@@ -1,0 +1,45 @@
+{
+  "updated_at": "2026-09-08T10:26:36.600240+00:00",
+  "baseline": "B-1",
+  "baseline_role": "original measurement baseline for retained improvements",
+  "current_product_baseline": "B-4",
+  "status": "incorporated_in_adopted_B4",
+  "entries": [
+    {
+      "id": "r1-c2_ranking_work",
+      "status": "adopted_in_B4",
+      "confirmed_scope": {
+        "metric": "score_symbol_match 안의 이름 일치 평가 횟수",
+        "before": "2*T",
+        "after": "T",
+        "reduction_percent": 50,
+        "evidence_kind": "소스의 불리언 등가성과 호출 흐름; 런타임 카운터 아님",
+        "output_equality": "기존 3검색+1grep, 별도 4계약 보호 검사",
+        "tests_passed": 16
+      },
+      "limits": "동일 출력의 국소 중복 작업 감소. 일관된 전체 응답 지연 또는 모델 토큰·정확도 개선을 확정한 목록이 아니다.",
+      "result_path": "benchmark/v2/artifacts/candidate-screen-r1/c2_ranking_work/result.json",
+      "result_sha256": "22f4381b416485ff15fea0c8a989098cdb6f7a717d8cccff4002bbf11c7d3526",
+      "adopted_in": "B-4"
+    },
+    {
+      "id": "r1-c1_render_io",
+      "status": "adopted_in_B4",
+      "confirmed_scope": {
+        "metric": "5개 고정 검색의 렌더 source read_to_string 시도",
+        "before": 79,
+        "after": 25,
+        "reduction_percent": 68.35443037974683,
+        "evidence_kind": "후보 trace 25 miss+54 hit, 기준 동일 helper 흐름으로 79회 산출. OS의 물리 디스크 읽기나 bytes 계측 아님",
+        "output_equality": "5개 고정 검색",
+        "tests_passed": 17
+      },
+      "limits": "동일 출력의 국소 중복 작업 감소. 일관된 전체 응답 지연 또는 모델 토큰·정확도 개선을 확정한 목록이 아니다.",
+      "result_path": "benchmark/v2/artifacts/candidate-screen-r1/c1_render_io/result.json",
+      "result_sha256": "357b8a1e0bf393b44e1a71b1fc55fb5d1a72aafd86220821bdd6676e672bb5fc",
+      "adopted_in": "B-4"
+    }
+  ],
+  "adopted_in": "B-4",
+  "adoption_record": "benchmark/v2/artifacts/b4-adoption-r1/build-verification.json"
+}

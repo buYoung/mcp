@@ -191,7 +191,11 @@ class Relay:
             if self.log.with_name("stop.json").exists():
                 append_jsonl(self.log, {"event": "stopping_denied", "id": call_id, "tool": name,
                                        "observed_monotonic": time.monotonic()})
-                return text_result("execution stopping; new exploration denied", True)
+                stop = read_json(self.log.with_name("stop.json"))
+                message = "execution stopping; new exploration denied"
+                if stop.get("usage_drain_seconds"):
+                    message += "; collection-only shutdown: make no more tool calls and finish this turn now. Any answer after the cutoff is excluded from evaluation."
+                return text_result(message, True)
             if self.count >= SPEC["limits"]["exploration_calls"]:
                 append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
                 return text_result("exploration call limit reached", True)

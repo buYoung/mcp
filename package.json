@@ -2,6 +2,7 @@
     "name": "buyong-mcp",
     "private": true,
     "scripts": {
+        "bench:ready": "python3 -m benchmark.ready",
         "build": "turbo run build",
         "dev": "turbo run dev",
         "lint": "biome check .",

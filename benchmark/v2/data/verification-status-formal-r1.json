@@ -1,0 +1,99 @@
+{
+  "automatic_retries": 0,
+  "comparison_limitations": [
+    "95 baseline calls failed due to underdocumented empty-path / 1-based read contracts, affecting 44 of 60 A runs.",
+    "Four judgments remain indeterminate because alternative cited source windows were absent from the grading input.",
+    "Both auxiliary-path-primary questions use a file above the 1 MiB default indexing cap; ranking-heuristic coverage is not established.",
+    "Java/C++ grep source-exposure parsing is incomplete."
+  ],
+  "completed": 120,
+  "conditions_valid": 120,
+  "confidence_intervals": {
+    "elapsed_seconds": {
+      "high": 7.04092378248728,
+      "low": -8.871114432153302,
+      "reason": null
+    },
+    "exploration_calls": {
+      "high": -4.931371887441801,
+      "low": -30.487804878048774,
+      "reason": null
+    },
+    "full_correct": {
+      "high": null,
+      "low": null,
+      "reason": "incomplete paired metric"
+    },
+    "total_tokens": {
+      "high": 38.319234984083586,
+      "low": 7.5500974445698255,
+      "reason": null
+    }
+  },
+  "differences": {
+    "elapsed_seconds": {
+      "denominator": 43.6756730186947,
+      "missing_reason": null,
+      "numerator": 43.193727221432106,
+      "unit": "percent",
+      "validity": "valid",
+      "value": -1.103465073237242
+    },
+    "exploration_calls": {
+      "denominator": 8.433333333333334,
+      "missing_reason": null,
+      "numerator": 6.816666666666666,
+      "unit": "percent",
+      "validity": "valid",
+      "value": -19.1699604743083
+    },
+    "full_correct": {
+      "denominator": null,
+      "missing_reason": "incomplete quality metric",
+      "numerator": null,
+      "unit": "pp",
+      "validity": "unavailable",
+      "value": null
+    },
+    "total_tokens": {
+      "denominator": 85425.03333333334,
+      "missing_reason": null,
+      "numerator": 103666.45,
+      "unit": "percent",
+      "validity": "valid",
+      "value": 21.353713255794247
+    }
+  },
+  "evaluation_tokens": 11345489,
+  "grading_batches_valid": 30,
+  "grading_controls_valid": 120,
+  "other_tokens": 943776,
+  "per_group": {
+    "A": {
+      "conditions_valid": 60,
+      "correct": 54,
+      "quality_valid": 58,
+      "scheduled": 60,
+      "whole_cost_complete": 60
+    },
+    "B": {
+      "conditions_valid": 60,
+      "correct": 53,
+      "quality_valid": 58,
+      "scheduled": 60,
+      "whole_cost_complete": 60
+    }
+  },
+  "post_freeze_input_changes": false,
+  "product_improvement_established": false,
+  "protocol": "formal-r1/README.md",
+  "quality_comparison_complete": false,
+  "quality_judgments_determinate": 116,
+  "quality_judgments_indeterminate": 4,
+  "reaggregation_changes": 0,
+  "report": "../artifacts/formal-r1/report/analysis.md",
+  "scheduled": 120,
+  "status": "completed_with_limitations",
+  "total_new_codex_sessions": 187,
+  "whole_usage_complete": 120
+}

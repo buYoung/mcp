@@ -1,0 +1,942 @@
+{
+  "calls.cancelled": {
+    "definition": "정규화 상태가 cancelled인 MCP 호출.",
+    "group": "신뢰성",
+    "id": "calls.cancelled",
+    "label": "취소 탐색 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.errors": {
+    "definition": "정규화 상태가 error인 MCP 호출.",
+    "group": "신뢰성",
+    "id": "calls.errors",
+    "label": "오류 탐색 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.exec": {
+    "definition": "실제 rollout에서 이름이 exec인 호스트 호출.",
+    "group": "호출·탐색",
+    "id": "calls.exec",
+    "label": "exec 호출 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.explicit_all_search": {
+    "definition": "workspace_scope/scope를 all/전체로 명시한 search 호출.",
+    "group": "호출·탐색",
+    "id": "calls.explicit_all_search",
+    "label": "명시적 전체 범위 search 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.explicit_scoped_search": {
+    "definition": "workspace_scope/scope를 all/전체 이외의 값으로 명시한 search 호출.",
+    "group": "호출·탐색",
+    "id": "calls.explicit_scoped_search",
+    "label": "명시적 범위 search 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.implicit_scope_search": {
+    "definition": "명시 범위 인자 없이 호출. 실제 활성 범위를 전체라고 추정하지 않음.",
+    "group": "호출·탐색",
+    "id": "calls.implicit_scope_search",
+    "label": "범위 인자 생략 search 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.known_empty_search": {
+    "definition": "관측된 결과 수가 0인 성공 검색 수. 미관측 결과가 있어도 이 수는 확인된 최소 개수.",
+    "group": "호출·탐색",
+    "id": "calls.known_empty_search",
+    "label": "확인된 빈 검색 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.no_read": {
+    "definition": "read 호출이 0회인지 여부. 검색 발췌가 충분할 수 있어 높고 낮음 자체는 품질 판정이 아님.",
+    "group": "호출·탐색",
+    "id": "calls.no_read",
+    "label": "read 미사용 실행",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "calls.per_host": {
+    "definition": "전체 탐색 호출 / 전체 호스트 호출. 병렬 실행률이 아니라 묶음 크기의 거친 지표.",
+    "group": "호출·탐색",
+    "id": "calls.per_host",
+    "label": "호스트 호출당 MCP 요청",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "multiple"
+  },
+  "calls.success": {
+    "definition": "정규화 상태가 success인 MCP 호출.",
+    "group": "호출·탐색",
+    "id": "calls.success",
+    "label": "성공 탐색 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "calls.wait": {
+    "definition": "실제 rollout에서 이름이 wait인 호스트 호출.",
+    "group": "호출·탐색",
+    "id": "calls.wait",
+    "label": "wait 호출 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "cost.cached_input_ratio": {
+    "definition": "cached_input_tokens / input_tokens. 풀링값은 두 합계의 비율.",
+    "group": "토큰·모델",
+    "id": "cost.cached_input_ratio",
+    "label": "캐시 입력 비율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "cost.cached_input_tokens": {
+    "definition": "입력 토큰에 포함된 캐시 입력. 전체 토큰에 다시 더하지 않음.",
+    "group": "토큰·모델",
+    "id": "cost.cached_input_tokens",
+    "label": "캐시 입력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "tokens"
+  },
+  "cost.elapsed_seconds": {
+    "definition": "Codex 시작부터 실행 기록·정리 완료까지. 복제와 사전 색인·채점 제외.",
+    "group": "시간",
+    "id": "cost.elapsed_seconds",
+    "label": "실행 시간",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "seconds"
+  },
+  "cost.exploration_calls": {
+    "definition": "중계기의 실제 MCP 탐색 요청 수. 초기 안내·오류·재호출 포함.",
+    "group": "호출·탐색",
+    "id": "cost.exploration_calls",
+    "label": "전체 탐색 호출 수",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "calls"
+  },
+  "cost.host_calls": {
+    "definition": "exec/wait 호출 수. 한 exec 안의 여러 MCP 요청은 별도로 셈.",
+    "group": "호출·탐색",
+    "id": "cost.host_calls",
+    "label": "호스트 호출 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "calls"
+  },
+  "cost.input_tokens": {
+    "definition": "각 모델 응답에 전달된 누적 문맥을 포함하는 입력 토큰 합.",
+    "group": "토큰·모델",
+    "id": "cost.input_tokens",
+    "label": "입력 토큰",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "tokens"
+  },
+  "cost.model_responses": {
+    "definition": "중복 제거한 response_id 수. MCP 호출 수나 Codex 세션 수와 다름.",
+    "group": "토큰·모델",
+    "id": "cost.model_responses",
+    "label": "모델 응답 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "responses"
+  },
+  "cost.output_tokens": {
+    "definition": "모델 응답의 출력 토큰 합. 최종 답변만의 길이가 아님.",
+    "group": "토큰·모델",
+    "id": "cost.output_tokens",
+    "label": "출력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "tokens"
+  },
+  "cost.total_tokens": {
+    "definition": "캐시를 포함한 입력 토큰 + 출력 토큰. 동일 response_id는 한 번만 합산.",
+    "group": "토큰·모델",
+    "id": "cost.total_tokens",
+    "label": "전체 토큰",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "tokens"
+  },
+  "exploration.delivered_output_bytes": {
+    "definition": "rollout의 호스트 출력 블록 전체 UTF-8 바이트 합. 포장·라벨 포함. 호출별 귀속 바이트 합과 다름.",
+    "group": "출력",
+    "id": "exploration.delivered_output_bytes",
+    "label": "실제 모델 전달 출력량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "bytes"
+  },
+  "exploration.duplicate_read_ratio": {
+    "definition": "(read 관측 행 수 − 고유 경로·행 수) / read 관측 행 수. 출력 미인식은 결측.",
+    "group": "호출·탐색",
+    "id": "exploration.duplicate_read_ratio",
+    "label": "중복 읽기 행 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.empty_search_ratio": {
+    "definition": "성공한 rg/grep/search 중 결과 수 0인 호출 비율. 결과 수 미관측 호출이 있으면 전체 비율 결측.",
+    "group": "호출·탐색",
+    "id": "exploration.empty_search_ratio",
+    "label": "빈 검색 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.exploration_calls": {
+    "definition": "cost.exploration_calls와 같은 중계 요청 수; 별도 합산하지 않음.",
+    "group": "호출·탐색",
+    "id": "exploration.exploration_calls",
+    "label": "탐색 호출 수 교차 확인",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "calls"
+  },
+  "exploration.host_truncation_ratio": {
+    "definition": "중계 또는 exec 전달 과정에서 잘림이 관측된 호출 비율.",
+    "group": "출력",
+    "id": "exploration.host_truncation_ratio",
+    "label": "호스트 잘림 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.identical_request_repeat_ratio": {
+    "definition": "같은 도구·인자·관측 가능한 search 범위의 중복 횟수 / 전체 호출.",
+    "group": "호출·탐색",
+    "id": "exploration.identical_request_repeat_ratio",
+    "label": "동일 요청 반복률",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.product_truncation_ratio": {
+    "definition": "제품 잘림이 true인 호출 / 전체 호출. 판별할 수 없는 호출은 전체값을 결측 처리.",
+    "group": "출력",
+    "id": "exploration.product_truncation_ratio",
+    "label": "제품 내부 잘림 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.raw_output_bytes": {
+    "definition": "제품 내부 제한이 적용된 뒤, 중계 호스트 제한 적용 전 텍스트 UTF-8 바이트 합.",
+    "group": "출력",
+    "id": "exploration.raw_output_bytes",
+    "label": "원래 도구 출력량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "bytes"
+  },
+  "exploration.search_read_ratio": {
+    "definition": "(rg + grep + search 호출 수) / read 호출 수. 읽기 0회인 실행 비율은 정의되지 않음.",
+    "group": "호출·탐색",
+    "id": "exploration.search_read_ratio",
+    "label": "검색/읽기 호출 비",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "multiple"
+  },
+  "exploration.search_result_count_coverage": {
+    "definition": "결과 수가 알려진 성공 검색 / 성공 검색. 빈 검색률 해석의 관측 범위.",
+    "group": "호출·탐색",
+    "id": "exploration.search_result_count_coverage",
+    "label": "검색 결과 수 관측률",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.tool_error_ratio": {
+    "definition": "오류 상태 호출 / 전체 탐색 호출.",
+    "group": "신뢰성",
+    "id": "exploration.tool_error_ratio",
+    "label": "도구 오류율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exploration.unique_read_files": {
+    "definition": "인식된 read 원문 행의 서로 다른 경로 수. 성공 read 출력이 미인식이면 결측.",
+    "group": "호출·탐색",
+    "id": "exploration.unique_read_files",
+    "label": "읽은 고유 파일 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "sealed normalized records",
+    "unit": "files"
+  },
+  "exposure.all_required_evidence": {
+    "definition": "모든 필수 사실의 evidence_set이 확인된 실행 여부. 미인식·대체 근거 때문에 결측 가능.",
+    "group": "근거 도달",
+    "id": "exposure.all_required_evidence",
+    "label": "모든 필수 근거 관측 비율",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exposure.analysis_coverage": {
+    "definition": "delivered_lines가 인식된 호출 / 전체 호출. find·초기 안내 등 빈 행 목록도 포함.",
+    "group": "근거 도달",
+    "id": "exposure.analysis_coverage",
+    "label": "출력 분석 가능 호출 비율",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "exposure.first_required_evidence_seconds": {
+    "definition": "완전한 evidence_set이 처음 확인된 실제 모델 전달 시점. 미인식 출력에 더 이른 근거가 있을 수 있어 실제 최단 시간으로 단정하지 않음.",
+    "group": "근거 도달",
+    "id": "exposure.first_required_evidence_seconds",
+    "label": "최초 필수 근거 관측 시간",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "seconds"
+  },
+  "exposure.first_required_evidence_step": {
+    "definition": "같은 호스트 출력에 함께 전달된 결과는 같은 observation_step. MCP 호출 번호가 아님.",
+    "group": "근거 도달",
+    "id": "exposure.first_required_evidence_step",
+    "label": "최초 필수 근거 관측 단계",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "steps"
+  },
+  "exposure.required_evidence_ratio": {
+    "definition": "고정 evidence_sets 중 하나가 전달 원문에서 완전히 확인된 사실 수 / 필수 사실 수. 부재와 미인식 구분.",
+    "group": "근거 도달",
+    "id": "exposure.required_evidence_ratio",
+    "label": "필수 근거 노출 충족률",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "features.empty_path": {
+    "definition": "인자 path가 빈 문자열인 요청 수.",
+    "group": "기능 이용",
+    "id": "features.empty_path",
+    "label": "빈 path 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "features.exclusion_relay_calls": {
+    "definition": "중계가 보낸 텍스트에 실제 크기 제외 안내가 들어 있는 호출 수. 검색 일치 결과와 다름.",
+    "group": "기능 이용",
+    "id": "features.exclusion_relay_calls",
+    "label": "제외 안내가 있는 중계 응답",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "features.exclusion_verified_calls": {
+    "definition": "정확/부분 대응이 확인된 모델 출력에서 제외 안내가 확인된 호출 수. 미귀속 출력은 포함하지 않는 확인 개수.",
+    "group": "기능 이용",
+    "id": "features.exclusion_verified_calls",
+    "label": "모델 전달 확인된 제외 안내",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "features.grep_path_all": {
+    "definition": "검색 범위 별칭을 grep의 실제 경로로 전달한 호출 수.",
+    "group": "기능 이용",
+    "id": "features.grep_path_all",
+    "label": "grep path=all 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "features.literal_available": {
+    "definition": "기록된 tools/list에서 grep.is_literal 속성 제공 여부.",
+    "group": "기능 이용",
+    "id": "features.literal_available",
+    "label": "일반 문자열 옵션 노출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "features.literal_calls": {
+    "definition": "grep 인자 is_literal=true인 호출 수. 미지원 버전의 0회는 기능 미제공과 함께 해석.",
+    "group": "기능 이용",
+    "id": "features.literal_calls",
+    "label": "일반 문자열 grep 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "features.zero_read_offset": {
+    "definition": "read offset=0 요청 수.",
+    "group": "기능 이용",
+    "id": "features.zero_read_offset",
+    "label": "0번 read 시작 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "index.applied_cap_bytes": {
+    "definition": "실제 제외 안내에 표시된 적용 상한. 자료 없으면 소스 기본값을 대신 넣지 않음.",
+    "group": "설명·색인",
+    "id": "index.applied_cap_bytes",
+    "label": "안내의 적용 크기 상한",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "index.files_observed": {
+    "definition": "초기 안내·루트 overview에 표시된 Total Files. 완전한 색인 포함률의 분모는 아님.",
+    "group": "설명·색인",
+    "id": "index.files_observed",
+    "label": "루트 개요의 색인 파일 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "files"
+  },
+  "index.root_size_excluded": {
+    "definition": "루트 범위 응답에서 실제 확인된 크기 제외 개수. 안내 없음은 0개가 아님.",
+    "group": "설명·색인",
+    "id": "index.root_size_excluded",
+    "label": "루트 크기 제외 파일 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "files"
+  },
+  "index.symbols_observed": {
+    "definition": "초기 안내·루트 overview에 표시된 Total Symbols.",
+    "group": "설명·색인",
+    "id": "index.symbols_observed",
+    "label": "루트 개요의 심볼 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "symbols"
+  },
+  "metadata.description_bytes": {
+    "definition": "inventory의 최상위 description UTF-8 바이트 합. Codex 공통 안내·타입 선언은 포함하지 않음.",
+    "group": "설명·색인",
+    "id": "metadata.description_bytes",
+    "label": "MCP 도구 본문 설명량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "metadata.inventory_bytes": {
+    "definition": "inventory tools를 고정 canonical JSON으로 직렬화한 크기. 실제 네트워크 프레임 또는 모델 입력 토큰 수와 다름.",
+    "group": "설명·색인",
+    "id": "metadata.inventory_bytes",
+    "label": "MCP 목록 JSON 크기",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "metadata.parameter_description_bytes": {
+    "definition": "inputSchema 안의 description 문자열 UTF-8 바이트 합.",
+    "group": "설명·색인",
+    "id": "metadata.parameter_description_bytes",
+    "label": "MCP 인자 설명량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "metadata.tool_count": {
+    "definition": "relay inventory에 저장된 tools/list 도구 개수.",
+    "group": "설명·색인",
+    "id": "metadata.tool_count",
+    "label": "MCP 도구 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tools"
+  },
+  "output.attributed_model_bytes": {
+    "definition": "각 MCP 요청에 정확히 대응시킨 delivered_bytes 합. 하나라도 귀속 불가이면 전체 합계 결측.",
+    "group": "출력",
+    "id": "output.attributed_model_bytes",
+    "label": "호출별 귀속 모델 출력량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "output.delivery_exact": {
+    "definition": "delivery_status=exact / 전체 호출.",
+    "group": "출력",
+    "id": "output.delivery_exact",
+    "label": "정확 귀속 호출 비율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "output.delivery_partial": {
+    "definition": "delivery_status=partial / 전체 호출. 확인된 접두사만 전달됐다는 뜻.",
+    "group": "출력",
+    "id": "output.delivery_partial",
+    "label": "부분 귀속 호출 비율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "output.delivery_unknown": {
+    "definition": "unrecognized_or_omitted_by_wrapper / 전체 호출. 전부 미전달이라고 단정하지 않음.",
+    "group": "출력",
+    "id": "output.delivery_unknown",
+    "label": "귀속 불가·생략 미구분 비율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "output.host_truncation_coverage": {
+    "definition": "host_truncated가 null이 아닌 호출 / 전체 호출.",
+    "group": "출력",
+    "id": "output.host_truncation_coverage",
+    "label": "호스트 잘림 판별 가능률",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "output.known_host_truncations": {
+    "definition": "host_truncated=true 개수.",
+    "group": "출력",
+    "id": "output.known_host_truncations",
+    "label": "확인된 호스트 잘림 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "output.known_product_truncations": {
+    "definition": "product_truncated=true 개수. 미판별 호출은 제외한 확인 개수.",
+    "group": "출력",
+    "id": "output.known_product_truncations",
+    "label": "확인된 제품 잘림 호출",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "output.product_truncation_coverage": {
+    "definition": "product_truncated가 null이 아닌 호출 / 전체 호출.",
+    "group": "출력",
+    "id": "output.product_truncation_coverage",
+    "label": "제품 잘림 판별 가능률",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "output.relay_bytes": {
+    "definition": "relay.jsonl 결과의 relay_bytes 합. 실제 Codex 전달량과 구분.",
+    "group": "출력",
+    "id": "output.relay_bytes",
+    "label": "중계가 보낸 출력량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "bytes"
+  },
+  "quality.evidence_ratio": {
+    "definition": "문제별 correct와 supported가 모두 참인 사실 수 / 요구 사실 수.",
+    "group": "품질",
+    "id": "quality.evidence_ratio",
+    "label": "핵심 근거 충족률",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "quality.fact_ratio": {
+    "definition": "문제별 correct 사실 수 / 요구 사실 수. 버전 평균은 문제 동일 가중.",
+    "group": "품질",
+    "id": "quality.fact_ratio",
+    "label": "핵심 사실 충족률",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "quality.full_correct": {
+    "definition": "모든 필수 사실·근거 충족, 주요 오류 없음. 보류 문제를 0으로 대체하지 않음.",
+    "group": "품질",
+    "id": "quality.full_correct",
+    "label": "완전 정답률",
+    "level": "run",
+    "preferred_direction": "높을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "quality.major_error": {
+    "definition": "검증된 판정에서 주요 오류가 있는 답변. 미판정 답변은 결측.",
+    "group": "품질",
+    "id": "quality.major_error",
+    "label": "주요 오류 답변 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "quality.no_answer": {
+    "definition": "최종 답변 문자열이 비어 있는 실행 / 예정 실행.",
+    "group": "품질",
+    "id": "quality.no_answer",
+    "label": "최종 답변 없음 비율",
+    "level": "run",
+    "preferred_direction": "낮을수록 좋음",
+    "source": "sealed normalized records",
+    "unit": "ratio"
+  },
+  "reliability.boundary_violations": {
+    "definition": "run.boundary_violations에 기록된 위반 수.",
+    "group": "신뢰성",
+    "id": "reliability.boundary_violations",
+    "label": "경계 위반 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "events"
+  },
+  "reliability.call_limit": {
+    "definition": "run.status=call_limit 여부.",
+    "group": "신뢰성",
+    "id": "reliability.call_limit",
+    "label": "호출 한도 감지 실행",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.cleanup_tokens": {
+    "definition": "runtime.budget.observed_cleanup_tokens. 한도 미감지이면 0.",
+    "group": "신뢰성",
+    "id": "reliability.cleanup_tokens",
+    "label": "한도 감지 후 추가 관측 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "reliability.completed_status": {
+    "definition": "run.status가 completed인 실행. 정상 턴 완료와 한도 감지는 별도 지표.",
+    "group": "신뢰성",
+    "id": "reliability.completed_status",
+    "label": "completed 종료 상태",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.conditions": {
+    "definition": "모델·추론 강도 등 conditions_valid 여부.",
+    "group": "신뢰성",
+    "id": "reliability.conditions",
+    "label": "실행 조건 확인률",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.delayed_usage_events": {
+    "definition": "legacy token_count가 이전 누적값과 일치해 delayed로 분류된 수. 중복 토큰으로 합산하지 않음.",
+    "group": "신뢰성",
+    "id": "reliability.delayed_usage_events",
+    "label": "지연된 구형 사용량 이벤트",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "events"
+  },
+  "reliability.late_results": {
+    "definition": "result_after_model_exit=true 호출 수. 실제 모델 전달로 세지 않음.",
+    "group": "신뢰성",
+    "id": "reliability.late_results",
+    "label": "모델 종료 후 도구 결과",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "calls"
+  },
+  "reliability.normal_turn": {
+    "definition": "사용량 인증의 normal_turn_completed. 한도 감지 상태와 함께 참일 수 있음.",
+    "group": "신뢰성",
+    "id": "reliability.normal_turn",
+    "label": "정상 턴 완료 기록",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.overshoot_tokens": {
+    "definition": "max(관측 최종 토큰 − 한도, 0). 종료 미완료 시 최소 관측량.",
+    "group": "신뢰성",
+    "id": "reliability.overshoot_tokens",
+    "label": "토큰 한도 초과량",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "reliability.record_complete": {
+    "definition": "runtime.record_collection_complete 여부.",
+    "group": "신뢰성",
+    "id": "reliability.record_complete",
+    "label": "기록 수집 완료율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.time_limit": {
+    "definition": "run.status=timeout 여부.",
+    "group": "신뢰성",
+    "id": "reliability.time_limit",
+    "label": "시간 한도 감지 실행",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.token_limit": {
+    "definition": "run.status=token_limit 여부. 정상 턴 완료와 별도.",
+    "group": "신뢰성",
+    "id": "reliability.token_limit",
+    "label": "토큰 한도 감지 실행",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.usage_check_failures": {
+    "definition": "usage.consistency.errors에 기록된 오류 수.",
+    "group": "신뢰성",
+    "id": "reliability.usage_check_failures",
+    "label": "사용량 검증 오류 수",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "events"
+  },
+  "reliability.usage_complete": {
+    "definition": "응답별 합계·누적 값·정상 완료·기록 수집 검증으로 전체 사용량 인증.",
+    "group": "신뢰성",
+    "id": "reliability.usage_complete",
+    "label": "전체 사용량 확보율",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "reliability.usage_consistent": {
+    "definition": "응답별 사용량 합과 누적 이벤트 검증의 consistency.status=valid 여부.",
+    "group": "신뢰성",
+    "id": "reliability.usage_consistent",
+    "label": "사용량 정합성 확인률",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "ratio"
+  },
+  "timing.after_first_evidence": {
+    "definition": "전체 실행 시간 − 첫 필수 근거 관측 시간. 답변 작성·추가 탐색 포함.",
+    "group": "시간",
+    "id": "timing.after_first_evidence",
+    "label": "첫 근거 관측 후 잔여 시간",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.cleanup": {
+    "definition": "runtime.shutdown.cleanup_elapsed_seconds. 한도 감지 또는 모델 종료 뒤 정리 구간.",
+    "group": "시간",
+    "id": "timing.cleanup",
+    "label": "종료 수집·정리 시간",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.copy": {
+    "definition": "run.copy_elapsed_seconds: 복제 후 원문 해시 대조까지의 시간. 모델 시간에서 제외. A에도 공통 색인 포함 복제본을 복사한 하네스 절차.",
+    "group": "준비",
+    "id": "timing.copy",
+    "label": "실행별 원문 복제 시간",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.first_navigation": {
+    "definition": "Codex 시작부터 첫 MCP 요청 시작까지. 서버 단독 기동 시간 아님.",
+    "group": "시간",
+    "id": "timing.first_navigation",
+    "label": "첫 탐색 요청까지 시간",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.other_wall": {
+    "definition": "전체 실행 시간 − 도구 구간 합집합. 모델 처리·기동·대기·정리 포함, 순수 추론 시간 아님.",
+    "group": "시간",
+    "id": "timing.other_wall",
+    "label": "도구 구간 밖 잔여 시간",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.tool_sum": {
+    "definition": "각 요청의 finished_monotonic − started_monotonic 합. 중계·제품·외부 명령 실행 포함. 에이전트 시간과 더하지 않음.",
+    "group": "시간",
+    "id": "timing.tool_sum",
+    "label": "도구 응답 시간 합",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "timing.tool_union": {
+    "definition": "각 실행 안에서 겹치는 도구 구간을 한 번만 센 벽시계 시간. 누락 구간이 있으면 결측.",
+    "group": "시간",
+    "id": "timing.tool_union",
+    "label": "도구 실행 구간 합집합",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "seconds"
+  },
+  "tokens.cache_write_input": {
+    "definition": "중복 제거한 응답의 cache_write_input_tokens 합. 필드 누락을 0으로 추정하지 않음.",
+    "group": "토큰·모델",
+    "id": "tokens.cache_write_input",
+    "label": "캐시 쓰기 입력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "tokens.non_reasoning_output": {
+    "definition": "출력 − 기록된 추론 출력. 도구 인자·중간 출력도 포함하므로 최종 답변 토큰과 다름.",
+    "group": "토큰·모델",
+    "id": "tokens.non_reasoning_output",
+    "label": "비추론 출력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "tokens.peak_response_input": {
+    "definition": "한 실행 안의 응답별 input_tokens 최댓값. 모델 컨텍스트 사용량의 관측값이며 정확한 컨텍스트 한도 비율은 아님.",
+    "group": "토큰·모델",
+    "id": "tokens.peak_response_input",
+    "label": "최대 단일 응답 입력",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "tokens.per_response": {
+    "definition": "실행의 전체 토큰 / 모델 응답 수.",
+    "group": "토큰·모델",
+    "id": "tokens.per_response",
+    "label": "응답당 전체 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens/response"
+  },
+  "tokens.reasoning_output": {
+    "definition": "중복 제거한 응답의 reasoning_output_tokens 합. 모든 응답에 필드가 있을 때만 확정.",
+    "group": "토큰·모델",
+    "id": "tokens.reasoning_output",
+    "label": "추론 출력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  },
+  "tokens.uncached_input": {
+    "definition": "입력 − 캐시 입력. 가격이나 청구 금액이 아님.",
+    "group": "토큰·모델",
+    "id": "tokens.uncached_input",
+    "label": "비캐시 입력 토큰",
+    "level": "run",
+    "preferred_direction": "진단",
+    "source": "raw rollout/relay/runtime records",
+    "unit": "tokens"
+  }
+}
