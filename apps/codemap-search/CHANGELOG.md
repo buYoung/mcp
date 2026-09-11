@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-11
+
+### Added
+
+- Added file members and caller/callee context under `# symbols` in `read` and `grep`, keeping source text under `# results`.
+
+### Improved
+
+- Improved scoped search by applying scope filters before collecting candidates.
+- Improved search relevance for generated and translated files and implementation candidates.
+- Clarified regex escaping and next steps for searches with no results.
+
+### Fixed
+
+- Fixed searches losing their subfolder scope.
+
 ## [0.7.0] - 2026-09-04
 
 ### Improved
