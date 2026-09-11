@@ -2,337 +2,56 @@
 
 [한국어](./README.ko.md) | English
 
-A **self-contained MCP stdio server and CLI** for coding agents (Claude Code, Codex,
-opencode, ...). It lets an agent map a repository, search extracted symbols/docstrings/
-literals with BM25, and confirm exact file content with embedded `read` / `find` /
-`grep`. Everything is compiled into one Rust binary: ripgrep library crates,
-tree-sitter grammars, and Tantivy. No system `rg`, language server, or external runtime
-binary is required.
+A self-contained MCP stdio server and CLI for coding agents. Map a repository, search extracted symbols, documentation and literals with BM25, then confirm the source with embedded `read`, `find` and `grep`. Tree-sitter grammars, Tantivy and ripgrep libraries are compiled into one Rust binary; no system `rg`, language server, external runtime, account or API key is required.
 
-The intended flow is hierarchical narrowing:
+## Install
 
-1. **`initial_instructions`** — load the navigation guidance once; monorepos include
-   selectable scopes and their leading languages.
-2. **`search` / `find` / `grep`** — locate the implementation. If its scope is unknown,
-   read-only discovery can start repo-wide, then narrow using actual paths.
-3. **`overview` / `read`** — inspect structure or confirm the original source ranges.
-   `search` already includes detailed top matches and a bounded ranked tail.
-
-> For how it compares to an agent's built-in Read/Grep and to other code-navigation MCP
-> backends (serena, codegraph), see the [benchmark](../../benchmark/README.md): there is
-> **no single winning backend** (the best one depends on the codebase); codemap-search's
-> clearest *measured* wins are **index build speed** and **footprint** (see
-> [Indexing](#indexing) below). Full raw data, harness, and self-correction trail are published.
-
-## Quick start
-
-Install the binary from crates.io (released):
+With Rust/Cargo installed:
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
-Or install from your local checkout of this repo (builds your local HEAD / working tree):
-
-```sh
-cargo install --path apps/codemap-search
-```
-
-Then register it with an MCP client. The server indexes the process working directory, so
-the client should launch `codemap-search mcp` from the repository you want to inspect.
-
-Claude Code (user scope — registers globally, available in every project):
-
-```sh
-claude mcp add -s user codemap-search -- codemap-search mcp
-```
-
-Codex (`~/.codex/config.toml`):
-
-```toml
-[mcp_servers.codemap-search]
-command = "codemap-search"
-args = ["mcp"]
-```
-
-After registration, ask the client to call `initial_instructions` once. That tool returns
-the recommended navigation flow for clients that do not surface server-level MCP
-instructions.
-
-## MCP surface
-
-`codemap-search` exposes MCP **tools** only. It does not register MCP resources or
-prompts. All tools are read-only over the configured filesystem scope.
-
-### Member context in read and grep
-
-Successful MCP `read` and `grep` responses have two sections: `# symbols` first,
-then `# results`. The symbol section lists indexed members of the enclosing
-same-file class/struct/impl group and their depth-one callers/callees. Go methods
-are grouped by receiver type, with fields, signatures, visibility and source ranges.
-Method-local declarations are not expanded as sibling members. The results section
-preserves the live source output, including line numbers and pagination.
-
-Symbol and relation payloads each have an 8,192-byte budget and cover at most eight
-returned files. A read's complete response also obeys `read_output_byte_cap`; narrow
-the window if source plus context exceeds it. Missing or warming index context is
-reported while live results remain available. File-list/count responses have no line
-anchor for selecting a member group. Indexed context can lag edits; confirm behavior
-in the live results.
-
-In a monorepo, `overview` on a subdirectory preserves that exact directory for later
-`search`; explicit `workspace_scope` does the same. A file selects its parent directory.
-Use `all` to search repo-wide. `grep.pattern` is a regular expression: escape metacharacters
-when matching literal code, and check the expression before treating zero matches as
-absence. JSON string escaping and regex escaping are separate layers.
-
-## Supported languages
-
-Symbol extraction (tree-sitter) covers: **Rust** (`.rs`), **Python** (`.py`),
-**TypeScript/TSX** (`.ts`, `.tsx`), **JavaScript/JSX** (`.js`, `.jsx`), **Go** (`.go`),
-**Java** (`.java`), **Kotlin** (`.kt`, `.kts`), **C** (`.c`), **C++** (`.h`, `.cpp`,
-`.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`), **C#** (`.cs`), **PHP** (`.php`),
-**Ruby** (`.rb`), **Lua** (`.lua`), **Assembly/GAS** (`.s`, `.S`, `.asm`).
-It also covers **Swift** (`.swift`), **Dart** (`.dart`), **Scala** (`.scala`, `.sc`),
-**Groovy/Gradle** (`.groovy`, `.gradle`), and **PowerShell** (`.ps1`, `.psm1`).
-`read`/`find`/`grep` work on any text file.
-
-Per-language flag conventions: Go uses initial-uppercase for exported symbols, `*_test.go`
-plus `Test`/`Benchmark`/`Example`/`Fuzz` for tests, and `// Deprecated:` doc paragraphs;
-Java uses the `public` modifier, `@Test` / `*Test.java`, and `@Deprecated` / javadoc
-`@deprecated`; Kotlin treats symbols as exported unless `private`/`internal`/`protected`,
-and reads `@Test` / `@Deprecated` annotations; C/C++ treats a declaration as file-local when
-it carries `static` storage class (otherwise exported), and uses C++ access specifiers
-(`public`/`private`/`protected`) for class members (struct members default to public, class
-members default to private); Assembly exports symbols that appear in a `.globl`/`.global`
-directive. C# uses explicit `public` plus implicitly public interface members, PHP treats
-top-level and non-private/non-protected members as public, Ruby follows class/module visibility
-sections, and Lua exposes every file-level declaration (including `local` declarations).
-All four languages recognize their conventional test paths/names and supported deprecation
-attributes or comments.
-
-Swift, Dart, Scala, Groovy, and PowerShell record statically identifiable declarations, imports,
-references, and calls. Computed imports, reflection, dynamic dispatch, and PowerShell dynamic
-execution are not promoted to precise relationships. `.gradle` additionally recognizes literal
-`task`/`tasks.register`/`tasks.create` targets; literal task ordering/dependency relationships,
-plugin IDs, and `group:artifact:version` dependency coordinates. Interpolated Gradle values and
-arbitrary custom DSLs remain unstructured. `.gradle.kts` continues to use the ordinary Kotlin
-language support.
-
-Structured and operational formats are parsed conservatively. Tree-sitter AST extraction
-supports JSON/JSONC, TOML, YAML, HTML/XML
-(including XML-syntax derivatives), CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile,
-Protobuf, GraphQL, Make, CMake, Starlark/Bazel, and Nix. The shell, infrastructure,
-interface, and build families are excluded from index-backed discovery by default and can be
-enabled independently under `[language_support]`. Nix extracts static attribute paths,
-`let` bindings, `inherit`, derivation targets, literal `import`/`builtins.import`/`callPackage`
-paths, references, and direct function applications. Direct static applications participate in
-the precise caller/callee model; interpolated paths or attributes, computed imports, and dynamic
-function expressions remain unstructured. Indented Sass uses a dedicated Sass AST
-parser. Vue, Astro, and Svelte combine dedicated component grammars for markup with embedded
-JavaScript/TypeScript and CSS/Sass/Less extraction. SCSS is excluded until the upstream
-Windows build fix is published. JSON5 remains excluded from the support registry.
-
-The optional **Document** group uses `tree-sitter-md` for Markdown (`.md`, `.mdx`). Enable it
-with `[language_support].is_document_support_enabled = true`. It indexes full document text and
-extracts headings, links, and code blocks with original ranges, but does not create import,
-reference, or caller/callee relationships and does not reparse fenced code. MDX uses the same
-recoverable Markdown structure; JSX and JavaScript expressions remain text-only.
-
-The other optional groups default to `false` as well:
-
-- `is_shell_support_enabled`: `.sh`, `.bash`, `.zsh`
-- `is_infrastructure_support_enabled`: `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix`
-- `is_interface_support_enabled`: `.proto`, `.graphql`, `.gql`
-- `is_build_support_enabled`: `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
-  `BUILD.bazel`, `.bzl`
-
-Each switch applies to initial indexing, watcher refreshes, search, overview, and codemap.
-Live `find`, `grep`, and `read` remain available without enabling the group; direct `parse`
-remains available as well.
-
-## Install
-
-Use the route that matches your machine. `cargo install` is the simplest path if you
-already have Rust; prebuilt binaries avoid a local compile. The supported channels are
-crates.io, WinGet, Homebrew, the `install.sh` one-liner, and direct GitHub Release
-binaries. Per-OS recommendations and per-channel maintainer/publish runbooks live in
-[docs/distribution/](./docs/distribution/index.md) (channel guides:
-[crates.io](./docs/distribution/crates-io.md), [WinGet](./docs/distribution/winget.md),
-[Homebrew](./docs/distribution/homebrew.md), [install.sh](./docs/distribution/curl-installer.md));
-the overall strategy is in
-[docs/release-distribution-strategy.md](./docs/release-distribution-strategy.md).
-
-### From crates.io
-
-```sh
-cargo install codemap-search
-```
-
-Builds and installs the published crate into `~/.cargo/bin` (make sure it is on your
-`PATH`). Same binary as the prebuilt archives below — pick whichever you prefer.
-
-### From WinGet (Windows)
-
-```powershell
-winget install com.livteam.codemap-search
-```
-
-When the package is available in `microsoft/winget-pkgs`, this installs the prebuilt
-Windows binary (x64 or arm64) and puts `codemap-search` on your `PATH`. Availability
-depends on Microsoft's review of the submitted manifest. Before that merge, the in-repo
-manifest can be used with `winget install --manifest apps/codemap-search/packaging/winget`,
-but only after release assets exist and the manifest's placeholder `sha256` values have
-been replaced with real values; otherwise the download/hash check fails. The path is
-relative, so run the command **from the repo root**. The arm64 build is shipped build-only
-(cross-built on an x64 runner, not runtime-verified on arm64 hardware).
-
-### From Homebrew (macOS)
-
-```sh
-brew install codemap-search
-```
-
-When accepted into `homebrew-core`, this installs the prebuilt darwin binary (Apple
-Silicon or Intel) and puts `codemap-search` on your `PATH`. **Availability is pending
-homebrew-core acceptance**; homebrew-core has a notability bar (stars/usage), so a fresh
-project's new-formula PR may be held until the project is notable. Until it is accepted,
-use `cargo install codemap-search` (above), a direct GitHub Release download (below), or
-the `install.sh` one-liner as the macOS fallback. The formula lives in-repo at
-`apps/codemap-search/packaging/homebrew/codemap-search.rb`; its `sha256` values are filled
-from the release `.sha256` files for the target tag.
-
-### From source
-
-```sh
-cargo install --path apps/codemap-search
-# or, from a checkout of this repo:
-cargo build --release --manifest-path apps/codemap-search/Cargo.toml
-# binary at target/release/codemap-search
-```
-
-### Prebuilt binaries
-
-Released on GitHub Releases for macOS (arm64/x64), Linux (x64 in two variants — `musl`/`gnu`
-— plus arm64 `musl`; see below), and Windows (x64, plus arm64 build-only). Download the
-archive for your platform, extract `codemap-search`, and put it on your `PATH`.
-
-Or let `install.sh` do it for you. It detects your OS/arch, downloads the matching
-release archive, **verifies its `.sha256` before extracting**, and installs
-`codemap-search` to `~/.local/bin`:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
-```
-
-The installer needs only `curl` (or `wget`), `tar`, and `sha256sum`/`shasum` — no extra
-runtime. A checksum mismatch aborts with a non-zero exit and installs nothing. macOS and
-Linux only (on Windows, use the WinGet install above).
-
-- Pick a different install dir: `INSTALL_DIR=/usr/local/bin curl -fsSL …/install.sh | sh`
-  (sudo only if that dir needs it; the default `~/.local/bin` does not).
-- Pin a release: pass `--version` through `sh -s --` —
-  `curl -fsSL …/install.sh | sh -s -- --version codemap-v0.1.6`.
-- Generic Linux gets the static `musl` build by default; set `CODEMAP_LINUX_LIBC=gnu`
-  (x86_64 only) to pick the glibc build instead.
-- If the install dir is not on your `PATH`, the script prints the `export PATH=…` line
-  to add for the current session. To persist it, append that line to your shell profile
-  (zsh: `~/.zshrc`, bash: `~/.bashrc`) and restart your shell.
-
-> Note: the one-liner targets the latest GitHub Release. Pin a tag with `--version` for a
-> reproducible install.
-
-#### Supported platforms
-
-| Platform | Variant | Support level | Notes |
-|---|---|---|---|
-| **Linux x86_64** (Ubuntu 22.04 → 26.04) | `musl` (preferred) | Docker-verified (22.04, 24.04, 26.04) | Fully static; no glibc; also runs on Alpine, Debian, RHEL, Amazon Linux, etc. |
-| **Linux x86_64** (Ubuntu 22.04+) | `gnu` | Docker-verified (22.04, 24.04, 26.04) | Requires glibc 2.34+; fails on Ubuntu 20.04 and older (glibc < 2.34) |
-| **Linux arm64 (aarch64)** | `musl` | Cross-built; not executed on arm64 | Fully static; cross-compiled via cross-rs. Should run on any arm64 Linux (Alpine, Debian, RHEL, Amazon Linux Graviton, etc.); not yet runtime-verified on arm64 hardware |
-| **macOS Sequoia (15) or newer** | arm64, x86_64 | Stated baseline (not Docker-verifiable) | Both Apple Silicon and Intel; confirmed on real hardware |
-| **Windows 11 or newer** | x86_64 | Stated baseline, best-effort | Confirmed on real hardware |
-| **Windows 11 arm64** | arm64 (aarch64) | Build-only; not executed | Cross-built on an x64 runner that cannot run the arm64 binary; ships unverified at runtime |
-
-#### Linux (prebuilt binary)
-
-Download `codemap-search-x86_64-unknown-linux-musl`. It is a **fully static** binary (no
-glibc, no dynamic linker) and runs on **Ubuntu 22.04 or newer (Docker-verified)** and any
-other x86_64 Linux distribution — Debian, RHEL/CentOS/Rocky, Alpine, Amazon Linux, and
-others.
-
-- **Verified range: Ubuntu 22.04 → 26.04** (Docker-verified: `ubuntu:22.04`, `ubuntu:24.04`,
-  `ubuntu:26.04` images, exit 0 on `--version` and `parse` smoke test; host arm64, emulated
-  amd64 via `--platform linux/amd64`). Because the musl binary has no glibc dependency,
-  it also works on musl-only systems (e.g. Alpine) and other distributions at equivalent or
-  newer kernel versions.
-- **No glibc requirement** — the fully static build works regardless of the host libc.
-
-A glibc build (`codemap-search-x86_64-unknown-linux-gnu`) is also published. It requires
-**glibc 2.34+ (Ubuntu 22.04+)** and will not run on Ubuntu 20.04 or older distributions
-(`GLIBC_2.32/2.33/2.34 not found`, Docker-verified, exit 1). The gnu build is
-Docker-verified on Ubuntu 22.04, 24.04, and 26.04 (exit 0).
-**Prefer the `musl` binary unless you have a specific reason to use the glibc build.**
-
-For **arm64 (aarch64)** Linux, download `codemap-search-aarch64-unknown-linux-musl`. It is
-also a **fully static** `musl` binary (no glibc) and is the only Linux arm64 variant — there
-is no gnu arm64 asset. It is cross-compiled via cross-rs and is **not yet runtime-verified on
-arm64 hardware**; it should run on any arm64 Linux (Alpine, Debian, RHEL, Amazon Linux
-Graviton, etc.). On Linux, `cargo install codemap-search` is the recommended path.
+Make sure `~/.cargo/bin` is on `PATH`. For a prebuilt macOS/Linux binary, follow the [installer guide](./docs/distribution/curl-installer.md). See [installation channels](./docs/distribution/index.md) for source builds, version selection, and Homebrew/WinGet availability.
 
 ## Register with an MCP client
 
-Run the server with the `mcp` subcommand from the repository you want indexed (the server
-operates on its current working directory). A **global** (per-user) registration works the
-same way: the client spawns `codemap-search mcp` with the active project as its working
-directory, so one global install covers every repo — make sure `codemap-search` is on your
-`PATH`.
+Run `codemap-search mcp` with the **repository to inspect as its working directory**. A user-wide registration can reuse the same binary across projects, but the client must launch it in the intended project. The user home directory itself is refused; projects beneath it, such as `~/work/project`, are valid.
 
 ### Claude Code
 
-Project scope (default — only the current repo):
+For your account across projects:
 
 ```sh
-claude mcp add codemap-search -- codemap-search mcp
+claude mcp add --scope user codemap-search -- codemap-search mcp
 ```
 
-Global scope (user — available in every project):
+For a team-shared project entry in `.mcp.json`, run from that project:
 
 ```sh
-claude mcp add -s user codemap-search -- codemap-search mcp
+claude mcp add --scope project codemap-search -- codemap-search mcp
 ```
 
-or edit the config directly — `.mcp.json` for project scope, `~/.claude.json` for user scope:
-
-```json
-{
-  "mcpServers": {
-    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
-  }
-}
-```
+Without `--scope`, Claude Code uses `local`: private to you in the current project, stored under its path in `~/.claude.json`. It is not the shared `project` scope. See [Claude Code's MCP scope reference](https://code.claude.com/docs/en/mcp).
 
 ### Codex
-
-`~/.codex/config.toml` is Codex's global config, so this entry applies to every project:
-
-```toml
-[mcp_servers.codemap-search]
-command = "codemap-search"
-args = ["mcp"]
-```
-
-or add it via the CLI, which writes the same global config:
 
 ```sh
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-### opencode
+Or add the same server entry to `~/.codex/config.toml`:
 
-Global config lives at `~/.config/opencode/opencode.json` (use a per-project `opencode.json`
-at the repo root to scope it to one repo). Register it under the `mcp` key as a `local`
-server:
+```toml
+[mcp_servers.codemap-search]
+command = "codemap-search"
+args = ["mcp"]
+```
+
+### OpenCode
+
+Use global `~/.config/opencode/opencode.json` or project `opencode.json`:
 
 ```json
 {
@@ -347,143 +66,125 @@ server:
 }
 ```
 
-## MCP tools
+This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/docs/mcp-servers/). Consult the matching client-version documentation when using a different config schema.
 
-| Tool | Purpose | Key arguments |
+## Verify the first connection
+
+1. Ask the client to call `initial_instructions` once. It returns navigation guidance and the root overview; monorepos include selectable scopes and their languages.
+2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry `overview` after it completes.
+3. Find a known source file with `find`, then `read` its path. Search for a known symbol with `search` and confirm that the same file appears after indexing completes.
+
+If the binary cannot be found, check the client's `PATH`. If the wrong repository appears, correct its working directory. Read stderr diagnostics for startup/config errors; stdout is reserved for MCP JSON-RPC frames.
+
+## Use the navigation tools
+
+| Tool | Use | Main arguments |
 |---|---|---|
-| `initial_instructions` | Returns the recommended codemap-search navigation flow. Call once when the MCP client does not display server-level instructions. | none |
-| `overview` | Hierarchical codemap. Empty/omitted `path` → root overview; a folder path narrows; a file path shows that file's symbol details. | `path` (string), `format` (e.g. `"llms-txt"`) |
-| `search` | BM25 search with detailed top matches and a bounded ranked tail. | `query` (required), `workspace_scope` (monorepos), `language_hint`, `extension_hint`, `caller_context` |
-| `read` | Read a file with line numbers (`   N→content`). Pages large files. | `file_path` (required), `offset` (1-indexed), `limit` |
-| `find` | Locate files by glob (`**/*.rs`), mtime-sorted, capped. | `pattern` (required), `path`, `include_ignored` |
-| `grep` | Exact literal/regex over files on disk (sees comments + just-changed files). Mirrors Claude Code's Grep. | `pattern` (required), `path`, `glob`, `type`, `output_mode` (default `content` with line numbers; `files_with_matches` = file set only; `count` = per-file counts, no line content), `-i`, `-n`, `-A`/`-B`/`-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-| `read` aliases | `read` also accepts `path`/`file` for `file_path`, and 1-based inclusive `start_line`/`end_line` for `offset`/`limit`. | — |
+| `initial_instructions` | Load navigation guidance once | none |
+| `overview` | Inspect repository, folder or file structure | `path`, `format` |
+| `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
+| `find` | Find paths by glob; newest files first | `pattern`, `path`, `include_ignored` |
+| `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
+| `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
 
-In a monorepo, `overview` scope selection persists for later `search` calls. An explicit
-`workspace_scope` overrides it, and `all`/`전체` selects the whole repository. Scope filtering
-happens before candidate collection, including supplementary queries; the server never
-silently widens a chosen scope. Root scope counts and the three leading languages are
-computed once per published index generation and reused by navigation requests.
+Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file` and 1-based inclusive `start_line`/`end_line` aliases.
 
-For general queries, generated-file paths (`generated/`, `_gen`, `.generated`, `.g`, `.pb`
-filename suffixes) and JSON/YAML under `locale`, `locales`, `i18n`, or `l10n` receive a
-0.3 ranking weight. These path markers are case-sensitive. An exact file path,
-discriminative symbol name, complete resource key, or quoted resource text protects the
-explicitly targeted file from this new penalty. Existing test-path and new role penalties
-use the lowest weight once. General queries can collect up to 100 additional implementation
-candidates when auxiliary files occupy the initial pool; final output limits still apply.
-This changes ranking, not indexing or direct filesystem access, and needs no new config or
-index migration.
+In monorepos, `overview` on a directory selects that exact scope for later `search`; a file selects its parent. Explicit `workspace_scope` overrides it; `all`/`전체` selects the whole repository. If the implementation scope is unknown, start with read-only repo-wide discovery and narrow from returned paths. Search never silently widens a chosen scope. Top matches have detailed snippets; the compact tail is bounded. Narrow the query or follow the supplied read ranges when output is partial.
 
-`find` and `grep` honor `.gitignore`, `.git/info/exclude`, and `.codemapignore` by
-default. Lockfiles, source maps, minified/bundle files, and `.txt` are also excluded from
-default live-tool results and the semantic index. Markdown and the optional shell,
-infrastructure, interface, and build groups are excluded only from index-backed discovery when
-disabled; live `find`/`grep` still see them. Pass
-`include_ignored: true` to bypass ignore and file-exclusion rules for a `find`/`grep`
-call; direct `read` and `parse` remain available. To turn off only `.git/info/exclude` (everywhere,
-while keeping `.gitignore`), use the `use_git_exclude` config key (see
-[docs/configuration.md](./docs/configuration.md)).
+MCP `read`/`grep` show live source alongside indexed symbols and call relationships. Indexed context can lag recent edits.
 
-Using the user home directory itself as the workspace or an explicit `index`/`benchmark`
-target is refused before repo config, index, or watcher state is created. Descendant
-projects such as `~/work/project` remain valid. If neither `HOME` nor `USERPROFILE` is
-available, codemap-search warns on stderr and continues.
+Tools are read-only over their configured filesystem scope. The server itself writes its index and, when enabled, repo configuration. No MCP resources or prompts are registered.
+
+## Configure exclusions and output
+
+Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`), then built-in defaults. An active repo key overrides its global value; comment it out to inherit instead.
+
+On first MCP startup, a missing repo file is generated with **common exclusions plus project-scoped recommendations**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds its `node_modules`, `dist`, `build`, framework outputs and caches; Python, Rust and other build systems receive their own project paths.
+
+```toml
+[index]
+# Example for a mixed repository; keep the entries you need.
+excluded_directories = [
+    ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
+    "apps/web/node_modules", "apps/web/dist", "apps/web/build",
+    "apps/api/.venv", "apps/api/**/__pycache__",
+    "crates/core/target",
+]
+```
+
+**Pre-v6 configs migrate once. From `codemap-config-version: 6` onward, this array is never automatically updated. Manage it yourself, including when adding a project.** Deleting an entry does not cause it to return on restart. `config_auto_update` still controls automatic file creation and ordinary schema additions, not this post-v6 array. With automatic writes disabled, follow the [manual transition](./docs/configuration.md#manual-transition-when-automatic-writes-are-disabled).
+
+A bare `build` matches directories at any depth; `./build` means the workspace root; `apps/web/build` scopes it to that project. Explicit arrays replace optional defaults. `[]` clears optional directory rules; omitting the key inherits global/default rules. `.gitignore`, global Git ignores, `.git/info/exclude` and `.codemapignore` still apply. VCS internals, `.codemap`, `.codemap-index` and the actual index location remain excluded from walks regardless of the array. `find`/`grep` can bypass optional exclusions with `include_ignored: true`; direct `read` remains subject to filesystem permissions.
+
+MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index_path`, `watch` or `watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
+
+## Supported languages and formats
+
+| Language | Extensions |
+|---|---|
+| Rust | `.rs` |
+| Python | `.py` |
+| TypeScript / TSX | `.ts`, `.tsx`, `.mts`, `.cts` |
+| JavaScript / JSX | `.js`, `.jsx`, `.mjs`, `.cjs` |
+| Go | `.go` |
+| Java | `.java` |
+| Kotlin | `.kt`, `.kts` |
+| C | `.c` |
+| C++ | `.h`, `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx` |
+| C# | `.cs` |
+| PHP | `.php` |
+| Ruby | `.rb` |
+| Lua | `.lua` |
+| Assembly / GAS | `.s`, `.S`, `.asm` |
+| Swift | `.swift` |
+| Dart | `.dart` |
+| Scala | `.scala`, `.sc` |
+| Groovy / Gradle | `.groovy`, `.gradle` |
+| PowerShell | `.ps1`, `.psm1` |
+| SQL | `.sql` |
+
+JSON/JSONC, TOML, YAML, HTML/XML derivatives, CSS/Less and Sass are supported, as are Vue, Astro and Svelte components. JSON5 and SCSS are not registered in this version. SQL extracts declarations and literals, without caller/callee relationships.
+
+Optional groups default to `false` under `[language_support]`:
+
+| Key | Group |
+|---|---|
+| `is_document_support_enabled` | Markdown `.md`, `.mdx` |
+| `is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
+| `is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
+| `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
+| `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
+
+These switches control index-backed discovery and watcher refreshes. Live `find`, `grep`, `read` and direct CLI `parse` remain available when a group is disabled. See [extraction details](./docs/language-support-checklist.md#extraction-details) for per-language visibility, test/deprecation flags, static relationships and limitations.
 
 ## CLI
 
-`codemap-search` is also a CLI: `mcp` (server), `parse <file>`, `tokenize <ident>`,
-`codemap [--path P] [--format F]`, `search <query> [-l N]`, `index [dir]`,
-`benchmark --queries <json> [--dir D]`.
-
-## Configuration
-
-Configuration is **optional** — with no config file, defaults reproduce the built-in
-behavior. TOML config is read from a repo layer (`<repo>/.codemap/config.toml`) and a
-global layer (`$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`), merged per key
-as `repo > global > default`. On `mcp` startup, if the repo config is absent, an
-explicit-default template is auto-created for discoverability — every key documented
-inline and active at its default, stamped with a schema-version marker. Comment or delete a
-repo key when you want that key to inherit the global value. If the repo config already
-exists, it is incrementally synced instead: keys added by a newer release are appended as
-commented blocks (additive only — your existing lines are never edited or removed), and a
-file already current is left untouched. Set `[update].config_auto_update = false` to disable
-repo config creation and schema-sync writes; existing config files are still read.
-
-All keys, defaults, and the `.codemap/` directory layout are documented in
-[docs/configuration.md](./docs/configuration.md), including `[filesystem_permissions]` for
-controlling whether `read`, `find`, and `grep` stay workspace-only or may use configured
-external roots.
-
-No external account, API key, or paid service is required.
-
-Runtime environment variables:
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `RUST_LOG` | No | Changes stderr diagnostics, e.g. `RUST_LOG=debug codemap-search mcp`. |
-| `CODEMAP_HOME` | No | Moves the global config directory. Default is `~/.codemap`. |
-
-Installer-only environment variables:
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `INSTALL_DIR` | No | Changes the `install.sh` target directory. Default is `~/.local/bin`. |
-| `CODEMAP_VERSION` | No | Pins `install.sh` to a release tag such as `codemap-v0.1.6`. |
-| `CODEMAP_LINUX_LIBC` | No | Selects the Linux asset flavor for `install.sh`: `musl` by default, or `gnu` on x86_64. |
-
-## Logging
-
-Diagnostics go to **stderr only** (stdout is the JSON-RPC stream). By default the log
-filter is `warn,codemap_search=info`, so dependency `INFO` noise (e.g. tantivy commit/GC
-per search) is suppressed. Raise it with `RUST_LOG`:
-
-```sh
-RUST_LOG=debug codemap-search mcp     # full diagnostics
+```text
+codemap-search mcp
+codemap-search parse <file>
+codemap-search tokenize <ident>
+codemap-search codemap [--path P] [--format F]
+codemap-search search <query> [-l N]
+codemap-search index [dir]
+codemap-search benchmark --queries <json> [--dir D]
 ```
 
-At debug level, `search candidate timings`, `search caller annotation timing`, and
-`search tool timing` separate candidate work, caller analysis, and output work. Caller
-analysis is included in the output duration; do not add these overlapping durations.
-`published workspace catalog` records the once-per-generation metadata construction time.
+## Indexing, diagnostics and limits
 
-## Indexing
+The MCP server builds/loads its own index in `.codemap/index` by default. A healthy filesystem watcher batches edits for 500ms and refreshes affected paths. Git HEAD changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
 
-The MCP server **indexes the repository itself on startup** — no separate index step, no
-language servers, no external services. The index lives in a repo-local `.codemap/`
-directory (tens of MB) and is reused across launches.
+- Files larger than `max_file_size` (default 1 MiB) are skipped by indexing/codemap.
+- `.txt`, lockfiles, source maps, minified and bundle files have separate file exclusions. `find`/`grep` can bypass these with `include_ignored`; direct `read`/`parse` remain available.
+- Static analysis cannot confirm paths or call targets determined at runtime. Check approximate call relationships in the source.
+- This is a single-client sequential stdio server; do not run simultaneous servers against the same index directory.
 
-It stays fresh on its own. A `notify`-based filesystem watcher (Linux inotify / macOS
-FSEvents / Windows ReadDirectoryChanges) watches the repo root and debounces events
-(default 500 ms); ordinary edits become **path-scoped incremental updates** keyed on
-per-file **mtime** (only changed/added files are re-parsed; deleted files are dropped),
-while a git `HEAD` change or a bulk change escalates to a full walk. While the watcher is
-healthy, `search`/`overview` never trigger a tree walk; `read`/`find`/`grep` always read
-live disk, so just-edited files are visible immediately.
+Diagnostics use stderr. The default log filter is `warn,codemap_search=info`:
 
-Measured (Docker, native arm64; cold = empty `.codemap`, exact-SHA checkout):
+```sh
+RUST_LOG=debug codemap-search mcp
+```
 
-| Repo | Files | Cold full index | Incremental re-index (1–10 files) | Index on disk |
-|---|---|---|---|---|
-| angular | ~10.6k | ~4.6 s | ~0.15 s | 16 MB |
-| deno | ~13.5k | ~3.6 s | ~0.13 s | 9.8 MB |
-
-For context, the [benchmark](../../benchmark/README.md) measured the language-server and
-graph backends' cold index at ~41–62 s (serena) and ~80 s (codegraph, angular), with
-on-disk indexes of 150–280 MB (serena) and 200–450 MB (codegraph) — i.e. on the same
-arm64 architecture codemap-search builds its index roughly an order of magnitude faster
-and 10–30× smaller. (The CLI `index` incremental figure re-scans all paths; the live
-watcher is path-scoped, so real incremental cost is at or below the numbers above.)
-
-## Known limits
-
-- The non-tree-sitter format scanners are tolerant and deliberately conservative: malformed
-  files remain text-searchable, while ambiguous declarations and dynamic command relationships
-  are omitted. These formats do not participate in caller/callee annotations.
-- `max_file_size` (default 1 MiB) silently skips larger files from indexing/codemap.
-- String literals and registered format bodies have low-weight BM25 indexing; use `grep` for
-  exact text or regex matching.
-- Single-client, sequential stdio server (no cross-process index locking).
+See the [benchmark](../../benchmark/README.md) and [Docker verification guide](./docker/README.md) for measurement and validation methods.
 
 ## License
 

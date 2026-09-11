@@ -1,44 +1,14 @@
-# codemap-search Docker Verification Harness
+# Docker verification
 
-This directory contains a reusable harness to verify that the
-`codemap-search` release binary actually runs across common Linux distributions.
+[한국어](./README.ko.md) | English
 
-## What it verifies
+Build local x86_64 GNU and musl binaries and check whether they start and parse a small Rust file across Linux container images. This tool validates the local build; it does not download or certify a published release.
 
-1. **gnu build** (`x86_64-unknown-linux-gnu`) — mirrors the GitHub release
-   workflow (runs on `ubuntu-latest` = Ubuntu 24.04, glibc 2.39). Confirms
-   the minimum glibc version required by the released binary.
-2. **musl build** (`x86_64-unknown-linux-musl`) — fully static binary with no
-   glibc dependency. Expected to run on all Linux distros including Alpine.
+## Run
 
-For each binary and each distro, the harness checks:
-- **`--version` exit code** — confirms the binary loads and runs at all.
-- **Smoke test** (`tokenize helloWorld`) — exercises the CLI path without
-  requiring any index files or MCP stdio loop. Exits immediately.
-- **Loader errors** — captures `GLIBC_x.xx not found` / `ld-linux` errors.
+You need Bash, a running Docker engine with BuildKit local-output support, and network access for images and build dependencies. On an arm64 host, Docker must support `linux/amd64` emulation. `timeout` or `gtimeout` enables time limits.
 
-## Files
-
-| File | Purpose |
-|------|---------|
-| `Dockerfile.build-gnu` | Builds `x86_64-unknown-linux-gnu` binary on Ubuntu 24.04 + rustup |
-| `Dockerfile.build-musl` | Builds `x86_64-unknown-linux-musl` static binary on rust:alpine |
-| `verify.sh` | Orchestrates builds + runs distro matrix; writes `verify-run.log` |
-| `.dockerignore` | Excludes `target/`, docs, fixtures from build context |
-| `README.md` | This file |
-
-## Distro matrix
-
-| Image | glibc / libc |
-|-------|-------------|
-| `ubuntu:20.04` | glibc 2.31 |
-| `ubuntu:22.04` | glibc 2.35 |
-| `ubuntu:24.04` | glibc 2.39 |
-| `debian:12` | glibc 2.36 |
-| `rockylinux:9` | glibc 2.34 |
-| `alpine:3.20` | musl 1.2.x (no glibc) |
-
-## How to run
+Run from `apps/codemap-search`:
 
 ```bash
 # From the apps/codemap-search directory:
@@ -50,45 +20,60 @@ bash docker/verify.sh --skip-musl   # only build + test gnu
 bash docker/verify.sh --no-cleanup  # skip `docker image prune` at end
 ```
 
-The script writes a log to `docker/verify-run.log` and extracted binaries to
-`docker/out/`.
+| Option | Effect |
+|---|---|
+| `--skip-gnu` | Build and check musl only |
+| `--skip-musl` | Build and check GNU only |
+| `--no-cleanup` | Skip the final `docker image prune -f` |
 
-## How to read results
+By default, the final cleanup removes dangling Docker images, including unrelated dangling images. Use `--no-cleanup` to keep them.
 
-Each distro gets two lines in the log:
+The script appends logs to `docker/verify-run.log` and writes binaries to `docker/out/`. Check the current run's start/completion markers and build status; the log can contain earlier results.
+
+## Checks and images
+
+Each successfully built binary runs `--version` and parses a generated `/tmp/a.rs` file in every image below. The script records exit codes and loader errors such as `GLIBC_x.xx not found` or `ld-linux` errors.
+
+| Image | libc family |
+|---|---|
+| `ubuntu:20.04` | glibc |
+| `ubuntu:22.04` | glibc |
+| `ubuntu:24.04` | glibc |
+| `debian:12` | glibc |
+| `rockylinux:9` | glibc |
+| `alpine:3.20` | musl |
+
+[Dockerfile.build-gnu](./Dockerfile.build-gnu) builds on Ubuntu 24.04; [Dockerfile.build-musl](./Dockerfile.build-musl) uses `rust:alpine`. The GNU image differs from the release workflow's Ubuntu 22.04 build environment, so this check does not establish the released binary's minimum glibc version. musl avoids the glibc dependency.
+
+## Interpret results
+
+A successful pair of checks has this shape; the version shown is only an example:
+
 ```
   --version exit=0  output: codemap-search 0.1.0
   smoke    exit=0   output: ...
   STATUS: PASS
 ```
 
-or on failure:
+Loader failures include a diagnostic:
+
 ```
   STATUS: FAIL  detail: /lib/x86_64-linux-gnu/libc.so.6: version 'GLIBC_2.38' not found
 ```
 
-Machine-readable result lines start with `RESULT|`:
+Machine-readable lines start with `RESULT|`:
+
 ```
 RESULT|ubuntu:20.04|gnu|FAIL|version_exit=1|smoke_exit=1|GLIBC_2.38 not found
 RESULT|ubuntu:20.04|musl|PASS|version_exit=0|smoke_exit=0|
 ```
 
-## ARM64 host / x86\_64 emulation caveat
+Read `PASS`/`FAIL` for each image and binary, together with the build summary. The script's final exit code does not summarize all failures. A missing matrix result after a failed or skipped build is not a pass.
 
-This harness is designed for Apple Silicon (arm64) hosts where Docker uses QEMU
-to emulate x86\_64. Both Dockerfiles are built with `--platform linux/amd64`,
-producing real x86\_64 ELF binaries that match the GitHub release artifacts.
-Emulated builds are significantly slower (budget 10-20 minutes per build for the
-first run; subsequent runs use Docker layer cache).
+With `timeout`/`gtimeout`, each build is limited to `BUILD_CAP_SECONDS=1200` (20 minutes), and the parse check to 30 seconds. Without either utility, those limits do not apply and the script warns. A failed or timed-out build skips that binary's matrix; the other build can still produce partial results.
 
-The emulation caveat: while the binaries are real x86\_64 ELFs, they execute
-under QEMU on the host. Performance characteristics differ from native x86\_64
-hardware, but correctness (loader behaviour, glibc symbol resolution) is
-accurately replicated.
+## Verification limits
 
-## Time budget
+All builds and runs target `linux/amd64`. On Apple Silicon, execution uses emulation and may be slower or differ from native x86_64 behavior. Results do not verify arm64 binaries, native hardware behavior, performance, full indexing, or the MCP session. Keep the tested build and environment with any compatibility report.
 
-Each build is capped at 20 minutes (`BUILD_CAP_SECONDS=1200` in `verify.sh`).
-If a build times out, its result is recorded as a cap-hit (not a work failure)
-and the harness proceeds with whatever binaries were produced. Partial results
-(gnu-only or musl-only) are valid and reported.
+See [installation channels](../docs/distribution/index.md) for release files.

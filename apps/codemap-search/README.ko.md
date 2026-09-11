@@ -2,40 +2,46 @@
 
 한국어 | [English](./README.md)
 
-`codemap-search`는 코딩 에이전트를 위한 독립 실행형 MCP 표준 입출력 서버이자 CLI입니다. 하나의 Rust 바이너리 안에 ripgrep 라이브러리 크레이트, tree-sitter 문법, Tantivy 검색 엔진이 들어 있습니다. 시스템에 `rg`, 언어 서버, 외부 런타임 바이너리를 따로 설치하지 않아도 저장소 구조를 훑고, 심볼과 문서 문자열을 검색하고, 파일 내용을 정확히 확인할 수 있습니다.
+코딩 에이전트용 독립 실행형 MCP stdio 서버와 CLI입니다. 저장소 구조를 보고, 심볼·설명·문자열을 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 원문을 확인합니다. Tree-sitter 문법, Tantivy와 ripgrep 라이브러리를 하나의 Rust 바이너리에 포함하므로 시스템 `rg`, 언어 서버, 별도 런타임, 계정이나 API 키가 필요하지 않습니다.
 
-기본 흐름은 좁혀 들어가기입니다.
+## 설치
 
-1. `initial_instructions`를 한 번 호출해 안내를 읽습니다. 모노레포는 선택 가능한 범위와 주요 언어도 함께 보여줍니다.
-2. `search`, `find`, `grep`으로 구현 위치를 찾습니다. 위치를 모르는 읽기 전용 탐색은 전체 저장소에서 시작한 뒤 실제 경로로 범위를 좁힙니다.
-3. `overview`로 구조를 확인하거나 `read`로 필요한 원문 범위를 읽습니다. `search`에도 상위 결과의 상세 발췌와 제한된 나머지 결과 목록이 포함됩니다.
-
-벤치마크 비교는 [benchmark](../../benchmark/README.md)를 참고하세요. 모든 저장소에서 항상 이기는 단일 백엔드는 없고, 공개된 측정에서 `codemap-search`가 가장 뚜렷하게 앞선 부분은 인덱스 생성 속도와 디스크 사용량입니다. 자세한 수치는 [인덱싱](#인덱싱)에 정리했습니다.
-
-## 빠른 시작
-
-crates.io 릴리스 버전을 설치합니다.
+Rust/Cargo가 설치되어 있다면 다음 명령을 사용합니다.
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
-또는 이 저장소의 로컬 체크아웃에서 설치합니다(로컬 HEAD/작업 트리를 빌드).
+`~/.cargo/bin`이 `PATH`에 있어야 합니다. macOS/Linux에서 운영체제에 맞는 설치 파일을 받으려면 [설치 스크립트 안내](./docs/distribution/curl-installer.ko.md)를 따르세요. 소스 빌드, 버전 선택, Homebrew·WinGet 제공 상태는 [설치 채널 개요](./docs/distribution/index.ko.md)에 있습니다.
+
+## MCP 클라이언트 등록
+
+클라이언트가 **탐색할 저장소를 작업 디렉터리로 지정**해 `codemap-search mcp`를 실행해야 합니다. 사용자 전역 등록으로 같은 바이너리를 여러 프로젝트에서 재사용할 수 있지만, 실행 위치는 클라이언트 설정을 확인하세요. 사용자 홈 자체는 거부하며 `~/work/project` 같은 하위 프로젝트는 허용합니다.
+
+### Claude Code
+
+사용자 계정의 여러 프로젝트에서 사용하려면:
 
 ```sh
-cargo install --path apps/codemap-search
+claude mcp add --scope user codemap-search -- codemap-search mcp
 ```
 
-그다음 MCP 클라이언트에 등록합니다. 서버는 실행된 작업 디렉터리를 인덱싱하므로, 클라이언트가 분석하려는 저장소에서 `codemap-search mcp`를 실행해야 합니다.
-
-Claude Code (전역 등록 — user 스코프, 모든 프로젝트에 적용):
+팀과 공유하는 `.mcp.json`에 등록하려면 해당 프로젝트에서:
 
 ```sh
-claude mcp add -s user codemap-search -- codemap-search mcp
+claude mcp add --scope project codemap-search -- codemap-search mcp
 ```
 
-Codex (`~/.codex/config.toml`):
+`--scope`를 생략하면 기본값은 `local`입니다. 현재 프로젝트에서 본인만 사용하며, `~/.claude.json`의 해당 프로젝트 경로 아래에 저장됩니다. 공유용 `project` 범위와 다릅니다. 자세한 차이는 [Claude Code 공식 안내](https://code.claude.com/docs/en/mcp)를 참고하세요.
+
+### Codex
+
+```sh
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+또는 `~/.codex/config.toml`에 같은 서버 항목을 추가합니다.
 
 ```toml
 [mcp_servers.codemap-search]
@@ -43,42 +49,83 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
-등록 후에는 클라이언트에서 `initial_instructions`를 한 번 호출하세요. 일부 MCP 클라이언트는 서버 수준 안내문을 표시하지 않기 때문에, 이 도구가 권장 탐색 흐름을 별도로 전달합니다.
+### OpenCode
 
-## MCP 제공 범위
+전역 `~/.config/opencode/opencode.json` 또는 프로젝트의 `opencode.json`에 추가합니다.
 
-`codemap-search`는 MCP 도구만 노출합니다. MCP 리소스와 프롬프트는 등록하지 않습니다. 모든 도구는 설정된 파일시스템 범위 안에서 읽기 전용으로 동작합니다.
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "codemap-search": {
+      "type": "local",
+      "command": ["codemap-search", "mcp"],
+      "enabled": true
+    }
+  }
+}
+```
 
-### read·grep의 멤버 정보
+[OpenCode MCP 안내](https://opencode.ai/docs/mcp-servers/)의 설정 형식입니다. 다른 설정 스키마를 사용하는 버전이라면 해당 클라이언트 버전의 문서를 확인하세요.
 
-성공한 MCP `read`, `grep` 응답은 `# symbols` 다음에 `# results`를 출력합니다.
-심볼 구역에는 결과가 속한 현재 파일의 class/struct/impl 멤버와 한 단계 caller/callee를
-표시합니다. Go 메서드는 receiver 타입으로 묶고 필드·시그니처·공개 여부·행 범위를
-함께 보여줍니다. 메서드 안의 지역 선언을 같은 그룹의 멤버로 확장하지 않습니다.
-결과 구역은 실제 파일에서 읽은 원문·행 번호·페이지 정보를 유지합니다.
+## 첫 연결 확인
 
-심볼과 호출 관계는 각각 최대 8,192바이트이며 반환 파일 중 최대 8개를 다룹니다.
-`read`는 두 구역을 합친 응답에도 `read_output_byte_cap`을 적용하므로 필요하면 읽기
-범위를 좁힙니다. 색인이 없거나 준비 중이면 이를 안내하고 실제 파일 결과는 유지합니다.
-파일 목록·개수만 반환하는 응답은 멤버 그룹을 선택할 행 정보가 없습니다.
-색인 기반 심볼은 파일 수정 반영이 늦을 수 있으므로 실제 동작은 결과 구역의 원문으로 확인합니다.
+1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다.
+2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 `overview`를 다시 호출합니다.
+3. 알고 있는 소스 파일을 `find`로 찾고 `read`로 읽습니다. 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
 
-모노레포에서 하위 폴더를 `overview`로 선택하면 이후 `search`도 그 폴더를 유지합니다.
-명시적 `workspace_scope`도 같고, 파일을 선택하면 부모 폴더를 사용합니다.
-전체 검색은 `all`로 전환합니다. `grep.pattern`은 정규식이므로 코드의 괄호·별표 등을
-문자 그대로 찾으려면 이스케이프해야 합니다. 0건이면 코드 부재로 단정하기 전에 검색식을
-확인하며, 정규식 이스케이프와 JSON 문자열 이스케이프를 구분합니다.
+바이너리를 찾지 못하면 클라이언트의 `PATH`를, 다른 저장소가 나오면 작업 디렉터리를 확인하세요. 시작·설정 오류는 stderr 로그에 표시하며 stdout은 MCP JSON-RPC 전용입니다.
 
-## 지원 언어
+## 탐색 도구 사용
 
-tree-sitter 기반 심볼 추출은 다음 확장자를 지원합니다.
+| 도구 | 용도 | 주요 인자 |
+|---|---|---|
+| `initial_instructions` | 탐색 안내를 한 번 읽기 | 없음 |
+| `overview` | 저장소·폴더·파일 구조 확인 | `path`, `format` |
+| `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
+| `find` | glob으로 경로 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored` |
+| `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
+| `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
+
+동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 별칭도 받습니다.
+
+모노레포에서 `overview`로 선택한 폴더는 이후 `search`의 범위가 됩니다. 파일은 부모 폴더를 선택합니다. 명시적 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체입니다. 구현 위치를 모르면 읽기 전용 전체 검색으로 시작해 실제 경로를 확인한 뒤 좁힙니다. 선택된 범위는 임의로 확대하지 않습니다. 상위 결과는 상세 발췌, 나머지는 제한된 목록으로 표시합니다. 출력이 잘리면 질의를 좁히거나 안내된 줄 범위를 읽으세요.
+
+MCP `read`·`grep`은 원문과 함께 색인에서 가져온 심볼·호출 관계를 표시합니다. 색인 정보는 최근 편집을 아직 반영하지 않았을 수 있습니다.
+
+도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다.
+
+## 제외 목록과 출력 설정
+
+키별 우선순위는 `<repo>/.codemap/config.toml` → `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) → 내장 기본값입니다. 활성화된 저장소 키가 전역값보다 우선하며, 전역값을 상속하려면 해당 키를 주석 처리합니다.
+
+첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 프로젝트별 추천 경로**를 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 해당 프로젝트의 `node_modules`, `dist`, `build`, 프레임워크 출력과 캐시를 추가하고, Python·Rust 등도 해당 프로젝트의 경로만 추가합니다.
+
+```toml
+[index]
+# 혼합 저장소 예시입니다. 필요한 항목을 관리하세요.
+excluded_directories = [
+    ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
+    "apps/web/node_modules", "apps/web/dist", "apps/web/build",
+    "apps/api/.venv", "apps/api/**/__pycache__",
+    "crates/core/target",
+]
+```
+
+**버전 6 이전 설정의 제외 목록은 한 번 전환합니다. `codemap-config-version: 6`부터는 이 배열을 자동 갱신하지 않습니다. 새 프로젝트가 생겨도 직접 관리하세요.** 삭제한 항목은 재시작해도 복원하지 않습니다. `config_auto_update`는 설정 생성과 일반 스키마 추가를 제어하며, 버전 6 이후 제외 배열을 자동 보충하는 옵션이 아닙니다. 자동 쓰기를 껐다면 [수동 전환 안내](./docs/configuration.ko.md#자동-작성을-껐을-때-수동-전환)를 따르세요.
+
+`build`는 모든 깊이의 해당 폴더, `./build`는 루트만, `apps/web/build`는 지정 프로젝트만 제외합니다. 명시한 배열은 선택적 기본 목록을 대체합니다. `[]`는 선택적 제외 해제, 키 생략은 전역/기본값 상속입니다. `.gitignore`, 전역 Git ignore, `.git/info/exclude`, `.codemapignore`는 별도로 적용합니다. VCS 내부, `.codemap`, `.codemap-index`, 실제 색인 위치는 배열과 무관하게 탐색에서 제외합니다. `find`·`grep`의 `include_ignored: true`는 선택적 제외를 우회하며, 직접 `read`는 파일시스템 권한을 따릅니다.
+
+MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index_path`, `watch`, `watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
+
+## 지원 언어와 형식
 
 | 언어 | 확장자 |
 |---|---|
 | Rust | `.rs` |
 | Python | `.py` |
-| TypeScript / TSX | `.ts`, `.tsx` |
-| JavaScript / JSX | `.js`, `.jsx` |
+| TypeScript / TSX | `.ts`, `.tsx`, `.mts`, `.cts` |
+| JavaScript / JSX | `.js`, `.jsx`, `.mjs`, `.cjs` |
 | Go | `.go` |
 | Java | `.java` |
 | Kotlin | `.kt`, `.kts` |
@@ -94,189 +141,23 @@ tree-sitter 기반 심볼 추출은 다음 확장자를 지원합니다.
 | Scala | `.scala`, `.sc` |
 | Groovy / Gradle | `.groovy`, `.gradle` |
 | PowerShell | `.ps1`, `.psm1` |
+| SQL | `.sql` |
 
-`read`, `find`, `grep`은 텍스트 파일이면 언어와 관계없이 사용할 수 있습니다.
+JSON/JSONC, TOML, YAML, HTML/XML 파생 형식, CSS/Less, Sass와 Vue·Astro·Svelte 컴포넌트를 지원합니다. 이 버전의 지원 등록부에는 JSON5와 SCSS가 없습니다. SQL은 선언과 리터럴을 추출하며 호출 관계는 만들지 않습니다.
 
-언어별 플래그 규칙도 반영합니다. Go는 대문자로 시작하는 심볼을 내보낸 심볼로 보고, `*_test.go`와 `Test`/`Benchmark`/`Example`/`Fuzz`를 테스트로 봅니다. Java는 `public`, `@Test`, `@Deprecated`, javadoc `@deprecated`를 읽습니다. Kotlin은 `private`/`internal`/`protected`가 아니면 내보낸 심볼로 보고, `@Test`와 `@Deprecated`를 읽습니다. C/C++는 `static` 저장 클래스를 파일 내부 심볼로 처리하고, C++ 접근 지정자를 반영합니다. C#은 명시적 `public`과 interface의 암시적 공개 멤버를 반영합니다. PHP는 최상위 선언과 `private`/`protected`가 아닌 멤버를 공개로 처리하고, Ruby는 class/module의 가시성 영역을 따릅니다. Lua는 `local`을 포함한 모든 파일 수준 선언을 공개로 처리합니다. 네 언어 모두 지원 범위 안의 테스트 경로·이름 관례와 폐기 attribute 또는 주석을 판별합니다. Assembly는 `.globl`/`.global` 지시문에 나온 심볼을 내보낸 심볼로 봅니다.
+다음 선택형 그룹은 `[language_support]`에서 기본값이 모두 `false`입니다.
 
-Swift, Dart, Scala, Groovy, PowerShell은 정적 AST에서 확인되는 선언, import, 참조와 호출을 기록합니다. 계산형 import, reflection, 동적 dispatch와 PowerShell 동적 실행은 정밀 관계로 승격하지 않습니다. `.gradle`은 literal `task`/`tasks.register`/`tasks.create` target, task 의존·순서 관계, plugin ID, `group:artifact:version` dependency 좌표를 추가로 구조화합니다. 보간된 Gradle 값과 사용자 정의 DSL은 구조화하지 않습니다. `.gradle.kts`는 기존 Kotlin 일반 지원을 그대로 사용합니다.
+| 키 | 그룹 |
+|---|---|
+| `is_document_support_enabled` | Markdown `.md`, `.mdx` |
+| `is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
+| `is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
+| `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
+| `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
 
-구조화·운영 형식은 보수적으로 파싱합니다. tree-sitter AST 추출은 JSON/JSONC, TOML, YAML, HTML/XML 계열, CSS/Less, Bash/Zsh, HCL/Terraform, Dockerfile, Protobuf, GraphQL, Make, CMake, Starlark/Bazel, Nix를 지원합니다. 이 중 셸·인프라·인터페이스·빌드 그룹은 기본적으로 색인 기반 탐색에서 제외하며 `[language_support]`에서 그룹별로 활성화할 수 있습니다. Nix는 정적 attribute 경로, `let` binding, `inherit`, derivation target, literal `import`/`builtins.import`/`callPackage` 경로, 참조와 직접 함수 적용을 추출합니다. 정적인 직접 함수 적용만 정밀 caller/callee 관계에 참여하며, 보간 경로·attribute, 계산형 import와 동적 함수 식은 구조화하지 않습니다. 들여쓰기 Sass는 전용 Sass AST parser를 사용하고, Vue·Astro·Svelte는 전용 component 문법과 내장 JavaScript/TypeScript 및 CSS/Sass/Less 추출을 결합합니다. SCSS는 upstream Windows 빌드 수정 버전이 배포될 때까지 지원 등록부에서 제외합니다. JSON5도 지원 등록부에서 제외합니다.
-
-선택형 **Document** 그룹은 `tree-sitter-md`로 Markdown(`.md`, `.mdx`)을 처리합니다. `[language_support].is_document_support_enabled = true`로 활성화하면 전체 본문을 검색하고 제목·링크·코드 블록을 원본 범위와 함께 추출합니다. import·참조·caller/callee 관계를 만들거나 fenced code를 다시 파싱하지 않습니다. MDX의 JSX와 JavaScript 표현식은 본문 검색에만 포함합니다.
-
-나머지 선택형 그룹도 기본값은 모두 `false`입니다.
-
-- `is_shell_support_enabled`: `.sh`, `.bash`, `.zsh`
-- `is_infrastructure_support_enabled`: `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix`
-- `is_interface_support_enabled`: `.proto`, `.graphql`, `.gql`
-- `is_build_support_enabled`: `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl`
-
-각 설정은 초기 색인·watcher·search·overview·codemap에 적용합니다. 실시간 파일 도구인 `find`·`grep`·`read`와 직접 `parse`는 그룹이 비활성 상태여도 그대로 사용할 수 있습니다.
-
-## 설치
-
-Rust가 이미 있으면 `cargo install`이 가장 단순합니다. 로컬 컴파일을 피하고 싶으면 GitHub Release 사전 빌드 바이너리, `install.sh`, WinGet, Homebrew 경로를 사용할 수 있습니다. OS별 권장 경로와 배포 채널별 메인테이너 런북은 [docs/distribution](./docs/distribution/index.md)에 있습니다.
-
-### crates.io
-
-```sh
-cargo install codemap-search
-```
-
-바이너리는 `~/.cargo/bin`에 설치됩니다. 이 디렉터리가 `PATH`에 있어야 합니다.
-
-### WinGet
-
-```powershell
-winget install com.livteam.codemap-search
-```
-
-`microsoft/winget-pkgs`에 패키지가 반영된 뒤 사용할 수 있습니다. 병합 전에는 저장소 안의 매니페스트로 설치할 수 있지만, 릴리스 자산이 있고 매니페스트의 placeholder `sha256` 값이 실제 값으로 교체된 뒤에만 해시 검증을 통과합니다. 상대 경로를 쓰므로 저장소 루트에서 실행해야 합니다.
-
-```powershell
-winget install --manifest apps/codemap-search/packaging/winget
-```
-
-Windows arm64 바이너리는 x64 러너에서 크로스 빌드된 빌드 전용 산출물이며, arm64 실기기 실행 검증은 아직 아닙니다.
-
-### Homebrew
-
-```sh
-brew install codemap-search
-```
-
-`homebrew-core`에 수용된 뒤 사용할 수 있습니다. 그 전까지 macOS에서는 `cargo install codemap-search`, GitHub Release 직접 다운로드, 또는 `install.sh`를 사용하세요. 포뮬러는 `apps/codemap-search/packaging/homebrew/codemap-search.rb`에 있습니다.
-
-### 소스에서 설치
-
-```sh
-cargo install --path apps/codemap-search
-# or, from a checkout of this repo:
-cargo build --release --manifest-path apps/codemap-search/Cargo.toml
-# binary at target/release/codemap-search
-```
-
-### 사전 빌드 바이너리와 `install.sh`
-
-GitHub Release에는 macOS arm64/x64, Linux x64 `musl`/`gnu`, Linux arm64 `musl`, Windows x64, Windows arm64 빌드 전용 자산이 올라갑니다. 플랫폼에 맞는 아카이브를 내려받아 압축을 풀고 `codemap-search`를 `PATH`에 있는 디렉터리에 두면 됩니다.
-
-macOS와 Linux에서는 설치 스크립트를 사용할 수 있습니다. 스크립트는 OS와 아키텍처를 감지하고, 맞는 릴리스 아카이브를 받은 뒤, 압축을 풀기 전에 `.sha256`을 검증하고, 기본적으로 `~/.local/bin`에 설치합니다.
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
-```
-
-설치 디렉터리 변경:
-
-```sh
-INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
-```
-
-버전 고정:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version codemap-v0.1.6
-```
-
-Linux는 기본적으로 정적 `musl` 빌드를 받습니다. x86_64에서 glibc 빌드가 필요하면 `CODEMAP_LINUX_LIBC=gnu`를 지정하세요. 설치 디렉터리가 `PATH`에 없으면 스크립트가 현재 세션용 `export PATH=...` 안내를 출력합니다.
-
-### 지원 플랫폼
-
-| 플랫폼 | 변형 | 지원 수준 | 비고 |
-|---|---|---|---|
-| Linux x86_64, Ubuntu 22.04~26.04 | `musl` | Docker 검증 | 정적 빌드, glibc 불필요 |
-| Linux x86_64, Ubuntu 22.04+ | `gnu` | Docker 검증 | glibc 2.34+ 필요 |
-| Linux arm64 | `musl` | 크로스 빌드, arm64 실행 미검증 | arm64 Linux용 단일 자산 |
-| macOS Sequoia 15 이상 | arm64, x86_64 | 기준 명시 | Apple Silicon과 Intel |
-| Windows 11 이상 | x86_64 | 실기기 기준, 최선 지원 | Windows x64 |
-| Windows 11 arm64 | arm64 | 빌드 전용 | arm64 실행 미검증 |
-
-Linux에서는 특별한 이유가 없으면 `musl` 바이너리를 권장합니다. glibc 빌드는 Ubuntu 20.04 이하처럼 glibc 2.34 미만인 배포판에서 실행되지 않습니다.
-
-## MCP 클라이언트 등록
-
-`mcp` 하위 명령으로 서버를 실행합니다. 서버는 현재 작업 디렉터리를 기준으로 동작합니다. 사용자 전역 등록을 해도 클라이언트가 활성 프로젝트를 작업 디렉터리로 잡아 `codemap-search mcp`를 실행하면 저장소마다 같은 설치를 재사용할 수 있습니다.
-
-### Claude Code
-
-프로젝트 범위:
-
-```sh
-claude mcp add codemap-search -- codemap-search mcp
-```
-
-사용자 전역 범위:
-
-```sh
-claude mcp add -s user codemap-search -- codemap-search mcp
-```
-
-또는 프로젝트 범위는 `.mcp.json`, 사용자 범위는 `~/.claude.json`에 직접 추가합니다.
-
-```json
-{
-  "mcpServers": {
-    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
-  }
-}
-```
-
-### Codex
-
-`~/.codex/config.toml`은 Codex의 전역 설정입니다.
-
-```toml
-[mcp_servers.codemap-search]
-command = "codemap-search"
-args = ["mcp"]
-```
-
-CLI로도 같은 설정을 추가할 수 있습니다.
-
-```sh
-codex mcp add codemap-search -- codemap-search mcp
-```
-
-### opencode
-
-전역 설정은 `~/.config/opencode/opencode.json`에 있습니다. 저장소 하나에만 적용하려면 저장소 루트의 `opencode.json`을 사용하세요.
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "codemap-search": {
-      "type": "local",
-      "command": ["codemap-search", "mcp"],
-      "enabled": true
-    }
-  }
-}
-```
-
-## MCP 도구
-
-| 도구 | 용도 | 주요 인자 |
-|---|---|---|
-| `initial_instructions` | 권장 탐색 흐름을 반환합니다. 클라이언트가 서버 안내문을 표시하지 않을 때 한 번 호출합니다. | 없음 |
-| `overview` | 계층형 코드맵입니다. `path`가 없으면 저장소 루트, 폴더면 해당 폴더, 파일이면 파일 안의 심볼과 줄 범위를 보여줍니다. | `path`, `format` |
-| `search` | BM25로 검색하고 상위 결과의 상세 발췌와 제한된 나머지 결과 목록을 반환합니다. | `query`, 모노레포의 `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
-| `read` | 파일을 줄 번호와 함께 읽습니다. 큰 파일은 창 단위로 읽습니다. | `file_path`, `offset`, `limit` |
-| `find` | glob으로 파일을 찾습니다. 결과는 수정 시간순으로 정렬되고 상한이 있습니다. | `pattern`, `path`, `include_ignored` |
-| `grep` | 디스크의 실제 파일을 정규식이나 리터럴로 검색합니다. 주석, 비코드 파일, 방금 수정한 파일 확인에 적합합니다. | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-
-모노레포에서 `overview`로 선택한 범위는 이후 `search`에 적용됩니다. 명시적인 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체를 뜻합니다. 범위 필터는 보조 질의를 포함한 후보 수집 전에 적용하고, 도구가 선택된 범위를 임의로 넓히지 않습니다. 루트의 범위별 파일·심볼 수와 상위 3개 언어의 파일 수는 색인 스냅샷마다 한 번 계산해 재사용합니다.
-
-일반 질의에서는 생성 경로(`generated/`, 파일명의 `_gen`, `.generated`, `.g`, `.pb` 표식)와 `locale`, `locales`, `i18n`, `l10n` 아래의 JSON·YAML에 0.3 가중치를 적용합니다. 경로 표식은 대소문자를 구분합니다. 정확한 파일 경로, 식별력 있는 심볼명, 완전한 리소스 키나 인용한 원문을 지정하면 해당 파일에는 새 감점을 적용하지 않습니다. 기존 테스트 경로 감점과 겹치면 가장 낮은 가중치를 한 번만 적용합니다. 초기 후보를 생성·번역 파일이 차지하는 일반 질의에서는 구현 파일 후보를 최대 100개 추가 수집하고 최종 출력 한도는 유지합니다. 파일을 색인에서 빼거나 직접 읽기를 제한하는 규칙이 아니며 새 설정·인덱스 형식 변경은 없습니다.
-
-`read`는 `file_path` 대신 `path`/`file`, `offset`/`limit` 대신 `start_line`/`end_line` 별칭도 받습니다. `find`와 `grep`은 기본적으로 `.gitignore`, `.git/info/exclude`, `.codemapignore`를 따릅니다. 잠금 파일, source map, minified·bundle 파일, `.txt`는 기본 결과와 의미 기반 인덱스에서 제외됩니다. Markdown과 선택형 셸·인프라·인터페이스·빌드 그룹은 설정이 꺼져도 `find`·`grep`·`read`로 접근할 수 있으며, 설정은 색인·watcher·search·overview·codemap 포함 여부만 제어합니다. ignore 및 영구 파일 제외 규칙을 한 호출에서 우회하려면 `include_ignored: true`를 전달하세요. 직접 `parse`도 계속 허용됩니다. `.git/info/exclude`만 끄려면 `use_git_exclude` 설정을 사용합니다.
-
-사용자 홈 디렉터리 자체를 작업공간 또는 `index`/`benchmark` 대상으로 지정하면 설정·인덱스·watcher를 만들기 전에 거부합니다. `~/work/project` 같은 홈 아래 프로젝트는 정상적으로 허용합니다. `HOME`과 `USERPROFILE`을 모두 확인할 수 없는 환경에서는 `stderr`에 경고하고 실행을 계속합니다.
+이 설정은 색인 기반 탐색과 감시 갱신을 제어합니다. 그룹이 비활성 상태여도 실시간 `find`, `grep`, `read`와 CLI의 직접 `parse`는 사용할 수 있습니다. 언어별 공개·테스트·폐기 표시, 정적 관계와 한계는 [추출 세부 규칙](./docs/language-support-checklist.ko.md#언어별-추출-규칙)을 참고하세요.
 
 ## CLI
-
-`codemap-search`는 CLI로도 사용할 수 있습니다.
 
 ```text
 codemap-search mcp
@@ -288,63 +169,23 @@ codemap-search index [dir]
 codemap-search benchmark --queries <json> [--dir D]
 ```
 
-## 설정
+## 색인·진단·제한
 
-설정은 선택 사항입니다. 설정 파일이 없으면 내장 기본값으로 동작합니다. TOML 설정은 저장소 레이어(`<repo>/.codemap/config.toml`)와 전역 레이어(`$CODEMAP_HOME/config.toml`, 없으면 `~/.codemap/config.toml`)에서 읽고, 키별로 `repo > global > default` 우선순위로 병합합니다.
+MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
 
-`mcp` 시작 시 저장소 설정 파일이 없으면 기본값이 활성화된 템플릿을 자동 생성합니다. 이 저장소 파일은 전역 설정보다 우선하므로, 특정 키에서 전역 설정을 상속하려면 해당 키를 삭제하거나 주석 처리하세요. 파일이 이미 있으면 새 릴리스에서 추가된 키만 주석 블록으로 덧붙입니다. 기존 줄은 수정하거나 삭제하지 않습니다. `[update].config_auto_update = false`로 설정하면 저장소 설정 파일 자동 생성과 스키마 동기화 쓰기를 끌 수 있고, 기존 설정 파일 읽기는 계속 동작합니다.
+- `max_file_size` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
+- `.txt`, 잠금 파일, source map, 압축·번들 파일에는 별도 파일 제외 규칙이 있습니다. `find`·`grep`의 `include_ignored`로 우회할 수 있고, 직접 `read`·`parse`도 가능합니다.
+- 실행 중에 결정되는 경로나 호출 대상은 정적 분석으로 확인할 수 없습니다. 추정한 호출 관계는 원문에서 확인하세요.
+- 단일 클라이언트용 순차 stdio 서버입니다. 여러 서버를 같은 색인 디렉터리로 동시에 실행하지 마세요.
 
-모든 키, 기본값, `.codemap/` 디렉터리 구조는 [docs/configuration.md](./docs/configuration.md)에 있습니다. `read`, `find`, `grep`을 작업공간 안으로 제한할지, 허용된 외부 루트를 열지, 전체 디스크 접근을 허용할지는 `[filesystem_permissions]`에서 제어합니다.
-
-외부 계정, API 키, 유료 서비스는 필요하지 않습니다.
-
-런타임 환경변수:
-
-| 변수 | 필수 | 설명 |
-|---|---|---|
-| `RUST_LOG` | 아니요 | stderr 진단 로그 수준을 조정합니다. 예: `RUST_LOG=debug codemap-search mcp` |
-| `CODEMAP_HOME` | 아니요 | 전역 설정 디렉터리를 바꿉니다. 기본값은 `~/.codemap`입니다. |
-
-설치 스크립트 전용 환경변수:
-
-| 변수 | 필수 | 설명 |
-|---|---|---|
-| `INSTALL_DIR` | 아니요 | `install.sh` 설치 위치를 바꿉니다. 기본값은 `~/.local/bin`입니다. |
-| `CODEMAP_VERSION` | 아니요 | `install.sh`가 받을 릴리스 태그를 고정합니다. 예: `codemap-v0.1.6` |
-| `CODEMAP_LINUX_LIBC` | 아니요 | Linux 자산 종류를 고릅니다. 기본은 `musl`, x86_64에서만 `gnu`를 선택할 수 있습니다. |
-
-## 로깅
-
-진단 로그는 stderr로만 출력합니다. stdout은 MCP JSON-RPC 스트림으로 예약되어 있습니다. 기본 로그 필터는 `warn,codemap_search=info`라서 Tantivy commit/GC 같은 의존성 `INFO` 로그는 숨깁니다. 더 자세한 로그가 필요하면 `RUST_LOG`를 올립니다.
+진단은 stderr에 출력하며 기본 로그 필터는 `warn,codemap_search=info`입니다.
 
 ```sh
 RUST_LOG=debug codemap-search mcp
 ```
 
-debug 로그의 `search candidate timings`, `search caller annotation timing`, `search tool timing`으로 후보 처리·호출 관계 분석·출력 처리를 구분할 수 있습니다. 호출 관계 분석 시간은 출력 시간에 포함되므로 중복 합산하지 않습니다. `published workspace catalog`는 스냅샷별 메타데이터 생성 시간입니다.
-
-## 인덱싱
-
-MCP 서버는 시작 시 저장소를 직접 인덱싱합니다. 별도 인덱스 단계, 언어 서버, 외부 서비스가 필요 없습니다. 인덱스는 저장소 안의 `.codemap/` 디렉터리에 저장되고 다음 실행에서 재사용됩니다.
-
-파일시스템 감시자는 Linux inotify, macOS FSEvents, Windows ReadDirectoryChanges를 사용합니다. 일반 편집은 기본 500ms 디바운스 뒤 경로 단위 증분 업데이트로 처리합니다. git `HEAD` 변경이나 큰 변경 묶음은 전체 워크로 승격합니다. 감시자가 정상일 때 `search`와 `overview`는 요청마다 트리를 다시 걷지 않습니다. `read`, `find`, `grep`은 항상 디스크를 직접 읽으므로 방금 수정한 파일도 바로 보입니다.
-
-측정 기준은 Docker, 네이티브 arm64, 빈 `.codemap`, 정확한 SHA 체크아웃입니다.
-
-| 저장소 | 파일 수 | 콜드 전체 인덱스 | 증분 재인덱스, 1~10개 파일 | 디스크 인덱스 |
-|---|---:|---:|---:|---:|
-| angular | 약 10.6k | 약 4.6초 | 약 0.15초 | 16 MB |
-| deno | 약 13.5k | 약 3.6초 | 약 0.13초 | 9.8 MB |
-
-[benchmark](../../benchmark/README.md)의 같은 arm64 측정에서는 언어 서버와 그래프 백엔드의 콜드 인덱스가 약 41~62초, codegraph의 angular 콜드 인덱스가 약 80초였고, 디스크 인덱스는 약 150~450 MB 범위였습니다. 이 측정에서는 `codemap-search`가 인덱스를 대략 한 자릿수 배 빠르게 만들고 훨씬 작게 저장했습니다. 단, 저장소와 작업 흐름에 따라 가장 좋은 백엔드는 달라질 수 있습니다.
-
-## 알려진 제한
-
-- 심볼 추출은 컴파일된 tree-sitter 문법이 있는 언어로 제한됩니다. 다른 확장자는 `read`, `find`, `grep`으로 검색할 수 있지만 심볼 인덱스에는 들어가지 않습니다.
-- `max_file_size` 기본값은 1 MiB입니다. 이보다 큰 파일은 인덱싱과 코드맵에서 건너뜁니다.
-- 문자열 리터럴은 낮은 가중치로 색인하고 상세 보기에도 표시합니다. 정확한 문자열·정규식 검색은 `grep`을 사용하세요.
-- 서버는 단일 클라이언트용 순차 stdio 서버입니다. 여러 프로세스가 같은 인덱스를 잠그고 공유하는 모델은 아닙니다.
+[벤치마크](../../benchmark/README.md)와 [Docker 검증 도구](./docker/README.ko.md)에서 측정·검증 방법을 확인할 수 있습니다.
 
 ## 라이선스
 
-MIT. 자세한 내용은 [LICENSE](./LICENSE)를 참고하세요.
+MIT. [LICENSE](./LICENSE)를 참고하세요.
