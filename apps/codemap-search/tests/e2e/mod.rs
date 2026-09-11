@@ -3,6 +3,7 @@ mod codemap;
 mod config;
 mod cross_feature;
 mod documents;
+mod exclusions;
 mod helpers;
 mod language_support;
 mod mcp;

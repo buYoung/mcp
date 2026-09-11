@@ -28,7 +28,7 @@
 //! batch threshold escalating bulk switches to a full walk.
 
 use std::collections::BTreeSet;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, SyncSender};
 use std::sync::Arc;
@@ -309,17 +309,20 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
     if rel.starts_with(index_path) || path.starts_with(index_path) {
         return EventPathKind::Ignored;
     }
-    let excluded_directories = &config.excluded_directories;
-    for component in rel.components() {
-        if let Component::Normal(name) = component {
-            if let Some(name) = name.to_str() {
-                if crate::workspace::ALWAYS_EXCLUDED_DIRS.contains(&name)
-                    || excluded_directories.iter().any(|d| d == name)
-                {
-                    return EventPathKind::Ignored;
-                }
-            }
+    // Match directory ancestors only: a file called `build` is not a directory rule.
+    let mut directory = if path.is_dir() {
+        Some(path)
+    } else {
+        path.parent()
+    };
+    while let Some(parent) = directory {
+        if parent == root {
+            break;
         }
+        if crate::workspace::directory_is_excluded(parent, root, &config, true) {
+            return EventPathKind::Ignored;
+        }
+        directory = parent.parent();
     }
     EventPathKind::Candidate
 }

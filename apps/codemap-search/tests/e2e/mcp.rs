@@ -146,11 +146,13 @@ async fn test_mcp_fallback_match_no_snippets_and_clean_tail() {
 
 #[tokio::test]
 async fn test_index_and_codemap_exclude_junk_dirs() {
-    // AC#1 (Child 04): node_modules/target/… must never enter the BM25 index or the
+    // Detected JS/Rust projects exclude node_modules/target from the BM25 index and
     // codemap, even when they hold real source extensions. A shared symbol name proves
     // search returns only the in-tree file, not the junk-dir copies. The exact
     // "src/foo.rs" match also confirms the walker swap kept the rel_path byte-identical.
     let temp = create_mock_repo(&[
+        ("package.json", "{}"),
+        ("Cargo.toml", ""),
         ("src/foo.rs", "pub fn shared_symbol_name() {}"),
         (
             "node_modules/pkg/index.js",

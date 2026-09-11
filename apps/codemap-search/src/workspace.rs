@@ -12,6 +12,8 @@
 //! reads `config::get()` at runtime for the configurable exclude set / git-exclude
 //! toggle — an accepted dependency on the global config singleton.
 
+pub(crate) mod exclusions;
+
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -45,6 +47,9 @@ pub const MAX_INDEXED_FILE_BYTES: u64 = 1_048_576;
 /// Junk / VCS / generated directories that no tool ever walks, independent of any
 /// ignore file. Child 04 centralizes this and Child 05 makes it configurable.
 pub const EXCLUDED_DIRS: &[&str] = &[
+    ".idea",
+    ".vscode",
+    ".vs",
     "node_modules",
     // Yarn Berry's PnP cache/release dir: holds zipped dependency archives and the
     // generated `.yarn/releases` bundle — the same dependency-blob class as
@@ -356,27 +361,48 @@ fn apply_ignore_settings(builder: &mut ignore::WalkBuilder, respect: bool) {
     }
 }
 
-fn entry_allowed_by_excluded_dirs(entry: &ignore::DirEntry, respect: bool) -> bool {
-    if !entry.file_type().is_some_and(|ft| ft.is_dir()) {
+pub(crate) fn directory_is_excluded(
+    path: &Path,
+    workspace_root: &Path,
+    config: &crate::config::ResolvedConfig,
+    respect: bool,
+) -> bool {
+    if path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| ALWAYS_EXCLUDED_DIRS.contains(&name))
+    {
         return true;
     }
-    let Some(name) = entry.file_name().to_str() else {
-        return true;
+    let index_root = if config.index_root.is_absolute() {
+        config.index_root.clone()
+    } else {
+        workspace_root.join(&config.index_root)
     };
-    // VCS/index dirs are skipped unconditionally — even with include_ignored.
-    if ALWAYS_EXCLUDED_DIRS.contains(&name) {
-        return false;
+    if path == index_root {
+        return true;
     }
-    // The configurable junk-dir set (built-ins unioned with config, Child 05)
-    // applies only while ignore rules are respected; include_ignored bypasses
-    // it so those names stay reachable when they hold real source.
-    if respect {
-        return !crate::config::get()
-            .excluded_directories
-            .iter()
-            .any(|d| d == name);
+    respect
+        && config
+            .directory_exclusions
+            .matches_directory(path, workspace_root)
+}
+
+fn entry_allowed_by_excluded_dirs(
+    entry: &ignore::DirEntry,
+    respect: bool,
+    root: &Path,
+    config: &crate::config::ResolvedConfig,
+) -> bool {
+    if !entry.file_type().is_some_and(|kind| kind.is_dir()) {
+        return true;
     }
-    true
+    let path = if entry.path().is_absolute() {
+        entry.path().to_path_buf()
+    } else {
+        root.join(entry.path())
+    };
+    !directory_is_excluded(&path, root, config, respect)
 }
 
 fn same_path(left: &Path, right: &Path) -> bool {
@@ -390,7 +416,11 @@ fn same_path(left: &Path, right: &Path) -> bool {
 fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     apply_ignore_settings(&mut builder, respect);
-    builder.filter_entry(move |entry| entry_allowed_by_excluded_dirs(entry, respect));
+    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let config = crate::config::get();
+    builder.filter_entry(move |entry| {
+        entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
+    });
     builder
 }
 
@@ -424,7 +454,7 @@ fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects
 /// `.gitignore` (and global/exclude), the repo-local `.codemapignore`, and parent
 /// ignore files, and skips [`EXCLUDED_DIRS`]. When `include_ignored` is true the ignore
-/// files AND the configurable junk-dir excludes are bypassed — only [`ALWAYS_EXCLUDED_DIRS`]
+/// files AND the configured directory rules are bypassed — only [`ALWAYS_EXCLUDED_DIRS`]
 /// (VCS internals + our own index dir) stays skipped, so `node_modules`/`build`/`vendor`
 /// become reachable in repos where those names hold real source. Hidden files are
 /// included for Claude Code `--hidden` parity. The returned builder can be further
@@ -437,11 +467,13 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     let respect = !include_ignored;
     let root_is_visible = walk_root_is_visible(root, respect);
     let mut builder = build_base_walker(root, respect);
+    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let config = crate::config::get();
     builder.filter_entry(move |entry| {
         if !root_is_visible {
             return false;
         }
-        entry_allowed_by_excluded_dirs(entry, respect)
+        entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
     });
     builder
 }

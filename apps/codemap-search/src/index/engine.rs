@@ -411,7 +411,9 @@ impl TantivySearchEngine {
 
         let reader = index
             .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
+            // The indexer publishes BM25 and derived codemap data under one gate.
+            // Automatic reload could expose a new commit before its codemap is ready.
+            .reload_policy(ReloadPolicy::Manual)
             .try_into()
             .map_err(|e| e.to_string())?;
 
@@ -1066,7 +1068,7 @@ fn normalized_index_root(index_path: &Path, abs_cwd: &Path) -> PathBuf {
     } else {
         abs_cwd.join(index_path)
     };
-    absolute.canonicalize().unwrap_or(absolute)
+    crate::workspace::canonicalize_path_lenient(&absolute)
 }
 
 fn is_under_index_root(path: &Path, index_root: &Path, abs_cwd: &Path) -> bool {
@@ -1075,10 +1077,7 @@ fn is_under_index_root(path: &Path, index_root: &Path, abs_cwd: &Path) -> bool {
     } else {
         abs_cwd.join(path)
     };
-    absolute
-        .canonicalize()
-        .unwrap_or(absolute)
-        .starts_with(index_root)
+    crate::workspace::canonicalize_path_lenient(&absolute).starts_with(index_root)
 }
 
 impl SearchEngine for TantivySearchEngine {
@@ -1102,6 +1101,27 @@ mod tests {
         assert_eq!(tokenize_path("src/lib.rs"), "src lib rs");
         assert_eq!(tokenize_path("a\\b\\c.js"), "a b c js");
         assert_eq!(tokenize_path("main.rs"), "main rs");
+    }
+
+    #[test]
+    fn test_deferred_deletion_publishes_matching_search_and_codemap() {
+        let directory = tempdir().unwrap();
+        let file = directory.path().join("source.rs");
+        fs::write(&file, "pub fn deletion_probe() {}\n").unwrap();
+        let mut engine =
+            TantivySearchEngine::new(directory.path().join("index").to_str().unwrap()).unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert_eq!(engine.load_published_snapshot().unwrap().codemap().len(), 1);
+        assert!(engine.index_files_changed_deferred(&[]).unwrap());
+        // The request reader remains on the old generation until explicit publication.
+        assert_eq!(engine.search("deletion_probe", 10).unwrap().len(), 1);
+        assert!(engine
+            .load_published_snapshot()
+            .unwrap()
+            .codemap()
+            .is_empty());
+        engine.reload_reader().unwrap();
+        assert!(engine.search("deletion_probe", 10).unwrap().is_empty());
     }
 
     #[test]

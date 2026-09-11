@@ -15,14 +15,16 @@
 //! already exists it **incrementally syncs** it: for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
 //! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
-//! is strictly additive — it never edits, reorders, or removes a user's existing lines,
-//! never rewrites a file already at the current version, never touches any git file, and
+//! normally adds commented keys. The one-time v6 transition also materializes directory
+//! exclusions; from v6 onward that array is never automatically changed. Sync never
+//! rewrites a file already at the current version, never touches any git file, and
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
 //! user's `.gitignore` choice.
 
 use std::collections::BTreeSet;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, SyncSender, TrySendError};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, SyncSender};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -30,6 +32,9 @@ use std::time::{Duration, Instant};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
+use crate::workspace::exclusions::DirectoryExclusions;
+
+mod scaffold;
 
 /// Permission policy for a live filesystem tool (`find`, `grep`, `read`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -83,7 +88,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 5;
+const CONFIG_VERSION: u32 = 6;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -95,10 +100,10 @@ const CONFIG_BASELINE_VERSION: u32 = 1;
 /// TOML parser drops comments.
 const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
-/// English explicit-default scaffold written to a fresh repo on `mcp` start (see
+/// English scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
 /// and every key is
-/// live at its compiled-in default, so a generated repo config pins the default values above a
+/// live at its default except project-discovered directory exclusions; repo values override a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
 /// key, update every config template, bump [`CONFIG_VERSION`], and add localized commented
@@ -124,9 +129,11 @@ pub struct ResolvedConfig {
     pub result_threshold: usize,
     /// Files larger than this (bytes) are skipped before read/parse (default 1 MiB).
     pub max_file_size: u64,
-    /// Directory names never walked: the built-in junk dirs UNIONED with any configured
-    /// names (augment, not replace — built-ins can't be un-excluded).
+    /// Complete optional directory rules. Explicit arrays replace lower layers/defaults;
+    /// VCS and index internals remain mandatory exclusions.
     pub excluded_directories: Vec<String>,
+    pub(crate) directory_exclusions: DirectoryExclusions,
+    pub(crate) index_root: PathBuf,
     /// Whether the walkers honor **`.git/info/exclude`** specifically (default true). This
     /// is a dedicated toggle for that one source only — `.gitignore`, the global gitignore,
     /// and `.codemapignore` are unaffected and stay honored. Set false to let
@@ -257,12 +264,20 @@ impl Default for ResolvedConfig {
         Self {
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
+            index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
             result_threshold: 5,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
             excluded_directories: crate::workspace::EXCLUDED_DIRS
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
+            directory_exclusions: DirectoryExclusions::new(
+                &crate::workspace::EXCLUDED_DIRS
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>(),
+            )
+            .expect("built-in directory patterns are valid"),
             use_git_exclude: true,
             index_staleness_ms: 5_000,
             search_overview_file_limit: 12,
@@ -352,7 +367,10 @@ struct FilesystemPermissionsLayer {
 pub fn load(repo_root: &Path, global_dir: &Path) -> ResolvedConfig {
     let repo_layer = read_layer(&repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME));
     let global_layer = read_layer(&global_dir.join(CONFIG_FILE_NAME));
-    merge(repo_layer, global_layer)
+    let mut resolved = merge(repo_layer, global_layer);
+    resolved.index_root =
+        crate::workspace::canonicalize_path_lenient(&repo_root.join(&resolved.index_path));
+    resolved
 }
 
 /// Read one config file into a normalized layer. Missing file → empty layer (silent);
@@ -514,7 +532,7 @@ fn assign_config_key(
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
         "max_file_size" => layer.max_file_size = as_positive_u64(value, key_display, path),
         "excluded_directories" => {
-            layer.excluded_directories = as_string_array(value, key_display, path)
+            layer.excluded_directories = as_directory_patterns(value, key_display, path)
         }
         "use_git_exclude" => layer.use_git_exclude = as_bool(value, key_display, path),
         "index_staleness_ms" => {
@@ -592,14 +610,15 @@ fn assign_config_key(
     true
 }
 
-/// Per-key `repo > global > default` merge. Array keys take the winning layer's list and
-/// UNION it with the built-in defaults (augment — built-ins are never dropped).
+/// Per-key `repo > global > default` merge, including complete directory arrays.
 fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
     let defaults = ResolvedConfig::default();
-    let excluded_directories = match repo.excluded_directories.or(global.excluded_directories) {
-        Some(extra) => union_excludes(defaults.excluded_directories, extra),
-        None => defaults.excluded_directories,
-    };
+    let excluded_directories = repo
+        .excluded_directories
+        .or(global.excluded_directories)
+        .unwrap_or(defaults.excluded_directories);
+    let directory_exclusions = DirectoryExclusions::new(&excluded_directories)
+        .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
         config_auto_update: repo
             .config_auto_update
@@ -618,6 +637,8 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.max_file_size)
             .unwrap_or(defaults.max_file_size),
         excluded_directories,
+        directory_exclusions,
+        index_root: defaults.index_root,
         use_git_exclude: repo
             .use_git_exclude
             .or(global.use_git_exclude)
@@ -737,16 +758,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.caller_omit_def_threshold)
             .unwrap_or(defaults.caller_omit_def_threshold),
     }
-}
-
-/// Append `extra` directory names to `base`, skipping duplicates (case-sensitive).
-fn union_excludes(mut base: Vec<String>, extra: Vec<String>) -> Vec<String> {
-    for name in extra {
-        if !base.contains(&name) {
-            base.push(name);
-        }
-    }
-    base
 }
 
 fn normalize_filesystem_permissions(
@@ -884,6 +895,7 @@ pub fn spawn_config_watcher(
         .unwrap_or_else(|_| repo_root.to_path_buf());
     let global = global_dir();
     let config_paths = watched_config_paths(&repo_root, &global);
+    tracing::debug!(?config_paths, "starting config watcher");
     let watch_dirs = config_paths
         .iter()
         .filter_map(|path| {
@@ -986,33 +998,31 @@ fn run_config_watch_loop(
         }
 
         if should_reload {
-            let previous_language_support = get().language_support_settings();
+            let previous = get();
             reload_from_paths(&repo_root, &global);
-            request_refresh_if_language_support_changed(
-                previous_language_support,
-                get().language_support_settings(),
-                &index_command_sender,
-            );
+            tracing::debug!(excluded_directories = ?get().excluded_directories, "reloaded config");
+            request_refresh_if_index_scope_changed(&previous, &get(), &index_command_sender);
         }
     }
 }
 
-fn request_refresh_if_language_support_changed(
-    previous: [bool; 5],
-    current: [bool; 5],
+fn request_refresh_if_index_scope_changed(
+    previous: &ResolvedConfig,
+    current: &ResolvedConfig,
     index_command_sender: &SyncSender<crate::index::IndexCommand>,
 ) {
-    if previous == current {
+    if previous.language_support_settings() == current.language_support_settings()
+        && previous.excluded_directories == current.excluded_directories
+    {
         return;
     }
-    match index_command_sender.try_send(crate::index::IndexCommand::Refresh) {
-        Ok(()) | Err(TrySendError::Full(_)) => {}
-        Err(TrySendError::Disconnected(_)) => {
-            tracing::warn!(
-                "language support changed, but the indexer is unavailable; \
-                 search results remain stale until recovery"
-            );
-        }
+    // This is the dedicated config thread, not the request loop. Waiting for capacity
+    // ensures a queued RefreshPaths cannot swallow the required full reconciliation.
+    if index_command_sender
+        .send(crate::index::IndexCommand::Refresh)
+        .is_err()
+    {
+        tracing::warn!("index scope changed, but the indexer is unavailable; search results remain stale until recovery");
     }
 }
 
@@ -1030,6 +1040,7 @@ fn is_config_event(
     if matches!(event.kind, EventKind::Access(_)) {
         return false;
     }
+    tracing::debug!(kind = ?event.kind, paths = ?event.paths, "config watcher event");
     event.paths.iter().any(|path| {
         let path = crate::workspace::canonicalize_path_lenient(path);
         config_paths.contains(&path)
@@ -1172,7 +1183,7 @@ fn version_marker_line(version: u32) -> String {
 ///
 /// Never-exit: a directory-create, read, or write failure warns to stderr and returns rather
 /// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
-/// keys are still commented so syncing an existing config stays behavior-preserving.
+/// keys are still commented; the v6 exception materializes existing exclusions once.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1202,8 +1213,21 @@ fn scaffold_fresh(dir: &Path, path: &Path) {
         ));
         return;
     }
-    let template = config_template(config_comment_language());
-    if let Err(e) = std::fs::write(path, template) {
+    let repo_root = dir.parent().unwrap_or(dir);
+    let template =
+        match scaffold::fresh_config(config_template(config_comment_language()), repo_root) {
+            Ok(template) => template,
+            Err(error) => {
+                warn(&format!("config template skipped: {error}"));
+                return;
+            }
+        };
+    if let Err(e) = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .and_then(|mut file| file.write_all(template.as_bytes()))
+    {
         warn(&format!(
             "config template skipped: write {}: {e}",
             path.display()
@@ -1216,12 +1240,31 @@ fn scaffold_fresh(dir: &Path, path: &Path) {
 /// Incrementally sync an existing config file: stamp-gate, presence-guarded additive insert,
 /// re-stamp, rewrite. A no-op (no write) when the file is already at [`CONFIG_VERSION`].
 fn migrate_existing(path: &Path, existing: &str) {
+    let original = existing;
     let file_version = parse_version_marker(existing).unwrap_or(CONFIG_BASELINE_VERSION);
     if file_version >= CONFIG_VERSION {
         return; // already current — never touch the user's file
     }
+    let existing = if file_version < 6 {
+        let repo_root = path
+            .parent()
+            .and_then(Path::parent)
+            .unwrap_or(Path::new("."));
+        match scaffold::migrate_exclusions(existing, repo_root, &get().excluded_directories) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config v6 migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        }
+    } else {
+        existing.to_string()
+    };
     let Some(updated) = apply_migrations_with_language(
-        existing,
+        &existing,
         file_version,
         CONFIG_VERSION,
         MIGRATIONS,
@@ -1229,7 +1272,7 @@ fn migrate_existing(path: &Path, existing: &str) {
     ) else {
         return; // already current — never touch the user's file
     };
-    if let Err(e) = std::fs::write(path, updated) {
+    if let Err(e) = scaffold::write_migration(path, original, &updated) {
         warn(&format!(
             "config sync skipped: write {}: {e}",
             path.display()
@@ -1512,6 +1555,25 @@ fn as_string_array(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<St
     Some(out)
 }
 
+fn as_directory_patterns(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<String>> {
+    let patterns = as_string_array(value, key, path)?;
+    match DirectoryExclusions::new(&patterns) {
+        Ok(_) => Some(
+            patterns
+                .into_iter()
+                .map(|pattern| pattern.replace('\\', "/"))
+                .collect(),
+        ),
+        Err(error) => {
+            warn(&format!(
+                "config '{key}': {error}: {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
 fn as_allowed_roots(value: &toml::Value, key: &str, path: &Path) -> Option<Vec<PathBuf>> {
     let raw_roots = as_string_array(value, key, path)?;
     let mut roots = Vec::with_capacity(raw_roots.len());
@@ -1658,48 +1720,61 @@ mod tests {
     }
 
     #[test]
-    fn test_language_support_refresh_request_is_coalesced_and_change_sensitive() {
+    fn test_index_scope_refresh_survives_a_full_path_queue() {
         let (sender, receiver) = sync_channel(1);
-        request_refresh_if_language_support_changed(
-            [false; 5],
-            [false, true, true, true, true],
-            &sender,
-        );
-        assert!(matches!(
-            receiver.try_recv(),
-            Ok(crate::index::IndexCommand::Refresh)
-        ));
+        let previous = ResolvedConfig::default();
+        request_refresh_if_index_scope_changed(&previous, &previous, &sender);
         assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
-
-        request_refresh_if_language_support_changed([false; 5], [false; 5], &sender);
-        assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
-
         sender
-            .try_send(crate::index::IndexCommand::Refresh)
+            .send(crate::index::IndexCommand::RefreshPaths(vec![]))
             .unwrap();
-        request_refresh_if_language_support_changed([false; 5], [true; 5], &sender);
+        let mut current = previous.clone();
+        current.excluded_directories.clear();
+        let task = std::thread::spawn(move || {
+            request_refresh_if_index_scope_changed(&previous, &current, &sender);
+        });
         assert!(matches!(
-            receiver.try_recv(),
-            Ok(crate::index::IndexCommand::Refresh)
+            receiver.recv().unwrap(),
+            crate::index::IndexCommand::RefreshPaths(_)
         ));
-        assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
+        assert!(matches!(
+            receiver.recv_timeout(Duration::from_secs(2)).unwrap(),
+            crate::index::IndexCommand::Refresh
+        ));
+        task.join().unwrap();
     }
 
     #[test]
-    fn test_excluded_directories_augment_not_replace() {
+    fn test_excluded_directories_replace_and_validate() {
         let repo = tempdir().unwrap();
         let global = tempdir().unwrap();
+        std::fs::write(
+            global.path().join("config.toml"),
+            "[index]\nexcluded_directories = ['vendor']\n",
+        )
+        .unwrap();
         write_repo_config(
             repo.path(),
-            "excluded_directories = [\"__pycache__\", \"coverage\"]\n",
+            "[index]\nexcluded_directories = ['apps/web/build']\n",
         );
-        let cfg = load(repo.path(), global.path());
-        // configured names are present...
-        assert!(cfg.excluded_directories.iter().any(|d| d == "__pycache__"));
-        assert!(cfg.excluded_directories.iter().any(|d| d == "coverage"));
-        // ...and the built-ins are NOT dropped.
-        assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
-        assert!(cfg.excluded_directories.iter().any(|d| d == "target"));
+        assert_eq!(
+            load(repo.path(), global.path()).excluded_directories,
+            vec!["apps/web/build"]
+        );
+        write_repo_config(repo.path(), "[index]\nexcluded_directories = []\n");
+        assert!(load(repo.path(), global.path())
+            .excluded_directories
+            .is_empty());
+        write_repo_config(repo.path(), "[index]\nexcluded_directories = ['../bad']\n");
+        assert_eq!(
+            load(repo.path(), global.path()).excluded_directories,
+            vec!["vendor"]
+        );
+        write_repo_config(repo.path(), "[index]\n");
+        assert_eq!(
+            load(repo.path(), global.path()).excluded_directories,
+            vec!["vendor"]
+        );
     }
 
     #[test]
@@ -1956,7 +2031,7 @@ mod tests {
             let migrated =
                 apply_migrations_with_language(original, 3, CONFIG_VERSION, MIGRATIONS, language)
                     .unwrap();
-            assert!(migrated.contains("# codemap-config-version: 5"));
+            assert!(migrated.contains(&version_marker_line(CONFIG_VERSION)));
             assert!(migrated.contains("# [language_support]"));
             assert!(migrated.contains("# is_document_support_enabled = false"));
             assert!(migrated.contains("# is_shell_support_enabled = false"));

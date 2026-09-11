@@ -293,6 +293,7 @@ async fn test_read_non_utf8_content_decodes_lossily() {
 #[tokio::test]
 async fn test_find_respects_gitignore_and_excludes_node_modules() {
     let temp = sample_repo();
+    std::fs::write(temp.path().join("package.json"), "{}").unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
