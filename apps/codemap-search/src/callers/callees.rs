@@ -35,6 +35,9 @@ pub(super) fn discover_callees(
         Some(c) => c,
         None => return Vec::new(),
     };
+    let mut source = content.into_bytes();
+    super::test_code::TestCodeFilter::from_config(root).mask_source(file_path, &mut source);
+    let content = String::from_utf8(source).ok().unwrap_or_default();
     let lines: Vec<&str> = content.lines().collect();
     let start = sym.range.start_line.saturating_sub(1);
     let end = sym.range.end_line.min(lines.len());
@@ -104,7 +107,7 @@ fn resolve_navigation_callee_display(
                 let (file, sym) = owner_candidates[0];
                 return DiscoveredCallee {
                     name: call.name.clone(),
-                    display: qualified_name(sym, &file.file_path),
+                    display: definition_display(file, sym),
                     is_precise: true,
                 };
             }
@@ -117,7 +120,7 @@ fn resolve_navigation_callee_display(
         let (file, sym) = same_file[0];
         return DiscoveredCallee {
             name: call.name.clone(),
-            display: qualified_name(sym, &file.file_path),
+            display: definition_display(file, sym),
             is_precise: true,
         };
     }
@@ -133,7 +136,7 @@ fn resolve_navigation_callee_display(
         let (file, sym) = global[0];
         return DiscoveredCallee {
             name: call.name.clone(),
-            display: qualified_name(sym, &file.file_path),
+            display: definition_display(file, sym),
             is_precise: true,
         };
     }
@@ -197,8 +200,17 @@ fn is_ident_start(c: char) -> bool {
     c.is_alphabetic() || c == '_' || c == '$'
 }
 
-/// Render the qualified form of a callee name when exactly one `fn` of that name exists in
-/// the snapshot (unambiguous owner); otherwise the bare name.
+fn definition_display(file: &ExtractedFile, sym: &ExtractedSymbol) -> String {
+    format!(
+        "{} — {}:{}",
+        qualified_name(sym, &file.file_path),
+        file.file_path,
+        sym.range.start_line
+    )
+}
+
+/// Include the definition location when exactly one `fn` of that name exists in the
+/// snapshot. Ambiguous names retain the bare form instead of inventing a target.
 pub(super) fn callee_display(name: &str, index: &SymbolIndex<'_>) -> String {
     let defs: Vec<_> = index
         .by_name
@@ -207,7 +219,7 @@ pub(super) fn callee_display(name: &str, index: &SymbolIndex<'_>) -> String {
         .unwrap_or_default();
     if defs.len() == 1 {
         let (file, sym) = defs[0];
-        qualified_name(sym, &file.file_path)
+        definition_display(file, sym)
     } else {
         name.to_string()
     }
@@ -230,7 +242,7 @@ mod tests {
         ];
         let index = build_symbol_index(&snapshot);
         // alpha: exactly one fn def → qualified via owner.
-        assert_eq!(callee_display("alpha", &index), "Engine::alpha");
+        assert_eq!(callee_display("alpha", &index), "Engine::alpha — a.rs:1");
         // beta: two defs → bare.
         assert_eq!(callee_display("beta", &index), "beta");
     }

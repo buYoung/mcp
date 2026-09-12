@@ -605,7 +605,7 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
                 }),
                 |text| {
                     text.contains("calls (depth 1")
-                        && text.contains(&format!("- {qualified_target} (precise)"))
+                        && text.contains(&format!("- {qualified_target} — {path}:2 (precise)"))
                 },
             )
             .await
@@ -615,7 +615,7 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             .unwrap();
         assert!(
             caller_text.contains("calls (depth 1")
-                && caller_text.contains(&format!("- {qualified_target} (precise)")),
+                && caller_text.contains(&format!("- {qualified_target} — {path}:2 (precise)")),
             "{path}: precise callee missing from caller symbol: {caller_text}"
         );
     }
@@ -793,12 +793,12 @@ async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp()
         .send_tool_until(
             "search",
             serde_json::json!({ "query": "callerNix", "language_hint": "nix", "caller_context": true }),
-            |text| text.contains("- targetNix (precise)"),
+            |text| text.contains("- targetNix — default.nix:2 (precise)"),
         )
         .await
         .unwrap();
     let caller_text = caller["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(caller_text.contains("- targetNix (precise)"));
+    assert!(caller_text.contains("- targetNix — default.nix:2 (precise)"));
 
     let shadowed = client
         .send_tool_until(

@@ -36,6 +36,7 @@ mod annotate;
 mod callees;
 mod scan;
 mod symbols;
+pub(crate) mod test_code;
 
 pub use annotate::{
     annotate_results, annotate_results_with_state, AnnotationRequest, CallerBlockDedup,

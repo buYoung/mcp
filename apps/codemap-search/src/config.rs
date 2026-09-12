@@ -35,6 +35,8 @@ use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
 mod scaffold;
+mod test_code;
+pub use test_code::TestCodeRules;
 
 /// Permission policy for a live filesystem tool (`find`, `grep`, `read`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,7 +90,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 6;
+const CONFIG_VERSION: u32 = 7;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -216,6 +218,9 @@ pub struct ResolvedConfig {
     /// `caller_context` parameter, when supplied, always overrides this; the key only
     /// decides the default when the parameter is omitted.
     pub caller_context_default: bool,
+    /// Include test regions in automatic symbol and caller/callee context.
+    pub should_include_test_code: bool,
+    pub test_code_rules: TestCodeRules,
     /// Repo-level default for navigation-based precise attribution (default false). Caller
     /// context still renders via the existing name-match fallback when this is off.
     pub navigation_context_default: bool,
@@ -299,6 +304,8 @@ impl Default for ResolvedConfig {
             search_literal_limit: 10,
             search_anchor_snippet_limit: 3,
             caller_context_default: true,
+            should_include_test_code: false,
+            test_code_rules: TestCodeRules::default(),
             navigation_context_default: false,
             navigation_callsite_budget: 1000,
             navigation_store_references: false,
@@ -343,6 +350,8 @@ struct ConfigLayer {
     search_literal_limit: Option<usize>,
     search_anchor_snippet_limit: Option<usize>,
     caller_context_default: Option<bool>,
+    should_include_test_code: Option<bool>,
+    test_code_rules: test_code::TestCodeLayer,
     navigation_context_default: Option<bool>,
     navigation_callsite_budget: Option<usize>,
     navigation_store_references: Option<bool>,
@@ -497,6 +506,11 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
         "caller_context" => matches!(
             key,
             "caller_context_default"
+                | "should_include_test_code"
+                | "test_file_patterns"
+                | "test_attributes"
+                | "test_decorators"
+                | "test_calls"
                 | "navigation_context_default"
                 | "navigation_callsite_budget"
                 | "navigation_store_references"
@@ -583,6 +597,22 @@ fn assign_config_key(
         }
         "caller_context_default" => {
             layer.caller_context_default = as_bool(value, key_display, path)
+        }
+        "should_include_test_code" => {
+            layer.should_include_test_code = as_bool(value, key_display, path)
+        }
+        "test_file_patterns" => {
+            layer.test_code_rules.file_patterns =
+                test_code::parse_patterns(value, key_display, path, true)
+        }
+        "test_attributes" => {
+            layer.test_code_rules.attributes = test_code::parse_languages(value, key_display, path)
+        }
+        "test_decorators" => {
+            layer.test_code_rules.decorators = test_code::parse_languages(value, key_display, path)
+        }
+        "test_calls" => {
+            layer.test_code_rules.calls = test_code::parse_languages(value, key_display, path)
         }
         "navigation_context_default" => {
             layer.navigation_context_default = as_bool(value, key_display, path)
@@ -721,6 +751,14 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .caller_context_default
             .or(global.caller_context_default)
             .unwrap_or(defaults.caller_context_default),
+        should_include_test_code: repo
+            .should_include_test_code
+            .or(global.should_include_test_code)
+            .unwrap_or(defaults.should_include_test_code),
+        test_code_rules: test_code::merge_test_code_rules(
+            repo.test_code_rules,
+            global.test_code_rules,
+        ),
         navigation_context_default: repo
             .navigation_context_default
             .or(global.navigation_context_default)
@@ -1166,6 +1204,41 @@ const MIGRATIONS: &[Migration] = &[
         english_block: "# Shell scripts\n# Includes `.sh`, `.bash`, and `.zsh`.\n# Direct read/parse/find/grep remain available when false.\n# is_shell_support_enabled = false",
         korean_block: "# 셸 스크립트\n# `.sh`, `.bash`, `.zsh`를 포함합니다.\n# false여도 직접 read/parse/find/grep은 계속 허용합니다.\n# is_shell_support_enabled = false",
     },
+    Migration {
+        version: 7,
+        key: "test_calls",
+        placement: KeyPlacement::Subtable("caller_context"),
+        english_block: "# Per-language test rules: replace a list to customize it; [] disables it.\n# test_calls = { javascript = [\"describe\", \"describe.*\", \"it\", \"it.*\", \"test\", \"test.*\", \"suite\", \"suite.*\"], typescript = [\"describe\", \"describe.*\", \"it\", \"it.*\", \"test\", \"test.*\", \"suite\", \"suite.*\"], dart = [\"test\", \"group\", \"testWidgets\"], ruby = [\"describe\", \"context\", \"it\", \"specify\"], powershell = [\"Describe\", \"Context\", \"It\"] }",
+        korean_block: "# 언어별 테스트 규칙: 목록을 바꾸면 사용자 설정으로 대체하고 []로 비활성화합니다.\n# test_calls = { javascript = [\"describe\", \"describe.*\", \"it\", \"it.*\", \"test\", \"test.*\", \"suite\", \"suite.*\"], typescript = [\"describe\", \"describe.*\", \"it\", \"it.*\", \"test\", \"test.*\", \"suite\", \"suite.*\"], dart = [\"test\", \"group\", \"testWidgets\"], ruby = [\"describe\", \"context\", \"it\", \"specify\"], powershell = [\"Describe\", \"Context\", \"It\"] }",
+    },
+    Migration {
+        version: 7,
+        key: "test_decorators",
+        placement: KeyPlacement::Subtable("caller_context"),
+        english_block: "# Per-language test rules: replace a list to customize it; [] disables it.\n# test_decorators = { python = [\"pytest.fixture\", \"pytest.mark.*\", \"unittest.skip\", \"unittest.skipIf\", \"unittest.skipUnless\", \"unittest.expectedFailure\"] }",
+        korean_block: "# 언어별 테스트 규칙: 목록을 바꾸면 사용자 설정으로 대체하고 []로 비활성화합니다.\n# test_decorators = { python = [\"pytest.fixture\", \"pytest.mark.*\", \"unittest.skip\", \"unittest.skipIf\", \"unittest.skipUnless\", \"unittest.expectedFailure\"] }",
+    },
+    Migration {
+        version: 7,
+        key: "test_attributes",
+        placement: KeyPlacement::Subtable("caller_context"),
+        english_block: "# Per-language test rules: replace a list to customize it; [] disables it.\n# test_attributes = { rust = [\"test\", \"tokio::test\", \"async_std::test\", \"rstest\", \"rstest::rstest\", \"cfg(test)\"], java = [\"Test\", \"ParameterizedTest\", \"RepeatedTest\", \"TestFactory\", \"TestTemplate\", \"Nested\", \"BeforeEach\", \"AfterEach\", \"BeforeAll\", \"AfterAll\"], kotlin = [\"Test\", \"ParameterizedTest\", \"RepeatedTest\", \"BeforeTest\", \"AfterTest\", \"BeforeEach\", \"AfterEach\"], csharp = [\"Fact\", \"Theory\", \"Test\", \"TestCase\", \"TestCaseSource\", \"TestFixture\", \"SetUp\", \"TearDown\", \"OneTimeSetUp\", \"OneTimeTearDown\"], swift = [\"Test\", \"Suite\"], php = [\"Test\"] }",
+        korean_block: "# 언어별 테스트 규칙: 목록을 바꾸면 사용자 설정으로 대체하고 []로 비활성화합니다.\n# test_attributes = { rust = [\"test\", \"tokio::test\", \"async_std::test\", \"rstest\", \"rstest::rstest\", \"cfg(test)\"], java = [\"Test\", \"ParameterizedTest\", \"RepeatedTest\", \"TestFactory\", \"TestTemplate\", \"Nested\", \"BeforeEach\", \"AfterEach\", \"BeforeAll\", \"AfterAll\"], kotlin = [\"Test\", \"ParameterizedTest\", \"RepeatedTest\", \"BeforeTest\", \"AfterTest\", \"BeforeEach\", \"AfterEach\"], csharp = [\"Fact\", \"Theory\", \"Test\", \"TestCase\", \"TestCaseSource\", \"TestFixture\", \"SetUp\", \"TearDown\", \"OneTimeSetUp\", \"OneTimeTearDown\"], swift = [\"Test\", \"Suite\"], php = [\"Test\"] }",
+    },
+    Migration {
+        version: 7,
+        key: "test_file_patterns",
+        placement: KeyPlacement::Subtable("caller_context"),
+        english_block: "# Workspace-relative test file globs; slash-less patterns match basenames. [] disables path detection.\n# test_file_patterns = [\"**/tests/**\", \"**/test/**\", \"**/__tests__/**\", \"test_*.py\", \"*_test.*\", \"*.test.*\", \"*_spec.*\", \"*.spec.*\", \"*Test.java\", \"*Tests.java\", \"*IT.java\"]",
+        korean_block: "# 작업공간 기준 테스트 파일 glob입니다. /가 없으면 파일 이름과 비교하며 []로 경로 판별을 끕니다.\n# test_file_patterns = [\"**/tests/**\", \"**/test/**\", \"**/__tests__/**\", \"test_*.py\", \"*_test.*\", \"*.test.*\", \"*_spec.*\", \"*.spec.*\", \"*Test.java\", \"*Tests.java\", \"*IT.java\"]",
+    },
+    Migration {
+        version: 7,
+        key: "should_include_test_code",
+        placement: KeyPlacement::Subtable("caller_context"),
+        english_block: "# Include test regions in automatic symbol/call context. Live read/grep source is unchanged.\n# should_include_test_code = false",
+        korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
+    },
 ];
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
@@ -1305,6 +1378,10 @@ fn file_mentions_key(contents: &str, key: &str) -> bool {
         let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
         body.strip_prefix(key)
             .is_some_and(|rest| rest.trim_start().starts_with('='))
+            || body
+                .strip_prefix('[')
+                .and_then(|table| table.split_once(']'))
+                .is_some_and(|(table, _)| table.trim().rsplit('.').next() == Some(key))
     })
 }
 
@@ -1625,6 +1702,8 @@ mod tests {
         assert_eq!(cfg.search_anchor_snippet_limit, 3);
         // Caller/callee context: annotation on by default, caps at their tuned values.
         assert!(cfg.caller_context_default);
+        assert!(!cfg.should_include_test_code);
+        assert_eq!(cfg.test_code_rules, TestCodeRules::default());
         assert_eq!(cfg.scan_cap, 500);
         assert_eq!(cfg.caller_list_cap, 5);
         assert_eq!(cfg.callee_list_cap, 5);
@@ -1655,6 +1734,65 @@ mod tests {
         // Untouched keys keep their defaults.
         assert_eq!(cfg.caller_list_cap, 5);
         assert_eq!(cfg.annotation_sub_budget, 8192);
+    }
+
+    #[test]
+    fn test_test_rules_override_per_language_and_allow_disabling_defaults() {
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        fs::write(
+            global.path().join(CONFIG_FILE_NAME),
+            r#"
+[caller_context]
+should_include_test_code = true
+test_file_patterns = ["checks/**"]
+test_attributes = { rust = ["global::check"], java = ["GlobalTest"] }
+test_decorators = { python = ["project.check"] }
+"#,
+        )
+        .unwrap();
+        write_repo_config(
+            repo.path(),
+            r#"
+[caller_context]
+should_include_test_code = false
+test_file_patterns = []
+test_attributes = { rust = [], kotlin = ["CustomTest"] }
+test_calls = { typescript = [] }
+"#,
+        );
+        let cfg = load(repo.path(), global.path());
+        assert!(!cfg.should_include_test_code);
+        assert!(cfg.test_code_rules.file_patterns.is_empty());
+        assert!(cfg.test_code_rules.attributes["rust"].is_empty());
+        assert_eq!(cfg.test_code_rules.attributes["java"], ["GlobalTest"]);
+        assert_eq!(cfg.test_code_rules.attributes["kotlin"], ["CustomTest"]);
+        assert_eq!(cfg.test_code_rules.decorators["python"], ["project.check"]);
+        assert!(cfg.test_code_rules.calls["typescript"].is_empty());
+        assert_eq!(
+            cfg.test_code_rules.calls["javascript"],
+            TestCodeRules::default().calls["javascript"]
+        );
+
+        write_repo_config(
+            repo.path(),
+            r#"
+[caller_context]
+test_file_patterns = ["../outside"]
+test_attributes = { rust = ["["], unknown_language = ["check"] }
+"#,
+        );
+        let invalid = load(repo.path(), global.path());
+        assert!(invalid.should_include_test_code);
+        assert_eq!(invalid.test_code_rules.file_patterns, ["checks/**"]);
+        assert_eq!(
+            invalid.test_code_rules.attributes["rust"],
+            ["global::check"]
+        );
+        assert!(!invalid
+            .test_code_rules
+            .attributes
+            .contains_key("unknown_language"));
     }
 
     #[test]

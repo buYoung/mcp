@@ -91,13 +91,15 @@ Use `search` for behavior or unknown implementation locations; use `grep` for ex
 
 In monorepos, `overview` on a directory selects that exact scope for later `search`; a file selects its parent. Explicit `workspace_scope` overrides it; `all`/`전체` selects the whole repository. If the implementation scope is unknown, start with read-only repo-wide discovery and narrow from returned paths. Search never silently widens a chosen scope. Top matches have detailed snippets; the compact tail is bounded. Narrow the query or follow the supplied read ranges when output is partial.
 
-MCP `read`/`grep` show live source alongside indexed symbols and call relationships. Indexed context can lag recent edits.
+MCP `read`/`grep` show live source alongside enclosing declarations and call relationships. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
 
 Tools are read-only over their configured filesystem scope. The server itself writes its index and, when enabled, repo configuration. No MCP resources or prompts are registered.
 
 ## Configure exclusions and output
 
 Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`), then built-in defaults. An active repo key overrides its global value; comment it out to inherit instead.
+
+Automatic symbol/call context excludes test regions by default. Set `[caller_context].should_include_test_code = true` to include them. `test_file_patterns` and the per-language `test_attributes`, `test_decorators`, and `test_calls` lists let you add custom rules or remove built-ins; each explicit list replaces its inherited value and `[]` disables it. Live `read`/`grep` source is preserved. See [test-code context](./docs/configuration.md#test-code-context) for defaults and examples.
 
 On first MCP startup, a missing repo file is generated with **common exclusions plus recursive globs for detected project types**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds `**/node_modules`, `**/dist`, `**/build`, framework outputs and caches; Python, Rust and other build systems add their corresponding globs. Each pattern appears once and applies throughout the workspace, regardless of where the project was detected.
 

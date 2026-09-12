@@ -566,6 +566,12 @@ pub(crate) fn is_non_tree_sitter_extension(ext: &str) -> bool {
     NON_TREE_SITTER_SOURCE_EXTENSIONS.contains(&ext)
 }
 
+pub(crate) fn is_known_language(language: &str) -> bool {
+    ALL_SPECS
+        .iter()
+        .any(|spec| spec.language_name() == language)
+}
+
 /// The source-file extensions codemap-search understands, derived once as the union of
 /// every spec's [`LanguageSpec::extensions`] in [`ALL_SPECS`]. Replaces the former
 /// hand-maintained `workspace::SOURCE_EXTENSIONS` literal so adding a language never edits

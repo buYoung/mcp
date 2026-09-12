@@ -163,6 +163,7 @@ pub(super) fn scan_workspace(
     // (canonicalize → strip canonical root, falling back to the raw root → backslash→slash).
     let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let raw_root = root.to_path_buf();
+    let test_filter = super::test_code::TestCodeFilter::from_config(root);
 
     let mut all_hits: Vec<ScanHit> = Vec::new();
     // `scan_cap` is distributed across the scanned names (with a floor) so one hot name
@@ -197,6 +198,10 @@ pub(super) fn scan_workspace(
             Err(_) => continue,
         }
         let display = crate::workspace::workspace_display_path(path, &canonical_root, &raw_root);
+        let Ok(mut source) = std::fs::read(path) else {
+            continue;
+        };
+        test_filter.mask_source(&display, &mut source);
         let mut sink = ClassifySink {
             names,
             file_path: display,
@@ -205,7 +210,7 @@ pub(super) fn scan_workspace(
             truncated: &mut truncated,
         };
         // A per-file searcher error is isolated: skip the file, keep scanning.
-        if searcher.search_path(&matcher, path, &mut sink).is_err() {
+        if searcher.search_slice(&matcher, &source, &mut sink).is_err() {
             continue;
         }
         all_hits.append(&mut sink.hits);

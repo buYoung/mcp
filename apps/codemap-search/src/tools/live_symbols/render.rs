@@ -7,6 +7,7 @@ struct Selection {
     symbols: BTreeSet<usize>,
     relation_headers: BTreeSet<usize>,
     relations: BTreeMap<usize, String>,
+    references: BTreeMap<usize, String>,
 }
 
 fn add_chain(
@@ -49,6 +50,7 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
             symbols: chosen,
             relation_headers: BTreeSet::new(),
             relations: BTreeMap::new(),
+            references: BTreeMap::new(),
         });
     }
     let cfg = crate::config::get();
@@ -89,6 +91,7 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
     let mut relation_used = 0;
     let mut relation_omitted = 0;
     let mut relation_targets = 0;
+    let mut reference_omitted = 0;
     {
         for (outline, selection) in outlines.iter().zip(&mut selections) {
             for &i in &outline.order {
@@ -123,10 +126,40 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
                 } else {
                     relation_omitted += 1;
                 }
+                if let Some(rows) = outline.references.get(&i) {
+                    let header =
+                        format!("{indent}  - _references (same-file constants, approximate):_\n");
+                    let mut references = String::new();
+                    for row in rows {
+                        let row = format!("{indent}{row}");
+                        let extra = row.len()
+                            + if references.is_empty() {
+                                header.len()
+                            } else {
+                                0
+                            };
+                        if add_chain(
+                            outline,
+                            i,
+                            &mut selection.relation_headers,
+                            &mut relation_used,
+                            cap,
+                            extra,
+                        ) {
+                            if references.is_empty() {
+                                references.push_str(&header);
+                            }
+                            references.push_str(&row);
+                        } else {
+                            reference_omitted += 1;
+                        }
+                    }
+                    selection.references.insert(i, references);
+                }
             }
         }
     }
-    let mut out="Scope: class/struct/impl members. Declaration locations and access are shown below. Verify behavior in # results.\n\n".to_string();
+    let mut out="Scope: enclosing declarations and members. Declaration locations and access are shown below. Verify behavior in # results.\n\n".to_string();
     let mut emitted = 0;
     for (outline, selection) in outlines.iter().zip(&selections) {
         for &i in &outline.order {
@@ -138,6 +171,9 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
             emitted += 1;
             if let Some(detail) = selection.relations.get(&i) {
                 out.push_str(detail);
+            }
+            if let Some(references) = selection.references.get(&i) {
+                out.push_str(references);
             }
         }
     }
@@ -155,6 +191,11 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
     if relation_omitted > 0 {
         out.push_str(&format!(
             "[Relation output cap: {relation_omitted} targets not shown.]\n"
+        ));
+    }
+    if reference_omitted > 0 {
+        out.push_str(&format!(
+            "[Reference output cap: {reference_omitted} entries not shown.]\n"
         ));
     }
     out

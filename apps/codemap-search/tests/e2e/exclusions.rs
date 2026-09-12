@@ -56,7 +56,7 @@ async fn test_exclusions_generated_common_and_project_globs() {
         assert!(!text.contains(excluded), "{text}");
     }
     let config = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
-    assert!(config.starts_with("# codemap-config-version: 6"));
+    assert!(config.starts_with("# codemap-config-version: 7"));
     let parsed: toml::Value = toml::from_str(&config).unwrap();
     let patterns = parsed["index"]["excluded_directories"].as_array().unwrap();
     for pattern in [
@@ -184,6 +184,8 @@ async fn test_exclusions_v6_is_not_regenerated_on_restart() {
     let repo = create_mock_repo(&[
         (".codemap/config.toml", source),
         ("package.json", "{}"),
+        // This test isolates config exclusions from inherited user ignore files.
+        (".gitignore", "!node_modules/\n!node_modules/**\n"),
         (
             "node_modules/source.js",
             "export const visible_dependency = 1;",
@@ -191,15 +193,33 @@ async fn test_exclusions_v6_is_not_regenerated_on_restart() {
         (".idea/source.json", "{}"),
     ])
     .unwrap();
+    let mut previous = None;
     for _ in 0..2 {
         let mut client = McpClient::spawn(repo.path()).await.unwrap();
         let found = call(&mut client, "find", json!({"pattern": "**/*"})).await;
-        assert!(result_text(&found).contains("node_modules/source.js"));
-        assert!(result_text(&found).contains(".idea/source.json"));
-        assert_eq!(
-            fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap(),
-            source
+        assert!(
+            result_text(&found).contains("node_modules/source.js"),
+            "{}",
+            result_text(&found)
         );
+        assert!(result_text(&found).contains(".idea/source.json"));
+        let updated = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
+        assert!(updated.starts_with("# codemap-config-version: 7"));
+        let parsed: toml::Value = toml::from_str(&updated).unwrap();
+        assert_eq!(
+            parsed["index"]["excluded_directories"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+        if let Some(previous) = &previous {
+            assert_eq!(
+                &updated, previous,
+                "the next restart must not rewrite a current config"
+            );
+        }
+        previous = Some(updated);
         client.child.kill().await.unwrap();
     }
 }
@@ -214,7 +234,7 @@ async fn test_exclusions_pre_v6_transition_and_opt_out() {
         let mut client = McpClient::spawn(repo.path()).await.unwrap();
         call(&mut client, "find", json!({"pattern": "**/*"})).await;
         let updated = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
-        assert!(updated.starts_with("# codemap-config-version: 6"));
+        assert!(updated.starts_with("# codemap-config-version: 7"));
         assert!(updated.contains("# keep"));
         assert!(updated.contains("# custom rule"));
         let value: toml::Value = toml::from_str(&updated).unwrap();

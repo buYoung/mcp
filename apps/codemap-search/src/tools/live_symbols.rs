@@ -1,4 +1,5 @@
 //! Indexed member and call context above untouched live filesystem results.
+mod references;
 mod render;
 mod structure;
 
@@ -51,18 +52,44 @@ pub(crate) fn append(
         "[Symbol index unavailable or stale; live results remain available below.]\n".to_string()
     } else {
         let snapshot = engine.published_snapshot();
-        let files = snapshot.codemap();
+        let source_files = snapshot.codemap();
+        let root = std::env::current_dir().unwrap_or_default();
+        let test_filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
+        let filtered_files = test_filter.filter_snapshot(&source_files);
+        let files = filtered_files.as_ref();
         let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
         for anchor in &output.anchors {
             grouped.entry(&anchor.file_path).or_default().push(anchor);
         }
         let mut outlines = Vec::new();
+        let mut has_excluded_test_context = false;
         for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
+            if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
+                has_excluded_test_context |= file.symbols.iter().any(|symbol| {
+                    anchors.iter().any(|anchor| {
+                        anchor
+                            .start_line
+                            .zip(anchor.end_line)
+                            .is_none_or(|(start, end)| {
+                                symbol.range.start_line <= end && start <= symbol.range.end_line
+                            })
+                    }) && test_filter.is_excluded(path, &symbol.range)
+                });
+            }
             if let Some(file) = files.iter().find(|file| file.file_path == *path) {
                 outlines.push(structure::Outline::new(file, anchors));
             }
         }
-        let mut rendered = render::render(&outlines, &files, cap);
+        let mut rendered = if has_excluded_test_context {
+            let notice = "[Test code excluded from automatic context; set caller_context.should_include_test_code=true to include it.]\n";
+            if outlines.iter().all(|outline| outline.selected.is_empty()) {
+                notice.to_string()
+            } else {
+                format!("{notice}\n{}", render::render(&outlines, files, cap))
+            }
+        } else {
+            render::render(&outlines, files, cap)
+        };
         if grouped.len() > OUTLINED_FILE_LIMIT {
             rendered.push_str(&format!(
                 "[File limit: {} returned files not outlined.]\n",

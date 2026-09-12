@@ -17,15 +17,15 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **6**. The marker is a comment:
+The current configuration schema is **7**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 6
+# codemap-config-version: 7
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
 - On `mcp` startup, `[update].config_auto_update = true` creates a missing repo file. Its directory array contains common folders and recursive globs for detected project types; other active values use their built-in defaults. Active repo values override global settings.
-- A pre-v6 repo config, including one without a marker, receives a **one-time directory migration**. Existing user rules, the old effective exclusions, common folders and recommended recursive globs are made explicit in its array. Existing entries and comments are preserved; missing values are appended without duplication. The marker advances to 6.
+- A pre-v6 repo config, including one without a marker, receives a **one-time directory migration**. Existing user rules, the old effective exclusions, common folders and recommended recursive globs are made explicit in its array. Existing entries and comments are preserved; missing values are appended without duplication. The marker advances to the current schema version.
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
@@ -145,6 +145,11 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
 | `[caller_context].caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
+| `[caller_context].should_include_test_code` | bool | `false` | Include tests in automatic symbol/call context |
+| `[caller_context].test_file_patterns` | string array | See test-code context | Test file globs; [] disables path detection |
+| `[caller_context].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
+| `[caller_context].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
+| `[caller_context].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
 | `[caller_context].navigation_context_default` | bool | `false` | Check source structure and mark confirmed call targets `precise` |
 | `[caller_context].navigation_callsite_budget` | integer | `1000` | Maximum call sites checked before using approximate name-based scanning |
 | `[caller_context].navigation_store_references` | bool | `false` | Store reference locations other than function calls |
@@ -177,9 +182,70 @@ The five `[language_support]` switches control indexing, search, overview, codem
 
 `navigation_store_references` stores reference locations other than function calls; it is not required to confirm call targets. Some structured formats always store references. The setting applies during parsing, so restarting alone may reuse unchanged files without reparsing them.
 
+Resolved `calls` entries include the definition as `name — file:line`, in both approximate and `precise` modes. Ambiguous targets keep their bare names. MCP `read`/`grep` also show `references (same-file constants, approximate)` for direct bare identifiers in the displayed functions. This works with `navigation_store_references = false`: the source tree is checked against indexed constant declarations (including JavaScript/TypeScript `const` bindings). Locations and initializer text are shown without evaluating code; previews longer than 240 characters are shortened. Comments, strings, qualified/imported references, macro token trees, duplicate names, and names with local bindings are omitted. Test exclusions and context byte budgets also apply to these references, with a notice when the budget omits entries.
+
 `scan_cap` is shared across scanned names, with a minimum of 25 hits per name. `caller_list_cap` and `callee_list_cap` limit each symbol's displayed relationships. `annotation_sub_budget` limits their total output in bytes within `search_detail_byte_cap`; source snippets take priority, and omitted relationships are noted.
 
 At `common_name_threshold` definitions of the same name, approximate relationships carry an ambiguity label. At `caller_omit_def_threshold`, the approximate caller list is replaced by a note and a `grep` suggestion. This does not suppress callees or prevent a confirmed target from being shown.
+
+### Test-code context
+
+`should_include_test_code = false` excludes configured test regions from automatic `read`/`grep` symbol context and `search` caller/callee annotations. The filter runs before definition counts, navigation lookup, and caller-scan budgets. Direct `read`/`grep` source, search hits, and the stored index remain available. Set it to `true` to include test context; directory/ignore exclusions still apply independently.
+
+All four rule lists are editable. An explicit list **replaces** its inherited list; it is not added to a hidden built-in list. For the language tables, precedence is per language: repo → global → built-in. Omit a language to inherit, set it to `[]` to disable that category, or copy its default list and add/remove individual patterns. `{}` inherits all language entries. Invalid lists warn and inherit; unknown language names warn and are ignored. Language names use the registered canonical names such as `rust`, `python`, `typescript`, and `csharp`.
+
+- `test_file_patterns`: case-sensitive workspace-relative globs. A pattern without `/` matches the basename at any depth. Absolute paths, parent traversal, empty patterns, and `!` negation are invalid.
+- `test_attributes`: attribute/annotation name globs without `#[...]` or `@`. Qualified names and their final annotation/decorator component are checked; Rust `::` paths stay qualified. The Rust entry `cfg(test)` enables conditional-expression checks that prove a region requires test mode, including `all`/`any`/`not`; `cfg(not(test))` is retained.
+- `test_decorators`: decorator name globs, without `@` or argument values.
+- `test_calls`: called-expression name globs such as `test` or `describe.*`. The matched expression and its callback bodies form a test region.
+
+Rules combine with OR: disabling one marker does not include a file still matched by a path rule or code inside another test region. Test classification extends through the matched region, including nested helpers, but not into ordinary functions called from that region. Rules inspect source syntax; they do not resolve imports/aliases or expand custom macros. Register alias spellings explicitly. Unknown source shapes or unreadable/oversized source files retain their unclassified context.
+
+Changes apply to subsequent requests after config reload without rebuilding the search index. A bounded cache is invalidated by source metadata or changed rules. Existing configured lists are never automatically supplemented with newly introduced defaults.
+
+The following example keeps selected built-ins, adds custom markers, and disables Java attribute and TypeScript call-name detection. Other active rules still apply.
+
+```toml
+[caller_context]
+should_include_test_code = false
+# Replace the complete path list with the patterns you want.
+test_file_patterns = ["**/tests/**", "*_test.go", "*.test.ts", "checks/**"]
+
+[caller_context.test_attributes]
+rust = ["test", "tokio::test", "cfg(test)", "company::case"]
+java = []
+
+[caller_context.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "company_test"]
+
+[caller_context.test_calls]
+typescript = []
+```
+
+Default lists (languages not listed have no built-in entries for that category):
+
+```toml
+[caller_context]
+test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
+
+[caller_context.test_attributes]
+rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
+java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
+kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
+csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture", "SetUp", "TearDown", "OneTimeSetUp", "OneTimeTearDown"]
+swift = ["Test", "Suite"]
+php = ["Test"]
+
+[caller_context.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
+
+[caller_context.test_calls]
+javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+dart = ["test", "group", "testWidgets"]
+ruby = ["describe", "context", "it", "specify"]
+powershell = ["Describe", "Context", "It"]
+```
 
 ### Filesystem permissions
 
@@ -249,6 +315,7 @@ allowed_roots = []
 
 [caller_context]
 caller_context_default = true
+should_include_test_code = false
 navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false

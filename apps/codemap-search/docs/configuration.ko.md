@@ -15,15 +15,15 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **6**이며 주석으로 표시합니다.
+현재 설정 버전은 **7**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 6
+# codemap-config-version: 7
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
 - `[update].config_auto_update = true`이면 MCP 시작 시 누락된 저장소 설정을 만듭니다. 제외 배열에는 공통 폴더와 감지한 프로젝트 종류의 재귀 glob을 넣고, 다른 활성 키에는 내장 기본값을 씁니다. 활성 저장소 키는 전역값보다 우선합니다.
-- 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 추천 재귀 glob을 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 버전을 6으로 바꿉니다.
+- 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 추천 재귀 glob을 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 현재 스키마 버전으로 바꿉니다.
 - **버전 6부터 `excluded_directories`는 자동으로 만들거나 보충하지 않습니다.** 항목 삭제, `[]` 지정, 키 주석 처리, 새 프로젝트 추가 후에도 목록을 복원하지 않습니다. 수동 변경을 읽어 적용하는 동작은 계속됩니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
@@ -143,6 +143,11 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[caller_context].caller_context_default` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
+| `[caller_context].should_include_test_code` | bool | `false` | 자동 심볼·호출 관계에 테스트 코드 포함 |
+| `[caller_context].test_file_patterns` | 문자열 배열 | 테스트 코드 문맥 참고 | 테스트 파일 glob. []는 경로 판별 해제 |
+| `[caller_context].test_attributes` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 속성·어노테이션 패턴. 언어별 목록을 상속값 대신 적용 |
+| `[caller_context].test_decorators` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 데코레이터 패턴. []는 해당 언어 목록 해제 |
+| `[caller_context].test_calls` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 테스트 호출 패턴. []는 해당 언어 목록 해제 |
 | `[caller_context].navigation_context_default` | bool | `false` | 소스 구조로 호출 대상을 확인하면 `precise`로 표시 |
 | `[caller_context].navigation_callsite_budget` | 정수 | `1000` | 이름 기반 추정으로 전환하기 전 검사할 최대 호출 위치 수 |
 | `[caller_context].navigation_store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
@@ -175,9 +180,70 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 `navigation_store_references`는 함수 호출 외의 참조 위치를 저장하며 호출 대상 확인에 필수인 설정은 아닙니다. 일부 구조화 형식은 참조를 항상 저장합니다. 파싱 시 적용하므로 재시작만으로 변경되지 않은 파일을 다시 파싱하지 않을 수 있습니다.
 
+대상이 정해진 `calls` 항목에는 추정 모드와 `precise` 모드 모두 `이름 — 파일:줄` 형식으로 정의 위치를 붙입니다. 대상이 모호하면 이름만 유지합니다. MCP `read`/`grep`은 표시한 함수의 직접 식별자 참조를 `references (same-file constants, approximate)`로 함께 보여줍니다. 소스 구문 트리와 색인의 상수 선언(JavaScript/TypeScript의 `const` 바인딩 포함)을 확인하므로 `navigation_store_references = false`여도 동작합니다. 코드를 실행하지 않고 정의 위치와 초기값 원문을 표시하며, 240자를 넘는 값은 줄여서 표시합니다. 주석·문자열, 경로를 붙이거나 import한 참조, 매크로 토큰, 중복 이름, 지역 바인딩이 있는 이름은 생략합니다. 테스트 제외 규칙과 문맥 출력 크기 제한도 적용하며, 크기 제한으로 생략한 항목은 안내합니다.
+
 `scan_cap`은 검색할 이름들이 나누어 사용하며 이름당 최소 25건을 허용합니다. `caller_list_cap`과 `callee_list_cap`은 심볼별 관계 수를 제한합니다. `annotation_sub_budget`은 `search_detail_byte_cap` 안에서 호출 관계의 총 출력 크기를 바이트로 제한합니다. 원문 발췌가 우선하며 생략한 관계는 안내합니다.
 
 같은 이름의 정의가 `common_name_threshold` 이상이면 추정 관계에 모호함을 표시합니다. `caller_omit_def_threshold` 이상이면 추정 호출자 목록 대신 안내와 `grep` 제안을 표시합니다. 호출 대상 목록이나 확인된 대상의 표시를 막지는 않습니다.
+
+### 테스트 코드 문맥
+
+`should_include_test_code = false`이면 설정한 테스트 영역을 `read`/`grep`의 자동 심볼 문맥과 `search`의 호출 관계에서 제외합니다. 같은 이름의 정의 개수, 호출 대상 조회, 호출자 탐색 한도를 계산하기 전에 적용합니다. 직접 `read`/`grep`한 원문, 검색 결과와 저장된 색인은 유지됩니다. `true`이면 테스트 문맥을 포함하지만 디렉터리·무시 파일 제외 규칙은 별도로 적용됩니다.
+
+네 종류의 목록을 모두 수정할 수 있습니다. 명시한 목록은 상속한 목록을 **대체**하며 숨겨진 내장 목록에 합쳐지지 않습니다. 언어별 표는 각 언어마다 저장소 → 전역 → 내장 순으로 선택합니다. 언어를 생략하면 상속하고 `[]`이면 해당 종류의 판별을 끕니다. 기본값을 복사해 항목을 추가하거나 삭제할 수도 있습니다. `{}`는 모든 언어 항목을 상속합니다. 잘못된 목록은 경고 후 상속하며, 알 수 없는 언어 이름은 경고 후 무시합니다. 언어 이름은 `rust`, `python`, `typescript`, `csharp` 같은 등록된 이름을 사용합니다.
+
+- `test_file_patterns`: 작업공간 기준의 대소문자를 구분하는 glob입니다. `/`가 없으면 깊이에 관계없이 파일 이름과 비교합니다. 절대 경로, 상위 경로 이동, 빈 패턴, `!` 부정은 허용하지 않습니다.
+- `test_attributes`: `#[...]`·`@`를 뺀 속성·어노테이션 이름 glob입니다. 전체 이름과 마지막 어노테이션·데코레이터 이름을 확인하며 Rust의 `::` 경로는 전체 이름으로 비교합니다. Rust의 `cfg(test)` 항목은 `all`·`any`·`not` 조건 중 테스트 모드가 필요한 영역도 판별합니다. `cfg(not(test))`는 유지합니다.
+- `test_decorators`: `@`와 인자 값을 뺀 데코레이터 이름 glob입니다.
+- `test_calls`: `test`, `describe.*` 같은 호출 표현식 이름 glob입니다. 일치한 표현식과 그 콜백 본문을 테스트 영역으로 취급합니다.
+
+규칙은 OR로 적용합니다. 특정 마커를 꺼도 파일 패턴이나 다른 테스트 영역에 포함된 코드는 계속 제외됩니다. 테스트 영역 안의 헬퍼는 함께 제외하지만 그 영역에서 호출하는 일반 함수까지 테스트로 분류하지는 않습니다. 소스 구문을 검사하며 import·별칭 해석이나 사용자 매크로 확장은 수행하지 않습니다. 별칭은 해당 이름을 직접 등록하세요. 판별할 수 없는 구문과 읽을 수 없거나 크기 제한을 넘는 소스의 미분류 문맥은 유지합니다.
+
+설정을 다시 읽은 뒤 다음 요청부터 적용되며 검색 색인을 다시 만들 필요는 없습니다. 크기가 제한된 캐시는 소스 메타데이터나 규칙 변경 시 갱신합니다. 명시한 목록에 새 내장 기본값을 자동으로 보충하지 않습니다.
+
+다음 예시는 내장 규칙 일부를 유지하고 사용자 마커를 추가하면서 Java 속성과 TypeScript 호출 이름 판별을 끕니다. 다른 활성 규칙은 계속 적용됩니다.
+
+```toml
+[caller_context]
+should_include_test_code = false
+# Replace the complete path list with the patterns you want.
+test_file_patterns = ["**/tests/**", "*_test.go", "*.test.ts", "checks/**"]
+
+[caller_context.test_attributes]
+rust = ["test", "tokio::test", "cfg(test)", "company::case"]
+java = []
+
+[caller_context.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "company_test"]
+
+[caller_context.test_calls]
+typescript = []
+```
+
+기본 목록입니다. 표에 없는 언어는 해당 종류의 내장 항목이 없습니다.
+
+```toml
+[caller_context]
+test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
+
+[caller_context.test_attributes]
+rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
+java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
+kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
+csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture", "SetUp", "TearDown", "OneTimeSetUp", "OneTimeTearDown"]
+swift = ["Test", "Suite"]
+php = ["Test"]
+
+[caller_context.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
+
+[caller_context.test_calls]
+javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+dart = ["test", "group", "testWidgets"]
+ruby = ["describe", "context", "it", "specify"]
+powershell = ["Describe", "Context", "It"]
+```
 
 ### 파일시스템 권한
 
@@ -197,7 +263,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 ## `config.toml` 예시
 
-모든 값을 명시한 예시입니다. 실제 파일에는 변경할 키만 남겨도 됩니다.
+주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
 # Every setting is optional; omitted settings use the defaults above.
@@ -247,6 +313,7 @@ allowed_roots = []
 
 [caller_context]
 caller_context_default = true
+should_include_test_code = false
 navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false

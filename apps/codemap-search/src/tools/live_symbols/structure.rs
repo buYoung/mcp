@@ -1,6 +1,6 @@
 use super::LiveAnchor;
 use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use tree_sitter::{Node, Parser, Point, Tree};
 
@@ -25,7 +25,7 @@ fn contains(outer: &ExtractedSymbol, inner: &ExtractedSymbol) -> bool {
     a <= c && d <= b && (a != c || b != d)
 }
 
-fn symbol_node<'a>(tree: &'a Tree, s: &ExtractedSymbol) -> Option<Node<'a>> {
+pub(super) fn symbol_node<'a>(tree: &'a Tree, s: &ExtractedSymbol) -> Option<Node<'a>> {
     let r = &s.range;
     let start = Point::new(
         r.start_line.saturating_sub(1),
@@ -94,6 +94,7 @@ pub(super) struct Outline {
     pub selected: BTreeSet<usize>,
     pub rows: Vec<String>,
     pub order: Vec<usize>,
+    pub references: BTreeMap<usize, Vec<String>>,
 }
 
 impl Outline {
@@ -138,16 +139,18 @@ impl Outline {
         let mut selected = BTreeSet::new();
         let intersects = |s: &ExtractedSymbol| {
             anchors.iter().any(|a| {
+                // File-only grep results have no line window and describe the whole file.
                 a.start_line
                     .zip(a.end_line)
-                    .is_some_and(|(lo, hi)| s.range.start_line <= hi && lo <= s.range.end_line)
+                    .is_none_or(|(lo, hi)| s.range.start_line <= hi && lo <= s.range.end_line)
             })
         };
         let mut roots = BTreeSet::new();
         for (i, _) in symbols.iter().enumerate().filter(|(_, s)| intersects(s)) {
             let mut current = Some(i);
             while let Some(j) = current {
-                if container(&symbols[j]) {
+                // Free functions and other top-level declarations are scope roots too.
+                if container(&symbols[j]) || parents[j].is_none() {
                     roots.insert(j);
                     break;
                 }
@@ -176,7 +179,11 @@ impl Outline {
                 current = parents[j];
             }
         }
-        let source = std::fs::read_to_string(&file.file_path).unwrap_or_default();
+        let mut source = std::fs::read(&file.file_path).unwrap_or_default();
+        let root = std::env::current_dir().unwrap_or_default();
+        crate::callers::test_code::TestCodeFilter::from_config(&root)
+            .mask_source(&file.file_path, &mut source);
+        let source = String::from_utf8(source).unwrap_or_default();
         let path = Path::new(&file.file_path);
         let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
         let tree = crate::lang::spec_for_path(path).and_then(|spec| {
@@ -231,6 +238,10 @@ impl Outline {
                 )
             })
             .collect();
+        let references = tree
+            .as_ref()
+            .map(|tree| super::references::collect(file, &selected, tree, &source))
+            .unwrap_or_default();
         let mut children = vec![Vec::new(); symbols.len() + 1];
         for (i, p) in parents.iter().enumerate() {
             children[p.unwrap_or(symbols.len())].push(i);
@@ -259,6 +270,7 @@ impl Outline {
             selected,
             rows,
             order,
+            references,
         }
     }
 

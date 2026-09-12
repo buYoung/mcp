@@ -61,6 +61,200 @@ async fn test_tools_list_includes_read_find_grep() {
 // ---- read ----------------------------------------------------------------
 
 #[tokio::test]
+async fn test_live_context_includes_callee_locations_and_constant_values() {
+    let source = concat!(
+        "pub const CODEMAP_DIR_NAME: &str = \".codemap\";\n",
+        "const CONFIG_FILE_NAME: &str = \"config.toml\";\n",
+        "const TEXT_ONLY: &str = \"not referenced\";\n",
+        "fn read_layer(path: &str) {}\n",
+        "pub fn load() {\n",
+        "    read_layer(CODEMAP_DIR_NAME);\n",
+        "    read_layer(CONFIG_FILE_NAME);\n",
+        "    let text = \"TEXT_ONLY\"; // TEXT_ONLY\n",
+        "}\n",
+    );
+    let temp = create_mock_repo(&[
+        ("src/config.rs", source),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update = false\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let ready = client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path": "src/config.rs", "offset": 5, "limit": 5}),
+            |out| out.contains("load [function"),
+        )
+        .await
+        .unwrap();
+    let out = text(&ready);
+    let (context, raw) = out.split_once("\n# results\n").unwrap();
+    assert!(context.contains("read_layer — src/config.rs:4"), "{out}");
+    assert!(
+        context.contains("CODEMAP_DIR_NAME — src/config.rs:1 = \".codemap\""),
+        "{out}"
+    );
+    assert!(
+        context.contains("CONFIG_FILE_NAME — src/config.rs:2 = \"config.toml\""),
+        "{out}"
+    );
+    assert!(
+        !context.contains("TEXT_ONLY"),
+        "comments and strings are not references: {out}"
+    );
+    assert_eq!(
+        raw.lines().count(),
+        5,
+        "source window must stay unchanged: {raw}"
+    );
+    assert!(
+        raw.contains("8→    let text = \"TEXT_ONLY\"; // TEXT_ONLY"),
+        "{raw}"
+    );
+
+    let grep = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({
+                    "path": "src/config.rs", "pattern": "read_layer\\(CODEMAP_DIR_NAME\\)"
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+    let grep_out = text(&grep);
+    let (context, raw) = grep_out.split_once("\n# results\n").unwrap();
+    assert!(
+        context.contains("read_layer — src/config.rs:4"),
+        "{grep_out}"
+    );
+    assert!(
+        context.contains("CODEMAP_DIR_NAME — src/config.rs:1 = \".codemap\""),
+        "{grep_out}"
+    );
+    assert!(
+        raw.contains("src/config.rs:6:    read_layer(CODEMAP_DIR_NAME);"),
+        "{raw}"
+    );
+}
+
+#[tokio::test]
+async fn test_live_constant_context_respects_the_read_output_budget() {
+    let mut source = String::new();
+    for index in 0..100 {
+        source.push_str(&format!("const VALUE_{index}: &str = \"value {index}\";\n"));
+    }
+    source.push_str("fn consume_values() {\n");
+    for index in 0..100 {
+        source.push_str(&format!("    consume(VALUE_{index});\n"));
+    }
+    source.push_str("}\n");
+    let temp = create_mock_repo(&[
+        ("src/values.rs", &source),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update = false\n[tool_output]\nread_output_byte_cap = 1800\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response = client
+        .send_tool_until(
+            "read",
+            serde_json::json!({
+                "file_path": "src/values.rs", "offset": 101, "limit": 1
+            }),
+            |out| out.contains("consume_values [function"),
+        )
+        .await
+        .unwrap();
+    let out = text(&response);
+    assert!(out.len() <= 1800, "{} bytes: {out}", out.len());
+    assert!(out.contains("[Reference output cap:"), "{out}");
+    assert_eq!(
+        out.split_once("\n# results\n").unwrap().1.trim_end(),
+        "   101→fn consume_values() {"
+    );
+}
+
+#[tokio::test]
+async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
+    let base_config = "[update]\nconfig_auto_update = false\n[index]\nexcluded_directories = [\"**/tests/fixtures\"]\n[caller_context]\n";
+    let temp = create_mock_repo(&[
+        (".codemap/config.toml", base_config),
+        (
+            "src/inline.rs",
+            "#[test]\nfn verify_rust() { helper(); }\nfn helper() {}\n",
+        ),
+        (
+            "src/inline.py",
+            "@pytest.mark.slow\ndef verify_python():\n    helper()\n",
+        ),
+        (
+            "src/inline.ts",
+            "test('typescript case', () => { helper(); });\n",
+        ),
+        (
+            "src/Checks.java",
+            "class Checks {\n  @Test void verify_java() { helper(); }\n}\n",
+        ),
+        ("tests/unit.rs", "fn verify_file() { helper(); }\n"),
+        (
+            "tests/fixtures/ignored.rs",
+            "fn verify_excluded_fixture() { helper(); }\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let cases = [
+        ("src/inline.rs", 2, "verify_rust"),
+        ("src/inline.py", 2, "verify_python"),
+        ("src/inline.ts", 1, "typescript case"),
+        ("src/Checks.java", 2, "verify_java"),
+        ("tests/unit.rs", 1, "verify_file"),
+    ];
+    let mut raw_results = Vec::new();
+    for (phase, (settings, should_show)) in [
+        ("should_include_test_code = false\n", false),
+        ("should_include_test_code = true\n", true),
+        ("should_include_test_code = false\ntest_file_patterns = []\ntest_attributes = { rust = [], java = [] }\ntest_decorators = { python = [] }\ntest_calls = { typescript = [] }\n", true),
+    ].into_iter().enumerate() {
+        std::fs::write(temp.path().join(".codemap/config.toml"), format!("{base_config}{settings}")).unwrap();
+        // Poll the actual consumer, including config reload and index warm-up.
+        let ready = client.send_tool_until("read", serde_json::json!({
+            "file_path": "src/inline.rs", "offset": 2, "limit": 1
+        }), |out| {
+            let context = out.split_once("\n# results\n").map(|(context, _)| context).unwrap_or("");
+            if should_show { context.contains("verify_rust [function") }
+            else { context.contains("Test code excluded") && !context.contains("verify_rust") }
+        }).await.unwrap();
+        assert!(!is_error(&ready), "{ready}");
+        for (index, (path, offset, name)) in cases.iter().enumerate() {
+            let response = client.send_request("tools/call", call("read", serde_json::json!({
+                "file_path": path, "offset": offset, "limit": 1
+            }))).await.unwrap();
+            let out = text(&response);
+            let (context, raw) = out.split_once("\n# results\n").unwrap();
+            assert_eq!(context.contains(name), should_show, "phase {phase}, {path}: {out}");
+            if phase == 0 { raw_results.push(raw.to_string()); }
+            else { assert_eq!(raw, raw_results[index], "raw source changed for {path}"); }
+        }
+        let helper = client.send_request("tools/call", call("read", serde_json::json!({
+            "file_path": "src/inline.rs", "offset": 3, "limit": 1
+        }))).await.unwrap();
+        let helper_out = text(&helper);
+        let context = helper_out.split_once("\n# results\n").unwrap().0;
+        assert_eq!(context.contains("verify_rust"), should_show, "{helper_out}");
+        assert!(!context.contains("verify_excluded_fixture"), "directory exclusions must survive test inclusion: {helper_out}");
+    }
+}
+
+#[tokio::test]
 async fn test_read_basic_arrow_format() {
     let temp = sample_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

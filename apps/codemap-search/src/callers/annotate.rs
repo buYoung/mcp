@@ -769,6 +769,9 @@ pub fn annotate_results_with_state(
 ) -> Option<DetailAnnotations> {
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
+    let test_filter = super::test_code::TestCodeFilter::from_config(root);
+    let filtered_snapshot = test_filter.filter_snapshot(snapshot);
+    let snapshot = filtered_snapshot.as_ref();
     let index = build_symbol_index(snapshot);
     let should_build_navigation_index =
         cfg.navigation_context_default && !runtime_state.suppresses_navigation();
@@ -805,7 +808,11 @@ pub fn annotate_results_with_state(
         if req.is_fallback {
             continue;
         }
-        for sym in req.symbols.iter().filter(|s| s.kind == "fn") {
+        for sym in req
+            .symbols
+            .iter()
+            .filter(|s| s.kind == "fn" && !test_filter.is_excluded(req.file_path, &s.range))
+        {
             names.push(sym.name.clone());
         }
     }
@@ -824,7 +831,11 @@ pub fn annotate_results_with_state(
         if req.is_fallback {
             continue;
         }
-        for sym in req.symbols.iter().filter(|s| s.kind == "fn") {
+        for sym in req
+            .symbols
+            .iter()
+            .filter(|s| s.kind == "fn" && !test_filter.is_excluded(req.file_path, &s.range))
+        {
             let budget = sub_remaining.min(overall_remaining);
             if budget == 0 {
                 break;
@@ -943,7 +954,10 @@ mod tests {
         let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
         let text = note(&ann, "chain.rs", 2);
         assert!(text.contains("calls (depth 1"), "callee section: {text}");
-        assert!(text.contains("- c"), "callee c listed: {text}");
+        assert!(
+            text.contains("- c — chain.rs:1"),
+            "callee definition listed: {text}"
+        );
         assert!(text.contains("approximate"), "approximate label: {text}");
     }
 
@@ -996,11 +1010,11 @@ mod tests {
         let ann = annotate_results(&requests, &snapshot, &cfg, 100_000, &root).unwrap();
         let text = note(&ann, "nav.ts", 3);
         assert!(
-            text.contains("User.save (precise)"),
+            text.contains("User.save — nav.ts:1 (precise)"),
             "receiver hint should narrow to User.save: {text}"
         );
         assert!(
-            !text.contains("File.save (precise)"),
+            !text.contains("File.save — nav.ts:2 (precise)"),
             "receiver hint must not attribute to File.save: {text}"
         );
     }
