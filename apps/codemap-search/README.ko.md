@@ -104,7 +104,7 @@ MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호�
 첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 감지한 프로젝트 종류의 재귀 glob**을 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 `**/node_modules`, `**/dist`, `**/build`, 프레임워크 출력과 캐시의 glob을 추가하고, Python·Rust 등도 해당 종류의 glob을 추가합니다. 같은 패턴은 한 번만 기록하며 프로젝트를 발견한 폴더와 관계없이 작업공간 전체에 적용합니다.
 
 ```toml
-[index]
+[exclude]
 # 혼합 저장소 예시입니다. 필요한 항목을 관리하세요.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",

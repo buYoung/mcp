@@ -128,7 +128,8 @@ async fn test_use_git_exclude_scopes_to_git_info_exclude_only() {
     );
 
     // Override false: the `.git/info/exclude`-hidden file is now indexed...
-    let Some(override_repo) = make_git_repo_with_excludes("use_git_exclude = false\n") else {
+    let settings = "[update]\nconfig_auto_update = false\n[refresh]\nindex_staleness_ms = 3600000\n[exclude]\nuse_git_exclude = false\n";
+    let Some(override_repo) = make_git_repo_with_excludes(settings) else {
         return;
     };
     let mut client = McpClient::spawn(override_repo.path()).await.unwrap();
@@ -157,6 +158,49 @@ async fn test_use_git_exclude_scopes_to_git_info_exclude_only() {
     assert!(
         !text.contains("gitignored_dir"),
         ".gitignore must stay honored under use_git_exclude=false: {text:?}"
+    );
+
+    for (tool, arguments) in [
+        ("find", serde_json::json!({"pattern": "**/*.rs"})),
+        (
+            "grep",
+            serde_json::json!({"pattern": "unique_gitexclude_sym", "output_mode": "files_with_matches"}),
+        ),
+    ] {
+        let response = client
+            .send_request(
+                "tools/call",
+                serde_json::json!({"name": tool, "arguments": arguments}),
+            )
+            .await
+            .unwrap();
+        let text = response["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(
+            text.contains("locally_excluded_dir/by_git_exclude.rs"),
+            "{tool}: {text}"
+        );
+        assert!(
+            !text.contains("gitignored_dir/by_gitignore.rs"),
+            "{tool}: {text}"
+        );
+    }
+    std::fs::write(
+        override_repo.path().join(".codemap/config.toml"),
+        settings.replace("use_git_exclude = false", "use_git_exclude = true"),
+    )
+    .unwrap();
+    let refreshed = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query": "unique_gitexclude_sym"}),
+            |text| !text.contains("locally_excluded_dir") && !text.contains("warming up"),
+        )
+        .await
+        .unwrap();
+    let text = refreshed["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        !text.contains("locally_excluded_dir"),
+        "config change must refresh the index without a source edit: {text}"
     );
 }
 

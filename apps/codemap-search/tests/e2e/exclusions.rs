@@ -56,9 +56,11 @@ async fn test_exclusions_generated_common_and_project_globs() {
         assert!(!text.contains(excluded), "{text}");
     }
     let config = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
-    assert!(config.starts_with("# codemap-config-version: 8"));
+    assert!(config.starts_with("# codemap-config-version: 9"));
     let parsed: toml::Value = toml::from_str(&config).unwrap();
-    let patterns = parsed["index"]["excluded_directories"].as_array().unwrap();
+    let patterns = parsed["exclude"]["excluded_directories"]
+        .as_array()
+        .unwrap();
     for pattern in [
         ".git",
         ".idea",
@@ -98,7 +100,7 @@ async fn test_exclusions_generated_common_and_project_globs() {
 #[tokio::test]
 async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     let config_path = ".codemap/config.toml";
-    let original = "# codemap-config-version: 6\n[index]\nexcluded_directories = []\n[refresh]\nindex_staleness_ms = 3600000\n";
+    let original = "# codemap-config-version: 9\n[exclude]\nexcluded_directories = []\n[refresh]\nindex_staleness_ms = 3600000\n";
     let repo = create_mock_repo(&[
         (config_path, original),
         ("apps/web/build/hidden.rs", "pub fn exclusion_probe() {}"),
@@ -204,10 +206,10 @@ async fn test_exclusions_v6_is_not_regenerated_on_restart() {
         );
         assert!(result_text(&found).contains(".idea/source.json"));
         let updated = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
-        assert!(updated.starts_with("# codemap-config-version: 8"));
+        assert!(updated.starts_with("# codemap-config-version: 9"));
         let parsed: toml::Value = toml::from_str(&updated).unwrap();
         assert_eq!(
-            parsed["index"]["excluded_directories"]
+            parsed["exclude"]["excluded_directories"]
                 .as_array()
                 .unwrap()
                 .len(),
@@ -234,11 +236,11 @@ async fn test_exclusions_pre_v6_transition_and_opt_out() {
         let mut client = McpClient::spawn(repo.path()).await.unwrap();
         call(&mut client, "find", json!({"pattern": "**/*"})).await;
         let updated = fs::read_to_string(repo.path().join(".codemap/config.toml")).unwrap();
-        assert!(updated.starts_with("# codemap-config-version: 8"));
+        assert!(updated.starts_with("# codemap-config-version: 9"));
         assert!(updated.contains("# keep"));
         assert!(updated.contains("# custom rule"));
         let value: toml::Value = toml::from_str(&updated).unwrap();
-        let patterns = value["index"]["excluded_directories"].as_array().unwrap();
+        let patterns = value["exclude"]["excluded_directories"].as_array().unwrap();
         for expected in ["custom", "node_modules", ".idea", "**/node_modules"] {
             assert!(
                 patterns.iter().any(|p| p.as_str() == Some(expected)),

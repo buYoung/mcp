@@ -11,21 +11,27 @@ use toml::Spanned;
 use crate::workspace::exclusions::{recommended_directories, DirectoryExclusions};
 
 #[derive(Default, Deserialize)]
-struct IndexSection {
+struct DirectorySection {
     excluded_directories: Option<Spanned<Vec<Spanned<String>>>>,
 }
 
 #[derive(Deserialize)]
 struct DirectorySettings {
     excluded_directories: Option<Spanned<Vec<Spanned<String>>>>,
-    index: Option<IndexSection>,
+    index: Option<DirectorySection>,
+    exclude: Option<DirectorySection>,
 }
 
 impl DirectorySettings {
     fn array(&self) -> Option<&Spanned<Vec<Spanned<String>>>> {
-        self.index
+        self.exclude
             .as_ref()
-            .and_then(|index| index.excluded_directories.as_ref())
+            .and_then(|exclude| exclude.excluded_directories.as_ref())
+            .or_else(|| {
+                self.index
+                    .as_ref()
+                    .and_then(|index| index.excluded_directories.as_ref())
+            })
             .or(self.excluded_directories.as_ref())
     }
 }
@@ -138,17 +144,22 @@ pub(super) fn migrate_exclusions(
             .collect::<Vec<_>>()
             .join(", ");
         let assignment = format!("excluded_directories = [{serialized}]\n");
-        if settings.index.is_some() {
-            let header = regex::Regex::new(
-                r#"(?m)^[\t ]*\[(?:index|"index"|'index')\][\t ]*(?:#[^\r\n]*)?\r?$"#,
-            )
+        if settings.exclude.is_some() || settings.index.is_some() {
+            let section = if settings.exclude.is_some() {
+                "exclude"
+            } else {
+                "index"
+            };
+            let header = regex::Regex::new(&format!(
+                r#"(?m)^[\t ]*\[(?:{section}|"{section}"|'{section}')\][\t ]*(?:#[^\r\n]*)?\r?$"#,
+            ))
             .unwrap();
-            let header = header.find(contents).ok_or("cannot safely insert excluded_directories into this index table; add the array explicitly and retry")?;
+            let header = header.find(contents).ok_or("cannot safely insert excluded_directories into this table; add the array explicitly and retry")?;
             let at =
                 header.end() + usize::from(contents.as_bytes().get(header.end()) == Some(&b'\n'));
             output.insert_str(at, &format!("\n{assignment}"));
         } else {
-            output.push_str(&format!("\n[index]\n{assignment}"));
+            output.push_str(&format!("\n[exclude]\n{assignment}"));
         }
     }
     // A header-looking line inside a multiline string must never be treated as a table.
@@ -172,10 +183,12 @@ pub(super) fn migrate_exclusions(
 fn without_exclusions(mut value: toml::Value) -> toml::Value {
     if let Some(table) = value.as_table_mut() {
         table.remove("excluded_directories");
-        if let Some(index) = table.get_mut("index").and_then(toml::Value::as_table_mut) {
-            index.remove("excluded_directories");
-            if index.is_empty() {
-                table.remove("index");
+        for section in ["index", "exclude"] {
+            if let Some(settings) = table.get_mut(section).and_then(toml::Value::as_table_mut) {
+                settings.remove("excluded_directories");
+                if settings.is_empty() {
+                    table.remove(section);
+                }
             }
         }
     }

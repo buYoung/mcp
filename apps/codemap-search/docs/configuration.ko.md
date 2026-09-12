@@ -15,10 +15,10 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **8**이며 주석으로 표시합니다.
+현재 설정 버전은 **9**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 8
+# codemap-config-version: 9
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -26,6 +26,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 - 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 추천 재귀 glob을 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 현재 스키마 버전으로 바꿉니다.
 - **버전 6부터 `excluded_directories`는 자동으로 만들거나 보충하지 않습니다.** 항목 삭제, `[]` 지정, 키 주석 처리, 새 프로젝트 추가 후에도 목록을 복원하지 않습니다. 수동 변경을 읽어 적용하는 동작은 계속됩니다.
 - 버전 8은 최상위 또는 `[caller_context]`의 활성 테스트 설정을 `[exclude]`로 옮깁니다. 적용값과 사용자 주석을 보존하며 자동 작성 여부는 `config_auto_update`를 따릅니다. 전역 파일을 포함해 기존 위치도 계속 읽습니다. 잘못되거나 충돌하는 값을 동작 변경 없이 옮길 수 없으면 파일을 유지하고 경고합니다.
+- 버전 9는 `[index]` 또는 최상위의 `excluded_directories`, `use_git_exclude`도 `[exclude]`로 옮깁니다. 기존 배열, 명시한 `[]`, 불리언 값과 주석을 보존하며 이 위치 전환으로 디렉터리 규칙을 추가하지 않습니다. 같은 파일에서는 유효한 `[exclude]` 값이 우선합니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
@@ -40,12 +41,12 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 디렉터리 제외 규칙
 
-`[index].excluded_directories`는 **선택적으로 제외할 디렉터리 규칙의 전체 목록**입니다. 명시한 배열에 숨겨진 기본 목록을 더하지 않습니다. `[]`는 선택적 규칙을 해제하고, 키 생략은 전역 목록 또는 기본값을 상속합니다. 무시 파일과 필수 제외 규칙은 별도로 적용합니다.
+`[exclude].excluded_directories`는 **선택적으로 제외할 디렉터리 규칙의 전체 목록**입니다. 명시한 배열에 숨겨진 기본 목록을 더하지 않습니다. `[]`는 선택적 규칙을 해제하고, 키 생략은 전역 목록 또는 기본값을 상속합니다. 무시 파일과 필수 제외 규칙은 별도로 적용합니다.
 
 공통 초기 목록은 다음과 같습니다.
 
 ```toml
-[index]
+[exclude]
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
 ```
 
@@ -118,8 +119,8 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
 | `[index].index_path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_size` | 정수(바이트) | `1048576` (1 MiB) | 파싱·색인 전 건너뛸 파일 크기 기준 |
-| `[index].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 재귀 glob 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
-| `[index].use_git_exclude` | bool | `true` | `.git/info/exclude` 적용 여부 |
+| `[exclude].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 재귀 glob 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
+| `[exclude].use_git_exclude` | bool | `true` | `.git/info/exclude` 적용 여부 |
 | `[language_support].is_document_support_enabled` | bool | `false` | `.md`/`.mdx`를 색인 기반 탐색에 포함 |
 | `[language_support].is_shell_support_enabled` | bool | `false` | `.sh`, `.bash`, `.zsh`를 색인 기반 탐색에 포함 |
 | `[language_support].is_infrastructure_support_enabled` | bool | `false` | HCL/Terraform, Dockerfile, Nix 포함 |
@@ -189,7 +190,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 ### 테스트 코드 문맥
 
-`should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `[exclude]`에서 관리합니다. 같은 파일에서는 유효한 `[exclude]` 값이 이전 `[caller_context]`와 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 디렉터리 제외는 `[index].excluded_directories`에서 관리합니다.
+`should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `excluded_directories`, `use_git_exclude`와 함께 `[exclude]`에서 관리합니다. 같은 파일에서는 유효한 `[exclude]` 값이 이전 `[caller_context]`, `[index]`, 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 두 작업공간 제외 설정은 색인·코드맵·호출자 탐색·`find`/`grep`에 공통으로 적용하며, 어느 쪽을 바꿔도 설정 재로드 후 전체 색인 갱신을 요청합니다.
 
 `should_include_test_code = false`이면 설정한 테스트 영역을 `read`/`grep`의 자동 심볼 문맥과 `search`의 호출 관계에서 제외합니다. 같은 이름의 정의 개수, 호출 대상 조회, 호출자 탐색 한도를 계산하기 전에 적용합니다. 직접 `read`/`grep`한 원문, 검색 결과와 저장된 색인은 유지됩니다. `true`이면 테스트 문맥을 포함하지만 디렉터리·무시 파일 제외 규칙은 별도로 적용됩니다.
 
@@ -277,9 +278,6 @@ config_auto_update = true
 [index]
 index_path = ".codemap/index"
 max_file_size = 1048576   # 1 MiB
-excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
-# Initial generation also adds recursive globs for detected project types; edit them manually from v6 onward.
-use_git_exclude = true
 
 [language_support]
 is_document_support_enabled = false
@@ -315,6 +313,9 @@ read = "workspace"
 allowed_roots = []
 
 [exclude]
+excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
+# Initial generation also adds recursive globs for detected project types; edit them manually from v6 onward.
+use_git_exclude = true
 should_include_test_code = false
 
 [caller_context]

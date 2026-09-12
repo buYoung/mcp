@@ -104,7 +104,7 @@ Automatic symbol/call context excludes test regions by default. Set `[exclude].s
 On first MCP startup, a missing repo file is generated with **common exclusions plus recursive globs for detected project types**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds `**/node_modules`, `**/dist`, `**/build`, framework outputs and caches; Python, Rust and other build systems add their corresponding globs. Each pattern appears once and applies throughout the workspace, regardless of where the project was detected.
 
 ```toml
-[index]
+[exclude]
 # Example for a mixed repository; keep the entries you need.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",

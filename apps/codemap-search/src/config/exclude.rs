@@ -1,4 +1,4 @@
-//! Canonical test-exclusion settings and the v8 section relocation.
+//! Canonical exclusion settings and the v8/v9 section relocations.
 
 use super::{normalize_config_section, ConfigLayer};
 use std::path::Path;
@@ -12,10 +12,16 @@ pub(super) const TEST_KEYS: &[&str] = &[
     "test_calls",
 ];
 
+pub(super) const WORKSPACE_KEYS: &[&str] = &["excluded_directories", "use_git_exclude"];
+
 /// Apply valid canonical values after the legacy aliases, per language for rule maps.
 pub(super) fn normalize_section(layer: &mut ConfigLayer, value: &toml::Value, path: &Path) {
     let mut canonical = ConfigLayer::default();
     normalize_config_section(&mut canonical, "exclude", value, path);
+    layer.excluded_directories = canonical
+        .excluded_directories
+        .or(layer.excluded_directories.take());
+    layer.use_git_exclude = canonical.use_git_exclude.or(layer.use_git_exclude);
     layer.should_include_test_code = canonical
         .should_include_test_code
         .or(layer.should_include_test_code);
@@ -37,8 +43,8 @@ pub(super) fn normalize_section(layer: &mut ConfigLayer, value: &toml::Value, pa
         .extend(canonical.test_code_rules.calls);
 }
 
-fn take_settings(source: &mut dyn TableLike, target: &mut Table) {
-    for &name in TEST_KEYS {
+fn take_settings(source: &mut dyn TableLike, target: &mut Table, keys: &[&str]) {
+    for &name in keys {
         let Some(key) = source.key(name).cloned() else {
             continue;
         };
@@ -96,14 +102,19 @@ fn section_table(key: &Key, value: Item) -> Result<Table, String> {
     }
 }
 
-fn without_test_settings(mut value: toml::Value) -> toml::Value {
+fn without_exclusion_settings(mut value: toml::Value) -> toml::Value {
     if let Some(root) = value.as_table_mut() {
-        for &key in TEST_KEYS {
+        for &key in TEST_KEYS.iter().chain(WORKSPACE_KEYS) {
             root.remove(key);
         }
-        for section in ["caller_context", "exclude"] {
+        for (section, keys) in [
+            ("caller_context", TEST_KEYS),
+            ("index", WORKSPACE_KEYS),
+            ("exclude", TEST_KEYS),
+            ("exclude", WORKSPACE_KEYS),
+        ] {
             if let Some(table) = root.get_mut(section).and_then(toml::Value::as_table_mut) {
-                for &key in TEST_KEYS {
+                for &key in keys {
                     table.remove(key);
                 }
                 if table.is_empty() {
@@ -145,14 +156,18 @@ pub(super) fn migrate(contents: &str, original: &str, path: &Path) -> Result<Str
         None => Table::new(),
     };
     let mut legacy = Table::new();
-    take_settings(document.as_table_mut(), &mut legacy);
+    take_settings(document.as_table_mut(), &mut legacy, TEST_KEYS);
+    take_settings(document.as_table_mut(), &mut legacy, WORKSPACE_KEYS);
     if let Some(caller) = document
         .get_mut("caller_context")
         .and_then(Item::as_table_like_mut)
     {
-        take_settings(caller, &mut legacy);
+        take_settings(caller, &mut legacy, TEST_KEYS);
     }
-    for &name in TEST_KEYS {
+    if let Some(index) = document.get_mut("index").and_then(Item::as_table_like_mut) {
+        take_settings(index, &mut legacy, WORKSPACE_KEYS);
+    }
+    for &name in TEST_KEYS.iter().chain(WORKSPACE_KEYS) {
         if let Some((key, value)) = legacy.remove_entry(name) {
             inherit_setting(&mut target, key, value);
         }
@@ -183,7 +198,9 @@ pub(super) fn migrate(contents: &str, original: &str, path: &Path) -> Result<Str
     let after_config = super::normalize(after.clone(), path);
     if before_config.should_include_test_code != after_config.should_include_test_code
         || before_config.test_code_rules != after_config.test_code_rules
-        || without_test_settings(before) != without_test_settings(after)
+        || before_config.excluded_directories != after_config.excluded_directories
+        || before_config.use_git_exclude != after_config.use_git_exclude
+        || without_exclusion_settings(before) != without_exclusion_settings(after)
     {
         return Err("section relocation would change effective or unrelated settings".into());
     }

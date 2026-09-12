@@ -17,10 +17,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **8**. The marker is a comment:
+The current configuration schema is **9**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 8
+# codemap-config-version: 9
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -28,6 +28,7 @@ The current configuration schema is **8**. The marker is a comment:
 - A pre-v6 repo config, including one without a marker, receives a **one-time directory migration**. Existing user rules, the old effective exclusions, common folders and recommended recursive globs are made explicit in its array. Existing entries and comments are preserved; missing values are appended without duplication. The marker advances to the current schema version.
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
+- Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -42,12 +43,12 @@ Migration can materialize inherited global exclusions into the repo array. Comme
 
 ## Directory exclusions
 
-`[index].excluded_directories` is the complete **optional** directory-rule list. Explicit arrays are not unioned with hidden built-ins. `[]` disables these optional rules; omitting the key inherits the global list or the default. Existing ignore files and mandatory exclusions are independent.
+`[exclude].excluded_directories` is the complete **optional** directory-rule list. Explicit arrays are not unioned with hidden built-ins. `[]` disables these optional rules; omitting the key inherits the global list or the default. Existing ignore files and mandatory exclusions are independent.
 
 The common initial list is:
 
 ```toml
-[index]
+[exclude]
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
 ```
 
@@ -120,8 +121,8 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 | `[update].config_auto_update` | bool | `true` | Create missing repo config and append commented schema-sync blocks on `mcp` startup |
 | `[index].index_path` | string | `".codemap/index"` | Index directory; absolute or relative to the workspace root |
 | `[index].max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
-| `[index].excluded_directories` | string array (relative directory globs) | Common + legacy fallback names; generated files use recursive globs | Complete optional list; see [Directory exclusions](#directory-exclusions) |
-| `[index].use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
+| `[exclude].excluded_directories` | string array (relative directory globs) | Common + legacy fallback names; generated files use recursive globs | Complete optional list; see [Directory exclusions](#directory-exclusions) |
+| `[exclude].use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
 | `[language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, overview, codemap, and watcher refreshes |
 | `[language_support].is_shell_support_enabled` | bool | `false` | Include `.sh`, `.bash`, and `.zsh` in index-backed discovery |
 | `[language_support].is_infrastructure_support_enabled` | bool | `false` | Include HCL/Terraform, Dockerfile, and Nix definitions |
@@ -191,7 +192,7 @@ At `common_name_threshold` definitions of the same name, approximate relationshi
 
 ### Test-code context
 
-Manage `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, and `test_calls` under `[exclude]`. Within one file, valid `[exclude]` values take precedence over legacy `[caller_context]` and root-level aliases; language tables inherit missing language entries. Repo → global → built-in precedence still applies between files. Directory exclusions remain under `[index].excluded_directories`.
+Manage `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, and `test_calls` under `[exclude]`, alongside `excluded_directories` and `use_git_exclude`. Within one file, valid `[exclude]` values take precedence over legacy `[caller_context]`, `[index]`, and root-level aliases; language tables inherit missing language entries. Repo → global → built-in precedence still applies between files. The two workspace exclusion settings apply to indexing, codemap, caller scans, and `find`/`grep`; changing either requests a full index refresh after config reload.
 
 `should_include_test_code = false` excludes configured test regions from automatic `read`/`grep` symbol context and `search` caller/callee annotations. The filter runs before definition counts, navigation lookup, and caller-scan budgets. Direct `read`/`grep` source, search hits, and the stored index remain available. Set it to `true` to include test context; directory/ignore exclusions still apply independently.
 
@@ -279,9 +280,6 @@ config_auto_update = true
 [index]
 index_path = ".codemap/index"
 max_file_size = 1048576   # 1 MiB
-excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
-# Initial generation also adds recursive globs for detected project types; edit them manually from v6 onward.
-use_git_exclude = true
 
 [language_support]
 is_document_support_enabled = false
@@ -317,6 +315,9 @@ read = "workspace"
 allowed_roots = []
 
 [exclude]
+excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
+# Initial generation also adds recursive globs for detected project types; edit them manually from v6 onward.
+use_git_exclude = true
 should_include_test_code = false
 
 [caller_context]

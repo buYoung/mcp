@@ -91,7 +91,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 8;
+const CONFIG_VERSION: u32 = 9;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -509,7 +509,7 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "search_anchor_snippet_limit"
         ),
         "tool_output" => matches!(key, "grep_max_columns" | "read_output_byte_cap"),
-        "exclude" => exclude::TEST_KEYS.contains(&key),
+        "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "caller_context" => matches!(
             key,
             "caller_context_default"
@@ -1058,6 +1058,7 @@ fn request_refresh_if_index_scope_changed(
 ) {
     if previous.language_support_settings() == current.language_support_settings()
         && previous.excluded_directories == current.excluded_directories
+        && previous.use_git_exclude == current.use_git_exclude
     {
         return;
     }
@@ -1263,8 +1264,8 @@ fn version_marker_line(version: u32) -> String {
 ///
 /// Never-exit: a directory-create, read, or write failure warns to stderr and returns rather
 /// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
-/// keys are still commented; v6 materializes directory exclusions once, and v8 relocates
-/// existing test-code settings into `[exclude]` without changing their effective values.
+/// keys are still commented; v6 materializes directory exclusions once. v8/v9 relocate
+/// test-code and workspace exclusions into `[exclude]` without changing effective values.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1353,12 +1354,12 @@ fn migrate_existing(path: &Path, existing: &str) {
     ) else {
         return; // already current — never touch the user's file
     };
-    if file_version < 8 {
+    if file_version < 9 {
         updated = match exclude::migrate(&updated, &existing, path) {
             Ok(updated) => updated,
             Err(error) => {
                 warn(&format!(
-                    "config v8 migration skipped for {}: {error}",
+                    "config v9 migration skipped for {}: {error}",
                     path.display()
                 ));
                 return;
@@ -1932,22 +1933,25 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         .unwrap();
         write_repo_config(
             repo.path(),
-            "[index]\nexcluded_directories = ['apps/web/build']\n",
+            "[exclude]\nexcluded_directories = ['apps/web/build']\n",
         );
         assert_eq!(
             load(repo.path(), global.path()).excluded_directories,
             vec!["apps/web/build"]
         );
-        write_repo_config(repo.path(), "[index]\nexcluded_directories = []\n");
+        write_repo_config(repo.path(), "[exclude]\nexcluded_directories = []\n");
         assert!(load(repo.path(), global.path())
             .excluded_directories
             .is_empty());
-        write_repo_config(repo.path(), "[index]\nexcluded_directories = ['../bad']\n");
+        write_repo_config(
+            repo.path(),
+            "[exclude]\nexcluded_directories = ['../bad']\n",
+        );
         assert_eq!(
             load(repo.path(), global.path()).excluded_directories,
             vec!["vendor"]
         );
-        write_repo_config(repo.path(), "[index]\n");
+        write_repo_config(repo.path(), "[exclude]\n");
         assert_eq!(
             load(repo.path(), global.path()).excluded_directories,
             vec!["vendor"]
@@ -1967,6 +1971,26 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             !load(repo.path(), global.path()).use_git_exclude,
             "repo override to false"
         );
+        write_repo_config(repo.path(), "[exclude]\nuse_git_exclude = false\nexcluded_directories = []\n[index]\nuse_git_exclude = true\nexcluded_directories = ['legacy']\n");
+        let canonical = load(repo.path(), global.path());
+        assert!(!canonical.use_git_exclude);
+        assert!(canonical.excluded_directories.is_empty());
+        write_repo_config(repo.path(), "[exclude]\nuse_git_exclude = 'invalid'\nexcluded_directories = ['../bad']\n[index]\nuse_git_exclude = false\nexcluded_directories = ['legacy']\n");
+        let fallback = load(repo.path(), global.path());
+        assert!(!fallback.use_git_exclude);
+        assert_eq!(fallback.excluded_directories, ["legacy"]);
+        fs::write(
+            global.path().join(CONFIG_FILE_NAME),
+            "[exclude]\nuse_git_exclude = false\nexcluded_directories = ['global']\n",
+        )
+        .unwrap();
+        write_repo_config(
+            repo.path(),
+            "[index]\nuse_git_exclude = true\nexcluded_directories = []\n",
+        );
+        let legacy_repo = load(repo.path(), global.path());
+        assert!(legacy_repo.use_git_exclude);
+        assert!(legacy_repo.excluded_directories.is_empty());
     }
 
     #[test]
@@ -2291,7 +2315,7 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             "a current config file must not be rewritten on a later run"
         );
         let global = tempdir().unwrap();
-        fs::write(global.path().join(CONFIG_FILE_NAME), "[exclude]\nshould_include_test_code = true\ntest_file_patterns = ['global_checks/**']\ntest_attributes = { rust = ['global::test'] }\n").unwrap();
+        fs::write(global.path().join(CONFIG_FILE_NAME), "[exclude]\nuse_git_exclude = false\nexcluded_directories = ['global']\nshould_include_test_code = true\ntest_file_patterns = ['global_checks/**']\ntest_attributes = { rust = ['global::test'] }\n").unwrap();
         let commented = format!(
             "# codemap-config-version: 7\n[caller_context]\n# keep policy\n{}\n# keep disabled\nshould_include_test_code = true\n",
             MIGRATIONS
@@ -2308,6 +2332,10 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             "# codemap-config-version: 7\n[exclude]\n# keep policy\nshould_include_test_code = false\ntest_file_patterns = [] # keep disabled\ntest_attributes = { rust = [] }\n[caller_context]\nshould_include_test_code = true\ntest_attributes = { rust = ['old'], java = ['CustomTest'] }\n",
             "# codemap-config-version: 7\nindex_path = '''.cache\n[exclude]'''\n[caller_context]\n# keep policy\nshould_include_test_code = true\ntest_file_patterns = [] # keep disabled\n",
             "# codemap-config-version: 7\n# keep policy\nexclude = { should_include_test_code = false, test_file_patterns = [], test_attributes = { rust = [] } } # keep disabled\n[caller_context]\ntest_attributes = { java = ['CustomTest'] }\n",
+            "# codemap-config-version: 8\n[index]\nindex_path = '.my-index'\nmax_file_size = 2048\n# keep policy\nexcluded_directories = ['apps/web/build', 'a#b'] # keep disabled\nuse_git_exclude = true\n[exclude]\nshould_include_test_code = false\n",
+            "# codemap-config-version: 8\n# keep policy\nindex = { index_path = '.my-index', excluded_directories = [], use_git_exclude = false } # keep disabled\n",
+            "# codemap-config-version: 8\n# keep policy\nexcluded_directories = [] # keep disabled\nuse_git_exclude = true\n",
+            "# codemap-config-version: 8\n[exclude]\n# keep policy\nexcluded_directories = [] # keep disabled\nuse_git_exclude = true\n[index]\nexcluded_directories = ['legacy']\nuse_git_exclude = false\n",
             commented.as_str(),
         ] {
             fs::write(&path, source).unwrap();
@@ -2328,11 +2356,17 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
                 assert!(parsed.get(key).is_none(), "{migrated}");
                 assert!(parsed.get("caller_context").and_then(|table| table.get(key)).is_none(), "{migrated}");
             }
+            for &key in exclude::WORKSPACE_KEYS {
+                assert!(parsed.get(key).is_none(), "{migrated}");
+                assert!(parsed.get("index").and_then(|table| table.get(key)).is_none(), "{migrated}");
+            }
             let after = load(repo.path(), global.path());
             assert_eq!(before.should_include_test_code, after.should_include_test_code);
             assert_eq!(before.test_code_rules, after.test_code_rules);
             assert_eq!(before.excluded_directories, after.excluded_directories);
+            assert_eq!(before.use_git_exclude, after.use_git_exclude);
             assert_eq!(before.index_path, after.index_path);
+            assert_eq!(before.max_file_size, after.max_file_size);
             assert_eq!(before.scan_cap, after.scan_cap);
             ensure_repo_config_with_auto_update(repo.path(), true);
             assert_eq!(fs::read_to_string(&path).unwrap(), migrated);
