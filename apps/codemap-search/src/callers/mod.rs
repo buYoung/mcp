@@ -35,6 +35,7 @@
 mod annotate;
 mod callees;
 mod scan;
+mod source;
 mod symbols;
 pub(crate) mod test_code;
 

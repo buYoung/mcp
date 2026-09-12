@@ -76,6 +76,11 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
     let temp = create_mock_repo(&[
         ("src/config.rs", source),
         (
+            "src/noise.rs",
+            "fn string_only() { let text = \"load(\"; }\nfn raw_only() { let text = r#\"load(\"#; }\nfn comment_only() { /* load(); */ }\nfn method_only() { value.load(); }\nfn actual_caller() { crate::config::load(); }\n",
+        ),
+        ("src/foreign.py", "def foreign_caller():\n    json.load(data)\n"),
+        (
             ".codemap/config.toml",
             "[update]\nconfig_auto_update = false\n",
         ),
@@ -93,6 +98,19 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
     let out = text(&ready);
     let (context, raw) = out.split_once("\n# results\n").unwrap();
     assert!(context.contains("read_layer — src/config.rs:4"), "{out}");
+    assert!(context.contains("actual_caller (src/noise.rs:5)"), "{out}");
+    for false_caller in [
+        "string_only",
+        "raw_only",
+        "comment_only",
+        "method_only",
+        "foreign_caller",
+    ] {
+        assert!(
+            !context.contains(false_caller),
+            "false caller {false_caller}: {out}"
+        );
+    }
     assert!(
         context.contains("CODEMAP_DIR_NAME — src/config.rs:1 = \".codemap\""),
         "{out}"
@@ -141,6 +159,32 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         raw.contains("src/config.rs:6:    read_layer(CODEMAP_DIR_NAME);"),
         "{raw}"
     );
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        "[update]\nconfig_auto_update = false\n[caller_context]\nnavigation_context_default = true\n",
+    ).unwrap();
+    let precise = client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path": "src/config.rs", "offset": 5, "limit": 5}),
+            |out| out.contains("callers (tree-sitter precise"),
+        )
+        .await
+        .unwrap();
+    let out = text(&precise);
+    assert!(out.contains("actual_caller (src/noise.rs:5)"), "{out}");
+    for false_caller in [
+        "string_only",
+        "raw_only",
+        "comment_only",
+        "method_only",
+        "foreign_caller",
+    ] {
+        assert!(
+            !out.contains(false_caller),
+            "precise false caller {false_caller}: {out}"
+        );
+    }
 }
 
 #[tokio::test]
@@ -748,6 +792,45 @@ async fn test_grep_count_mode() {
         "{:?}",
         text(&resp)
     );
+    assert!(
+        !text(&resp).contains("# symbols"),
+        "count must omit symbol context: {}",
+        text(&resp)
+    );
+    client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path": "src/core.rs", "offset": 1, "limit": 1}),
+            |out| out.contains("run_engine [function"),
+        )
+        .await
+        .unwrap();
+    for pattern in ["run_engine", "no_such_identifier"] {
+        let response = client
+            .send_request(
+                "tools/call",
+                call(
+                    "grep",
+                    serde_json::json!({"pattern": pattern, "output_mode": "files_with_matches"}),
+                ),
+            )
+            .await
+            .unwrap();
+        let out = text(&response);
+        assert!(
+            !out.contains("# symbols"),
+            "file list must omit symbol context: {out}"
+        );
+        assert!(
+            !out.contains("# results"),
+            "file list must stay compact: {out}"
+        );
+        if pattern == "run_engine" {
+            assert_eq!(out.trim(), "Found 1 file(s)\nsrc/core.rs");
+        } else {
+            assert!(out.starts_with("No matches found"), "{out}");
+        }
+    }
 }
 
 #[tokio::test]
@@ -789,15 +872,7 @@ async fn test_grep_type_filter() {
         .await
         .unwrap();
     let out = text(&resp);
-    assert!(
-        out.starts_with("# symbols\n")
-            && out
-                .split_once("\n# results\n")
-                .unwrap()
-                .1
-                .starts_with("Found "),
-        "files_with_matches header expected: {out:?}"
-    );
+    assert_eq!(out.trim(), "Found 1 file(s)\nsrc/util.rs");
     assert!(out.contains("src/util.rs"), "{out:?}");
     assert!(
         !out.contains("README.md"),

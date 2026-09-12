@@ -90,23 +90,6 @@ fn is_callable_symbol(sym: &ExtractedSymbol) -> bool {
     sym.kind == "fn" || sym.kind == "method"
 }
 
-pub(super) fn lookup_same_file_candidates<'a>(
-    name: &str,
-    file_path: &str,
-    index: &'a SymbolIndex<'a>,
-) -> Vec<(&'a ExtractedFile, &'a ExtractedSymbol)> {
-    index
-        .by_name
-        .get(name)
-        .map(|defs| {
-            defs.iter()
-                .copied()
-                .filter(|(file, sym)| file.file_path == file_path && is_callable_symbol(sym))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 pub(super) fn lookup_global_callable_candidates<'a>(
     name: &str,
     index: &'a SymbolIndex<'a>,
@@ -121,6 +104,42 @@ pub(super) fn lookup_global_callable_candidates<'a>(
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// Name-only fallback must not join unrelated language runtimes, or Rust/C-family
+/// object member access to a free function. Module-qualified calls remain eligible.
+pub(super) fn definition_is_compatible(
+    source_path: &str,
+    is_member_access: bool,
+    definition_path: &str,
+    symbol: &ExtractedSymbol,
+) -> bool {
+    fn family(path: &str) -> Option<&'static str> {
+        crate::lang::spec_for_path(Path::new(path)).map(|spec| match spec.language_name() {
+            "javascript" | "typescript" => "ecmascript",
+            "c" | "cpp" => "c_family",
+            language => language,
+        })
+    }
+    let language = family(source_path);
+    language == family(definition_path)
+        && !(is_member_access
+            && matches!(language, Some("rust" | "c_family"))
+            && symbol.owner.is_none())
+}
+
+pub(super) fn lookup_compatible_candidates<'a>(
+    name: &str,
+    source_path: &str,
+    is_member_access: bool,
+    index: &'a SymbolIndex<'a>,
+) -> Vec<(&'a ExtractedFile, &'a ExtractedSymbol)> {
+    lookup_global_callable_candidates(name, index)
+        .into_iter()
+        .filter(|(file, symbol)| {
+            definition_is_compatible(source_path, is_member_access, &file.file_path, symbol)
+        })
+        .collect()
 }
 
 pub(super) fn infer_owner_hint(receiver: &str, locals: &[LocalBinding]) -> Option<String> {

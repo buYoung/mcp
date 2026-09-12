@@ -8,9 +8,10 @@ use std::path::Path;
 use crate::parser::{CallSite, ExtractedFile, ExtractedSymbol};
 
 use super::scan::is_ident_char;
+use super::source::SourceSyntax;
 use super::symbols::{
-    infer_owner_hint, lookup_by_owner_and_name, lookup_global_callable_candidates,
-    lookup_same_file_candidates, SymbolIndex,
+    definition_is_compatible, infer_owner_hint, lookup_by_owner_and_name,
+    lookup_compatible_candidates, SymbolIndex,
 };
 use super::AnnotationRuntimeState;
 use super::{qualified_name, read_workspace_file};
@@ -28,46 +29,60 @@ pub(super) struct DiscoveredCallee {
 pub(super) fn discover_callees(
     sym: &ExtractedSymbol,
     file_path: &str,
-    fn_names: &HashSet<String>,
+    index: &SymbolIndex<'_>,
     root: &Path,
-) -> Vec<String> {
+) -> Vec<DiscoveredCallee> {
     let content = match read_workspace_file(file_path, root) {
         Some(c) => c,
         None => return Vec::new(),
     };
     let mut source = content.into_bytes();
     super::test_code::TestCodeFilter::from_config(root).mask_source(file_path, &mut source);
+    let Some(syntax) = SourceSyntax::parse(file_path, &source) else {
+        return Vec::new();
+    };
     let content = String::from_utf8(source).ok().unwrap_or_default();
-    let lines: Vec<&str> = content.lines().collect();
+    let lines: Vec<&str> = content.split_inclusive('\n').collect();
     let start = sym.range.start_line.saturating_sub(1);
     let end = sym.range.end_line.min(lines.len());
     if start >= end {
         return Vec::new();
     }
-    let body = lines[start..end].join("\n");
-    let mut found: Vec<String> = Vec::new();
+    let body_start: usize = lines[..start].iter().map(|line| line.len()).sum();
+    let body = lines[start..end].concat();
+    let mut found = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
-    let bytes: Vec<char> = body.chars().collect();
+    let bytes: Vec<(usize, char)> = body.char_indices().collect();
     let mut i = 0usize;
     while i < bytes.len() {
-        if is_ident_start(bytes[i]) {
+        if is_ident_start(bytes[i].1) {
             let begin = i;
-            while i < bytes.len() && is_ident_char(bytes[i]) {
+            while i < bytes.len() && is_ident_char(bytes[i].1) {
                 i += 1;
             }
-            let ident: String = bytes[begin..i].iter().collect();
+            let ident: String = bytes[begin..i].iter().map(|(_, ch)| ch).collect();
             // Skip whitespace, then require `(` for a call.
             let mut j = i;
-            while j < bytes.len() && (bytes[j] == ' ' || bytes[j] == '\t') {
+            while j < bytes.len() && bytes[j].1.is_whitespace() {
                 j += 1;
             }
-            let is_call = j < bytes.len() && bytes[j] == '(';
+            let is_call = j < bytes.len() && bytes[j].1 == '(';
+            let name_start = body_start + bytes[begin].0;
+            let is_member = syntax.is_member_access(name_start..name_start + ident.len());
             if is_call
                 && ident != sym.name
-                && fn_names.contains(&ident)
-                && seen.insert(ident.clone())
+                && index.fn_names.contains(&ident)
+                && syntax.is_code(name_start..name_start + ident.len())
+                && !lookup_compatible_candidates(&ident, file_path, is_member, index).is_empty()
             {
-                found.push(ident);
+                let display = callee_display(&ident, index, file_path, is_member);
+                if seen.insert(display.clone()) {
+                    found.push(DiscoveredCallee {
+                        name: ident,
+                        display,
+                        is_precise: false,
+                    });
+                }
             }
         } else {
             i += 1;
@@ -85,11 +100,12 @@ fn resolve_navigation_callee_display(
     call_file: &ExtractedFile,
     index: &SymbolIndex<'_>,
     navigation_context_enabled: bool,
+    is_member: bool,
 ) -> DiscoveredCallee {
     if !navigation_context_enabled {
         return DiscoveredCallee {
             name: call.name.clone(),
-            display: callee_display(&call.name, index),
+            display: callee_display(&call.name, index, &call_file.file_path, is_member),
             is_precise: false,
         };
     }
@@ -102,7 +118,12 @@ fn resolve_navigation_callee_display(
             .as_ref()
             .and_then(|navigation| infer_owner_hint(receiver, &navigation.local_bindings))
         {
-            let owner_candidates = lookup_by_owner_and_name(&owner_hint, &call.name, index);
+            let owner_candidates: Vec<_> = lookup_by_owner_and_name(&owner_hint, &call.name, index)
+                .into_iter()
+                .filter(|(file, sym)| {
+                    definition_is_compatible(&call_file.file_path, is_member, &file.file_path, sym)
+                })
+                .collect();
             if owner_candidates.len() == 1 {
                 let (file, sym) = owner_candidates[0];
                 return DiscoveredCallee {
@@ -115,7 +136,12 @@ fn resolve_navigation_callee_display(
     }
 
     let call_file_path = &call_file.file_path;
-    let same_file = lookup_same_file_candidates(&call.name, call_file_path, index);
+    let global = lookup_compatible_candidates(&call.name, call_file_path, is_member, index);
+    let same_file: Vec<_> = global
+        .iter()
+        .copied()
+        .filter(|(file, _)| file.file_path == *call_file_path)
+        .collect();
     if same_file.len() == 1 {
         let (file, sym) = same_file[0];
         return DiscoveredCallee {
@@ -131,7 +157,6 @@ fn resolve_navigation_callee_display(
             is_precise: false,
         };
     }
-    let global = lookup_global_callable_candidates(&call.name, index);
     if global.len() == 1 {
         let (file, sym) = global[0];
         return DiscoveredCallee {
@@ -156,29 +181,17 @@ pub(super) fn discover_callees_with_navigation(
     root: &Path,
 ) -> Vec<DiscoveredCallee> {
     if runtime_state.suppresses_navigation() {
-        return discover_callees(sym, &file.file_path, &index.fn_names, root)
-            .into_iter()
-            .map(|name| DiscoveredCallee {
-                display: callee_display(&name, index),
-                name,
-                is_precise: false,
-            })
-            .collect();
+        return discover_callees(sym, &file.file_path, index, root);
     }
 
     let Some(navigation) = &file.navigation else {
-        return discover_callees(sym, &file.file_path, &index.fn_names, root)
-            .into_iter()
-            .map(|name| DiscoveredCallee {
-                display: callee_display(&name, index),
-                name,
-                is_precise: false,
-            })
-            .collect();
+        return discover_callees(sym, &file.file_path, index, root);
     };
 
     let mut found = Vec::new();
     let mut seen = HashSet::new();
+    let syntax = read_workspace_file(&file.file_path, root)
+        .and_then(|source| SourceSyntax::parse(&file.file_path, source.as_bytes()));
     for call in &navigation.calls {
         if call.name == sym.name
             || !index.fn_names.contains(&call.name)
@@ -186,8 +199,20 @@ pub(super) fn discover_callees_with_navigation(
         {
             continue;
         }
-        let callee =
-            resolve_navigation_callee_display(call, file, index, navigation_context_enabled);
+        let is_member = syntax
+            .as_ref()
+            .and_then(|syntax| syntax.is_member_call(call))
+            .unwrap_or(call.receiver.is_some());
+        if lookup_compatible_candidates(&call.name, &file.file_path, is_member, index).is_empty() {
+            continue;
+        }
+        let callee = resolve_navigation_callee_display(
+            call,
+            file,
+            index,
+            navigation_context_enabled,
+            is_member,
+        );
         let key = format!("{}:{}:{}", callee.name, callee.display, callee.is_precise);
         if seen.insert(key) {
             found.push(callee);
@@ -211,12 +236,13 @@ fn definition_display(file: &ExtractedFile, sym: &ExtractedSymbol) -> String {
 
 /// Include the definition location when exactly one `fn` of that name exists in the
 /// snapshot. Ambiguous names retain the bare form instead of inventing a target.
-pub(super) fn callee_display(name: &str, index: &SymbolIndex<'_>) -> String {
-    let defs: Vec<_> = index
-        .by_name
-        .get(name)
-        .map(|v| v.iter().filter(|(_, s)| s.kind == "fn").collect::<Vec<_>>())
-        .unwrap_or_default();
+pub(super) fn callee_display(
+    name: &str,
+    index: &SymbolIndex<'_>,
+    file_path: &str,
+    is_member: bool,
+) -> String {
+    let defs = lookup_compatible_candidates(name, file_path, is_member, index);
     if defs.len() == 1 {
         let (file, sym) = defs[0];
         definition_display(file, sym)
@@ -242,8 +268,11 @@ mod tests {
         ];
         let index = build_symbol_index(&snapshot);
         // alpha: exactly one fn def → qualified via owner.
-        assert_eq!(callee_display("alpha", &index), "Engine::alpha — a.rs:1");
+        assert_eq!(
+            callee_display("alpha", &index, "a.rs", false),
+            "Engine::alpha — a.rs:1"
+        );
         // beta: two defs → bare.
-        assert_eq!(callee_display("beta", &index), "beta");
+        assert_eq!(callee_display("beta", &index, "a.rs", false), "beta");
     }
 }

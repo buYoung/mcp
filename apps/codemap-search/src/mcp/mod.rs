@@ -223,7 +223,15 @@ impl McpServer {
                     }
                     "grep" => {
                         let output = crate::tools::grep::grep_with_metadata(arguments)?;
-                        let text = crate::tools::live_symbols::append(&self.engine, output, None)?;
+                        let output_mode = arguments
+                            .get("output_mode")
+                            .and_then(|value| value.as_str())
+                            .unwrap_or("content");
+                        let text = if output_mode == "content" {
+                            crate::tools::live_symbols::append(&self.engine, output, None)?
+                        } else {
+                            output.text
+                        };
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
                         }))

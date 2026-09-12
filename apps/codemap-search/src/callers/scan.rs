@@ -4,9 +4,12 @@
 
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
+use std::cell::OnceCell;
 use std::collections::HashSet;
 use std::path::Path;
 
+use super::source::SourceSyntax;
+use super::symbols::{definition_is_compatible, SymbolIndex};
 use super::CallerConfig;
 
 /// A single call-site / reference hit produced by the combined-regex scan.
@@ -21,6 +24,7 @@ pub(super) struct ScanHit {
     /// True when the first non-whitespace char after the name was `(` (a call site);
     /// false marks a non-call reference (callback / handler registration / passing).
     pub(super) is_call: bool,
+    pub(super) is_member_access: bool,
     /// The raw matched line text (for non-call-reference rendering).
     pub(super) line_text: String,
 }
@@ -35,6 +39,9 @@ pub(super) struct ScanHit {
 struct ClassifySink<'a> {
     names: &'a [String],
     file_path: String,
+    source: &'a [u8],
+    syntax: OnceCell<Option<SourceSyntax>>,
+    index: &'a SymbolIndex<'a>,
     /// Remaining hit budget per name (same index as `names`). Decremented on push.
     budgets: &'a mut [usize],
     hits: Vec<ScanHit>,
@@ -52,9 +59,22 @@ impl<'a> Sink for ClassifySink<'a> {
         mat: &SinkMatch<'_>,
     ) -> Result<bool, std::io::Error> {
         let start = mat.line_number().unwrap_or(0) as usize;
-        let cow = String::from_utf8_lossy(mat.bytes());
-        let block: &str = cow.as_ref();
-        for (offset, raw) in block.split('\n').enumerate() {
+        let Ok(block) = std::str::from_utf8(mat.bytes()) else {
+            return Ok(true);
+        };
+        // Parse only files with matching names, and only once per file. Classification
+        // uses the whole file so multiline comments and raw strings stay intact.
+        let Some(syntax) = self
+            .syntax
+            .get_or_init(|| SourceSyntax::parse(&self.file_path, self.source))
+        else {
+            return Ok(true);
+        };
+        let mut line_start = mat.absolute_byte_offset() as usize;
+        for (offset, raw) in block.split_inclusive('\n').enumerate() {
+            let current_start = line_start;
+            line_start += raw.len();
+            let raw = raw.strip_suffix('\n').unwrap_or(raw);
             let line = raw.strip_suffix('\r').unwrap_or(raw);
             let line_number = start + offset;
             // Find every occurrence of every scanned name on this line, classifying each
@@ -76,6 +96,24 @@ impl<'a> Sink for ClassifySink<'a> {
                     if !before_ok || !after_ok {
                         continue;
                     }
+                    let name_start = current_start + at;
+                    if !syntax.is_code(name_start..name_start + name.len()) {
+                        continue;
+                    }
+                    let is_member_access =
+                        syntax.is_member_access(name_start..name_start + name.len());
+                    if !self.index.by_name.get(name.as_str()).is_some_and(|defs| {
+                        defs.iter().any(|(file, symbol)| {
+                            definition_is_compatible(
+                                &self.file_path,
+                                is_member_access,
+                                &file.file_path,
+                                symbol,
+                            )
+                        })
+                    }) {
+                        continue;
+                    }
                     // First non-whitespace char after the name decides call vs reference.
                     let trailing = line[after_idx..].trim_start().chars().next();
                     let is_call = trailing == Some('(');
@@ -89,6 +127,7 @@ impl<'a> Sink for ClassifySink<'a> {
                         file_path: self.file_path.clone(),
                         line_number,
                         is_call,
+                        is_member_access,
                         line_text: line.to_string(),
                     });
                 }
@@ -135,6 +174,7 @@ pub(super) fn scan_workspace(
     names: &[String],
     cfg: &CallerConfig,
     root: &Path,
+    index: &SymbolIndex<'_>,
 ) -> Option<ScanResult> {
     if names.is_empty() {
         return Some(ScanResult {
@@ -205,6 +245,9 @@ pub(super) fn scan_workspace(
         let mut sink = ClassifySink {
             names,
             file_path: display,
+            source: &source,
+            syntax: OnceCell::new(),
+            index,
             budgets: &mut budgets,
             hits: Vec::new(),
             truncated: &mut truncated,

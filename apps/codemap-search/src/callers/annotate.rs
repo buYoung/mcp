@@ -9,13 +9,12 @@ use std::time::Instant;
 
 use crate::parser::{CallSite, ExtractedFile, ExtractedSymbol, ImportKind};
 
-use super::callees::{
-    callee_display, discover_callees, discover_callees_with_navigation, DiscoveredCallee,
-};
+use super::callees::{discover_callees, discover_callees_with_navigation, DiscoveredCallee};
 use super::scan::{scan_workspace, ScanResult};
+use super::source::SourceSyntax;
 use super::symbols::{
-    build_navigation_index, build_symbol_index, enclosing_fn, is_within_same_named_fn,
-    lookup_global_callable_candidates, lookup_same_file_candidates, lookup_source_hint_candidates,
+    build_navigation_index, build_symbol_index, definition_is_compatible, enclosing_fn,
+    is_within_same_named_fn, lookup_compatible_candidates, lookup_source_hint_candidates,
     NavigationIndex, SourceHintResolution, SymbolIndex,
 };
 use super::{
@@ -175,6 +174,7 @@ fn resolve_navigation_call<'a>(
     snapshot: &'a [ExtractedFile],
     index: &'a SymbolIndex<'a>,
     navigation_index: &NavigationIndex,
+    is_member: bool,
 ) -> Option<(&'a ExtractedFile, &'a ExtractedSymbol)> {
     if has_non_function_local_shadow(call, call_file, index) {
         return None;
@@ -188,7 +188,16 @@ fn resolve_navigation_call<'a>(
             snapshot,
             navigation_index,
         ) {
-            Ok(candidates) if candidates.len() == 1 => return Some(candidates[0]),
+            Ok(candidates) if candidates.len() == 1 => {
+                let (file, symbol) = candidates[0];
+                return definition_is_compatible(
+                    &call_file.file_path,
+                    is_member,
+                    &file.file_path,
+                    symbol,
+                )
+                .then_some((file, symbol));
+            }
             Ok(_) | Err(SourceHintResolution::SourceUnresolved) => return None,
             Err(SourceHintResolution::UnsupportedSourceForm) => {
                 // Non-relative imports cannot be resolved to a workspace source path. Keep the
@@ -197,14 +206,18 @@ fn resolve_navigation_call<'a>(
         }
     }
 
-    let same_file = lookup_same_file_candidates(&call.name, &call_file.file_path, index);
+    let global = lookup_compatible_candidates(&call.name, &call_file.file_path, is_member, index);
+    let same_file: Vec<_> = global
+        .iter()
+        .copied()
+        .filter(|(file, _)| file.file_path == call_file.file_path)
+        .collect();
     if same_file.len() == 1 {
         return Some(same_file[0]);
     }
     if same_file.len() > 1 {
         return None;
     }
-    let global = lookup_global_callable_candidates(&call.name, index);
     if global.len() == 1 {
         Some(global[0])
     } else {
@@ -221,6 +234,7 @@ fn precise_navigation_callers(
     navigation_index: &NavigationIndex,
     cfg: &CallerConfig,
     runtime_state: AnnotationRuntimeState,
+    root: &Path,
 ) -> Option<Vec<String>> {
     if !cfg.navigation_context_default || runtime_state.suppresses_navigation() {
         return None;
@@ -233,14 +247,24 @@ fn precise_navigation_callers(
     let mut seen = HashSet::new();
     for call_file in snapshot.iter().filter(|file| file.navigation.is_some()) {
         let navigation = call_file.navigation.as_ref().unwrap();
+        let syntax = super::read_workspace_file(&call_file.file_path, root)
+            .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()));
         for call in &navigation.calls {
             inspected += 1;
             if inspected > cfg.navigation_callsite_budget {
                 return None;
             }
-            let Some((candidate_file, candidate)) =
-                resolve_navigation_call(call, call_file, snapshot, index, navigation_index)
-            else {
+            let Some((candidate_file, candidate)) = resolve_navigation_call(
+                call,
+                call_file,
+                snapshot,
+                index,
+                navigation_index,
+                syntax
+                    .as_ref()
+                    .and_then(|syntax| syntax.is_member_call(call))
+                    .unwrap_or(call.receiver.is_some()),
+            ) else {
                 continue;
             };
             if !symbol_identity_matches(candidate_file, candidate, target_file_path, target) {
@@ -373,7 +397,7 @@ fn render_symbol_annotation(
     }
 
     // --- Callers (built into its own block so identical repeats can be deduped per file). ---
-    let own_def_count = *index.fn_def_counts.get(&sym.name).unwrap_or(&0);
+    let own_def_count = lookup_compatible_candidates(&sym.name, file_path, false, index).len();
     let mut caller_block = String::new();
     // Too-many-definitions short-circuit: with this many same-named `fn`s, a name-match
     // scan cannot attribute any call site to THIS definition, so even a labeled list would
@@ -396,6 +420,7 @@ fn render_symbol_annotation(
             navigation_index,
             cfg,
             runtime_state,
+            root,
         ) {
             if !caller_entries.is_empty() {
                 caller_block.push_str(
@@ -422,6 +447,9 @@ fn render_symbol_annotation(
         let mut caller_entries: Vec<String> = Vec::new();
         let mut seen_callers: HashSet<String> = HashSet::new();
         for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
+            if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
+                continue;
+            }
             // Exclude hits inside ANY same-named `fn` definition's range: a definition header
             // (`fn name(`) classifies as a call, and a call within a same-named body is
             // (self-)recursion — neither is a caller. Covers the symbol's own range and, for
@@ -463,6 +491,14 @@ fn render_symbol_annotation(
                     .filter(|h| h.name == sym.name && !h.is_call)
                 {
                     // Exclude references inside same-named definition ranges and import/use lines.
+                    if !definition_is_compatible(
+                        &hit.file_path,
+                        hit.is_member_access,
+                        file_path,
+                        sym,
+                    ) {
+                        continue;
+                    }
                     if is_within_same_named_fn(hit, &sym.name, index) {
                         continue;
                     }
@@ -560,16 +596,7 @@ fn render_symbol_annotation(
                 root,
             )
         })
-        .unwrap_or_else(|| {
-            discover_callees(sym, file_path, &index.fn_names, root)
-                .into_iter()
-                .map(|name| DiscoveredCallee {
-                    display: callee_display(&name, index),
-                    name,
-                    is_precise: false,
-                })
-                .collect()
-        });
+        .unwrap_or_else(|| discover_callees(sym, file_path, index, root));
     if !callees.is_empty() {
         let shown = callees.len().min(cfg.callee_list_cap);
         let mut rendered_lines = String::new();
@@ -577,7 +604,10 @@ fn render_symbol_annotation(
         let mut has_precise = false;
         for callee in callees.iter().take(shown) {
             let def_count = *index.fn_def_counts.get(&callee.name).unwrap_or(&0);
-            if !callee.is_precise && def_count >= cfg.common_name_threshold {
+            if !callee.is_precise
+                && callee.display == callee.name
+                && def_count >= cfg.common_name_threshold
+            {
                 ambiguous_suppressed += 1;
             } else {
                 has_precise |= callee.is_precise;
@@ -818,7 +848,7 @@ pub fn annotate_results_with_state(
     }
     names.sort();
     names.dedup();
-    let scan = scan_workspace(&names, cfg, root)?;
+    let scan = scan_workspace(&names, cfg, root, &index)?;
 
     let mut annotations: HashMap<(String, usize), SymbolAnnotation> = HashMap::new();
     // Two-counter: the annotation budget is the smaller of the sub-budget and the
@@ -911,6 +941,11 @@ mod tests {
         let (_dir, root) = crate::callers::fixtures::write_repo(&[
             ("def.rs", "pub fn target_fn() {\n    let x = 1;\n}\n"),
             ("use.rs", "pub fn caller_fn() {\n    target_fn();\n}\n"),
+            (
+                "noise.rs",
+                "fn noise() {\n    let text = \"한국어 target_fn(\";\n    let raw = r#\"target_fn(\"#;\n    // target_fn();\n    /* target_fn(); */\n    object./* member */target_fn();\n}\n",
+            ),
+            ("foreign.py", "def unrelated():\n    target_fn()\n"),
         ]);
         let snapshot = vec![
             file("def.rs", vec![sym("target_fn", "fn", 1, 3, None)]),
@@ -933,6 +968,14 @@ mod tests {
             "file:line of the call site: {text}"
         );
         assert!(text.contains("approximate"), "approximate label: {text}");
+        assert!(
+            !text.contains("noise.rs"),
+            "non-code/member false caller: {text}"
+        );
+        assert!(
+            !text.contains("foreign.py"),
+            "cross-language false caller: {text}"
+        );
     }
 
     #[test]
@@ -940,11 +983,15 @@ mod tests {
         // The requester's example: `d` calls `c`. Annotating `d` must list `c` at depth 1.
         let (_dir, root) = crate::callers::fixtures::write_repo(&[(
             "chain.rs",
-            "pub fn c() {}\npub fn d() {\n    c();\n}\n",
+            "pub fn c() {}\npub fn d() {\n    c();\n    let text = \"ghost(\";\n    let raw = r#\"ghost(\"#;\n    // ghost();\n    /* ghost(); */\n    object.ghost();\n}\nfn ghost() {}\n",
         )]);
         let snapshot = vec![file(
             "chain.rs",
-            vec![sym("c", "fn", 1, 1, None), sym("d", "fn", 2, 4, None)],
+            vec![
+                sym("c", "fn", 1, 1, None),
+                sym("d", "fn", 2, 9, None),
+                sym("ghost", "fn", 10, 10, None),
+            ],
         )];
         let requests = vec![AnnotationRequest {
             file_path: "chain.rs",
@@ -959,6 +1006,38 @@ mod tests {
             "callee definition listed: {text}"
         );
         assert!(text.contains("approximate"), "approximate label: {text}");
+        assert!(
+            !text.contains("ghost"),
+            "non-code/member false callee: {text}"
+        );
+        // Literal text is excluded, but interpolation expressions are executable.
+        // Exercise both caller and fallback callee consumers with LF and CRLF.
+        for (path, source, first_definition) in [
+            ("case.tsx", "function target() {}\nfunction ghost() {}\nfunction runner() {\n  return <div>ghost( {target()}</div>;\n}\n", 1),
+            ("case.ts", "function target() {}\nfunction ghost() {}\nfunction runner() {\n  const text = `ghost( ${target()}`;\n  const pattern = /ghost()/;\n  /* ghost();\n     ghost(); */\n}\n", 1),
+            ("case.py", "def target(): pass\ndef ghost(): pass\ndef runner():\n    text = \"\"\"ghost(\n    ghost(\"\"\"\n    result = f\"ghost( {target()}\"\n    # ghost()\n", 1),
+            ("case.rb", "def target; end\ndef ghost; end\ndef runner\n  text = \"ghost( #{target()}\"\n  pattern = /ghost()/\n  # ghost()\nend\n", 1),
+            ("case.go", "package example\nfunc target() {}\nfunc ghost() {}\nfunc runner() {\n  text := `ghost(\n  ghost(`\n  _ = text\n  /* ghost(); */\n  target()\n}\n", 2),
+        ] {
+            for line_ending in ["\n", "\r\n"] {
+                let source = source.replace('\n', line_ending);
+                let (_dir, root) = crate::callers::fixtures::write_repo(&[(path, &source)]);
+                let snapshot = vec![file(path, vec![
+                    sym("target", "fn", first_definition, first_definition, None),
+                    sym("ghost", "fn", first_definition + 1, first_definition + 1, None),
+                    sym("runner", "fn", first_definition + 2, source.lines().count(), None),
+                ])];
+                let index = build_symbol_index(&snapshot);
+                let callees = discover_callees(&snapshot[0].symbols[2], path, &index, &root);
+                assert_eq!(callees.iter().map(|callee| callee.name.as_str()).collect::<Vec<_>>(), vec!["target"], "{path}: {callees:?}");
+                let requests = [AnnotationRequest { file_path: path, symbols: &snapshot[0].symbols, is_fallback: false }];
+                let annotations = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+                let target = note(&annotations, path, first_definition);
+                assert!(target.contains("runner ("), "actual/interpolated call missing in {path}: {target}");
+                let ghost = note(&annotations, path, first_definition + 1);
+                assert!(ghost.contains("no direct caller observed"), "literal/comment reference in {path}: {ghost}");
+            }
+        }
     }
 
     #[test]
