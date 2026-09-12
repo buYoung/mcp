@@ -424,7 +424,10 @@ fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
     builder
 }
 
-fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
+/// Check the entire ancestor chain before searching a targeted path. The ignore
+/// walker skips its filter for depth-zero entries, so explicit files need this
+/// guard at the consumer as well as the directory traversal filter.
+pub(crate) fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
     let target = canonicalize_path_lenient(root);
     let workspace_root = match std::env::current_dir() {
         Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),

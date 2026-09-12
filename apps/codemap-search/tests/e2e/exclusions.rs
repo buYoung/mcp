@@ -17,6 +17,14 @@ async fn call(client: &mut McpClient, name: &str, arguments: Value) -> Value {
 #[tokio::test]
 async fn test_exclusions_generated_common_and_project_globs() {
     let repo = create_mock_repo(&[
+        (".gitignore", "ignored_by_git/\n"),
+        (".codemapignore", "ignored_by_codemap/\n"),
+        ("ignored_by_git/hidden.rs", "pub fn ignored_git_probe() {}"),
+        (
+            "ignored_by_codemap/hidden.rs",
+            "pub fn ignored_codemap_probe() {}",
+        ),
+        ("src/visible.rs", "pub fn visible_probe() {}"),
         ("apps/web/package.json", "{}"),
         (
             "apps/web/node_modules/lib/generated.js",
@@ -93,6 +101,79 @@ async fn test_exclusions_generated_common_and_project_globs() {
     assert!(text.contains("apps/web/node_modules/lib/generated.js"));
     assert!(!text.contains(".git/internal.json"));
     assert!(!text.contains(".codemap/config.toml"));
+    // A directly named file must obey the same ancestor rules as a directory walk.
+    // Exercise all output modes, relative/absolute paths, and the explicit bypass.
+    for (path, pattern, is_optional) in [
+        (
+            "apps/web/node_modules/lib/generated.js",
+            "excluded_dependency",
+            true,
+        ),
+        (".idea/settings.json", "common_exclusion", true),
+        ("ignored_by_git/hidden.rs", "ignored_git_probe", true),
+        (
+            "ignored_by_codemap/hidden.rs",
+            "ignored_codemap_probe",
+            true,
+        ),
+        (".git/internal.json", "common_exclusion", false),
+        (".codemap/config.toml", "codemap-config-version", false),
+    ] {
+        for path in [
+            path.to_string(),
+            repo.path().join(path).to_string_lossy().into_owned(),
+        ] {
+            for output_mode in ["content", "files_with_matches", "count"] {
+                for include_ignored in [false, true] {
+                    let response = call(
+                        &mut client,
+                        "grep",
+                        json!({
+                            "path": path,
+                            "pattern": pattern,
+                            "output_mode": output_mode,
+                            "include_ignored": include_ignored,
+                        }),
+                    )
+                    .await;
+                    let text = result_text(&response);
+                    let should_match = is_optional && include_ignored;
+                    if should_match {
+                        assert!(
+                            !text.contains("No matches found")
+                                && !text.contains("Found 0 total occurrence"),
+                            "{path}, {output_mode}, include_ignored={include_ignored}: {text}"
+                        );
+                        assert!(
+                            text.contains(if output_mode == "count" {
+                                "Found 1 total occurrence"
+                            } else {
+                                path.rsplit('/').next().unwrap()
+                            }),
+                            "{text}"
+                        );
+                    } else {
+                        assert!(
+                            text.contains(if output_mode == "count" {
+                                "Found 0 total occurrence"
+                            } else {
+                                "No matches found"
+                            }),
+                            "{path}, {output_mode}, include_ignored={include_ignored}: {text}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    let visible = call(&mut client, "grep", json!({
+        "path": "src/visible.rs", "pattern": "visible_probe", "glob": "*.py", "output_mode": "count"
+    })).await;
+    assert!(
+        result_text(&visible).contains("Found 1 total occurrence"),
+        "{}",
+        result_text(&visible)
+    );
     let read = call(&mut client, "read", json!({"path": ".idea/settings.json"})).await;
     assert!(result_text(&read).contains("common_exclusion"));
 }
@@ -100,7 +181,7 @@ async fn test_exclusions_generated_common_and_project_globs() {
 #[tokio::test]
 async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     let config_path = ".codemap/config.toml";
-    let original = "# codemap-config-version: 9\n[exclude]\nexcluded_directories = []\n[refresh]\nindex_staleness_ms = 3600000\n";
+    let original = "# codemap-config-version: 9\n[index]\nindex_path = '.custom-codemap-index'\n[exclude]\nexcluded_directories = []\n[refresh]\nindex_staleness_ms = 3600000\n";
     let repo = create_mock_repo(&[
         (config_path, original),
         ("apps/web/build/hidden.rs", "pub fn exclusion_probe() {}"),
@@ -114,6 +195,21 @@ async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     let initial = call(&mut client, "search", query.clone()).await;
     assert!(result_text(&initial).contains("hidden.rs"));
     assert!(result_text(&initial).contains(".vscode/source.rs"));
+    fs::write(
+        repo.path().join(".custom-codemap-index/probe.rs"),
+        "pub fn internal_index_probe() {}",
+    )
+    .unwrap();
+    for include_ignored in [false, true] {
+        let hidden = call(&mut client, "grep", json!({
+            "path": ".custom-codemap-index/probe.rs", "pattern": "internal_index_probe", "output_mode": "count", "include_ignored": include_ignored
+        })).await;
+        assert!(
+            result_text(&hidden).contains("Found 0 total occurrence"),
+            "{}",
+            result_text(&hidden)
+        );
+    }
     let updated = original.replace(
         "excluded_directories = []",
         "excluded_directories = ['apps/web/build', '.vscode']",
@@ -151,6 +247,17 @@ async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     assert!(!result_text(&targeted).contains("hidden.rs"));
     let files = call(&mut client, "find", json!({"pattern": "build"})).await;
     assert!(result_text(&files).lines().any(|line| line == "build"));
+    let direct = call(
+        &mut client,
+        "grep",
+        json!({"path": "build", "pattern": "exclusion_probe", "output_mode": "count"}),
+    )
+    .await;
+    assert!(
+        result_text(&direct).contains("Found 1 total occurrence"),
+        "{}",
+        result_text(&direct)
+    );
     let bypass = call(&mut client, "grep", json!({"pattern": "exclusion_probe", "include_ignored": true, "output_mode": "files_with_matches"})).await;
     assert!(result_text(&bypass).contains("hidden.rs"));
     let overview = call(&mut client, "overview", json!({"path": "apps/web/build"})).await;

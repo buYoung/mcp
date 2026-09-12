@@ -10,7 +10,9 @@ use super::live_symbols::{LiveAnchor, LiveOutput};
 use super::{
     arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
 };
-use crate::workspace::{build_walker, current_dir, resolve_for_filesystem_tool, FilesystemTool};
+use crate::workspace::{
+    build_walker, current_dir, resolve_for_filesystem_tool, walk_root_is_visible, FilesystemTool,
+};
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
@@ -292,7 +294,14 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
     }
 
     let mut files: Vec<FileResult> = Vec::new();
-    for result in walker.build() {
+    // ignore::Walk yields an explicitly named root file without running filter_entry.
+    // Enforce the shared ancestor policy before it can reach search_path, including
+    // mandatory internal/index exclusions when include_ignored is enabled.
+    let entries = walk_root_is_visible(&base, !include_ignored)
+        .then(|| walker.build())
+        .into_iter()
+        .flatten();
+    for result in entries {
         let entry = match result {
             Ok(e) => e,
             Err(_) => continue,
