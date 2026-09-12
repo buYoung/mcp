@@ -22,8 +22,8 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
-- `[update].config_auto_update = true`이면 MCP 시작 시 누락된 저장소 설정을 만듭니다. 제외 배열에는 공통 폴더와 프로젝트별 추천 경로를 넣고, 다른 활성 키에는 내장 기본값을 씁니다. 활성 저장소 키는 전역값보다 우선합니다.
-- 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 감지한 프로젝트 경로를 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 버전을 6으로 바꿉니다.
+- `[update].config_auto_update = true`이면 MCP 시작 시 누락된 저장소 설정을 만듭니다. 제외 배열에는 공통 폴더와 감지한 프로젝트 종류의 재귀 glob을 넣고, 다른 활성 키에는 내장 기본값을 씁니다. 활성 저장소 키는 전역값보다 우선합니다.
+- 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 추천 재귀 glob을 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 버전을 6으로 바꿉니다.
 - **버전 6부터 `excluded_directories`는 자동으로 만들거나 보충하지 않습니다.** 항목 삭제, `[]` 지정, 키 주석 처리, 새 프로젝트 추가 후에도 목록을 복원하지 않습니다. 수동 변경을 읽어 적용하는 동작은 계속됩니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
@@ -50,11 +50,14 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 
 `.idea`, `.vscode`, `.vs`는 수정 가능한 기본값입니다. 버전 관리 내부 폴더(`.git`, `.svn`, `.hg`, `.bzr`, `.jj`, `.sl`), `.codemap`, `.codemap-index`, 실제 색인 경로는 배열에서 지우거나 `include_ignored`를 켜도 탐색에서 제외합니다. 직접 `read`는 파일시스템 권한을 따릅니다.
 
-배열을 전혀 지정하지 않으면 공통 목록에 `node_modules`, `.yarn`, `target`, `dist`, `build`, `vendor`를 더한 기본값을 씁니다. 처음 생성하는 설정에는 공통 이름과 **프로젝트별 경로**를 넣으므로 JS 프로젝트의 `build` 때문에 옆 Rust 프로젝트의 같은 이름 소스 폴더를 숨기지 않습니다.
+배열을 전혀 지정하지 않으면 공통 목록에 `node_modules`, `.yarn`, `target`, `dist`, `build`, `vendor`를 더한 기본값을 씁니다. 처음 생성하는 설정에는 공통 이름과 감지한 프로젝트 종류의 **재귀 glob**을 넣습니다. `**/node_modules`, `**/build`, `**/target`처럼 각 패턴을 한 번만 기록하며 옆 프로젝트를 포함해 작업공간의 모든 깊이에 적용합니다. 같은 이름의 소스 폴더를 유지하려면 해당 glob을 더 좁은 규칙으로 바꾸세요.
+
+0.8.1에서 생성한 설정에는 `apps/web/node_modules` 같은 경로가 남아 있을 수 있습니다. 재귀 제외를 원하면 해당 항목을 `**/node_modules`로 바꾸세요. 기존 버전 6 배열은 사용자가 관리하며 자동으로 다시 쓰지 않습니다.
 
 | 규칙 | 의미 |
 |---|---|
 | `build` | 모든 깊이에서 해당 이름의 폴더 |
+| `**/build` | 작업공간 루트를 포함해 모든 깊이에서 해당 이름의 폴더 |
 | `./build` | 작업공간 루트의 해당 폴더만 |
 | `apps/web/build` | 해당 프로젝트 폴더와 그 하위 |
 | `apps/api/**/__pycache__` | 해당 프로젝트의 모든 깊이에 있는 캐시 폴더 |
@@ -66,28 +69,28 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 
 ### 최초 프로젝트 감지
 
-설정 최초 생성과 버전 6 전환 때만 공통 폴더·프로젝트별 추천 경로를 만듭니다. 프로젝트 파일 이름을 확인하며 빌드를 실행하거나 매니페스트 내용을 평가하거나 디렉터리 심볼릭 링크를 따라가지 않습니다. 무시 파일을 따르고 공통·생성 폴더와 프로젝트에 속하지 않는 의존성·캐시 트리는 건너뛰며 중첩 프로젝트를 지원합니다. 아직 없는 출력 폴더도 추천 목록에 넣습니다. 사용자가 지정한 별도 출력 경로는 직접 추가해야 합니다.
+설정 최초 생성과 버전 6 전환 때만 공통 폴더·프로젝트 종류별 추천 glob을 만듭니다. 프로젝트 파일 이름을 확인하며 빌드를 실행하거나 매니페스트 내용을 평가하거나 디렉터리 심볼릭 링크를 따라가지 않습니다. 무시 파일을 따르고 공통·생성 폴더와 프로젝트에 속하지 않는 의존성·캐시 트리는 건너뛰며 중첩 프로젝트를 지원합니다. 아직 없는 출력 폴더도 재귀 glob으로 추천 목록에 넣습니다. 발견한 프로젝트 경로는 기록하지 않으며 같은 프로젝트 종류가 여러 곳에 있어도 패턴을 중복 추가하지 않습니다. 사용자가 지정한 별도 출력 경로는 직접 추가해야 합니다.
 
-| 프로젝트 식별 파일 | 해당 프로젝트 기준 제외 경로 |
+| 프로젝트 식별 파일 | 작업공간 전체에 적용하는 재귀 glob |
 |---|---|
-| `package.json` | `node_modules`, `.yarn`, `dist`, `build`, `coverage`, `.next`, `.nuxt`, `.output`, `.svelte-kit`, `.astro`, `.turbo`, `.parcel-cache` |
-| `pyproject.toml`, `setup.py`, `setup.cfg`, `Pipfile`, `requirements*.txt` | `.venv`, `venv`, `**/__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.nox`, `build`, `dist`, `**/*.egg-info` |
-| `Cargo.toml` | `target` |
-| `go.mod`, `go.work` | `vendor` |
-| `pom.xml` | `target` |
-| `build.gradle`, `build.gradle.kts`, `settings.gradle`, `settings.gradle.kts` | `.gradle`, `build` |
-| `build.sbt` | `target`, `project/target`, `.bloop`, `.metals` |
-| `*.csproj`, `*.sln`, `*.slnx` | `bin`, `obj` |
-| `composer.json` | `vendor` |
-| `Gemfile`, `*.gemspec` | `vendor/bundle` |
-| `Package.swift` | `.build` |
-| `Podfile` / `Cartfile` | `Pods` / `Carthage/Build` (각각) |
-| `pubspec.yaml` | `.dart_tool`, `build` |
-| `CMakeLists.txt` | `build`, `cmake-build-*`, `CMakeFiles`, `_deps` |
-| `MODULE.bazel`, `WORKSPACE`, `WORKSPACE.bazel`, `BUILD`, `BUILD.bazel` | `bazel-bin`, `bazel-out`, `bazel-testlogs` |
-| `.tf` 파일이 있는 디렉터리 | `.terraform` |
+| `package.json` | `**/node_modules`, `**/.yarn`, `**/dist`, `**/build`, `**/coverage`, `**/.next`, `**/.nuxt`, `**/.output`, `**/.svelte-kit`, `**/.astro`, `**/.turbo`, `**/.parcel-cache` |
+| `pyproject.toml`, `setup.py`, `setup.cfg`, `Pipfile`, `requirements*.txt` | `**/.venv`, `**/venv`, `**/__pycache__`, `**/.pytest_cache`, `**/.mypy_cache`, `**/.ruff_cache`, `**/.tox`, `**/.nox`, `**/build`, `**/dist`, `**/*.egg-info` |
+| `Cargo.toml` | `**/target` |
+| `go.mod`, `go.work` | `**/vendor` |
+| `pom.xml` | `**/target` |
+| `build.gradle`, `build.gradle.kts`, `settings.gradle`, `settings.gradle.kts` | `**/.gradle`, `**/build` |
+| `build.sbt` | `**/target`, `**/project/target`, `**/.bloop`, `**/.metals` |
+| `*.csproj`, `*.sln`, `*.slnx` | `**/bin`, `**/obj` |
+| `composer.json` | `**/vendor` |
+| `Gemfile`, `*.gemspec` | `**/vendor/bundle` |
+| `Package.swift` | `**/.build` |
+| `Podfile` / `Cartfile` | `**/Pods` / `**/Carthage/Build` (각각) |
+| `pubspec.yaml` | `**/.dart_tool`, `**/build` |
+| `CMakeLists.txt` | `**/build`, `**/cmake-build-*`, `**/CMakeFiles`, `**/_deps` |
+| `MODULE.bazel`, `WORKSPACE`, `WORKSPACE.bazel`, `BUILD`, `BUILD.bazel` | `**/bazel-bin`, `**/bazel-out`, `**/bazel-testlogs` |
+| `.tf` 파일이 있는 디렉터리 | `**/.terraform` |
 
-SQL, Lua, PowerShell, 독립 셸·웹·설정 파일과 문서에는 출력 경로를 추측해서 추가하지 않습니다. 관련 빌드 시스템이 있으면 해당 프로젝트 규칙을 적용합니다. 프로젝트 식별 파일이 없으면 언어별 추천 경로도 추가하지 않습니다. `gradle` 소스·설정 폴더는 유지하고 `.gradle` 캐시만 제외합니다.
+SQL, Lua, PowerShell, 독립 셸·웹·설정 파일과 문서에는 출력 경로를 추측해서 추가하지 않습니다. 빌드 시스템을 감지하면 해당 종류의 패턴을 작업공간 전체에 추가합니다. 프로젝트 식별 파일을 하나도 찾지 못하면 공통 추천 목록만 생성합니다. `gradle` 소스·설정 폴더는 유지하고 `.gradle` 캐시만 제외합니다.
 
 ## 변경 적용 시점
 
@@ -114,7 +117,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
 | `[index].index_path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_size` | 정수(바이트) | `1048576` (1 MiB) | 파싱·색인 전 건너뛸 파일 크기 기준 |
-| `[index].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 프로젝트 경로 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
+| `[index].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 재귀 glob 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
 | `[index].use_git_exclude` | bool | `true` | `.git/info/exclude` 적용 여부 |
 | `[language_support].is_document_support_enabled` | bool | `false` | `.md`/`.mdx`를 색인 기반 탐색에 포함 |
 | `[language_support].is_shell_support_enabled` | bool | `false` | `.sh`, `.bash`, `.zsh`를 색인 기반 탐색에 포함 |
@@ -206,7 +209,7 @@ config_auto_update = true
 index_path = ".codemap/index"
 max_file_size = 1048576   # 1 MiB
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
-# Initial generation also adds detected project paths; edit them manually from v6 onward.
+# Initial generation also adds recursive globs for detected project types; edit them manually from v6 onward.
 use_git_exclude = true
 
 [language_support]

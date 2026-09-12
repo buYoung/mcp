@@ -99,20 +99,20 @@ MCP `read`·`grep`은 원문과 함께 색인에서 가져온 심볼·호출 관
 
 키별 우선순위는 `<repo>/.codemap/config.toml` → `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) → 내장 기본값입니다. 활성화된 저장소 키가 전역값보다 우선하며, 전역값을 상속하려면 해당 키를 주석 처리합니다.
 
-첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 프로젝트별 추천 경로**를 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 해당 프로젝트의 `node_modules`, `dist`, `build`, 프레임워크 출력과 캐시를 추가하고, Python·Rust 등도 해당 프로젝트의 경로만 추가합니다.
+첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 감지한 프로젝트 종류의 재귀 glob**을 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 `**/node_modules`, `**/dist`, `**/build`, 프레임워크 출력과 캐시의 glob을 추가하고, Python·Rust 등도 해당 종류의 glob을 추가합니다. 같은 패턴은 한 번만 기록하며 프로젝트를 발견한 폴더와 관계없이 작업공간 전체에 적용합니다.
 
 ```toml
 [index]
 # 혼합 저장소 예시입니다. 필요한 항목을 관리하세요.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
-    "apps/web/node_modules", "apps/web/dist", "apps/web/build",
-    "apps/api/.venv", "apps/api/**/__pycache__",
-    "crates/core/target",
+    "**/node_modules", "**/dist", "**/build",
+    "**/.venv", "**/__pycache__",
+    "**/target",
 ]
 ```
 
-**버전 6 이전 설정의 제외 목록은 한 번 전환합니다. `codemap-config-version: 6`부터는 이 배열을 자동 갱신하지 않습니다. 새 프로젝트가 생겨도 직접 관리하세요.** 삭제한 항목은 재시작해도 복원하지 않습니다. `config_auto_update`는 설정 생성과 일반 스키마 추가를 제어하며, 버전 6 이후 제외 배열을 자동 보충하는 옵션이 아닙니다. 자동 쓰기를 껐다면 [수동 전환 안내](./docs/configuration.ko.md#자동-작성을-껐을-때-수동-전환)를 따르세요.
+**버전 6 이전 설정의 제외 목록은 한 번 전환합니다. `codemap-config-version: 6`부터는 이 배열을 자동 갱신하지 않습니다. 새 규칙이 필요하면 직접 관리하세요.** 삭제한 항목은 재시작해도 복원하지 않습니다. `config_auto_update`는 설정 생성과 일반 스키마 추가를 제어하며, 버전 6 이후 제외 배열을 자동 보충하는 옵션이 아닙니다. 자동 쓰기를 껐다면 [수동 전환 안내](./docs/configuration.ko.md#자동-작성을-껐을-때-수동-전환)를 따르세요.
 
 `build`는 모든 깊이의 해당 폴더, `./build`는 루트만, `apps/web/build`는 지정 프로젝트만 제외합니다. 명시한 배열은 선택적 기본 목록을 대체합니다. `[]`는 선택적 제외 해제, 키 생략은 전역/기본값 상속입니다. `.gitignore`, 전역 Git ignore, `.git/info/exclude`, `.codemapignore`는 별도로 적용합니다. VCS 내부, `.codemap`, `.codemap-index`, 실제 색인 위치는 배열과 무관하게 탐색에서 제외합니다. `find`·`grep`의 `include_ignored: true`는 선택적 제외를 우회하며, 직접 `read`는 파일시스템 권한을 따릅니다.
 

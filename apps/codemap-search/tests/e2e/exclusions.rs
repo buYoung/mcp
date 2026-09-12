@@ -15,7 +15,7 @@ async fn call(client: &mut McpClient, name: &str, arguments: Value) -> Value {
 }
 
 #[tokio::test]
-async fn test_exclusions_generated_common_and_project_scopes() {
+async fn test_exclusions_generated_common_and_project_globs() {
     let repo = create_mock_repo(&[
         ("apps/web/package.json", "{}"),
         (
@@ -32,7 +32,7 @@ async fn test_exclusions_generated_common_and_project_scopes() {
             "def excluded_cache(): pass",
         ),
         ("apps/native/Cargo.toml", ""),
-        ("apps/native/build/source.rs", "pub fn retained_source() {}"),
+        ("apps/native/build/source.rs", "pub fn excluded_build() {}"),
         (".idea/settings.json", "{\"common_exclusion\": true}"),
         (
             "apps/api/.vscode/settings.json",
@@ -44,7 +44,7 @@ async fn test_exclusions_generated_common_and_project_scopes() {
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
     let found = call(&mut client, "find", json!({"pattern": "**/*"})).await;
     let text = result_text(&found);
-    assert!(text.contains("apps/native/build/source.rs"), "{text}");
+    assert!(!text.contains("apps/native/build/source.rs"), "{text}");
     for excluded in [
         "node_modules",
         "generated.js",
@@ -64,9 +64,9 @@ async fn test_exclusions_generated_common_and_project_scopes() {
         ".idea",
         ".vscode",
         ".codemap",
-        "apps/web/node_modules",
-        "apps/api/**/__pycache__",
-        "apps/native/target",
+        "**/node_modules",
+        "**/__pycache__",
+        "**/target",
     ] {
         assert!(
             patterns.iter().any(|value| value.as_str() == Some(pattern)),
@@ -76,10 +76,10 @@ async fn test_exclusions_generated_common_and_project_scopes() {
     let search = call(
         &mut client,
         "search",
-        json!({"query": "retained_source", "workspace_scope": "all"}),
+        json!({"query": "excluded_build", "workspace_scope": "all"}),
     )
     .await;
-    assert!(result_text(&search).contains("apps/native/build/source.rs"));
+    assert!(!result_text(&search).contains("apps/native/build/source.rs"));
     let bypass = call(
         &mut client,
         "find",
@@ -219,7 +219,7 @@ async fn test_exclusions_pre_v6_transition_and_opt_out() {
         assert!(updated.contains("# custom rule"));
         let value: toml::Value = toml::from_str(&updated).unwrap();
         let patterns = value["index"]["excluded_directories"].as_array().unwrap();
-        for expected in ["custom", "node_modules", ".idea", "./node_modules"] {
+        for expected in ["custom", "node_modules", ".idea", "**/node_modules"] {
             assert!(
                 patterns.iter().any(|p| p.as_str() == Some(expected)),
                 "{updated}"

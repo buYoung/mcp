@@ -1,6 +1,6 @@
 # codemap-config-version: 6
 # codemap-search settings for this repository.
-# Initial exclusions use common folders and detected project paths; other values are built-in defaults.
+# Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
 # Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
 # Numeric settings require positive integers; grep_max_columns also accepts 0.
 # Invalid values warn on stderr and inherit a lower-priority value. Malformed TOML discards that file's layer.
@@ -23,11 +23,11 @@ index_path = ".codemap/index"
 max_file_size = 1048576 # 1 MiB
 
 # Complete optional directory rules for indexing, codemap, caller scans, and find/grep.
-# "build" matches at any depth; "./build" matches only at the workspace root.
+# "build" and "**/build" match at any depth; "./build" matches only at the workspace root.
 # "apps/web/build" and "apps/api/**/__pycache__" are workspace-relative paths/globs.
 # Absolute paths and .. are invalid. [] clears optional rules; omitting the key inherits global/default rules.
-# Ignore files apply independently. Initial creation adds project paths to the common list.
-# Pre-v6 configs migrate once. From version 6 onward, edit this array manually, including for new projects.
+# Ignore files apply independently. Initial creation adds recursive globs such as "**/node_modules" once per pattern.
+# Pre-v6 configs migrate once. From version 6 onward, edit this array manually when new rules are needed.
 # Manual changes request a full index refresh after settings reload.
 # find/grep include_ignored=true bypasses optional rules. VCS internals, .codemap, .codemap-index, and the actual index directory remain excluded.
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]

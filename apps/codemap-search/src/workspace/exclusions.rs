@@ -75,7 +75,7 @@ pub(crate) fn normalize_pattern(pattern: &str) -> Result<String, String> {
     Ok(normalized)
 }
 
-/// Read-only, one-time discovery. Profiles apply below their own project, not repo-wide.
+/// Read-only, one-time discovery. Profiles produce recursive globs across the workspace.
 pub(crate) fn recommended_directories(root: &Path) -> Vec<String> {
     let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let mut recommendations: BTreeSet<String> =
@@ -108,24 +108,17 @@ pub(crate) fn recommended_directories(root: &Path) -> Vec<String> {
             .filter_map(|entry| entry.file_name().to_str())
             .collect();
         let previous_len = recommendations.len();
-        let prefix = directory
-            .strip_prefix(&root)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
         for pattern in project_patterns(&names) {
-            // Escape literal directory names before composing them with profile globs.
-            let prefix = globset::escape(&prefix);
-            recommendations.insert(if prefix.is_empty() {
-                format!("./{pattern}")
-            } else {
-                format!("{prefix}/{pattern}")
-            });
+            // Keep recommendations independent of the discovered project's location.
+            recommendations.insert(format!(
+                "**/{}",
+                pattern.strip_prefix("**/").unwrap_or(pattern)
+            ));
         }
         if recommendations.len() != previous_len {
             matcher =
                 DirectoryExclusions::new(&recommendations.iter().cloned().collect::<Vec<_>>())
-                    .expect("escaped project prefixes and built-in patterns are valid");
+                    .expect("built-in recursive directory patterns are valid");
         }
         let mut children: Vec<_> = entries
             .into_iter()
@@ -291,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn test_project_discovery_scopes_profiles_and_ignores_generated_projects() {
+    fn test_project_discovery_uses_globs_and_ignores_generated_projects() {
         let root = tempfile::tempdir().unwrap();
         for path in [
             "apps/web/package.json",
@@ -307,13 +300,14 @@ mod tests {
         }
         let result = recommended_directories(root.path());
         assert!(result.contains(&".vscode".into()));
-        assert!(result.contains(&"apps/web/node_modules".into()));
-        assert!(result.contains(&"apps/api/**/__pycache__".into()));
-        assert!(result.contains(&"crates/core/target".into()));
+        assert!(result.contains(&"**/node_modules".into()));
+        assert!(result.contains(&"**/__pycache__".into()));
+        assert!(result.contains(&"**/target".into()));
         assert!(!result.contains(&"build".into()));
-        assert!(!result.iter().any(|path| path.contains("lib/vendor")
-            || path.contains("build/target")
-            || path.starts_with("notes/")));
+        assert!(!result.contains(&"**/vendor".into()));
+        assert!(result
+            .iter()
+            .all(|pattern| !pattern.contains('/') || pattern.starts_with("**/")));
         assert_eq!(result, recommended_directories(root.path()));
     }
 

@@ -99,20 +99,20 @@ Tools are read-only over their configured filesystem scope. The server itself wr
 
 Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`), then built-in defaults. An active repo key overrides its global value; comment it out to inherit instead.
 
-On first MCP startup, a missing repo file is generated with **common exclusions plus project-scoped recommendations**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds its `node_modules`, `dist`, `build`, framework outputs and caches; Python, Rust and other build systems receive their own project paths.
+On first MCP startup, a missing repo file is generated with **common exclusions plus recursive globs for detected project types**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds `**/node_modules`, `**/dist`, `**/build`, framework outputs and caches; Python, Rust and other build systems add their corresponding globs. Each pattern appears once and applies throughout the workspace, regardless of where the project was detected.
 
 ```toml
 [index]
 # Example for a mixed repository; keep the entries you need.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
-    "apps/web/node_modules", "apps/web/dist", "apps/web/build",
-    "apps/api/.venv", "apps/api/**/__pycache__",
-    "crates/core/target",
+    "**/node_modules", "**/dist", "**/build",
+    "**/.venv", "**/__pycache__",
+    "**/target",
 ]
 ```
 
-**Pre-v6 configs migrate once. From `codemap-config-version: 6` onward, this array is never automatically updated. Manage it yourself, including when adding a project.** Deleting an entry does not cause it to return on restart. `config_auto_update` still controls automatic file creation and ordinary schema additions, not this post-v6 array. With automatic writes disabled, follow the [manual transition](./docs/configuration.md#manual-transition-when-automatic-writes-are-disabled).
+**Pre-v6 configs migrate once. From `codemap-config-version: 6` onward, this array is never automatically updated. Manage it yourself when new rules are needed.** Deleting an entry does not cause it to return on restart. `config_auto_update` still controls automatic file creation and ordinary schema additions, not this post-v6 array. With automatic writes disabled, follow the [manual transition](./docs/configuration.md#manual-transition-when-automatic-writes-are-disabled).
 
 A bare `build` matches directories at any depth; `./build` means the workspace root; `apps/web/build` scopes it to that project. Explicit arrays replace optional defaults. `[]` clears optional directory rules; omitting the key inherits global/default rules. `.gitignore`, global Git ignores, `.git/info/exclude` and `.codemapignore` still apply. VCS internals, `.codemap`, `.codemap-index` and the actual index location remain excluded from walks regardless of the array. `find`/`grep` can bypass optional exclusions with `include_ignored: true`; direct `read` remains subject to filesystem permissions.
 

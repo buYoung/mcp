@@ -252,7 +252,7 @@ mod tests {
             toml::from_str::<toml::Value>(&english).unwrap(),
             toml::from_str::<toml::Value>(&korean).unwrap()
         );
-        assert!(english.contains("\"./node_modules\""));
-        assert!(!english.contains("\"target\""));
+        assert!(english.contains("\"**/node_modules\""));
+        assert!(!english.contains("\"**/target\""));
     }
 }
