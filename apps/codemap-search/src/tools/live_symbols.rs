@@ -81,7 +81,7 @@ pub(crate) fn append(
             }
         }
         let mut rendered = if has_excluded_test_context {
-            let notice = "[Test code excluded from automatic context; set caller_context.should_include_test_code=true to include it.]\n";
+            let notice = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
             if outlines.iter().all(|outline| outline.selected.is_empty()) {
                 notice.to_string()
             } else {

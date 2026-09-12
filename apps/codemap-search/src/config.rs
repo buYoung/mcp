@@ -34,6 +34,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
+mod exclude;
 mod scaffold;
 mod test_code;
 pub use test_code::TestCodeRules;
@@ -90,7 +91,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 7;
+const CONFIG_VERSION: u32 = 8;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -424,8 +425,10 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
         }
     };
     let mut section_values = Vec::new();
+    let mut exclude_value = None;
     for (key, value) in table {
         match key.as_str() {
+            "exclude" => exclude_value = Some(value),
             "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
             | "language_support" => {
                 section_values.push((key, value));
@@ -445,6 +448,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     }
     for (section, value) in section_values {
         normalize_config_section(&mut layer, &section, &value, path);
+    }
+    if let Some(value) = exclude_value {
+        exclude::normalize_section(&mut layer, &value, path);
     }
     layer
 }
@@ -503,6 +509,7 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "search_anchor_snippet_limit"
         ),
         "tool_output" => matches!(key, "grep_max_columns" | "read_output_byte_cap"),
+        "exclude" => exclude::TEST_KEYS.contains(&key),
         "caller_context" => matches!(
             key,
             "caller_context_default"
@@ -1256,7 +1263,8 @@ fn version_marker_line(version: u32) -> String {
 ///
 /// Never-exit: a directory-create, read, or write failure warns to stderr and returns rather
 /// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
-/// keys are still commented; the v6 exception materializes existing exclusions once.
+/// keys are still commented; v6 materializes directory exclusions once, and v8 relocates
+/// existing test-code settings into `[exclude]` without changing their effective values.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1336,7 +1344,7 @@ fn migrate_existing(path: &Path, existing: &str) {
     } else {
         existing.to_string()
     };
-    let Some(updated) = apply_migrations_with_language(
+    let Some(mut updated) = apply_migrations_with_language(
         &existing,
         file_version,
         CONFIG_VERSION,
@@ -1345,6 +1353,18 @@ fn migrate_existing(path: &Path, existing: &str) {
     ) else {
         return; // already current — never touch the user's file
     };
+    if file_version < 8 {
+        updated = match exclude::migrate(&updated, &existing, path) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config v8 migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    }
     if let Err(e) = scaffold::write_migration(path, original, &updated) {
         warn(&format!(
             "config sync skipped: write {}: {e}",
@@ -1754,7 +1774,7 @@ test_decorators = { python = ["project.check"] }
         write_repo_config(
             repo.path(),
             r#"
-[caller_context]
+[exclude]
 should_include_test_code = false
 test_file_patterns = []
 test_attributes = { rust = [], kotlin = ["CustomTest"] }
@@ -1777,7 +1797,7 @@ test_calls = { typescript = [] }
         write_repo_config(
             repo.path(),
             r#"
-[caller_context]
+[exclude]
 test_file_patterns = ["../outside"]
 test_attributes = { rust = ["["], unknown_language = ["check"] }
 "#,
@@ -1793,6 +1813,25 @@ test_attributes = { rust = ["["], unknown_language = ["check"] }
             .test_code_rules
             .attributes
             .contains_key("unknown_language"));
+
+        write_repo_config(
+            repo.path(),
+            r#"
+[exclude]
+should_include_test_code = false
+test_file_patterns = []
+test_attributes = { rust = [] }
+[caller_context]
+should_include_test_code = true
+test_file_patterns = ["legacy/**"]
+test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
+"#,
+        );
+        let mixed = load(repo.path(), global.path());
+        assert!(!mixed.should_include_test_code);
+        assert!(mixed.test_code_rules.file_patterns.is_empty());
+        assert!(mixed.test_code_rules.attributes["rust"].is_empty());
+        assert_eq!(mixed.test_code_rules.attributes["java"], ["LegacyTest"]);
     }
 
     #[test]
@@ -2251,5 +2290,52 @@ test_attributes = { rust = ["["], unknown_language = ["check"] }
             after_scaffold, after_second,
             "a current config file must not be rewritten on a later run"
         );
+        let global = tempdir().unwrap();
+        fs::write(global.path().join(CONFIG_FILE_NAME), "[exclude]\nshould_include_test_code = true\ntest_file_patterns = ['global_checks/**']\ntest_attributes = { rust = ['global::test'] }\n").unwrap();
+        let commented = format!(
+            "# codemap-config-version: 7\n[caller_context]\n# keep policy\n{}\n# keep disabled\nshould_include_test_code = true\n",
+            MIGRATIONS
+                .iter()
+                .filter(|migration| migration.version == 7)
+                .map(|migration| migration.english_block)
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        );
+        for source in [
+            "# codemap-config-version: 7\n[caller_context]\n# keep policy\nshould_include_test_code = true\ntest_file_patterns = [] # keep disabled\nscan_cap = 25\n[caller_context.test_attributes]\nrust = []\n[caller_context.test_decorators]\npython = ['company_test']\n[caller_context.test_calls]\ntypescript = []\n[index]\nexcluded_directories = []\n",
+            "# codemap-config-version: 7\n# keep policy\ncaller_context = { should_include_test_code = true, test_file_patterns = [], test_attributes = { rust = [] }, scan_cap = 25 } # keep disabled\n",
+            "# codemap-config-version: 7\n# keep policy\nshould_include_test_code = true\ntest_file_patterns = [] # keep disabled\n[caller_context.\"test_attributes\"]\nrust = []\n",
+            "# codemap-config-version: 7\n[exclude]\n# keep policy\nshould_include_test_code = false\ntest_file_patterns = [] # keep disabled\ntest_attributes = { rust = [] }\n[caller_context]\nshould_include_test_code = true\ntest_attributes = { rust = ['old'], java = ['CustomTest'] }\n",
+            "# codemap-config-version: 7\nindex_path = '''.cache\n[exclude]'''\n[caller_context]\n# keep policy\nshould_include_test_code = true\ntest_file_patterns = [] # keep disabled\n",
+            "# codemap-config-version: 7\n# keep policy\nexclude = { should_include_test_code = false, test_file_patterns = [], test_attributes = { rust = [] } } # keep disabled\n[caller_context]\ntest_attributes = { java = ['CustomTest'] }\n",
+            commented.as_str(),
+        ] {
+            fs::write(&path, source).unwrap();
+            let before = load(repo.path(), global.path());
+            ensure_repo_config_with_auto_update(repo.path(), true);
+            let migrated = fs::read_to_string(&path).unwrap();
+            assert!(migrated.starts_with(&format!("# codemap-config-version: {CONFIG_VERSION}")), "{migrated}");
+            assert!(migrated.contains("# keep policy"), "{migrated}");
+            assert!(migrated.contains("# keep disabled"), "{migrated}");
+            let parsed: toml::Value = toml::from_str(&migrated).unwrap();
+            assert!(parsed.get("exclude").and_then(toml::Value::as_table).is_some());
+            if source == commented {
+                let (_, section) = migrated.split_once("[exclude]").unwrap();
+                assert!(section.contains("# should_include_test_code = false"), "{migrated}");
+                assert!(section.contains("# test_attributes ="), "{migrated}");
+            }
+            for &key in exclude::TEST_KEYS {
+                assert!(parsed.get(key).is_none(), "{migrated}");
+                assert!(parsed.get("caller_context").and_then(|table| table.get(key)).is_none(), "{migrated}");
+            }
+            let after = load(repo.path(), global.path());
+            assert_eq!(before.should_include_test_code, after.should_include_test_code);
+            assert_eq!(before.test_code_rules, after.test_code_rules);
+            assert_eq!(before.excluded_directories, after.excluded_directories);
+            assert_eq!(before.index_path, after.index_path);
+            assert_eq!(before.scan_cap, after.scan_cap);
+            ensure_repo_config_with_auto_update(repo.path(), true);
+            assert_eq!(fs::read_to_string(&path).unwrap(), migrated);
+        }
     }
 }

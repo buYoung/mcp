@@ -109,6 +109,8 @@ regex = "1.12"
 # TOML config parsing (Child 05). Lenient `toml::Value` parse so unknown keys/types
 # degrade to a stderr warning + default rather than failing the load (never-exit).
 toml = "1.1"
+# Preserve user comments and value formatting when moving config sections.
+toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"] }
 
 # Embedded ripgrep engine (library crates, NOT a bundled `rg` binary) powering the
 # read/find/grep tools. `grep` re-exports grep-matcher/grep-regex/grep-searcher.

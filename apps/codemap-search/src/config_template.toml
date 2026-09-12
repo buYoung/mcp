@@ -1,4 +1,4 @@
-# codemap-config-version: 7
+# codemap-config-version: 8
 # codemap-search settings for this repository.
 # Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
 # Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
@@ -103,11 +103,6 @@ search_anchor_snippet_limit = 3
 # Show caller/callee context by default in search. The per-call `caller_context` argument wins.
 caller_context_default = true
 
-# Include test regions in automatic symbols and caller/callee context; live source is unchanged.
-should_include_test_code = false
-
-test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
-
 # Check source structure, imports, and local bindings to identify call targets.
 # A uniquely confirmed target is marked precise; false uses approximate name matching.
 navigation_context_default = false
@@ -140,10 +135,16 @@ common_name_threshold = 2
 # Callees are unaffected. Confirmed targets can still be shown.
 caller_omit_def_threshold = 5
 
+[exclude]
+# Include test regions in automatic symbols and caller/callee context; live source is unchanged.
+should_include_test_code = false
+
+test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
+
 # Lists replace inherited defaults per language; [] disables that list. Omit a key/language to inherit.
 # Names are glob patterns without #[...] or @; cfg(test) also recognizes test-only all/any/not conditions.
 
-[caller_context.test_attributes]
+[exclude.test_attributes]
 rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
 java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
 kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
@@ -151,10 +152,10 @@ csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture",
 swift = ["Test", "Suite"]
 php = ["Test"]
 
-[caller_context.test_decorators]
+[exclude.test_decorators]
 python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
 
-[caller_context.test_calls]
+[exclude.test_calls]
 javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
 typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
 dart = ["test", "group", "testWidgets"]

@@ -17,16 +17,17 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **7**. The marker is a comment:
+The current configuration schema is **8**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 7
+# codemap-config-version: 8
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
 - On `mcp` startup, `[update].config_auto_update = true` creates a missing repo file. Its directory array contains common folders and recursive globs for detected project types; other active values use their built-in defaults. Active repo values override global settings.
 - A pre-v6 repo config, including one without a marker, receives a **one-time directory migration**. Existing user rules, the old effective exclusions, common folders and recommended recursive globs are made explicit in its array. Existing entries and comments are preserved; missing values are appended without duplication. The marker advances to the current schema version.
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
+- Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -145,11 +146,11 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
 | `[caller_context].caller_context_default` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
-| `[caller_context].should_include_test_code` | bool | `false` | Include tests in automatic symbol/call context |
-| `[caller_context].test_file_patterns` | string array | See test-code context | Test file globs; [] disables path detection |
-| `[caller_context].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
-| `[caller_context].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
-| `[caller_context].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
+| `[exclude].should_include_test_code` | bool | `false` | Include tests in automatic symbol/call context |
+| `[exclude].test_file_patterns` | string array | See test-code context | Test file globs; [] disables path detection |
+| `[exclude].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
+| `[exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
+| `[exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
 | `[caller_context].navigation_context_default` | bool | `false` | Check source structure and mark confirmed call targets `precise` |
 | `[caller_context].navigation_callsite_budget` | integer | `1000` | Maximum call sites checked before using approximate name-based scanning |
 | `[caller_context].navigation_store_references` | bool | `false` | Store reference locations other than function calls |
@@ -190,6 +191,8 @@ At `common_name_threshold` definitions of the same name, approximate relationshi
 
 ### Test-code context
 
+Manage `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, and `test_calls` under `[exclude]`. Within one file, valid `[exclude]` values take precedence over legacy `[caller_context]` and root-level aliases; language tables inherit missing language entries. Repo → global → built-in precedence still applies between files. Directory exclusions remain under `[index].excluded_directories`.
+
 `should_include_test_code = false` excludes configured test regions from automatic `read`/`grep` symbol context and `search` caller/callee annotations. The filter runs before definition counts, navigation lookup, and caller-scan budgets. Direct `read`/`grep` source, search hits, and the stored index remain available. Set it to `true` to include test context; directory/ignore exclusions still apply independently.
 
 All four rule lists are editable. An explicit list **replaces** its inherited list; it is not added to a hidden built-in list. For the language tables, precedence is per language: repo → global → built-in. Omit a language to inherit, set it to `[]` to disable that category, or copy its default list and add/remove individual patterns. `{}` inherits all language entries. Invalid lists warn and inherit; unknown language names warn and are ignored. Language names use the registered canonical names such as `rust`, `python`, `typescript`, and `csharp`.
@@ -206,29 +209,29 @@ Changes apply to subsequent requests after config reload without rebuilding the 
 The following example keeps selected built-ins, adds custom markers, and disables Java attribute and TypeScript call-name detection. Other active rules still apply.
 
 ```toml
-[caller_context]
+[exclude]
 should_include_test_code = false
 # Replace the complete path list with the patterns you want.
 test_file_patterns = ["**/tests/**", "*_test.go", "*.test.ts", "checks/**"]
 
-[caller_context.test_attributes]
+[exclude.test_attributes]
 rust = ["test", "tokio::test", "cfg(test)", "company::case"]
 java = []
 
-[caller_context.test_decorators]
+[exclude.test_decorators]
 python = ["pytest.fixture", "pytest.mark.*", "company_test"]
 
-[caller_context.test_calls]
+[exclude.test_calls]
 typescript = []
 ```
 
 Default lists (languages not listed have no built-in entries for that category):
 
 ```toml
-[caller_context]
+[exclude]
 test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
 
-[caller_context.test_attributes]
+[exclude.test_attributes]
 rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
 java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
 kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
@@ -236,10 +239,10 @@ csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture",
 swift = ["Test", "Suite"]
 php = ["Test"]
 
-[caller_context.test_decorators]
+[exclude.test_decorators]
 python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
 
-[caller_context.test_calls]
+[exclude.test_calls]
 javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
 typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
 dart = ["test", "group", "testWidgets"]
@@ -313,9 +316,11 @@ grep = "workspace"
 read = "workspace"
 allowed_roots = []
 
+[exclude]
+should_include_test_code = false
+
 [caller_context]
 caller_context_default = true
-should_include_test_code = false
 navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false

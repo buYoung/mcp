@@ -150,7 +150,7 @@ impl Default for TestCodeRules {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Eq)]
 pub(super) struct TestCodeLayer {
     pub file_patterns: Option<Vec<String>>,
     pub attributes: LanguageTestPatterns,
