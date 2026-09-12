@@ -1,0 +1,65 @@
+# Frozen validation baseline, derived from config schema 9.
+[update]
+config_auto_update = false
+[index]
+index_path = ".codemap/index"
+max_file_size = 1048576
+[language_support]
+is_document_support_enabled = false
+is_shell_support_enabled = false
+is_infrastructure_support_enabled = false
+is_interface_support_enabled = false
+is_build_support_enabled = false
+[refresh]
+watch = true
+watch_debounce_ms = 500
+index_staleness_ms = 5000
+indexer_auto_restart = true
+[search]
+result_threshold = 5
+search_overview_file_limit = 12
+search_detail_snippet_max_lines = 80
+search_detail_symbol_limit = 20
+search_detail_byte_cap = 32768
+search_literal_max_len = 200
+search_literal_limit = 10
+search_anchor_snippet_limit = 3
+[caller_context]
+caller_context_default = true
+navigation_context_default = false
+navigation_callsite_budget = 1000
+navigation_store_references = false
+scan_cap = 500
+caller_list_cap = 5
+callee_list_cap = 5
+annotation_sub_budget = 8192
+common_name_threshold = 2
+caller_omit_def_threshold = 5
+[exclude]
+excluded_directories = [".git", ".codemap", ".codemap-index", "node_modules", "vendor", "vendored", "target", "third_party", "third-party", "dist", "build", "_validation_excluded"]
+use_git_exclude = true
+should_include_test_code = false
+test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
+[exclude.test_attributes]
+rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
+java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
+kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
+csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture", "SetUp", "TearDown", "OneTimeSetUp", "OneTimeTearDown"]
+swift = ["Test", "Suite"]
+php = ["Test"]
+[exclude.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
+[exclude.test_calls]
+javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+dart = ["test", "group", "testWidgets"]
+ruby = ["describe", "context", "it", "specify"]
+powershell = ["Describe", "Context", "It"]
+[tool_output]
+grep_max_columns = 500
+read_output_byte_cap = 102400
+[filesystem_permissions]
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+allowed_roots = []

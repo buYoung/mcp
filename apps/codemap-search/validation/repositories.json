@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "minimum_code_lines": 200000,
+  "minimum_commits": 1000,
+  "repositories": [
+    {
+      "name": "bevy",
+      "url": "https://github.com/bevyengine/bevy.git",
+      "language": "Rust",
+      "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+      "cases": [
+        {
+          "id": "asset-default-associated-constants",
+          "tool": "read",
+          "arguments": {
+            "file_path": "crates/bevy_asset/src/lib.rs",
+            "offset": 332,
+            "limit": 11
+          },
+          "contains": [
+            "DEFAULT_UNPROCESSED_FILE_PATH",
+            "crates/bevy_asset/src/lib.rs:346",
+            "DEFAULT_PROCESSED_FILE_PATH",
+            "crates/bevy_asset/src/lib.rs:349"
+          ],
+          "excludes": [],
+          "category": "references"
+        },
+        {
+          "id": "asset-build-imported-calls",
+          "tool": "read",
+          "arguments": {
+            "file_path": "crates/bevy_asset/src/lib.rs",
+            "offset": 353,
+            "limit": 8
+          },
+          "section": [
+            "crates/bevy_asset/src/lib.rs",
+            353
+          ],
+          "contains": [
+            "AssetSourceBuilders::init_default_source \u2014 crates/bevy_asset/src/io/source.rs:382",
+            "EmbeddedAssetRegistry::register_source \u2014 crates/bevy_asset/src/io/embedded/mod.rs:100"
+          ],
+          "excludes": [],
+          "category": "callees"
+        },
+        {
+          "id": "discover-asset-settings",
+          "tool": "search",
+          "arguments": {
+            "query": "asset default file path processed",
+            "workspace_scope": "crates/bevy_asset",
+            "caller_context": false
+          },
+          "contains": [
+            "crates/bevy_asset/src/lib.rs"
+          ],
+          "category": "search_discovery"
+        }
+      ],
+      "files": [
+        "crates/bevy_asset/src/lib.rs",
+        "crates/bevy_asset/src/io/source.rs",
+        "crates/bevy_utils/src/atomic_id.rs",
+        "crates/bevy_utils/src/default.rs"
+      ]
+    },
+    {
+      "name": "nushell",
+      "url": "https://github.com/nushell/nushell.git",
+      "language": "Rust",
+      "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+      "cases": [
+        {
+          "id": "macro-is-not-glob-method",
+          "tool": "read",
+          "arguments": {
+            "file_path": "crates/nu-command/src/filesystem/open.rs",
+            "offset": 321,
+            "limit": 6
+          },
+          "section": [
+            "crates/nu-command/src/filesystem/open.rs",
+            321
+          ],
+          "contains": [],
+          "excludes": [
+            "Pattern::matches \u2014"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "str-iterator-is-not-dataframe",
+          "tool": "read",
+          "arguments": {
+            "file_path": "crates/nu-command/src/filesystem/open.rs",
+            "offset": 328,
+            "limit": 19
+          },
+          "section": [
+            "crates/nu-command/src/filesystem/open.rs",
+            328
+          ],
+          "contains": [],
+          "excludes": [
+            "NuLazyFrame::collect \u2014",
+            "ByteStream::split \u2014"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "same-file-and-imported-path-functions",
+          "tool": "read",
+          "arguments": {
+            "file_path": "crates/nu-path/src/expansions.rs",
+            "offset": 73,
+            "limit": 10
+          },
+          "section": [
+            "crates/nu-path/src/expansions.rs",
+            73
+          ],
+          "contains": [
+            "join_path_relative \u2014 crates/nu-path/src/expansions.rs:10",
+            "expand_tilde \u2014 crates/nu-path/src/tilde.rs:154",
+            "expand_ndots \u2014 crates/nu-path/src/dots.rs:11"
+          ],
+          "excludes": [],
+          "category": "callees"
+        },
+        {
+          "id": "discover-open-file",
+          "tool": "search",
+          "arguments": {
+            "query": "open file detect content type",
+            "workspace_scope": "crates/nu-command",
+            "caller_context": false
+          },
+          "contains": [
+            "crates/nu-command/src/filesystem/open.rs"
+          ],
+          "category": "search_discovery"
+        }
+      ],
+      "files": [
+        "crates/nu-command/src/filesystem/open.rs",
+        "crates/nu-path/src/expansions.rs",
+        "crates/nu-path/src/tilde.rs"
+      ]
+    },
+    {
+      "name": "prometheus",
+      "url": "https://github.com/prometheus/prometheus.git",
+      "language": "Go",
+      "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+      "cases": [
+        {
+          "id": "os-expand-is-not-template-method",
+          "tool": "read",
+          "arguments": {
+            "file_path": "config/config.go",
+            "offset": 75,
+            "limit": 54
+          },
+          "section": [
+            "config/config.go",
+            75
+          ],
+          "contains": [],
+          "excludes": [
+            "Expander.Expand \u2014"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "builtin-len-is-not-memchunk-method",
+          "tool": "read",
+          "arguments": {
+            "file_path": "config/config.go",
+            "offset": 132,
+            "limit": 27
+          },
+          "section": [
+            "config/config.go",
+            132
+          ],
+          "contains": [],
+          "excludes": [
+            "memChunk.len \u2014"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "loadfile-calls-local-load",
+          "tool": "read",
+          "arguments": {
+            "file_path": "config/config.go",
+            "offset": 132,
+            "limit": 27
+          },
+          "section": [
+            "config/config.go",
+            132
+          ],
+          "contains": [
+            "Load \u2014 config/config.go:75"
+          ],
+          "excludes": [],
+          "category": "callees"
+        },
+        {
+          "id": "load-callers-exclude-atomic-load",
+          "tool": "read",
+          "arguments": {
+            "file_path": "config/config.go",
+            "offset": 75,
+            "limit": 1
+          },
+          "section": [
+            "config/config.go",
+            75
+          ],
+          "contains": [],
+          "excludes": [
+            "safePromQLNoStepSubqueryInterval.Get (",
+            "MockContextErrAfter.Err (",
+            "headChunkReader.getOrCollectHeadChunks ("
+          ],
+          "category": "wrong_caller"
+        },
+        {
+          "id": "discover-yaml-config",
+          "tool": "search",
+          "arguments": {
+            "query": "load configuration YAML file",
+            "workspace_scope": "all",
+            "caller_context": false
+          },
+          "contains": [
+            "config/config.go"
+          ],
+          "category": "search_discovery"
+        }
+      ],
+      "files": [
+        "config/config.go",
+        "util/strutil/strconv.go",
+        "util/strutil/quote.go"
+      ]
+    },
+    {
+      "name": "kubernetes",
+      "url": "https://github.com/kubernetes/kubernetes.git",
+      "language": "Go",
+      "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+      "cases": [
+        {
+          "id": "discover-toleration-merge",
+          "tool": "search",
+          "arguments": {
+            "query": "merge tolerations duplicate",
+            "workspace_scope": "all",
+            "caller_context": false
+          },
+          "contains": [
+            "pkg/util/tolerations/tolerations.go"
+          ],
+          "category": "search_discovery"
+        },
+        {
+          "id": "toleration-local-call",
+          "tool": "read",
+          "arguments": {
+            "file_path": "pkg/util/tolerations/tolerations.go",
+            "offset": 47,
+            "limit": 24
+          },
+          "section": [
+            "pkg/util/tolerations/tolerations.go",
+            47
+          ],
+          "contains": [
+            "isSuperset \u2014 pkg/util/tolerations/tolerations.go:73"
+          ],
+          "excludes": [],
+          "category": "callees"
+        },
+        {
+          "id": "deep-equality-is-not-codegen-fixture",
+          "tool": "read",
+          "arguments": {
+            "file_path": "pkg/util/tolerations/tolerations.go",
+            "offset": 47,
+            "limit": 24
+          },
+          "section": [
+            "pkg/util/tolerations/tolerations.go",
+            47
+          ],
+          "contains": [],
+          "excludes": [
+            "DeepEqual \u2014 staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/_codegenignore/other/deepequal.go:26"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "strconv-parse-is-not-codegen-util",
+          "tool": "read",
+          "arguments": {
+            "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "offset": 80,
+            "limit": 7
+          },
+          "section": [
+            "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            80
+          ],
+          "contains": [
+            "FromString \u2014 staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go:74",
+            "FromInt32 \u2014 staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go:69"
+          ],
+          "excludes": [
+            "ParseInt \u2014 staging/src/k8s.io/code-generator/cmd/validation-gen/util/util.go:127"
+          ],
+          "category": "wrong_callee"
+        },
+        {
+          "id": "constant-string-with-duplicate-method-name",
+          "tool": "read",
+          "arguments": {
+            "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "offset": 74,
+            "limit": 3
+          },
+          "section": [
+            "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            74
+          ],
+          "contains": [
+            "String \u2014 staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go:53"
+          ],
+          "excludes": [],
+          "category": "references"
+        }
+      ],
+      "files": [
+        "pkg/util/tolerations/tolerations.go",
+        "pkg/util/hash/hash.go",
+        "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go"
+      ]
+    }
+  ]
+}

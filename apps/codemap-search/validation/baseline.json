@@ -1,0 +1,5209 @@
+{
+  "started_utc": "2026-09-12T14:15:53.494563+00:00",
+  "run_id": "rust-go-phase1-verified",
+  "binary_sha256": "f2f79e45e9eb4c58cc9adf9544bf93b19cfa87f87551ffaf616a4980ef79299d",
+  "binary_version": "codemap-search 0.8.1",
+  "runner_sha256": "16cf6c8ed310d526119ec5f46433b58bd9fa7a8d93505f2346e934c553423098",
+  "manifest_sha256": "79012d7ce73dd617c47f5254c95ae5defaf3ef2bd1f6a40399fb9020fdb9e7ba",
+  "source_commit": "f928f0e6353dcaadca638c1b53eb0a0c8c92bad9",
+  "platform": "darwin",
+  "git": "git version 2.50.1 (Apple Git-155)",
+  "tokei": "tokei 14.0.0 compiled with serialization support: json, cbor, yaml",
+  "go": "go version go1.26.3 darwin/arm64",
+  "rust_analyzer": "rust-analyzer 1.98.1 (48a229ce 2026-09-01)",
+  "profiles": [
+    "default",
+    "structural"
+  ],
+  "results": [
+    {
+      "repository": "bevy",
+      "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+      "profile": "default",
+      "config_sha256": "f0cc2cbe4d2a14353c0423e4d3e87122084fc9ff1a3ee42c74fadc5f6bc09f48",
+      "checks": [
+        {
+          "id": "overview:crates/bevy_asset/src/lib.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/lib.rs",
+            "expected_count": 87,
+            "actual_count": 87
+          },
+          "elapsed_ms": 0.267
+        },
+        {
+          "id": "read:crates/bevy_asset/src/lib.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/lib.rs",
+            "offset": 332,
+            "limit": 8
+          },
+          "elapsed_ms": 3844.528
+        },
+        {
+          "id": "overview:crates/bevy_asset/src/io/source.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/io/source.rs",
+            "expected_count": 47,
+            "actual_count": 47
+          },
+          "elapsed_ms": 0.239
+        },
+        {
+          "id": "read:crates/bevy_asset/src/io/source.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/io/source.rs",
+            "offset": 33,
+            "limit": 6
+          },
+          "elapsed_ms": 5080.972
+        },
+        {
+          "id": "overview:crates/bevy_utils/src/atomic_id.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/atomic_id.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.219
+        },
+        {
+          "id": "read:crates/bevy_utils/src/atomic_id.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/atomic_id.rs",
+            "offset": 6,
+            "limit": 8
+          },
+          "elapsed_ms": 4073.715
+        },
+        {
+          "id": "overview:crates/bevy_utils/src/default.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/default.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.279
+        },
+        {
+          "id": "read:crates/bevy_utils/src/default.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/default.rs",
+            "offset": 29,
+            "limit": 3
+          },
+          "elapsed_ms": 3122.634
+        },
+        {
+          "id": "asset-default-associated-constants",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3733.704
+        },
+        {
+          "id": "asset-build-imported-calls",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3714.364
+        },
+        {
+          "id": "discover-asset-settings",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 19.639
+        },
+        {
+          "id": "find:crates/bevy_asset/src/io",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 14,
+            "actual_count": 14
+          },
+          "elapsed_ms": 3.947
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4063.624
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4055.808
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4044.127
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.rs",
+              "offset": 15,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.rs:1"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 4013.621
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4135.313
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.614
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.497
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.877
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.529
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.186
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.947
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.2
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.696
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.406
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.849
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.209
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1020.635
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.42
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.486
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.425
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.199
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 514.007
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.301
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2020.133
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 5339.248
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 8845.752
+        },
+        {
+          "id": "overview:crates/bevy_ecs/src/observer/distributed_storage.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "expected_count": 32,
+            "actual_count": 32
+          },
+          "elapsed_ms": 0.214
+        },
+        {
+          "id": "overview:examples/ui/text/text_wrap_debug.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/ui/text/text_wrap_debug.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.211
+        },
+        {
+          "id": "overview:crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.181
+        },
+        {
+          "id": "overview:crates/bevy_image/src/basis.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_image/src/basis.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.201
+        },
+        {
+          "id": "overview:examples/2d/mesh2d.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/2d/mesh2d.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.185
+        },
+        {
+          "id": "overview:crates/bevy_dev_tools/src/world_asset_helpers.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_dev_tools/src/world_asset_helpers.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.173
+        },
+        {
+          "id": "overview:benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.181
+        },
+        {
+          "id": "overview:crates/bevy_audio/src/audio.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_audio/src/audio.rs",
+            "expected_count": 16,
+            "actual_count": 16
+          },
+          "elapsed_ms": 0.191
+        },
+        {
+          "id": "overview:crates/bevy_tasks/src/futures.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_tasks/src/futures.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.215
+        },
+        {
+          "id": "overview:examples/3d/spherical_area_lights.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/3d/spherical_area_lights.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.214
+        },
+        {
+          "id": "overview:crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.245
+        },
+        {
+          "id": "overview:examples/gltf/edit_material_on_gltf.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/gltf/edit_material_on_gltf.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.226
+        },
+        {
+          "id": "overview:crates/bevy_reflect/derive/src/string_expr.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_reflect/derive/src/string_expr.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.216
+        },
+        {
+          "id": "overview:crates/bevy_ecs/src/entity/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_ecs/src/entity/mod.rs",
+            "expected_count": 76,
+            "actual_count": 76
+          },
+          "elapsed_ms": 0.293
+        },
+        {
+          "id": "overview:examples/3d/atmosphere.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/3d/atmosphere.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.215
+        },
+        {
+          "id": "overview:crates/bevy_transform/src/commands.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_transform/src/commands.rs",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.19
+        },
+        {
+          "id": "overview:crates/bevy_input_focus/src/pointer_focus.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_input_focus/src/pointer_focus.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.237
+        },
+        {
+          "id": "overview:crates/bevy_post_process/src/motion_blur/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_post_process/src/motion_blur/mod.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.255
+        },
+        {
+          "id": "overview:examples/ui/scroll_and_overflow/scrollbars.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/ui/scroll_and_overflow/scrollbars.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.218
+        },
+        {
+          "id": "overview:crates/bevy_gizmos/src/lib.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_gizmos/src/lib.rs",
+            "expected_count": 15,
+            "actual_count": 15
+          },
+          "elapsed_ms": 0.209
+        }
+      ],
+      "cold_index_seconds": 9.158,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 58,
+        "fail": 1,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl"
+      ],
+      "sample_files": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "examples/ui/text/text_wrap_debug.rs",
+        "crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+        "crates/bevy_image/src/basis.rs",
+        "examples/2d/mesh2d.rs",
+        "crates/bevy_dev_tools/src/world_asset_helpers.rs",
+        "benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+        "crates/bevy_audio/src/audio.rs",
+        "crates/bevy_tasks/src/futures.rs",
+        "examples/3d/spherical_area_lights.rs",
+        "crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+        "examples/gltf/edit_material_on_gltf.rs",
+        "crates/bevy_reflect/derive/src/string_expr.rs",
+        "crates/bevy_ecs/src/entity/mod.rs",
+        "examples/3d/atmosphere.rs",
+        "crates/bevy_transform/src/commands.rs",
+        "crates/bevy_input_focus/src/pointer_focus.rs",
+        "crates/bevy_post_process/src/motion_blur/mod.rs",
+        "examples/ui/scroll_and_overflow/scrollbars.rs",
+        "crates/bevy_gizmos/src/lib.rs"
+      ],
+      "read_timing": {
+        "requests": 10,
+        "median_ms": 4028.874,
+        "maximum_ms": 5080.972
+      }
+    },
+    {
+      "repository": "bevy",
+      "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+      "profile": "structural",
+      "config_sha256": "fa23740ed2a6d6bd903fb40948d6c3bb36bed61be6607921830b46cee507ceac",
+      "checks": [
+        {
+          "id": "overview:crates/bevy_asset/src/lib.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/lib.rs",
+            "expected_count": 87,
+            "actual_count": 87
+          },
+          "elapsed_ms": 0.268
+        },
+        {
+          "id": "read:crates/bevy_asset/src/lib.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/lib.rs",
+            "offset": 332,
+            "limit": 8
+          },
+          "elapsed_ms": 3854.041
+        },
+        {
+          "id": "overview:crates/bevy_asset/src/io/source.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/io/source.rs",
+            "expected_count": 47,
+            "actual_count": 47
+          },
+          "elapsed_ms": 0.23
+        },
+        {
+          "id": "read:crates/bevy_asset/src/io/source.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_asset/src/io/source.rs",
+            "offset": 33,
+            "limit": 6
+          },
+          "elapsed_ms": 4969.927
+        },
+        {
+          "id": "overview:crates/bevy_utils/src/atomic_id.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/atomic_id.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.234
+        },
+        {
+          "id": "read:crates/bevy_utils/src/atomic_id.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/atomic_id.rs",
+            "offset": 6,
+            "limit": 8
+          },
+          "elapsed_ms": 4008.414
+        },
+        {
+          "id": "overview:crates/bevy_utils/src/default.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/default.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.21
+        },
+        {
+          "id": "read:crates/bevy_utils/src/default.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_utils/src/default.rs",
+            "offset": 29,
+            "limit": 3
+          },
+          "elapsed_ms": 3069.541
+        },
+        {
+          "id": "asset-default-associated-constants",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3680.895
+        },
+        {
+          "id": "asset-build-imported-calls",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3707.505
+        },
+        {
+          "id": "discover-asset-settings",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 21.364
+        },
+        {
+          "id": "find:crates/bevy_asset/src/io",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 14,
+            "actual_count": 14
+          },
+          "elapsed_ms": 4.398
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4075.586
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4067.5
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4154.39
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.rs",
+              "offset": 15,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.rs:1"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 4198.612
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4348.336
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.821
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.743
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.659
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.436
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.183
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.909
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.112
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.725
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.304
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.876
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.206
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1020.669
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.441
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.502
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.377
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.202
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 509.364
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.314
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2046.281
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 5324.444
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 8601.049
+        },
+        {
+          "id": "overview:crates/bevy_ecs/src/observer/distributed_storage.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "expected_count": 32,
+            "actual_count": 32
+          },
+          "elapsed_ms": 0.211
+        },
+        {
+          "id": "overview:examples/ui/text/text_wrap_debug.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/ui/text/text_wrap_debug.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.198
+        },
+        {
+          "id": "overview:crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.198
+        },
+        {
+          "id": "overview:crates/bevy_image/src/basis.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_image/src/basis.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.196
+        },
+        {
+          "id": "overview:examples/2d/mesh2d.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/2d/mesh2d.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.188
+        },
+        {
+          "id": "overview:crates/bevy_dev_tools/src/world_asset_helpers.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_dev_tools/src/world_asset_helpers.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.184
+        },
+        {
+          "id": "overview:benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.193
+        },
+        {
+          "id": "overview:crates/bevy_audio/src/audio.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_audio/src/audio.rs",
+            "expected_count": 16,
+            "actual_count": 16
+          },
+          "elapsed_ms": 0.197
+        },
+        {
+          "id": "overview:crates/bevy_tasks/src/futures.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_tasks/src/futures.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.193
+        },
+        {
+          "id": "overview:examples/3d/spherical_area_lights.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/3d/spherical_area_lights.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.194
+        },
+        {
+          "id": "overview:crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.207
+        },
+        {
+          "id": "overview:examples/gltf/edit_material_on_gltf.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/gltf/edit_material_on_gltf.rs",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.216
+        },
+        {
+          "id": "overview:crates/bevy_reflect/derive/src/string_expr.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_reflect/derive/src/string_expr.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.191
+        },
+        {
+          "id": "overview:crates/bevy_ecs/src/entity/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_ecs/src/entity/mod.rs",
+            "expected_count": 76,
+            "actual_count": 76
+          },
+          "elapsed_ms": 0.241
+        },
+        {
+          "id": "overview:examples/3d/atmosphere.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/3d/atmosphere.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.207
+        },
+        {
+          "id": "overview:crates/bevy_transform/src/commands.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_transform/src/commands.rs",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.197
+        },
+        {
+          "id": "overview:crates/bevy_input_focus/src/pointer_focus.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_input_focus/src/pointer_focus.rs",
+            "expected_count": 8,
+            "actual_count": 8
+          },
+          "elapsed_ms": 0.198
+        },
+        {
+          "id": "overview:crates/bevy_post_process/src/motion_blur/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_post_process/src/motion_blur/mod.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.231
+        },
+        {
+          "id": "overview:examples/ui/scroll_and_overflow/scrollbars.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "examples/ui/scroll_and_overflow/scrollbars.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.2
+        },
+        {
+          "id": "overview:crates/bevy_gizmos/src/lib.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/bevy_gizmos/src/lib.rs",
+            "expected_count": 15,
+            "actual_count": 15
+          },
+          "elapsed_ms": 0.205
+        }
+      ],
+      "cold_index_seconds": 9.136,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 58,
+        "fail": 1,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl"
+      ],
+      "sample_files": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "examples/ui/text/text_wrap_debug.rs",
+        "crates/bevy_camera_controller/src/pan_orbit_camera/extensions/anchor_indicator.rs",
+        "crates/bevy_image/src/basis.rs",
+        "examples/2d/mesh2d.rs",
+        "crates/bevy_dev_tools/src/world_asset_helpers.rs",
+        "benches/benches/bevy_ecs/iteration/iter_frag_wide.rs",
+        "crates/bevy_audio/src/audio.rs",
+        "crates/bevy_tasks/src/futures.rs",
+        "examples/3d/spherical_area_lights.rs",
+        "crates/bevy_mesh/src/primitives/dim3/sphere.rs",
+        "examples/gltf/edit_material_on_gltf.rs",
+        "crates/bevy_reflect/derive/src/string_expr.rs",
+        "crates/bevy_ecs/src/entity/mod.rs",
+        "examples/3d/atmosphere.rs",
+        "crates/bevy_transform/src/commands.rs",
+        "crates/bevy_input_focus/src/pointer_focus.rs",
+        "crates/bevy_post_process/src/motion_blur/mod.rs",
+        "examples/ui/scroll_and_overflow/scrollbars.rs",
+        "crates/bevy_gizmos/src/lib.rs"
+      ],
+      "read_timing": {
+        "requests": 10,
+        "median_ms": 4037.957,
+        "maximum_ms": 4969.927
+      }
+    },
+    {
+      "repository": "nushell",
+      "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+      "profile": "default",
+      "config_sha256": "f0cc2cbe4d2a14353c0423e4d3e87122084fc9ff1a3ee42c74fadc5f6bc09f48",
+      "checks": [
+        {
+          "id": "overview:crates/nu-command/src/filesystem/open.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filesystem/open.rs",
+            "expected_count": 11,
+            "actual_count": 11
+          },
+          "elapsed_ms": 0.219
+        },
+        {
+          "id": "read:crates/nu-command/src/filesystem/open.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filesystem/open.rs",
+            "offset": 23,
+            "limit": 3
+          },
+          "elapsed_ms": 1947.558
+        },
+        {
+          "id": "overview:crates/nu-path/src/expansions.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/expansions.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.232
+        },
+        {
+          "id": "read:crates/nu-path/src/expansions.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/expansions.rs",
+            "offset": 10,
+            "limit": 8
+          },
+          "elapsed_ms": 2368.965
+        },
+        {
+          "id": "overview:crates/nu-path/src/tilde.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/tilde.rs",
+            "expected_count": 22,
+            "actual_count": 22
+          },
+          "elapsed_ms": 0.252
+        },
+        {
+          "id": "read:crates/nu-path/src/tilde.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/tilde.rs",
+            "offset": 20,
+            "limit": 8
+          },
+          "elapsed_ms": 2111.769
+        },
+        {
+          "id": "macro-is-not-glob-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/nu-command/src/filesystem/open.rs",
+              "offset": 321,
+              "limit": 6
+            },
+            "missing": [],
+            "unexpected": [
+              "Pattern::matches —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2234.256
+        },
+        {
+          "id": "str-iterator-is-not-dataframe",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/nu-command/src/filesystem/open.rs",
+              "offset": 328,
+              "limit": 19
+            },
+            "missing": [],
+            "unexpected": [
+              "NuLazyFrame::collect —",
+              "ByteStream::split —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2229.786
+        },
+        {
+          "id": "same-file-and-imported-path-functions",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2261.785
+        },
+        {
+          "id": "discover-open-file",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 19.94
+        },
+        {
+          "id": "find:crates/nu-path/src",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 3.051
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2249.2
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2242.201
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2242.597
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.rs",
+              "offset": 15,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.rs:1"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2232.188
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2256.137
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.272
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.904
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.073
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.731
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.9
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.756
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.803
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.698
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.882
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.877
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.169
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1020.75
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.347
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.471
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.307
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.139
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 513.626
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.231
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2009.661
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3956.834
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 5620.079
+        },
+        {
+          "id": "overview:crates/nu-command/src/experimental/job_list.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/experimental/job_list.rs",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.181
+        },
+        {
+          "id": "overview:crates/nu-protocol/src/ir/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-protocol/src/ir/mod.rs",
+            "expected_count": 14,
+            "actual_count": 14
+          },
+          "elapsed_ms": 0.256
+        },
+        {
+          "id": "overview:crates/nu-utils/src/nu_cow.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-utils/src/nu_cow.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.219
+        },
+        {
+          "id": "overview:crates/nu-json/src/builder.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-json/src/builder.rs",
+            "expected_count": 12,
+            "actual_count": 12
+          },
+          "elapsed_ms": 0.192
+        },
+        {
+          "id": "overview:crates/nu-engine/src/column.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-engine/src/column.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.206
+        },
+        {
+          "id": "overview:scripts/build.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "scripts/build.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.348
+        },
+        {
+          "id": "overview:crates/nu-command/src/matrix/map.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/matrix/map.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.213
+        },
+        {
+          "id": "overview:crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.23
+        },
+        {
+          "id": "overview:crates/nu-command/src/formats/to/xml.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/formats/to/xml.rs",
+            "expected_count": 20,
+            "actual_count": 20
+          },
+          "elapsed_ms": 0.227
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/math/variance.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/math/variance.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.203
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.209
+        },
+        {
+          "id": "overview:crates/nu-command/src/filters/rename.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filters/rename.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.213
+        },
+        {
+          "id": "overview:crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.202
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/math/stddev.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/math/stddev.rs",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.2
+        },
+        {
+          "id": "overview:crates/nu_plugin_custom_values/src/second_custom_value.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_custom_values/src/second_custom_value.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.211
+        },
+        {
+          "id": "overview:crates/nu-command/src/misc/panic.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/misc/panic.rs",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.185
+        },
+        {
+          "id": "overview:crates/nu-protocol/src/engine/overlay.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-protocol/src/engine/overlay.rs",
+            "expected_count": 27,
+            "actual_count": 27
+          },
+          "elapsed_ms": 0.274
+        },
+        {
+          "id": "overview:crates/nu-test-support/src/tester/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-test-support/src/tester/mod.rs",
+            "expected_count": 46,
+            "actual_count": 46
+          },
+          "elapsed_ms": 0.233
+        },
+        {
+          "id": "overview:crates/nu-explore/src/explore_regex/quick_ref.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-explore/src/explore_regex/quick_ref.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.227
+        },
+        {
+          "id": "overview:crates/nu-cmd-lang/src/example_support.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-cmd-lang/src/example_support.rs",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.229
+        }
+      ],
+      "cold_index_seconds": 5.116,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 55,
+        "fail": 3,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl"
+      ],
+      "sample_files": [
+        "crates/nu-command/src/experimental/job_list.rs",
+        "crates/nu-protocol/src/ir/mod.rs",
+        "crates/nu-utils/src/nu_cow.rs",
+        "crates/nu-json/src/builder.rs",
+        "crates/nu-engine/src/column.rs",
+        "scripts/build.rs",
+        "crates/nu-command/src/matrix/map.rs",
+        "crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+        "crates/nu-command/src/formats/to/xml.rs",
+        "crates/nu-command/tests/commands/math/variance.rs",
+        "crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+        "crates/nu-command/src/filters/rename.rs",
+        "crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+        "crates/nu-command/tests/commands/math/stddev.rs",
+        "crates/nu_plugin_custom_values/src/second_custom_value.rs",
+        "crates/nu-command/src/misc/panic.rs",
+        "crates/nu-protocol/src/engine/overlay.rs",
+        "crates/nu-test-support/src/tester/mod.rs",
+        "crates/nu-explore/src/explore_regex/quick_ref.rs",
+        "crates/nu-cmd-lang/src/example_support.rs"
+      ],
+      "read_timing": {
+        "requests": 10,
+        "median_ms": 2238.229,
+        "maximum_ms": 2368.965
+      }
+    },
+    {
+      "repository": "nushell",
+      "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+      "profile": "structural",
+      "config_sha256": "fa23740ed2a6d6bd903fb40948d6c3bb36bed61be6607921830b46cee507ceac",
+      "checks": [
+        {
+          "id": "overview:crates/nu-command/src/filesystem/open.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filesystem/open.rs",
+            "expected_count": 11,
+            "actual_count": 11
+          },
+          "elapsed_ms": 0.244
+        },
+        {
+          "id": "read:crates/nu-command/src/filesystem/open.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filesystem/open.rs",
+            "offset": 23,
+            "limit": 3
+          },
+          "elapsed_ms": 1980.4
+        },
+        {
+          "id": "overview:crates/nu-path/src/expansions.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/expansions.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.233
+        },
+        {
+          "id": "read:crates/nu-path/src/expansions.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/expansions.rs",
+            "offset": 10,
+            "limit": 8
+          },
+          "elapsed_ms": 2427.917
+        },
+        {
+          "id": "overview:crates/nu-path/src/tilde.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/tilde.rs",
+            "expected_count": 22,
+            "actual_count": 22
+          },
+          "elapsed_ms": 0.251
+        },
+        {
+          "id": "read:crates/nu-path/src/tilde.rs",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-path/src/tilde.rs",
+            "offset": 20,
+            "limit": 8
+          },
+          "elapsed_ms": 2137.082
+        },
+        {
+          "id": "macro-is-not-glob-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/nu-command/src/filesystem/open.rs",
+              "offset": 321,
+              "limit": 6
+            },
+            "missing": [],
+            "unexpected": [
+              "Pattern::matches —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2281.021
+        },
+        {
+          "id": "str-iterator-is-not-dataframe",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/nu-command/src/filesystem/open.rs",
+              "offset": 328,
+              "limit": 19
+            },
+            "missing": [],
+            "unexpected": [
+              "NuLazyFrame::collect —",
+              "ByteStream::split —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2260.316
+        },
+        {
+          "id": "same-file-and-imported-path-functions",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2264.084
+        },
+        {
+          "id": "discover-open-file",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 20.741
+        },
+        {
+          "id": "find:crates/nu-path/src",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 2.976
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2263.107
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2309.176
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2278.217
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.rs",
+              "offset": 15,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.rs:1"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 2271.909
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2305.82
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.296
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.944
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.077
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.684
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.896
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.761
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.923
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.704
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.911
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.889
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.164
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1016.619
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.568
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.434
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.31
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.137
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 513.385
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.244
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2045.853
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 4039.381
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 5670.139
+        },
+        {
+          "id": "overview:crates/nu-command/src/experimental/job_list.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/experimental/job_list.rs",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.245
+        },
+        {
+          "id": "overview:crates/nu-protocol/src/ir/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-protocol/src/ir/mod.rs",
+            "expected_count": 14,
+            "actual_count": 14
+          },
+          "elapsed_ms": 0.269
+        },
+        {
+          "id": "overview:crates/nu-utils/src/nu_cow.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-utils/src/nu_cow.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.219
+        },
+        {
+          "id": "overview:crates/nu-json/src/builder.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-json/src/builder.rs",
+            "expected_count": 12,
+            "actual_count": 12
+          },
+          "elapsed_ms": 0.221
+        },
+        {
+          "id": "overview:crates/nu-engine/src/column.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-engine/src/column.rs",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.206
+        },
+        {
+          "id": "overview:scripts/build.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "scripts/build.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.255
+        },
+        {
+          "id": "overview:crates/nu-command/src/matrix/map.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/matrix/map.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.186
+        },
+        {
+          "id": "overview:crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.264
+        },
+        {
+          "id": "overview:crates/nu-command/src/formats/to/xml.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/formats/to/xml.rs",
+            "expected_count": 20,
+            "actual_count": 20
+          },
+          "elapsed_ms": 0.29
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/math/variance.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/math/variance.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.223
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.19
+        },
+        {
+          "id": "overview:crates/nu-command/src/filters/rename.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/filters/rename.rs",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.245
+        },
+        {
+          "id": "overview:crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.236
+        },
+        {
+          "id": "overview:crates/nu-command/tests/commands/math/stddev.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/tests/commands/math/stddev.rs",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.214
+        },
+        {
+          "id": "overview:crates/nu_plugin_custom_values/src/second_custom_value.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu_plugin_custom_values/src/second_custom_value.rs",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.222
+        },
+        {
+          "id": "overview:crates/nu-command/src/misc/panic.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-command/src/misc/panic.rs",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.223
+        },
+        {
+          "id": "overview:crates/nu-protocol/src/engine/overlay.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-protocol/src/engine/overlay.rs",
+            "expected_count": 27,
+            "actual_count": 27
+          },
+          "elapsed_ms": 0.231
+        },
+        {
+          "id": "overview:crates/nu-test-support/src/tester/mod.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-test-support/src/tester/mod.rs",
+            "expected_count": 46,
+            "actual_count": 46
+          },
+          "elapsed_ms": 0.268
+        },
+        {
+          "id": "overview:crates/nu-explore/src/explore_regex/quick_ref.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-explore/src/explore_regex/quick_ref.rs",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.231
+        },
+        {
+          "id": "overview:crates/nu-cmd-lang/src/example_support.rs",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "crates/nu-cmd-lang/src/example_support.rs",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.223
+        }
+      ],
+      "cold_index_seconds": 5.114,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 55,
+        "fail": 3,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl"
+      ],
+      "sample_files": [
+        "crates/nu-command/src/experimental/job_list.rs",
+        "crates/nu-protocol/src/ir/mod.rs",
+        "crates/nu-utils/src/nu_cow.rs",
+        "crates/nu-json/src/builder.rs",
+        "crates/nu-engine/src/column.rs",
+        "scripts/build.rs",
+        "crates/nu-command/src/matrix/map.rs",
+        "crates/nu_plugin_polars/src/dataframe/command/datetime/get_week.rs",
+        "crates/nu-command/src/formats/to/xml.rs",
+        "crates/nu-command/tests/commands/math/variance.rs",
+        "crates/nu-command/tests/commands/conversions/into/cell_path.rs",
+        "crates/nu-command/src/filters/rename.rs",
+        "crates/nu_plugin_polars/src/dataframe/command/data/cast.rs",
+        "crates/nu-command/tests/commands/math/stddev.rs",
+        "crates/nu_plugin_custom_values/src/second_custom_value.rs",
+        "crates/nu-command/src/misc/panic.rs",
+        "crates/nu-protocol/src/engine/overlay.rs",
+        "crates/nu-test-support/src/tester/mod.rs",
+        "crates/nu-explore/src/explore_regex/quick_ref.rs",
+        "crates/nu-cmd-lang/src/example_support.rs"
+      ],
+      "read_timing": {
+        "requests": 10,
+        "median_ms": 2267.997,
+        "maximum_ms": 2427.917
+      }
+    },
+    {
+      "repository": "prometheus",
+      "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+      "profile": "default",
+      "config_sha256": "f0cc2cbe4d2a14353c0423e4d3e87122084fc9ff1a3ee42c74fadc5f6bc09f48",
+      "checks": [
+        {
+          "id": "overview:config/config.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "config/config.go",
+            "expected_count": 54,
+            "actual_count": 54
+          },
+          "elapsed_ms": 0.237
+        },
+        {
+          "id": "read:config/config.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "config/config.go",
+            "offset": 75,
+            "limit": 8
+          },
+          "elapsed_ms": 297.318
+        },
+        {
+          "id": "overview:util/strutil/strconv.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/strconv.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.221
+        },
+        {
+          "id": "read:util/strutil/strconv.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/strconv.go",
+            "offset": 28,
+            "limit": 4
+          },
+          "elapsed_ms": 68.693
+        },
+        {
+          "id": "overview:util/strutil/quote.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/quote.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.17
+        },
+        {
+          "id": "read:util/strutil/quote.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/quote.go",
+            "offset": 66,
+            "limit": 8
+          },
+          "elapsed_ms": 71.331
+        },
+        {
+          "id": "os-expand-is-not-template-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 75,
+              "limit": 54
+            },
+            "missing": [],
+            "unexpected": [
+              "Expander.Expand —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 145.28
+        },
+        {
+          "id": "builtin-len-is-not-memchunk-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 132,
+              "limit": 27
+            },
+            "missing": [],
+            "unexpected": [
+              "memChunk.len —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 79.202
+        },
+        {
+          "id": "loadfile-calls-local-load",
+          "category": "callees",
+          "status": "unverified",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 132,
+              "limit": 27
+            },
+            "missing": [
+              "Load — config/config.go:75"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true,
+            "reason": "Required target not displayed; output explicitly reports ambiguity or truncation"
+          },
+          "elapsed_ms": 79.259
+        },
+        {
+          "id": "load-callers-exclude-atomic-load",
+          "category": "wrong_caller",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 75,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "safePromQLNoStepSubqueryInterval.Get (",
+              "MockContextErrAfter.Err (",
+              "headChunkReader.getOrCollectHeadChunks ("
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 138.512
+        },
+        {
+          "id": "discover-yaml-config",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 41.3
+        },
+        {
+          "id": "find:util/strutil",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 1.528
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 63.062
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 62.158
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 62.365
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.go",
+              "offset": 10,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.go:2"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 62.897
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 62.543
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.439
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.055
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.31
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.105
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.16
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.137
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.18
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.036
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.034
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.209
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.283
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1020.567
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.225
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.325
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.224
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.1
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 512.396
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.175
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1238.858
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1306.937
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1288.972
+        },
+        {
+          "id": "overview:tsdb/tsdbutil/remove_tmp_dirs_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/tsdbutil/remove_tmp_dirs_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.177
+        },
+        {
+          "id": "overview:discovery/kubernetes/node.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/kubernetes/node.go",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.132
+        },
+        {
+          "id": "overview:discovery/manager.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/manager.go",
+            "expected_count": 23,
+            "actual_count": 23
+          },
+          "elapsed_ms": 0.143
+        },
+        {
+          "id": "overview:util/testutil/cmp.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/testutil/cmp.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.121
+        },
+        {
+          "id": "overview:tsdb/chunks/samples.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/chunks/samples.go",
+            "expected_count": 20,
+            "actual_count": 20
+          },
+          "elapsed_ms": 0.154
+        },
+        {
+          "id": "overview:discovery/oci/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/oci/metrics.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.142
+        },
+        {
+          "id": "overview:discovery/dns/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/dns/metrics.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.144
+        },
+        {
+          "id": "overview:discovery/moby/services_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/moby/services_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.154
+        },
+        {
+          "id": "overview:discovery/ovhcloud/ovhcloud_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/ovhcloud/ovhcloud_test.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.159
+        },
+        {
+          "id": "overview:util/runtime/statfs_uint32.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/runtime/statfs_uint32.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.13
+        },
+        {
+          "id": "overview:util/httputil/compression_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/httputil/compression_test.go",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.146
+        },
+        {
+          "id": "overview:util/teststorage/storage.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/teststorage/storage.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.122
+        },
+        {
+          "id": "overview:plugins/plugin_outscale.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "plugins/plugin_outscale.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.115
+        },
+        {
+          "id": "overview:discovery/stackit/mock_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/stackit/mock_test.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.122
+        },
+        {
+          "id": "overview:discovery/aws/metrics_ec2.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/aws/metrics_ec2.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.116
+        },
+        {
+          "id": "overview:promql/parser/ast.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "promql/parser/ast.go",
+            "expected_count": 60,
+            "actual_count": 60
+          },
+          "elapsed_ms": 0.197
+        },
+        {
+          "id": "overview:storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.147
+        },
+        {
+          "id": "overview:util/testutil/context.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/testutil/context.go",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.147
+        },
+        {
+          "id": "overview:tsdb/head_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/head_test.go",
+            "expected_count": 163,
+            "actual_count": 163
+          },
+          "elapsed_ms": 0.233
+        },
+        {
+          "id": "overview:web/api/v1/json_codec_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "web/api/v1/json_codec_test.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.155
+        }
+      ],
+      "cold_index_seconds": 18.224,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 54,
+        "fail": 4,
+        "unverified": 1
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl",
+        "go-final/mcp.jsonl"
+      ],
+      "sample_files": [
+        "tsdb/tsdbutil/remove_tmp_dirs_test.go",
+        "discovery/kubernetes/node.go",
+        "discovery/manager.go",
+        "util/testutil/cmp.go",
+        "tsdb/chunks/samples.go",
+        "discovery/oci/metrics.go",
+        "discovery/dns/metrics.go",
+        "discovery/moby/services_test.go",
+        "discovery/ovhcloud/ovhcloud_test.go",
+        "util/runtime/statfs_uint32.go",
+        "util/httputil/compression_test.go",
+        "util/teststorage/storage.go",
+        "plugins/plugin_outscale.go",
+        "discovery/stackit/mock_test.go",
+        "discovery/aws/metrics_ec2.go",
+        "promql/parser/ast.go",
+        "storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+        "util/testutil/context.go",
+        "tsdb/head_test.go",
+        "web/api/v1/json_codec_test.go"
+      ],
+      "read_timing": {
+        "requests": 11,
+        "median_ms": 71.331,
+        "maximum_ms": 297.318
+      }
+    },
+    {
+      "repository": "prometheus",
+      "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+      "profile": "structural",
+      "config_sha256": "fa23740ed2a6d6bd903fb40948d6c3bb36bed61be6607921830b46cee507ceac",
+      "checks": [
+        {
+          "id": "overview:config/config.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "config/config.go",
+            "expected_count": 54,
+            "actual_count": 54
+          },
+          "elapsed_ms": 0.231
+        },
+        {
+          "id": "read:config/config.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "config/config.go",
+            "offset": 75,
+            "limit": 8
+          },
+          "elapsed_ms": 280.127
+        },
+        {
+          "id": "overview:util/strutil/strconv.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/strconv.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.171
+        },
+        {
+          "id": "read:util/strutil/strconv.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/strconv.go",
+            "offset": 28,
+            "limit": 4
+          },
+          "elapsed_ms": 83.344
+        },
+        {
+          "id": "overview:util/strutil/quote.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/quote.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.199
+        },
+        {
+          "id": "read:util/strutil/quote.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "util/strutil/quote.go",
+            "offset": 66,
+            "limit": 8
+          },
+          "elapsed_ms": 104.615
+        },
+        {
+          "id": "os-expand-is-not-template-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 75,
+              "limit": 54
+            },
+            "missing": [],
+            "unexpected": [
+              "Expander.Expand —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 168.828
+        },
+        {
+          "id": "builtin-len-is-not-memchunk-method",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 132,
+              "limit": 27
+            },
+            "missing": [],
+            "unexpected": [
+              "memChunk.len —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 104.651
+        },
+        {
+          "id": "loadfile-calls-local-load",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 100.204
+        },
+        {
+          "id": "load-callers-exclude-atomic-load",
+          "category": "wrong_caller",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "config/config.go",
+              "offset": 75,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "safePromQLNoStepSubqueryInterval.Get (",
+              "MockContextErrAfter.Err (",
+              "headChunkReader.getOrCollectHeadChunks ("
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 163.174
+        },
+        {
+          "id": "discover-yaml-config",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 38.507
+        },
+        {
+          "id": "find:util/strutil",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 1.742
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 91.674
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 92.876
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 84.164
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.go",
+              "offset": 10,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.go:2"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 86.682
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 129.144
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.599
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.275
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.508
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.028
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.112
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.198
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.114
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.059
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.048
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.345
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.27
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1011.025
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.243
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 510.387
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.237
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.207
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 512.46
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.192
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1275.043
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1340.234
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1375.646
+        },
+        {
+          "id": "overview:tsdb/tsdbutil/remove_tmp_dirs_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/tsdbutil/remove_tmp_dirs_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.212
+        },
+        {
+          "id": "overview:discovery/kubernetes/node.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/kubernetes/node.go",
+            "expected_count": 10,
+            "actual_count": 10
+          },
+          "elapsed_ms": 0.148
+        },
+        {
+          "id": "overview:discovery/manager.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/manager.go",
+            "expected_count": 23,
+            "actual_count": 23
+          },
+          "elapsed_ms": 0.193
+        },
+        {
+          "id": "overview:util/testutil/cmp.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/testutil/cmp.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.157
+        },
+        {
+          "id": "overview:tsdb/chunks/samples.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/chunks/samples.go",
+            "expected_count": 20,
+            "actual_count": 20
+          },
+          "elapsed_ms": 0.167
+        },
+        {
+          "id": "overview:discovery/oci/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/oci/metrics.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.161
+        },
+        {
+          "id": "overview:discovery/dns/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/dns/metrics.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.142
+        },
+        {
+          "id": "overview:discovery/moby/services_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/moby/services_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.164
+        },
+        {
+          "id": "overview:discovery/ovhcloud/ovhcloud_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/ovhcloud/ovhcloud_test.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.152
+        },
+        {
+          "id": "overview:util/runtime/statfs_uint32.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/runtime/statfs_uint32.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.184
+        },
+        {
+          "id": "overview:util/httputil/compression_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/httputil/compression_test.go",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.134
+        },
+        {
+          "id": "overview:util/teststorage/storage.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/teststorage/storage.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.158
+        },
+        {
+          "id": "overview:plugins/plugin_outscale.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "plugins/plugin_outscale.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.132
+        },
+        {
+          "id": "overview:discovery/stackit/mock_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/stackit/mock_test.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.158
+        },
+        {
+          "id": "overview:discovery/aws/metrics_ec2.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "discovery/aws/metrics_ec2.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.115
+        },
+        {
+          "id": "overview:promql/parser/ast.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "promql/parser/ast.go",
+            "expected_count": 60,
+            "actual_count": 60
+          },
+          "elapsed_ms": 0.199
+        },
+        {
+          "id": "overview:storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.168
+        },
+        {
+          "id": "overview:util/testutil/context.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "util/testutil/context.go",
+            "expected_count": 6,
+            "actual_count": 6
+          },
+          "elapsed_ms": 0.123
+        },
+        {
+          "id": "overview:tsdb/head_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "tsdb/head_test.go",
+            "expected_count": 163,
+            "actual_count": 163
+          },
+          "elapsed_ms": 0.232
+        },
+        {
+          "id": "overview:web/api/v1/json_codec_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "web/api/v1/json_codec_test.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.185
+        }
+      ],
+      "cold_index_seconds": 18.218,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 55,
+        "fail": 4,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl",
+        "go-final/mcp.jsonl"
+      ],
+      "sample_files": [
+        "tsdb/tsdbutil/remove_tmp_dirs_test.go",
+        "discovery/kubernetes/node.go",
+        "discovery/manager.go",
+        "util/testutil/cmp.go",
+        "tsdb/chunks/samples.go",
+        "discovery/oci/metrics.go",
+        "discovery/dns/metrics.go",
+        "discovery/moby/services_test.go",
+        "discovery/ovhcloud/ovhcloud_test.go",
+        "util/runtime/statfs_uint32.go",
+        "util/httputil/compression_test.go",
+        "util/teststorage/storage.go",
+        "plugins/plugin_outscale.go",
+        "discovery/stackit/mock_test.go",
+        "discovery/aws/metrics_ec2.go",
+        "promql/parser/ast.go",
+        "storage/remote/otlptranslator/prometheusremotewrite/number_data_points.go",
+        "util/testutil/context.go",
+        "tsdb/head_test.go",
+        "web/api/v1/json_codec_test.go"
+      ],
+      "read_timing": {
+        "requests": 11,
+        "median_ms": 100.204,
+        "maximum_ms": 280.127
+      }
+    },
+    {
+      "repository": "kubernetes",
+      "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+      "profile": "default",
+      "config_sha256": "f0cc2cbe4d2a14353c0423e4d3e87122084fc9ff1a3ee42c74fadc5f6bc09f48",
+      "checks": [
+        {
+          "id": "overview:pkg/util/tolerations/tolerations.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/tolerations/tolerations.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.193
+        },
+        {
+          "id": "read:pkg/util/tolerations/tolerations.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/tolerations/tolerations.go",
+            "offset": 27,
+            "limit": 8
+          },
+          "elapsed_ms": 841.657
+        },
+        {
+          "id": "overview:pkg/util/hash/hash.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/hash/hash.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.175
+        },
+        {
+          "id": "read:pkg/util/hash/hash.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/hash/hash.go",
+            "offset": 29,
+            "limit": 4
+          },
+          "elapsed_ms": 789.496
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "expected_count": 18,
+            "actual_count": 18
+          },
+          "elapsed_ms": 0.201
+        },
+        {
+          "id": "read:staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "offset": 60,
+            "limit": 7
+          },
+          "elapsed_ms": 792.734
+        },
+        {
+          "id": "discover-toleration-merge",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 25.111
+        },
+        {
+          "id": "toleration-local-call",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 737.304
+        },
+        {
+          "id": "deep-equality-is-not-codegen-fixture",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "pkg/util/tolerations/tolerations.go",
+              "offset": 47,
+              "limit": 24
+            },
+            "missing": [],
+            "unexpected": [
+              "DeepEqual — staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/_codegenignore/other/deepequal.go:26"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 781.538
+        },
+        {
+          "id": "strconv-parse-is-not-codegen-util",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+              "offset": 80,
+              "limit": 7
+            },
+            "missing": [],
+            "unexpected": [
+              "ParseInt — staging/src/k8s.io/code-generator/cmd/validation-gen/util/util.go:127"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 892.382
+        },
+        {
+          "id": "constant-string-with-duplicate-method-name",
+          "category": "references",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+              "offset": 74,
+              "limit": 3
+            },
+            "missing": [
+              "String — staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go:53"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 749.499
+        },
+        {
+          "id": "find:pkg/util/hash",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 2.553
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 740.875
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 747.128
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 934.59
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.go",
+              "offset": 10,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.go:2"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 765.658
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 760.319
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.59
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.111
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.395
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.768
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.022
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.871
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.165
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.802
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.042
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.951
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.206
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2553.571
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.41
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2544.035
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.248
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.094
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2700.79
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.158
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1830.055
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1502.707
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2077.053
+        },
+        {
+          "id": "overview:staging/src/k8s.io/controller-manager/config/register.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/controller-manager/config/register.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.314
+        },
+        {
+          "id": "overview:pkg/kubelet/client/kubelet_client_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/kubelet/client/kubelet_client_test.go",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.177
+        },
+        {
+          "id": "overview:pkg/proxy/ipvs/proxier.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/proxy/ipvs/proxier.go",
+            "expected_count": 28,
+            "actual_count": 28
+          },
+          "elapsed_ms": 0.22
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.21
+        },
+        {
+          "id": "overview:staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+            "expected_count": 12,
+            "actual_count": 12
+          },
+          "elapsed_ms": 0.206
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.179
+        },
+        {
+          "id": "overview:pkg/volume/util/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/volume/util/metrics.go",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.158
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.173
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.171
+        },
+        {
+          "id": "overview:pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.145
+        },
+        {
+          "id": "overview:staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.183
+        },
+        {
+          "id": "overview:staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.212
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+            "expected_count": 25,
+            "actual_count": 25
+          },
+          "elapsed_ms": 0.183
+        },
+        {
+          "id": "overview:plugin/pkg/admission/serviceaccount/admission_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "plugin/pkg/admission/serviceaccount/admission_test.go",
+            "expected_count": 21,
+            "actual_count": 21
+          },
+          "elapsed_ms": 0.148
+        },
+        {
+          "id": "overview:pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.126
+        },
+        {
+          "id": "overview:staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.178
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+            "expected_count": 17,
+            "actual_count": 17
+          },
+          "elapsed_ms": 0.161
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.165
+        },
+        {
+          "id": "overview:test/integration/scheduler_perf/runners.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "test/integration/scheduler_perf/runners.go",
+            "expected_count": 41,
+            "actual_count": 41
+          },
+          "elapsed_ms": 0.191
+        },
+        {
+          "id": "overview:pkg/proxy/ipvs/util/ipvs_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/proxy/ipvs/util/ipvs_test.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.136
+        }
+      ],
+      "cold_index_seconds": 213.246,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 55,
+        "fail": 4,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl",
+        "go-final/mcp.jsonl"
+      ],
+      "sample_files": [
+        "staging/src/k8s.io/controller-manager/config/register.go",
+        "pkg/kubelet/client/kubelet_client_test.go",
+        "pkg/proxy/ipvs/proxier.go",
+        "staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+        "staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+        "staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+        "pkg/volume/util/metrics.go",
+        "staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+        "staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+        "pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+        "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+        "staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+        "staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+        "plugin/pkg/admission/serviceaccount/admission_test.go",
+        "pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+        "staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+        "staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+        "staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+        "test/integration/scheduler_perf/runners.go",
+        "pkg/proxy/ipvs/util/ipvs_test.go"
+      ],
+      "read_timing": {
+        "requests": 11,
+        "median_ms": 781.538,
+        "maximum_ms": 934.59
+      }
+    },
+    {
+      "repository": "kubernetes",
+      "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+      "profile": "structural",
+      "config_sha256": "fa23740ed2a6d6bd903fb40948d6c3bb36bed61be6607921830b46cee507ceac",
+      "checks": [
+        {
+          "id": "overview:pkg/util/tolerations/tolerations.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/tolerations/tolerations.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.238
+        },
+        {
+          "id": "read:pkg/util/tolerations/tolerations.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/tolerations/tolerations.go",
+            "offset": 27,
+            "limit": 8
+          },
+          "elapsed_ms": 841.199
+        },
+        {
+          "id": "overview:pkg/util/hash/hash.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/hash/hash.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.195
+        },
+        {
+          "id": "read:pkg/util/hash/hash.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/util/hash/hash.go",
+            "offset": 29,
+            "limit": 4
+          },
+          "elapsed_ms": 804.043
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "expected_count": 18,
+            "actual_count": 18
+          },
+          "elapsed_ms": 0.201
+        },
+        {
+          "id": "read:staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+            "offset": 60,
+            "limit": 7
+          },
+          "elapsed_ms": 856.813
+        },
+        {
+          "id": "discover-toleration-merge",
+          "category": "search_discovery",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 24.232
+        },
+        {
+          "id": "toleration-local-call",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 842.543
+        },
+        {
+          "id": "deep-equality-is-not-codegen-fixture",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "pkg/util/tolerations/tolerations.go",
+              "offset": 47,
+              "limit": 24
+            },
+            "missing": [],
+            "unexpected": [
+              "DeepEqual — staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/_codegenignore/other/deepequal.go:26"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 843.535
+        },
+        {
+          "id": "strconv-parse-is-not-codegen-util",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+              "offset": 80,
+              "limit": 7
+            },
+            "missing": [],
+            "unexpected": [
+              "ParseInt — staging/src/k8s.io/code-generator/cmd/validation-gen/util/util.go:127"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 969.307
+        },
+        {
+          "id": "constant-string-with-duplicate-method-name",
+          "category": "references",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go",
+              "offset": 74,
+              "limit": 3
+            },
+            "missing": [
+              "String — staging/src/k8s.io/apimachinery/pkg/util/intstr/intstr.go:53"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 848.363
+        },
+        {
+          "id": "find:pkg/util/hash",
+          "category": "file_enumeration",
+          "status": "pass",
+          "detail": {
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 2.812
+        },
+        {
+          "id": "callers:syntax-and-tests",
+          "category": "callers",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 843.112
+        },
+        {
+          "id": "calls:definition-location",
+          "category": "callees",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 937.68
+        },
+        {
+          "id": "references:same-file-constant",
+          "category": "references",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 870.613
+        },
+        {
+          "id": "references:cross-file-constant",
+          "category": "reference_coverage",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "_codemap_validation_probe/probe.go",
+              "offset": 10,
+              "limit": 1
+            },
+            "missing": [
+              "CM_VALIDATION_IMPORTED — _codemap_validation_probe/constants.go:2"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 870.671
+        },
+        {
+          "id": "grep:content",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1049.874
+        },
+        {
+          "id": "grep:files_with_matches",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3.637
+        },
+        {
+          "id": "grep:count",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 3.203
+        },
+        {
+          "id": "grep:pagination",
+          "category": "live_content",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": null
+        },
+        {
+          "id": "exclude:_validation_excluded:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.606
+        },
+        {
+          "id": "exclude:_validation_excluded:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.904
+        },
+        {
+          "id": "exclude:node_modules:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.398
+        },
+        {
+          "id": "exclude:node_modules:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.934
+        },
+        {
+          "id": "exclude:ignored:direct-file",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2.2
+        },
+        {
+          "id": "exclude:ignored:bypass",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.868
+        },
+        {
+          "id": "exclude:find",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.175
+        },
+        {
+          "id": "exclude:mandatory",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 1.152
+        },
+        {
+          "id": "exclude:search",
+          "category": "exclusion",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.238
+        },
+        {
+          "id": "refresh:create:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2546.453
+        },
+        {
+          "id": "refresh:create:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.497
+        },
+        {
+          "id": "refresh:modify:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2550.057
+        },
+        {
+          "id": "refresh:modify:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.236
+        },
+        {
+          "id": "refresh:modify:old-search-term",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.093
+        },
+        {
+          "id": "refresh:delete:overview",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2769.421
+        },
+        {
+          "id": "refresh:delete:search",
+          "category": "refresh",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 0.232
+        },
+        {
+          "id": "test-policy:include-tests",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2184.532
+        },
+        {
+          "id": "test-policy:replace-builtins-with-custom",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2047.547
+        },
+        {
+          "id": "test-policy:restore",
+          "category": "test_policy",
+          "status": "pass",
+          "detail": {},
+          "elapsed_ms": 2277.581
+        },
+        {
+          "id": "overview:staging/src/k8s.io/controller-manager/config/register.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/controller-manager/config/register.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.236
+        },
+        {
+          "id": "overview:pkg/kubelet/client/kubelet_client_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/kubelet/client/kubelet_client_test.go",
+            "expected_count": 9,
+            "actual_count": 9
+          },
+          "elapsed_ms": 0.146
+        },
+        {
+          "id": "overview:pkg/proxy/ipvs/proxier.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/proxy/ipvs/proxier.go",
+            "expected_count": 28,
+            "actual_count": 28
+          },
+          "elapsed_ms": 0.165
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.173
+        },
+        {
+          "id": "overview:staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+            "expected_count": 12,
+            "actual_count": 12
+          },
+          "elapsed_ms": 0.181
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+            "expected_count": 5,
+            "actual_count": 5
+          },
+          "elapsed_ms": 0.162
+        },
+        {
+          "id": "overview:pkg/volume/util/metrics.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/volume/util/metrics.go",
+            "expected_count": 7,
+            "actual_count": 7
+          },
+          "elapsed_ms": 0.125
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.151
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+            "expected_count": 1,
+            "actual_count": 1
+          },
+          "elapsed_ms": 0.14
+        },
+        {
+          "id": "overview:pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+            "expected_count": 3,
+            "actual_count": 3
+          },
+          "elapsed_ms": 0.126
+        },
+        {
+          "id": "overview:staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.163
+        },
+        {
+          "id": "overview:staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.169
+        },
+        {
+          "id": "overview:staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+            "expected_count": 25,
+            "actual_count": 25
+          },
+          "elapsed_ms": 0.163
+        },
+        {
+          "id": "overview:plugin/pkg/admission/serviceaccount/admission_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "plugin/pkg/admission/serviceaccount/admission_test.go",
+            "expected_count": 21,
+            "actual_count": 21
+          },
+          "elapsed_ms": 0.138
+        },
+        {
+          "id": "overview:pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.128
+        },
+        {
+          "id": "overview:staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+            "expected_count": 2,
+            "actual_count": 2
+          },
+          "elapsed_ms": 0.207
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+            "expected_count": 17,
+            "actual_count": 17
+          },
+          "elapsed_ms": 0.174
+        },
+        {
+          "id": "overview:staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+            "expected_count": 0,
+            "actual_count": 0
+          },
+          "elapsed_ms": 0.153
+        },
+        {
+          "id": "overview:test/integration/scheduler_perf/runners.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "test/integration/scheduler_perf/runners.go",
+            "expected_count": 41,
+            "actual_count": 41
+          },
+          "elapsed_ms": 0.205
+        },
+        {
+          "id": "overview:pkg/proxy/ipvs/util/ipvs_test.go",
+          "category": "declaration_ranges",
+          "status": "pass",
+          "detail": {
+            "file": "pkg/proxy/ipvs/util/ipvs_test.go",
+            "expected_count": 4,
+            "actual_count": 4
+          },
+          "elapsed_ms": 0.133
+        }
+      ],
+      "cold_index_seconds": 211.499,
+      "tracked_changes": "",
+      "counts": {
+        "pass": 55,
+        "fail": 4,
+        "unverified": 0
+      },
+      "evidence_layers": [
+        "mcp.jsonl",
+        "followup/mcp.jsonl",
+        "go-final/mcp.jsonl"
+      ],
+      "sample_files": [
+        "staging/src/k8s.io/controller-manager/config/register.go",
+        "pkg/kubelet/client/kubelet_client_test.go",
+        "pkg/proxy/ipvs/proxier.go",
+        "staging/src/k8s.io/kubectl/pkg/cmd/create/create_secret_tls_test.go",
+        "staging/src/k8s.io/component-helpers/scheduling/schedulingv1/workloadbuilder/validate.go",
+        "staging/src/k8s.io/apiserver/pkg/admission/plugin/policy/mutating/patch/typeconverter.go",
+        "pkg/volume/util/metrics.go",
+        "staging/src/k8s.io/apiserver/pkg/server/options/admission_test.go",
+        "staging/src/k8s.io/apiserver/pkg/apis/example/install/roundtrip_test.go",
+        "pkg/registry/rbac/clusterrole/policybased/storage_test.go",
+        "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api_json_126_test.go",
+        "staging/src/k8s.io/code-generator/cmd/validation-gen/output_tests/tags/update/primitives/doc.go",
+        "staging/src/k8s.io/apiserver/pkg/authorization/union/union_test.go",
+        "plugin/pkg/admission/serviceaccount/admission_test.go",
+        "pkg/controller/certificates/cleaner/pcrcleaner_test.go",
+        "staging/src/k8s.io/client-go/tools/cache/listwatch_test.go",
+        "staging/src/k8s.io/kubectl/pkg/cmd/wait/wait_test.go",
+        "staging/src/k8s.io/kubectl/pkg/util/openapi/doc.go",
+        "test/integration/scheduler_perf/runners.go",
+        "pkg/proxy/ipvs/util/ipvs_test.go"
+      ],
+      "read_timing": {
+        "requests": 11,
+        "median_ms": 848.363,
+        "maximum_ms": 969.307
+      }
+    }
+  ],
+  "regressions": [
+    {
+      "language": "rust",
+      "profile": "default",
+      "checks": [
+        {
+          "id": "str-iterator",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "lib.rs",
+              "offset": 9,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated::split —",
+              "Unrelated::collect —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 33.408
+        },
+        {
+          "id": "macro",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "lib.rs",
+              "offset": 13,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated::matches —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 15.631
+        }
+      ]
+    },
+    {
+      "language": "rust",
+      "profile": "structural",
+      "checks": [
+        {
+          "id": "str-iterator",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "lib.rs",
+              "offset": 9,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated::split —",
+              "Unrelated::collect —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 29.862
+        },
+        {
+          "id": "macro",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "lib.rs",
+              "offset": 13,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated::matches —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 15.64
+        }
+      ]
+    },
+    {
+      "language": "go",
+      "profile": "default",
+      "checks": [
+        {
+          "id": "builtin",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 14,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated.len —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 28.78
+        },
+        {
+          "id": "package",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 18,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated.Expand —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 11.874
+        },
+        {
+          "id": "atomic-caller",
+          "category": "wrong_caller",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 12,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "AtomicMethod ("
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 10.345
+        },
+        {
+          "id": "implicit-constant",
+          "category": "references",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 31,
+              "limit": 3
+            },
+            "missing": [
+              "ImplicitValue — probe.go:28"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 9.033
+        }
+      ]
+    },
+    {
+      "language": "go",
+      "profile": "structural",
+      "checks": [
+        {
+          "id": "builtin",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 14,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated.len —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 31.357
+        },
+        {
+          "id": "package",
+          "category": "wrong_callee",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 18,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "Unrelated.Expand —"
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 15.79
+        },
+        {
+          "id": "atomic-caller",
+          "category": "wrong_caller",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 12,
+              "limit": 1
+            },
+            "missing": [],
+            "unexpected": [
+              "AtomicMethod ("
+            ],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 12.414
+        },
+        {
+          "id": "implicit-constant",
+          "category": "references",
+          "status": "fail",
+          "detail": {
+            "tool": "read",
+            "arguments": {
+              "file_path": "probe.go",
+              "offset": 31,
+              "limit": 3
+            },
+            "missing": [
+              "ImplicitValue — probe.go:28"
+            ],
+            "unexpected": [],
+            "protocol_error": false,
+            "context_found": true
+          },
+          "elapsed_ms": 10.679
+        }
+      ]
+    }
+  ],
+  "finished_utc": "2026-09-12T14:29:56.080679+00:00",
+  "verification_finalized_utc": "2026-09-12T14:41:42.242466+00:00",
+  "original_summary_sha256": "7febf37e8086e7b06a9a82ffb0ed4f8009fa07a78f3d51c767bb5311a41717a4",
+  "final_manifest_sha256": "d7ce26f860426d74b30fb6a319b2540576902d62b9f8d4b64cc94f0825fcf456",
+  "final_runner_sha256": "0a8e4c1dc895844ffc0ff3e075fc7c0d183f832287c8c4ae1b23df995127d882",
+  "correction_notes": [
+    "Use later followup checks for deterministic samples and deletion visibility including file counts.",
+    "Use final Go oracle with named interface methods included in the declared output contract.",
+    "Use workspace_scope=all for the two Go discovery queries; the original arbitrary scopes were invalid tool inputs, not product defects.",
+    "Raw original and follow-up transcripts are retained separately; no failed response is rewritten."
+  ],
+  "raw_artifact_directory": "runs/rust-go-phase1-verified",
+  "regression_artifact_directory": "runs/final-regressions",
+  "qualification": [
+    {
+      "url": "https://github.com/bevyengine/bevy.git",
+      "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+      "language": "Rust",
+      "commits": 12180,
+      "code_lines": 455742,
+      "files": 1887,
+      "qualified": true,
+      "method": "tracked target-language files; comments/blanks, dependency/build directories, explicit generated headers/names and symlinks excluded; authored tests included"
+    },
+    {
+      "url": "https://github.com/nushell/nushell.git",
+      "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+      "language": "Rust",
+      "commits": 11853,
+      "code_lines": 358894,
+      "files": 1868,
+      "qualified": true,
+      "method": "tracked target-language files; comments/blanks, dependency/build directories, explicit generated headers/names and symlinks excluded; authored tests included"
+    },
+    {
+      "url": "https://github.com/prometheus/prometheus.git",
+      "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+      "language": "Go",
+      "commits": 18628,
+      "code_lines": 289673,
+      "files": 722,
+      "qualified": true,
+      "method": "tracked target-language files; comments/blanks, dependency/build directories, explicit generated headers/names and symlinks excluded; authored tests included"
+    },
+    {
+      "url": "https://github.com/kubernetes/kubernetes.git",
+      "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+      "language": "Go",
+      "commits": 141099,
+      "code_lines": 2201458,
+      "files": 9589,
+      "qualified": true,
+      "method": "tracked target-language files; comments/blanks, dependency/build directories, explicit generated headers/names and symlinks excluded; authored tests included"
+    }
+  ]
+}
