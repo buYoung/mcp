@@ -1,0 +1,463 @@
+{
+  "schema_version": 1,
+  "minimum_code_lines": 200000,
+  "minimum_commits": 1000,
+  "scope": "Supported programming languages and component code; document, data/config, style, infrastructure, interface-definition and build formats excluded. Groovy source included; Gradle build scripts excluded.",
+  "excluded_languages": [
+    "json",
+    "toml",
+    "yaml",
+    "html",
+    "xml",
+    "css",
+    "less",
+    "sass",
+    "hcl",
+    "dockerfile",
+    "proto",
+    "graphql",
+    "make",
+    "document",
+    "cmake",
+    "starlark",
+    "nix"
+  ],
+  "languages": [
+    {
+      "language": "rust",
+      "tokei_types": [
+        "Rust"
+      ],
+      "extensions": [
+        "rs"
+      ],
+      "candidates": [
+        "bevyengine/bevy",
+        "nushell/nushell"
+      ]
+    },
+    {
+      "language": "go",
+      "tokei_types": [
+        "Go"
+      ],
+      "extensions": [
+        "go"
+      ],
+      "candidates": [
+        "prometheus/prometheus",
+        "kubernetes/kubernetes"
+      ]
+    },
+    {
+      "language": "python",
+      "tokei_types": [
+        "Python"
+      ],
+      "extensions": [
+        "py"
+      ],
+      "candidates": [
+        "django/django",
+        "sympy/sympy"
+      ]
+    },
+    {
+      "language": "typescript",
+      "tokei_types": [
+        "TypeScript",
+        "TSX"
+      ],
+      "extensions": [
+        "ts",
+        "tsx",
+        "mts",
+        "cts"
+      ],
+      "candidates": [
+        "microsoft/vscode",
+        "microsoft/TypeScript"
+      ]
+    },
+    {
+      "language": "javascript",
+      "tokei_types": [
+        "JavaScript",
+        "JSX"
+      ],
+      "extensions": [
+        "js",
+        "jsx",
+        "mjs",
+        "cjs"
+      ],
+      "candidates": [
+        "nodejs/node",
+        "babel/babel",
+        "react/react"
+      ],
+      "selected_candidates": [
+        "nodejs/node",
+        "react/react"
+      ]
+    },
+    {
+      "language": "java",
+      "tokei_types": [
+        "Java"
+      ],
+      "extensions": [
+        "java"
+      ],
+      "candidates": [
+        "spring-projects/spring-framework",
+        "apache/kafka"
+      ]
+    },
+    {
+      "language": "csharp",
+      "tokei_types": [
+        "C#"
+      ],
+      "extensions": [
+        "cs"
+      ],
+      "candidates": [
+        "dotnet/roslyn",
+        "AvaloniaUI/Avalonia"
+      ]
+    },
+    {
+      "language": "php",
+      "tokei_types": [
+        "PHP"
+      ],
+      "extensions": [
+        "php"
+      ],
+      "candidates": [
+        "symfony/symfony",
+        "magento/magento2"
+      ]
+    },
+    {
+      "language": "ruby",
+      "tokei_types": [
+        "Ruby"
+      ],
+      "extensions": [
+        "rb"
+      ],
+      "candidates": [
+        "rails/rails",
+        "discourse/discourse"
+      ]
+    },
+    {
+      "language": "lua",
+      "tokei_types": [
+        "Lua"
+      ],
+      "extensions": [
+        "lua"
+      ],
+      "candidates": [
+        "Kong/kong",
+        "tarantool/tarantool"
+      ]
+    },
+    {
+      "language": "kotlin",
+      "tokei_types": [
+        "Kotlin"
+      ],
+      "extensions": [
+        "kt",
+        "kts"
+      ],
+      "candidates": [
+        "JetBrains/kotlin",
+        "signalapp/Signal-Android"
+      ]
+    },
+    {
+      "language": "swift",
+      "tokei_types": [
+        "Swift"
+      ],
+      "extensions": [
+        "swift"
+      ],
+      "candidates": [
+        "signalapp/Signal-iOS",
+        "TelegramMessenger/Telegram-iOS"
+      ]
+    },
+    {
+      "language": "dart",
+      "tokei_types": [
+        "Dart"
+      ],
+      "extensions": [
+        "dart"
+      ],
+      "candidates": [
+        "flutter/flutter",
+        "dart-lang/sdk"
+      ]
+    },
+    {
+      "language": "scala",
+      "tokei_types": [
+        "Scala"
+      ],
+      "extensions": [
+        "scala",
+        "sc"
+      ],
+      "candidates": [
+        "apache/spark",
+        "scala/scala3"
+      ]
+    },
+    {
+      "language": "groovy",
+      "tokei_types": [
+        "Groovy"
+      ],
+      "extensions": [
+        "groovy"
+      ],
+      "candidates": [
+        "gradle/gradle",
+        "apache/groovy"
+      ]
+    },
+    {
+      "language": "powershell",
+      "tokei_types": [
+        "PowerShell"
+      ],
+      "extensions": [
+        "ps1",
+        "psm1"
+      ],
+      "candidates": [
+        "dataplat/dbatools",
+        "Azure/azure-powershell",
+        "PowerShell/PowerShell"
+      ],
+      "selected_candidates": [
+        "Azure/azure-powershell",
+        "dataplat/dbatools"
+      ]
+    },
+    {
+      "language": "c",
+      "tokei_types": [
+        "C"
+      ],
+      "extensions": [
+        "c"
+      ],
+      "candidates": [
+        "torvalds/linux",
+        "postgres/postgres",
+        "redis/redis",
+        "curl/curl",
+        "openssl/openssl"
+      ],
+      "selected_candidates": [
+        "postgres/postgres",
+        "openssl/openssl"
+      ]
+    },
+    {
+      "language": "cpp",
+      "tokei_types": [
+        "C++",
+        "C Header",
+        "C++ Header"
+      ],
+      "extensions": [
+        "cpp",
+        "cc",
+        "cxx",
+        "h",
+        "hpp",
+        "hh",
+        "hxx"
+      ],
+      "candidates": [
+        "godotengine/godot",
+        "bitcoin/bitcoin"
+      ]
+    },
+    {
+      "language": "asm",
+      "tokei_types": [
+        "Assembly",
+        "GNU Style Assembly"
+      ],
+      "extensions": [
+        "s",
+        "S",
+        "asm"
+      ],
+      "candidates": [
+        "FFmpeg/FFmpeg",
+        "pret/pokecrystal",
+        "gnutools/glibc"
+      ],
+      "selected_candidates": [
+        "FFmpeg/FFmpeg",
+        "gnutools/glibc"
+      ],
+      "candidate_notes": {
+        "pret/pokecrystal": "Measured but not selected: RGBDS dialect is outside the implemented GAS/Intel grammar scope."
+      }
+    },
+    {
+      "language": "sql",
+      "tokei_types": [
+        "SQL"
+      ],
+      "extensions": [
+        "sql"
+      ],
+      "candidates": [
+        "postgres/postgres",
+        "ClickHouse/ClickHouse"
+      ],
+      "selected_candidates": [
+        "ClickHouse/ClickHouse",
+        "postgres/postgres"
+      ]
+    },
+    {
+      "language": "bash",
+      "tokei_types": [
+        "BASH",
+        "Shell"
+      ],
+      "extensions": [
+        "sh",
+        "bash"
+      ],
+      "candidates": [
+        "git/git",
+        "rear/rear"
+      ]
+    },
+    {
+      "language": "zsh",
+      "tokei_types": [
+        "Zsh"
+      ],
+      "extensions": [
+        "zsh"
+      ],
+      "candidates": [
+        "ohmyzsh/ohmyzsh",
+        "zdharma-continuum/zinit"
+      ]
+    },
+    {
+      "language": "vue",
+      "tokei_types": [
+        "Vue"
+      ],
+      "extensions": [
+        "vue"
+      ],
+      "candidates": [
+        "gitlabhq/gitlabhq",
+        "opentiny/tiny-vue"
+      ]
+    },
+    {
+      "language": "astro",
+      "tokei_types": [
+        "Astro"
+      ],
+      "extensions": [
+        "astro"
+      ],
+      "candidates": [
+        "withastro/astro",
+        "withastro/starlight"
+      ]
+    },
+    {
+      "language": "svelte",
+      "tokei_types": [
+        "Svelte"
+      ],
+      "extensions": [
+        "svelte"
+      ],
+      "candidates": [
+        "sveltejs/svelte",
+        "immich-app/immich"
+      ]
+    }
+  ],
+  "revisions": {
+    "microsoft/TypeScript": "879f9867ac455404e75759dd1739281cf6aa7f85",
+    "microsoft/vscode": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+    "sympy/sympy": "d9a9cd995650088a237d13e459b10f5da9cfa928",
+    "django/django": "2b30f6255b5ef84afbd827993643d52ef2c0963a",
+    "spring-projects/spring-framework": "a099debca9e59eb562cb3298690423dbb9d0127e",
+    "curl/curl": "efd42dfbbf656870f8885815d07b0d16a5771f69",
+    "gitlabhq/gitlabhq": "dffcd8b686361bd664c5ac001689a10c34727a70",
+    "Kong/kong": "3091de006da341d5f289d446a3d73875a14560e0",
+    "babel/babel": "427f56c647ab57e4a6234c65d7105a10d1b8dac4",
+    "Azure/azure-powershell": "a50c7e5230b3dde104e7f0811c74fa444e809a67",
+    "bitcoin/bitcoin": "17817818da3cb67c95320b7a5d4d69bd649c1fbf",
+    "git/git": "47ce80527c56f462cb97db4ca8125342204d3783",
+    "torvalds/linux": "2f0c1cf72f4682178506f513bbf015e591b1aa4a",
+    "react/react": "019019be403c3269e15b8d7ebefb57d30f84086b",
+    "dart-lang/sdk": "00b48179383d08d6d72c959bf82e6d07e371403e",
+    "rails/rails": "f3deab27b7b7ec2166ea9637f4522cd711d82abd",
+    "scala/scala3": "01289f127a78efb856511764bb3ea14bc42f9bb7",
+    "tarantool/tarantool": "a1c9a8fa47566e6b439acb1dca3a664b9e9ef7b7",
+    "godotengine/godot": "c24bf5d933c53d9477d5e82c51403856a9e7da62",
+    "PowerShell/PowerShell": "5e35e5ac892815ec4991f74425989e38ce71ccd0",
+    "opentiny/tiny-vue": "2d8514b4ab3579f09690adf83985a76bd4135746",
+    "magento/magento2": "067f0097e7baf2286de3a2d5e9e95f35617b2b34",
+    "JetBrains/kotlin": "3dc21510cf6c893329bc1cd98779c54c322a3f04",
+    "ClickHouse/ClickHouse": "fc7975b07d2fc7004cc9b9f035473053ac555e8c",
+    "signalapp/Signal-Android": "b92917acdb067e83a9a79122d7496d66c5880b71",
+    "apache/groovy": "6e21db629c295c1753966e665581f4e2c9a043d0",
+    "gradle/gradle": "0f58e631c43b1e07f9a5967676fe562b1dcf9cbc",
+    "apache/spark": "5d388249c3cf28f5ba11cdd5275d1fe5ae9cc1c1",
+    "postgres/postgres": "8c7a74c3239ce29940582643533a190721b395c0",
+    "dotnet/roslyn": "17ffe57b9df46f11538666367481cb6803aef740",
+    "dataplat/dbatools": "88a4e5f0a6c2372a5fa01831ef74574b77bbcb86",
+    "redis/redis": "669b2a1316f5b35ecf964281b77c054ff28dc934",
+    "AvaloniaUI/Avalonia": "eb5cce2492afaf2e296c290acbcffbf117e46dcc",
+    "discourse/discourse": "58a32e72c880296083217870850ff571bf8c0e9e",
+    "signalapp/Signal-iOS": "16cf50a6de143c9e1d0b044f6f258f107916116c",
+    "TelegramMessenger/Telegram-iOS": "6ad963e5b62d354da79040f388ae2b9132fb17b8",
+    "apache/kafka": "c130b7382c223096bba34484138c0ae761dbd1dd",
+    "nodejs/node": "666edfda29c93d51d3e08e780e5a605607404eca",
+    "FFmpeg/FFmpeg": "2b822b7fb6ed195546bc9fd9bdb794e98222bdce",
+    "symfony/symfony": "2d43fa6935f95f69893b7dc2c150df245ac7b294",
+    "flutter/flutter": "74db688fb628cc0697eb01a65e08c62a593495be",
+    "withastro/astro": "7a698ca6e70d778343786cbf8fedd5f49d169ea4",
+    "sveltejs/svelte": "6eb720a1b7cafca3ebe0ab5c76674272cd3044f9",
+    "immich-app/immich": "0f901eea5ec2d3ebf85188b8c1dd193ae3619966",
+    "withastro/starlight": "39d4e71f23b3fb6fde0e77eb983fcd38629b70b9",
+    "zdharma-continuum/zinit": "aa243da8c5ba1e1781f35dd98e8515bd82dd82c4",
+    "ohmyzsh/ohmyzsh": "be8da5c77192eb3da3699ea7c5e47bdfaa5eea4e",
+    "openssl/openssl": "f6eb87c560540cb29cedf5be739b5049bb1a385e",
+    "pret/pokecrystal": "7a7881d0d62e0ddbd82dcf10e7116807487ac651",
+    "rear/rear": "5dd31c34f0a7668b269cf919ddf5de9d2852e14a",
+    "gnutools/glibc": "fa91c51bb7bdd47ba4a1bb0ee7d66be101032ba5"
+  },
+  "size_exception_policy": {
+    "approved": true,
+    "minimum_commits": 1000,
+    "rule": "Prefer qualifying repositories. When a language lacks two qualifying candidates, include representative repositories with the measured size shortfall explicitly recorded."
+  }
+}

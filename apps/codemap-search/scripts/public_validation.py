@@ -134,7 +134,10 @@ class McpClient:
         self.process.stdin.flush()
         deadline = started + self.timeout
         while True:
-            response = self.responses.get(timeout=max(0.001, deadline - time.monotonic()))
+            try:
+                response = self.responses.get(timeout=max(0.001, deadline - time.monotonic()))
+            except queue.Empty as error:
+                raise TimeoutError(f"MCP request {self.request_id} exceeded {self.timeout}s: {method} {json.dumps(params, ensure_ascii=False)}") from error
             if isinstance(response, Exception):
                 raise response
             if response.get("id") == self.request_id:
