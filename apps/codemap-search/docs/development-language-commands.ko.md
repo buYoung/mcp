@@ -2,6 +2,46 @@
 
 설치 위치는 `/Users/buyong/.local/bin/codemap-search`다. 현재 `cm`은 이 바이너리의 MCP `read`·`grep`을 호출한다. `overview`는 CLI의 `codemap`, 파일 파싱은 `parse`로도 확인할 수 있다. MCP `search`의 상세 출력과 CLI `search`의 파일 목록 출력은 서로 다르다.
 
+## 한 명령으로 자동 검증
+
+소스 저장소의 `apps/codemap-search`에서 `./verify`를 실행한다. Python 3.10 이상이 필요하다. 다른 작업 디렉터리에서는 `apps/codemap-search/verify`처럼 경로로 실행할 수 있으며, 내부 작업 디렉터리는 항상 패키지 루트로 맞춘다.
+
+```sh
+cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
+
+./verify                         # 현재 코드 빌드 + 25개 언어의 작은 검증
+./verify --language rust --language typescript --profile structural
+./verify test                    # 기존 cargo check + cargo test
+
+./verify public --language python --repository django/django
+./verify public --language dart  # 공개 저장소와 파서 준비도 자동 실행
+./verify public --dry-run        # 실행 예정 명령만 확인
+
+# 앞선 공개 검증 캐시로 다시 실행: 준비가 완료된 경우에만 --skip-prepare 사용
+./verify public --language python --repository django/django \
+  --cache /Users/buyong/tmp/codemap-public-validation --skip-prepare
+
+# 현재 소스 빌드 대신 설치한 바이너리와 비교
+./verify --binary /Users/buyong/.local/bin/codemap-search
+```
+
+| 선택 사항 | 적용 |
+| --- | --- |
+| `--language` | `quick`·`public`의 대상 언어. 반복 지정 가능. Rust·Go도 같은 진입점으로 실행한다. |
+| `--profile default` / `structural` | 생략하면 두 설정 모두. `test`에는 적용하지 않는다. |
+| `--repository owner/repository` | `public`에서 고정된 후보 중 선택. 다른 언어의 저장소나 오타는 실행 전에 거절한다. |
+| `--cache` | 결과·공개 저장소 캐시. 기본 `~/.cache/codemap-public-validation`; `CODEMAP_VALIDATION_CACHE` 환경 변수로도 지정한다. |
+| `--binary` | 이 실행 파일을 사용하며 자동 빌드를 생략한다. 기본 실행은 Cargo가 알려 준 빌드 결과를 사용해 이전 설치본을 검증하는 일을 방지한다. |
+| `--jobs 1` … `4` | 공개 저장소 준비·확대 검증의 동시 작업 수. Rust·Go 실행기의 순차 처리 방식은 유지한다. |
+| `--skip-prepare` | 준비된 공개 저장소 측정·파서 캐시를 그대로 사용한다. 검증 자체를 생략하는 옵션이 아니다. |
+| `--dry-run` | 빌드·다운로드·결과 파일 생성 없이 실제 실행할 명령을 표시한다. |
+
+결과는 `<cache>/runs/verify-<실행 ID>/summary.json`에 합산하고 단계별 로그와 하위 실행 결과 경로를 함께 기록한다. 검사할 바이너리는 사본과 SHA-256을 보존해 실행 도중 다른 빌드로 바뀌지 않게 한다. `quick`·`public`은 통과·실패·판정 보류와 실패 사례 이름을 출력한다. `test`의 실제 테스트 개수는 Cargo 로그에서 확인한다. 모든 실행은 새 결과 디렉터리를 사용한다.
+
+검사 실패·판정 보류·실행 오류가 있으면 종료 코드는 0이 아니다. 현재 기준선의 상수 문맥 누락처럼 알려진 실패도 그대로 드러낸다. `quick`은 공개 저장소나 별도 언어 파서를 준비하지 않으며 Git과 검사할 바이너리만 사용한다. 기본 자동 빌드에는 Rust/Cargo와 프로젝트 의존성이 필요하다. `public`은 선택한 언어에 따라 `tokei`, `go`, `rust-analyzer`, `ctags`, Node/TypeScript, Swift 또는 Java/Dart 파서 도우미가 필요하다. Dart·Scala·Groovy 도우미는 함께 준비하며, 고정 lockfile과 맞지 않는 의존성은 실패로 처리하고 저장소의 lockfile을 바꾸지 않는다.
+
+아래의 `cm` 예시는 개별 응답을 직접 확인할 때 사용한다.
+
 ## 원래 설정 로딩 사례
 
 ```sh

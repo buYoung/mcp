@@ -16,18 +16,22 @@ def main():
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--language", action="append")
+    parser.add_argument("--profile", choices=("default", "structural"), action="append")
     args = parser.parse_args()
+    manifest = json.loads((DATA / "development-languages.json").read_text())
+    known = {row["language"] for row in manifest["languages"]} - {"rust", "go"}
+    if args.language and set(args.language) - known:
+        parser.error(f"Unsupported probe languages: {sorted(set(args.language) - known)}; Rust/Go use public_validation.py regressions")
     output = args.output.expanduser().resolve()
     output.mkdir(parents=True, exist_ok=False)
     shutil.copy(args.binary, output / "tested-codemap-search")
     binary = output / "tested-codemap-search"
-    manifest = json.loads((DATA / "development-languages.json").read_text())
     summary = {"binary_sha256": sha256(binary), "results": [], "errors": []}
     for language in manifest["languages"]:
         name = language["language"]
         if name in {"rust", "go"} or args.language and name not in args.language:
             continue
-        for profile in ("default", "structural"):
+        for profile in dict.fromkeys(args.profile or ("default", "structural")):
             root = output / f"{name}-{profile}" / "worktree"
             root.mkdir(parents=True)
             subprocess.run(["git", "init", "--quiet", str(root)], check=True)

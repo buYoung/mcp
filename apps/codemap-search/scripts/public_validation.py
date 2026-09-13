@@ -512,6 +512,10 @@ def validate_refresh(checks, probe):
 
 
 def run_validation(args):
+    specs = [spec for spec in load_specs(args.repo)
+        if not getattr(args, "language", None) or spec["language"].lower() in args.language]
+    if not specs:
+        raise ValueError("No repositories match the requested languages")
     run_id = args.run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     if not re.fullmatch(r"[A-Za-z0-9_-]+", run_id):
         raise ValueError("run-id must contain only letters, digits, underscores and hyphens")
@@ -533,7 +537,7 @@ def run_validation(args):
     shutil.copy(DATA / "repositories.json", output_root / "repositories.json")
     shutil.copy(DATA / "config.toml", output_root / "config.toml")
     save_json(output_root / "summary.json", metadata)
-    for spec in load_specs(args.repo):
+    for spec in specs:
         qualification = json.loads((args.cache / "qualification" / f"{spec['name']}.json").read_text())
         if not qualification["qualified"] or qualification["sha"] != spec["sha"]:
             raise RuntimeError(f"Run prepare first: {spec['name']}")
@@ -595,6 +599,8 @@ def run_regressions(args, output_root):
         ("rust", "lib.rs", [("str-iterator", 9, ["Unrelated::split —", "Unrelated::collect —"]), ("macro", 13, ["Unrelated::matches —"])]),
         ("go", "probe.go", [("builtin", 14, ["Unrelated.len —"]), ("package", 18, ["Unrelated.Expand —"]), ("atomic-caller", 12, ["AtomicMethod ("])]),
     ):
+        if getattr(args, "language", None) and language not in args.language:
+            continue
         for profile in args.profile or ["default", "structural"]:
             output = output_root / f"regression-{language}-{profile}"
             root = output / "source"
@@ -646,9 +652,11 @@ def main():
     run_parser.add_argument("--profile", choices=["default", "structural"], action="append")
     run_parser.add_argument("--run-id")
     run_parser.add_argument("--index-timeout", type=int, default=600)
+    run_parser.add_argument("--language", choices=["rust", "go"], action="append")
     regression_parser = sub.add_parser("regressions", help="Run the small Rust/Go reproductions without public repository clones")
     regression_parser.add_argument("--profile", choices=["default", "structural"], action="append")
     regression_parser.add_argument("--run-id")
+    regression_parser.add_argument("--language", choices=["rust", "go"], action="append")
     query_parser = sub.add_parser("query", help="Call any navigation tool against an existing validation worktree")
     query_parser.add_argument("--root", type=Path, required=True)
     query_parser.add_argument("--ready-file")

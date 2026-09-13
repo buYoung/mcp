@@ -171,6 +171,20 @@ codemap-search index [dir]
 codemap-search benchmark --queries <json> [--dir D]
 ```
 
+## Development validation
+
+Run from `apps/codemap-search` in the source checkout. `./verify` builds the current release binary and runs small call, exclusion, and constant-context checks for all 25 development languages.
+
+```sh
+./verify
+./verify --language rust --language typescript --profile structural
+./verify test
+./verify public --language python --repository django/django
+./verify public --dry-run
+```
+
+`test` runs the existing `cargo check` and `cargo test`. `public` prepares, qualifies, and validates pinned public repositories; it may download repositories and require independent language parsers. Pass `--binary` to check an existing executable without building. Each run saves its summary and logs under `--cache` or `CODEMAP_VALIDATION_CACHE`, defaulting to `~/.cache/codemap-public-validation`. Failed or unverified checks retain a nonzero exit status. See the [command guide](./docs/development-language-commands.ko.md) for options and result interpretation.
+
 ## Indexing, diagnostics and limits
 
 The MCP server builds/loads its own index in `.codemap/index` by default. A healthy filesystem watcher batches edits for 500ms and refreshes affected paths. Git HEAD changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.

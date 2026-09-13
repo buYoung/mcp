@@ -66,8 +66,7 @@ def main():
         shutil.copy(DATA / "dart_oracle" / name, dart / name)
     if (DATA / "dart_oracle/pubspec.lock").exists():
         shutil.copy(DATA / "dart_oracle/pubspec.lock", dart / "pubspec.lock")
-    subprocess.run(["dart", "pub", "get"], cwd=dart, check=True)
-    shutil.copy(dart / "pubspec.lock", DATA / "dart_oracle/pubspec.lock")
+    subprocess.run(["dart", "pub", "get", "--enforce-lockfile"], cwd=dart, check=True)
     subprocess.run(["dart", "compile", "exe", "main.dart", "-o", str(root / "dart-oracle")], cwd=dart, check=True)
     save_json(root / "manifest.json", {"artifacts": artifacts, "classpath": str(classes) + ":" + classpath,
         "groovy_source_sha256": sha256(DATA / "GroovyOracle.java"), "scala_source_sha256": sha256(DATA / "ScalaOracle.scala"),

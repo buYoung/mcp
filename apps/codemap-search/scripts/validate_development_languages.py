@@ -419,7 +419,8 @@ def main():
         "binary_sha256": sha256(args.binary), "manifest_sha256": sha256(MANIFEST), "samples_per_repository": args.samples,
         "source_commit": command(["git", "rev-parse", "HEAD"], APP), "runner_sha256": sha256(Path(__file__)), "previous_run": args.previous_run,
         "source_sha256": {path.relative_to(APP).as_posix(): sha256(path) for directory in (APP / "src", APP / "queries") for path in sorted(directory.rglob("*")) if path.is_file()},
-        "versions": {"python": sys.version, "ctags": command(["ctags", "--version"]), "node": command(["node", "--version"]), "swift": command(["swiftc", "--version"])},
+        "versions": {"python": sys.version, **{name: command([binary, "--version"]) if shutil.which(binary) else "unavailable"
+            for name, binary in (("ctags", "ctags"), ("node", "node"), ("swift", "swiftc"))}},
         "results": [], "errors": []}
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {pool.submit(run_repository, args, language, slug, manifest, output): (language["language"], slug) for language, slug in selected}

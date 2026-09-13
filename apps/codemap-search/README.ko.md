@@ -171,6 +171,20 @@ codemap-search index [dir]
 codemap-search benchmark --queries <json> [--dir D]
 ```
 
+## 개발 중 검증
+
+소스 저장소의 `apps/codemap-search`에서 실행합니다. `./verify`는 현재 코드를 release로 빌드한 뒤 25개 언어의 작은 호출·제외·상수 문맥 검사를 실행합니다.
+
+```sh
+./verify
+./verify --language rust --language typescript --profile structural
+./verify test
+./verify public --language python --repository django/django
+./verify public --dry-run
+```
+
+`test`는 기존 `cargo check`와 `cargo test`를 실행합니다. `public`은 고정 공개 저장소의 준비·측정·검증을 연결하므로 다운로드와 별도 언어 파서가 필요할 수 있습니다. `--binary`로 설치 바이너리를 지정하면 빌드를 생략합니다. 결과와 로그는 `--cache` 또는 `CODEMAP_VALIDATION_CACHE`가 지정한 곳에 실행별로 저장하며, 기본 경로는 `~/.cache/codemap-public-validation`입니다. 실패·판정 보류를 성공으로 처리하지 않습니다. [명령과 결과 해석](./docs/development-language-commands.ko.md)을 참고하세요.
+
 ## 색인·진단·제한
 
 MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
