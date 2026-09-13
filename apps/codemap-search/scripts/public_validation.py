@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 
@@ -511,7 +512,66 @@ def validate_refresh(checks, probe):
             checks.record("refresh:modify:old-search-term", "refresh", good, {"path": path, "removed_query": names[0], "last_output": text if not good else None}, elapsed)
 
 
+def validate_profile(args, spec, profile, qualification, oracle_binary, output_root, cancelled):
+    label = f"{spec['name']}-{profile}"
+    output = output_root / label
+    output.mkdir()
+    root = output / "worktree"
+    result = {"repository": spec["name"], "sha": spec["sha"], "profile": profile,
+        "worktree": str(root), "checks": [], "started_utc": datetime.now(timezone.utc).isoformat()}
+    try:
+        subprocess.run(["git", "worktree", "add", "--quiet", "--detach", str(root), spec["sha"]],
+            cwd=args.cache / "repos" / spec["name"], check=True, env={**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"})
+        result["config_sha256"] = write_config(root, profile)
+        probe = create_probes(root, spec["language"])
+        if cancelled.is_set():
+            raise RuntimeError("Validation cancelled")
+        print(f"{label}: fresh index, {root}", flush=True)
+        with McpClient(args.binary, root, output) as client:
+            result["cold_index_seconds"] = client.ready(spec["files"][0], timeout=args.index_timeout)
+            checks = Checks(client, root)
+            result["checks"] = checks.results
+            print(f"{label}: index ready in {result['cold_index_seconds']}s", flush=True)
+            for path in spec["files"]:
+                validate_file(checks, spec, path, oracle_binary, output)
+            result["sample_files"] = sampled_files(root, spec, qualification)
+            for path in result["sample_files"]:
+                validate_file(checks, spec, path, oracle_binary, output, read_live=False)
+            for case in spec["cases"]:
+                checks.case(case)
+            validate_find(checks, spec)
+            validate_probes(checks, probe, spec["language"])
+            validate_refresh(checks, probe)
+            validate_test_configuration(checks, probe, spec["language"])
+    except Exception as error:
+        result["error"] = f"{type(error).__name__}: {error}"
+        print(f"{label}: infrastructure error: {result['error']}", flush=True)
+    if (root / ".git").exists():
+        try:
+            result["tracked_changes"] = command(["git", "status", "--porcelain", "--untracked-files=no"], root)
+        except subprocess.SubprocessError as error:
+            result["error"] = f"{result.get('error', '')} Git status failed: {error}".strip()
+    result["counts"] = {status: sum(check["status"] == status for check in result["checks"]) for status in ("pass", "fail", "unverified")}
+    result["finished_utc"] = datetime.now(timezone.utc).isoformat()
+    save_json(output / "results.json", result)
+    print(f"{label}: {result['counts']}", flush=True)
+    return result
+
+
+def validate_repository(args, spec, profiles, oracle_binary, output_root, publish_result, cancelled):
+    qualification = json.loads((args.cache / "qualification" / f"{spec['name']}.json").read_text())
+    if not qualification["qualified"] or qualification["sha"] != spec["sha"]:
+        raise RuntimeError(f"Run prepare first: {spec['name']}")
+    save_json(output_root / f"{spec['name']}-qualification.json", qualification)
+    # One worker owns a repository. Its profiles and mutation checks keep their order.
+    for profile in profiles:
+        if cancelled.is_set():
+            break
+        publish_result(validate_profile(args, spec, profile, qualification, oracle_binary, output_root, cancelled))
+
+
 def run_validation(args):
+    jobs = getattr(args, "jobs", None) or 2
     specs = [spec for spec in load_specs(args.repo)
         if not getattr(args, "language", None) or spec["language"].lower() in args.language]
     if not specs:
@@ -531,62 +591,51 @@ def run_validation(args):
         "python": sys.version, "platform": sys.platform,
         "git": command(["git", "--version"]), "tokei": command(["tokei", "--version"]),
         "go": command(["go", "version"]), "rust_analyzer": command(["rust-analyzer", "--version"]),
-        "profiles": args.profile or ["default", "structural"], "results": [],
+        "profiles": list(dict.fromkeys(args.profile or ["default", "structural"])),
+        "jobs": jobs, "results": [], "errors": [],
     }
     shutil.copy(Path(__file__), output_root / "runner.py")
     shutil.copy(DATA / "repositories.json", output_root / "repositories.json")
     shutil.copy(DATA / "config.toml", output_root / "config.toml")
     save_json(output_root / "summary.json", metadata)
-    for spec in specs:
-        qualification = json.loads((args.cache / "qualification" / f"{spec['name']}.json").read_text())
-        if not qualification["qualified"] or qualification["sha"] != spec["sha"]:
-            raise RuntimeError(f"Run prepare first: {spec['name']}")
-        save_json(output_root / f"{spec['name']}-qualification.json", qualification)
-        for profile in metadata["profiles"]:
-            label = f"{spec['name']}-{profile}"
-            output = output_root / label
-            output.mkdir()
-            root = output / "worktree"
-            subprocess.run(["git", "worktree", "add", "--quiet", "--detach", str(root), spec["sha"]], cwd=args.cache / "repos" / spec["name"], check=True, env={**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"})
-            config_hash = write_config(root, profile)
-            probe = create_probes(root, spec["language"])
-            print(f"{label}: fresh index, {root}", flush=True)
-            result = {"repository": spec["name"], "sha": spec["sha"], "profile": profile, "config_sha256": config_hash, "worktree": str(root), "checks": []}
-            client = None
-            try:
-                client = McpClient(args.binary, root, output)
-                result["cold_index_seconds"] = client.ready(spec["files"][0], timeout=args.index_timeout)
-                checks = Checks(client, root)
-                result["checks"] = checks.results
-                print(f"{label}: index ready in {result['cold_index_seconds']}s", flush=True)
-                for path in spec["files"]:
-                    validate_file(checks, spec, path, oracle_binary, output)
-                result["sample_files"] = sampled_files(root, spec, qualification)
-                for path in result["sample_files"]:
-                    validate_file(checks, spec, path, oracle_binary, output, read_live=False)
-                for case in spec["cases"]:
-                    checks.case(case)
-                validate_find(checks, spec)
-                validate_probes(checks, probe, spec["language"])
-                validate_refresh(checks, probe)
-                validate_test_configuration(checks, probe, spec["language"])
-            except Exception as error:
-                result["error"] = f"{type(error).__name__}: {error}"
-                print(f"{label}: infrastructure error: {result['error']}", flush=True)
-            finally:
-                if client:
-                    client.close()
-                result["tracked_changes"] = command(["git", "status", "--porcelain", "--untracked-files=no"], root)
-                result["counts"] = {status: sum(check["status"] == status for check in result["checks"]) for status in ("pass", "fail", "unverified")}
-                save_json(output / "results.json", result)
-                metadata["results"].append(result)
+    result_order = {(spec["name"], profile): index for index, (spec, profile) in enumerate(
+        (spec, profile) for spec in specs for profile in metadata["profiles"])}
+    publication_lock = threading.Lock()
+
+    def publish_result(result):
+        # Profile files are independent; the combined summary has one writer at a time.
+        with publication_lock:
+            metadata["results"].append(result)
+            metadata["results"].sort(key=lambda row: result_order[(row["repository"], row["profile"])])
+            save_json(output_root / "summary.json", metadata)
+
+    cancelled = threading.Event()
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        futures = {pool.submit(validate_repository, args, spec, metadata["profiles"], oracle_binary,
+            output_root, publish_result, cancelled): spec for spec in specs}
+        try:
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as error:
+                    record = {"repository": futures[future]["name"], "error": f"{type(error).__name__}: {error}"}
+                    with publication_lock:
+                        metadata["errors"].append(record)
+                        save_json(output_root / "summary.json", metadata)
+                    print(json.dumps(record), flush=True)
+        except KeyboardInterrupt:
+            cancelled.set()
+            for future in futures:
+                future.cancel()
+            with publication_lock:
+                metadata["interrupted"] = True
                 save_json(output_root / "summary.json", metadata)
-                print(f"{label}: {result['counts']}", flush=True)
+            raise
     metadata["regressions"] = run_regressions(args, output_root)
     metadata["finished_utc"] = datetime.now(timezone.utc).isoformat()
     save_json(output_root / "summary.json", metadata)
     print(f"Results: {output_root / 'summary.json'}", flush=True)
-    return int(any(result_has_issues(result) for result in metadata["results"] + metadata["regressions"]))
+    return int(bool(metadata["errors"]) or any(result_has_issues(result) for result in metadata["results"] + metadata["regressions"]))
 
 
 def result_has_issues(result):
@@ -619,25 +668,52 @@ def run_regressions(args, output_root):
     return results
 
 
+def prepare_repository(args, spec, cancelled):
+    if cancelled.is_set():
+        return
+    root = args.cache / "repos" / spec["name"]
+    if not root.exists():
+        root.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "clone", "--filter=blob:none", "--no-checkout", "--single-branch", "--no-tags", spec["url"], str(root)], check=True)
+    if command(["git", "remote", "get-url", "origin"], root).removesuffix(".git") != spec["url"].removesuffix(".git"):
+        raise RuntimeError(f"Unexpected clone origin: {root}")
+    if cancelled.is_set():
+        return
+    run = args.cache / "qualification" / spec["name"]
+    if not run.exists():
+        run.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "worktree", "add", "--detach", str(run), spec["sha"]], cwd=root, check=True, env={**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"})
+    if command(["git", "status", "--porcelain", "--untracked-files=no"], run):
+        raise RuntimeError(f"Qualification worktree has tracked changes: {run}")
+    if cancelled.is_set():
+        return
+    result = qualify(run, spec)
+    save_json(args.cache / "qualification" / f"{spec['name']}.json", result)
+    print(f"{spec['name']}: code={result['code_lines']}, commits={result['commits']}, qualified={result['qualified']}", flush=True)
+    if not result["qualified"]:
+        raise RuntimeError(f"Repository below corpus thresholds: {spec['name']}")
+
+
 def prepare(args):
-    for spec in load_specs(args.repo):
-        root = args.cache / "repos" / spec["name"]
-        if not root.exists():
-            root.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["git", "clone", "--filter=blob:none", "--no-checkout", "--single-branch", "--no-tags", spec["url"], str(root)], check=True)
-        if command(["git", "remote", "get-url", "origin"], root).removesuffix(".git") != spec["url"].removesuffix(".git"):
-            raise RuntimeError(f"Unexpected clone origin: {root}")
-        run = args.cache / "qualification" / spec["name"]
-        if not run.exists():
-            run.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["git", "worktree", "add", "--detach", str(run), spec["sha"]], cwd=root, check=True, env={**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"})
-        if command(["git", "status", "--porcelain", "--untracked-files=no"], run):
-            raise RuntimeError(f"Qualification worktree has tracked changes: {run}")
-        result = qualify(run, spec)
-        save_json(args.cache / "qualification" / f"{spec['name']}.json", result)
-        print(f"{spec['name']}: code={result['code_lines']}, commits={result['commits']}, qualified={result['qualified']}", flush=True)
-        if not result["qualified"]:
-            raise RuntimeError(f"Repository below corpus thresholds: {spec['name']}")
+    errors = []
+    cancelled = threading.Event()
+    with ThreadPoolExecutor(max_workers=getattr(args, "jobs", None) or 2) as pool:
+        futures = {pool.submit(prepare_repository, args, spec, cancelled): spec for spec in load_specs(args.repo)}
+        try:
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as error:
+                    record = {"repository": futures[future]["name"], "error": f"{type(error).__name__}: {error}"}
+                    errors.append(record)
+                    print(json.dumps(record), flush=True)
+        except KeyboardInterrupt:
+            cancelled.set()
+            for future in futures:
+                future.cancel()
+            raise
+    if errors:
+        raise RuntimeError(f"Preparation failed for: {', '.join(record['repository'] for record in errors)}")
 
 
 def main():
@@ -647,12 +723,14 @@ def main():
     sub = parser.add_subparsers(dest="operation", required=True)
     prep = sub.add_parser("prepare", help="Clone pinned repositories and independently qualify their size/history")
     prep.add_argument("--repo", action="append")
+    prep.add_argument("--jobs", type=int, choices=range(1, 5), default=2)
     run_parser = sub.add_parser("run", help="Fresh-index checks and create/modify/delete refresh checks, with raw transcripts")
     run_parser.add_argument("--repo", action="append")
     run_parser.add_argument("--profile", choices=["default", "structural"], action="append")
     run_parser.add_argument("--run-id")
     run_parser.add_argument("--index-timeout", type=int, default=600)
     run_parser.add_argument("--language", choices=["rust", "go"], action="append")
+    run_parser.add_argument("--jobs", type=int, choices=range(1, 5), default=2)
     regression_parser = sub.add_parser("regressions", help="Run the small Rust/Go reproductions without public repository clones")
     regression_parser.add_argument("--profile", choices=["default", "structural"], action="append")
     regression_parser.add_argument("--run-id")
@@ -694,6 +772,9 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except KeyboardInterrupt:
+        print("Validation interrupted.", file=sys.stderr)
+        sys.exit(130)
     except (RuntimeError, TimeoutError, OSError, ValueError, EOFError, subprocess.SubprocessError, queue.Empty) as error:
         print(f"Validation error: {error}", file=sys.stderr)
         sys.exit(2)

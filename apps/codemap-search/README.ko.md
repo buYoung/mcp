@@ -180,10 +180,11 @@ codemap-search benchmark --queries <json> [--dir D]
 ./verify --language rust --language typescript --profile structural
 ./verify test
 ./verify public --language python --repository django/django
+./verify public --language rust --language go --jobs 2
 ./verify public --dry-run
 ```
 
-`test`는 기존 `cargo check`와 `cargo test`를 실행합니다. `public`은 고정 공개 저장소의 준비·측정·검증을 연결하므로 다운로드와 별도 언어 파서가 필요할 수 있습니다. `--binary`로 설치 바이너리를 지정하면 빌드를 생략합니다. 결과와 로그는 `--cache` 또는 `CODEMAP_VALIDATION_CACHE`가 지정한 곳에 실행별로 저장하며, 기본 경로는 `~/.cache/codemap-public-validation`입니다. 실패·판정 보류를 성공으로 처리하지 않습니다. [명령과 결과 해석](./docs/development-language-commands.ko.md)을 참고하세요.
+`test`는 기존 `cargo check`와 `cargo test`를 실행합니다. `public`은 고정 공개 저장소의 준비·측정·검증을 연결하므로 다운로드와 별도 언어 파서가 필요할 수 있습니다. Rust·Go를 포함한 저장소별 동시 작업 수는 `--jobs`로 지정하며 기본값은 2입니다. 각 저장소 내부 검사는 순차로 실행합니다. `--binary`로 설치 바이너리를 지정하면 빌드를 생략합니다. 결과와 로그는 `--cache` 또는 `CODEMAP_VALIDATION_CACHE`가 지정한 곳에 실행별로 저장하며, 기본 경로는 `~/.cache/codemap-public-validation`입니다. 실패·판정 보류를 성공으로 처리하지 않습니다. [명령과 결과 해석](./docs/development-language-commands.ko.md)을 참고하세요.
 
 ## 색인·진단·제한
 

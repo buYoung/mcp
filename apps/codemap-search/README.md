@@ -180,10 +180,11 @@ Run from `apps/codemap-search` in the source checkout. `./verify` builds the cur
 ./verify --language rust --language typescript --profile structural
 ./verify test
 ./verify public --language python --repository django/django
+./verify public --language rust --language go --jobs 2
 ./verify public --dry-run
 ```
 
-`test` runs the existing `cargo check` and `cargo test`. `public` prepares, qualifies, and validates pinned public repositories; it may download repositories and require independent language parsers. Pass `--binary` to check an existing executable without building. Each run saves its summary and logs under `--cache` or `CODEMAP_VALIDATION_CACHE`, defaulting to `~/.cache/codemap-public-validation`. Failed or unverified checks retain a nonzero exit status. See the [command guide](./docs/development-language-commands.ko.md) for options and result interpretation.
+`test` runs the existing `cargo check` and `cargo test`. `public` prepares, qualifies, and validates pinned public repositories; it may download repositories and require independent language parsers. `--jobs` controls concurrent repositories, including Rust/Go, and defaults to 2. Checks within each repository remain sequential. Pass `--binary` to check an existing executable without building. Each run saves its summary and logs under `--cache` or `CODEMAP_VALIDATION_CACHE`, defaulting to `~/.cache/codemap-public-validation`. Failed or unverified checks retain a nonzero exit status. See the [command guide](./docs/development-language-commands.ko.md) for options and result interpretation.
 
 ## Indexing, diagnostics and limits
 

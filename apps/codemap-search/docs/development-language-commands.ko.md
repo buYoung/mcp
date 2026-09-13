@@ -14,6 +14,7 @@ cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 ./verify test                    # 기존 cargo check + cargo test
 
 ./verify public --language python --repository django/django
+./verify public --language rust --language go --jobs 2
 ./verify public --language dart  # 공개 저장소와 파서 준비도 자동 실행
 ./verify public --dry-run        # 실행 예정 명령만 확인
 
@@ -32,11 +33,13 @@ cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 | `--repository owner/repository` | `public`에서 고정된 후보 중 선택. 다른 언어의 저장소나 오타는 실행 전에 거절한다. |
 | `--cache` | 결과·공개 저장소 캐시. 기본 `~/.cache/codemap-public-validation`; `CODEMAP_VALIDATION_CACHE` 환경 변수로도 지정한다. |
 | `--binary` | 이 실행 파일을 사용하며 자동 빌드를 생략한다. 기본 실행은 Cargo가 알려 준 빌드 결과를 사용해 이전 설치본을 검증하는 일을 방지한다. |
-| `--jobs 1` … `4` | 공개 저장소 준비·확대 검증의 동시 작업 수. Rust·Go 실행기의 순차 처리 방식은 유지한다. |
+| `--jobs 1` … `4` | Rust·Go를 포함한 공개 저장소 준비·검증의 동시 작업 수. 기본 2이며, 1이면 순차 실행한다. |
 | `--skip-prepare` | 준비된 공개 저장소 측정·파서 캐시를 그대로 사용한다. 검증 자체를 생략하는 옵션이 아니다. |
 | `--dry-run` | 빌드·다운로드·결과 파일 생성 없이 실제 실행할 명령을 표시한다. |
 
 결과는 `<cache>/runs/verify-<실행 ID>/summary.json`에 합산하고 단계별 로그와 하위 실행 결과 경로를 함께 기록한다. 검사할 바이너리는 사본과 SHA-256을 보존해 실행 도중 다른 빌드로 바뀌지 않게 한다. `quick`·`public`은 통과·실패·판정 보류와 실패 사례 이름을 출력한다. `test`의 실제 테스트 개수는 Cargo 로그에서 확인한다. 모든 실행은 새 결과 디렉터리를 사용한다.
+
+병렬 단위는 저장소다. 각 저장소는 별도 작업 트리·색인·MCP 프로세스를 사용하며, 그 안에서는 설정별 검사와 파일 생성·수정·삭제 검사를 순차로 진행한다. Rust·Go 단계와 나머지 언어 단계는 기존 순서로 실행하며, 두 단계 모두 같은 `--jobs` 값을 적용한다. `quick`과 작은 회귀 검사는 순차 실행을 유지한다. Rust·Go 통합 결과는 동시에 덮어쓰지 않도록 보호하며, 실패한 작업은 오류로 기록하고 완료한 검증 결과를 보존한다.
 
 검사 실패·판정 보류·실행 오류가 있으면 종료 코드는 0이 아니다. 현재 기준선의 상수 문맥 누락처럼 알려진 실패도 그대로 드러낸다. `quick`은 공개 저장소나 별도 언어 파서를 준비하지 않으며 Git과 검사할 바이너리만 사용한다. 기본 자동 빌드에는 Rust/Cargo와 프로젝트 의존성이 필요하다. `public`은 선택한 언어에 따라 `tokei`, `go`, `rust-analyzer`, `ctags`, Node/TypeScript, Swift 또는 Java/Dart 파서 도우미가 필요하다. Dart·Scala·Groovy 도우미는 함께 준비하며, 고정 lockfile과 맞지 않는 의존성은 실패로 처리하고 저장소의 lockfile을 바꾸지 않는다.
 

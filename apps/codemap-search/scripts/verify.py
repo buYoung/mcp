@@ -140,6 +140,7 @@ def command_plan(args, binary, output):
         add("cargo-test", ["cargo", "test", "--locked"], depends=("cargo-check",))
         return steps
     profiles = repeated("--profile", args.profile)
+    jobs = ["--jobs", str(args.jobs or 2)]
     languages = set(args.languages)
     public = [sys.executable, "-B", SCRIPTS / "public_validation.py", "--cache", args.cache, "--binary", binary]
     if languages & RUST_GO:
@@ -153,10 +154,10 @@ def command_plan(args, binary, output):
                 if (row["language"].lower(), row["url"].removeprefix("https://github.com/").removesuffix(".git")) in args.pairs])
             dependencies = []
             if not args.skip_prepare:
-                add("prepare-rust-go", public + ["prepare"] + repos)
+                add("prepare-rust-go", public + ["prepare"] + repos + jobs)
                 dependencies.append("prepare-rust-go")
             add("public-rust-go", public + ["run", "--run-id", run_id] + repos + profiles
-                + repeated("--language", sorted(languages & RUST_GO)),
+                + repeated("--language", sorted(languages & RUST_GO)) + jobs,
                 args.cache / "runs" / run_id / "summary.json", dependencies)
     expanded = [language for language in args.languages if language not in RUST_GO]
     if expanded:
@@ -165,7 +166,6 @@ def command_plan(args, binary, output):
             add("languages", [sys.executable, "-B", SCRIPTS / "probe_development_languages.py", "--binary", binary,
                 "--output", output / "languages"] + language_options + profiles, output / "languages/summary.json")
         else:
-            jobs = ["--jobs", str(args.jobs or 2)]
             repositories = [slug for language, slug in args.pairs if language in expanded]
             dependencies = []
             if not args.skip_prepare:
