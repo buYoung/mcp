@@ -48,15 +48,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn zsh_nonterminating_reduction_is_cancelled_and_parser_can_be_reused() {
+    fn interrupted_parse_is_reset_before_reuse() {
         let mut parser = Parser::new();
         parser
-            .set_language(&tree_sitter_zsh::LANGUAGE.into())
+            .set_language(&crate::lang::bundled_grammars::ZSH.into())
             .unwrap();
-        // https://github.com/georgeharker/tree-sitter-zsh/issues/37
-        let error = parse_with_limit(&mut parser, b"c=${x//[^)]}\n", Duration::from_millis(20))
-            .unwrap_err();
-        assert!(error.contains("20 ms per-file limit"), "{error}");
+        let source = "value=one\n".repeat(2000);
+        let error = parse_with_limit(&mut parser, source.as_bytes(), Duration::ZERO).unwrap_err();
+        assert!(error.contains("0 ms per-file limit"), "{error}");
         let tree = parse_source(&mut parser, b"healthy() { print ok; }\n").unwrap();
         assert!(!tree.root_node().has_error());
         assert_eq!(

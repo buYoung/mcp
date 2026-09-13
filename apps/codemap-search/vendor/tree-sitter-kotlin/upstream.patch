@@ -1,0 +1,20 @@
+--- a/grammar.js
++++ b/grammar.js
+@@ -264,7 +264,7 @@
+ 
+     constructor_invocation: $ => seq($.type, $.value_arguments),
+ 
+-    function_declaration: $ => prec.right(1, seq(
++    function_declaration: $ => prec.dynamic(1, prec.right(1, seq(
+       optional($.modifiers),
+       'fun',
+       optional($.type_parameters),
+@@ -274,7 +274,7 @@
+       optional(seq(':', $.type)),
+       optional($.type_constraints),
+       optional($.function_body),
+-    )),
++    ))),
+ 
+     function_value_parameters: $ => seq(
+       '(',

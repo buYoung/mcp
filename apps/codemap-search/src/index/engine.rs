@@ -120,6 +120,7 @@ pub struct TantivySearchEngine {
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    macro_config_stamp: Option<String>,
 }
 
 /// Filename of the sidecar that stamps the extraction-format version of the stored
@@ -175,7 +176,8 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v22 adds immutable bindings, operators/accessors, and assigned Lua functions.
 // v23 also retains external Dart function declarations found during the replay.
 // v24 drops fake Groovy constructors produced when quoted method parsing recovers.
-const EXTRACTION_FORMAT_VERSION: &str = "v24-groovy-recovery-guard";
+// v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
+const EXTRACTION_FORMAT_VERSION: &str = "v27-native-declarations-and-groovy";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -452,6 +454,10 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            macro_config_stamp: std::fs::read_to_string(
+                Path::new(index_path).join("macro-expansion-config"),
+            )
+            .ok(),
         })
     }
 
@@ -633,6 +639,10 @@ impl TantivySearchEngine {
             let snapshot = self.get_indexed_mtimes();
             self.indexed_mtimes_cache = Some(snapshot);
         }
+        let macro_config = crate::config::get().macro_expansion.clone();
+        let macro_config_stamp = format!("{macro_config:?}");
+        let should_refresh_macro_files = macro_config.is_enabled
+            || self.macro_config_stamp.as_deref() != Some(&macro_config_stamp);
         let indexed_mtimes = self.indexed_mtimes_cache.as_ref().unwrap();
 
         let disk_file_paths: std::collections::HashSet<String> = files_to_process
@@ -651,7 +661,11 @@ impl TantivySearchEngine {
         let mut to_index = Vec::new();
         for (rel_path, disk_path, mtime) in files_to_process {
             match indexed_mtimes.get(&rel_path) {
-                Some(&indexed_mtime) if indexed_mtime == mtime => {
+                Some(&indexed_mtime)
+                    if indexed_mtime == mtime
+                        && !(should_refresh_macro_files
+                            && super::preprocess::is_eligible(&disk_path)) =>
+                {
                     // Skip indexing: mtime hasn't changed
                 }
                 _ => {
@@ -667,7 +681,23 @@ impl TantivySearchEngine {
             to_delete.len()
         );
 
-        self.apply_index_updates(to_index, to_delete, should_reload_reader)
+        let changed = self.apply_index_updates(to_index, to_delete, should_reload_reader)?;
+        // A settings change must also discard previously expanded declarations when disabled.
+        if self.macro_config_stamp.as_deref() != Some(&macro_config_stamp)
+            && (changed
+                || self
+                    .indexed_mtimes_cache
+                    .as_ref()
+                    .is_some_and(HashMap::is_empty))
+        {
+            std::fs::write(
+                Path::new(&self.index_path).join("macro-expansion-config"),
+                &macro_config_stamp,
+            )
+            .map_err(|e| e.to_string())?;
+            self.macro_config_stamp = Some(macro_config_stamp);
+        }
+        Ok(changed)
     }
 
     /// Apply a computed set of reindex/delete updates to the index: delete the stale docs,
@@ -687,6 +717,9 @@ impl TantivySearchEngine {
         }
 
         let extractor = crate::parser::TreeSitterExtractor::new();
+        let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let mut macro_expander =
+            super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
         let mut writer = match self.index.writer(50_000_000) {
             Ok(w) => w,
             Err(tantivy::TantivyError::LockFailure(e, _)) => {
@@ -704,10 +737,19 @@ impl TantivySearchEngine {
         // Track only the docs that actually get added so the cache mirrors the index:
         // a file that fails to read/parse stays out of the cache and is retried next call.
         let mut committed_updates: Vec<(String, u64)> = Vec::new();
+        let mut encoding_excluded_paths = Vec::new();
         for (rel_path, disk_path, mtime) in to_index {
             let content = match std::fs::read_to_string(&disk_path) {
                 Ok(c) => c,
                 Err(e) => {
+                    if e.kind() == std::io::ErrorKind::InvalidData {
+                        // A formerly valid file must disappear from both search and
+                        // codemap when it no longer satisfies the UTF-8 input contract.
+                        writer.delete_term(Term::from_field_text(self.file_path_field, &rel_path));
+                        encoding_excluded_paths.push(rel_path);
+                        eprintln!("Warning: Not indexing {}: invalid UTF-8; indexing accepts UTF-8 source only", disk_path.display());
+                        continue;
+                    }
                     eprintln!(
                         "Warning: Failed to read file {}: {}",
                         disk_path.display(),
@@ -716,17 +758,27 @@ impl TantivySearchEngine {
                     continue;
                 }
             };
-            let (extracted, auxiliary) = match extractor.extract_for_index(&content, &rel_path) {
-                Ok(extracted_parts) => extracted_parts,
-                Err(e) => {
-                    eprintln!(
-                        "Warning: Failed to parse file {}: {}",
-                        disk_path.display(),
-                        e
-                    );
-                    continue;
-                }
-            };
+            let (mut extracted, mut auxiliary) =
+                match extractor.extract_for_index(&content, &rel_path) {
+                    Ok(extracted_parts) => extracted_parts,
+                    Err(e) => {
+                        eprintln!(
+                            "Warning: Failed to parse file {}: {}",
+                            disk_path.display(),
+                            e
+                        );
+                        continue;
+                    }
+                };
+
+            if let Some(expanded_auxiliary) =
+                macro_expander.expand_for_index(&disk_path, &content, &mut extracted)
+            {
+                auxiliary = expanded_auxiliary;
+            }
+            if extracted.macro_expansion().is_some() {
+                auxiliary.static_collection_edges.clear();
+            }
 
             let term = Term::from_field_text(self.file_path_field, &rel_path);
             writer.delete_term(term);
@@ -824,7 +876,7 @@ impl TantivySearchEngine {
         // commit/reload error) the cache is left untouched, so it never claims a file is
         // indexed when it is not.
         if let Some(cache) = self.indexed_mtimes_cache.as_mut() {
-            for path in &to_delete {
+            for path in to_delete.iter().chain(&encoding_excluded_paths) {
                 cache.remove(path);
             }
             for (rel_path, mtime) in committed_updates {
@@ -859,6 +911,19 @@ impl TantivySearchEngine {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
+
+        // Headers, included macro files, and compilation flags can affect any translation
+        // unit. Native preprocessing is opt-in; reconcile that dependency boundary fully.
+        if crate::config::get().macro_expansion.is_enabled
+            && paths
+                .iter()
+                .any(|path| !is_under_index_root(path, &index_root, &abs_cwd))
+        {
+            return self.index_files_changed_with_reload(
+                &[abs_cwd.to_string_lossy().as_ref()],
+                should_reload_reader,
+            );
+        }
 
         if self.indexed_mtimes_cache.is_none() {
             let snapshot = self.get_indexed_mtimes();
@@ -1107,6 +1172,33 @@ mod tests {
         assert_eq!(tokenize_path("src/lib.rs"), "src lib rs");
         assert_eq!(tokenize_path("a\\b\\c.js"), "a b c js");
         assert_eq!(tokenize_path("main.rs"), "main rs");
+    }
+
+    #[test]
+    fn test_non_utf8_update_removes_stale_symbols_and_recovers() {
+        let directory = tempdir().unwrap();
+        let file = directory.path().join("source.rs");
+        fs::write(&file, "pub fn encoding_probe() {}\n").unwrap();
+        let mut engine =
+            TantivySearchEngine::new(directory.path().join("index").to_str().unwrap()).unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert_eq!(engine.search("encoding_probe", 10).unwrap().len(), 1);
+        fs::write(&file, b"// invalid \xff\npub fn encoding_probe() {}\n").unwrap();
+        filetime::set_file_mtime(&file, filetime::FileTime::from_unix_time(1_000_000_001, 0))
+            .unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert!(engine.search("encoding_probe", 10).unwrap().is_empty());
+        assert!(engine
+            .load_published_snapshot()
+            .unwrap()
+            .codemap()
+            .is_empty());
+        fs::write(&file, "pub fn encoding_probe() {}\n").unwrap();
+        filetime::set_file_mtime(&file, filetime::FileTime::from_unix_time(1_000_000_002, 0))
+            .unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert_eq!(engine.search("encoding_probe", 10).unwrap().len(), 1);
+        assert_eq!(engine.load_published_snapshot().unwrap().codemap().len(), 1);
     }
 
     #[test]
@@ -1387,7 +1479,10 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v24-groovy-recovery-guard");
+        assert_eq!(
+            EXTRACTION_FORMAT_VERSION,
+            "v27-native-declarations-and-groovy"
+        );
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -1405,7 +1500,7 @@ mod tests {
 
         // Simulate a pre-upgrade index: stamp an outdated version.
         let version_path = index_dir.join(EXTRACTION_FORMAT_FILE);
-        fs::write(&version_path, "v21-dart-member-ranges").unwrap();
+        fs::write(&version_path, "v24-groovy-recovery-guard").unwrap();
 
         // Instantiation with a stale sidecar rebuilds once: the stored docs are wiped (so the
         // search is empty until re-indexed) and the sidecar is restamped to the current

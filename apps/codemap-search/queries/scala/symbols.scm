@@ -5,8 +5,8 @@
 (enum_definition name: (identifier) @symbol.name) @symbol.enum
 (simple_enum_case name: (identifier) @symbol.name) @symbol.variant
 (full_enum_case name: (identifier) @symbol.name) @symbol.variant
-(function_definition name: (identifier) @symbol.name) @symbol.fn
-(function_declaration name: (identifier) @symbol.name) @symbol.fn
+(function_definition name: [(identifier) (operator_identifier)] @symbol.name) @symbol.fn
+(function_declaration name: [(identifier) (operator_identifier)] @symbol.name) @symbol.fn
 (given_definition name: (identifier) @symbol.name) @symbol.variable
 (type_definition name: (type_identifier) @symbol.name) @symbol.type
 (val_definition pattern: (identifier) @symbol.name) @symbol.const

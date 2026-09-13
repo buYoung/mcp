@@ -83,6 +83,7 @@ pub struct DetailsCodemap<'a> {
     pub file_path: String,
     pub total_lines: usize,
     pub symbols: &'a [crate::parser::ExtractedSymbol],
+    pub macro_expansion: Option<&'a crate::parser::MacroExpansionInfo>,
 }
 
 impl<'a> std::fmt::Display for RootCodemap<'a> {
@@ -219,15 +220,27 @@ impl<'a> std::fmt::Display for DetailsCodemap<'a> {
         )?;
         writeln!(f)?;
 
+        if let Some(info) = self.macro_expansion {
+            writeln!(f, "{}\n", info.notice)?;
+        }
+
         writeln!(f, "## Symbols")?;
         for symbol in significant_symbols(self.symbols) {
             writeln!(
                 f,
-                "- {} ({}) [L{}-{}]",
+                "- {} ({}) [L{}-{}]{}",
                 symbol.name,
                 symbol.kind,
                 symbol.range.start_line,
-                symbol.range.end_line_inclusive()
+                symbol.range.end_line_inclusive(),
+                if self
+                    .macro_expansion
+                    .is_some_and(|info| info.is_expanded_symbol(symbol))
+                {
+                    " [macro expansion]"
+                } else {
+                    ""
+                }
             )?;
         }
 
@@ -368,6 +381,10 @@ impl CodemapGenerator {
             file_path: file.file_path.clone(),
             total_lines: file.total_lines,
             symbols: &file.symbols,
+            macro_expansion: file
+                .navigation
+                .as_ref()
+                .and_then(|navigation| navigation.macro_expansion.as_ref()),
         }
     }
 

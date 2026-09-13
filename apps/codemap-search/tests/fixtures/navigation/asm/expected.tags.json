@@ -10,6 +10,16 @@
     }
   },
   {
+    "capture": "reference.instruction",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "call init_runtime",
     "range": {
@@ -30,6 +40,16 @@
     }
   },
   {
+    "capture": "reference.instruction",
+    "text": "callq",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
+      "endCol": 8
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "callq flush_runtime",
     "range": {
@@ -47,6 +67,16 @@
       "startCol": 3,
       "endLine": 5,
       "endCol": 8
+    }
+  },
+  {
+    "capture": "reference.instruction",
+    "text": "ret",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 6
     }
   }
 ]

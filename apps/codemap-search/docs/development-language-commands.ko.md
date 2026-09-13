@@ -51,13 +51,13 @@ cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 
 cm grep '{"path":"src/config.rs","pattern":"pub fn load\\(","head_limit":5}'
-cm read '{"file_path":"src/config.rs","offset":377,"limit":8}'
+cm read '{"file_path":"src/config.rs","offset":382,"limit":8}'
 
 cm grep '{"path":"src/config.rs","pattern":"CODEMAP_DIR_NAME|CONFIG_FILE_NAME","head_limit":20}'
-cm read '{"file_path":"src/config.rs","offset":388,"limit":20}'
+cm read '{"file_path":"src/config.rs","offset":393,"limit":20}'
 ```
 
-`load`의 호출 목록에는 `read_layer — …/src/config.rs:388`, `merge — …/src/config.rs:651`, `canonicalize_path_lenient — …/src/workspace.rs:226`이 나온다. 두 상수의 정의는 82·84줄이고 값은 각각 `".codemap"`, `"config.toml"`이다. `join`은 정의 링크 없이 `unresolved`로 나온다. 이후 소스가 변경돼 줄이 이동하면 첫 `grep`으로 현재 위치부터 확인한다.
+`load`의 호출 목록에는 `read_layer — …/src/config.rs:393`, `merge — …/src/config.rs:657`, `canonicalize_path_lenient — …/src/workspace.rs:226`이 나온다. 두 상수의 정의는 84·86줄이고 값은 각각 `".codemap"`, `"config.toml"`이다. `join`은 정의 링크 없이 `unresolved`로 나온다. 이후 소스가 변경돼 줄이 이동하면 첫 `grep`으로 현재 위치부터 확인한다.
 
 ## 문자열·주석·미확정 수신 객체
 
@@ -138,4 +138,46 @@ python3 apps/codemap-search/scripts/public_validation.py \
   search '{"query":"cm_validation_caller","workspace_scope":"all","caller_context":true}'
 ```
 
-전체 대상, 결과 해석과 자동 재실행 명령은 [검증 보고서](development-language-validation.ko.md)에 있다. 대형 공개 저장소의 작업 트리는 해당 자동 검사가 끝난 뒤 사용한다. Azure PowerShell의 일반 코드 첫 문맥은 25~39초가 남아 있고, Zinit은 전체 색인은 준비되지만 문제 파일이 파싱되지 않는다. Groovy 따옴표 메서드와 React Flow의 지원 한계도 [남은 이슈 목록](../validation/development-issues.json)에 명시했다. 빠른 수동 비교에는 위 작은 대조 작업 트리를 사용한다. 기존 MCP 연결은 프로세스를 다시 시작해야 설치한 새 바이너리를 사용하며, `cm`은 명령마다 새 프로세스를 실행한다.
+`query`는 새 MCP 연결의 색인 준비를 기다리지 않는다. 처음 실행해 준비 중이라는 응답이 나오면 이를 검색 실패로 판정하지 말고 준비 후 다시 호출한다. 자동 공개 검증은 색인 준비를 기다린 뒤 검사한다.
+
+## C·NASM 매크로 생성 선언
+
+다음 디렉터리는 이번 검증에서 만든 대조 파일·설정·컴파일 데이터베이스를 보존한다. 설치한 Clang과 검증용 NASM 2.16.03 경로가 설정돼 있다. 자기 저장소에서 사용하려면 [매크로 설정](configuration.ko.md#매크로-확장)의 빌드 문맥과 실행 파일 경로를 맞춘다. 매크로 확장의 기본값은 꺼짐이다.
+
+```sh
+cd /Users/buyong/tmp/cm-remaining/macro-manual
+
+# DECLARE(chosen) -> chosen_expanded, 선언 위치는 원본 2줄
+cm read '{"file_path":"src/main.c","offset":2,"limit":2}'
+cm grep '{"path":"src/main.c","pattern":"DECLARE","head_limit":5}'
+
+# INTERNAL이 static으로 확장되므로 helper는 not exported
+cm read '{"file_path":"src/visibility.c","offset":1,"limit":2}'
+
+# FFmpeg x86inc.asm의 cglobal -> ff_cm_public_probe, 원본 3줄
+cm read '{"file_path":"src/public.asm","offset":1,"limit":4}'
+
+# 구조화된 확장 상태·입력 의존성과 선언 좌표
+codemap-search parse src/main.c
+codemap-search parse src/public.asm
+```
+
+확장된 선언에는 `macro expansion` 표식이 나온다. 원문을 보여 주는 `# results`에는 `DECLARE(chosen)`·`cglobal cm_public_probe`가 그대로 있어야 한다. 전처리 파일은 호출·상수 참조를 정의에 연결하지 않고 미해결 안내를 낸다. 생성 토큰의 열 좌표를 `(precise)`로 표시하면 오류다.
+
+## 비 UTF-8 입력과 동명 파일
+
+```sh
+cd /Users/buyong/tmp/codemap-public-validation/runs/verify-20260913T140647072947-93020-languages/asm-gnutools__glibc/worktree
+
+# read는 대체 문자를 허용하되 UTF-8 색인 제외 이유를 함께 표시
+cm read '{"file_path":"sysdeps/i386/fpu/e_atanhl.S","offset":1,"limit":12}'
+codemap-search codemap --path sysdeps/i386/fpu/e_atanhl.S
+
+# 아키텍처까지 좁혀 실제 ENTRY 위치 확인
+cm grep '{"path":"sysdeps/unix/sysv/linux/sparc/sparc64/____longjmp_chk.S","pattern":"ENTRY","head_limit":10}'
+codemap-search search 'ENTRY sysdeps/unix/sysv/linux/sparc/sparc64/____longjmp_chk.S' --limit 10
+```
+
+`ENTRY ____longjmp_chk`만 사용하면 여러 아키텍처의 동명 파일이 경쟁해 특정 파일이 출력 한도 밖으로 밀릴 수 있다. 원래 넓은 질의의 실패 기록과 경로를 좁힌 MCP 질의의 성공 기록은 모두 보존했다.
+
+전체 대상과 결과 해석은 [검증 보고서](development-language-validation.ko.md), 남은 판정 보류·지원 범위는 [이슈 목록](../validation/development-issues.json)에 있다. Groovy 공개 대조는 254개 모두 통과했고 Zsh 무한 처리는 수정했지만 나머지 문법 보류가 있다. Azure PowerShell의 일반 코드 첫 문맥은 이번 환경에서 약 3.6~3.7초였으며 새 색인 준비에는 약 8~9분이 들었다. 기존 MCP 연결은 프로세스를 다시 시작해야 설치한 새 바이너리를 사용하고, `cm`은 명령마다 새 프로세스를 실행한다.

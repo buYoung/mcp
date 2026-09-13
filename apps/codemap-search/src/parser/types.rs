@@ -144,6 +144,8 @@ pub struct ImportEntry {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct NavigationFile {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub macro_expansion: Option<MacroExpansionInfo>,
     #[serde(default)]
     pub calls: Vec<CallSite>,
     #[serde(default)]
@@ -152,6 +154,48 @@ pub struct NavigationFile {
     pub local_bindings: Vec<LocalBinding>,
     #[serde(default)]
     pub imports: Vec<ImportEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MacroExpansionInfo {
+    pub notice: String,
+    #[serde(default)]
+    pub symbols: Vec<MacroSymbolOrigin>,
+    #[serde(default)]
+    pub inputs: Vec<MacroInputStamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_lines: Option<Vec<[usize; 2]>>,
+}
+
+impl MacroExpansionInfo {
+    pub fn is_expanded_symbol(&self, symbol: &ExtractedSymbol) -> bool {
+        self.symbols
+            .iter()
+            .any(|origin| origin.name == symbol.name && origin.range == symbol.range)
+    }
+    pub fn is_active_line(&self, line: usize) -> bool {
+        self.active_lines.as_ref().is_none_or(|ranges| {
+            ranges
+                .iter()
+                .any(|[start, end]| *start <= line && line <= *end)
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MacroSymbolOrigin {
+    pub name: String,
+    pub range: CodeRange,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MacroInputStamp {
+    pub path: String,
+    pub modified_ns: u64,
+    pub size_bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -165,6 +209,12 @@ pub struct ExtractedFile {
     pub docstrings: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigation: Option<NavigationFile>,
+}
+
+impl ExtractedFile {
+    pub fn macro_expansion(&self) -> Option<&MacroExpansionInfo> {
+        self.navigation.as_ref()?.macro_expansion.as_ref()
+    }
 }
 
 /// `outer` strictly contains `inner` when `inner`'s line span sits inside

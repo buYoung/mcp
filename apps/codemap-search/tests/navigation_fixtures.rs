@@ -1154,14 +1154,26 @@ fn language_for_source(source_file: &str) -> Language {
         "php" => tree_sitter_php::LANGUAGE_PHP.into(),
         "rb" => tree_sitter_ruby::LANGUAGE.into(),
         "lua" => tree_sitter_lua::LANGUAGE.into(),
-        "kt" => tree_sitter_kotlin_ng::LANGUAGE.into(),
+        "kt" => {
+            unsafe extern "C" {
+                fn tree_sitter_kotlin() -> *const ();
+            }
+            // Use the same bundled native grammar as the product extractor.
+            unsafe { tree_sitter_language::LanguageFn::from_raw(tree_sitter_kotlin) }.into()
+        }
         "c" => tree_sitter_c::LANGUAGE.into(),
         "cpp" => tree_sitter_cpp::LANGUAGE.into(),
         "s" => tree_sitter_asm::LANGUAGE.into(),
         "swift" => tree_sitter_swift::LANGUAGE.into(),
         "dart" => tree_sitter_dart::LANGUAGE.into(),
         "scala" | "sc" => tree_sitter_scala::LANGUAGE.into(),
-        "groovy" | "gradle" => tree_sitter_groovy::LANGUAGE.into(),
+        "groovy" | "gradle" => {
+            unsafe extern "C" {
+                fn tree_sitter_groovy() -> *const ();
+            }
+            // Built by the package alongside its other native grammar functions.
+            unsafe { tree_sitter_language::LanguageFn::from_raw(tree_sitter_groovy) }.into()
+        }
         "ps1" | "psm1" => tree_sitter_powershell::LANGUAGE.into(),
         "nix" => tree_sitter_nix::LANGUAGE.into(),
         ext => panic!("unsupported navigation fixture extension: {ext}"),

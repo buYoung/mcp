@@ -497,6 +497,19 @@ pub fn read_source_for_parse(path: &Path) -> Option<String> {
     std::fs::read_to_string(path).ok()
 }
 
+/// Explain an encoding exclusion for an explicitly requested, index-sized file.
+pub fn source_encoding_exclusion(path: &Path) -> Option<String> {
+    if std::fs::metadata(path).ok()?.len() > crate::config::get().max_file_size {
+        return None;
+    }
+    let bytes = std::fs::read(path).ok()?;
+    let error = std::str::from_utf8(&bytes).err()?;
+    Some(format!(
+        "Not indexed: invalid UTF-8 at byte offset {} (zero-based). Indexing accepts UTF-8 source only; `read` displays undecodable bytes as �.",
+        error.valid_up_to()
+    ))
+}
+
 /// Convert a user-supplied workspace path to a [`PathBuf`], accepting Windows-style
 /// separators even on non-Windows hosts. Filesystem APIs still receive paths, while
 /// workspace-key comparisons stay slash-normalized at string boundaries.

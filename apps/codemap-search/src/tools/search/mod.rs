@@ -741,6 +741,14 @@ pub(crate) fn run_inner_with_metadata(
                 hint_line.push_str(&format!("; {ambiguity}"));
             }
             let mut hints = format!("{hint_line}\n");
+            if let Some(info) = published_snapshot
+                .codemap()
+                .iter()
+                .find(|file| file.file_path == res.file_path)
+                .and_then(|file| file.navigation.as_ref()?.macro_expansion.as_ref())
+            {
+                hints.push_str(&format!("- {}\n", info.notice));
+            }
             if let Some(suggestion) = read_suggestion(res) {
                 hints.push_str(&format!("- {suggestion}\n"));
             }

@@ -2,6 +2,7 @@
 //! classifying every hit as a call site or a non-call reference. Produces the
 //! [`ScanResult`] consumed by the annotate stage.
 
+use grep::matcher::Matcher;
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
 use std::cell::OnceCell;
@@ -9,7 +10,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use super::source::SourceSyntax;
-use super::symbols::{definition_is_compatible, SymbolIndex};
+use super::symbols::{definition_is_compatible, language_family, SymbolIndex};
 use super::CallerConfig;
 
 /// A single call-site / reference hit produced by the combined-regex scan.
@@ -77,6 +78,9 @@ impl<'a> Sink for ClassifySink<'a> {
             let raw = raw.strip_suffix('\n').unwrap_or(raw);
             let line = raw.strip_suffix('\r').unwrap_or(raw);
             let line_number = start + offset;
+            if !self.index.is_active_line(&self.file_path, line_number) {
+                continue;
+            }
             // Find every occurrence of every scanned name on this line, classifying each
             // by the first non-whitespace char after it. The combined regex guarantees at
             // least one name is present; we re-locate to read the trailing char and to
@@ -102,15 +106,13 @@ impl<'a> Sink for ClassifySink<'a> {
                     }
                     let is_member_access =
                         syntax.is_member_access(name_start..name_start + name.len());
-                    if !self.index.by_name.get(name.as_str()).is_some_and(|defs| {
-                        defs.iter().any(|(file, symbol)| {
-                            definition_is_compatible(
-                                &self.file_path,
-                                is_member_access,
-                                &file.file_path,
-                                symbol,
-                            )
-                        })
+                    if !self.index.definitions(name).iter().any(|(file, symbol)| {
+                        definition_is_compatible(
+                            &self.file_path,
+                            is_member_access,
+                            &file.file_path,
+                            symbol,
+                        )
                     }) {
                         continue;
                     }
@@ -215,6 +217,13 @@ pub(super) fn scan_workspace(
         .max(MIN_PER_NAME_SCAN_HITS);
     let mut budgets = vec![per_name_cap; names.len()];
     let mut truncated = vec![false; names.len()];
+    // The classifier already rejects unrelated runtimes. Apply that same boundary
+    // before opening files, especially in generated repositories with many languages.
+    let families: HashSet<_> = names
+        .iter()
+        .flat_map(|name| index.definitions(name))
+        .filter_map(|(file, _)| language_family(Path::new(&file.file_path)))
+        .collect();
 
     for result in crate::workspace::build_walker(root, false).build() {
         let entry = match result {
@@ -229,7 +238,9 @@ pub(super) fn scan_workspace(
             continue;
         }
         // Same coverage as the indexer: source extensions only, under the size filter.
-        if !crate::lang::supports_caller_scan(path) {
+        if !crate::lang::supports_caller_scan(path)
+            || !language_family(path).is_some_and(|family| families.contains(family))
+        {
             continue;
         }
         match std::fs::metadata(path) {
@@ -238,9 +249,16 @@ pub(super) fn scan_workspace(
             Err(_) => continue,
         }
         let display = crate::workspace::workspace_display_path(path, &canonical_root, &raw_root);
+        if test_filter.is_file_excluded(&display) || !index.can_attribute_calls(&display) {
+            continue;
+        }
         let Ok(mut source) = std::fs::read(path) else {
             continue;
         };
+        // Only matching source can contribute a caller; parse test regions on demand.
+        if !matcher.is_match(&source).unwrap_or(false) {
+            continue;
+        }
         test_filter.mask_source(&display, &mut source);
         let mut sink = ClassifySink {
             names,

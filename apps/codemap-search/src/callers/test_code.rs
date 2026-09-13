@@ -403,6 +403,15 @@ impl TestCodeFilter {
         is_in_test_region(&self.regions(file_path), range)
     }
 
+    pub(crate) fn retain_snapshot_cache(&self, snapshot: &[ExtractedFile]) {
+        if let Ok(mut cache) = CACHE
+            .get_or_init(|| Mutex::new(RegionCache::default()))
+            .lock()
+        {
+            cache.retain_snapshot(&self.root, snapshot);
+        }
+    }
+
     pub(crate) fn filter_snapshot<'a>(
         &self,
         snapshot: &'a [ExtractedFile],
@@ -411,12 +420,7 @@ impl TestCodeFilter {
         if self.should_include && snapshot.iter().all(&should_include_file) {
             return Cow::Borrowed(snapshot);
         }
-        if let Ok(mut cache) = CACHE
-            .get_or_init(|| Mutex::new(RegionCache::default()))
-            .lock()
-        {
-            cache.retain_snapshot(&self.root, snapshot);
-        }
+        self.retain_snapshot_cache(snapshot);
         // Annotation consumers need declarations/navigation, not potentially large literals.
         let filtered = snapshot
             .iter()

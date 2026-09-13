@@ -67,16 +67,16 @@ pub(crate) fn append(
             for anchor in &output.anchors {
                 grouped.entry(&anchor.file_path).or_default().push(anchor);
             }
-            // Preserve every requested outline, but unrelated data/document symbols
-            // cannot contribute call relations and may dwarf the actual code corpus.
+            // Only outlines need a filtered copy. Relations keep the shared snapshot
+            // and check test exclusions lazily for matching definitions/call sites.
             let filtered_files = test_filter.filter_snapshot(&source_files, |file| {
                 grouped.contains_key(file.file_path.as_str())
-                    || crate::callers::resolution::supports(&file.file_path)
             });
             let files = filtered_files.as_ref();
-            let resolver = crate::callers::resolution::SourceResolver::new(files, &root);
+            let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root);
             let mut outlines = Vec::new();
             let mut has_excluded_test_context = false;
+            let mut encoding_notices = Vec::new();
             for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
                 if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
                     has_excluded_test_context |= file.symbols.iter().any(|symbol| {
@@ -92,19 +92,51 @@ pub(crate) fn append(
                     });
                 }
                 if let Some(file) = files.iter().find(|file| file.file_path == *path) {
+                    if let Some(info) = file
+                        .navigation
+                        .as_ref()
+                        .and_then(|navigation| navigation.macro_expansion.as_ref())
+                    {
+                        encoding_notices.push(format!("[{path}: {}]\n", info.notice));
+                    }
                     outlines.push(structure::Outline::new(file, anchors, &resolver));
+                } else if let Some(reason) =
+                    crate::workspace::source_encoding_exclusion(&root.join(path))
+                {
+                    encoding_notices.push(format!("[{path}: {reason}]\n"));
                 }
             }
+            let mut encoding_notices = encoding_notices.concat();
+            if encoding_notices.len() > cap / 2 {
+                let mut end = cap / 2;
+                while !encoding_notices.is_char_boundary(end) {
+                    end = end.saturating_sub(1);
+                }
+                encoding_notices.truncate(end);
+                encoding_notices.push_str("…\n");
+            }
+            let render_cap = cap.saturating_sub(encoding_notices.len());
             let mut rendered = if has_excluded_test_context {
                 let notice = TEST_CONTEXT_EXCLUDED_NOTICE;
                 if outlines.iter().all(|outline| outline.selected.is_empty()) {
                     notice.to_string()
                 } else {
-                    format!("{notice}\n{}", render::render(&outlines, files, cap))
+                    format!(
+                        "{notice}\n{}",
+                        render::render(&outlines, &source_files, render_cap)
+                    )
                 }
             } else {
-                render::render(&outlines, files, cap)
+                render::render(&outlines, &source_files, render_cap)
             };
+            if !encoding_notices.is_empty() {
+                let notices = encoding_notices;
+                rendered = if outlines.is_empty() {
+                    notices
+                } else {
+                    format!("{notices}\n{rendered}")
+                };
+            }
             if grouped.len() > OUTLINED_FILE_LIMIT {
                 rendered.push_str(&format!(
                     "[File limit: {} returned files not outlined.]\n",

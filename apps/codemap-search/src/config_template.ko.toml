@@ -1,4 +1,4 @@
-# codemap-config-version: 9
+# codemap-config-version: 10
 # 이 저장소의 codemap-search 설정입니다.
 # 최초 제외 목록은 공통 폴더·감지한 프로젝트 종류의 재귀 glob을 사용하며 나머지는 내장 기본값입니다.
 # 키별 우선순위는 저장소 > 전역 > 내장 기본값입니다. 상속하려면 키를 삭제하거나 주석 처리하세요.
@@ -184,3 +184,14 @@ read = "workspace"
 # 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다.
 # 존재하는 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고 아직 없는 뒷부분은 유지합니다.
 allowed_roots = []
+
+# 매크로 확장을 켜려면 Clang/NASM 전처리기가 설치되어 있어야 합니다.
+[macro_expansion]
+is_enabled = false
+# compilation_database = "build/compile_commands.json"
+clang_path = "clang"
+nasm_path = "nasm"
+clang_flags = []
+nasm_flags = []
+timeout_ms = 5000
+max_output_bytes = 8388608

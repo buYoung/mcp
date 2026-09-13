@@ -10,6 +10,16 @@
     }
   },
   {
+    "capture": "reference.instruction",
+    "text": "call",
+    "range": {
+      "startLine": 4,
+      "startCol": 3,
+      "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "call map_order",
     "range": {
@@ -26,6 +36,16 @@
       "startLine": 4,
       "startCol": 3,
       "endLine": 4,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.instruction",
+    "text": "call",
+    "range": {
+      "startLine": 5,
+      "startCol": 3,
+      "endLine": 5,
       "endCol": 7
     }
   },
@@ -50,6 +70,16 @@
     }
   },
   {
+    "capture": "reference.instruction",
+    "text": "call",
+    "range": {
+      "startLine": 6,
+      "startCol": 3,
+      "endLine": 6,
+      "endCol": 7
+    }
+  },
+  {
     "capture": "reference.call",
     "text": "call persist_order",
     "range": {
@@ -66,6 +96,16 @@
       "startLine": 6,
       "startCol": 3,
       "endLine": 6,
+      "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.instruction",
+    "text": "call",
+    "range": {
+      "startLine": 7,
+      "startCol": 3,
+      "endLine": 7,
       "endCol": 7
     }
   },
@@ -87,6 +127,16 @@
       "startCol": 3,
       "endLine": 7,
       "endCol": 7
+    }
+  },
+  {
+    "capture": "reference.instruction",
+    "text": "ret",
+    "range": {
+      "startLine": 8,
+      "startCol": 3,
+      "endLine": 8,
+      "endCol": 6
     }
   }
 ]

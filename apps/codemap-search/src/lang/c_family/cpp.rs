@@ -70,8 +70,12 @@ fn get_cpp_static_collection_query() -> &'static Query {
 fn cpp_outofline_owner(function_def_node: Node, source: &[u8]) -> Option<String> {
     let declarator = function_def_node.child_by_field_name("declarator")?;
     // Peel pointer/reference layers to reach function_declarator.
-    let fn_decl = find_function_declarator(declarator)?;
-    let inner = fn_decl.child_by_field_name("declarator")?;
+    let inner = if declarator.kind() == "qualified_identifier" {
+        // Conversion operators have no outer function_declarator wrapper.
+        declarator
+    } else {
+        find_function_declarator(declarator)?.child_by_field_name("declarator")?
+    };
     if inner.kind() != "qualified_identifier" {
         return None;
     }
@@ -284,10 +288,12 @@ impl LanguageSpec for CppSpec {
         // They appear as `field_declaration` (method prototype or data member) OR as
         // `function_definition` (inline method body). Both honor the access specifier; the
         // prev-sibling walk in `cpp_member_is_exported` is position-based and works for either.
-        let is_in_class_member = matches!(node.kind(), "field_declaration" | "function_definition")
-            && node
-                .parent()
-                .is_some_and(|p| p.kind() == "field_declaration_list");
+        let is_in_class_member = matches!(
+            node.kind(),
+            "declaration" | "field_declaration" | "function_definition"
+        ) && node
+            .parent()
+            .is_some_and(|p| p.kind() == "field_declaration_list");
         if is_in_class_member {
             node.parent() // field_declaration_list
                 .and_then(|fdl| fdl.parent()) // class/struct_specifier

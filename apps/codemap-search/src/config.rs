@@ -35,6 +35,8 @@ use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
 mod exclude;
+mod macro_expansion;
+pub use macro_expansion::MacroExpansionConfig;
 mod scaffold;
 mod test_code;
 pub use test_code::TestCodeRules;
@@ -91,7 +93,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 9;
+const CONFIG_VERSION: u32 = 10;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -123,6 +125,7 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
+    pub macro_expansion: MacroExpansionConfig,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
     pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
@@ -268,6 +271,7 @@ impl ResolvedConfig {
 impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
+            macro_expansion: MacroExpansionConfig::default(),
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
@@ -325,6 +329,7 @@ impl Default for ResolvedConfig {
 /// (warn + ignore) during normalization so they also delegate.
 #[derive(Default)]
 struct ConfigLayer {
+    macro_expansion: macro_expansion::MacroExpansionLayer,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
@@ -428,6 +433,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let mut exclude_value = None;
     for (key, value) in table {
         match key.as_str() {
+            "macro_expansion" => layer.macro_expansion = macro_expansion::normalize(&value, path),
             "exclude" => exclude_value = Some(value),
             "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
             | "language_support" => {
@@ -657,6 +663,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
     let directory_exclusions = DirectoryExclusions::new(&excluded_directories)
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
+        macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         config_auto_update: repo
             .config_auto_update
             .or(global.config_auto_update)
@@ -1059,6 +1066,7 @@ fn request_refresh_if_index_scope_changed(
     if previous.language_support_settings() == current.language_support_settings()
         && previous.excluded_directories == current.excluded_directories
         && previous.use_git_exclude == current.use_git_exclude
+        && previous.macro_expansion == current.macro_expansion
     {
         return;
     }
@@ -1147,6 +1155,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 10,
+        key: "is_enabled",
+        placement: KeyPlacement::Subtable("macro_expansion"),
+        english_block: "# Optional Clang/NASM preprocessing. See docs/configuration.md.\n# is_enabled = false",
+        korean_block: "# Clang/NASM 전처리를 선택적으로 사용합니다. docs/configuration.md를 참고하세요.\n# is_enabled = false",
+    },
     Migration {
         version: 2,
         key: "navigation_store_references",
@@ -1382,7 +1397,14 @@ fn migrate_existing(path: &Path, existing: &str) {
 /// Read the schema version stamped by [`VERSION_MARKER_PREFIX`]. `None` when absent or the
 /// trailing token is not an integer (the caller then assumes [`CONFIG_BASELINE_VERSION`]).
 fn parse_version_marker(contents: &str) -> Option<u32> {
-    contents.lines().find_map(|line| {
+    let ranges = config_value_ranges(contents);
+    let mut offset = 0;
+    contents.split_inclusive('\n').find_map(|line| {
+        let start = offset;
+        offset += line.len();
+        if ranges.iter().any(|range| range.contains(&start)) {
+            return None;
+        }
         line.trim_start()
             .strip_prefix(VERSION_MARKER_PREFIX)
             .and_then(|rest| rest.trim().parse::<u32>().ok())
@@ -1394,7 +1416,14 @@ fn parse_version_marker(contents: &str) -> Option<u32> {
 /// `# key = x` but not a longer name that merely starts with `key` (e.g. `watch` vs
 /// `watch_debounce_ms`). The presence guard: errs toward NOT inserting, never duplicating.
 fn file_mentions_key(contents: &str, key: &str) -> bool {
-    contents.lines().any(|line| {
+    let ranges = config_value_ranges(contents);
+    let mut offset = 0;
+    contents.split_inclusive('\n').any(|line| {
+        let start = offset;
+        offset += line.len();
+        if ranges.iter().any(|range| range.contains(&start)) {
+            return false;
+        }
         let body = line.trim_start();
         let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
         body.strip_prefix(key)
@@ -1458,11 +1487,12 @@ fn apply_migrations_with_language(
 /// leading `# ` so it also anchors before a *commented* `# [filesystem_permissions]`. `None`
 /// when the file has no table header.
 fn first_table_header_offset(contents: &str) -> Option<usize> {
+    let value_ranges = config_value_ranges(contents);
     let mut offset = 0;
     for line in contents.split_inclusive('\n') {
         let body = line.trim_start();
         let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
-        if body.starts_with('[') {
+        if body.starts_with('[') && !value_ranges.iter().any(|range| range.contains(&offset)) {
             return Some(offset);
         }
         offset += line.len();
@@ -1500,11 +1530,12 @@ fn insert_top_level(contents: &str, block: &str) -> String {
 /// top-level placement when the header is absent (degraded but never destructive).
 fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
     let header = format!("[{table}]");
+    let value_ranges = config_value_ranges(contents);
     let mut offset = 0;
     for line in contents.split_inclusive('\n') {
         let body = line.trim_start();
         let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
-        if body.starts_with(&header) {
+        if body.starts_with(&header) && !value_ranges.iter().any(|range| range.contains(&offset)) {
             let at = offset + line.len(); // immediately after the header line
             let mut out = String::with_capacity(contents.len() + block.len() + 1);
             out.push_str(&contents[..at]);
@@ -1515,16 +1546,44 @@ fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
         }
         offset += line.len();
     }
-    insert_top_level(contents, block)
+    insert_top_level(contents, &format!("# {header}\n{block}"))
+}
+
+/// Immutable TOML documents retain the physical spans discarded by DocumentMut.
+/// Value ranges keep migration text out of multiline strings and array contents.
+fn config_value_ranges(contents: &str) -> Vec<std::ops::Range<usize>> {
+    fn collect(table: &toml_edit::Table, ranges: &mut Vec<std::ops::Range<usize>>) {
+        for (_, item) in table.iter() {
+            if let Some(value) = item.as_value() {
+                if let Some(range) = value.span() {
+                    ranges.push(range);
+                }
+            } else if let Some(table) = item.as_table() {
+                collect(table, ranges);
+            } else if let Some(tables) = item.as_array_of_tables() {
+                for table in tables.iter() {
+                    collect(table, ranges);
+                }
+            }
+        }
+    }
+    let mut ranges = Vec::new();
+    if let Ok(document) = toml_edit::Document::parse(contents) {
+        collect(document.as_table(), &mut ranges);
+    }
+    ranges
 }
 
 /// Replace the existing [`VERSION_MARKER_PREFIX`] line's value with `version`, or prepend a
 /// fresh marker line when the file has none.
 fn set_version_marker(contents: &str, version: u32) -> String {
     let marker = version_marker_line(version);
+    let ranges = config_value_ranges(contents);
     let mut offset = 0;
     for line in contents.split_inclusive('\n') {
-        if line.trim_start().starts_with(VERSION_MARKER_PREFIX) {
+        if line.trim_start().starts_with(VERSION_MARKER_PREFIX)
+            && !ranges.iter().any(|range| range.contains(&offset))
+        {
             let line_end = offset + line.len();
             let mut out = String::with_capacity(contents.len() + marker.len());
             out.push_str(&contents[..offset]);
@@ -2368,6 +2427,7 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             assert_eq!(before.index_path, after.index_path);
             assert_eq!(before.max_file_size, after.max_file_size);
             assert_eq!(before.scan_cap, after.scan_cap);
+            assert_eq!(before.macro_expansion, after.macro_expansion);
             ensure_repo_config_with_auto_update(repo.path(), true);
             assert_eq!(fs::read_to_string(&path).unwrap(), migrated);
         }

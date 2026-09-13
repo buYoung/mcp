@@ -93,6 +93,10 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     format!(
                         "It exceeds the index size cap ({index_size_cap} bytes) but exists on disk; use `read` with offset/limit windows for its content."
                     )
+                } else if let Some(reason) =
+                    crate::workspace::source_encoding_exclusion(target_path)
+                {
+                    reason
                 } else {
                     "The file exists on disk; use `read` for its raw content (offset/limit for large files)."
                         .to_string()

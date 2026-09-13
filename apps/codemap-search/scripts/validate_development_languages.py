@@ -30,7 +30,7 @@ CTAGS = {"java": "Java", "csharp": "C#", "php": "PHP", "ruby": "Ruby", "lua": "L
     "asm": "Asm", "sql": "SQL", "bash": "Sh", "zsh": "Zsh"}
 CALLS_DISABLED = {"sql", "bash", "zsh"}
 COMPONENTS = {"vue", "astro", "svelte"}
-CALLABLE_KINDS = {"function", "method", "prototype", "procedure", "subroutine"}
+CALLABLE_KINDS = {"function", "method", "singletonMethod", "prototype", "procedure", "subroutine"}
 # Only fixtures with a language-level constant/immutable binding. Uppercase
 # Python, Lua, PowerShell and shell variables are not constant declarations.
 CONSTANT_PROBES = {"typescript", "javascript", "java", "csharp", "groovy",
@@ -174,18 +174,27 @@ def independent_oracle(path, language, oracle_root=None):
         name, version = lines[0].split("\t")
         declarations = []
         for line in lines[1:]:
-            encoded, start, name_line, end = line.split("\t")
-            declarations.append({"name": base64.b64decode(encoded).decode(), "kind": "fn",
-                "start": int(start), "name_line": int(name_line), "end": int(end)})
+            fields = line.split("\t")
+            encoded, start, name_line, end = fields[:4]
+            declaration = {"name": base64.b64decode(encoded).decode(), "kind": "fn",
+                "start": int(start), "name_line": int(name_line), "end": int(end)}
+            if len(fields) == 5:
+                declaration["native_end"] = int(fields[4])
+            declarations.append(declaration)
         return {"oracle": name, "version": version, "declarations": declarations, "file_sha256": sha256(path)}
     if language in CTAGS:
-        raw = command(["ctags", "--options=NONE", f"--language-force={CTAGS[language]}", "--output-format=json",
+        # C/C++ disable prototypes by default even though overview includes them.
+        kind_options = [f"--kinds-{CTAGS[language]}=+p"] if language in {"c", "cpp"} else []
+        raw = command(["ctags", "--options=NONE", f"--language-force={CTAGS[language]}", *kind_options, "--output-format=json",
             "--fields=+neK", "--extras=-p", "-o", "-", str(path.resolve())], stderr=subprocess.PIPE)
         tags = [json.loads(line) for line in raw.splitlines() if line]
         declarations = [{"name": item["name"], "name_line": item["line"], "start": item["line"],
             "end": item.get("end"), "kind": item["kind"], "scope": item.get("scope"), "scopeKind": item.get("scopeKind")}
-            for item in tags if item.get("kind") in (CALLABLE_KINDS | ({"label"} if language == "asm" else set())) and item.get("scopeKind") not in {"function", "method"}]
+            for item in tags if item.get("kind") in (CALLABLE_KINDS | ({"label"} if language == "asm" else set()))
+            and item.get("scopeKind") not in {"function", "method", "singletonMethod"}
+            and not (language == "kotlin" and item["name"] == "<lambda>")]
         return {"oracle": "Universal Ctags", "declarations": declarations, "raw_tags": tags,
+            "excluded_synthetic_names": [item for item in tags if language == "kotlin" and item.get("name") == "<lambda>"],
             "file_sha256": sha256(path), "scope": "Named callables detected by Ctags; not a compiler or complete semantic oracle"}
     return {"oracle": None, "declarations": [], "file_sha256": sha256(path),
         "limitation": "No independent declaration parser configured; disk/range consistency and explicit probe declarations are checked"}
@@ -197,6 +206,18 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     source = data.decode("utf-8", errors="replace").removeprefix("\ufeff")
     lines = source.splitlines()
     text, elapsed, error = checks.client.tool("overview", {"path": path})
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError as failure:
+        # The user chose UTF-8-only indexing. Verify the explicit exclusion and
+        # the independent live-read contract instead of requiring an index entry.
+        checks.record(f"encoding-exclusion:{path}", "encoding_policy",
+            error and "Not indexed: invalid UTF-8" in text,
+            {"file": path, "invalid_byte_offset": failure.start, "policy": "UTF-8-only index", "response": text}, elapsed)
+        first = data[:failure.start].count(b"\n") + 1
+        checks.query(f"encoding-read:{path}", "read", {"file_path": path, "offset": first, "limit": 1},
+            contains=[f"{first}→{lines[first - 1]}", "Not indexed: invalid UTF-8"], category="encoding_policy")
+        return
     actual = [(name, kind, int(start), int(end)) for name, kind, start, end in
         re.findall(r"^- (.+?) \(([^)]+)\) \[L(\d+)-(\d+)\]", text, re.M)]
     invalid = [item for item in actual if not 1 <= item[2] <= item[3] <= len(lines)
@@ -220,7 +241,21 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
             # Ctags prefixes operator names and explicit interface implementations.
             # Match the source position/end as well; keep its raw declaration below.
             expected_name = expected_name.removeprefix("operator ").rsplit(".", 1)[-1]
-        matches = [row for row in actual if row[1] == expected_kind and row[0] == expected_name and row[2] <= item["name_line"] <= row[3]]
+        def comparable_name(name):
+            if language == "cpp":
+                return re.sub(r"^operator\s+(?=[^\w\s])", "operator", name)
+            if language == "kotlin":
+                return name.removeprefix("`").removesuffix("`")
+            if language == "groovy" and "$" in name:
+                # SourceUnit qualifies inner-class constructor names. Normalize only
+                # when the physical declaration line confirms the short constructor.
+                short = name.rsplit("$", 1)[-1]
+                header = lines[item["name_line"] - 1]
+                if re.match(r"^\s*(?:(?:public|protected|private)\s+)*" + re.escape(short) + r"\s*\(", header):
+                    return short
+            return name
+        matches = [row for row in actual if row[1] == expected_kind and comparable_name(row[0]) == comparable_name(expected_name)
+            and row[2] <= item["name_line"] <= row[3]]
         if not matches:
             missing.append(item)
         elif item.get("end") is not None and not any(row[3] == item["end"] for row in matches):
@@ -426,7 +461,8 @@ def main():
     summary = {"run_id": args.run_id, "started_utc": datetime.now(timezone.utc).isoformat(),
         "binary_sha256": sha256(args.binary), "manifest_sha256": sha256(MANIFEST), "samples_per_repository": args.samples,
         "source_commit": command(["git", "rev-parse", "HEAD"], APP), "runner_sha256": sha256(Path(__file__)), "previous_run": args.previous_run,
-        "source_sha256": {path.relative_to(APP).as_posix(): sha256(path) for directory in (APP / "src", APP / "queries") for path in sorted(directory.rglob("*")) if path.is_file()},
+        "source_sha256": {path.relative_to(APP).as_posix(): sha256(path) for directory in (APP / "src", APP / "queries", APP / "vendor") for path in sorted(directory.rglob("*")) if path.is_file()}
+            | {name: sha256(APP / name) for name in ("Cargo.toml", "Cargo.lock", "build.rs")},
         "versions": {"python": sys.version, **{name: command([binary, "--version"]) if shutil.which(binary) else "unavailable"
             for name, binary in (("ctags", "ctags"), ("node", "node"), ("swift", "swiftc"))}},
         "results": [], "errors": []}

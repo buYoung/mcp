@@ -1,0 +1,119 @@
+diff --git a/grammar.js b/grammar.js
+index 42fedca..924a508 100644
+--- a/grammar.js
++++ b/grammar.js
+@@ -7,7 +7,7 @@
+ /// <reference types="tree-sitter-cli/dsl" />
+ // @ts-check
+ 
+-const Java = require('tree-sitter-java/grammar.js');
++const Java = require('./tree-sitter-java/grammar.js');
+ 
+ /* eslint-disable no-multi-spaces */
+ 
+@@ -51,6 +51,9 @@ module.exports = grammar(Java, {
+   name: 'groovy',
+ 
+   conflicts: ($, original) => original.concat([
++    [$.primary_expression, $.explicit_constructor_invocation],
++    [$.expression, $.array_access, $._juxt_function_name],
++    [$.expression, $._juxt_function_name],
+     [$.modifiers, $.annotated_type, $.module_declaration, $.package_declaration, $.function_definition],
+     [$._method_declarator, $.function_definition],
+ 
+@@ -103,7 +106,37 @@ module.exports = grammar(Java, {
+ 
+     shebang: $ => token(seq('#!', /.*/)),
+ 
+-    expression_statement: $ => seq($.expression, DELIMITER),
++    class_declaration: $ => seq(
++      optional($.modifiers), choice('class', 'trait'), field('name', $.identifier),
++      optional(field('type_parameters', $.type_parameters)),
++      optional(field('superclass', $.superclass)),
++      optional(field('interfaces', $.super_interfaces)),
++      optional(field('permits', $.permits)), field('body', $.class_body),
++    ),
++
++    explicit_constructor_invocation: $ => seq(
++      choice(
++        seq(
++          field('type_arguments', optional($.type_arguments)),
++          field('constructor', choice($.this, $.super)),
++        ),
++        seq(
++          field('object', choice($.primary_expression)),
++          '.',
++          field('type_arguments', optional($.type_arguments)),
++          field('constructor', $.super),
++        ),
++      ),
++      field('arguments', $.argument_list),
++      DELIMITER,
++    ),
++
++    field_declaration: $ => seq(
++      optional($.modifiers), field('type', $._unannotated_type),
++      $._variable_declarator_list, DELIMITER,
++    ),
++
++    expression_statement: $ => prec(1, seq(choice($.expression, $.juxt_function_call), DELIMITER)),
+ 
+     expression: ($, original) => choice(
+       original,
+@@ -171,6 +204,15 @@ module.exports = grammar(Java, {
+       optional(seq('else', field('alternative', $.statement))),
+     )),
+ 
++    assert_statement: $ => seq('assert', $.expression, optional(seq(':', $.expression)), DELIMITER),
++
++    field_access: $ => seq(
++      field('object', choice($.primary_expression, $.super)),
++      optional(seq('.', $.super)),
++      choice('.', '?.', '*.'), optional('@'),
++      field('field', choice($.identifier, $._reserved_identifier, $.this)),
++    ),
++
+     break_statement: $ => seq('break', optional($.identifier), DELIMITER),
+ 
+     continue_statement: $ => seq('continue', optional($.identifier), DELIMITER),
+@@ -212,6 +254,22 @@ module.exports = grammar(Java, {
+       )),
+     ),
+ 
++    annotation_type_element_declaration: $ => seq(
++      optional($.modifiers),
++      field('type', $._unannotated_type),
++      field('name', choice($.identifier, $._reserved_identifier)),
++      '(', ')',
++      field('dimensions', optional($.dimensions)),
++      optional($._default_value),
++      DELIMITER,
++    ),
++
++    _method_declarator: $ => seq(
++      field('name', choice($.identifier, $._reserved_identifier, $.string_literal, $.character_literal)),
++      field('parameters', $.formal_parameters),
++      field('dimensions', optional($.dimensions)),
++    ),
++
+     method_declaration: $ => seq(
+       optional($.modifiers),
+       $._method_header,
+@@ -222,7 +280,7 @@ module.exports = grammar(Java, {
+       repeat($._annotation),
+       optional($.modifiers),
+       choice(field('type', $._unannotated_type), 'def'),
+-      field('name', $.identifier),
++      field('name', choice($.identifier, $.string_literal, $.character_literal)),
+       field('parameters', $.formal_parameters),
+       field('body', $.closure),
+     ),
+@@ -232,7 +290,7 @@ module.exports = grammar(Java, {
+         field('name', choice($.identifier, $._reserved_identifier)),
+         seq(
+           field('object', choice($.primary_expression, $.super)),
+-          '.',
++          choice('.', '?.', '*.'),
+           optional(seq(
+             $.super,
+             '.',

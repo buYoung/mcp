@@ -72,7 +72,7 @@ pub(super) fn discover_callees(
             let is_member = syntax.is_member_access(name_start..name_start + ident.len());
             if is_call
                 && ident != sym.name
-                && index.fn_names.contains(&ident)
+                && index.function_definition_count(&ident) > 0
                 && syntax.is_code(name_start..name_start + ident.len())
                 && !lookup_compatible_candidates(&ident, file_path, is_member, index).is_empty()
             {
@@ -240,7 +240,7 @@ pub(super) fn discover_callees_with_navigation(
         .and_then(|source| SourceSyntax::parse(&file.file_path, source.as_bytes()));
     for call in &navigation.calls {
         if call.name == sym.name
-            || !index.fn_names.contains(&call.name)
+            || index.function_definition_count(&call.name) == 0
             || !call_is_inside_symbol(call, sym)
         {
             continue;
@@ -304,6 +304,43 @@ mod tests {
     use crate::callers::symbols::build_symbol_index;
 
     #[test]
+    fn test_lazy_exclusions_apply_to_source_resolved_callees() {
+        use crate::parser::CodeExtractor;
+        let source = "fn ordinary() { test_only(); }\n#[test]\nfn test_only() {}\nfn outer() {\n #[test]\n fn nested() { helper(); }\n}\nfn helper() {}\n";
+        let (_directory, root) = crate::callers::fixtures::write_repo(&[("main.rs", source)]);
+        let snapshot = vec![crate::parser::TreeSitterExtractor::new()
+            .extract(source, "main.rs")
+            .unwrap()];
+        let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
+        let index = build_symbol_index(&snapshot, Some(&filter));
+        let resolver = super::super::resolution::SourceResolver::new(&snapshot, &root);
+        for name in ["ordinary", "outer"] {
+            let symbol = snapshot[0]
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == name)
+                .unwrap();
+            let callees = discover_callees_with_navigation(
+                symbol,
+                &snapshot[0],
+                &index,
+                AnnotationRuntimeState::default(),
+                true,
+                &root,
+                &resolver,
+            );
+            assert!(
+                callees.iter().all(|callee| callee.is_unresolved),
+                "{name}: {callees:?}"
+            );
+            assert!(
+                !callees.iter().any(|callee| callee.name == "helper"),
+                "{name}: {callees:?}"
+            );
+        }
+    }
+
+    #[test]
     fn test_callee_display_unambiguous_qualifies_ambiguous_bare() {
         let snapshot = vec![
             file("a.rs", vec![sym("alpha", "fn", 1, 3, Some("Engine"))]),
@@ -312,7 +349,7 @@ mod tests {
                 vec![sym("beta", "fn", 1, 3, None), sym("beta", "fn", 5, 7, None)],
             ),
         ];
-        let index = build_symbol_index(&snapshot);
+        let index = build_symbol_index(&snapshot, None);
         // alpha: exactly one fn def → qualified via owner.
         assert_eq!(
             callee_display("alpha", &index, "a.rs", false),

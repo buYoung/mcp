@@ -17,10 +17,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **9**. The marker is a comment:
+The current configuration schema is **10**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 9
+# codemap-config-version: 10
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -29,6 +29,7 @@ The current configuration schema is **9**. The marker is a comment:
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
 - Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
+- Version 10 adds a commented `[macro_expansion]` section. Native preprocessing remains disabled until explicitly enabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -103,6 +104,7 @@ MCP watches the repo/global config directories that exist at startup, independen
 | Settings | Application point |
 |---|---|
 | `excluded_directories`, all `[language_support]` switches | Reload requests a full index refresh; results reflect the change when it finishes |
+| All `[macro_expansion]` settings | Reload requests a full refresh, including when expansion is disabled |
 | Search output, caller annotation options, tool output limits, filesystem permissions | Subsequent tool requests after reload |
 | `index_staleness_ms`, `indexer_auto_restart` | Subsequent refresh/recovery decisions |
 | `max_file_size`, `use_git_exclude` | Subsequent walks/refreshes; changing them alone does not request a full refresh |
@@ -166,11 +168,46 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 
 The user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target; a project beneath it is valid. If neither `HOME` nor `USERPROFILE` is available, the server warns and continues.
 
-`.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `max_file_size` are also skipped by indexing.
+`.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `max_file_size` are also skipped by indexing. Indexing accepts UTF-8 source only. Invalid UTF-8 removes any stale indexed symbols; `overview` and `read` explain the exclusion with the first invalid byte offset. `read` keeps its replacement-character display and never rewrites the source.
 
 The five `[language_support]` switches control indexing, search, overview, codemap, and file-change refreshes. They do not disable live `find`/`grep`/`read` or direct `parse`.
 
 `use_git_exclude` controls only `.git/info/exclude`. Setting it to `false` leaves `.gitignore`, global Git ignores, and `.codemapignore` in effect.
+
+### Native macro expansion
+
+This optional feature expands C/C++ preprocessor macros and CPP-based assembly macros with installed Clang. NASM `.asm` files use NASM expansion listings to map generated labels to the invocation line. It follows [clangd's compilation-context model](https://clangd.llvm.org/design/compile-commands); it does not start clangd or load `.clangd` configuration.
+
+```toml
+[macro_expansion]
+is_enabled = true
+compilation_database = "build/compile_commands.json"
+clang_path = "clang"
+nasm_path = "nasm"
+clang_flags = ["-Iinclude", "-DFEATURE=1"]
+nasm_flags = ["-Iinclude/", "-felf64"]
+timeout_ms = 5000
+max_output_bytes = 8388608
+```
+
+| Key under `[macro_expansion]` | Type / default | Behavior |
+| --- | --- | --- |
+| `is_enabled` | bool / `false` | Enables preprocessing for indexed C/C++/ASM files and direct `parse`/`codemap` |
+| `compilation_database` | nonempty string / omitted | Workspace-relative or absolute JSON file/directory; a `compile_flags.txt` file is also accepted |
+| `clang_path`, `nasm_path` | nonempty string / `"clang"`, `"nasm"` | Installed executable name or path |
+| `clang_flags`, `nasm_flags` | string array / `[]` | Arguments appended to the selected build settings; repo arrays replace global arrays |
+| `timeout_ms` | positive integer / `5000` | Maximum milliseconds for each native process; NASM runs preprocessing and a listing pass |
+| `max_output_bytes` | positive integer / `8388608` | Maximum bytes for expanded output or NASM listing |
+
+Without an explicit database, source-parent directories are searched up to the workspace root for `compile_commands.json` or `compile_flags.txt`. A JSON database requires an exact canonical file entry; the first matching entry wins. Header commands are not inferred from similarly named files. If no database exists, configured flags and the installed tool's defaults are used. With a database but no matching entry, add an entry or select a `compile_flags.txt` file explicitly.
+
+The [JSON database](https://clang.llvm.org/docs/JSONCompilationDatabase.html) supplies arguments, include paths, definitions and the working directory. Argument arrays take precedence over command strings. Command strings are tokenized without shell evaluation. Only the configured Clang/NASM executable runs; recorded compiler wrappers and project build commands do not. The recorded `++` compiler name and explicit `-x` determine C/C++ parsing. Includes, definitions, target and standard options are retained; output/dependency flags are removed. Unsupported flags, response files, compiler plugins and unsupported language overrides yield an explicit unresolved notice. Toolchain-specific system includes/targets must be supplied explicitly; query-driver discovery and all compiler-option compatibility are not implemented.
+
+Successful expansion replaces source declarations with the active expanded declarations, while retaining macro definitions extracted from the original source. Generated declarations carry `macro expansion` and original file/line ranges. Header declarations are not attributed to the including file. Expanded token columns, calls and constant-reference attribution remain unresolved; these files do not emit guessed definition links or `precise` call labels. `read`/`grep` still show the original source.
+
+Missing tools/headers, timeout, output limits, unsupported expanded syntax and explicit `#line`/`%line` remapping retain original declarations with the reason `Macro expansion unresolved`. NASM requires a version supporting `-Le -Lm -Lf`; validation used 2.16.03. Its listing pass assembles into the null device without running the resulting program. Validated listing labels/globals are projected into declaration input; instruction operands are not reinterpreted by the generic ASM parser. Generated `..@` macro-local labels are omitted. A pinned FFmpeg `x86inc.asm` macro was also checked with explicit architecture/format flags; this is not a full FFmpeg build. GNU assembler `.macro` expansion, other assembler dialects, and every repository's build configuration are not established by these checks.
+
+While enabled, workspace changes reconcile native files in a full refresh. Recorded external headers/build settings are checked on tool requests at most once per second. After failed preprocessing, a newly supplied external dependency may require a refresh or restart. Enabling this feature adds native-process work per eligible file; budget settings are per process, not per repository. macOS arm64 was validated; Windows/Linux execution remains unverified.
 
 ### Output and call relationships
 

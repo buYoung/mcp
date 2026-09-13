@@ -105,6 +105,18 @@ pub(crate) fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
             // Use the full source text of the node (e.g. "operator<").
             node.utf8_text(source).ok().map(|t| t.trim().to_string())
         }
+        "operator_cast" => {
+            // Conversion operators carry their return type in the name itself.
+            // Stop at the parameter list while preserving pointer/reference types.
+            let mut declarator = node.child_by_field_name("declarator")?;
+            while declarator.kind() != "abstract_function_declarator" {
+                declarator = declarator.child_by_field_name("declarator")?;
+            }
+            let parameters = declarator.child_by_field_name("parameters")?;
+            std::str::from_utf8(&source[node.start_byte()..parameters.start_byte()])
+                .ok()
+                .map(|name| name.trim().to_string())
+        }
         "destructor_name" => {
             // C++ destructor: `~Ops`. Use the full source text (e.g. "~Ops").
             node.utf8_text(source).ok().map(|t| t.trim().to_string())

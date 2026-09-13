@@ -156,7 +156,7 @@ fn has_non_function_local_shadow(
         .extension()
         .and_then(|extension| extension.to_str())
         == Some("nix");
-    let has_known_function = index.fn_names.contains(&call.name);
+    let has_known_function = index.function_definition_count(&call.name) > 0;
     navigation.local_bindings.iter().any(|binding| {
         if binding.name != call.name || (has_known_function && !is_nix) {
             return false;
@@ -263,6 +263,9 @@ fn precise_navigation_callers(
         let syntax = super::read_workspace_file(&call_file.file_path, root)
             .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()));
         for call in navigation.calls.iter().filter(relevant) {
+            if !index.includes(&call_file.file_path, &call.range) {
+                continue;
+            }
             inspected += 1;
             if inspected > cfg.navigation_callsite_budget {
                 return None;
@@ -674,7 +677,7 @@ fn render_symbol_annotation(
         let mut ambiguous_suppressed = 0usize;
         let mut has_precise = false;
         for callee in callees.iter().take(shown) {
-            let def_count = *index.fn_def_counts.get(&callee.name).unwrap_or(&0);
+            let def_count = index.function_definition_count(&callee.name);
             if !callee.is_precise
                 && callee.display == callee.name
                 && def_count >= cfg.common_name_threshold
@@ -873,14 +876,8 @@ pub fn annotate_results_with_state(
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
-    let filtered_snapshot = test_filter.filter_snapshot(snapshot, |file| {
-        super::resolution::supports(&file.file_path)
-            || requests
-                .iter()
-                .any(|request| request.file_path == file.file_path)
-    });
-    let snapshot = filtered_snapshot.as_ref();
-    let index = build_symbol_index(snapshot);
+    test_filter.retain_snapshot_cache(snapshot);
+    let index = build_symbol_index(snapshot, Some(&test_filter));
     let resolver = super::resolution::SourceResolver::new(snapshot, root);
     let should_build_navigation_index =
         cfg.navigation_context_default && !runtime_state.suppresses_navigation();
@@ -914,7 +911,7 @@ pub fn annotate_results_with_state(
     // Union of every non-fallback matched `fn` name across all detail files → one scan.
     let mut names: Vec<String> = Vec::new();
     for req in requests {
-        if req.is_fallback {
+        if req.is_fallback || !index.can_attribute_calls(req.file_path) {
             continue;
         }
         for sym in req
@@ -937,7 +934,7 @@ pub fn annotate_results_with_state(
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
     for req in requests {
-        if req.is_fallback {
+        if req.is_fallback || !index.can_attribute_calls(req.file_path) {
             continue;
         }
         for sym in req
@@ -1113,7 +1110,7 @@ mod tests {
                 let source = source.replace('\n', line_ending);
                 let (_dir, root) = crate::callers::fixtures::write_repo(&[(path, &source)]);
                 let snapshot = vec![parsed_file(&root, path)];
-                let index = build_symbol_index(&snapshot);
+                let index = build_symbol_index(&snapshot, None);
                 let callees = discover_callees(&snapshot[0].symbols[2], path, &index, &root);
                 assert_eq!(callees.iter().map(|callee| callee.name.as_str()).collect::<Vec<_>>(), vec!["target"], "{path}: {callees:?}");
                 let requests = [AnnotationRequest { file_path: path, symbols: &snapshot[0].symbols, is_fallback: false }];

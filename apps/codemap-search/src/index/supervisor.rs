@@ -48,6 +48,7 @@ pub struct EngineSupervisor {
     last_refresh_trigger: Option<Instant>,
     // Automatic indexer restarts performed so far (see `ensure_alive`).
     indexer_restart_attempts: u32,
+    last_macro_input_check: Option<Instant>,
 }
 
 impl EngineSupervisor {
@@ -66,6 +67,7 @@ impl EngineSupervisor {
             watcher_status,
             last_refresh_trigger: None,
             indexer_restart_attempts: 0,
+            last_macro_input_check: None,
         }
     }
 
@@ -131,6 +133,29 @@ impl EngineSupervisor {
     /// actually removes the per-request O(repo) walk during active use. The fallback below
     /// runs only when the watcher is absent (`watch = false`), failed to start, or died.
     pub fn trigger_refresh(&mut self) {
+        // Include paths may point outside the watched workspace. Recheck their stamps
+        // without running a compiler on the request thread, at most once per second.
+        if crate::config::get().macro_expansion.is_enabled
+            && self
+                .last_macro_input_check
+                .is_none_or(|instant| instant.elapsed() >= Duration::from_secs(1))
+        {
+            self.last_macro_input_check = Some(Instant::now());
+            let snapshot = self.indexer.codemap_snapshot();
+            let mut seen = std::collections::HashSet::new();
+            let has_changed_input = snapshot
+                .iter()
+                .filter_map(|file| file.navigation.as_ref()?.macro_expansion.as_ref())
+                .flat_map(|info| &info.inputs)
+                .any(|input| {
+                    seen.insert(&input.path)
+                        && super::preprocess::input_stamp(std::path::Path::new(&input.path))
+                            != *input
+                });
+            if has_changed_input {
+                self.indexer.trigger_refresh();
+            }
+        }
         // A dead indexer disarms the suppression: falling through lets `trigger_refresh`
         // observe the disconnected channel and raise the "results are frozen" notice,
         // which a healthy-looking watcher would otherwise mask indefinitely.

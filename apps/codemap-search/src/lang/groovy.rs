@@ -36,7 +36,7 @@ fn query(ext: &str) -> &'static Query {
         } else {
             GROOVY_QUERY_STR
         };
-        Query::new(&tree_sitter_groovy::LANGUAGE.into(), source)
+        Query::new(&super::bundled_grammars::GROOVY.into(), source)
             .expect("Failed to compile Groovy query")
     })
 }
@@ -44,7 +44,7 @@ fn query(ext: &str) -> &'static Query {
 fn tags_query() -> &'static Query {
     static QUERY: OnceLock<Query> = OnceLock::new();
     QUERY.get_or_init(|| {
-        Query::new(&tree_sitter_groovy::LANGUAGE.into(), TAGS_QUERY_STR)
+        Query::new(&super::bundled_grammars::GROOVY.into(), TAGS_QUERY_STR)
             .expect("Failed to compile Groovy tags query")
     })
 }
@@ -91,6 +91,62 @@ fn quoted_literals(text: &str) -> Vec<String> {
 
 fn normalized_invocation(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn quoted_method_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+    if node.has_error() {
+        return None;
+    }
+    let text = node.utf8_text(source).ok()?;
+    let quote = if text.starts_with("\"\"\"") {
+        "\"\"\""
+    } else if text.starts_with("'''") {
+        "'''"
+    } else if text.starts_with('"') {
+        "\""
+    } else {
+        "'"
+    };
+    let body = text.strip_prefix(quote)?.strip_suffix(quote)?;
+    let mut encoded = String::from("\"");
+    let mut chars = body.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.next()? {
+                escaped @ ('\'' | '$') => encoded.push(escaped),
+                escaped @ ('"' | '\\' | 'b' | 'f' | 'n' | 'r' | 't' | 'u') => {
+                    encoded.push('\\');
+                    encoded.push(escaped);
+                }
+                first @ '0'..='7' => {
+                    let mut value = first.to_digit(8)?;
+                    for _ in 0..if first <= '3' { 2 } else { 1 } {
+                        let Some(next) = chars.peek().and_then(|ch| ch.to_digit(8)) else {
+                            break;
+                        };
+                        value = value * 8 + next;
+                        chars.next();
+                    }
+                    encoded.push_str(&format!("\\u{value:04x}"));
+                }
+                _ => return None,
+            }
+        } else {
+            // An interpolated name is dynamic, even if grammar recovery accepts it.
+            if ch == '$'
+                && quote.starts_with('"')
+                && chars
+                    .peek()
+                    .is_some_and(|ch| *ch == '{' || *ch == '_' || ch.is_alphabetic())
+            {
+                return None;
+            }
+            let escaped = serde_json::to_string(&ch.to_string()).ok()?;
+            encoded.push_str(&escaped[1..escaped.len() - 1]);
+        }
+    }
+    encoded.push('"');
+    serde_json::from_str(&encoded).ok()
 }
 
 fn gradle_task_name(text: &str) -> Option<String> {
@@ -179,7 +235,7 @@ impl LanguageSpec for GroovySpec {
     }
 
     fn grammar(&self, _ext: &str) -> Language {
-        tree_sitter_groovy::LANGUAGE.into()
+        super::bundled_grammars::GROOVY.into()
     }
 
     fn query(&self, ext: &str) -> &'static Query {
@@ -213,6 +269,19 @@ impl LanguageSpec for GroovySpec {
         true
     }
 
+    fn refine_kind(&self, capture_name: &str, node: Node, kind: &'static str) -> &'static str {
+        if capture_name == "symbol.class" {
+            let mut cursor = node.walk();
+            if node
+                .children(&mut cursor)
+                .any(|child| child.kind() == "trait")
+            {
+                return "trait";
+            }
+        }
+        kind
+    }
+
     fn name_for_capture(
         &self,
         capture_name: &str,
@@ -222,6 +291,16 @@ impl LanguageSpec for GroovySpec {
         source: &[u8],
         _asm_meta_kind_text: &Option<String>,
     ) -> Option<NameDecision> {
+        if matches!(capture_name, "symbol.method" | "symbol.fn") {
+            let name = node.child_by_field_name("name")?;
+            if matches!(name.kind(), "string_literal" | "character_literal") {
+                return Some(
+                    quoted_method_name(name, source)
+                        .map(NameDecision::Name)
+                        .unwrap_or(NameDecision::Skip),
+                );
+            }
+        }
         (capture_name == "symbol.gradle_target").then(|| {
             node.utf8_text(source)
                 .ok()

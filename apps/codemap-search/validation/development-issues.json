@@ -1,5 +1,5 @@
 {
-  "updated_date": "2026-09-13",
+  "updated_date": "2026-09-14",
   "scope": "공개 검증에서 확인한 개선 사항과 남은 작업. 항목 수는 실패 검사 수나 언어별 정확도가 아니다.",
   "status_meanings": {
     "fixed": "명시한 재현 범위의 수정과 검증 완료",
@@ -121,51 +121,46 @@
     },
     {
       "id": "ordinary-context-first-read",
-      "status": "open",
       "title": "대형 저장소 일반 코드의 첫 자동 문맥 지연",
       "languages": [
         "powershell"
       ],
+      "status": "mitigated",
+      "change": "무관한 언어 후보를 먼저 제외하고 테스트 영역과 원문 분석을 필요한 심볼·파일에 대해 지연 수행한다.",
       "evidence": [
-        "Azure/azure-powershell src/DevCenter/DevCenterData.AutoRest/custom/New-AzDevCenterUserDevBox.ps1",
-        "improvements-final-powershell-20260913: default 25588.146 ms, structural 39071.153 ms"
+        "verify-20260913T140647072947-93020-languages: Azure default 3571.969 ms, structural 3746.430 ms",
+        "previous installed: 25588.146 ms / 39071.153 ms"
       ],
-      "remaining": "후보 소스 전체의 테스트 영역 분석과 문맥 자료 준비 비용이 남는다. cm은 명령마다 새 MCP 프로세스를 시작한다.",
-      "next_step": "문맥 대상과 호출 후보를 좁힌 뒤 필요한 파일만 파싱하는 흐름으로 개선하고 같은 공개 저장소의 첫 요청을 재측정한다."
+      "remaining": "일반 문맥은 수 초가 남는다. 새 색인 준비는 480.157 / 558.842초였으며 요청 시간과 별개다. OS 캐시와 부하를 격리한 성능 벤치마크는 아니다."
     },
     {
       "id": "zsh-nonterminating-parse",
-      "status": "mitigated",
       "title": "Zinit 파일의 Zsh 파서 무한 처리",
       "languages": [
         "zsh"
       ],
-      "change": "코드 구문 분석에 5000 ms 진행 콜백 제한과 취소 후 parser.reset()을 적용한다. 색인 전체는 약 6.2초에 준비된다.",
+      "status": "fixed",
+      "change": "스캐너의 문자 집합 안 괄호·길이 0인 토큰·깊이 카운터 처리와 일부 문법을 수정한 파서를 내장한다. 기존 5000ms 방어 제한은 유지한다.",
       "evidence": [
-        "zdharma-continuum/zinit zinit-autoload.zsh",
         "minimal source: c=${x//[^)]}",
-        "improvements-final-public-20260913",
-        "https://github.com/georgeharker/tree-sitter-zsh/issues/37"
+        "verify-20260913T140647072947-93020-languages: Zsh 180 pass, 0 fail, 16 unverified",
+        "vendor/tree-sitter-zsh/upstream.patch"
       ],
-      "remaining": "문제 파일은 여전히 구문 분석할 수 없어 두 설정에서 각각 실패 1건으로 남는다. 문법 자체를 고친 것은 아니다.",
-      "next_step": "Zsh 문법의 반복 축약을 수정하거나 수정된 upstream 버전을 검증한다."
+      "limits": "무한 처리의 수정이며 모든 Zsh 구문 지원을 의미하지 않는다. Oh My Zsh 3개·Zinit 5개씩 두 설정의 선언 대조 보류는 유지한다."
     },
     {
       "id": "groovy-quoted-methods",
-      "status": "mitigated",
       "title": "Groovy 따옴표 메서드를 def 생성자로 오인",
       "languages": [
         "groovy"
       ],
-      "change": "구문 오류 복구가 만든 def 생성자를 선언 목록과 검색용 보조 색인에서 차단한다.",
+      "status": "fixed",
+      "change": "정적인 문자열 메서드 이름과 줄바꿈 선언·trait·괄호 없는 호출 등을 지원한다. 동적 보간 이름을 확정하지 않는다.",
       "evidence": [
-        "gradle/gradle platforms/core-configuration/project-features/src/integTest/groovy/org/gradle/features/ProjectFeatureSafetyIntegrationTest.groovy:43",
-        "AST constructor_declaration name=def with ERROR(character_literal)",
-        "improvements-final-groovy-20260913: each profile 53 pass, 0 fail, 11 unverified",
-        "groovy_quoted_method_recovery_does_not_index_def_as_a_constructor"
+        "remaining-groovy-checked-20260913: 254 pass, 0 fail, 0 unverified",
+        "vendor/tree-sitter-groovy/upstream.patch"
       ],
-      "remaining": "따옴표 메서드 자체의 선언 누락은 남아 있다. 잘못된 이름을 올바른 선언으로 추정해 채우지 않는다.",
-      "next_step": "Groovy 문법의 quoted method 선언 지원을 보완하고 SourceUnit 결과와 재대조한다."
+      "limits": "Groovy SourceUnit의 내부 생성자 한정 이름은 실제 선언 줄이 짧은 생성자 이름과 일치할 때만 비교용으로 정규화하고 원래 이름을 보존한다."
     },
     {
       "id": "flow-syntax",
@@ -183,20 +178,21 @@
     },
     {
       "id": "non-utf8-index-input",
-      "status": "open",
       "title": "비 UTF-8 소스의 read와 색인 입력 범위 차이",
       "languages": [
         "asm"
       ],
+      "status": "fixed",
+      "decision": "사용자가 UTF-8만 색인하고 제외 이유를 명시하기로 결정했다.",
+      "change": "최초 오류 바이트와 색인 제외 안내를 표시하고 비 UTF-8로 변경된 파일의 이전 심볼을 제거한다. 원문과 read의 대체 문자 정책은 유지한다.",
       "evidence": [
-        "gnutools/glibc sysdeps/i386/fpu/e_atanhl.S"
+        "gnutools/glibc sysdeps/i386/fpu/e_atanhl.S",
+        "verify-20260913T140647072947-93020-languages: no non-UTF-8 input failure"
       ],
-      "remaining": "read는 손실 허용 디코딩을 하지만 색인은 해당 파일을 수집하지 않는다. 두 설정에서 실패가 유지된다.",
-      "next_step": "인코딩 입력 계약과 원문 좌표 보존 방식을 정한 뒤 별도로 구현한다."
+      "limits": "다른 인코딩을 추정하거나 색인하지 않는다."
     },
     {
       "id": "search-discovery-replay",
-      "status": "unverified",
       "title": "이전 공개 검증의 목표 파일 미노출 질의",
       "languages": [
         "python",
@@ -208,24 +204,83 @@
         "vue",
         "svelte"
       ],
+      "status": "mitigated",
+      "change": "전체 92개 설정에서 이전 질의를 다시 실행했다. 정확한 파일명 후보와 경로 순위를 보완하고 ASM 명령 이름은 검색용 참조로 수집한다.",
       "evidence": [
-        "development-results.json public_expansion.profiles[].nonpassing_checks category=search_discovery"
+        "verify-20260913T140647072947-93020-languages",
+        "development-results.json search_failure_triage"
       ],
-      "remaining": "이전 수정 단계에서 실패한 13개 질의 × 2설정, 26항목이다. 이번 파일명 감점 수정 후 해당 저장소 전부를 다시 실행하지 않았으므로 현재 바이너리의 실패로 단정하지 않는다.",
-      "next_step": "고정된 원래 질의를 현재 바이너리의 새 색인으로 재실행하고 검색 순위·출력 한도·대조기 이름 문제를 분리한다."
+      "remaining": "원래 실패 4건 유지: Kotlin C/Kotlin 복합 테스트 입력 2건, glibc 같은 이름의 ASM 파일 16개와 출력 한도 사례 2건. glibc는 준비된 색인에서 정확한 전체 경로 질의로 대상 노출을 확인했다."
     },
     {
       "id": "declaration-oracle-triage",
-      "status": "unverified",
       "title": "독립 파서와 선언 목록·범위가 다른 보류 항목",
       "languages": [
         "all"
       ],
+      "status": "unverified",
       "evidence": [
         "development-results.json public_expansion.profiles[].nonpassing_checks category=declaration_comparison"
       ],
-      "remaining": "판정 보류 전체를 제품 오류나 대조기 오류로 분류하지 않았다. C# 연산자·명시적 인터페이스 표기는 위치와 끝 줄을 유지하며 비교를 보정했고, primary constructor 타입 헤더의 Ctags 오분류도 원문으로 확인했다.",
-      "next_step": "나머지 사례를 원문과 별도 파서로 하나씩 분류하고 확정한 제품 결함을 독립 항목으로 추적한다."
+      "remaining": "216개 검사 보류를 제품 결함·대조기 오류로 일괄 판정하지 않는다. Ctags의 매크로 호출·타입 헤더 오분류, 컴파일러 복합/비정상 입력, JS/TS 지역 변수·객체 속성·prototype 함수 표현식의 현재 수집 범위 차이가 포함된다.",
+      "next_step": "고정 원문과 독립 파서의 차이를 개별 분류하고 확정한 제품 결함을 별도 추적한다."
+    },
+    {
+      "id": "kotlin-annotated-functions",
+      "status": "fixed",
+      "title": "Kotlin 애너테이션 함수의 표현식 오인",
+      "languages": [
+        "kotlin"
+      ],
+      "change": "함수 선언의 동적 우선순위를 조정한 파서를 내장한다.",
+      "evidence": [
+        "signalapp/Signal-Android ParticipantActionsSheet.kt AdminPreview",
+        "verify-20260913T140647072947-93020-languages: Signal Android 63 pass per profile, 0 fail, 0 unverified"
+      ]
+    },
+    {
+      "id": "cpp-conversion-operators",
+      "status": "fixed",
+      "title": "C++ 변환 연산자 선언 누락",
+      "languages": [
+        "cpp"
+      ],
+      "change": "변환 타입·소유자·접근 범위를 확인해 정의와 prototype을 수집한다.",
+      "evidence": [
+        "library conversion-operator checks",
+        "verify-20260913T140647072947-93020-languages"
+      ],
+      "limits": "모든 C++ 템플릿·매크로 구문을 포괄한다는 의미는 아니다."
+    },
+    {
+      "id": "native-macro-declarations",
+      "status": "fixed",
+      "title": "빌드 문맥 기반 매크로 생성 선언",
+      "languages": [
+        "c",
+        "cpp",
+        "asm"
+      ],
+      "change": "compile_commands.json·compile_flags.txt·사용자 설정과 설치된 Clang/NASM으로 생성 선언을 원본 줄에 연결한다. 헤더·설정 변경을 재색인에 반영하며 불완전한 입력에는 이유를 표시한다.",
+      "evidence": [
+        "six native preprocessing unit checks passed with NASM 2.16.03",
+        "macro MCP e2e passed",
+        "installed cm: C token-paste, macro static visibility, FFmpeg x86inc.asm cglobal -> ff_cm_public_probe at source line 3"
+      ],
+      "limits": "기본 비활성. clangd 실행·.clangd 읽기·확장 토큰 열 좌표는 제공하지 않는다. 전처리 파일의 호출·상수 참조는 미해결이며 전체 공개 저장소를 매크로 모드로 재검증하지 않았다. GNU assembler .macro, Windows/Linux 실행은 미확인."
+    },
+    {
+      "id": "config-string-migration",
+      "status": "fixed",
+      "title": "TOML 문자열을 설정 섹션·버전으로 오인",
+      "languages": [
+        "all"
+      ],
+      "change": "실제 TOML 구문 범위로 섹션·버전 주석을 구분해 사용자 문자열을 보존한다.",
+      "evidence": [
+        "config library migration checks",
+        "four exclusion e2e checks passed after schema 10 expectation update"
+      ]
     }
   ]
 }

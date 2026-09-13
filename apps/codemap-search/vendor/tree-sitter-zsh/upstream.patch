@@ -1,0 +1,148 @@
+diff --git a/grammar.js b/grammar.js
+index c848d5d..2ed3059 100644
+--- a/grammar.js
++++ b/grammar.js
+@@ -161,7 +161,8 @@ module.exports = grammar({
+     $._c_word,
+     $._statement_not_subshell,
+     $._redirect,
+-    $._word_or_word_with_colon
++    $._word_or_word_with_colon,
++    $._function_name
+   ],
+ 
+   externals: $ => [
+@@ -283,9 +284,9 @@ module.exports = grammar({
+                     $._terminator,
+                 )
+             ),
+-            optional($._simple_statement),
++            optional($._statement),
+         ),
+-        $._simple_statement
++        $._statement
+       )),
+ 
+     // Statements
+@@ -502,14 +503,13 @@ module.exports = grammar({
+       'done',
+     ),
+ 
+-    if_statement: $ => seq(
+-      'if',
+-      field('condition', $._terminated_statement),
+-      'then',
+-      optional($._terminated_statement),
+-      repeat($.elif_clause),
+-      optional($.else_clause),
+-      'fi',
++    if_statement: $ => choice(
++      seq(
++        'if', field('condition', $._terminated_statement), 'then',
++        optional($._terminated_statement), repeat($.elif_clause),
++        optional($.else_clause), 'fi',
++      ),
++      seq('if', field('condition', $.test_command), $.compound_statement),
+     ),
+ 
+     elif_clause: $ => seq(
+@@ -574,16 +574,27 @@ module.exports = grammar({
+       ))),
+     ),
+ 
++    _colon_word: $ => token(seq(':', repeat(choice(
++        noneOf(...SPECIAL_CHARACTERS.filter(c => c !== ':')),
++        seq('\\', noneOf('\\s')),
++        '\\ ',
++    )))),
++
++    _function_name: $ => choice(
++      $._word_or_word_with_colon,
++      alias($._colon_word, $.word),
++    ),
++
+     function_definition: $ => prec(4, prec.right(seq(
+       choice(
+         seq(
+           'function',
+-          repeat1(field('name', $._word_or_word_with_colon)),
++          repeat1(field('name', $._function_name)),
+           optional(seq(
+              '(', ')')),
+         ),
+         seq(
+-          field('name', optional($._word_or_word_with_colon)),
++          field('name', optional($._function_name)),
+           '(', ')',
+         ),
+       ),
+@@ -751,7 +762,7 @@ module.exports = grammar({
+       ),
+     )),
+ 
+-    command_name: $ => $._literal,
++    command_name: $ => choice($._literal, alias($._colon_word, $.word)),
+ 
+     variable_assignment: $ => seq(
+       field('name', choice(
+@@ -867,7 +878,7 @@ module.exports = grammar({
+       field('descriptor', optional($.file_descriptor)),
+       choice(
+         seq(
+-          choice('<', '>', '>>', '&>', '&>>', '<&', '>&', '>|'),
++          choice('<', '>', '>>', '<>', '&>', '&>>', '<&', '>&', '>|', '>!', '>>|', '>>!'),
+           field('destination', repeat1($._literal)),
+         ),
+         seq(
+diff --git a/src/scanner.c b/src/scanner.c
+index 994e3c7..58bd47b 100644
+--- a/src/scanner.c
++++ b/src/scanner.c
+@@ -1959,7 +1959,7 @@ regex:
+                 case '\0':
+                     return false;
+                 case '(':
+-                    state.paren_depth++;
++                    if (state.bracket_depth == 0) state.paren_depth++;
+                     state.last_was_escape = false;
+                     break;
+                 case '[':
+@@ -1973,24 +1973,24 @@ regex:
+                     state.last_was_escape = false;
+                     break;
+                 case ')':
+-                    if (state.paren_depth == 0) {
+-                        state.done = true;
++                    if (state.bracket_depth == 0) {
++                        if (state.paren_depth == 0) state.done = true;
++                        else state.paren_depth--;
+                     }
+-                    state.paren_depth--;
+                     state.last_was_escape = false;
+                     break;
+                 case ']':
+                     if (state.bracket_depth == 0) {
+                         state.done = true;
+                     }
+-                    state.bracket_depth--;
++                    else state.bracket_depth--;
+                     state.last_was_escape = false;
+                     break;
+                 case '}':
+                     if (state.brace_depth == 0) {
+                         state.done = true;
+                     }
+-                    state.brace_depth--;
++                    else state.brace_depth--;
+                     state.last_was_escape = false;
+                     break;
+                 case '\'':
+@@ -2119,7 +2119,7 @@ regex:
+             fprintf(stderr, "DEBUG: regex scan returning regex\n");
+ #endif
+ 
+-            return true;
++            return state.advanced_once;
+         }
+     }
+ 

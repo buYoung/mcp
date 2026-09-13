@@ -15,22 +15,37 @@ if (source.parseDiagnostics.length) {
   const declarations = [];
   const calls = [];
   const line = position => source.getLineAndCharacterOfPosition(position).line + 1;
+  function staticName(node) {
+    return node && (ts.isIdentifier(node) || ts.isPrivateIdentifier(node) || ts.isStringLiteral(node))
+      ? node : null;
+  }
+  function bindingName(node) {
+    const parent = node.parent;
+    if ((ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent))
+      && parent.initializer === node) return staticName(parent.name);
+    if (ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.right === node) {
+      return staticName(ts.isPropertyAccessExpression(parent.left) ? parent.left.name : parent.left);
+    }
+    return null;
+  }
   function visit(node, functionDepth = 0) {
     const isNamedFunction = ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)
       || ts.isMethodSignature(node) || ts.isConstructorDeclaration(node)
       || ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node);
-    if (isNamedFunction && functionDepth === 0) {
+    const boundName = ts.isArrowFunction(node) || ts.isFunctionExpression(node) ? bindingName(node) : null;
+    if ((isNamedFunction || boundName) && functionDepth === 0) {
       const isConstructor = ts.isConstructorDeclaration(node);
       const name = isConstructor ? 'constructor'
-        : node.name && (ts.isIdentifier(node.name) || ts.isPrivateIdentifier(node.name) || ts.isStringLiteral(node.name))
-          ? node.name.getText(source) : null;
+        : boundName ? boundName.getText(source) : staticName(node.name)?.getText(source);
       if (name) declarations.push({ name, kind: 'fn', start: line(node.getStart(source)),
-        name_line: line(node.name ? node.name.getStart(source) : node.getStart(source)), end: line(node.getEnd() - 1) });
+        name_line: line((boundName || node.name || node).getStart(source)), end: line(node.getEnd() - 1) });
     }
     if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
       calls.push({ function: node.expression.getText(source), line: line(node.getStart(source)), end: line(node.getEnd() - 1) });
     }
-    const nextDepth = functionDepth + Number(isNamedFunction || ts.isArrowFunction(node) || ts.isFunctionExpression(node));
+    // File overview lists named declarations outside other named callables.
+    // An anonymous registration callback is not itself a named declaration.
+    const nextDepth = functionDepth + Number(isNamedFunction || Boolean(boundName));
     ts.forEachChild(node, child => visit(child, nextDepth));
   }
   visit(source);

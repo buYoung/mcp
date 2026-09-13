@@ -196,7 +196,7 @@ fn has_binding(source: &Source, at: Node, name: &str, target: Option<&ExtractedS
 impl<'a> SourceResolver<'a> {
     pub(super) fn resolve_local_call(
         &self,
-        file: &ExtractedFile,
+        file: &'a ExtractedFile,
         call: &CallSite,
     ) -> Option<Target<'a>> {
         let source = self.source(&file.file_path)?;
@@ -267,11 +267,15 @@ impl<'a> SourceResolver<'a> {
                 | "astro"
                 | "svelte"
         );
-        let mut candidates: Vec<_> = self
-            .names
-            .get(call.name.as_str())?
+        let mut candidates: Vec<_> = file
+            .symbols
             .iter()
-            .copied()
+            .filter(|symbol| symbol.name == call.name)
+            .map(|symbol| Target {
+                file,
+                symbol,
+                is_precise: true,
+            })
             .filter(|target| {
                 target.file.file_path == file.file_path
                     && target.symbol.kind == "fn"
@@ -374,11 +378,15 @@ impl<'a> SourceResolver<'a> {
         } else {
             import.imported_name.as_deref()?
         };
-        let targets = self
-            .names
-            .get(name)?
+        let targets = target_file
+            .symbols
             .iter()
-            .copied()
+            .filter(|symbol| symbol.name == name)
+            .map(|symbol| Target {
+                file: target_file,
+                symbol,
+                is_precise: true,
+            })
             .filter(|target| {
                 target.file.file_path == target_file.file_path
                     && target.symbol.kind == "fn"

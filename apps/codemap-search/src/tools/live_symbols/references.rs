@@ -183,7 +183,7 @@ pub(super) fn collect_with_resolver(
         .map(|spec| spec.language_name())
         .unwrap_or("");
     for symbol in &file.symbols {
-        if let Some(node) = symbol_node(tree, symbol) {
+        if let Some(node) = symbol_node(tree, symbol, source) {
             if let Some((declaration, value)) =
                 declarations::binding(node, symbol, language, source)
             {
@@ -203,7 +203,7 @@ pub(super) fn collect_with_resolver(
         if !callable(symbol) {
             continue;
         }
-        let Some(root) = symbol_node(tree, symbol) else {
+        let Some(root) = symbol_node(tree, symbol, source) else {
             continue;
         };
         let mut references = BTreeMap::new();
@@ -526,6 +526,11 @@ int cm_validation_unknown(int (*cm_validation_target)(void)) { return cm_validat
             "    - TITLE — src/page.ts:1 = '두  칸'\n"
         );
         assert!(context(source, "src/page.ts", "shadow").is_empty());
+        let scala = "val LIMIT = 7\n\ndef first(): Unit =\n  println(LIMIT)\n\n// next function\ndef second(): Unit = ()\n";
+        assert_eq!(
+            context(scala, "layout.scala", "first"),
+            "    - LIMIT — layout.scala:1 = 7\n"
+        );
         for (path, source) in [
             (
                 "comment.cs",

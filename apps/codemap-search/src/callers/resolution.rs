@@ -29,6 +29,7 @@ struct Source {
 
 pub(crate) struct SourceResolver<'a> {
     files: &'a [ExtractedFile],
+    files_by_path: HashMap<&'a str, &'a ExtractedFile>,
     root: &'a Path,
     names: HashMap<&'a str, Vec<Target<'a>>>,
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
@@ -61,7 +62,7 @@ fn node_at<'a>(source: &'a Source, range: &CodeRange) -> Option<Node<'a>> {
         .tree_for_range(range)?
         .root_node()
         .descendant_for_point_range(start, end)?;
-    while node.start_position() != start || node.end_position() != end {
+    while !crate::parser::node_matches_source_range(node, source.text.as_bytes(), range) {
         node = node.parent()?;
     }
     Some(node)
@@ -214,7 +215,10 @@ fn unique<'a>(targets: Vec<Target<'a>>) -> Option<Target<'a>> {
 impl<'a> SourceResolver<'a> {
     pub(crate) fn new(files: &'a [ExtractedFile], root: &'a Path) -> Self {
         let mut names: HashMap<_, Vec<_>> = HashMap::new();
-        for file in files.iter().filter(|file| supports(&file.file_path)) {
+        for file in files
+            .iter()
+            .filter(|file| supports_modules(&file.file_path))
+        {
             for symbol in &file.symbols {
                 names.entry(symbol.name.as_str()).or_default().push(Target {
                     file,
@@ -225,6 +229,11 @@ impl<'a> SourceResolver<'a> {
         }
         Self {
             files,
+            files_by_path: files
+                .iter()
+                .filter(|file| supports(&file.file_path))
+                .map(|file| (file.file_path.as_str(), file))
+                .collect(),
             root,
             names,
             sources: RefCell::new(HashMap::new()),
@@ -260,7 +269,7 @@ impl<'a> SourceResolver<'a> {
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {
         let key = crate::workspace::workspace_relative_key(path, self.root);
-        self.files.iter().find(|file| file.file_path == key)
+        self.files_by_path.get(key.as_str()).copied()
     }
 
     fn nearest(&self, path: &str, name: &str) -> Option<PathBuf> {
@@ -943,13 +952,10 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
+        let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
         if local::supports(&file.file_path) {
             return self.resolve_local_call(file, call);
         }
-        let file = self
-            .files
-            .iter()
-            .find(|candidate| candidate.file_path == file.file_path)?;
         let source = self.source(&file.file_path)?;
         let node = node_at(&source, &call.range)?;
         if node.kind() == "macro_invocation" {

@@ -28,6 +28,7 @@
 
 mod asm;
 mod bash;
+pub(crate) mod bundled_grammars;
 pub(crate) mod c_family;
 mod cmake;
 mod component;

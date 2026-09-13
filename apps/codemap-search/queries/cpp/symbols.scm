@@ -10,6 +10,10 @@
 (declaration
   declarator: (function_declarator)) @symbol.cfn
 
+;; Conversion operator prototypes use operator_cast instead of function_declarator.
+(declaration declarator: (operator_cast)) @symbol.cfn
+(field_declaration declarator: (operator_cast)) @symbol.cfn
+
 ;; Reference-returning prototypes / method declarations: `T& f();`, `T&& g();`. The
 ;; `declarator` field is a `reference_declarator` wrapping the `function_declarator`
 ;; (tree-sitter-cpp 0.23.4). The definition form is already covered by `(function_definition)`;

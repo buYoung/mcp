@@ -24,7 +24,7 @@ const KOTLIN_STATIC_COLLECTION_QUERY_STR: &str =
 fn get_kotlin_query() -> &'static Query {
     static KOTLIN_QUERY: OnceLock<Query> = OnceLock::new();
     KOTLIN_QUERY.get_or_init(|| {
-        Query::new(&tree_sitter_kotlin_ng::LANGUAGE.into(), KOTLIN_QUERY_STR)
+        Query::new(&super::bundled_grammars::KOTLIN.into(), KOTLIN_QUERY_STR)
             .expect("Failed to compile Kotlin query")
     })
 }
@@ -33,7 +33,7 @@ fn get_kotlin_tags_query() -> &'static Query {
     static KOTLIN_TAGS_QUERY: OnceLock<Query> = OnceLock::new();
     KOTLIN_TAGS_QUERY.get_or_init(|| {
         Query::new(
-            &tree_sitter_kotlin_ng::LANGUAGE.into(),
+            &super::bundled_grammars::KOTLIN.into(),
             KOTLIN_TAGS_QUERY_STR,
         )
         .expect("Failed to compile Kotlin tags query")
@@ -44,7 +44,7 @@ fn get_kotlin_static_collection_query() -> &'static Query {
     static QUERY: OnceLock<Query> = OnceLock::new();
     QUERY.get_or_init(|| {
         Query::new(
-            &tree_sitter_kotlin_ng::LANGUAGE.into(),
+            &super::bundled_grammars::KOTLIN.into(),
             KOTLIN_STATIC_COLLECTION_QUERY_STR,
         )
         .expect("Failed to compile Kotlin static collection query")
@@ -117,7 +117,7 @@ impl LanguageSpec for KotlinSpec {
     }
 
     fn grammar(&self, _ext: &str) -> Language {
-        tree_sitter_kotlin_ng::LANGUAGE.into()
+        super::bundled_grammars::KOTLIN.into()
     }
 
     fn query(&self, _ext: &str) -> &'static Query {

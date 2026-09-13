@@ -101,7 +101,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let content = std::fs::read_to_string(path)?;
             let extractor = TreeSitterExtractor::new();
-            let extracted = extractor.extract(&content, file)?;
+            let mut extracted = extractor.extract(&content, file)?;
+            codemap_search::index::MacroExpander::new(
+                &cwd,
+                codemap_search::config::get().macro_expansion.clone(),
+            )
+            .expand(path, &content, &mut extracted);
             let json = serde_json::to_string_pretty(&extracted)?;
             println!("{}", json);
         }
@@ -125,6 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut extracted_files = Vec::new();
             let extractor = TreeSitterExtractor::new();
 
+            let mut macro_expander = codemap_search::index::MacroExpander::new(
+                &cwd,
+                codemap_search::config::get().macro_expansion.clone(),
+            );
+
             // Shared walker: EXCLUDED_DIRS + .gitignore/.codemapignore (Child 04), so the
             // CLI codemap matches the MCP overview and never traverses node_modules/.git.
             for entry in codemap_search::workspace::build_walker(&cwd, false)
@@ -140,7 +150,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let rel_path_str =
                     codemap_search::workspace::workspace_relative_key(file_path, &cwd);
                 if let Some(content) = codemap_search::workspace::read_source_for_parse(file_path) {
-                    if let Ok(extracted) = extractor.extract(&content, &rel_path_str) {
+                    if let Ok(mut extracted) = extractor.extract(&content, &rel_path_str) {
+                        macro_expander.expand(file_path, &content, &mut extracted);
                         extracted_files.push(extracted);
                     }
                 }
@@ -157,7 +168,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("{}", view);
                         return Ok(());
                     }
-                    eprintln!("Error: Failed to process file '{}'", p);
+                    let reason = codemap_search::workspace::source_encoding_exclusion(&target_path)
+                        .unwrap_or_else(|| "Failed to process file".to_string());
+                    eprintln!("Error: {}: {}", p, reason);
                     std::process::exit(1);
                 } else {
                     let view = CodemapGenerator::generate_folder_view(&extracted_files, p);

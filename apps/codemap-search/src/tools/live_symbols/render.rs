@@ -100,15 +100,22 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
                 }
                 let symbol = &outline.file.symbols[i];
                 relation_targets += 1;
-                let detail = annotations
-                    .as_ref()
-                    .and_then(|a| {
-                        a.render_live_relations(&outline.file.file_path, symbol.range.start_line)
-                    })
-                    .unwrap_or_else(|| {
-                        "  - [Caller/callee unavailable or omitted by scan/output budget.]\n"
-                            .to_string()
-                    });
+                let detail = if outline.file.macro_expansion().is_some() {
+                    "  - [Call and constant-reference attribution unresolved after preprocessing.]\n".to_string()
+                } else {
+                    annotations
+                        .as_ref()
+                        .and_then(|a| {
+                            a.render_live_relations(
+                                &outline.file.file_path,
+                                symbol.range.start_line,
+                            )
+                        })
+                        .unwrap_or_else(|| {
+                            "  - [Caller/callee unavailable or omitted by scan/output budget.]\n"
+                                .to_string()
+                        })
+                };
                 let indent = "  ".repeat(outline.chain(i).len() - 1);
                 let indented = detail
                     .lines()
@@ -126,7 +133,11 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
                 } else {
                     relation_omitted += 1;
                 }
-                if let Some(rows) = outline.references.get(&i) {
+                if let Some(rows) = outline
+                    .references
+                    .get(&i)
+                    .filter(|_| outline.file.macro_expansion().is_none())
+                {
                     let header =
                         format!("{indent}  - _references (constants; same-file or explicit source import):_\n");
                     let mut references = String::new();

@@ -6,6 +6,34 @@ use std::thread::sleep;
 use std::time::Duration;
 
 #[test]
+fn test_explicit_filename_is_recalled_after_common_symbols_fill_the_primary_pool() {
+    let mut fixtures: Vec<(String, String)> = (0..40)
+        .map(|index| {
+            (
+                format!("src/registry_search/noise_{index}.rs"),
+                "pub fn lookup() {}\npub fn registry_search() {}\n".to_string(),
+            )
+        })
+        .collect();
+    fixtures.push((
+        "src/registry_search.rs".to_string(),
+        "pub fn lookup() {}\n".to_string(),
+    ));
+    let borrowed: Vec<_> = fixtures
+        .iter()
+        .map(|(path, content)| (path.as_str(), content.as_str()))
+        .collect();
+    let temp = create_mock_repo(&borrowed).unwrap();
+    run_cli(&["index"], temp.path()).success();
+    run_cli(
+        &["search", "lookup registry_search", "--limit", "1"],
+        temp.path(),
+    )
+    .success()
+    .stdout(predicates::str::starts_with("src/registry_search.rs\n"));
+}
+
+#[test]
 fn test_bm25_explicit_test_filename_is_not_demoted() {
     let temp = create_mock_repo(&[
         ("src/production.rs", "pub fn append() {}"),

@@ -11,7 +11,7 @@ const QUERY_SOURCE: &str = include_str!("../../queries/zsh/symbols.scm");
 fn query() -> &'static Query {
     static QUERY: OnceLock<Query> = OnceLock::new();
     QUERY.get_or_init(|| {
-        Query::new(&tree_sitter_zsh::LANGUAGE.into(), QUERY_SOURCE)
+        Query::new(&super::bundled_grammars::ZSH.into(), QUERY_SOURCE)
             .expect("Failed to compile Zsh query")
     })
 }
@@ -41,7 +41,7 @@ impl LanguageSpec for ZshSpec {
         "zsh"
     }
     fn grammar(&self, _ext: &str) -> Language {
-        tree_sitter_zsh::LANGUAGE.into()
+        super::bundled_grammars::ZSH.into()
     }
     fn query(&self, _ext: &str) -> &'static Query {
         query()
@@ -62,6 +62,22 @@ impl LanguageSpec for ZshSpec {
         true
     }
     fn capture_is_valid(&self, capture: &str, node: Node<'_>, source: &[u8]) -> bool {
+        if capture == "symbol.fn" {
+            let Some(name) = node.child_by_field_name("name") else {
+                return false;
+            };
+            let Some(body) = node.child_by_field_name("body") else {
+                return false;
+            };
+            // An unsupported expression inside a complete body must not erase
+            // its independently parsed declaration header. Error ancestors and
+            // a missing body delimiter still make the boundary unreliable.
+            let mut last = body;
+            while let Some(child) = last.child(last.child_count().saturating_sub(1) as u32) {
+                last = child;
+            }
+            return is_recoverable(name) && !last.is_missing() && !last.is_error();
+        }
         is_recoverable(nearest_ancestor(
             node,
             &["function_definition", "variable_assignment", "command"],
@@ -81,13 +97,17 @@ impl LanguageSpec for ZshSpec {
     }
     fn name_for_capture(
         &self,
-        _capture: &str,
+        capture: &str,
         node: Node<'_>,
         _kind: &str,
         _ext: &str,
         source: &[u8],
         _meta: &Option<String>,
     ) -> Option<NameDecision> {
+        if capture == "symbol.fn" {
+            // The query's name capture also distinguishes `function first second`.
+            return None;
+        }
         Some(NameDecision::Name(clean(node, source)))
     }
 }

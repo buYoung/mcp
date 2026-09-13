@@ -1,0 +1,29 @@
+{
+  "groovy": {
+    "upstream": "https://github.com/amaanq/tree-sitter-groovy",
+    "revision": "70efb0b9b50f95bcbd89dcfd42b275e0304e10cf",
+    "parser_sha256": "b528d159d6ed382bf8425e074b9c3f049085befc3df8ca4a1133f09ddaab68d7",
+    "parser_gzip_sha256": "396bba8e588d334b045ed18763197ea18daa8c7ea534ef14e03e53f05b2e2121",
+    "generator": "tree-sitter-cli 0.24.4; tree-sitter-java grammar 0.23.4",
+    "scanner_sha256": null,
+    "grammar_sha256": "d9027d16d844c00e8c050a4ff2b0552d1778de55c611a49cc53b15f0297b164c"
+  },
+  "zsh": {
+    "upstream": "https://github.com/georgeharker/tree-sitter-zsh",
+    "revision": "7a593401efb5418ffdedbe3c0e4c61c6d240166d",
+    "parser_sha256": "9e98362b259ea0d045f8d4c762407ff1dee87d2a81f14c0f8b4470bc7a00e668",
+    "parser_gzip_sha256": "d932557e5d5414a88609003e41cedab2849ad8806586346c511b0c9e470b0dac",
+    "generator": "tree-sitter-cli 0.25.6; ABI 15",
+    "scanner_sha256": "72387fdf7e521f119f9eb6069611ea0e9ee12c7075968bd194479e570f955c4d",
+    "grammar_sha256": "95bdd4b303bfbce21c89e38d818889344912ca096924b7dcd99927441c8b8ab1"
+  },
+  "kotlin": {
+    "upstream": "https://github.com/tree-sitter-grammars/tree-sitter-kotlin",
+    "revision": "77dd60ea0a9003ce062c9728a513ffe1aaff8c82",
+    "parser_sha256": "8a4966416a4cbb303e6b671d704ac4a258db37b302988baa7ec67d3b6234441f",
+    "parser_gzip_sha256": "40144e82deb2d44cce3d05ee1ad455b1766c40cfdafc3066826299b0f72d6305",
+    "generator": "tree-sitter-cli 0.25.6; ABI 15",
+    "scanner_sha256": "164c2bb928d23765ed38c3a322deaef9b52d6e147cec7cdf45add90d4fa6101c",
+    "grammar_sha256": "cb5841e643e38897fc626c952d32d0ef07b9723a920b3d70cf4f88cbb1050f1c"
+  }
+}

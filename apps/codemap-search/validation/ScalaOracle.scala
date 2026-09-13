@@ -22,8 +22,13 @@ object ScalaOracle {
       }
       if (name.nonEmpty && depth == 0) {
         val encoded = Base64.getEncoder.encodeToString(name.get.value.getBytes(StandardCharsets.UTF_8))
-        val end = node.pos.endLine + (if (node.pos.endColumn == 0) 0 else 1)
-        println(encoded + "\t" + (node.pos.startLine + 1) + "\t" + (name.get.pos.startLine + 1) + "\t" + end)
+        val nativeEnd = node.pos.endLine + (if (node.pos.endColumn == 0) 0 else 1)
+        // Definition ranges end at the final code token. Scalameta may include
+        // trailing indented comments in a Scala 3 declaration's position.
+        val last = node.tokens.reverseIterator.find(token =>
+          token.end > token.start && !token.isInstanceOf[scala.meta.tokens.Token.Trivia])
+        val end = last.map(token => token.pos.endLine + (if (token.pos.endColumn == 0) 0 else 1)).getOrElse(nativeEnd)
+        println(encoded + "\t" + (node.pos.startLine + 1) + "\t" + (name.get.pos.startLine + 1) + "\t" + end + "\t" + nativeEnd)
       }
       val nextDepth = depth + (if (name.nonEmpty || node.isInstanceOf[Term.Function]) 1 else 0)
       node.children.foreach(visit(_, nextDepth))

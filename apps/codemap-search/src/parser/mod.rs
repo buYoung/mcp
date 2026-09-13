@@ -157,6 +157,47 @@ fn range_for_node(node: Node) -> CodeRange {
     }
 }
 
+/// Layout tokens in indentation-sensitive grammars may consume the next line's
+/// indentation. A declaration ends at its last non-extra source token.
+pub(crate) fn declaration_source_range(node: Node<'_>, source: &[u8]) -> CodeRange {
+    let mut last = node;
+    loop {
+        let child = (0..last.child_count())
+            .rev()
+            .filter_map(|index| last.child(index as u32))
+            .find(|child| {
+                !child.is_extra() && !child.is_missing() && child.end_byte() > child.start_byte()
+            });
+        let Some(child) = child else { break };
+        last = child;
+    }
+    let mut range = range_for_node(node);
+    let original_end = last.end_byte().min(source.len());
+    let mut end = original_end;
+    while end > node.start_byte() && source[end - 1].is_ascii_whitespace() {
+        end -= 1;
+    }
+    let removed_lines = source[end..original_end]
+        .iter()
+        .filter(|&&byte| byte == b'\n')
+        .count();
+    range.end_line = last.end_position().row + 1 - removed_lines;
+    range.end_col = if removed_lines == 0 {
+        last.end_position().column + 1 - (original_end - end)
+    } else {
+        end - source[..end]
+            .iter()
+            .rposition(|&byte| byte == b'\n')
+            .map_or(0, |position| position + 1)
+            + 1
+    };
+    range
+}
+
+pub(crate) fn node_matches_source_range(node: Node<'_>, source: &[u8], range: &CodeRange) -> bool {
+    range_for_node(node) == *range || declaration_source_range(node, source) == *range
+}
+
 fn node_text(node: Node, source: &[u8]) -> Option<String> {
     node.utf8_text(source)
         .ok()
@@ -2387,7 +2428,11 @@ impl TreeSitterExtractor {
                         }
 
                         if !name.is_empty() {
-                            let range = range_for_node(node);
+                            let range = if matches!(spec.language_name(), "scala" | "groovy") {
+                                declaration_source_range(node, source)
+                            } else {
+                                range_for_node(node)
+                            };
 
                             // Associated comments proximity search. The per-language anchor
                             // adjusts the start node (Python `decorated_definition`, TS
@@ -2641,15 +2686,189 @@ mod tests {
     use super::*;
 
     #[test]
-    fn zsh_extraction_uses_the_same_parse_limit() {
-        let error = TreeSitterExtractor::new()
-            .extract_for_index("c=${x//[^)]}\n", "stuck.zsh")
-            .unwrap_err();
-        assert!(error.contains("5000 ms per-file limit"), "{error}");
+    fn zsh_parameter_patterns_keep_following_declarations() {
+        for pattern in [
+            "${x//[^)]}",
+            "${x/[)]}",
+            "${x//[a)b]/value}",
+            "${x//[^(]}",
+            "${x//[^\\)]}",
+        ] {
+            let source = format!("value={pattern}\nkept() {{ print ok; }}\n");
+            let (file, _) = TreeSitterExtractor::new()
+                .extract_for_index(&source, "pattern.zsh")
+                .unwrap();
+            assert!(
+                file.symbols
+                    .iter()
+                    .any(|symbol| symbol.name == "kept" && symbol.range.start_line == 2),
+                "{pattern}"
+            );
+        }
     }
 
     #[test]
-    fn groovy_quoted_method_recovery_does_not_index_def_as_a_constructor() {
+    fn zsh_function_names_keep_full_bodies_and_do_not_cross_statements() {
+        let source = ":first() {\n print ok\n}\nfunction second third {\n print ok\n}\necho ':fake() { print nope; }'\n:\nkept() { print ok; }\n";
+        let mut parser = Parser::new();
+        let spec = crate::lang::spec_for_path(std::path::Path::new("functions.zsh")).unwrap();
+        parser.set_language(&spec.grammar("zsh")).unwrap();
+        assert!(!parser.parse(source, None).unwrap().root_node().has_error());
+        let file = TreeSitterExtractor::new()
+            .extract(source, "functions.zsh")
+            .unwrap();
+        let declarations: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            declarations,
+            [
+                (":first", 1, 3),
+                ("second", 4, 6),
+                ("third", 4, 6),
+                ("kept", 9, 9)
+            ]
+        );
+    }
+
+    #[test]
+    fn zsh_compound_condition_lists_preserve_surrounding_functions() {
+        let source = "first() { print first; }\nif check || { ready && enabled }; then\n inside() { print inside; }\nfi\nlast() { first && inside }\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "conditions.zsh")
+            .unwrap();
+        let functions: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            functions,
+            [("first", 1, 1), ("inside", 3, 3), ("last", 5, 5)]
+        );
+    }
+
+    #[test]
+    fn groovy_commands_fields_and_traits_keep_strings_out_of_declarations() {
+        let source = r#"trait Codec {
+ String quote(String text) {
+  println """def phantom() {}"""
+  return text
+ }
+}
+class Runner {
+ static final String KEY = "id"
+ Runner() {
+  super()
+ }
+ static Runner make() { return new Runner(); }
+ @Test
+ void run() {
+  assertScript '''def fake() {}'''
+  assert view.@name == "ok"
+ }
+}
+"#;
+        let spec = crate::lang::spec_for_path(std::path::Path::new("commands.groovy")).unwrap();
+        let mut parser = Parser::new();
+        parser.set_language(&spec.grammar("groovy")).unwrap();
+        assert!(!parser.parse(source, None).unwrap().root_node().has_error());
+        let file = TreeSitterExtractor::new()
+            .extract(source, "commands.groovy")
+            .unwrap();
+        assert!(file
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name == "Codec" && symbol.kind == "trait"));
+        for (name, start, end) in [
+            ("quote", 2, 5),
+            ("Runner", 9, 11),
+            ("make", 12, 12),
+            ("run", 13, 17),
+        ] {
+            assert!(
+                file.symbols.iter().any(|symbol| symbol.name == name
+                    && symbol.kind == "fn"
+                    && symbol.range.start_line == start
+                    && symbol.range.end_line_inclusive() == end),
+                "{name}: {file:?}"
+            );
+        }
+        assert!(!file
+            .symbols
+            .iter()
+            .any(|symbol| matches!(symbol.name.as_str(), "phantom" | "fake")));
+    }
+
+    #[test]
+    fn zsh_braced_tests_and_redirections_preserve_function_ranges() {
+        let source = "first() {\n if [[ -n x ]] { print ok >! output; }\n while ready; do read value <> input; done >>! output\n print done >>| output\n}\nlast() { print 'phantom() { nope; }'; }\n";
+        let spec = crate::lang::spec_for_path(std::path::Path::new("redirects.zsh")).unwrap();
+        let mut parser = Parser::new();
+        parser.set_language(&spec.grammar("zsh")).unwrap();
+        assert!(!parser.parse(source, None).unwrap().root_node().has_error());
+        let file = TreeSitterExtractor::new()
+            .extract(source, "redirects.zsh")
+            .unwrap();
+        let functions: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                )
+            })
+            .collect();
+        assert_eq!(functions, [("first", 1, 5), ("last", 6, 6)]);
+    }
+
+    #[test]
+    fn scala_declarations_end_before_following_layout_and_comments() {
+        let source = "val LIMIT = 7\n\ndef first(): Unit =\n  println(LIMIT)\n\n// next function\ndef second(): Unit = ()\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "layout.scala")
+            .unwrap();
+        let first = file
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "first")
+            .unwrap();
+        assert_eq!(
+            (first.range.start_line, first.range.end_line_inclusive()),
+            (3, 4)
+        );
+        let second = file
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "second")
+            .unwrap();
+        assert_eq!(
+            (second.range.start_line, second.range.end_line_inclusive()),
+            (7, 7)
+        );
+    }
+
+    #[test]
+    fn groovy_quoted_methods_are_not_recovered_as_def_constructors() {
         let source = "class Example {\n Example() {}\n def setup() {}\n def 'has a quoted name'() {\n expect:\n 7 == 7\n }\n}\n";
         let (file, auxiliary) = TreeSitterExtractor::new()
             .extract_for_index(source, "quoted.groovy")
@@ -2660,10 +2879,84 @@ mod tests {
             .filter(|symbol| symbol.kind == "fn")
             .map(|symbol| symbol.name.as_str())
             .collect();
-        assert_eq!(callables, ["Example", "setup"]);
+        assert_eq!(callables, ["Example", "setup", "has a quoted name"]);
         assert!(auxiliary.definition_body.contains(&"Example".to_string()));
         assert!(auxiliary.definition_body.contains(&"setup".to_string()));
         assert!(!auxiliary.definition_body.contains(&"def".to_string()));
+    }
+
+    #[test]
+    fn groovy_quoted_names_decode_escapes_and_do_not_turn_strings_into_functions() {
+        let source = r#"class Example {
+ def "double quoted"() { return 1 }
+ def 'single \' quote'() { return 2 }
+ def "escaped \u0041"() { return 3 }
+ String text = "def phantom() {}"
+}
+def standalone() { return 4 }
+"#;
+        let file = TreeSitterExtractor::new()
+            .extract(source, "quoted.groovy")
+            .unwrap();
+        let names: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| symbol.name.as_str())
+            .collect();
+        assert_eq!(
+            names,
+            ["double quoted", "single ' quote", "escaped A", "standalone"]
+        );
+    }
+
+    #[test]
+    fn groovy_assert_and_safe_navigation_do_not_swallow_following_methods() {
+        let source = "class Example {\n def 'first case'() {\n  expect:\n  registry.runAsWorkerThread {\n   assert !registry.workerThread\n  }\n  cleanup:\n  registry?.stop()\n }\n def 'second case'() {\n  assert 7 == 7\n }\n}\n@interface Value {\n String value()\n}\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "cases.groovy")
+            .unwrap();
+        let actual: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            actual,
+            [
+                ("first case", 2, 9),
+                ("second case", 10, 12),
+                ("value", 15, 15)
+            ]
+        );
+    }
+
+    #[test]
+    fn kotlin_annotated_functions_take_precedence_over_infix_expressions() {
+        let source = "@Preview\n@Composable\nprivate fun first() {\n Screen { content(flag = true, first = {}, second = {}, third = {}, fourth = {}) }\n}\n@Preview\n@Composable\nprivate fun second() {}\nval text = \"private fun phantom() {}\"\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "preview.kt")
+            .unwrap();
+        let actual: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                )
+            })
+            .collect();
+        assert_eq!(actual, [("first", 1, 5), ("second", 6, 8)]);
     }
 
     #[test]
@@ -2680,6 +2973,36 @@ mod tests {
                 .map(|symbol| (symbol.name.as_str(), symbol.kind.as_str(), symbol.range.start_line, symbol.range.end_line_inclusive())).collect();
             assert_eq!(actual, expected, "{path}");
         }
+    }
+
+    #[test]
+    fn cpp_conversion_operators_preserve_types_owners_and_access() {
+        let source = "class Value {\n explicit operator bool() const;\n public:\n operator const char*() const { return nullptr; }\n};\nValue::operator bool() const { return true; }\nconst char* text = \"operator Fake() {}\";\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "conversion.cpp")
+            .unwrap();
+        let actual: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| {
+                (
+                    symbol.name.as_str(),
+                    symbol.owner.as_deref(),
+                    symbol.range.start_line,
+                    symbol.range.end_line_inclusive(),
+                    symbol.flags.is_exported,
+                )
+            })
+            .collect();
+        assert_eq!(
+            actual,
+            [
+                ("operator bool", Some("Value"), 2, 2, false),
+                ("operator const char*", Some("Value"), 4, 4, true),
+                ("operator bool", Some("Value"), 6, 6, true),
+            ]
+        );
     }
 
     #[test]

@@ -9,6 +9,8 @@
 mod engine;
 mod indexer;
 mod path_role;
+mod preprocess;
+pub use preprocess::MacroExpander;
 mod ranking;
 mod supervisor;
 mod watcher;

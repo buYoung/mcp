@@ -25,7 +25,11 @@ fn contains(outer: &ExtractedSymbol, inner: &ExtractedSymbol) -> bool {
     a <= c && d <= b && (a != c || b != d)
 }
 
-pub(super) fn symbol_node<'a>(tree: &'a Tree, s: &ExtractedSymbol) -> Option<Node<'a>> {
+pub(super) fn symbol_node<'a>(
+    tree: &'a Tree,
+    s: &ExtractedSymbol,
+    source: &str,
+) -> Option<Node<'a>> {
     let r = &s.range;
     let start = Point::new(
         r.start_line.saturating_sub(1),
@@ -33,17 +37,16 @@ pub(super) fn symbol_node<'a>(tree: &'a Tree, s: &ExtractedSymbol) -> Option<Nod
     );
     let end = Point::new(r.end_line.saturating_sub(1), r.end_col.saturating_sub(1));
     let mut node = tree.root_node().descendant_for_point_range(start, end)?;
-    while node.start_position() != start || node.end_position() != end {
+    while !crate::parser::node_matches_source_range(node, source.as_bytes(), r) {
         node = node.parent()?;
     }
     // A value-less Go const spec has exactly the same range as its identifier.
     // Prefer the declaration carrying that name over the deepest matching token.
     let original = node;
     while node.child_by_field_name("name").is_none() {
-        let Some(parent) = node
-            .parent()
-            .filter(|parent| parent.start_position() == start && parent.end_position() == end)
-        else {
+        let Some(parent) = node.parent().filter(|parent| {
+            crate::parser::node_matches_source_range(*parent, source.as_bytes(), r)
+        }) else {
             return Some(original);
         };
         node = parent;
@@ -62,7 +65,7 @@ fn text(node: Node<'_>, source: &str) -> Option<String> {
 }
 
 fn signature(s: &ExtractedSymbol, tree: Option<&Tree>, source: &str, is_go: bool) -> String {
-    let Some(node) = tree.and_then(|t| symbol_node(t, s)) else {
+    let Some(node) = tree.and_then(|t| symbol_node(t, s, source)) else {
         return s.name.clone();
     };
     if is_go && callable(s) {
@@ -235,7 +238,14 @@ impl Outline {
                 } else {
                     "not exported"
                 };
-                let signature = signature(s, tree.as_ref(), &source, ext == "go");
+                let is_expanded = file
+                    .macro_expansion()
+                    .is_some_and(|info| info.is_expanded_symbol(s));
+                let signature = if is_expanded {
+                    s.name.clone()
+                } else {
+                    signature(s, tree.as_ref(), &source, ext == "go")
+                };
                 let signature = if signature.chars().count() > 400 {
                     format!(
                         "{}… [signature shortened]",
@@ -245,9 +255,10 @@ impl Outline {
                     signature
                 };
                 format!(
-                    "{}{} [{kind}, {visibility}] — {}:{}-{}\n",
+                    "{}{} [{kind}, {visibility}{}] — {}:{}-{}\n",
                     "  ".repeat(depth),
                     signature,
+                    if is_expanded { ", macro expansion" } else { "" },
                     file.file_path,
                     s.range.start_line,
                     s.range.end_line_inclusive()

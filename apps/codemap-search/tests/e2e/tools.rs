@@ -511,6 +511,7 @@ async fn test_read_non_utf8_content_decodes_lossily() {
     // (Claude Code parity). The file is read with lossy decoding instead of erroring; the
     // NUL hard-reject and the invalid-UTF-8 hard-reject were removed by design.
     let temp = create_mock_repo(&[("data.qqq", "text\u{0}binary")]).unwrap();
+    std::fs::write(temp.path().join("data.qqq"), b"text\0binary\xff").unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -525,9 +526,44 @@ async fn test_read_non_utf8_content_decodes_lossily() {
     );
     let out = text(&resp);
     assert!(
-        out.contains("text") && out.contains("binary"),
+        out.contains("text") && out.contains("binary�"),
         "content surfaced: {out}"
     );
+}
+
+#[tokio::test]
+async fn test_non_utf8_source_explains_index_exclusion_without_hiding_read() {
+    let temp = create_mock_repo(&[("healthy.rs", "pub fn healthy() {}\n")]).unwrap();
+    let bytes = b"// legacy \xff\npub fn excluded_encoding() {}\n";
+    std::fs::write(temp.path().join("legacy.rs"), bytes).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let resp = client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path":"legacy.rs"}),
+            |out| out.contains("Not indexed: invalid UTF-8"),
+        )
+        .await
+        .unwrap();
+    let out = text(&resp);
+    assert!(!is_error(&resp), "{resp}");
+    assert!(
+        out.contains("1→// legacy �") && out.contains("2→pub fn excluded_encoding()"),
+        "{out}"
+    );
+    assert!(!out.contains("No indexed declaration or callable"), "{out}");
+    let overview = client
+        .send_request(
+            "tools/call",
+            call("overview", serde_json::json!({"path":"legacy.rs"})),
+        )
+        .await
+        .unwrap();
+    assert!(
+        overview.to_string().contains("Not indexed: invalid UTF-8"),
+        "{overview}"
+    );
+    assert_eq!(std::fs::read(temp.path().join("legacy.rs")).unwrap(), bytes);
 }
 
 // ---- find ----------------------------------------------------------------
@@ -938,5 +974,92 @@ async fn test_grep_path_param_escape_is_rejected() {
     assert!(
         is_error(&resp),
         "a path param escaping the workspace must error"
+    );
+}
+
+#[tokio::test]
+#[ignore = "Requires an installed Clang preprocessor"]
+async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes() {
+    let source =
+        "#include \"macros.h\"\nDECLARE(chosen);\nint ordinary(void) { return chosen_v1(); }\n";
+    let config = "[update]\nconfig_auto_update = false\n[macro_expansion]\nis_enabled = true\ntimeout_ms = 5000\n[exclude]\nshould_include_test_code = true\n[refresh]\nwatch_debounce_ms = 20\n";
+    let temp = create_mock_repo(&[
+        ("probe.c", source),
+        (
+            "macros.h",
+            "#define DECLARE(name) int name##_v1(void) { return 7; }\n",
+        ),
+        (".codemap/config.toml", config),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let overview = client
+        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
+            out.contains("chosen_v1 (fn)")
+        })
+        .await
+        .unwrap();
+    assert!(text(&overview).contains("Macro expansion:"), "{overview}");
+    let read = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({"file_path": "probe.c", "offset": 2, "limit": 1}),
+            ),
+        )
+        .await
+        .unwrap();
+    let read = text(&read);
+    assert!(read.contains("chosen_v1 [function"), "{read}");
+    assert!(read.contains("2→DECLARE(chosen);"), "{read}");
+    assert!(read.contains("Macro expansion:"), "{read}");
+    assert!(read.contains("macro expansion]"), "{read}");
+    assert!(
+        read.contains("attribution unresolved after preprocessing"),
+        "{read}"
+    );
+    assert!(!read.contains("(precise)"), "{read}");
+    let search = client
+        .send_request(
+            "tools/call",
+            call(
+                "search",
+                serde_json::json!({"query": "chosen_v1", "caller_context": false}),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(text(&search).contains("probe.c"), "{search}");
+    assert!(text(&search).contains("Macro expansion:"), "{search}");
+    std::fs::write(
+        temp.path().join("macros.h"),
+        "#define DECLARE(name) int name##_v2(void) { return 8; }\n",
+    )
+    .unwrap();
+    let changed = client
+        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
+            out.contains("chosen_v2 (fn)") && !out.contains("chosen_v1 (fn)")
+        })
+        .await
+        .unwrap();
+    assert!(text(&changed).contains("[L2-2]"), "{changed}");
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        config.replace("is_enabled = true", "is_enabled = false"),
+    )
+    .unwrap();
+    let disabled = client
+        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
+            out.contains("ordinary (fn)")
+                && !out.contains("Macro expansion:")
+                && !out.contains("chosen_v2 (fn)")
+        })
+        .await
+        .unwrap();
+    assert!(!text(&disabled).contains("chosen_v2 (fn)"));
+    assert_eq!(
+        std::fs::read_to_string(temp.path().join("probe.c")).unwrap(),
+        source
     );
 }

@@ -31,6 +31,7 @@ fn parse_query_catching_panic(
 /// defining sources out of the top ranks; implementations should surface first (the test
 /// files stay in the results, just lower).
 const TEST_PATH_SCORE_WEIGHT: f32 = 0.3;
+const EXACT_PATH_SCORE_BOOST: f32 = 3.0;
 
 /// Post-rank multiplier when a query term exactly equals a discriminative symbol name
 /// defined in the file. An exact identifier in the query ("TransactionReadonly", "put_tb")
@@ -499,6 +500,41 @@ fn has_explicit_path_target(file_path: &str, query: &QueryTokens) -> bool {
     })
 }
 
+fn explicit_path_recall_query(query: &QueryTokens, field: Field) -> Option<Box<dyn Query>> {
+    let patterns: Vec<_> = query
+        .raw_words()
+        .iter()
+        .take(8)
+        .filter_map(|word| {
+            let word = word
+                .trim_matches(['`', '\'', '"', '(', ')', ','])
+                .trim_start_matches("./");
+            let word = word
+                .rsplit_once(':')
+                .filter(|(_, line)| line.chars().all(|ch| ch.is_ascii_digit()))
+                .map_or(word, |(path, _)| path);
+            if word.is_empty()
+                || word.len() > 512
+                || matches!(word, "and" | "or" | "not")
+                || !word
+                    .chars()
+                    .all(|ch| ch.is_alphanumeric() || matches!(ch, '_' | '-' | '.' | '/'))
+            {
+                return None;
+            }
+            Some(format!("({})(\\.[^./]+)?", regex::escape(word)))
+        })
+        .collect();
+    if patterns.is_empty() {
+        return None;
+    }
+    // The path is indexed as one STRING term. Filename/stem recall cannot depend
+    // on common body terms surviving the primary BM25 candidate cutoff.
+    RegexQuery::from_pattern(&format!("(?i)(.*/)?({})", patterns.join("|")), field)
+        .ok()
+        .map(|query| Box::new(query) as Box<dyn Query>)
+}
+
 fn has_explicit_target(
     candidate: &CandidateFile,
     query_str: &str,
@@ -731,6 +767,29 @@ impl SearcherHandle {
                 }
             }
         }
+        if let Some(path_query) = explicit_path_recall_query(&query_tokens, self.file_path_field) {
+            let path_query = BooleanQuery::new(vec![
+                (Occur::Must, query.box_clone()),
+                (Occur::Must, path_query),
+            ]);
+            for (score, address) in searcher
+                .search(
+                    &path_query,
+                    &TopDocs::with_limit(limit.clamp(1, 64)).order_by_score(),
+                )
+                .map_err(|error| error.to_string())?
+            {
+                if accepted_addresses.contains(&address) {
+                    continue;
+                }
+                candidate_decodes += 1;
+                let candidate = candidate_from_doc(&searcher, self, score, address, 1.0)?;
+                if seen_paths.insert(candidate.file_path.clone()) {
+                    accepted_addresses.insert(address);
+                    candidates.push(candidate);
+                }
+            }
+        }
         let recall_elapsed = recall_started.elapsed();
         let ranking_started = std::time::Instant::now();
         let name_frequencies = symbol_name_frequencies(&candidates);
@@ -832,6 +891,11 @@ impl SearcherHandle {
             adjusted_score *= symbol_signal_multiplier(&scored_symbols);
             adjusted_score *= path_weight;
             adjusted_score += language_prior_adjustment(&candidate.file_path, &normalized_context);
+            // Apply the filename preference after the language prior, so equally
+            // named files retain the caller's language/extension preference.
+            if has_explicit_path_target(&candidate.file_path, &query_tokens) {
+                adjusted_score *= EXACT_PATH_SCORE_BOOST;
+            }
             let mut matched_symbols: Vec<ExtractedSymbol> = scored_symbols
                 .into_iter()
                 .map(|scored| scored.symbol.clone())

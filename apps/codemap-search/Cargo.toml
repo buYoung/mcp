@@ -27,16 +27,13 @@ tree-sitter-c-sharp = "0.23.5"
 tree-sitter-php = "0.24.2"
 tree-sitter-ruby = "0.23.1"
 tree-sitter-lua = "0.5.0"
-# Kotlin: the actively-maintained rewrite (`-ng`) exposes the `LANGUAGE: LanguageFn`
-# constant and links against tree-sitter 0.26's ABI; the older `tree-sitter-kotlin`
-# (0.3.x, fwcd) still ships the legacy `language()` fn and is not compatible here.
-tree-sitter-kotlin-ng = "1.1"
+# Kotlin uses the bundled grammar fix recorded in vendor/grammar-sources.json.
 # Platform-specific languages. These releases expose the tree-sitter 0.26-compatible
 # `LANGUAGE: LanguageFn` API and are intentionally pinned to the verified grammar lines.
 tree-sitter-swift = "0.7.3"
 tree-sitter-dart = "0.2.0"
 tree-sitter-scala = "0.26.0"
-tree-sitter-groovy = "0.1.2"
+tree-sitter-language = "0.1" # ABI bindings for the bundled grammar fixes
 tree-sitter-powershell = "0.26.4"
 # C/C++: both 0.24.x/0.23.x generations expose `LANGUAGE: LanguageFn` and link
 # against tree-sitter-language 0.1.x (the 0.26 ABI shim). `.h` files are parsed
@@ -68,7 +65,7 @@ tree-sitter-less = "1.0.0" # MIT
 tree-sitter-vue-next = "0.1.0" # MIT
 tree-sitter-astro-next = "0.1.1" # MIT OR Apache-2.0
 tree-sitter-svelte-next = "0.1.1" # MIT OR Apache-2.0
-tree-sitter-zsh = "0.63.4" # MIT
+
 tree-sitter-containerfile = "0.9.2" # MIT
 tree-sitter-make = "1.1.1" # MIT
 tree-sitter-cmake = "0.7.4" # MIT
@@ -105,6 +102,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Regular expressions and text processing
 regex = "1.12"
+
+# Owned temporary NASM listing files; never write build artifacts into the repository.
+tempfile = "3.27"
 
 # TOML config parsing (Child 05). Lenient `toml::Value` parse so unknown keys/types
 # degrade to a stderr warning + default rather than failing the load (never-exit).
@@ -143,8 +143,16 @@ windows-sys = { version = "0.61.2", features = ["Win32_Globalization"] }
 # Linux locale parsing is delegated to sys-locale instead of hand-rolled env parsing.
 sys-locale = "0.3.2"
 
+[target.'cfg(unix)'.dependencies]
+# Terminate the native preprocessor process group when its time/output budget expires.
+libc = "0.2"
+
 [dev-dependencies]
 assert_cmd = "2.2"
 predicates = "3.1"
-tempfile = "3.27"
 filetime = "0.2"
+
+[build-dependencies]
+# Compile the audited grammar fixes; compressed generated C keeps source packages small.
+cc = "1.2"
+flate2 = "1.1"

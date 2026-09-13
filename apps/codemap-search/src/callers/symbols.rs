@@ -2,6 +2,7 @@
 //! index built once from the codemap snapshot, and the attribution helpers that map a
 //! scan hit to its enclosing definition and exclude same-named-definition ranges.
 
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -12,12 +13,61 @@ use super::scan::ScanHit;
 /// A per-symbol view of where every snapshot symbol of a given name lives, used to
 /// resolve a bare callee name to its qualified form and to count definitions.
 pub(super) struct SymbolIndex<'a> {
-    /// name → all callable snapshot symbols carrying that name.
-    pub(super) by_name: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
-    /// Global set of `fn` names (callee intersection target).
-    pub(super) fn_names: HashSet<String>,
-    /// name → count of `fn` definitions (common-name threshold input).
-    pub(super) fn_def_counts: HashMap<String, usize>,
+    by_name: HashMap<&'a str, SymbolDefinitions<'a>>,
+    test_filter: Option<&'a super::test_code::TestCodeFilter>,
+    macro_files: HashMap<&'a str, &'a crate::parser::MacroExpansionInfo>,
+}
+
+struct SymbolDefinitions<'a> {
+    candidates: Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>,
+    included: OnceCell<Vec<usize>>,
+}
+
+impl<'a> SymbolIndex<'a> {
+    pub(super) fn can_attribute_calls(&self, path: &str) -> bool {
+        !self.macro_files.contains_key(path)
+    }
+    pub(super) fn is_active_line(&self, path: &str, line: usize) -> bool {
+        self.macro_files
+            .get(path)
+            .is_none_or(|info| info.is_active_line(line))
+    }
+    pub(super) fn includes(&self, path: &str, range: &crate::parser::CodeRange) -> bool {
+        self.test_filter
+            .is_none_or(|filter| !filter.is_excluded(path, range))
+    }
+
+    pub(super) fn definitions(&self, name: &str) -> Vec<(&'a ExtractedFile, &'a ExtractedSymbol)> {
+        let Some(definitions) = self.by_name.get(name) else {
+            return Vec::new();
+        };
+        if self.test_filter.is_none() {
+            return definitions.candidates.clone();
+        }
+        definitions
+            .included
+            .get_or_init(|| {
+                definitions
+                    .candidates
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, (file, symbol))| {
+                        self.includes(&file.file_path, &symbol.range)
+                            .then_some(index)
+                    })
+                    .collect()
+            })
+            .iter()
+            .map(|&index| definitions.candidates[index])
+            .collect()
+    }
+
+    pub(super) fn function_definition_count(&self, name: &str) -> usize {
+        self.definitions(name)
+            .iter()
+            .filter(|(_, symbol)| symbol.kind == "fn")
+            .count()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,28 +88,39 @@ pub(super) enum SourceHintResolution {
     SourceUnresolved,
 }
 
-pub(super) fn build_symbol_index(snapshot: &[ExtractedFile]) -> SymbolIndex<'_> {
-    let mut by_name: HashMap<&str, Vec<(&ExtractedFile, &ExtractedSymbol)>> = HashMap::new();
-    let mut fn_names: HashSet<String> = HashSet::new();
-    let mut fn_def_counts: HashMap<String, usize> = HashMap::new();
+pub(super) fn build_symbol_index<'a>(
+    snapshot: &'a [ExtractedFile],
+    test_filter: Option<&'a super::test_code::TestCodeFilter>,
+) -> SymbolIndex<'a> {
+    let mut by_name: HashMap<&str, SymbolDefinitions<'_>> = HashMap::new();
     for file in snapshot {
-        for sym in &file.symbols {
-            if is_callable_symbol(sym) {
-                by_name
-                    .entry(sym.name.as_str())
-                    .or_default()
-                    .push((file, sym));
-            }
-            if sym.kind == "fn" {
-                fn_names.insert(sym.name.clone());
-                *fn_def_counts.entry(sym.name.clone()).or_insert(0) += 1;
-            }
+        for symbol in file
+            .symbols
+            .iter()
+            .filter(|symbol| is_callable_symbol(symbol))
+        {
+            by_name
+                .entry(&symbol.name)
+                .or_insert_with(|| SymbolDefinitions {
+                    candidates: Vec::new(),
+                    included: OnceCell::new(),
+                })
+                .candidates
+                .push((file, symbol));
         }
     }
     SymbolIndex {
         by_name,
-        fn_names,
-        fn_def_counts,
+        test_filter,
+        macro_files: snapshot
+            .iter()
+            .filter_map(|file| {
+                Some((
+                    file.file_path.as_str(),
+                    file.navigation.as_ref()?.macro_expansion.as_ref()?,
+                ))
+            })
+            .collect(),
     }
 }
 
@@ -68,6 +129,9 @@ pub(super) fn build_navigation_index(snapshot: &[ExtractedFile]) -> NavigationIn
     let mut files_by_path = HashMap::new();
     for (file_index, file) in snapshot.iter().enumerate() {
         files_by_path.insert(file.file_path.clone(), file_index);
+        if file.macro_expansion().is_some() {
+            continue;
+        }
         if let Some(navigation) = &file.navigation {
             for (call_index, call) in navigation.calls.iter().enumerate() {
                 calls_by_name
@@ -94,16 +158,7 @@ pub(super) fn lookup_global_callable_candidates<'a>(
     name: &str,
     index: &'a SymbolIndex<'a>,
 ) -> Vec<(&'a ExtractedFile, &'a ExtractedSymbol)> {
-    index
-        .by_name
-        .get(name)
-        .map(|defs| {
-            defs.iter()
-                .copied()
-                .filter(|(_, sym)| is_callable_symbol(sym))
-                .collect()
-        })
-        .unwrap_or_default()
+    index.definitions(name)
 }
 
 /// Name-only fallback must not join unrelated language runtimes, or Rust/C-family
@@ -114,18 +169,19 @@ pub(super) fn definition_is_compatible(
     definition_path: &str,
     symbol: &ExtractedSymbol,
 ) -> bool {
-    fn family(path: &str) -> Option<&'static str> {
-        crate::lang::spec_for_path(Path::new(path)).map(|spec| match spec.language_name() {
-            "javascript" | "typescript" | "vue" | "astro" | "svelte" => "ecmascript",
-            "c" | "cpp" => "c_family",
-            language => language,
-        })
-    }
-    let language = family(source_path);
-    language == family(definition_path)
+    let language = language_family(Path::new(source_path));
+    language == language_family(Path::new(definition_path))
         && !(is_member_access
             && matches!(language, Some("rust" | "c_family"))
             && symbol.owner.is_none())
+}
+
+pub(super) fn language_family(path: &Path) -> Option<&'static str> {
+    crate::lang::spec_for_path(path).map(|spec| match spec.language_name() {
+        "javascript" | "typescript" | "vue" | "astro" | "svelte" => "ecmascript",
+        "c" | "cpp" => "c_family",
+        language => language,
+    })
 }
 
 pub(super) fn lookup_compatible_candidates<'a>(
@@ -246,13 +302,11 @@ pub(super) fn lookup_source_hint_candidates<'a>(
 /// For a unique name this is exactly the old own-range exclusion; for a common name it also
 /// covers the sibling definitions.
 pub(super) fn is_within_same_named_fn(hit: &ScanHit, name: &str, index: &SymbolIndex<'_>) -> bool {
-    index.by_name.get(name).is_some_and(|defs| {
-        defs.iter().any(|(file, def)| {
-            def.kind == "fn"
-                && file.file_path == hit.file_path
-                && def.range.start_line <= hit.line_number
-                && hit.line_number <= def.range.end_line_inclusive()
-        })
+    index.definitions(name).iter().any(|(file, def)| {
+        def.kind == "fn"
+            && file.file_path == hit.file_path
+            && def.range.start_line <= hit.line_number
+            && hit.line_number <= def.range.end_line_inclusive()
     })
 }
 
