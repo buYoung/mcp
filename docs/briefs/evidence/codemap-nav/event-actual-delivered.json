@@ -1,0 +1,269 @@
+{
+  "outcome": "verified",
+  "binary": "/Users/buyong/tmp/cm-nav/delivered-codemap-search",
+  "binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "copied_repo": "/Users/buyong/tmp/cm-nav/corral-events-delivered",
+  "original_source_manifest": "/Users/buyong/tmp/cm-nav/corral-original.json",
+  "consumed_live_contract": "959762e09699c2f3e0ba2d316e8649d425397ddd389c8bcfcecc27236bae52cd",
+  "consumed_rust_binary": "34c2690dfe91fa4ef378240cea03ea46e42b20f4ba7ca3de1863c4e4b23f7a2f",
+  "replays": [
+    {
+      "profile": "builtin",
+      "name": "platform-window-op",
+      "tool": "search",
+      "arguments": {
+        "query": "platform:window-op",
+        "event_key": "platform:window-op",
+        "workspace_scope": "apps/desktop"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-platform-window-op.txt",
+      "response_sha256": "5431b89a8de351dd4ebcb963b3a65f0f467ca128703c5b0ecf5077dd65abc436",
+      "response_bytes": 838,
+      "elapsed_ms": 22.601,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "stream-deck-state-changed",
+      "tool": "search",
+      "arguments": {
+        "query": "stream-deck:state-changed",
+        "event_key": "stream-deck:state-changed",
+        "workspace_scope": "apps/desktop"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-stream-deck-state-changed.txt",
+      "response_sha256": "05a7dfd1cdc63bd052a06a6383b877a8ea356ad804be95879a8f0e0225392635",
+      "response_bytes": 1266,
+      "elapsed_ms": 70.966,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "frontend-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src/shared/events/windowOpEvent.ts",
+        "offset": 45,
+        "limit": 12,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-frontend-read.txt",
+      "response_sha256": "2928c7d05e58a76ac2a8918c20b8349390dbc9a95122c973efec37b37c0ed167",
+      "response_bytes": 1599,
+      "elapsed_ms": 64.401,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "rust-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src-tauri/src/features/stream_deck/service/mod.rs",
+        "offset": 466,
+        "limit": 12,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-rust-read.txt",
+      "response_sha256": "fbb36fe9036cfc47b360080096b5743a45e72a61a417a61fa80746de4b6a4cd8",
+      "response_bytes": 3392,
+      "elapsed_ms": 167.947,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "dispatcher-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src-tauri/src/shared/output/mod.rs",
+        "offset": 35,
+        "limit": 28,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-dispatcher-read.txt",
+      "response_sha256": "62f15286d7fd1f1e277957369eb5aa82a00ab49e8411d31f492a9dc6d5f9b0db",
+      "response_bytes": 2905,
+      "elapsed_ms": 391.63,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "dispatch-usages",
+      "tool": "grep",
+      "arguments": {
+        "path": "apps/desktop/src-tauri/src",
+        "pattern": "dispatch_event_json|EVENT_PLATFORM_WINDOW_OP|STATE_CHANGED_EVENT",
+        "head_limit": 55,
+        "view": "source"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-dispatch-usages.txt",
+      "response_sha256": "b0a96bea60b868a80115ab13608c342325b9aeec3b2d3a41471ed5734be1e603",
+      "response_bytes": 5999,
+      "elapsed_ms": 7.469,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "builtin",
+      "name": "source-only",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src/shared/events/windowOpEvent.ts",
+        "offset": 45,
+        "limit": 12,
+        "view": "source",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/builtin-source-only.txt",
+      "response_sha256": "b8e1e66b793dea177f1ab0a0d0a5a5d57b483477a40af2c0502c2159f147e59d",
+      "response_bytes": 454,
+      "elapsed_ms": 0.123,
+      "is_error": false,
+      "config_sha256": "093c9add08ecc125cc080ac68631d31c56f30e1c5f552e95e5ebfd825bf0ffb4"
+    },
+    {
+      "profile": "custom",
+      "name": "platform-window-op",
+      "tool": "search",
+      "arguments": {
+        "query": "platform:window-op",
+        "event_key": "platform:window-op",
+        "workspace_scope": "apps/desktop"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-platform-window-op.txt",
+      "response_sha256": "42a955f3af13ef8f78fe7dbe6b78a0dc70da3be92748a92087498faf337994dd",
+      "response_bytes": 1246,
+      "elapsed_ms": 74.655,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "stream-deck-state-changed",
+      "tool": "search",
+      "arguments": {
+        "query": "stream-deck:state-changed",
+        "event_key": "stream-deck:state-changed",
+        "workspace_scope": "apps/desktop"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-stream-deck-state-changed.txt",
+      "response_sha256": "1d9e664cdc831e4a47e60e92e5c820d1728868e9916f4e99652d9f5b9089992b",
+      "response_bytes": 1207,
+      "elapsed_ms": 52.804,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "frontend-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src/shared/events/windowOpEvent.ts",
+        "offset": 45,
+        "limit": 12,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-frontend-read.txt",
+      "response_sha256": "91a63526382005447321274184eaad4e0ddd8f6fa70b1a8259f8cd3c20890875",
+      "response_bytes": 2007,
+      "elapsed_ms": 93.311,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "rust-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src-tauri/src/features/stream_deck/service/mod.rs",
+        "offset": 466,
+        "limit": 12,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-rust-read.txt",
+      "response_sha256": "fbb36fe9036cfc47b360080096b5743a45e72a61a417a61fa80746de4b6a4cd8",
+      "response_bytes": 3392,
+      "elapsed_ms": 149.557,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "dispatcher-read",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src-tauri/src/shared/output/mod.rs",
+        "offset": 35,
+        "limit": 28,
+        "view": "relations",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-dispatcher-read.txt",
+      "response_sha256": "9140b68dc29e7d3aa1ed15f2502e08a510a88bd481d5555a63b34224f9cdd2b4",
+      "response_bytes": 10328,
+      "elapsed_ms": 1437.307,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "dispatch-usages",
+      "tool": "grep",
+      "arguments": {
+        "path": "apps/desktop/src-tauri/src",
+        "pattern": "dispatch_event_json|EVENT_PLATFORM_WINDOW_OP|STATE_CHANGED_EVENT",
+        "head_limit": 55,
+        "view": "source"
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-dispatch-usages.txt",
+      "response_sha256": "b0a96bea60b868a80115ab13608c342325b9aeec3b2d3a41471ed5734be1e603",
+      "response_bytes": 5999,
+      "elapsed_ms": 6.718,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    },
+    {
+      "profile": "custom",
+      "name": "source-only",
+      "tool": "read",
+      "arguments": {
+        "file_path": "apps/desktop/src/shared/events/windowOpEvent.ts",
+        "offset": 45,
+        "limit": 12,
+        "view": "source",
+        "include_events": true
+      },
+      "response": "/Users/buyong/tmp/cm-nav/event-delivered/custom-source-only.txt",
+      "response_sha256": "b8e1e66b793dea177f1ab0a0d0a5a5d57b483477a40af2c0502c2159f147e59d",
+      "response_bytes": 454,
+      "elapsed_ms": 0.122,
+      "is_error": false,
+      "config_sha256": "86a3cc7c8dfd22580a25e689a32f1a8720d3f85aa021cb0b041196d1c31adbf7"
+    }
+  ],
+  "measurements": [
+    {
+      "profile": "builtin",
+      "ready_ms": 2956.089,
+      "condition": "cold index build"
+    },
+    {
+      "profile": "custom",
+      "ready_ms": 5653.917,
+      "condition": "existing index with changed rules; new process"
+    }
+  ],
+  "failures": [],
+  "configuration_assumptions": "The custom Corral cross-language bus/target is explicitly configured; it is not an automatically proven runtime bridge.",
+  "source_changes": [],
+  "config_restored": true
+}

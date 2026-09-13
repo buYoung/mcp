@@ -34,7 +34,9 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
+mod event_navigation;
 mod exclude;
+pub use event_navigation::EventNavigationConfig;
 mod macro_expansion;
 pub use macro_expansion::MacroExpansionConfig;
 mod scaffold;
@@ -93,7 +95,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 10;
+const CONFIG_VERSION: u32 = 12;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -126,6 +128,9 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
     pub macro_expansion: MacroExpansionConfig,
+    pub event_navigation: EventNavigationConfig,
+    /// Explicit Rust analysis target; never inferred from the running host.
+    pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
     pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
@@ -272,6 +277,8 @@ impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
             macro_expansion: MacroExpansionConfig::default(),
+            event_navigation: EventNavigationConfig::default(),
+            analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
@@ -330,6 +337,8 @@ impl Default for ResolvedConfig {
 #[derive(Default)]
 struct ConfigLayer {
     macro_expansion: macro_expansion::MacroExpansionLayer,
+    event_navigation: event_navigation::EventNavigationLayer,
+    analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
@@ -433,10 +442,13 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let mut exclude_value = None;
     for (key, value) in table {
         match key.as_str() {
+            "event_navigation" => {
+                layer.event_navigation = event_navigation::normalize(&value, path)
+            }
             "macro_expansion" => layer.macro_expansion = macro_expansion::normalize(&value, path),
             "exclude" => exclude_value = Some(value),
             "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
-            | "language_support" => {
+            | "language_support" | "analysis" => {
                 section_values.push((key, value));
             }
             "filesystem_permissions" => {
@@ -494,6 +506,7 @@ fn normalize_config_section(
 
 fn section_accepts_key(section: &str, key: &str) -> bool {
     match section {
+        "analysis" => key == "target_os",
         "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
@@ -554,6 +567,22 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
+        "target_os" => {
+            layer.analysis_target_os = match value.as_str() {
+                Some("") => Some(None),
+                Some(value)
+                    if value
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_') =>
+                {
+                    Some(Some(value.to_string()))
+                }
+                _ => {
+                    warn(&format!("config '{key_display}' must be an OS identifier or empty string: {} — ignored", path.display()));
+                    None
+                }
+            };
+        }
         "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
@@ -664,6 +693,11 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
+        event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
+        analysis_target_os: repo
+            .analysis_target_os
+            .or(global.analysis_target_os)
+            .flatten(),
         config_auto_update: repo
             .config_auto_update
             .or(global.config_auto_update)
@@ -885,12 +919,48 @@ pub fn init(repo_root: &Path) {
 /// The resolved in-memory config snapshot. This never reads disk; [`reload`] and the
 /// config watcher replace the snapshot only after `config.toml` changes.
 pub fn get() -> Arc<ResolvedConfig> {
+    if let Some(config) = REQUEST_CONFIG.with(|slot| slot.borrow().clone()) {
+        return config;
+    }
     match config_lock().read() {
         Ok(config) => Arc::clone(&config),
         Err(poisoned) => {
             warn("config lock poisoned while reading — using latest in-memory value");
             Arc::clone(&poisoned.into_inner())
         }
+    }
+}
+
+thread_local! {
+    static REQUEST_CONFIG: std::cell::RefCell<Option<Arc<ResolvedConfig>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// A synchronous MCP request uses one config generation across all consumers.
+/// Reload/indexer threads remain independent; the next request sees their update.
+pub(crate) struct RequestConfigScope {
+    previous: Option<Arc<ResolvedConfig>>,
+    same_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+
+pub(crate) fn pin_request() -> RequestConfigScope {
+    let config = get();
+    RequestConfigScope {
+        previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(config))),
+        same_thread: std::marker::PhantomData,
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn pin_test_config(config: ResolvedConfig) -> RequestConfigScope {
+    RequestConfigScope {
+        previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(Arc::new(config)))),
+        same_thread: std::marker::PhantomData,
+    }
+}
+
+impl Drop for RequestConfigScope {
+    fn drop(&mut self) {
+        REQUEST_CONFIG.with(|slot| slot.replace(self.previous.take()));
     }
 }
 
@@ -1067,6 +1137,9 @@ fn request_refresh_if_index_scope_changed(
         && previous.excluded_directories == current.excluded_directories
         && previous.use_git_exclude == current.use_git_exclude
         && previous.macro_expansion == current.macro_expansion
+        && previous.event_navigation == current.event_navigation
+        && (previous.analysis_target_os == current.analysis_target_os
+            || !current.event_navigation.is_enabled)
     {
         return;
     }
@@ -1155,6 +1228,20 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 12,
+        key: "is_enabled",
+        placement: KeyPlacement::Subtable("event_navigation"),
+        english_block: "# Optional indexed event routes. See docs/configuration.md for API rules and limits.\n# is_enabled = false",
+        korean_block: "# 이벤트 관계 색인을 선택적으로 사용합니다. API 규칙과 한계는 docs/configuration.ko.md를 참고하세요.\n# is_enabled = false",
+    },
+    Migration {
+        version: 11,
+        key: "target_os",
+        placement: KeyPlacement::Subtable("analysis"),
+        english_block: "# Explicit Rust target OS. Empty means unknown; never uses the host OS.\n# target_os = \"\"",
+        korean_block: "# Rust 분석 대상 OS. 빈 값은 미지정이며 실행 컴퓨터의 OS를 추정하지 않습니다.\n# target_os = \"\"",
+    },
     Migration {
         version: 10,
         key: "is_enabled",
@@ -1765,6 +1852,29 @@ mod tests {
         let dir = repo.join(CODEMAP_DIR_NAME);
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join(CONFIG_FILE_NAME), body).unwrap();
+    }
+
+    #[test]
+    fn test_analysis_target_os_layers_clear_and_invalid_fallback() {
+        let path = Path::new("config.toml");
+        let layer = |value: &str| normalize(toml::from_str(value).unwrap(), path);
+        let global = layer("[analysis]\ntarget_os='macos'\n");
+        assert_eq!(
+            merge(ConfigLayer::default(), global)
+                .analysis_target_os
+                .as_deref(),
+            Some("macos")
+        );
+        let config = merge(
+            layer("[analysis]\ntarget_os=''\n"),
+            layer("[analysis]\ntarget_os='macos'\n"),
+        );
+        assert_eq!(config.analysis_target_os, None);
+        let config = merge(
+            layer("[analysis]\ntarget_os=42\n"),
+            layer("[analysis]\ntarget_os='linux'\n"),
+        );
+        assert_eq!(config.analysis_target_os.as_deref(), Some("linux"));
     }
 
     #[test]

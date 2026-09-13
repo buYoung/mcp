@@ -31,6 +31,363 @@ async fn let_seeded_refresh_settle() {
     tokio::time::sleep(Duration::from_millis(1500)).await;
 }
 
+#[tokio::test]
+async fn test_events_watcher_dependencies_rules_filters_and_restart() {
+    use crate::e2e::helpers::{event_navigation_repo, EVENT_NAVIGATION_CONFIG};
+    let temp = event_navigation_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args = |key: &str| serde_json::json!({"query":key,"event_key":key});
+    let text = |response: serde_json::Value| {
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let saved = text(
+        client
+            .send_tool_until("search", args("saved"), |out| {
+                out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(saved.contains("registration: src/events.ts:6"), "{saved}");
+    let_seeded_refresh_settle().await;
+    // Imported constants change both endpoints even though users.ts is unchanged.
+    let events = fs::read_to_string(temp.path().join("src/events.ts")).unwrap();
+    fs::write(
+        temp.path().join("src/events.ts"),
+        events.replace("'saved'", "'changed'"),
+    )
+    .unwrap();
+    let changed = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        changed.contains("registration: src/events.ts:6"),
+        "{changed}"
+    );
+    let previous = text(
+        client
+            .send_request(
+                "tools/call",
+                serde_json::json!({"name":"search","arguments":args("saved")}),
+            )
+            .await
+            .unwrap(),
+    );
+    assert!(
+        !previous.contains("src/users.ts") && !previous.contains("registration:"),
+        "{previous}"
+    );
+    // Reexporting a different allocation must split the previously joined route.
+    fs::write(
+        temp.path().join("src/barrel.ts"),
+        "export {otherBus as appBus, SAVED} from './events';\n",
+    )
+    .unwrap();
+    let split = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.matches("### Event").count() == 2 && out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert_eq!(split.matches("### Event").count(), 2, "{split}");
+    for section in split.split("### Event").skip(1) {
+        assert!(
+            !(section.contains("src/users.ts") && section.contains("registration:")),
+            "{split}"
+        );
+    }
+    fs::write(
+        temp.path().join("src/new.ts"),
+        "import {appBus,SAVED} from './events'; appBus.emit(SAVED);\n",
+    )
+    .unwrap();
+    let created = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: src/new.ts:1")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(created.contains("publisher: src/new.ts:1"), "{created}");
+    fs::remove_file(temp.path().join("src/new.ts")).unwrap();
+    // A live freshness check can hide a just-deleted endpoint before the watcher commits.
+    let deleted = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                !out.contains("src/new.ts")
+                    && out.contains("src/users.ts")
+                    && !out.contains("stale/unverified")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(!deleted.contains("src/new.ts"), "{deleted}");
+    fs::write(
+        temp.path().join("src/events.test.ts"),
+        "import {appBus,SAVED} from './events'; appBus.emit(SAVED);\n",
+    )
+    .unwrap();
+    let filtered = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("test/exclusion-filtered endpoints")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        !filtered.contains("publisher: src/events.test.ts"),
+        "{filtered}"
+    );
+    let config_path = temp.path().join(".codemap/config.toml");
+    fs::write(
+        &config_path,
+        format!("{EVENT_NAVIGATION_CONFIG}\n[exclude]\nshould_include_test_code=true\n"),
+    )
+    .unwrap();
+    let included = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: src/events.test.ts:1")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        included.contains("publisher: src/events.test.ts:1"),
+        "{included}"
+    );
+    fs::create_dir_all(temp.path().join("hidden")).unwrap();
+    fs::write(
+        temp.path().join("hidden/publisher.ts"),
+        "import {appBus,SAVED} from '../src/events'; appBus.emit(SAVED);",
+    )
+    .unwrap();
+    let visible = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: hidden/publisher.ts:1")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        visible.contains("publisher: hidden/publisher.ts:1"),
+        "{visible}"
+    );
+    fs::write(
+        &config_path,
+        format!("{EVENT_NAVIGATION_CONFIG}\n[exclude]\nexcluded_directories=['hidden']\n"),
+    )
+    .unwrap();
+    let excluded = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("src/users.ts")
+                    && !out.contains("hidden/publisher.ts")
+                    && !out.contains("stale/unverified")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(!excluded.contains("hidden/publisher.ts"), "{excluded}");
+    // Rules are reloaded/removed without touching API source; disabled builtins also apply.
+    fs::write(&config_path,"[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\nuse_builtin_rules=false\nrules=[]\n").unwrap();
+    let removed = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("No eligible event endpoints")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(removed.contains("No eligible event endpoints"), "{removed}");
+    fs::write(&config_path, EVENT_NAVIGATION_CONFIG).unwrap();
+    let restored = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(restored.contains("publisher: src/users.ts:2"), "{restored}");
+    client.kill().await.unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let restarted = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        restarted.contains("registration: src/events.ts:6"),
+        "{restarted}"
+    );
+    fs::write(
+        &config_path,
+        EVENT_NAVIGATION_CONFIG.replace("is_enabled = true", "is_enabled = false"),
+    )
+    .unwrap();
+    let disabled = text(
+        client
+            .send_tool_until("search", args("changed"), |out| {
+                out.contains("Event navigation disabled")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        disabled.contains("Event navigation disabled") && !disabled.contains("publisher:"),
+        "{disabled}"
+    );
+}
+
+#[tokio::test]
+async fn test_events_target_global_rules_and_git_exclusions_reload() {
+    let global = r#"
+[event_navigation]
+is_enabled=true
+use_builtin_rules=false
+rules=[
+{id='rust',language='rust',module='src/output.rs',symbol='send',role='publish',event_arg=0,bus='fixed',bus_identity='app',target='any'},
+{id='frontend',language='typescript',module='@tauri-apps/api/event',symbol='listen',role='subscribe',event_arg=0,handler_arg=1,bus='fixed',bus_identity='app'}
+]
+"#;
+    let config = |target: &str| {
+        format!("[update]\nconfig_auto_update=false\n[analysis]\ntarget_os='{target}'\n[exclude]\nuse_git_exclude=true\n")
+    };
+    let temp = create_mock_repo(&[
+        (
+            "Cargo.toml",
+            "[package]\nname='event-target'\nversion='0.1.0'\n",
+        ),
+        (
+            "src/lib.rs",
+            "mod output;\n#[cfg(target_os=\"macos\")]\nmod publish;\n",
+        ),
+        ("src/output.rs", "pub fn send(key: &str) {}"),
+        (
+            "src/publish.rs",
+            "use crate::output::send; pub fn publish() { send(\"saved\"); }",
+        ),
+        (
+            "src/listen.ts",
+            "import {listen} from '@tauri-apps/api/event'; listen('saved',()=>{});",
+        ),
+        ("config.toml", global),
+        (".codemap/config.toml", &config("")),
+    ])
+    .unwrap();
+    run_git(temp.path(), &["init", "-q"]);
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args = serde_json::json!({"query":"saved","event_key":"saved"});
+    let text = |response: serde_json::Value| {
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let neutral = text(
+        client
+            .send_tool_until("search", args.clone(), |out| out.contains("registration:"))
+            .await
+            .unwrap(),
+    );
+    assert!(!neutral.contains("publisher:"), "{neutral}");
+    for (target, has_publisher) in [("macos", true), ("linux", false), ("macos", true)] {
+        fs::write(temp.path().join(".codemap/config.toml"), config(target)).unwrap();
+        let out = text(
+            client
+                .send_tool_until("search", args.clone(), |out| {
+                    out.contains(&format!("target_os={target}"))
+                        && out.contains("registration:")
+                        && out.contains("publisher:") == has_publisher
+                })
+                .await
+                .unwrap(),
+        );
+        assert_eq!(out.contains("publisher:"), has_publisher, "{out}");
+        assert!(out.contains("registration:"), "{out}");
+    }
+    // An invalid repo selector falls back to the global list through the live consumer.
+    fs::write(temp.path().join(".codemap/config.toml"),format!("{}\n[event_navigation]\nrules=[{{id='bad',language='rust',module='*',symbol='send',role='publish',event_arg=0,bus='fixed',bus_identity='wrong'}}]\n",config("macos"))).unwrap();
+    let fallback = text(
+        client
+            .send_tool_until("search", args.clone(), |out| {
+                out.contains("publisher:") && out.contains("configured:app")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(fallback.contains("registration:"), "{fallback}");
+    fs::write(
+        temp.path().join("config.toml"),
+        global.replace("bus_identity='app'", "bus_identity='reloaded'"),
+    )
+    .unwrap();
+    let reloaded = text(
+        client
+            .send_tool_until("search", args.clone(), |out| {
+                out.contains("configured:reloaded") && out.contains("publisher:")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(reloaded.contains("registration:"), "{reloaded}");
+    fs::write(temp.path().join(".git/info/exclude"), "src/publish.rs\n").unwrap();
+    let excluded = text(
+        client
+            .send_tool_until("search", args.clone(), |out| {
+                out.contains("registration:") && !out.contains("publisher:")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(!excluded.contains("publisher:"), "{excluded}");
+    fs::write(
+        temp.path().join(".codemap/config.toml"),
+        config("macos").replace("use_git_exclude=true", "use_git_exclude=false"),
+    )
+    .unwrap();
+    let widened = text(
+        client
+            .send_tool_until("search", args.clone(), |out| {
+                out.contains("publisher:") && out.contains("configured:reloaded")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(widened.contains("publisher:"), "{widened}");
+    fs::write(
+        temp.path().join(".codemap/config.toml"),
+        format!("{}\n[event_navigation]\nrules=[]\n", config("macos")),
+    )
+    .unwrap();
+    let removed = text(
+        client
+            .send_tool_until("search", args, |out| {
+                out.contains("No eligible event endpoints")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(removed.contains("No eligible event endpoints"), "{removed}");
+}
+
 /// Run a git command in `cwd`, panicking with context on failure (test setup only).
 fn run_git(cwd: &Path, args: &[&str]) {
     let output = std::process::Command::new("git")

@@ -13,6 +13,9 @@ use crate::parser::{
 use super::source::SourceSyntax;
 
 mod local;
+mod rust_cfg;
+mod rust_files;
+use rust_cfg::Condition;
 
 #[derive(Clone, Copy)]
 pub(crate) struct Target<'a> {
@@ -35,6 +38,10 @@ pub(crate) struct SourceResolver<'a> {
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
     manifests: RefCell<HashMap<PathBuf, Option<toml::Value>>>,
     test_filter: super::test_code::TestCodeFilter,
+    target_os: Option<String>,
+    file_conditions: RefCell<HashMap<String, Condition>>,
+    stored_sources: Option<&'a HashMap<String, String>>,
+    dependency_ranges: RefCell<Vec<(String, CodeRange)>>,
 }
 
 pub(crate) fn supports(path: &str) -> bool {
@@ -239,14 +246,92 @@ impl<'a> SourceResolver<'a> {
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
             test_filter: super::test_code::TestCodeFilter::from_config(root),
+            target_os: crate::config::get().analysis_target_os.clone(),
+            file_conditions: RefCell::new(HashMap::new()),
+            stored_sources: None,
+            dependency_ranges: RefCell::new(Vec::new()),
         }
     }
 
+    pub(crate) fn from_stored_sources(
+        files: &'a [ExtractedFile],
+        root: &'a Path,
+        sources: &'a HashMap<String, String>,
+    ) -> Self {
+        let mut resolver = Self::new(files, root);
+        resolver.stored_sources = Some(sources);
+        resolver.test_filter = super::test_code::TestCodeFilter::including_tests(root);
+        resolver
+    }
+
+    fn read_source(&self, file: &str) -> Option<String> {
+        match self.stored_sources {
+            Some(sources) => sources.get(file).cloned(),
+            None => super::read_workspace_file(file, self.root),
+        }
+    }
+
+    pub(crate) fn reset_dependency_tracking(&self) {
+        self.dependency_ranges.borrow_mut().clear();
+    }
+    pub(crate) fn source_dependencies(&self) -> Vec<(String, CodeRange)> {
+        self.dependency_ranges.borrow().clone()
+    }
+    fn record_dependency(&self, file: &str, range: &CodeRange) {
+        if !self
+            .stored_sources
+            .is_some_and(|sources| sources.contains_key(file))
+        {
+            return;
+        }
+        let mut dependencies = self.dependency_ranges.borrow_mut();
+        if dependencies.len() < 65
+            && !dependencies
+                .iter()
+                .any(|(path, existing)| path == file && existing == range)
+        {
+            dependencies.push((file.to_string(), range.clone()));
+        }
+    }
+
+    pub(crate) fn condition_at(&self, file: &str, range: &CodeRange) -> Option<bool> {
+        self.record_dependency(file, range);
+        let source = self.source(file)?;
+        let node = node_at(&source, range)?;
+        match self.rust_node_condition(file, &source, node) {
+            Condition::True => Some(true),
+            Condition::False => Some(false),
+            Condition::Unknown => None,
+        }
+    }
+
+    pub(crate) fn declared_receiver_type(
+        &self,
+        file: &ExtractedFile,
+        call: &CallSite,
+        receiver: &str,
+    ) -> Option<String> {
+        let source = self.source(&file.file_path)?;
+        let node = node_at(&source, &call.range)?;
+        self.local_binding(file, node, receiver)?
+            .as_type()
+            .and_then(|(name, is_explicit)| is_explicit.then_some(name))
+    }
+
     fn source(&self, file: &str) -> Option<Rc<Source>> {
+        self.record_dependency(
+            file,
+            &CodeRange {
+                start_line: 1,
+                start_col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        );
         if let Some(source) = self.sources.borrow().get(file) {
             return source.clone();
         }
-        let source = super::read_workspace_file(file, self.root).and_then(|text| {
+        let source = self.read_source(file).and_then(|text| {
             let mut bytes = text.into_bytes();
             self.test_filter.mask_source(file, &mut bytes);
             let text = String::from_utf8(bytes).ok()?;
@@ -275,7 +360,16 @@ impl<'a> SourceResolver<'a> {
     fn nearest(&self, path: &str, name: &str) -> Option<PathBuf> {
         let mut directory = self.root.join(path).parent()?.to_path_buf();
         loop {
-            if directory.join(name).is_file() {
+            let candidate = directory.join(name);
+            let exists = self.stored_sources.map_or_else(
+                || candidate.is_file(),
+                |sources| {
+                    sources.contains_key(&crate::workspace::workspace_relative_key(
+                        &candidate, self.root,
+                    ))
+                },
+            );
+            if exists {
                 return Some(directory.join(name));
             }
             if directory == self.root || !directory.starts_with(self.root) || !directory.pop() {
@@ -285,12 +379,25 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn manifest(&self, path: &Path) -> Option<toml::Value> {
+        self.record_dependency(
+            &crate::workspace::workspace_relative_key(path, self.root),
+            &CodeRange {
+                start_line: 1,
+                start_col: 1,
+                end_line: 1,
+                end_col: 1,
+            },
+        );
         if let Some(value) = self.manifests.borrow().get(path) {
             return value.clone();
         }
-        let value = std::fs::read_to_string(path)
-            .ok()
-            .and_then(|text| toml::from_str(&text).ok());
+        let content = match self.stored_sources {
+            Some(sources) => sources
+                .get(&crate::workspace::workspace_relative_key(path, self.root))
+                .cloned(),
+            None => std::fs::read_to_string(path).ok(),
+        };
+        let value = content.and_then(|text| toml::from_str(&text).ok());
         self.manifests
             .borrow_mut()
             .insert(path.to_path_buf(), value.clone());
@@ -466,6 +573,9 @@ impl<'a> SourceResolver<'a> {
         let Some(mut node) = node_at(&source, &target.symbol.range) else {
             return false;
         };
+        if self.rust_node_condition(&target.file.file_path, &source, node) != Condition::True {
+            return false;
+        }
         if matches!(
             node.kind(),
             "type_declaration" | "var_declaration" | "const_declaration"
@@ -541,11 +651,19 @@ impl<'a> SourceResolver<'a> {
     pub(crate) fn calls(&self, file: &ExtractedFile) -> Vec<CallSite> {
         self.source(&file.file_path)
             .and_then(|source| {
-                source
-                    .extracted
-                    .navigation
-                    .as_ref()
-                    .map(|navigation| navigation.calls.clone())
+                source.extracted.navigation.as_ref().map(|navigation| {
+                    navigation
+                        .calls
+                        .iter()
+                        .filter(|call| {
+                            node_at(&source, &call.range).is_some_and(|node| {
+                                self.rust_node_condition(&file.file_path, &source, node)
+                                    != Condition::False
+                            })
+                        })
+                        .cloned()
+                        .collect()
+                })
             })
             .unwrap_or_default()
     }
@@ -586,11 +704,15 @@ impl<'a> SourceResolver<'a> {
         kind: &str,
         depth: usize,
     ) -> Option<Target<'a>> {
+        self.record_dependency(&file.file_path, range);
         if depth > 16 {
             return None;
         }
         let source = self.source(&file.file_path)?;
         let at = node_at(&source, range)?;
+        if self.rust_node_condition(&file.file_path, &source, at) != Condition::True {
+            return None;
+        }
         if has_generic_parameter(at, &source, path.split([':', '.']).next()?) {
             return None;
         }
@@ -744,12 +866,24 @@ impl<'a> SourceResolver<'a> {
                 return self.lookup_at_root(self.file(&destination)?, tail, kind, depth + 1);
             }
             for lexical in lexical_scopes(at) {
+                if self.has_unknown_rust_binding(&file.file_path, &source, lexical, head) {
+                    return None;
+                }
                 let imports = self.imports_in_scope(&source, lexical, Some(head));
+                if imports.len() > 1
+                    || imports.iter().any(|import| {
+                        self.rust_import_condition(&source, &import.range) != Condition::True
+                    })
+                {
+                    return None;
+                }
                 let mut cursor = lexical.walk();
                 let modules: Vec<_> = lexical
                     .named_children(&mut cursor)
                     .filter(|node| {
                         node.kind() == "mod_item"
+                            && self.rust_node_condition(&file.file_path, &source, *node)
+                                != Condition::False
                             && node
                                 .child_by_field_name("name")
                                 .and_then(|name| text(name, &source))
@@ -794,6 +928,9 @@ impl<'a> SourceResolver<'a> {
             return self.lookup_at_root(self.file(&dependency)?, tail, kind, depth + 1);
         }
         for lexical in lexical_scopes(at) {
+            if self.has_unknown_rust_binding(&file.file_path, &source, lexical, path) {
+                return None;
+            }
             let mut targets: Vec<_> = self
                 .candidates(path, kind)
                 .into_iter()
@@ -808,6 +945,13 @@ impl<'a> SourceResolver<'a> {
                 })
                 .collect();
             let imports = self.imports_in_scope(&source, lexical, Some(path));
+            if imports.len() > 1
+                || imports.iter().any(|import| {
+                    self.rust_import_condition(&source, &import.range) != Condition::True
+                })
+            {
+                return None;
+            }
             let has_local_name = !targets.is_empty() || !imports.is_empty();
             for import in imports {
                 targets.extend(self.lookup(
@@ -822,6 +966,12 @@ impl<'a> SourceResolver<'a> {
                 return unique(targets);
             }
             let globs = self.imports_in_scope(&source, lexical, None);
+            if globs
+                .iter()
+                .any(|import| self.rust_import_condition(&source, &import.range) != Condition::True)
+            {
+                return None;
+            }
             if !globs.is_empty() {
                 return unique(
                     globs
@@ -871,6 +1021,8 @@ impl<'a> SourceResolver<'a> {
                     node = parent;
                 }
                 scope(node) == lexical
+                    && rust_cfg::condition(node, &source.text, self.target_os.as_deref())
+                        != Condition::False
             })
             .collect()
     }
@@ -958,6 +1110,9 @@ impl<'a> SourceResolver<'a> {
         }
         let source = self.source(&file.file_path)?;
         let node = node_at(&source, &call.range)?;
+        if self.rust_node_condition(&file.file_path, &source, node) != Condition::True {
+            return None;
+        }
         if node.kind() == "macro_invocation" {
             let path = node
                 .child_by_field_name("macro")
@@ -1272,6 +1427,76 @@ mod tests {
             .iter()
             .find(|call| call.name == name)
             .unwrap()
+    }
+
+    #[test]
+    fn rust_explicit_os_selects_conditional_modules_reexports_and_calls() {
+        let (root, files) = project(&[
+            ("Cargo.toml", "[package]\nname='example'\nversion='0.1.0'\n"),
+            ("src/lib.rs", "mod platform; mod client;\n"),
+            ("src/platform/mod.rs", "#[cfg(target_os=\"macos\")]\npub mod macos;\n#[cfg(not(target_os=\"macos\"))]\npub mod windows;\n#[cfg(target_os=\"macos\")]\npub use self::macos::run;\n#[cfg(not(target_os=\"macos\"))]\npub use self::windows::run;\n"),
+            ("src/platform/macos.rs", "pub fn run() {}\n"),
+            ("src/platform/windows.rs", "pub fn run() {}\n"),
+            ("src/client.rs", "use crate::platform::run as renamed;\npub fn caller() {\n #[cfg(target_os=\"macos\")] { renamed(); }\n #[cfg(not(target_os=\"macos\"))] { renamed(); }\n}\n"),
+        ]);
+        let client = files
+            .iter()
+            .find(|f| f.file_path == "src/client.rs")
+            .unwrap();
+        assert_eq!(
+            client
+                .navigation
+                .as_ref()
+                .unwrap()
+                .calls
+                .iter()
+                .filter(|c| c.name == "renamed")
+                .count(),
+            2
+        );
+        for target in [None, Some("macos"), Some("windows"), Some("linux")] {
+            let mut resolver = SourceResolver::new(&files, root.path());
+            resolver.target_os = target.map(str::to_string);
+            let calls = resolver.calls(client);
+            let calls: Vec<_> = calls.iter().filter(|c| c.name == "renamed").collect();
+            if target.is_none() {
+                assert_eq!(calls.len(), 2);
+                assert!(calls
+                    .iter()
+                    .all(|c| resolver.resolve_call(client, c).is_none()));
+            } else {
+                assert_eq!(calls.len(), 1);
+                let resolved = resolver.resolve_call(client, calls[0]).unwrap();
+                let expected = if target == Some("macos") {
+                    "src/platform/macos.rs"
+                } else {
+                    "src/platform/windows.rs"
+                };
+                assert_eq!(resolved.file.file_path, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn rust_unknown_conditions_and_conflicting_aliases_do_not_create_links() {
+        let (root,files)=project(&[
+            ("src/lib.rs","mod a; mod b;\n#[cfg(feature=\"ui\")] use crate::a::run as uncertain;\nuse crate::a::run as conflict;\nuse crate::b::run as conflict;\nfn entry() { uncertain(); conflict(); }\n"),
+            ("src/a.rs","pub fn run() {}\n"),("src/b.rs","pub fn run() {}\n"),
+        ]);
+        let resolver = SourceResolver::new(&files, root.path());
+        assert_eq!(
+            files
+                .iter()
+                .flat_map(|f| &f.symbols)
+                .filter(|s| s.name == "run")
+                .count(),
+            2
+        );
+        let calls = resolver.calls(&files[0]);
+        assert_eq!(calls.len(), 2);
+        assert!(calls
+            .iter()
+            .all(|call| resolver.resolve_call(&files[0], call).is_none()));
     }
 
     #[test]

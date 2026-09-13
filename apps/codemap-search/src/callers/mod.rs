@@ -40,6 +40,7 @@ mod source;
 mod symbols;
 pub(crate) mod test_code;
 
+pub(crate) use annotate::annotate_live_results;
 pub use annotate::{
     annotate_results, annotate_results_with_state, AnnotationRequest, CallerBlockDedup,
     DetailAnnotations, PreparedAnnotation, ANNOTATION_OMITTED_MARKER,

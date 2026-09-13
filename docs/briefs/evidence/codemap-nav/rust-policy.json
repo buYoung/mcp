@@ -1,0 +1,146 @@
+{
+  "outcome": "verified",
+  "consumed_live_contract": "959762e09699c2f3e0ba2d316e8649d425397ddd389c8bcfcecc27236bae52cd",
+  "baseline_binary_sha256": "65a9b746c3ca523c332077e1b232ea7e7bbe471f75b5130112c472cd0f61551a",
+  "c2_baseline": {
+    "case": "C2",
+    "tool": "grep",
+    "supplied_arguments": {
+      "path": "/Users/buyong/workspace/private/corral/apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs",
+      "pattern": "pub.*fn move_window_to_bounds|pub.*fn move_window_bounds_by_id",
+      "-A": 42,
+      "head_limit": 98
+    },
+    "executed_arguments": {
+      "path": "/Users/buyong/tmp/cm-nav/corral-replay/apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs",
+      "pattern": "pub.*fn move_window_to_bounds|pub.*fn move_window_bounds_by_id",
+      "-A": 42,
+      "head_limit": 98
+    },
+    "condition": "fresh-process-after-index-ready",
+    "index_ready_seconds": 0.529,
+    "elapsed_ms": 154.033,
+    "is_error": false,
+    "raw_output": "/Users/buyong/tmp/cm-nav/live-baseline/C2/fresh-process-after-index-ready.txt",
+    "raw_sha256": "82a449dc7a989780a67438fac23284d303c2f629b2fe69d0f3a2ad8f404feb67",
+    "source_characters": 8793,
+    "source_bytes": 8885,
+    "context_characters": 2255,
+    "context_bytes": 2271,
+    "response_bytes": 11156,
+    "token_count": null,
+    "source_rows": 84
+  },
+  "definitions": [
+    {
+      "file": "apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs",
+      "line": 334,
+      "declaration": "pub(super) fn move_window_bounds_by_id(",
+      "file_sha256": "6b57a837b345c8c69202b1dbe6904c50eb56398afe5f942d2a6dcd9d155a4685"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/features/platform/windows/window/native_client.rs",
+      "line": 1143,
+      "declaration": "pub(super) fn move_window_bounds_by_id(",
+      "file_sha256": "e897d141fe286173656459e189eceb4b44caf6828f500d1011b29b90befcd342"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/features/platform/windows/window/mod.rs",
+      "line": 263,
+      "declaration": "pub fn move_window_bounds_by_id(",
+      "file_sha256": "25e81a25d5e3878a25a1a97d5801771cb7c942127734fb3952122aa4f6b18d4d"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/features/platform/macos/window/native_client.rs",
+      "line": 1359,
+      "declaration": "pub(crate) fn move_window_bounds_by_id(",
+      "file_sha256": "86b448db534a6caf7f95f177f717ce42dcd2f88b08c6125572b83cae25a8624b"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/features/platform/macos/window/mod.rs",
+      "line": 366,
+      "declaration": "pub fn move_window_bounds_by_id(",
+      "file_sha256": "16b84011720bdb12486c5a1c2ba9305a6102ecb0014642450a76d3017899273a"
+    }
+  ],
+  "expected_edges": {
+    "regular": [
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/common/window_move_service.rs:91",
+        "target": "apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs:460"
+      },
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs:464",
+        "target": "apps/desktop/src-tauri/src/features/platform/macos/window/mod.rs:405",
+        "requires": "target_os=macos"
+      },
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/macos/window/mod.rs:411",
+        "target": "apps/desktop/src-tauri/src/features/platform/macos/window/native_client.rs:1148",
+        "requires": "target_os=macos"
+      }
+    ],
+    "history": [
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/common/window_move_history_service.rs:2263",
+        "target": "apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs:334"
+      },
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/common/window_gateway.rs:341",
+        "target": "apps/desktop/src-tauri/src/features/platform/macos/window/mod.rs:366",
+        "requires": "target_os=macos"
+      },
+      {
+        "source": "apps/desktop/src-tauri/src/features/platform/macos/window/mod.rs:372",
+        "target": "apps/desktop/src-tauri/src/features/platform/macos/window/native_client.rs:1359",
+        "requires": "target_os=macos"
+      }
+    ]
+  },
+  "causes": [
+    "Caller omission threshold executes before source-confirmed caller lookup.",
+    "Conditional platform modules/reexports are not evaluated.",
+    "Caller-budget exhaustion currently discards already-collected proven entries."
+  ],
+  "target_contract": {
+    "parameter": "[analysis].target_os",
+    "default": null,
+    "neutral_override": "empty string clears inherited OS",
+    "known": "Explicit target only; never host OS",
+    "predicates": [
+      "target_os=\"value\"",
+      "all(...)",
+      "any(...)",
+      "not(...)",
+      "true",
+      "false"
+    ],
+    "unknown": [
+      "missing target_os",
+      "other keys/flags",
+      "cfg_attr",
+      "unsupported token/string shapes"
+    ],
+    "test_policy": "Existing TestCodeFilter remains authoritative for plain cfg(test); test inclusion is an analysis selection, not a compiler invocation.",
+    "lifecycle": "Resolver captures target once and owns source/condition caches per request; next request after config reload creates new caches."
+  },
+  "required_controls": [
+    ">=5 same-name definitions with proven caller",
+    "neutral/macOS/non-macOS/unsupported predicates",
+    "alias conflict, reexport, shadowing, excluded tests",
+    "partial callsite budget retains collected links",
+    "source and configuration reload"
+  ],
+  "primary_reference": "https://doc.rust-lang.org/reference/conditional-compilation.html",
+  "source_identity": "Every displayed edge must resolve to the exact file/name/range in current filtered source; aliases are candidate spellings only.",
+  "confidence": "Preserve source/import checked approximate labels with navigation disabled; precise requires current tree/source identity and configured navigation.",
+  "partial_budgets": "Collected proven caller entries survive callsite/alias limits; high compatible-name counts only suppress uncertain fallback.",
+  "configuration_schema": 11,
+  "unsupported_patterns": [
+    "cfg_attr and predicates other than target_os/boolean composition remain unknown",
+    "escaped/raw cfg strings remain unknown",
+    "module memberships outside bounded ancestor/path lookup remain unknown",
+    "full compiler features, proc macros, build scripts and dynamic dispatch are not evaluated"
+  ],
+  "request_configuration": "One pinned configuration per synchronous MCP request; resolver caches never survive the request."
+}

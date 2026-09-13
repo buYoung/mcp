@@ -1,0 +1,304 @@
+{
+  "outcome": "verified",
+  "binary": "/Users/buyong/tmp/cm-nav/delivered-codemap-search",
+  "binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "fixture": "/Users/buyong/tmp/cm-nav/event-cli-delivered",
+  "config_sha256": "29d44269cbc3783eb1b805325cf64910a72cb31426d2277083e5fda33bcb63c6",
+  "source_sha256": {
+    "src/barrel.ts": "fa7d5b4c303723ee2a428f599f3255e5bb872d48fd84fff08be1fa2425ea61f2",
+    "src/controls.ts": "403e92ea9c4c951b5c6d7238a4ede95f720cb77f95b1b9fba04bc96d597ad5e3",
+    "src/events.ts": "50983efaee7f9dc9d60b5c615aabce85814b0f22e65fa35426806fecef5d058d",
+    "src/known.ts": "a450edf222fa4eecbbca44ab0238e06cbeb7454399934274fdd7636af5d57095",
+    "src/other.ts": "4979bbc076ee48a6e9fa535ad24f8634ed7f8b36204160d5ad6a8f564e33c9e6",
+    "src/users.ts": "9d3f7bc123cb1c5785b0e6673408db959721937ce49df7f0f3ad0fc2fb53a5e4"
+  },
+  "replays": [
+    {
+      "name": "saved",
+      "tool": "search",
+      "arguments": {
+        "query": "saved",
+        "event_key": "saved"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/saved.txt",
+      "sha256": "de970c734f50ed1dc1eb19822eaad41010b92c3ef8fdfb5165f1861f9840f632",
+      "elapsed_ms": 10.43,
+      "response_bytes": 1105,
+      "is_error": false
+    },
+    {
+      "name": "read-source",
+      "tool": "read",
+      "arguments": {
+        "file_path": "src/users.ts",
+        "offset": 2,
+        "limit": 1,
+        "view": "source",
+        "include_events": true
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/read-source.txt",
+      "sha256": "ec8917e1b87c281036a47904e0051e5bdec704f04deef7473131ab94547cd99b",
+      "elapsed_ms": 0.116,
+      "response_bytes": 52,
+      "is_error": false
+    },
+    {
+      "name": "read-definitions",
+      "tool": "read",
+      "arguments": {
+        "file_path": "src/users.ts",
+        "offset": 2,
+        "limit": 1,
+        "view": "definitions",
+        "include_events": true
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/read-definitions.txt",
+      "sha256": "7b86c733e5af6cb807fa8e07c8a5598042397463e5efcd268a72595cf35a3bf9",
+      "elapsed_ms": 7.327,
+      "response_bytes": 152,
+      "is_error": false
+    },
+    {
+      "name": "read-relations",
+      "tool": "read",
+      "arguments": {
+        "file_path": "src/users.ts",
+        "offset": 2,
+        "limit": 1,
+        "view": "relations",
+        "include_events": true
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/read-relations.txt",
+      "sha256": "7db64bd32de9c38b6e6e6cd5dfb110ac4e47aca78f5094e2b4dfc7036a131d81",
+      "elapsed_ms": 23.759,
+      "response_bytes": 1281,
+      "is_error": false
+    },
+    {
+      "name": "read-full",
+      "tool": "read",
+      "arguments": {
+        "file_path": "src/users.ts",
+        "offset": 2,
+        "limit": 1,
+        "view": "full",
+        "include_events": true
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/read-full.txt",
+      "sha256": "c9363527f2f2041ddc05e4aedbbf2cc3abdcf949a8b20af2ae0b6eabea1ab117",
+      "elapsed_ms": 26.091,
+      "response_bytes": 1335,
+      "is_error": false
+    },
+    {
+      "name": "reverse",
+      "tool": "grep",
+      "arguments": {
+        "path": "src/events.ts",
+        "pattern": "appBus.on",
+        "view": "relations",
+        "include_events": true
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/reverse.txt",
+      "sha256": "62049921d548402448b805858dff2c21e93d9515945bce73bd241f78d1cddb61",
+      "elapsed_ms": 23.054,
+      "response_bytes": 1023,
+      "is_error": false
+    },
+    {
+      "name": "wrong-string",
+      "tool": "search",
+      "arguments": {
+        "query": "wrong-string",
+        "event_key": "wrong-string"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/wrong-string.txt",
+      "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+      "elapsed_ms": 2.352,
+      "response_bytes": 282,
+      "is_error": false
+    },
+    {
+      "name": "wrong-comment",
+      "tool": "search",
+      "arguments": {
+        "query": "wrong-comment",
+        "event_key": "wrong-comment"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/wrong-comment.txt",
+      "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+      "elapsed_ms": 2.383,
+      "response_bytes": 282,
+      "is_error": false
+    },
+    {
+      "name": "wrong-method",
+      "tool": "search",
+      "arguments": {
+        "query": "wrong-method",
+        "event_key": "wrong-method"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/wrong-method.txt",
+      "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+      "elapsed_ms": 2.322,
+      "response_bytes": 282,
+      "is_error": false
+    },
+    {
+      "name": "wrong-shadow",
+      "tool": "search",
+      "arguments": {
+        "query": "wrong-shadow",
+        "event_key": "wrong-shadow"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/wrong-shadow.txt",
+      "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+      "elapsed_ms": 2.334,
+      "response_bytes": 282,
+      "is_error": false
+    },
+    {
+      "name": "opaque",
+      "tool": "search",
+      "arguments": {
+        "query": "opaque",
+        "event_key": "opaque"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/opaque.txt",
+      "sha256": "574c6d7f19a59acd1f455785dc11a969ab35721b491a3c9c8df06442fe580aa2",
+      "elapsed_ms": 4.346,
+      "response_bytes": 382,
+      "is_error": false
+    },
+    {
+      "name": "local",
+      "tool": "search",
+      "arguments": {
+        "query": "local",
+        "event_key": "local"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/local.txt",
+      "sha256": "57a8441cd09e431ef20d6bf6739c6b69069a4b2265fc3cd7996448b3fe2924ce",
+      "elapsed_ms": 4.347,
+      "response_bytes": 387,
+      "is_error": false
+    },
+    {
+      "name": "unknown-handler",
+      "tool": "search",
+      "arguments": {
+        "query": "unknown-handler",
+        "event_key": "unknown-handler"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/unknown-handler.txt",
+      "sha256": "7002091b6e0ceba4d5e05978de9896a21fe2465a1856f4773d2e549e5237b31d",
+      "elapsed_ms": 5.254,
+      "response_bytes": 607,
+      "is_error": false
+    },
+    {
+      "name": "inactive",
+      "tool": "search",
+      "arguments": {
+        "query": "inactive",
+        "event_key": "inactive"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/inactive.txt",
+      "sha256": "6b365007ce82fba613c6dedf27921c53e6ed48038e80713588fcbd72b75b22c8",
+      "elapsed_ms": 6.223,
+      "response_bytes": 451,
+      "is_error": false
+    },
+    {
+      "name": "conditional",
+      "tool": "search",
+      "arguments": {
+        "query": "conditional",
+        "event_key": "conditional"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/conditional.txt",
+      "sha256": "c6837656e3977eb973b0e7158842361e94f899ac00b28c16bf8f7f1e0435d0b8",
+      "elapsed_ms": 9.575,
+      "response_bytes": 969,
+      "is_error": false
+    },
+    {
+      "name": "restarted",
+      "tool": "search",
+      "arguments": {
+        "query": "saved",
+        "event_key": "saved"
+      },
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/restarted.txt",
+      "sha256": "de970c734f50ed1dc1eb19822eaad41010b92c3ef8fdfb5165f1861f9840f632",
+      "elapsed_ms": 10.566,
+      "response_bytes": 1105,
+      "is_error": false
+    }
+  ],
+  "measurements": [
+    {
+      "name": "cold-start",
+      "ready_ms": 1134.497
+    },
+    {
+      "name": "key-update",
+      "refresh_until_visible_ms": 249.917,
+      "last_query_ms": 7.567,
+      "attempts": 5,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/key-update.txt",
+      "sha256": "d2f4db7ff707b8a2ce0e915e73225207fa2e9e3fcdbac1002e49cbdfcae50a4b",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "bus-reexport",
+      "refresh_until_visible_ms": 197.558,
+      "last_query_ms": 7.477,
+      "attempts": 4,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/bus-reexport.txt",
+      "sha256": "3894832cde7913149ce002080b5adb5721a5b0792c2f5f66da68047f80f23887",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "create",
+      "refresh_until_visible_ms": 136.166,
+      "last_query_ms": 10.072,
+      "attempts": 3,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/create.txt",
+      "sha256": "45f6580f299979214e002a279833c10a2cb353905e1d2433dea9a2d25f1a69b7",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "delete",
+      "refresh_until_visible_ms": 204.987,
+      "last_query_ms": 7.722,
+      "attempts": 4,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/delete.txt",
+      "sha256": "3894832cde7913149ce002080b5adb5721a5b0792c2f5f66da68047f80f23887",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "remove-rules",
+      "refresh_until_visible_ms": 1260.216,
+      "last_query_ms": 2.499,
+      "attempts": 20,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/remove-rules.txt",
+      "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "restore",
+      "refresh_until_visible_ms": 1304.307,
+      "last_query_ms": 12.188,
+      "attempts": 22,
+      "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/restore.txt",
+      "sha256": "de970c734f50ed1dc1eb19822eaad41010b92c3ef8fdfb5165f1861f9840f632",
+      "condition": "same running MCP process; includes watcher/config debounce and polling"
+    },
+    {
+      "name": "restart-existing-index",
+      "ready_ms": 23.157
+    }
+  ],
+  "failures": []
+}

@@ -37,6 +37,377 @@ fn sample_repo() -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn test_events_live_modes_forward_reverse_and_schema() {
+    let temp = crate::e2e::helpers::event_navigation_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args = serde_json::json!({"file_path":"src/users.ts","offset":2,"limit":1});
+    let baseline = client
+        .send_tool_until("read", args.clone(), |out| out.contains("save [function"))
+        .await
+        .unwrap();
+    let baseline = text(&baseline);
+    assert!(!baseline.contains("Event relationships"));
+    let mut explicit = args.clone();
+    explicit["include_events"] = false.into();
+    assert_eq!(
+        text(
+            &client
+                .send_request("tools/call", call("read", explicit))
+                .await
+                .unwrap()
+        ),
+        baseline
+    );
+    let raw = baseline.split_once("\n# results\n").unwrap().1;
+    for view in ["full", "source", "definitions", "relations"] {
+        let mut variant = args.clone();
+        variant["view"] = view.into();
+        variant["include_events"] = true.into();
+        let response = client
+            .send_request("tools/call", call("read", variant))
+            .await
+            .unwrap();
+        assert!(!is_error(&response), "{response}");
+        let out = text(&response);
+        if matches!(view, "source" | "definitions") {
+            assert!(!out.contains("Event relationships"), "{out}");
+            if view == "source" {
+                assert_eq!(out, raw);
+            }
+        } else {
+            let events = out.split_once("## Event relationships").unwrap().1;
+            for expected in [
+                "publisher: src/users.ts:2",
+                "registration: src/events.ts:6",
+                "handler definition: handleSaved — src/events.ts:5",
+                "allocation:src/events.ts:2",
+                "key evidence: SAVED — src/events.ts:4",
+            ] {
+                assert!(events.contains(expected), "{expected}: {out}");
+            }
+            assert!(!events.contains("src/other.ts"), "{out}");
+            assert!(!events.contains("precise"), "{out}");
+            if view == "full" {
+                assert_eq!(out.split_once("\n# results\n").unwrap().1, raw);
+            }
+        }
+    }
+    for (tool, args) in [
+        (
+            "grep",
+            serde_json::json!({"path":"src/events.ts","pattern":"appBus.on","-F":true,"view":"relations","include_events":true}),
+        ),
+        (
+            "read",
+            serde_json::json!({"file_path":"src/events.ts","offset":5,"limit":1,"view":"relations","include_events":true}),
+        ),
+    ] {
+        let out = text(
+            &client
+                .send_request("tools/call", call(tool, args))
+                .await
+                .unwrap(),
+        );
+        assert!(
+            out.contains("publisher: src/users.ts:2")
+                && out.contains("registration: src/events.ts:6"),
+            "{out}"
+        );
+    }
+    let invalid=client.send_request("tools/call",call("grep",serde_json::json!({"path":"src","pattern":"saved","output_mode":"files_with_matches","include_events":true}))).await.unwrap();
+    assert!(is_error(&invalid), "{invalid}");
+    let invalid = client
+        .send_request(
+            "tools/call",
+            call(
+                "read",
+                serde_json::json!({"file_path":"src/users.ts","include_events":"yes"}),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(is_error(&invalid));
+    let schema = client
+        .send_request("tools/list", serde_json::json!({}))
+        .await
+        .unwrap();
+    for name in ["read", "grep", "search"] {
+        let tool = schema["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap();
+        assert_eq!(
+            tool["inputSchema"]["properties"]["include_events"]["default"],
+            false
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice() {
+    let registrations = format!(
+        "import {{bus}} from './bus'; function handler() {{}}\n{}",
+        "bus.on('saved',handler);\n".repeat(50)
+    );
+    let temp = create_mock_repo(&[
+        (
+            "src/bus.ts",
+            "import {EventEmitter} from 'events'; export const bus=new EventEmitter();",
+        ),
+        (
+            "src/a_publish.ts",
+            "import {bus} from './bus'; bus.emit('saved');",
+        ),
+        ("src/register.ts", &registrations),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let response=client.send_tool_until("grep",serde_json::json!({"path":"src/register.ts","pattern":"bus.on","-F":true,"head_limit":100,"view":"relations","include_events":true}),|out|out.contains("Event relationships")).await.unwrap();
+    let out = text(&response);
+    assert!(out.contains("publisher: src/a_publish.ts:1"), "{out}");
+    assert!(out.contains("registration: src/register.ts:2"), "{out}");
+    assert!(out.contains("Event output cap reached"), "{out}");
+}
+
+#[tokio::test]
+async fn test_live_views_preserve_source_and_unresolved_totals() {
+    let source = "const LIMIT: usize = 7;\nfn target() {\n    unknown_one();\n    object.unknown_two();\n    let value = LIMIT;\n}\nfn caller() { target(); }\n";
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", source),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args = serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":5});
+    let baseline = client
+        .send_tool_until("read", args.clone(), |out| {
+            out.contains("2 callee(s) unresolved")
+        })
+        .await
+        .unwrap();
+    let full = text(&baseline);
+    let raw = full.split_once("\n# results\n").unwrap().1;
+    for view in ["source", "definitions", "relations", "full"] {
+        let mut variant = args.clone();
+        variant["view"] = view.into();
+        let response = client
+            .send_request("tools/call", call("read", variant))
+            .await
+            .unwrap();
+        assert!(!is_error(&response), "{response}");
+        let out = text(&response);
+        match view {
+            "source" => assert_eq!(out, raw),
+            "definitions" => {
+                assert!(out.contains("target [function"), "{out}");
+                for absent in [
+                    "# results",
+                    "_calls",
+                    "_callers",
+                    "_references",
+                    "unknown_one",
+                    "unresolved",
+                ] {
+                    assert!(!out.contains(absent), "{out}");
+                }
+            }
+            "relations" => {
+                assert!(out.starts_with("# relations"), "{out}");
+                assert!(out.contains("caller (src/lib.rs:7)"), "{out}");
+                assert!(out.contains("LIMIT — src/lib.rs:1 = 7"), "{out}");
+                assert!(!out.contains("# results"), "{out}");
+            }
+            _ => assert_eq!(out, full),
+        }
+    }
+    let count = client.send_request("tools/call", call("read", serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":5,"view":"relations","unresolved":"count"}))).await.unwrap();
+    let out = text(&count);
+    assert!(out.contains("2 callee(s) unresolved"), "{out}");
+    assert!(
+        !out.contains("unknown_one") && !out.contains("unknown_two"),
+        "{out}"
+    );
+    let alias = client.send_request("tools/call", call("read", serde_json::json!({"path":"src/lib.rs","startLine":"2","end-line":"6","view":"source"}))).await.unwrap();
+    assert_eq!(text(&alias), raw);
+    let schema = client
+        .send_request("tools/list", serde_json::json!({}))
+        .await
+        .unwrap();
+    for tool in schema["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|t| ["read", "grep"].contains(&t["name"].as_str().unwrap()))
+    {
+        assert_eq!(tool["inputSchema"]["properties"]["view"]["default"], "full");
+        assert_eq!(
+            tool["inputSchema"]["properties"]["expand"]["default"],
+            "none"
+        );
+        assert_eq!(
+            tool["inputSchema"]["properties"]["unresolved"]["default"],
+            "list"
+        );
+    }
+    for args in [
+        serde_json::json!({"pattern":"target","output_mode":"count","view":"source"}),
+        serde_json::json!({"pattern":"target","output_mode":"files_with_matches","expand":"callable"}),
+        serde_json::json!({"pattern":"target","view":"invalid"}),
+    ] {
+        let response = client
+            .send_request("tools/call", call("grep", args))
+            .await
+            .unwrap();
+        assert!(is_error(&response), "{response}");
+    }
+}
+
+#[tokio::test]
+async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
+    let source = "#[allow(dead_code)]\nfn first() {\n    let marker = 1;\n    let marker_two = 2;\n}\nfn neighbor() { do_not_include(); }\nfn last() {\n    let marker = 3;\n}\n";
+    let temp = create_mock_repo(&[("src/lib.rs",source),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":1}),
+            |out| out.contains("first [function"),
+        )
+        .await
+        .unwrap();
+    let expanded = client.send_request("tools/call",call("read",serde_json::json!({"file_path":"src/lib.rs","offset":3,"limit":1,"end_line":9,"expand":"callable","view":"source"}))).await.unwrap();
+    let out = text(&expanded);
+    assert!(out.starts_with("     1→#[allow(dead_code)]"), "{out}");
+    assert!(out.ends_with("     5→}"), "{out}");
+    assert!(!out.contains("neighbor"), "{out}");
+    let first = client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"marker","-A":50,"-B":10,"expand":"callable","head_limit":1,"view":"source"}))).await.unwrap();
+    let out = text(&first);
+    assert_eq!(out.matches("fn first()").count(), 1, "{out}");
+    assert!(out.contains("next_offset=1"), "{out}");
+    assert!(
+        !out.contains("neighbor") && !out.contains("fn last"),
+        "{out}"
+    );
+    let last = client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"marker","expand":"callable","head_limit":1,"offset":1,"view":"source"}))).await.unwrap();
+    assert!(
+        text(&last).contains("fn last") && !text(&last).contains("fn first"),
+        "{last}"
+    );
+    std::fs::write(
+        temp.path().join("src/lib.rs"),
+        "fn inserted() {}\nfn fresh() {\n    let fresh_value = 1;\n}\nfn next() {}\n",
+    )
+    .unwrap();
+    let fresh = client.send_request("tools/call",call("read",serde_json::json!({"file_path":"src/lib.rs","offset":3,"expand":"callable","view":"source"}))).await.unwrap();
+    let out = text(&fresh);
+    assert!(
+        out.starts_with("     2→fn fresh()") && out.ends_with("     4→}"),
+        "{out}"
+    );
+    assert!(
+        !out.contains("inserted") && !out.contains("fn next"),
+        "{out}"
+    );
+}
+
+#[tokio::test]
+async fn test_live_callable_shapes_and_unavailable_notices() {
+    let source="\u{feff}#[allow(dead_code)]\r\nfn outer() {\r\n    let closure = || 1;\r\n    fn inner() {\r\n        let inner_value = 2;\r\n    }\r\n}\r\nfn after() {}\r\n";
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", source),
+        ("bad.rs", "fn broken( {\n"),
+        ("same.rs", "fn one() {} fn two() {}\n"),
+        ("shared_end.rs", "fn one() {\n} fn two() {}\n"),
+        ("plain.txt", "a marker\n"),
+        (
+            "decorated.py",
+            "@decorate\ndef target():\n    return 7\ndef next():\n    pass\n",
+        ),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    for (path, line, start, end, absent) in [
+        ("src/lib.rs", 1, 1, 7, "fn after"),
+        ("src/lib.rs", 3, 1, 7, "fn after"),
+        ("src/lib.rs", 5, 4, 6, "fn outer"),
+        ("decorated.py", 2, 1, 3, "def next"),
+    ] {
+        let response=client.send_request("tools/call",call("read",serde_json::json!({"file_path":path,"offset":line,"expand":"callable","view":"source"}))).await.unwrap();
+        let out = text(&response);
+        assert!(out.starts_with(&format!("{start:>6}→")), "{out}");
+        assert!(
+            out.lines()
+                .last()
+                .unwrap()
+                .starts_with(&format!("{end:>6}→")),
+            "{out}"
+        );
+        assert!(
+            !out.contains(absent) && !out.contains('\r') && !out.contains('\u{feff}'),
+            "{out}"
+        );
+    }
+    for path in ["bad.rs", "same.rs", "shared_end.rs", "plain.txt"] {
+        let response=client.send_request("tools/call",call("read",serde_json::json!({"file_path":path,"offset":1,"limit":1,"expand":"callable","view":"source"}))).await.unwrap();
+        let out = text(&response);
+        assert!(
+            out.contains("Callable expansion unavailable") && out.contains("     1→"),
+            "{path}: {out}"
+        );
+    }
+    let none=client.send_request("tools/call",call("grep",serde_json::json!({"path":"src","pattern":"no_such_marker","expand":"callable","view":"source"}))).await.unwrap();
+    assert!(text(&none).contains("No matches found"), "{none}");
+}
+
+#[tokio::test]
+async fn test_live_callable_caps_are_explicit_and_continuable() {
+    let source = format!(
+        "fn large() {{\n{}\n}}\nfn small() {{}}\n",
+        (0..60)
+            .map(|n| format!("    let value_{n} = {n};"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", source.as_str()),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n[tool_output]\nread_output_byte_cap=1024\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let read=client.send_request("tools/call",call("read",serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":1,"expand":"callable","view":"source"}))).await.unwrap();
+    assert!(
+        is_error(&read) && read.to_string().contains("expand=none"),
+        "{read}"
+    );
+    let page=client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"fn ","expand":"callable","head_limit":1,"view":"source"}))).await.unwrap();
+    let out = text(&page);
+    assert!(
+        out.len() <= 1024
+            && out.contains("Callable body unavailable")
+            && out.contains("next_offset=1"),
+        "{out}"
+    );
+    let next=client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"fn ","expand":"callable","head_limit":1,"offset":1,"view":"source"}))).await.unwrap();
+    assert!(text(&next).contains("fn small"), "{next}");
+}
+
+#[tokio::test]
 async fn test_tools_list_includes_read_find_grep() {
     let temp = create_mock_repo(&[]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

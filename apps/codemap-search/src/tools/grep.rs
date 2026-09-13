@@ -6,6 +6,8 @@
 //! override. Reads disk directly, so it sees comments and just-changed files the
 //! BM25 index can miss — this realizes the spec's "rg 역할" alongside `search`.
 
+mod expansion;
+
 use super::live_symbols::{LiveAnchor, LiveOutput};
 use super::{
     arg_bool, arg_required_str, arg_usize, build_glob_matcher, split_grep_globs, GlobMatcher,
@@ -229,11 +231,15 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         .get("output_mode")
         .and_then(|v| v.as_str())
         .unwrap_or("content");
+    let options = super::live_options::LiveOptions::parse(args)?;
+    options.validate_grep(output_mode)?;
     let case_insensitive = arg_bool(args, "-i", false);
     let multiline = arg_bool(args, "multiline", false);
     let show_line_numbers = arg_bool(args, "-n", true);
     let context_both = arg_usize(args, "-C", 0);
-    let (before, after) = if context_both > 0 {
+    let (before, after) = if options.should_expand_callable {
+        (0, 0)
+    } else if context_both > 0 {
         (context_both, context_both)
     } else {
         (arg_usize(args, "-B", 0), arg_usize(args, "-A", 0))
@@ -301,6 +307,19 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         .then(|| walker.build())
         .into_iter()
         .flatten();
+    let entries: Box<dyn Iterator<Item = _>> = if options.should_expand_callable {
+        let mut entries: Vec<_> = entries.collect();
+        entries.sort_by(|a, b| {
+            a.as_ref()
+                .ok()
+                .map(|e| e.path())
+                .cmp(&b.as_ref().ok().map(|e| e.path()))
+        });
+        Box::new(entries.into_iter())
+    } else {
+        Box::new(entries)
+    };
+    let mut expanded = expansion::ExpansionPage::new(offset, head_limit);
     for result in entries {
         let entry = match result {
             Ok(e) => e,
@@ -326,7 +345,24 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
             hits: Vec::new(),
             occurrences: 0,
         };
-        if searcher.search_path(&matcher, p, &mut sink).is_err() {
+        let bytes = if options.should_expand_callable {
+            use std::io::Read;
+            std::fs::File::open(p).ok().and_then(|file| {
+                let cap = super::live_symbols::callable::input_byte_cap();
+                let mut bytes = Vec::new();
+                file.take(cap as u64 + 1).read_to_end(&mut bytes).ok()?;
+                (bytes.len() <= cap).then_some(bytes)
+            })
+        } else {
+            None
+        };
+        let searched = if let Some(bytes) = bytes.as_ref() {
+            // Matching, syntax bounds and rendering share this immutable live buffer.
+            searcher.search_slice(&matcher, bytes, &mut sink)
+        } else {
+            searcher.search_path(&matcher, p, &mut sink)
+        };
+        if searched.is_err() {
             continue;
         }
         if sink.occurrences > 0 {
@@ -335,6 +371,16 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 .unwrap_or(p)
                 .to_string_lossy()
                 .replace('\\', "/");
+            if options.should_expand_callable {
+                expanded.add_file(
+                    &display,
+                    bytes.as_deref(),
+                    &sink.hits,
+                    show_line_numbers,
+                    crate::config::get().grep_max_columns,
+                );
+                continue;
+            }
             let mtime = entry
                 .metadata()
                 .ok()
@@ -361,6 +407,13 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         )
     };
 
+    if options.should_expand_callable {
+        let mut output = expanded.finish();
+        if output.text.is_empty() && output.notices.is_empty() {
+            output.text = format!("No matches found\n{}", no_match_hint());
+        }
+        return Ok(output);
+    }
     match output_mode {
         "count" => {
             // Per-file `path:count` rows (ripgrep's count output) + summary, paginated.
@@ -374,6 +427,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                         no_match_hint()
                     ),
                     anchors: Vec::new(),
+                    notices: Vec::new(),
                 });
             }
             let rows: Vec<(String, usize)> = files
@@ -403,7 +457,11 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     end_line: None,
                 })
                 .collect();
-            Ok(LiveOutput { text: out, anchors })
+            Ok(LiveOutput {
+                text: out,
+                anchors,
+                notices: Vec::new(),
+            })
         }
         "content" => {
             let mut lines: Vec<ContentRow> = Vec::new();
@@ -428,6 +486,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 return Ok(LiveOutput {
                     text: format!("No matches found\n{}", no_match_hint()),
                     anchors: Vec::new(),
+                    notices: Vec::new(),
                 });
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
@@ -441,7 +500,11 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 out.push_str(&f);
             }
             let anchors = content_anchors(&page);
-            Ok(LiveOutput { text: out, anchors })
+            Ok(LiveOutput {
+                text: out,
+                anchors,
+                notices: Vec::new(),
+            })
         }
         // default: files_with_matches
         _ => {
@@ -449,6 +512,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 return Ok(LiveOutput {
                     text: format!("No matches found\n{}", no_match_hint()),
                     anchors: Vec::new(),
+                    notices: Vec::new(),
                 });
             }
             // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
@@ -472,7 +536,11 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     end_line: None,
                 })
                 .collect();
-            Ok(LiveOutput { text: out, anchors })
+            Ok(LiveOutput {
+                text: out,
+                anchors,
+                notices: Vec::new(),
+            })
         }
     }
 }

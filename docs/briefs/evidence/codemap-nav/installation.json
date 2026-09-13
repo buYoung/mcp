@@ -1,0 +1,45 @@
+{
+  "installed_path": "/Users/buyong/.local/bin/codemap-search",
+  "sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "backup": "/Users/buyong/tmp/cm-nav/pre-brief-codemap-search",
+  "backup_sha256": "b1fd0c0b97dd14ccccacc526419b9b47d011b8c9f3dfafd96313de57ed840bb1",
+  "cli_checks": [
+    {
+      "name": "installed-event-read",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-read.txt",
+      "sha256": "0ac0732728a45eda9fa0c1190bc2527b3220931b08ce3814ca5680ad28d0ea24"
+    },
+    {
+      "name": "installed-event-grep",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-grep.txt",
+      "sha256": "7632846179242e354f8a5b8f7c99355bcc321c0abb51e4679976043b13ebc88f"
+    },
+    {
+      "name": "installed-event-source",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-source.txt",
+      "sha256": "6fb7fd33ae0e6b6c0ba84ec78db88401649ed2c711dc159276aa1f5d51fa2559"
+    },
+    {
+      "name": "installed-event-negative",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-negative.txt",
+      "sha256": "4b87f5eb46c855825799aee548556761acb1a001b2ee77dbd9f72feb00069dbb"
+    },
+    {
+      "name": "installed-config-grep",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-config-grep.txt",
+      "sha256": "8579cc82b8142279487b17ae373580ca2ebcbabf8fbd16b7d04b8f4b822d0258"
+    },
+    {
+      "name": "installed-config-read",
+      "passed": true,
+      "raw_output": "/Users/buyong/tmp/cm-nav/installed-config-read.txt",
+      "sha256": "292bfc18d5dab15305b656a7a677fc66b260a50e758aaad147bb930884a60fc3"
+    }
+  ],
+  "startup_observation": "First source-only root grep emitted a transient LockBusy warning while an existing MCP index writer was active; the following root read returned verified callable/constant context. Existing connected MCP clients need a restart to advertise newly installed options."
+}

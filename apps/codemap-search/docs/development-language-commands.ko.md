@@ -51,10 +51,10 @@ cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
 
 cm grep '{"path":"src/config.rs","pattern":"pub fn load\\(","head_limit":5}'
-cm read '{"file_path":"src/config.rs","offset":382,"limit":8}'
+cm read '{"file_path":"src/config.rs","offset":391,"limit":8}'
 
 cm grep '{"path":"src/config.rs","pattern":"CODEMAP_DIR_NAME|CONFIG_FILE_NAME","head_limit":20}'
-cm read '{"file_path":"src/config.rs","offset":393,"limit":20}'
+cm read '{"file_path":"src/config.rs","offset":402,"limit":20}'
 ```
 
 `load`의 호출 목록에는 `read_layer — …/src/config.rs:393`, `merge — …/src/config.rs:657`, `canonicalize_path_lenient — …/src/workspace.rs:226`이 나온다. 두 상수의 정의는 84·86줄이고 값은 각각 `".codemap"`, `"config.toml"`이다. `join`은 정의 링크 없이 `unresolved`로 나온다. 이후 소스가 변경돼 줄이 이동하면 첫 `grep`으로 현재 위치부터 확인한다.
@@ -181,3 +181,62 @@ codemap-search search 'ENTRY sysdeps/unix/sysv/linux/sparc/sparc64/____longjmp_c
 `ENTRY ____longjmp_chk`만 사용하면 여러 아키텍처의 동명 파일이 경쟁해 특정 파일이 출력 한도 밖으로 밀릴 수 있다. 원래 넓은 질의의 실패 기록과 경로를 좁힌 MCP 질의의 성공 기록은 모두 보존했다.
 
 전체 대상과 결과 해석은 [검증 보고서](development-language-validation.ko.md), 남은 판정 보류·지원 범위는 [이슈 목록](../validation/development-issues.json)에 있다. Groovy 공개 대조는 254개 모두 통과했고 Zsh 무한 처리는 수정했지만 나머지 문법 보류가 있다. Azure PowerShell의 일반 코드 첫 문맥은 이번 환경에서 약 3.6~3.7초였으며 새 색인 준비에는 약 8~9분이 들었다. 기존 MCP 연결은 프로세스를 다시 시작해야 설치한 새 바이너리를 사용하고, `cm`은 명령마다 새 프로세스를 실행한다.
+
+
+## 원문·정의·관계와 함수 단위 읽기
+
+다음 명령은 이 브리프에서 구현한 실시간 출력 제어를 확인합니다. 먼저 grep으로 현재 위치를 확인하면 줄 이동에도 대응할 수 있습니다.
+
+```sh
+cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
+cm read '{"file_path":"src/config.rs","offset":391,"limit":8,"view":"source"}'
+cm read '{"file_path":"src/config.rs","offset":391,"limit":8,"view":"definitions"}'
+cm read '{"file_path":"src/config.rs","offset":391,"limit":8,"view":"relations","unresolved":"count"}'
+cm read '{"file_path":"src/config.rs","offset":392,"expand":"callable","view":"source"}'
+cm grep '{"path":"src/config.rs","pattern":"pub fn load","expand":"callable","view":"source","head_limit":2}'
+```
+
+`expand=callable`의 grep 페이지는 중복을 제거한 함수 묶음 단위입니다. 함수가 여러 개면 응답의 next_offset으로 이어 갑니다. 큰 함수는 안내된 줄 범위에 `expand=none`을 넣어 나눠 읽습니다. 옵션 전체 계약은 [요청별 출력 제어](configuration.ko.md#readgrep-요청별-출력-제어)에 있습니다.
+
+
+## 이벤트 탐색과 통합 회귀 검증
+
+이벤트 탐색은 기본적으로 꺼져 있습니다. 실제 앱을 바꾸지 않고 확인하려면 이번 작업에서 만든 예제 복사본을 사용하세요. 원본 예제와 사용자 규칙은 `tests/fixtures/event_navigation/`에 있습니다. 복사본의 설정에는 `[event_navigation].is_enabled=true`와 `KnownBus`의 정확한 정의 경로를 사용한 규칙이 들어 있습니다.
+
+```sh
+cd /Users/buyong/tmp/cm-nav/event-cli-delivered
+
+# 발행 위치에서 구독 등록·핸들러·상수 정의를 함께 확인
+cm read '{"file_path":"src/users.ts","offset":2,"limit":1,"view":"relations","include_events":true}'
+
+# 등록 위치에서 반대편 발행 위치 확인
+cm grep '{"path":"src/events.ts","pattern":"appBus.on","-F":true,"view":"relations","include_events":true}'
+
+# 원문을 보존하면서 이벤트 관계 추가
+cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable","include_events":true}'
+
+# source 모드는 include_events=true여도 이벤트 조회·출력을 생략
+cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable","view":"source","include_events":true}'
+
+# 불투명한 버스·동적 키·불명확한 핸들러·once·제거 조건
+cm read '{"file_path":"src/controls.ts","offset":3,"limit":8,"view":"relations","include_events":true}'
+
+# 문자열과 주석에 적힌 emit은 이벤트가 아님
+cm read '{"file_path":"src/controls.ts","offset":12,"limit":2,"view":"relations","include_events":true}'
+```
+
+같은 키를 쓰는 `otherBus`는 별도 할당이므로 위 정방향·역방향 관계에 합쳐지면 안 됩니다. 상수 근거는 `SAVED — src/events.ts:4`, 구독은 `src/events.ts:6`, 핸들러는 `handleSaved — src/events.ts:5`, 발행은 `src/users.ts:2`로 표시되어야 합니다.
+
+MCP `search`에서는 `{"query":"saved","event_key":"saved"}`로 정확한 키의 전체 지도를 보거나 `{"query":"save users","include_events":true,"caller_context":false}`로 검색 결과에 이벤트만 추가할 수 있습니다. `cm`은 read/grep 명령을 제공하므로 이 요청은 MCP search에서 실행합니다. 작업공간 범위는 기존 `workspace_scope`를 따릅니다.
+
+반복 가능한 회귀 검증은 패키지 디렉터리에서 실행합니다.
+
+```sh
+cd /Users/buyong/workspace/private/buyong-mcp/apps/codemap-search
+cargo test --locked --test e2e_tests test_live_
+cargo test --locked --test e2e_tests test_rust_target_reload_and_reexport_identity_reach_all_tool_views
+cargo test --locked --test e2e_tests test_events_
+cargo test --locked --lib events::
+```
+
+검증에서만 쓰는 임시 앱의 생성·편집·삭제, import한 버스·키의 변경, 규칙·대상·Git/디렉터리 제외 설정의 재로드, 테스트 코드 포함 전환, 재시작을 확인합니다. 원본 Corral에는 이 예제 설정을 적용하지 않았습니다. Corral에서 확인한 사용자 규칙의 `platform:window-op` 연결은 명시적으로 선언한 버스 가정이며 실제 이벤트 전달을 보장하지 않습니다. 자세한 근거와 남은 한계는 저장소 루트의 `docs/briefs/evidence/codemap-nav/event-map.json`과 `integration.json`에 기록합니다.

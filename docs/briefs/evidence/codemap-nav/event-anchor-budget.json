@@ -1,0 +1,23 @@
+{
+  "outcome": "verified",
+  "arguments": {
+    "path": "src/register.ts",
+    "pattern": "bus.on",
+    "head_limit": 100,
+    "view": "relations",
+    "include_events": true
+  },
+  "before": {
+    "binary_sha256": "1298086a854fe866549ed729e30e4c98872dfcddb67952b9fc49ba413ac3a566",
+    "raw_output": "/Users/buyong/tmp/cm-nav/anchor-before.txt",
+    "publisher_visible": false,
+    "registration_visible": true
+  },
+  "after": {
+    "binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+    "raw_output": "/Users/buyong/tmp/cm-nav/anchor-after.txt",
+    "publisher_visible": true,
+    "registration_visible": true,
+    "elapsed_ms": 127.304
+  }
+}

@@ -19,6 +19,8 @@ struct StoredExtractedFileRef<'a> {
     extracted: &'a ExtractedFile,
     #[serde(skip_serializing_if = "static_collection_edges_are_empty")]
     static_collection_edges: &'a [StaticCollectionEdge],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    event_input: Option<&'a crate::events::EventInput>,
 }
 
 #[derive(Deserialize)]
@@ -28,6 +30,8 @@ struct StoredExtractedFile {
     extracted: ExtractedFile,
     #[serde(default)]
     static_collection_edges: Vec<StaticCollectionEdge>,
+    #[serde(default)]
+    event_input: Option<crate::events::EventInput>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,6 +125,7 @@ pub struct TantivySearchEngine {
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
     macro_config_stamp: Option<String>,
+    event_config_stamp: Option<String>,
 }
 
 /// Filename of the sidecar that stamps the extraction-format version of the stored
@@ -177,7 +182,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v23 also retains external Dart function declarations found during the replay.
 // v24 drops fake Groovy constructors produced when quoted method parsing recovers.
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
-const EXTRACTION_FORMAT_VERSION: &str = "v27-native-declarations-and-groovy";
+const EXTRACTION_FORMAT_VERSION: &str = "v28-indexed-event-inputs";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -454,6 +459,10 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            event_config_stamp: std::fs::read_to_string(
+                Path::new(path).join("event-navigation-config"),
+            )
+            .ok(),
             macro_config_stamp: std::fs::read_to_string(
                 Path::new(index_path).join("macro-expansion-config"),
             )
@@ -639,6 +648,9 @@ impl TantivySearchEngine {
             let snapshot = self.get_indexed_mtimes();
             self.indexed_mtimes_cache = Some(snapshot);
         }
+        let event_config_stamp = crate::events::config_stamp();
+        let should_refresh_event_files =
+            self.event_config_stamp.as_deref() != Some(&event_config_stamp);
         let macro_config = crate::config::get().macro_expansion.clone();
         let macro_config_stamp = format!("{macro_config:?}");
         let should_refresh_macro_files = macro_config.is_enabled
@@ -663,6 +675,7 @@ impl TantivySearchEngine {
             match indexed_mtimes.get(&rel_path) {
                 Some(&indexed_mtime)
                     if indexed_mtime == mtime
+                        && !(should_refresh_event_files && crate::events::eligible(&rel_path))
                         && !(should_refresh_macro_files
                             && super::preprocess::is_eligible(&disk_path)) =>
                 {
@@ -697,7 +710,17 @@ impl TantivySearchEngine {
             .map_err(|e| e.to_string())?;
             self.macro_config_stamp = Some(macro_config_stamp);
         }
-        Ok(changed)
+        if should_refresh_event_files {
+            std::fs::write(
+                Path::new(&self.index_path).join("event-navigation-config"),
+                &event_config_stamp,
+            )
+            .map_err(|e| e.to_string())?;
+            self.event_config_stamp = Some(event_config_stamp);
+        }
+        // Publish the new settings generation even when the workspace has no eligible
+        // event files. Otherwise an opt-in toggle would remain permanently "not ready".
+        Ok(changed || should_refresh_event_files)
     }
 
     /// Apply a computed set of reindex/delete updates to the index: delete the stale docs,
@@ -778,6 +801,7 @@ impl TantivySearchEngine {
             }
             if extracted.macro_expansion().is_some() {
                 auxiliary.static_collection_edges.clear();
+                auxiliary.event_input = None;
             }
 
             let term = Term::from_field_text(self.file_path_field, &rel_path);
@@ -792,6 +816,7 @@ impl TantivySearchEngine {
             let stored_extracted = StoredExtractedFileRef {
                 extracted: &extracted,
                 static_collection_edges: &auxiliary.static_collection_edges,
+                event_input: auxiliary.event_input.as_ref(),
             };
             let json_str = match serde_json::to_string(&stored_extracted) {
                 Ok(js) => js,
@@ -908,6 +933,9 @@ impl TantivySearchEngine {
         paths: &[PathBuf],
         should_reload_reader: bool,
     ) -> Result<bool, String> {
+        if self.event_config_stamp.as_deref() != Some(&crate::events::config_stamp()) {
+            return self.index_files_changed_with_reload(&["."], should_reload_reader);
+        }
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
@@ -1110,6 +1138,7 @@ impl TantivySearchEngine {
             .map_err(|error| format!("published snapshot reader open failed: {error}"))?;
         let searcher = snapshot_reader.searcher();
         let mut files_and_edges = Vec::new();
+        let mut event_inputs = crate::events::EventInputs::default();
         // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
         // complete on large repos.
         let doc_addresses = searcher
@@ -1127,9 +1156,15 @@ impl TantivySearchEngine {
                 })?;
             let stored = serde_json::from_str::<StoredExtractedFile>(json)
                 .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
+            event_inputs.insert(stored.extracted.file_path.clone(), stored.event_input);
             files_and_edges.push((stored.extracted, stored.static_collection_edges));
         }
-        Ok(super::indexer::PublishedIndexSnapshot::from_files_and_edges(files_and_edges))
+        Ok(
+            super::indexer::PublishedIndexSnapshot::from_files_and_edges_with_events(
+                files_and_edges,
+                event_inputs,
+            ),
+        )
     }
 }
 
@@ -1479,10 +1514,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(
-            EXTRACTION_FORMAT_VERSION,
-            "v27-native-declarations-and-groovy"
-        );
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v28-indexed-event-inputs");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

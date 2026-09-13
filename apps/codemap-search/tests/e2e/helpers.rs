@@ -15,6 +15,39 @@ is_interface_support_enabled = true
 is_build_support_enabled = true
 ";
 
+pub const EVENT_NAVIGATION_CONFIG: &str = include_str!("../fixtures/event_navigation/config.toml");
+
+pub fn event_navigation_repo() -> TempDir {
+    create_mock_repo(&[
+        (
+            "src/known.ts",
+            include_str!("../fixtures/event_navigation/known.ts"),
+        ),
+        (
+            "src/events.ts",
+            include_str!("../fixtures/event_navigation/events.ts"),
+        ),
+        (
+            "src/barrel.ts",
+            include_str!("../fixtures/event_navigation/barrel.ts"),
+        ),
+        (
+            "src/users.ts",
+            include_str!("../fixtures/event_navigation/users.ts"),
+        ),
+        (
+            "src/other.ts",
+            include_str!("../fixtures/event_navigation/other.ts"),
+        ),
+        (
+            "src/controls.ts",
+            include_str!("../fixtures/event_navigation/controls.ts"),
+        ),
+        (".codemap/config.toml", EVENT_NAVIGATION_CONFIG),
+    ])
+    .unwrap()
+}
+
 /// Helper to dynamically build a mock directory with specific files
 pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Error> {
     let temp_dir = tempfile::tempdir()?;

@@ -109,7 +109,7 @@ Rust·Go의 네 저장소 × 두 설정은 **470/470**, 별도 회귀는 **12/12
 
 최종 설치본으로 실행한 25개 언어의 작은 대조는 **522/522 통과**했다. 상수 문맥 26개도 모두 통과했다. 프로젝트 검증은 라이브러리 **208개**, 추출 스냅샷 **21개**, 파일 형식 **12개**, 탐색 fixture **1개**가 통과했다. 전체 e2e 실행에서는 168개가 통과하고 설정 스키마의 이전 버전 9를 기대하던 3개가 실패했다. 기대값을 현재 버전 10에 맞춘 후 관련 제외 검사 4개를 모두 다시 통과했으며, NASM 변경 후 매크로 e2e 1개를 별도로 통과했다. 마지막 입력 크기 제한 수정 후에는 매크로 단위 검사 6개를 다시 통과했다. 이 결과를 최종 소스에서 전체 e2e를 한 번에 통과한 결과로 표현하지 않는다.
 
-`cargo check`, 전체 target Clippy(`-D warnings`), release 빌드, 소스 패키징과 패키지를 풀어 수행한 오프라인 `cargo check`가 통과했다. 설치한 `cm read`·`cm grep`에서 설정 함수의 호출 정의·상수, C 생성 함수, 매크로가 붙인 `static`, FFmpeg NASM 생성 label을 확인했다. 설치 바이너리 SHA-256은 `b1fd0c0b97dd14ccccacc526419b9b47d011b8c9f3dfafd96313de57ed840bb1`이다.
+`cargo check`, 전체 target Clippy(`-D warnings`), release 빌드, 소스 패키징과 패키지를 풀어 수행한 오프라인 `cargo check`가 통과했다. 설치한 `cm read`·`cm grep`에서 설정 함수의 호출 정의·상수, C 생성 함수, 매크로가 붙인 `static`, FFmpeg NASM 생성 label을 확인했다. 이 공개 저장소 검증에 사용한 설치 바이너리 SHA-256은 `b1fd0c0b97dd14ccccacc526419b9b47d011b8c9f3dfafd96313de57ed840bb1`이다.
 
 | 실행 | 범위 | 바이너리 SHA-256 앞 12자리 |
 | --- | --- | --- |
@@ -196,3 +196,5 @@ python3 apps/codemap-search/scripts/probe_development_languages.py \
 실제 전체 실행의 바이너리·설정·소스·파서 해시, 원시 `mcp.jsonl`, 오류 로그, 파일별 독립 파서 결과는 `/Users/buyong/tmp/codemap-public-validation/runs/`에 보존한다. 중단된 검사도 실행기가 `partial-results.json`에 완료한 항목과 실패 요청을 남긴다. 이 보존 개선 전의 기준선은 원시 요청·응답과 최상위 오류 기록을 사용한다.
 
 `cm read`·`cm grep`과 CLI `parse`·`codemap`·`search`로 직접 비교하는 명령은 [품질 확인 명령](development-language-commands.ko.md)에 정리했다.
+
+이후 실시간 출력·Rust 연결·이벤트 탐색 브리프의 설치본과 검증 기록은 [통합 결과](../../../docs/briefs/evidence/codemap-nav/integration.json)에 분리했다. 위 공개 저장소 결과를 이후 바이너리의 전체 재검증 결과로 해석하지 않는다.

@@ -1,4 +1,4 @@
-# codemap-config-version: 10
+# codemap-config-version: 12
 # 이 저장소의 codemap-search 설정입니다.
 # 최초 제외 목록은 공통 폴더·감지한 프로젝트 종류의 재귀 glob을 사용하며 나머지는 내장 기본값입니다.
 # 키별 우선순위는 저장소 > 전역 > 내장 기본값입니다. 상속하려면 키를 삭제하거나 주석 처리하세요.
@@ -195,3 +195,13 @@ clang_flags = []
 nasm_flags = []
 timeout_ms = 5000
 max_output_bytes = 8388608
+
+# Rust 분석 대상 OS. 생략하거나 빈 값이면 미지정이며 호스트 OS를 사용하지 않습니다.
+# [analysis]
+# target_os = ""
+
+# Optional indexed event routes / 이벤트 관계 색인 (기본 비활성).
+# [event_navigation]
+# is_enabled = false
+# use_builtin_rules = true
+# rules = []

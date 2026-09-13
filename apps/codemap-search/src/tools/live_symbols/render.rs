@@ -1,6 +1,7 @@
 use super::structure::{callable, Outline};
 use crate::callers::{AnnotationRequest, CallerConfig};
 use crate::parser::ExtractedFile;
+use crate::tools::live_options::{LiveOptions, LiveView};
 use std::collections::{BTreeMap, BTreeSet};
 
 struct Selection {
@@ -33,14 +34,20 @@ fn add_chain(
     true
 }
 
-pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usize) -> String {
+pub(super) fn render(
+    outlines: &[Outline],
+    snapshot: &[ExtractedFile],
+    cap: usize,
+    options: LiveOptions,
+) -> String {
     let mut selections = Vec::new();
     let mut symbol_used = 0;
     let mut symbol_omitted = 0;
     for outline in outlines {
         let mut chosen = BTreeSet::new();
         for &i in &outline.order {
-            if outline.selected.contains(&i)
+            if options.view != LiveView::Relations
+                && outline.selected.contains(&i)
                 && !add_chain(outline, i, &mut chosen, &mut symbol_used, cap, 0)
             {
                 symbol_omitted += 1;
@@ -86,13 +93,23 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
         navigation_store_references: cfg.navigation_store_references,
     };
     let root = std::env::current_dir().unwrap_or_default();
-    let annotations =
-        crate::callers::annotate_results(&requests, snapshot, &caller_cfg, cap, &root);
+    let annotations = if options.should_include_relations() {
+        crate::callers::annotate_live_results(
+            &requests,
+            snapshot,
+            &caller_cfg,
+            cap,
+            &root,
+            options.should_list_unresolved,
+        )
+    } else {
+        None
+    };
     let mut relation_used = 0;
     let mut relation_omitted = 0;
     let mut relation_targets = 0;
     let mut reference_omitted = 0;
-    {
+    if options.should_include_relations() {
         for (outline, selection) in outlines.iter().zip(&mut selections) {
             for &i in &outline.order {
                 if !outline.selected.contains(&i) || !callable(&outline.file.symbols[i]) {
@@ -170,7 +187,20 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
             }
         }
     }
-    let mut out="Scope: enclosing declarations and members. Declaration locations and access are shown below. Verify behavior in # results.\n\n".to_string();
+    let mut out = match options.view {
+        LiveView::Full => "Scope: enclosing declarations and members. Declaration locations and access are shown below. Verify behavior in # results.\n\n",
+        LiveView::Relations => "Relations for the returned source anchors. Definition locations identify targets; unresolved calls have no attributed definition.\n\n",
+        _ => "Scope: enclosing declarations and members. Declaration locations and access are shown below.\n\n",
+    }.to_string();
+    if options.should_include_relations()
+        && outlines
+            .iter()
+            .any(|outline| outline.file.file_path.ends_with(".rs"))
+    {
+        if let Some(target_os) = cfg.analysis_target_os.as_deref() {
+            out.push_str(&format!("[Rust analysis target_os={target_os}; static source conditions, not a runtime execution guarantee.]\n\n"));
+        }
+    }
     let mut emitted = 0;
     for (outline, selection) in outlines.iter().zip(&selections) {
         for &i in &outline.order {
@@ -196,7 +226,7 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
             "[Symbol output cap: {symbol_omitted} entries not shown.]\n"
         ));
     }
-    if relation_targets == 0 {
+    if options.should_include_relations() && relation_targets == 0 {
         out.push_str("[No callable identified for caller/callee lookup.]\n");
     }
     if relation_omitted > 0 {

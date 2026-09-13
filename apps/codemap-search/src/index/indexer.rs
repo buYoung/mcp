@@ -61,6 +61,7 @@ pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 #[derive(Debug, Clone)]
 pub struct PublishedIndexSnapshot {
     codemap: CodemapSnapshot,
+    event_index: crate::events::EventIndex,
     workspace_catalog: crate::codemap::WorkspaceCatalog,
     records: Vec<StaticCollectionRecord>,
     records_by_path: HashMap<String, Vec<usize>>,
@@ -82,6 +83,16 @@ impl PublishedIndexSnapshot {
 
     pub(crate) fn from_files_and_edges(
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
+    ) -> Self {
+        Self::from_files_and_edges_with_events(
+            files_and_edges,
+            crate::events::EventInputs::default(),
+        )
+    }
+
+    pub(crate) fn from_files_and_edges_with_events(
+        files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
+        event_inputs: crate::events::EventInputs,
     ) -> Self {
         const STATIC_COLLECTION_EDGES_PER_FILE_MAX: usize = 256;
         let mut files = Vec::with_capacity(files_and_edges.len());
@@ -159,8 +170,10 @@ impl PublishedIndexSnapshot {
             file_count = files.len(),
             "published workspace catalog"
         );
+        let event_index = crate::events::EventIndex::build(&files, event_inputs);
         Self {
             codemap: Arc::new(files),
+            event_index,
             workspace_catalog,
             records,
             records_by_path,
@@ -168,6 +181,10 @@ impl PublishedIndexSnapshot {
             type_declaration_ranges_by_path,
             type_declaration_counts,
         }
+    }
+
+    pub(crate) fn events(&self) -> &crate::events::EventIndex {
+        &self.event_index
     }
 
     pub fn codemap(&self) -> CodemapSnapshot {
@@ -434,6 +451,7 @@ fn run_refresh_pass(
     generation_gate: &RwLock<()>,
     is_initial_pass: bool,
 ) {
+    let _config_scope = crate::config::pin_request();
     let result = engine.index_files_changed_deferred(&["."]);
     publish_pass_result(
         engine,
@@ -454,6 +472,7 @@ fn run_paths_pass(
     generation_gate: &RwLock<()>,
     paths: &[std::path::PathBuf],
 ) {
+    let _config_scope = crate::config::pin_request();
     let result = engine.refresh_paths_deferred(paths);
     publish_pass_result(engine, status, snapshot, generation_gate, result, false);
 }

@@ -32,6 +32,7 @@ pub(crate) struct IndexAuxiliary {
     /// Full text for registered non-code formats. It is indexed but never stored in Tantivy.
     pub format_text: Vec<String>,
     pub static_collection_edges: Vec<StaticCollectionEdge>,
+    pub event_input: Option<crate::events::EventInput>,
 }
 
 const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
@@ -52,7 +53,9 @@ impl TreeSitterExtractor {
         file_content: &str,
         file_path: &str,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
-        self.extract_parts(file_content, file_path, true)
+        let (extracted, mut auxiliary) = self.extract_parts(file_content, file_path, true)?;
+        auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
+        Ok((extracted, auxiliary))
     }
 }
 

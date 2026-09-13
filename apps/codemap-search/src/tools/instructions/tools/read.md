@@ -1,3 +1,9 @@
 Read one file as N→content lines. Prefer offset/limit when a line range is known, the file is large, or the file is unfamiliar; get ranges from `search` read_suggestion or `overview`, then read that window. To locate a symbol in the first place, use `search` or `overview` — don't read a whole large file to find one. No-limit reads of large files are refused with a narrower-window error, and even a windowed read is refused when its output exceeds the cap, so narrow further.
 
-Returns `# symbols` (indexed members of the enclosing same-file class/struct/impl group, with depth-one caller/callee context) followed by `# results` (the original live output). Go groups methods by receiver type. Missing index or member context is reported without hiding live results.
+By default returns `# symbols` (indexed members of the enclosing same-file class/struct/impl group, with depth-one caller/callee context) followed by `# results` (the original live output). Go groups methods by receiver type. Missing index or member context is reported without hiding live results.
+
+Opt-in `view`: `source` returns live output only and skips symbol/relation work; `definitions` returns declarations only; `relations` returns anchored targets and call/constant relations only; `full` preserves the default. `unresolved=count` shows totals without the bounded name list; `list` is the default. These controls do not change `search.caller_context`.
+
+Use `expand=callable` to read the smallest supported named callable containing the effective offset, including attached attributes. This overrides limit/end; omitted expansion preserves all window semantics. Bounds use the same live UTF-8 bytes, with explicit parser/input/output-limit notices. Oversized bodies require `expand=none` and smaller line windows.
+
+Optional `include_events: true` adds a separate bounded static event map in `view=full` or `view=relations` (content grep only), when `[event_navigation].is_enabled=true`. Source/definitions skip event lookup. Bus/key/handler locations and uncertainty are distinct from direct calls; never infer runtime delivery from this map.

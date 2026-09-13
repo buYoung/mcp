@@ -8,6 +8,7 @@
 
 pub mod find;
 pub mod grep;
+pub(crate) mod live_options;
 pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
@@ -301,6 +302,8 @@ pub fn list_tools() -> Value {
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "include_events": { "type": "boolean", "default": false, "description": "Append a separate bounded static event map for matched paths; independent of caller_context. Requires event_navigation.is_enabled in config." },
+        "event_key": { "type": "string", "description": "Optional exact event key (1-256 bytes). Selects the dedicated indexed event map instead of ranked text search; query remains required. Bus identity and qualifiers stay separate; no runtime delivery guarantee." },
         "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
         "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },
         "extension_hint": { "type": "string", "description": "Optional query-extension hint for same-extension ranking prior (examples: 'ts', '.rs'). Omit to keep existing behavior." }
@@ -357,6 +360,10 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": "Opt-in presentation: full keeps symbols and source; source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and call/constant relations only. Content-mode grep only." },
+                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context." },
+                                "include_events": { "type": "boolean", "default": false, "description": "Opt-in static event relationships in full/relations content views. Source and definitions skip event lookup. Requires event_navigation.is_enabled in config; relations are separate from direct calls." },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "Opt-in complete live named callable. Read anchors at offset/start and ignores limit/end for expansion. Grep ignores -A/-B/-C and paginates unique callable/fallback groups with offset/head_limit. Parse/cap limits are explicit; use expand=none and line windows for oversized bodies." },
                                 "file_path": { "type": "string", "description": "Workspace-relative path by default; configured filesystem permissions may allow absolute paths. Aliases 'path'/'file'/'query' are also accepted." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
                                 "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
@@ -385,6 +392,10 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": "Opt-in presentation: full keeps symbols and source; source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and call/constant relations only. Content-mode grep only." },
+                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context." },
+                                "include_events": { "type": "boolean", "default": false, "description": "Opt-in static event relationships in full/relations content views. Source and definitions skip event lookup. Requires event_navigation.is_enabled in config; relations are separate from direct calls." },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "Opt-in complete live named callable. Read anchors at offset/start and ignores limit/end for expansion. Grep ignores -A/-B/-C and paginates unique callable/fallback groups with offset/head_limit. Parse/cap limits are explicit; use expand=none and line windows for oversized bodies." },
                                 "pattern": { "type": "string", "description": "Regular expression to search for. Escape regex metacharacters to match literal code; this is not a fixed-string mode." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
                                 "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },

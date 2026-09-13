@@ -1,0 +1,68 @@
+{
+  "outcome": "stage-2-verified",
+  "format": "v28-indexed-event-inputs",
+  "config_schema": 12,
+  "consumed_contract_sha256": "faeeb545e70940995d714f6b42e3aa6988ad6f4523442a6fd0aa4588ba077a11",
+  "storage": "Bounded indexed source inputs persisted in the same stored extracted-file record; event maps rebuilt before atomic snapshot publication. No live-source fallback while deriving indexed evidence.",
+  "source_sha256": {
+    "apps/codemap-search/src/config/event_navigation.rs": "5e8e6453a82a548811afb7facb5d1be881e58d0f57c2ee9ea7acc19e013fd555",
+    "apps/codemap-search/src/events/extract.rs": "31b6c10433ff6c6e653555364af81f3896bb8420d30d0226804c7a5e243743da",
+    "apps/codemap-search/src/events/index.rs": "877cb17cb4e58bd77b587e7751ed8bf18f85994185171434e3b657328deebb09",
+    "apps/codemap-search/src/events/inputs.rs": "494a15edce76bd2c96a0a1d19012d36023bb0f0493b302b22ac2ca5ef618fec6",
+    "apps/codemap-search/src/events/javascript.rs": "44a2e3ec0e2719be4ed52e4d3eb7cdaf87db75feea31c5720ad80249a9f80c63",
+    "apps/codemap-search/src/events/mod.rs": "f48e5b03d169efbae502960bc892c1cdbecf7f9cf55fd3d50f927ca65c4e4a11",
+    "apps/codemap-search/src/events/model.rs": "e0a1a3f1562b87f0620260474cfe7733d2113060814a63e3ed86c3066ce35957",
+    "apps/codemap-search/src/events/rules.rs": "87703331b90821de29b926d59327bbec46ad7bbadb7cbdf4a215ec1d89454a0b",
+    "apps/codemap-search/src/events/tests.rs": "93da3d9458d6e75337db0ed0a05d77ce41a06bf7ef4339d04434cfbf6b93bac8",
+    "apps/codemap-search/src/index/engine.rs": "a92c1410a7f85af387d978fc190f97c145759ff5803357194d115286dd059a12",
+    "apps/codemap-search/src/index/indexer.rs": "0f7972d39247feb2c82983e983ff6bd7a43b579c103f5ffd41a988cb37965ab9"
+  },
+  "verification": [
+    {
+      "command": "cargo check --locked",
+      "exit_code": 0,
+      "log": "/Users/buyong/tmp/cm-nav/event-index-check.log"
+    },
+    {
+      "command": "cargo test --locked --lib",
+      "exit_code": 0,
+      "passed": 219,
+      "failed": 0,
+      "ignored": 2,
+      "log": "/Users/buyong/tmp/cm-nav/event-index-lib.log"
+    }
+  ],
+  "nonempty_scenarios": {
+    "shared_esm_alias_reexport": 3,
+    "negative_controls": 8,
+    "shadow_mutation_conflicting_exports": 2,
+    "custom_and_tauri_targets": 7,
+    "rust_wrapper_and_opaque_handle": 2,
+    "endpoint_cap": {
+      "retained": 256,
+      "omitted": 44
+    }
+  },
+  "lifecycle": [
+    "persist and restart retains 2 endpoints",
+    "dependency edit hides stale routes before refresh",
+    "dependency refresh changes both event keys",
+    "delete removes both endpoints",
+    "recreate restores 2 endpoints",
+    "v27 codemap.format forces rebuild"
+  ],
+  "limits": {
+    "source_bytes_per_file": 524288,
+    "source_bytes_per_snapshot": 67108864,
+    "source_files_per_snapshot": 4096,
+    "endpoints_per_file": 256,
+    "endpoints_per_query": 128,
+    "binding_depth": 32,
+    "endpoints_per_snapshot": 8192,
+    "candidates_per_query": 512,
+    "source_files_per_query": 128,
+    "source_bytes_per_query": 4194304,
+    "serialized_bytes_per_endpoint": 8192
+  },
+  "output_integration": "Stage 3 pending; final MCP lifecycle and real Corral replays will be reported separately."
+}

@@ -1,0 +1,305 @@
+{
+  "outcome": "verified",
+  "binary": "/Users/buyong/tmp/cm-nav/delivered-codemap-search",
+  "binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "source_identity": "ec0ffb3b0e673778b6e4bc7d564d1d5d3acd77d55aa5a84d70524524a3a4cdd2",
+  "source_manifest": "source-manifest.json",
+  "config_schema": 12,
+  "extraction_format": "v28-indexed-event-inputs",
+  "consumed_live_contract": "959762e09699c2f3e0ba2d316e8649d425397ddd389c8bcfcecc27236bae52cd",
+  "consumed_rust_binary_sha256": "34c2690dfe91fa4ef378240cea03ea46e42b20f4ba7ca3de1863c4e4b23f7a2f",
+  "final_rust_binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "contract": "event-contract.json",
+  "index_stage": "event-index.json",
+  "actual_replay": "event-actual-delivered.json",
+  "fixture_replay": "event-fixture-delivered.json",
+  "final_checks": [
+    {
+      "command": "cargo check --locked",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-check.log",
+      "sha256": "ca23a11707b84978a64520329c4cd12c31895dc9fa46925a768665139d626114"
+    },
+    {
+      "command": "cargo clippy --locked --all-targets -- -D warnings",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-clippy.log",
+      "sha256": "61628be004f7595b132264b9e7c7167e9298d59e6695b6df9d782c5aca96fa44"
+    },
+    {
+      "command": "cargo build --locked --release",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-build.log",
+      "sha256": "6f6264cdfb018b87eee9820f97663c7f592943c26cd09f00547a44c6ab4c1bfd"
+    },
+    {
+      "command": "CODEMAP_VALIDATION_NASM=/Users/buyong/tmp/cm-remaining/nasm-2.16.03/nasm cargo test --locked --lib -- --include-ignored",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 222,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-lib.log",
+      "sha256": "4a2e8d3889169398dca9e2462a8f7cc24e295fd6e6c67fbb4e39dbd35fa063b8"
+    },
+    {
+      "command": "CODEMAP_VALIDATION_NASM=/Users/buyong/tmp/cm-remaining/nasm-2.16.03/nasm cargo test --locked --test e2e_tests e2e::tools:: -- --include-ignored",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 32,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-tools.log",
+      "sha256": "280955374a48797c54e5fe4e45fbe916cefec84dc10151559093fd2d1a16b655"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::search::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 23,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-search.log",
+      "sha256": "731f70b71241e6fab3eede822c9196a10ffd2c5502cc47d0ddabd01a7db8149b"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::watcher::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 10,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-watcher.log",
+      "sha256": "63bdc38893b6c0e9862e2f82f40a8c59db61ca139388f1318f43ad13e28cb929"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::mcp::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 26,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-mcp.log",
+      "sha256": "0358d0a7427650bad5a34905c9cd021d4701b502b72fec3d0451b8bb49dc4308"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::cross_feature::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 12,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-cross.log",
+      "sha256": "0a7b100cb0176ebb9129f6fd08b0710e1ef4f3613df7f2a2e7b11ca637314e04"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::exclusions::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 4,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-exclusions.log",
+      "sha256": "1cbf28a776bdfb0bf1e5f2c4ae23a61d40e26c1d23e9c43e4546380a64a0eae5"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "Shared allocation / alias / reexport / imported constant / original handler location",
+      "evidence": [
+        "event-fixture-delivered.json",
+        "event-actual-delivered.json"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "Different allocations, shadowing, mutable/opaque/local/factory receivers, dynamic keys, unknown handlers, comments and strings",
+      "evidence": [
+        "event-fixture-delivered.json",
+        "src/events/tests.rs",
+        "delivered-lib.log",
+        "delivered-search.log"
+      ],
+      "result": "pass; unknown identities receive no attributed bus route"
+    },
+    {
+      "name": "Node built-in API catalog in JS/TS; Tauri JS/TS catalog; Rust Tauri API recognition with opaque receivers",
+      "population": {
+        "node": 24,
+        "tauri_frontend": 8,
+        "tauri_rust_unresolved": 20
+      },
+      "evidence": [
+        "tests/e2e/search.rs::test_events_builtin_api_catalog_and_disable_reach_output",
+        "delivered-search.log"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "Custom receiver/argument/fixed bus; fixed key/target; channel and workspace separation",
+      "evidence": [
+        "tests/e2e/search.rs::test_events_scope_and_argument_fixed_key_channel_rules",
+        "delivered-search.log"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "Create/edit/delete/imported key and bus changes/restart/old format",
+      "evidence": [
+        "event-fixture-delivered.json",
+        "src/events/tests.rs::test_event_inputs_persist_refresh_delete_and_rebuild_old_format",
+        "delivered-lib.log"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "Repo/global rule validation, precedence, reload, replacement/removal, built-in disabling, explicit target changes, test context, Git/directory exclusions",
+      "evidence": [
+        "tests/e2e/watcher.rs",
+        "src/config/event_navigation.rs",
+        "delivered-watcher.log",
+        "delivered-lib.log"
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "Source/definitions bypass; default output; caller_context independence; byte/input/endpoint/candidate caps",
+      "evidence": [
+        "live-integrated.json",
+        "event-fixture-delivered.json",
+        "delivered-tools.log",
+        "delivered-search.log",
+        "event-anchor-budget.json"
+      ],
+      "result": "pass"
+    }
+  ],
+  "index_build_measurements": [
+    {
+      "profile": "builtin",
+      "log": "/Users/buyong/tmp/cm-nav/event-delivered/builtin/server.stderr.log",
+      "elapsed_ms": "487.401125",
+      "event_count": "7",
+      "source_count": "711",
+      "unavailable_sources": "0"
+    },
+    {
+      "profile": "custom",
+      "log": "/Users/buyong/tmp/cm-nav/event-delivered/custom/server.stderr.log",
+      "elapsed_ms": "4069.2942920000005",
+      "event_count": "34",
+      "source_count": "711",
+      "unavailable_sources": "0"
+    }
+  ],
+  "startup_and_refresh_measurements": {
+    "corral": [
+      {
+        "profile": "builtin",
+        "ready_ms": 2956.089,
+        "condition": "cold index build"
+      },
+      {
+        "profile": "custom",
+        "ready_ms": 5653.917,
+        "condition": "existing index with changed rules; new process"
+      }
+    ],
+    "fixture": [
+      {
+        "name": "cold-start",
+        "ready_ms": 1134.497
+      },
+      {
+        "name": "key-update",
+        "refresh_until_visible_ms": 249.917,
+        "last_query_ms": 7.567,
+        "attempts": 5,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/key-update.txt",
+        "sha256": "d2f4db7ff707b8a2ce0e915e73225207fa2e9e3fcdbac1002e49cbdfcae50a4b",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "bus-reexport",
+        "refresh_until_visible_ms": 197.558,
+        "last_query_ms": 7.477,
+        "attempts": 4,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/bus-reexport.txt",
+        "sha256": "3894832cde7913149ce002080b5adb5721a5b0792c2f5f66da68047f80f23887",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "create",
+        "refresh_until_visible_ms": 136.166,
+        "last_query_ms": 10.072,
+        "attempts": 3,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/create.txt",
+        "sha256": "45f6580f299979214e002a279833c10a2cb353905e1d2433dea9a2d25f1a69b7",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "delete",
+        "refresh_until_visible_ms": 204.987,
+        "last_query_ms": 7.722,
+        "attempts": 4,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/delete.txt",
+        "sha256": "3894832cde7913149ce002080b5adb5721a5b0792c2f5f66da68047f80f23887",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "remove-rules",
+        "refresh_until_visible_ms": 1260.216,
+        "last_query_ms": 2.499,
+        "attempts": 20,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/remove-rules.txt",
+        "sha256": "99989f4e513118e8af450748842c8332592713e20dfdb814701fa7132122e59f",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "restore",
+        "refresh_until_visible_ms": 1304.307,
+        "last_query_ms": 12.188,
+        "attempts": 22,
+        "raw_output": "/Users/buyong/tmp/cm-nav/event-fixture-delivered/restore.txt",
+        "sha256": "de970c734f50ed1dc1eb19822eaad41010b92c3ef8fdfb5165f1861f9840f632",
+        "condition": "same running MCP process; includes watcher/config debounce and polling"
+      },
+      {
+        "name": "restart-existing-index",
+        "ready_ms": 23.157
+      }
+    ]
+  },
+  "query_measurements": "Per-request elapsed_ms and raw responses are recorded in both replay reports; no tokenizer or speedup claim.",
+  "actual_supported_route": {
+    "key": "platform:window-op",
+    "publisher": "apps/desktop/src-tauri/src/shared/window_op_event/mod.rs:155",
+    "registration": "apps/desktop/src/shared/events/windowOpEvent.ts:50",
+    "handler": "inline callback at apps/desktop/src/shared/events/windowOpEvent.ts:50",
+    "frontend_constant": "apps/desktop/src/shared/events/eventNames.ts:5",
+    "rust_constant": "apps/desktop/src-tauri/src/shared/output/event_names.rs:7",
+    "confidence": "explicitly configured cross-language bus/target assumption; no runtime-delivery claim"
+  },
+  "actual_unresolved": [
+    {
+      "key": "stream-deck:state-changed",
+      "publisher": "apps/desktop/src-tauri/src/features/stream_deck/service/mod.rs:467",
+      "reason": "Typed AppHandle does not establish an application/bus instance; frontend registration is shown separately."
+    },
+    {
+      "pattern": "Development SSE/lazy EventSource/dispatch fallback",
+      "reason": "Runtime port, initialization and debug conditions are outside the proven static envelope."
+    }
+  ],
+  "limits": {
+    "source_bytes_per_file": 524288,
+    "source_bytes_per_snapshot": 67108864,
+    "source_files_per_snapshot": 4096,
+    "endpoints_per_file": 256,
+    "endpoints_per_query": 128,
+    "binding_depth": 32,
+    "endpoints_per_snapshot": 8192,
+    "candidates_per_query": 512,
+    "source_files_per_query": 128,
+    "source_bytes_per_query": 4194304,
+    "serialized_bytes_per_endpoint": 8192
+  },
+  "side_effects_clear": true,
+  "side_effects_clear_scope": "Controlled final replays and installed CLI probes use copies/fixtures; no original Corral source, active setting or runtime action was changed by this implementation. Earlier original metadata drift is disclosed separately.",
+  "preservation": "preservation.json",
+  "historical_original_metadata_drift": "original-corral-drift.json",
+  "installation": "installation.json",
+  "failures": []
+}

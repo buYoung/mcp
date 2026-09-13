@@ -119,6 +119,7 @@ impl McpServer {
         method: &str,
         params: Option<&Value>,
     ) -> Result<Value, (i64, String)> {
+        let _config_scope = crate::config::pin_request();
         match method {
             "initialize" => {
                 // Echo the client's requested protocolVersion when we support it,
@@ -205,11 +206,13 @@ impl McpServer {
                         }))
                     }
                     "read" => {
+                        let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
                         let output = crate::tools::read::read_file_with_metadata(arguments)?;
                         let text = crate::tools::live_symbols::append(
                             &self.engine,
                             output,
                             Some(crate::config::get().read_output_byte_cap),
+                            options,
                         )?;
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
@@ -222,13 +225,21 @@ impl McpServer {
                         }))
                     }
                     "grep" => {
+                        let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
                         let output = crate::tools::grep::grep_with_metadata(arguments)?;
                         let output_mode = arguments
                             .get("output_mode")
                             .and_then(|value| value.as_str())
                             .unwrap_or("content");
                         let text = if output_mode == "content" {
-                            crate::tools::live_symbols::append(&self.engine, output, None)?
+                            crate::tools::live_symbols::append(
+                                &self.engine,
+                                output,
+                                options
+                                    .should_expand_callable
+                                    .then(|| crate::config::get().read_output_byte_cap),
+                                options,
+                            )?
                         } else {
                             output.text
                         };

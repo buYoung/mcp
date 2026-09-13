@@ -1,0 +1,354 @@
+{
+  "outcome": "verified",
+  "ordered_execution": {
+    "previous_task_completed_and_committed": "eafa0d4c8",
+    "then": "Wave 1 live controls → Wave 2 Rust links → Wave 3 events; implementation stages serialized",
+    "subagents_used": false
+  },
+  "final_binary": "/Users/buyong/tmp/cm-nav/delivered-codemap-search",
+  "final_binary_sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+  "installed_binary": {
+    "installed_path": "/Users/buyong/.local/bin/codemap-search",
+    "sha256": "3fe45db1420fb8df2e6a64872d18842e5b9672f7513246fd65e630fe1de2b9ef",
+    "backup": "/Users/buyong/tmp/cm-nav/pre-brief-codemap-search",
+    "backup_sha256": "b1fd0c0b97dd14ccccacc526419b9b47d011b8c9f3dfafd96313de57ed840bb1",
+    "cli_checks": [
+      {
+        "name": "installed-event-read",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-read.txt",
+        "sha256": "0ac0732728a45eda9fa0c1190bc2527b3220931b08ce3814ca5680ad28d0ea24"
+      },
+      {
+        "name": "installed-event-grep",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-grep.txt",
+        "sha256": "7632846179242e354f8a5b8f7c99355bcc321c0abb51e4679976043b13ebc88f"
+      },
+      {
+        "name": "installed-event-source",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-source.txt",
+        "sha256": "6fb7fd33ae0e6b6c0ba84ec78db88401649ed2c711dc159276aa1f5d51fa2559"
+      },
+      {
+        "name": "installed-event-negative",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-event-negative.txt",
+        "sha256": "4b87f5eb46c855825799aee548556761acb1a001b2ee77dbd9f72feb00069dbb"
+      },
+      {
+        "name": "installed-config-grep",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-config-grep.txt",
+        "sha256": "8579cc82b8142279487b17ae373580ca2ebcbabf8fbd16b7d04b8f4b822d0258"
+      },
+      {
+        "name": "installed-config-read",
+        "passed": true,
+        "raw_output": "/Users/buyong/tmp/cm-nav/installed-config-read.txt",
+        "sha256": "292bfc18d5dab15305b656a7a677fc66b260a50e758aaad147bb930884a60fc3"
+      }
+    ],
+    "startup_observation": "First source-only root grep emitted a transient LockBusy warning while an existing MCP index writer was active; the following root read returned verified callable/constant context. Existing connected MCP clients need a restart to advertise newly installed options."
+  },
+  "source_identity": "ec0ffb3b0e673778b6e4bc7d564d1d5d3acd77d55aa5a84d70524524a3a4cdd2",
+  "source_manifest": "source-manifest.json",
+  "child_reports": [
+    "live-controls.json",
+    "rust-relations.json",
+    "event-map.json"
+  ],
+  "final_replay_reports": [
+    "live-integrated.json",
+    "rust-integrated.json",
+    "event-actual-delivered.json",
+    "event-fixture-delivered.json"
+  ],
+  "parameter_schema": {
+    "read": {
+      "properties": {
+        "expand": {
+          "default": "none",
+          "description": "Opt-in complete live named callable. Read anchors at offset/start and ignores limit/end for expansion. Grep ignores -A/-B/-C and paginates unique callable/fallback groups with offset/head_limit. Parse/cap limits are explicit; use expand=none and line windows for oversized bodies.",
+          "enum": [
+            "none",
+            "callable"
+          ],
+          "type": "string"
+        },
+        "file_path": {
+          "description": "Workspace-relative path by default; configured filesystem permissions may allow absolute paths. Aliases 'path'/'file'/'query' are also accepted.",
+          "type": "string"
+        },
+        "include_events": {
+          "default": false,
+          "description": "Opt-in static event relationships in full/relations content views. Source and definitions skip event lookup. Requires event_navigation.is_enabled in config; relations are separate from direct calls.",
+          "type": "boolean"
+        },
+        "limit": {
+          "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted.",
+          "type": "integer"
+        },
+        "offset": {
+          "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'.",
+          "type": "integer"
+        },
+        "unresolved": {
+          "default": "list",
+          "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context.",
+          "enum": [
+            "list",
+            "count"
+          ],
+          "type": "string"
+        },
+        "view": {
+          "default": "full",
+          "description": "Opt-in presentation: full keeps symbols and source; source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and call/constant relations only. Content-mode grep only.",
+          "enum": [
+            "full",
+            "source",
+            "definitions",
+            "relations"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_path"
+      ],
+      "type": "object"
+    },
+    "grep": {
+      "properties": {
+        "-A": {
+          "description": "Lines of context after each match.",
+          "type": "integer"
+        },
+        "-B": {
+          "description": "Lines of context before each match.",
+          "type": "integer"
+        },
+        "-C": {
+          "description": "Lines of context before and after (overrides -A/-B).",
+          "type": "integer"
+        },
+        "-i": {
+          "description": "Case-insensitive (default false).",
+          "type": "boolean"
+        },
+        "-n": {
+          "description": "Show line numbers in content mode (default true).",
+          "type": "boolean"
+        },
+        "expand": {
+          "default": "none",
+          "description": "Opt-in complete live named callable. Read anchors at offset/start and ignores limit/end for expansion. Grep ignores -A/-B/-C and paginates unique callable/fallback groups with offset/head_limit. Parse/cap limits are explicit; use expand=none and line windows for oversized bodies.",
+          "enum": [
+            "none",
+            "callable"
+          ],
+          "type": "string"
+        },
+        "glob": {
+          "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted.",
+          "type": "string"
+        },
+        "head_limit": {
+          "description": "Max results (default 250; 0 = unlimited).",
+          "type": "integer"
+        },
+        "include_events": {
+          "default": false,
+          "description": "Opt-in static event relationships in full/relations content views. Source and definitions skip event lookup. Requires event_navigation.is_enabled in config; relations are separate from direct calls.",
+          "type": "boolean"
+        },
+        "include_ignored": {
+          "description": "Bypass .gitignore/.codemapignore (default false).",
+          "type": "boolean"
+        },
+        "multiline": {
+          "description": "Allow matches to span lines (default false).",
+          "type": "boolean"
+        },
+        "offset": {
+          "description": "0-indexed result offset for pagination (default 0).",
+          "type": "integer"
+        },
+        "output_mode": {
+          "description": "Default 'content' — matching lines as 'file:line:text' with line numbers (via -n); use it to locate code. 'files_with_matches' returns only the set of matching files. 'count' returns per-file match counts with no line content — for sizing a result set, not for locating code.",
+          "enum": [
+            "content",
+            "files_with_matches",
+            "count"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths.",
+          "type": "string"
+        },
+        "pattern": {
+          "description": "Regular expression to search for. Escape regex metacharacters to match literal code; this is not a fixed-string mode.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts').",
+          "type": "string"
+        },
+        "unresolved": {
+          "default": "list",
+          "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context.",
+          "enum": [
+            "list",
+            "count"
+          ],
+          "type": "string"
+        },
+        "view": {
+          "default": "full",
+          "description": "Opt-in presentation: full keeps symbols and source; source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and call/constant relations only. Content-mode grep only.",
+          "enum": [
+            "full",
+            "source",
+            "definitions",
+            "relations"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    }
+  },
+  "schema_compatibility": "Original view/unresolved/expand fields/defaults preserved. include_events=false is an additive option. The dedicated search.event_key field does not replace query or caller_context.",
+  "checks": [
+    {
+      "command": "cargo check --locked",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-check.log",
+      "sha256": "ca23a11707b84978a64520329c4cd12c31895dc9fa46925a768665139d626114"
+    },
+    {
+      "command": "cargo clippy --locked --all-targets -- -D warnings",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-clippy.log",
+      "sha256": "61628be004f7595b132264b9e7c7167e9298d59e6695b6df9d782c5aca96fa44"
+    },
+    {
+      "command": "cargo build --locked --release",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": null,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-build.log",
+      "sha256": "6f6264cdfb018b87eee9820f97663c7f592943c26cd09f00547a44c6ab4c1bfd"
+    },
+    {
+      "command": "CODEMAP_VALIDATION_NASM=/Users/buyong/tmp/cm-remaining/nasm-2.16.03/nasm cargo test --locked --lib -- --include-ignored",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 222,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-lib.log",
+      "sha256": "4a2e8d3889169398dca9e2462a8f7cc24e295fd6e6c67fbb4e39dbd35fa063b8"
+    },
+    {
+      "command": "CODEMAP_VALIDATION_NASM=/Users/buyong/tmp/cm-remaining/nasm-2.16.03/nasm cargo test --locked --test e2e_tests e2e::tools:: -- --include-ignored",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 32,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-tools.log",
+      "sha256": "280955374a48797c54e5fe4e45fbe916cefec84dc10151559093fd2d1a16b655"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::search::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 23,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-search.log",
+      "sha256": "731f70b71241e6fab3eede822c9196a10ffd2c5502cc47d0ddabd01a7db8149b"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::watcher::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 10,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-watcher.log",
+      "sha256": "63bdc38893b6c0e9862e2f82f40a8c59db61ca139388f1318f43ad13e28cb929"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::mcp::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 26,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-mcp.log",
+      "sha256": "0358d0a7427650bad5a34905c9cd021d4701b502b72fec3d0451b8bb49dc4308"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::cross_feature::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 12,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-cross.log",
+      "sha256": "0a7b100cb0176ebb9129f6fd08b0710e1ef4f3613df7f2a2e7b11ca637314e04"
+    },
+    {
+      "command": "cargo test --locked --test e2e_tests e2e::exclusions::",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+      "exit_code": 0,
+      "passed": 4,
+      "log": "/Users/buyong/tmp/cm-nav/delivered-exclusions.log",
+      "sha256": "1cbf28a776bdfb0bf1e5f2c4ae23a61d40e26c1d23e9c43e4546380a64a0eae5"
+    }
+  ],
+  "total_tests_passed": 329,
+  "total_failed": 0,
+  "total_ignored": 0,
+  "verification_binary_identity": {
+    "package_suites": "Cargo debug test/binary from the same final source manifest",
+    "debug_binary_sha256": "295a776903b624bbb0446631f14297c944a25be3351c6537ec132bf988f19ec7",
+    "all_Corral_and_fixture_protocol_replays": "One frozen release binary, SHA-256 above"
+  },
+  "source_output_contract": "C1/C2/C3/C4 raw source is byte-equal to its baseline. Omitted-option context may differ only through the intentional Rust relation correction. Source view bypasses indexed metadata; exact named callable bounds and unresolved-call totals are verified.",
+  "rust_edges": {
+    "count": 6,
+    "forward_and_reverse_visible": 6,
+    "target": "explicit macos; neutral and linux negative controls preserved"
+  },
+  "events": "event-map.json",
+  "preservation": {
+    "application_source_changes": [],
+    "sources_equal_to_pre_integrated_snapshot": true,
+    "codemap_equal_to_pre_integrated_snapshot": true,
+    "git_status_unchanged": true,
+    "global_config_unchanged": true,
+    "original_index_format": "v27-native-declarations-and-groovy",
+    "historical_metadata_drift": "original-corral-drift.json"
+  },
+  "historical_original_metadata_drift": "original-corral-drift.json",
+  "side_effects_clear": true,
+  "side_effects_clear_scope": "Controlled final execution only; not a claim that external original metadata stayed unchanged for the entire conversation.",
+  "remaining_limits": [
+    "Static source navigation does not simulate runtime dispatch/delivery or every framework/compiler condition.",
+    "The earlier public-language validation belongs to eafa0d4c8 and its pinned binary; it was not rerun as a broad corpus for this briefset.",
+    "Original Corral config comments/index changed to the older v27 before final controlled replays; origin remains unconfirmed. Application source and active settings stayed equal, and final before/after snapshots are equal.",
+    "Existing MCP connections must be restarted to advertise newly installed options; standalone cm checks used the installed binary."
+  ],
+  "diff_review": {
+    "result": "No unresolved implementation defects in the reviewed/verified scope",
+    "repairs_during_review": [
+      "JS destructuring/var shadow boundaries",
+      "imported target freshness dependencies",
+      "constant definition before import-site evidence",
+      "unique file candidates for multi-line grep",
+      "generation publication when no eligible event inputs exist"
+    ]
+  },
+  "package": "package.json"
+}

@@ -1,0 +1,12 @@
+{
+  "baseline_config_reconstruction_matches_sha256": true,
+  "effective_config_unchanged": true,
+  "application_sources_changed": [],
+  "current_original_index_format": "v27-native-declarations-and-groovy",
+  "original_config_modified_epoch": 1789319252.8616455,
+  "origin": "not established; user clarification pending",
+  "candidate_format": "v28-indexed-event-inputs",
+  "original_candidate_execution": "none; all controlled MCP runs target corral-replay",
+  "baseline_manifest": "/Users/buyong/tmp/cm-nav/corral-original.json",
+  "pre_integrated_manifest": "/Users/buyong/tmp/cm-nav/corral-before-final-replays.json"
+}

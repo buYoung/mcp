@@ -1,0 +1,128 @@
+{
+  "outcome": "contract-frozen",
+  "consumed_live_contract": "959762e09699c2f3e0ba2d316e8649d425397ddd389c8bcfcecc27236bae52cd",
+  "consumed_rust_binary_sha256": "34c2690dfe91fa4ef378240cea03ea46e42b20f4ba7ca3de1863c4e4b23f7a2f",
+  "inventory": [
+    {
+      "pattern": "Tauri frontend imported listen/once",
+      "evidence": [
+        "apps/desktop/src/shared/events/windowOpEvent.ts:50",
+        "apps/desktop/src/features/settings/stream-deck/hooks/useStreamDeckIntegration.ts:46"
+      ],
+      "support": "Recognize imported API, static local/imported keys and inline callbacks; default Tauri application scope is recorded as framework context."
+    },
+    {
+      "pattern": "Tauri Rust AppHandle emit",
+      "evidence": [
+        "apps/desktop/src-tauri/src/shared/output/mod.rs:39",
+        "apps/desktop/src-tauri/src/features/stream_deck/service/mod.rs:466"
+      ],
+      "support": "Recognize API with type/import evidence; opaque handle instances and dynamic keys stay unresolved."
+    },
+    {
+      "pattern": "Central dispatcher wrapper",
+      "evidence": [
+        "apps/desktop/src-tauri/src/shared/output/mod.rs:17",
+        "apps/desktop/src-tauri/src/shared/output/mod.rs:35",
+        "apps/desktop/src-tauri/src/features/app/startup_service.rs:213"
+      ],
+      "support": "Exact source-function custom rule can declare wrapper roles and a fixed bus assumption. This assumption is labeled separately from allocation identity; no generic wrapper dataflow is claimed."
+    },
+    {
+      "pattern": "Development SSE bridge",
+      "evidence": [
+        "apps/desktop/src/dev/devBridge.ts:159",
+        "apps/desktop/src/dev/devBridge.ts:226",
+        "apps/desktop/src/dev/devBridge.ts:274"
+      ],
+      "support": "Runtime port, lazy EventSource allocation and Rust debug_assertions require runtime/unsupported facts; no automatically confirmed cross-language delivery link."
+    }
+  ],
+  "api_sources": [
+    "https://nodejs.org/api/events.html",
+    "https://v2.tauri.app/reference/javascript/api/namespaceevent/",
+    "https://docs.rs/tauri/latest/tauri/trait.Emitter.html"
+  ],
+  "configuration": {
+    "section": "event_navigation",
+    "defaults": {
+      "is_enabled": false,
+      "use_builtin_rules": true,
+      "rules": []
+    },
+    "rule_fields": [
+      "id",
+      "language",
+      "module",
+      "symbol",
+      "method (optional for constructor/receiver API)",
+      "role (publish/subscribe/unsubscribe)",
+      "event_arg",
+      "handler_arg (optional)",
+      "event_key (optional fixed API key, exclusive with event_arg)",
+      "bus (receiver/argument/fixed/framework)",
+      "bus_arg (optional)",
+      "bus_identity (required for fixed)",
+      "target_arg (optional)",
+      "target (optional fixed wrapper qualifier, exclusive with target_arg)",
+      "channel (optional)",
+      "is_once (optional)"
+    ],
+    "selectors": "module+symbol is a verified callable or constructor/type identity, never a bare method spelling. Custom rules are explicit semantic assumptions, separate from bus allocation proof.",
+    "precedence": "repo per key > global > default; rule list replaces lower list; custom matching selectors override built-ins; conflicting custom selectors/IDs reject the list with lower-layer fallback."
+  },
+  "matching": {
+    "identity": "Immutable module-level allocation location propagated through source imports/aliases, never class/variable/event-name equality alone. Local/factory/parameter instances remain unresolved. Explicit fixed bus IDs are labeled configuration assumptions.",
+    "keys": "Exact literal/static immutable aliases; dynamic/unsupported expressions remain unresolved. No wildcard expansion.",
+    "handlers": "Named source functions, immutable callable bindings/import aliases and inline callable arguments; unsupported handlers retain a reason and no fabricated definition.",
+    "qualifiers": "Exact static target/channel values; unknown or different qualifiers do not join. Conditional registration/once/removal and ordering uncertainty are visible. Fixed wrapper targets are configured assumptions; known Tauri frontend qualifiers cannot be overridden by a fixed target."
+  },
+  "storage": {
+    "format": "v28-indexed-event-inputs",
+    "source_snapshots": "Bounded source snapshots are stored only while enabled, so derived event evidence is rebuilt from the same indexed bytes rather than current mixed-generation files. Existing Rust source resolution is reused with a stored-source provider.",
+    "budgets": {
+      "source_bytes_per_file": 524288,
+      "source_bytes_per_snapshot": 67108864,
+      "source_files_per_snapshot": 4096,
+      "endpoints_per_file": 256,
+      "endpoints_per_query": 128,
+      "binding_depth": 32,
+      "endpoints_per_snapshot": 8192,
+      "candidates_per_query": 512,
+      "source_files_per_query": 128,
+      "source_bytes_per_query": 4194304,
+      "serialized_bytes_per_endpoint": 8192
+    },
+    "publication": "Event maps by file and exact key are built before the existing single generation gate publishes the codemap/search snapshot. Requests perform bounded lookups and exact source freshness checks, not a full-workspace relation scan.",
+    "invalidation": "File create/edit/delete updates persisted input; dependency changes rebuild derived identities from all stored inputs; API/analysis/exclusion config changes force eligible input refresh; disabled/old/mismatched data never appears complete."
+  },
+  "presentation": {
+    "include_events": "false by default for read/grep/search; applicable only to full/relations content views. source/definitions skip event lookup.",
+    "event_key": "Optional exact-key search argument selects only the dedicated event map; existing query field remains required for compatibility.",
+    "separation": "A separate Event relationships section; never direct calls or precise/runtime-delivery claims."
+  },
+  "scenarios": [
+    "shared KnownBus allocation with on/emit and resolvable handler",
+    "separate buses with same key; same type multiple allocations",
+    "identifier alias and reexport; shadowed/opaque/factory bindings",
+    "literal/static imported key; changed imported bus/key",
+    "dynamic key and unknown handler with explicit reasons",
+    "unrelated methods, comments and strings excluded",
+    "conditional registration, once, removal, target/channel mismatch",
+    "custom rule validation/reload/removal; test-context toggle and directory exclusion",
+    "create/edit/delete/restart and old extraction format",
+    "caps and source-only/legacy output preservation"
+  ],
+  "implementation_limits": [
+    "ESM JS/TS and bounded Rust source cases first; no framework catalog",
+    "No runtime delivery, registration ordering, arbitrary wrapper/factory/dataflow or external broker topology",
+    "Unsupported module aliases and cfg predicates stay unresolved"
+  ],
+  "implementation_refinements": [
+    "Candidate filtering by method shape still requires canonical API proof.",
+    "Imported target values join freshness dependencies.",
+    "JavaScript var uses the grammar variable_declaration function scope.",
+    "Configuration-only refresh publishes even when no event-eligible files exist.",
+    "API definition locations are separate source anchors; unresolved endpoint conditions and removal/once limits stay visible."
+  ]
+}

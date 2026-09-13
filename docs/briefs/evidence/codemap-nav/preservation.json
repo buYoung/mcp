@@ -1,0 +1,9 @@
+{
+  "application_source_changes": [],
+  "sources_equal_to_pre_integrated_snapshot": true,
+  "codemap_equal_to_pre_integrated_snapshot": true,
+  "git_status_unchanged": true,
+  "global_config_unchanged": true,
+  "original_index_format": "v27-native-declarations-and-groovy",
+  "historical_metadata_drift": "original-corral-drift.json"
+}

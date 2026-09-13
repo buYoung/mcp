@@ -3,6 +3,119 @@ use predicates::prelude::*;
 use std::fs;
 
 #[tokio::test]
+async fn test_rust_target_reload_and_reexport_identity_reach_all_tool_views() {
+    let platform = "#[cfg(target_os=\"macos\")]\npub mod macos;\n#[cfg(not(target_os=\"macos\"))]\npub mod other;\n#[cfg(target_os=\"macos\")]\npub use self::macos::run;\n#[cfg(not(target_os=\"macos\"))]\npub use self::other::run;\n";
+    let config = |os: &str| {
+        format!("[update]\nconfig_auto_update=false\n[analysis]\ntarget_os=\"{os}\"\n[caller_context]\nnavigation_context_default=true\nnavigation_store_references=true\n")
+    };
+    let temp = create_mock_repo(&[
+        (
+            "Cargo.toml",
+            "[package]\nname='target-probe'\nversion='0.1.0'\n",
+        ),
+        ("src/lib.rs", "mod platform; mod client;\n"),
+        ("src/platform/mod.rs", platform),
+        (
+            "src/platform/macos.rs",
+            "pub fn run() {}\npub fn alternate() {}\n",
+        ),
+        ("src/platform/other.rs", "pub fn run() {}\n"),
+        (
+            "src/client.rs",
+            "use crate::platform::run as selected;\npub fn entry() { selected(); }\n",
+        ),
+        (".codemap/config.toml", &config("")),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args =
+        serde_json::json!({"file_path":"src/client.rs","offset":2,"limit":1,"view":"relations"});
+    let text = |response: &serde_json::Value| {
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let neutral = client
+        .send_tool_until("read", args.clone(), |out| {
+            out.contains("selected (unresolved)")
+        })
+        .await
+        .unwrap();
+    assert!(
+        text(&neutral).contains("selected (unresolved)"),
+        "{neutral}"
+    );
+    for (os, expected, absent) in [
+        (
+            "macos",
+            "run — src/platform/macos.rs:1",
+            "run — src/platform/other.rs:1",
+        ),
+        (
+            "linux",
+            "run — src/platform/other.rs:1",
+            "run — src/platform/macos.rs:1",
+        ),
+    ] {
+        fs::write(temp.path().join(".codemap/config.toml"), config(os)).unwrap();
+        let response = client
+            .send_tool_until("read", args.clone(), |out| out.contains(expected))
+            .await
+            .unwrap();
+        let out = text(&response);
+        assert!(
+            out.contains(expected) && out.contains(&format!("analysis target_os={os}")),
+            "{out}"
+        );
+        assert!(!out.contains(absent), "{out}");
+        let grep=client.send_request("tools/call",serde_json::json!({"name":"grep","arguments":{"path":"src/client.rs","pattern":"fn entry","view":"relations"}})).await.unwrap();
+        assert!(
+            text(&grep).contains(expected) && !text(&grep).contains(absent),
+            "{grep}"
+        );
+        let search=client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"entry client","caller_context":true}})).await.unwrap();
+        assert!(
+            text(&search).contains(expected) && !text(&search).contains(absent),
+            "{search}"
+        );
+    }
+    fs::write(temp.path().join(".codemap/config.toml"), config("macos")).unwrap();
+    fs::write(
+        temp.path().join("src/platform/mod.rs"),
+        platform.replace(
+            "pub use self::macos::run;",
+            "pub use self::macos::alternate as run;",
+        ),
+    )
+    .unwrap();
+    let changed = client
+        .send_tool_until("read", args.clone(), |out| {
+            out.contains("alternate — src/platform/macos.rs:2")
+        })
+        .await
+        .unwrap();
+    assert!(
+        text(&changed).contains("alternate — src/platform/macos.rs:2"),
+        "{changed}"
+    );
+    let reverse=client.send_tool_until("read",serde_json::json!({"file_path":"src/platform/macos.rs","offset":2,"limit":1,"view":"relations"}),|out|out.contains("entry (src/client.rs:2)")).await.unwrap();
+    assert!(
+        text(&reverse).contains("entry (src/client.rs:2)"),
+        "{reverse}"
+    );
+    fs::write(temp.path().join(".codemap/config.toml"), config("")).unwrap();
+    let reset = client
+        .send_tool_until("read", args, |out| out.contains("selected (unresolved)"))
+        .await
+        .unwrap();
+    assert!(
+        text(&reset).contains("selected (unresolved)") && !text(&reset).contains("alternate —"),
+        "{reset}"
+    );
+}
+
+#[tokio::test]
 async fn test_cross_bm25_mcp_branching() {
     // 1. Setup repo with 6 matching files
     let temp = create_mock_repo(&[

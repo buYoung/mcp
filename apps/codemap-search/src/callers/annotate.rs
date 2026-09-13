@@ -225,6 +225,11 @@ fn resolve_navigation_call<'a>(
     }
 }
 
+struct ConfirmedCallers {
+    entries: Vec<String>,
+    is_partial: bool,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn precise_navigation_callers(
     target: &ExtractedSymbol,
@@ -236,22 +241,60 @@ fn precise_navigation_callers(
     runtime_state: AnnotationRuntimeState,
     root: &Path,
     resolver: &super::resolution::SourceResolver<'_>,
-) -> Option<Vec<String>> {
+) -> Option<ConfirmedCallers> {
     if (!cfg.navigation_context_default && !super::resolution::supports(target_file_path))
         || runtime_state.suppresses_navigation()
     {
         return None;
     }
     if navigation_index.calls_by_name.is_empty() && !super::resolution::supports(target_file_path) {
-        return Some(Vec::new());
+        return Some(ConfirmedCallers {
+            entries: Vec::new(),
+            is_partial: false,
+        });
     }
     let mut inspected = 0usize;
     let mut caller_entries = Vec::new();
     let mut seen = HashSet::new();
+    // Aliases are only candidate spellings. Every site still has to resolve to
+    // this exact source definition, including through conditional reexports.
+    let mut relevant_names = HashSet::from([target.name.as_str()]);
+    let mut is_alias_limited = false;
+    if target_file_path.ends_with(".rs") {
+        for round in 0..16 {
+            let before = relevant_names.len();
+            for import in snapshot
+                .iter()
+                .filter(|file| file.file_path.ends_with(".rs"))
+                .filter_map(|file| file.navigation.as_ref())
+                .flat_map(|navigation| &navigation.imports)
+            {
+                if import
+                    .imported_name
+                    .as_deref()
+                    .is_some_and(|name| relevant_names.contains(name))
+                {
+                    if !relevant_names.contains(import.local_name.as_str())
+                        && relevant_names.len() >= 256
+                    {
+                        is_alias_limited = true;
+                        break;
+                    }
+                    relevant_names.insert(import.local_name.as_str());
+                }
+            }
+            if relevant_names.len() == before || is_alias_limited {
+                break;
+            }
+            if round == 15 {
+                is_alias_limited = true;
+            }
+        }
+    }
     for call_file in snapshot.iter().filter(|file| file.navigation.is_some()) {
         let navigation = call_file.navigation.as_ref().unwrap();
         let relevant = |call: &&CallSite| {
-            call.name == target.name
+            relevant_names.contains(call.name.as_str())
                 || navigation.imports.iter().any(|import| {
                     import.local_name == call.name
                         && import.imported_name.as_deref() == Some(&target.name)
@@ -268,7 +311,10 @@ fn precise_navigation_callers(
             }
             inspected += 1;
             if inspected > cfg.navigation_callsite_budget {
-                return None;
+                return Some(ConfirmedCallers {
+                    entries: caller_entries,
+                    is_partial: true,
+                });
             }
             let resolved = if super::resolution::supports(&call_file.file_path) {
                 resolver
@@ -317,7 +363,10 @@ fn precise_navigation_callers(
             }
         }
     }
-    Some(caller_entries)
+    Some(ConfirmedCallers {
+        entries: caller_entries,
+        is_partial: is_alias_limited,
+    })
 }
 
 /// One matched `fn` symbol's annotation, kept in THREE separable parts so the P2 caller-block
@@ -411,11 +460,17 @@ fn render_symbol_annotation(
     root: &Path,
     runtime_state: AnnotationRuntimeState,
     resolver: &super::resolution::SourceResolver<'_>,
+    should_list_unresolved: bool,
 ) -> Option<SymbolAnnotation> {
     if byte_budget == 0 {
         return None;
     }
     let mut prefix = String::new();
+    if file_path.ends_with(".rs") {
+        if let Some(target_os) = crate::config::get().analysis_target_os.as_deref() {
+            prefix.push_str(&format!("  - _Rust analysis target_os={target_os}; static source conditions, not a runtime execution guarantee._\n"));
+        }
+    }
 
     // --- Decorator / attribute entry-point label (on-demand source re-read). ---
     let decorators = decorator_lines_above(file_path, sym.range.start_line, root);
@@ -429,52 +484,57 @@ fn render_symbol_annotation(
     // --- Callers (built into its own block so identical repeats can be deduped per file). ---
     let own_def_count = lookup_compatible_candidates(&sym.name, file_path, false, index).len();
     let mut caller_block = String::new();
-    // Too-many-definitions short-circuit: with this many same-named `fn`s, a name-match
-    // scan cannot attribute any call site to THIS definition, so even a labeled list would
-    // mislead. Suppress the caller list and point at `grep` for the real enumeration — never
-    // a false "no callers" (guard ④): the note states the omission, the cause, and the
-    // alternative. The callee section below still renders; the scan itself ran unchanged.
-    if own_def_count >= cfg.caller_omit_def_threshold {
-        caller_block.push_str(&format!(
-            "  - _callers omitted: `{}` has {} definitions — attribution ambiguous; use grep \"{}(\" to enumerate call sites_\n",
-            sym.name, own_def_count, sym.name
-        ));
-    } else {
-        let mut used_precise_callers = false;
-        let mut precise_caller_entries: HashSet<String> = HashSet::new();
-        if let Some(caller_entries) = precise_navigation_callers(
-            sym,
-            file_path,
-            snapshot,
-            index,
-            navigation_index,
-            cfg,
-            runtime_state,
-            root,
-            resolver,
-        ) {
-            if !caller_entries.is_empty() {
-                caller_block.push_str(if cfg.navigation_context_default {
-                    "  - _callers (tree-sitter precise; import/source resolution confirmed):_\n"
-                } else {
-                    "  - _callers (source/import resolution checked; approximate):_\n"
-                });
-                for entry in &caller_entries {
-                    precise_caller_entries.insert(entry.clone());
-                }
-                for entry in caller_entries.iter().take(cfg.caller_list_cap) {
-                    caller_block.push_str(&format!("    - {entry}\n"));
-                }
-                if caller_entries.len() > cfg.caller_list_cap {
-                    caller_block.push_str(&format!(
-                        "    - _… {} more not shown._\n",
-                        caller_entries.len() - cfg.caller_list_cap
-                    ));
-                }
-                used_precise_callers = true;
-            }
+    let mut used_precise_callers = false;
+    let mut precise_caller_entries: HashSet<String> = HashSet::new();
+    if let Some(confirmed) = precise_navigation_callers(
+        sym,
+        file_path,
+        snapshot,
+        index,
+        navigation_index,
+        cfg,
+        runtime_state,
+        root,
+        resolver,
+    ) {
+        let caller_entries = confirmed.entries;
+        if confirmed.is_partial {
+            caller_block.push_str("  - _Caller resolution hit its callsite or alias budget; proven entries below are retained and additional sites may be unresolved._\n");
         }
+        if !caller_entries.is_empty() {
+            caller_block.push_str(if cfg.navigation_context_default {
+                "  - _callers (tree-sitter precise; import/source resolution confirmed):_\n"
+            } else {
+                "  - _callers (source/import resolution checked; approximate):_\n"
+            });
+            for entry in &caller_entries {
+                precise_caller_entries.insert(entry.clone());
+            }
+            for entry in caller_entries.iter().take(cfg.caller_list_cap) {
+                caller_block.push_str(&format!("    - {entry}\n"));
+            }
+            if caller_entries.len() > cfg.caller_list_cap {
+                caller_block.push_str(&format!(
+                    "    - _… {} more not shown._\n",
+                    caller_entries.len() - cfg.caller_list_cap
+                ));
+            }
+            used_precise_callers = true;
+        }
+    }
 
+    // Source-confirmed identities survive high spelling counts. Only the
+    // uncertain name-match fallback is governed by the omission threshold.
+    if own_def_count >= cfg.caller_omit_def_threshold {
+        if used_precise_callers {
+            caller_block.push_str(&format!("  - _Additional name-matching callers omitted: `{}` has {} definitions; proven callers above are retained. Use grep to enumerate remaining sites._\n", sym.name, own_def_count));
+        } else {
+            caller_block.push_str(&format!(
+                "  - _callers omitted: `{}` has {} definitions — attribution ambiguous; use grep \"{}(\" to enumerate call sites_\n",
+                sym.name, own_def_count, sym.name
+            ));
+        }
+    } else {
         let is_common = own_def_count >= cfg.common_name_threshold;
         // Map this name's call-site hits to their enclosing fn.
         let mut caller_entries: Vec<String> = Vec::new();
@@ -654,18 +714,20 @@ fn render_symbol_annotation(
         let unresolved = callees.iter().filter(|callee| callee.is_unresolved).count();
         if unresolved > 0 {
             suffix.push_str(&format!("  - _{unresolved} callee(s) unresolved in indexed source; no definition attributed._\n"));
-            for callee in callees
-                .iter()
-                .filter(|callee| callee.is_unresolved)
-                .take(cfg.callee_list_cap)
-            {
-                suffix.push_str(&format!("    - {} (unresolved)\n", callee.name));
-            }
-            if unresolved > cfg.callee_list_cap {
-                suffix.push_str(&format!(
-                    "    - _… {} more unresolved calls not shown._\n",
-                    unresolved - cfg.callee_list_cap
-                ));
+            if should_list_unresolved {
+                for callee in callees
+                    .iter()
+                    .filter(|callee| callee.is_unresolved)
+                    .take(cfg.callee_list_cap)
+                {
+                    suffix.push_str(&format!("    - {} (unresolved)\n", callee.name));
+                }
+                if unresolved > cfg.callee_list_cap {
+                    suffix.push_str(&format!(
+                        "    - _… {} more unresolved calls not shown._\n",
+                        unresolved - cfg.callee_list_cap
+                    ));
+                }
             }
         }
         let callees: Vec<_> = callees
@@ -873,6 +935,45 @@ pub fn annotate_results_with_state(
     root: &Path,
     runtime_state: AnnotationRuntimeState,
 ) -> Option<DetailAnnotations> {
+    annotate_with_presentation(
+        requests,
+        snapshot,
+        cfg,
+        available_bytes,
+        root,
+        runtime_state,
+        true,
+    )
+}
+
+pub(crate) fn annotate_live_results(
+    requests: &[AnnotationRequest<'_>],
+    snapshot: &[ExtractedFile],
+    cfg: &CallerConfig,
+    available_bytes: usize,
+    root: &Path,
+    should_list_unresolved: bool,
+) -> Option<DetailAnnotations> {
+    annotate_with_presentation(
+        requests,
+        snapshot,
+        cfg,
+        available_bytes,
+        root,
+        AnnotationRuntimeState::default(),
+        should_list_unresolved,
+    )
+}
+
+fn annotate_with_presentation(
+    requests: &[AnnotationRequest<'_>],
+    snapshot: &[ExtractedFile],
+    cfg: &CallerConfig,
+    available_bytes: usize,
+    root: &Path,
+    runtime_state: AnnotationRuntimeState,
+    should_list_unresolved: bool,
+) -> Option<DetailAnnotations> {
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
@@ -958,6 +1059,7 @@ pub fn annotate_results_with_state(
                 root,
                 runtime_state,
                 &resolver,
+                should_list_unresolved,
             ) {
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
@@ -1005,6 +1107,54 @@ pub fn annotate_results_with_state(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn source_proven_callers_survive_name_threshold_and_partial_budget() {
+        use crate::parser::{CodeExtractor, TreeSitterExtractor};
+        let inputs=[
+            ("src/lib.rs","mod a; mod b; mod c; mod d; mod e;\nuse crate::a::work;\npub fn first() { work(); }\npub fn second() { work(); }\npub fn foreign() { crate::b::work(); }\n"),
+            ("src/a.rs","pub fn work() {}\n"),("src/b.rs","pub fn work() {}\n"),
+            ("src/c.rs","pub fn work() {}\n"),("src/d.rs","pub fn work() {}\n"),
+            ("src/e.rs","pub fn work() {}\n"),
+        ];
+        let (_temp, root) = crate::callers::fixtures::write_repo(&inputs);
+        let files: Vec<_> = inputs
+            .iter()
+            .map(|(path, source)| TreeSitterExtractor::new().extract(source, path).unwrap())
+            .collect();
+        assert_eq!(
+            files
+                .iter()
+                .flat_map(|f| &f.symbols)
+                .filter(|s| s.name == "work")
+                .count(),
+            5
+        );
+        let target = &files[1];
+        let request = [AnnotationRequest {
+            file_path: &target.file_path,
+            symbols: &target.symbols,
+            is_fallback: false,
+        }];
+        for (budget, partial) in [(1000, false), (1, true)] {
+            let cfg = CallerConfig {
+                navigation_callsite_budget: budget,
+                ..crate::callers::fixtures::cfg()
+            };
+            let annotations = annotate_results(&request, &files, &cfg, 8192, &root).unwrap();
+            let out = annotations
+                .render_live_relations(&target.file_path, 1)
+                .unwrap();
+            assert!(out.contains("first (src/lib.rs:3)"), "{out}");
+            assert!(!out.contains("foreign ("), "{out}");
+            assert!(out.contains("proven callers above are retained"), "{out}");
+            if partial {
+                assert!(out.contains("hit its callsite or alias budget"), "{out}");
+            } else {
+                assert!(out.contains("second (src/lib.rs:4)"), "{out}");
+            }
+        }
+    }
+
     use super::*;
     use crate::callers::fixtures::{cfg, file, has_note, note, render_in_order, sym};
     use std::path::PathBuf;

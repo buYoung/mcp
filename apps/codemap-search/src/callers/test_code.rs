@@ -148,6 +148,12 @@ fn compile_languages(
 }
 
 impl TestCodeFilter {
+    pub(crate) fn including_tests(root: &Path) -> Self {
+        let mut filter = Self::from_config(root);
+        filter.should_include = true;
+        filter
+    }
+
     pub(crate) fn from_config(root: &Path) -> Self {
         let cfg = crate::config::get();
         let rules = cfg.test_code_rules.clone();

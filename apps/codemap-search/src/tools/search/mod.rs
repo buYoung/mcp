@@ -532,6 +532,38 @@ pub(crate) fn run_inner_with_metadata(
         .and_then(|v| v.as_str())
         .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
+    let should_include_events = match super::get_arg(ctx.arguments, "include_events") {
+        None => false,
+        Some(serde_json::Value::Bool(value)) => *value,
+        _ => {
+            return Err((
+                -32602,
+                "Invalid 'include_events': expected a boolean.".into(),
+            ))
+        }
+    };
+    if let Some(value) = super::get_arg(ctx.arguments, "event_key") {
+        let key = value
+            .as_str()
+            .filter(|key| !key.is_empty() && key.len() <= 256 && !key.contains(['\n', '\r', '\0']))
+            .ok_or_else(|| {
+                (
+                    -32602,
+                    "Invalid 'event_key': expected a non-empty exact string of at most 256 bytes."
+                        .into(),
+                )
+            })?;
+        if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
+            return Ok(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into()});
+        }
+        let root = std::env::current_dir().unwrap_or_default();
+        let snapshot = ctx.engine.published_snapshot();
+        let cap = crate::config::get().search_detail_byte_cap;
+        return Ok(SearchOutput {
+            text: snapshot.events().for_key(key, workspace_scope, cap, &root),
+        });
+    }
+
     // Caller/callee context (default on). Precedence: the per-call
     // parameter, when present, always wins (an explicit `false`
     // overrides the default); the repo-level config key only decides
@@ -1003,8 +1035,35 @@ pub(crate) fn run_inner_with_metadata(
 
     let is_partial = output_was_capped || text.len() > byte_cap;
     let text = finish_search_output(text, byte_cap, is_partial);
-    let output =
-        append_static_collection_relations(&results, published_snapshot, text, workspace_scope);
+    let mut output = append_static_collection_relations(
+        &results,
+        std::sync::Arc::clone(&published_snapshot),
+        text,
+        workspace_scope,
+    );
+    if should_include_events {
+        let event_cap = (byte_cap / 2).min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
+        let context_cap = byte_cap.saturating_sub(event_cap + 2);
+        let is_partial = output.text.len() > context_cap;
+        output.text = finish_search_output(output.text, context_cap, is_partial);
+        output.text.push_str("\n\n");
+        if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
+            let notice = "[Event index unavailable or stale; no event links shown.]";
+            output.text.extend(notice.chars().take(event_cap));
+        } else {
+            let anchors = results
+                .iter()
+                .map(|result| (result.file_path.clone(), 1, usize::MAX))
+                .collect::<Vec<_>>();
+            let root = std::env::current_dir().unwrap_or_default();
+            output.text.push_str(&published_snapshot.events().for_paths(
+                &anchors,
+                workspace_scope,
+                event_cap,
+                &root,
+            ));
+        }
+    }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started

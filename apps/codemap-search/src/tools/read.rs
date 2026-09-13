@@ -111,6 +111,7 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
 }
 
 pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, String)> {
+    let options = super::live_options::LiveOptions::parse(args)?;
     let file_path = resolve_file_path_arg(args)?;
     let (offset, limit) = resolve_window_args(args);
 
@@ -135,7 +136,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
     }
 
     // Without an explicit window, cap the read so we never emit an unbounded blob.
-    if limit.is_none() && metadata.len() > READ_FILE_BYTE_CAP {
+    if !options.should_expand_callable && limit.is_none() && metadata.len() > READ_FILE_BYTE_CAP {
         return Err((
             -32602,
             format!(
@@ -145,6 +146,11 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
         ));
     }
 
+    if options.should_expand_callable
+        && metadata.len() > super::live_symbols::callable::input_byte_cap() as u64
+    {
+        return Err((-32602, "Callable expansion unavailable: file exceeds the live parsing input cap. Use expand=none with offset/limit windows.".into()));
+    }
     let bytes = std::fs::read(&resolved)
         .map_err(|e| (-32603, format!("Failed to read '{file_path}': {e}")))?;
 
@@ -160,6 +166,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
             text: "<system-reminder>Warning: the file exists but the contents are empty.</system-reminder>"
                 .to_string(),
             anchors: Vec::new(),
+            notices: Vec::new(),
         });
     }
 
@@ -172,7 +179,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
         .collect();
     let total = all_lines.len();
     // offset is 1-indexed; 0 is treated as 1.
-    let start_line = offset.unwrap_or(1).max(1);
+    let mut start_line = offset.unwrap_or(1).max(1);
 
     if start_line > total {
         return Ok(LiveOutput {
@@ -180,9 +187,30 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
                 "<system-reminder>Warning: the file exists but is shorter than the provided offset ({start_line}). The file has {total} lines.</system-reminder>"
             ),
             anchors: Vec::new(),
+            notices: Vec::new(),
         });
     }
 
+    let mut notices = Vec::new();
+    let mut limit = limit;
+    if options.should_expand_callable {
+        let bounds = if std::str::from_utf8(&bytes).is_err() {
+            Err("invalid UTF-8 source cannot provide trustworthy callable bounds".to_string())
+        } else {
+            super::live_symbols::callable::bounds(&resolved, content)
+        };
+        match bounds.and_then(|ranges| {
+            super::live_symbols::callable::containing(&ranges, start_line).cloned()
+        }) {
+            Ok(range) => {
+                start_line = range.start;
+                limit = Some(range.end - range.start + 1);
+            }
+            Err(reason) => notices.push(format!(
+                "[Callable expansion unavailable: {reason}. Showing the requested source window.]"
+            )),
+        }
+    }
     let window: Vec<&str> = match limit {
         Some(n) => all_lines[start_line - 1..]
             .iter()
@@ -197,7 +225,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
     // unbounded blob (e.g. a multi-MB single line read with `limit: 1`). Throws rather than
     // truncating, matching Claude Code's token-cap behavior.
     let output_cap = crate::config::get().read_output_byte_cap;
-    if rendered.len() > output_cap {
+    if rendered.len() + notices.iter().map(String::len).sum::<usize>() > output_cap {
         let requested_line_count = window.len().max(1);
         let suggested_limit = requested_line_count
             .saturating_mul(output_cap)
@@ -205,10 +233,15 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
             .unwrap_or(1)
             .saturating_sub(1)
             .max(1);
+        let expansion_hint = if options.should_expand_callable {
+            "expand=none and "
+        } else {
+            ""
+        };
         return Err((
             -32602,
             format!(
-                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Continue with a narrower window such as offset={start_line}, limit={suggested_limit}. If limit=1 still exceeds the cap, use grep to locate narrower text first.",
+                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Continue with {expansion_hint}a narrower window such as offset={start_line}, limit={suggested_limit}. If limit=1 still exceeds the cap, use grep to locate narrower text first.",
                 rendered.len(),
             ),
         ));
@@ -232,5 +265,6 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
     Ok(LiveOutput {
         text: rendered,
         anchors,
+        notices,
     })
 }

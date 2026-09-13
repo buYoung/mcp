@@ -17,10 +17,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **10**. The marker is a comment:
+The current configuration schema is **11**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 10
+# codemap-config-version: 12
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -29,6 +29,8 @@ The current configuration schema is **10**. The marker is a comment:
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
 - Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
+- Version 12 adds the commented `[event_navigation].is_enabled` opt-in; event indexing remains disabled by default.
+- Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 adds a commented `[macro_expansion]` section. Native preprocessing remains disabled until explicitly enabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
@@ -410,3 +412,101 @@ allowed_roots = []
 - A repo-local `.codemapignore` uses **gitignore syntax** to hide paths from indexing, `find`, and `grep` — the codemap-search-specific complement to `.gitignore`.
 
 한국어 요약: `.codemap/`에는 저장소별 색인과 설정이 함께 있습니다. 도구가 git ignore 파일을 직접 수정하지는 않으므로, `git status`에서 숨기려면 사용자가 `.gitignore`나 `.git/info/exclude`에 `.codemap/`을 추가해야 합니다.
+
+## Live request controls
+
+These are request arguments, not persistent TOML settings. Omitted options preserve existing output. `search.caller_context` retains its independent meaning.
+
+| Argument | Default | Result |
+| --- | --- | --- |
+| `view` | `"full"` | `full`: symbols plus source; `source`: live output only, bypassing indexed context and relation preparation; `definitions`: declarations only; `relations`: anchored target/owner identities with calls and constant references, without source. |
+| `unresolved` | `"list"` | `count` keeps the same unresolved total without formatting individual names; `list` includes the bounded names. Applies to full/relations. |
+| `expand` | `"none"` | `callable` resolves a supported named callable from the live UTF-8 buffer; no stale indexed bounds or guessed body. |
+
+In `read`, callable expansion uses the effective offset/start alias and overrides limit/end. Outside a supported callable, the original window is returned with an unavailable notice. Expansion parsing is limited to `min(max_file_size, 4 MiB)`; too-large input is refused before parsing. Attached attributes are included, nested named callables select the innermost boundary, and anonymous closures use their enclosing named callable. Composite files, unparseable bodies, prototypes without bodies and callables sharing boundary lines with other code receive an explicit unsupported notice.
+
+In content-mode `grep`, expansion ignores `-A/-B/-C` while preserving pattern, path, glob, case, type and exclusion behavior. Matching, parsing and rendering use one buffer per file. Output is ordered by path/range; `offset`, `head_limit`, and `next_offset` count unique callable groups (or matched-line fallback groups), not source rows. `head_limit=0` removes the group-count limit, not the byte cap. Non-default controls with `count` or `files_with_matches` are rejected.
+
+Read and expanded grep retain `read_output_byte_cap`; annotations retain their existing budgets. Oversized callable bodies are never silently split: use the displayed source range with `expand=none` and line windows. Grep column omissions are marked as incomplete. Macro/encoding/test-context notices remain in applicable context views; `source` contains only live filesystem output and operational expansion notices. No event relations are added by omitted options.
+
+## Explicit Rust analysis target
+
+```toml
+[analysis]
+target_os = "macos"
+```
+
+`target_os` is an optional OS identifier, never inferred from the running host. Repo settings override global settings; an empty string explicitly clears an inherited value. Invalid types/identifiers warn and fall back to the lower layer. Config reload takes effect in the next request's fresh source/condition resolver; it does not require a new source index.
+
+Rust lookup evaluates `target_os = "value"`, `all(...)`, `any(...)`, `not(...)`, and boolean literals with three-valued logic. Thus `not(target_os="macos")` applies to every explicitly non-macOS target, not only Windows. Missing OS facts, other keys/flags, `cfg_attr`, and unsupported string/token forms remain unknown. Plain `cfg(test)` is delegated to the existing test-context filter; enabling test context does not claim a Cargo test build. See the [Rust conditional-compilation reference](https://doc.rust-lang.org/reference/conditional-compilation.html).
+
+Conditions on imports, reexports, declarations, call sites and discoverable parent modules are checked before confirming a definition. Module membership outside the bounded source/path model remains unknown. Source-confirmed callers survive the name-count threshold; ambiguous name-only callers remain suppressed. Callsite and alias-name limits retain already-proven entries and report incomplete resolution. Alias discovery is a bounded candidate filter (16 rounds, 256 names), not proof: each displayed link still needs exact source identity. An explicit target is shown in relation output; this is static navigation, not a build/runtime guarantee.
+
+One response uses one configuration snapshot; a concurrent reload applies to subsequent requests.
+
+
+## Indexed event navigation
+
+Event navigation is opt-in. It stores bounded source inputs with the symbol index and builds a separate immutable map before publishing that generation. It does not execute handlers or build scripts.
+
+```toml
+[event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = []
+```
+
+`is_enabled` defaults to `false`; `use_builtin_rules` defaults to `true`. Repo keys override global keys. The entire `rules` list replaces the lower layer; `[]` removes inherited custom rules. Set `use_builtin_rules=false` to disable the built-in catalog. Invalid lists warn and use the lower layer. Rule, analysis-target and exclusion changes trigger a generation refresh. Until it is ready, queries hide stale event links. Changes to imported keys, bus bindings and handlers rebuild their dependent routes. Original application files are never rewritten.
+
+| Request | Meaning |
+| --- | --- |
+| `read` / content `grep`: `include_events: true` | Append event relationships in `view=full` or `view=relations`. Defaults to false. `source` and `definitions` skip event lookup. |
+| `search`: `include_events: true` | Append the bounded map for ranked result paths; independent of `caller_context`. |
+| `search`: `event_key: "saved"` | Query that exact event key instead of ranked text search. `query` remains required. Existing workspace selection and `workspace_scope` apply. |
+
+The map separates publishers, subscription registrations and handler definitions, and lists their original file/line, API rule, bus/key evidence and conditions. A route means static registration evidence. It does not establish delivery, order, active subscription count or removal timing. `unresolved=list/count` continues to govern direct callee names; event uncertainty is reported separately.
+
+The initial built-in catalog covers named ESM imports of Node `EventEmitter` from `events`/`node:events` (`on`, `addListener`, `once`, `emit`, `off`, `removeListener`) and Tauri frontend `listen`, `once`, `emit`, `emitTo` from `@tauri-apps/api/event`. Tauri Rust `AppHandle`, `App`, `Window`, `WebviewWindow`, `Webview` calls require type/import evidence plus `Emitter`/`Listener`; their opaque application handles do not prove a shared instance. See [Node events](https://nodejs.org/api/events.html), [Tauri frontend events](https://v2.tauri.app/reference/javascript/api/namespaceevent/) and [Tauri Emitter](https://docs.rs/tauri/latest/tauri/trait.Emitter.html) for API semantics.
+
+Node/custom receiver routes require the same immutable module allocation, propagated through supported relative ESM imports, aliases and reexports. Distinct allocations stay separate. Mutable, shadowed, function-local, parameter and factory instances cannot be merged by type or variable spelling. Keys support unescaped literals, immutable constant aliases and explicit TypeScript string enum initializers; Rust literal constants use the existing source resolver and explicit `[analysis].target_os` policy. Dynamic keys, unsupported module aliases/escapes, unknown handlers and unknown qualifiers retain uncertainty. Arbitrary wrappers, runtime DI, external brokers, Flow syntax and cross-language runtime delivery are outside this static subset.
+
+Tauri frontend scope is the nearest indexed application boundary (`src-tauri/tauri.conf.json` or `package.json`), not proof that separate runtime processes share a bus. Target labels must be statically known. Exact target and channel identities stay separate: the map does not infer compatibility between unrestricted and targeted operations. Custom fixed bus/key/target values are explicitly labeled configuration assumptions.
+
+### Custom event rules
+
+For `export class KnownBus` in `src/known.ts`, this rule pair recognizes the explicit shared-allocation example:
+
+```toml
+[event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = [
+  { id = "known-on", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "on", role = "subscribe", event_arg = 0, handler_arg = 1, bus = "receiver" },
+  { id = "known-emit", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "emit", role = "publish", event_arg = 0, bus = "receiver" },
+]
+```
+
+Selectors are exact `language` + `module` + `symbol` + optional `method`; method spelling alone never activates a rule. `module` is a workspace-relative definition file or a supported external import module. Language is `typescript`, `javascript` or `rust`. A custom selector overrides the corresponding built-in selector. Duplicate IDs/selectors, wildcard selectors, unknown fields, unsupported roles or invalid argument indexes reject the custom list.
+
+| Field | Contract |
+| --- | --- |
+| `role` | `publish`, `subscribe` or `unsubscribe` |
+| `event_arg` / `event_key` | Exactly one: zero-based key argument or a fixed key declared by the API rule |
+| `handler_arg` | Zero-based callback argument, required for `subscribe`; unknown definitions remain unresolved |
+| `bus="receiver"` | Requires `method` and a proven immutable allocation |
+| `bus="argument"`, `bus_arg` | Bus allocation comes from that argument |
+| `bus="fixed"`, `bus_identity` | Explicit shared-bus assumption, suitable for an inspected wrapper; never inferred from event strings |
+| `bus="framework"` | Only the recognized Tauri frontend module; indexed application scope required |
+| `target_arg` / `target` | Optional static label argument or fixed qualifier such as `any`; mutually exclusive. Fixed target overrides are not accepted for the known Tauri frontend API. |
+| `channel` | Optional exact channel qualifier; defaults to `default` |
+| `is_once` | Optional boolean; records once-only registration without simulating execution |
+
+Argument indexes must be below 16. At most 64 custom rules are accepted. Rule identities/qualifiers are bounded to 256 bytes; event keys are non-empty, at most 256 bytes and cannot contain newline/NUL.
+
+For an inspected Rust wrapper `dispatch_event_json(key, payload)` defined in `src/shared/output/mod.rs`, a rule can use `language="rust"`, that exact module path, `symbol="dispatch_event_json"`, `role="publish"`, `event_arg=0`, `bus="fixed"`, `bus_identity="application-events"`, `target="any"`. A frontend rule can explicitly declare the same bus identity. This represents the user's configured bridge assumption, not an automatically proven Rust-to-webview delivery path.
+
+### Bounds and freshness
+
+Inputs are UTF-8 only and follow index/Git/directory exclusions. Current test-context rules apply when rendering both endpoints and their proof/handler locations. A changed proof file suppresses the old endpoint until a successful refresh.
+
+Limits are 512 KiB per source file, 64 MiB and 4,096 source files per snapshot, 256 endpoints per file and 8,192 per snapshot. Binding resolution has a 32-step JS/TS budget (Rust value recursion: 16); each serialized endpoint is capped at 8 KiB. Each query inspects at most 512 indexed candidates, renders at most 128 endpoints, and verifies at most 128 source files / 4 MiB. Output stays within existing read/search byte budgets. Unavailable inputs, extraction/query omissions, stale evidence and output truncation are reported; the result is not an exhaustive runtime map. No request performs a full-workspace event relation scan.

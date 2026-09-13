@@ -1,0 +1,15 @@
+{
+  "source_baseline": "eafa0d4c8",
+  "original_root": "/Users/buyong/workspace/private/corral",
+  "replay_root": "/Users/buyong/tmp/cm-nav/corral-replay",
+  "original_manifest": "/Users/buyong/tmp/cm-nav/corral-original.json",
+  "original_manifest_sha256": "7beb7ac5cf800b3c14a14e547a02a5c9aef7d8ba04189c1b2fdbc39af056752e",
+  "source_file_count": 1299,
+  "source_tree_sha256": "f8b007bc99f6bf37ff26a52f6a7fc8f7160797a906f0d82a4a6d778a701ad1db",
+  "baseline_binary": "/Users/buyong/tmp/cm-nav/baseline-codemap-search",
+  "baseline_binary_sha256": "b1fd0c0b97dd14ccccacc526419b9b47d011b8c9f3dfafd96313de57ed840bb1",
+  "original_config_sha256": "8ca21ccd6b86c4e2539126c0e22dafd55ac090399357fa7d4bb95b090b1a287a",
+  "replay_config_sha256": "7f80397120a768c9b90ff727dd42e6e678f45072c722b0a6063776821fd7e95c",
+  "root_substitution": "All supplied absolute source paths are preserved in reports; execution uses the matching path beneath corral-replay.",
+  "config_substitution": "Only config_auto_update=false in disposable replay config to prevent schema sync; exclusions, scope, caps and caller settings unchanged. Same replay source/config for baseline and candidate."
+}

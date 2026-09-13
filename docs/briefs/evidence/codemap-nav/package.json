@@ -1,0 +1,28 @@
+{
+  "command": "cargo package --allow-dirty --no-verify",
+  "cwd": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
+  "exit_code": 0,
+  "log": "/Users/buyong/tmp/cm-nav/delivered-package.log",
+  "archive": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search/target/package/codemap-search-0.8.1.crate",
+  "archive_sha256": "bcfab0ede4e53b29e222ed8611d761eda6a9d1345885a1f15ca0e191f7c1a5be",
+  "runtime_and_config_files_byte_verified": [
+    "src/events/rules.rs",
+    "src/events/index.rs",
+    "src/events/extract.rs",
+    "src/events/mod.rs",
+    "src/events/javascript.rs",
+    "src/events/tests.rs",
+    "src/events/model.rs",
+    "src/events/inputs.rs",
+    "src/config/event_navigation.rs",
+    "src/config_template.toml",
+    "src/config_template.ko.toml",
+    "src/callers/resolution/rust_cfg.rs",
+    "src/callers/resolution/rust_files.rs",
+    "src/tools/live_options.rs",
+    "src/tools/live_symbols/callable.rs",
+    "src/tools/grep/expansion.rs"
+  ],
+  "file_count": 320,
+  "scope": "Package construction and byte comparison; --no-verify does not claim an additional packaged build/test run. Existing /tests/fixtures packaging exclusion is preserved."
+}

@@ -3,6 +3,7 @@ pub mod callers;
 pub mod codemap;
 pub mod config;
 mod config_locale;
+pub mod events;
 pub mod index;
 pub mod lang;
 pub mod mcp;

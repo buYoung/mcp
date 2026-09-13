@@ -1,0 +1,14 @@
+[update]
+config_auto_update = false
+[refresh]
+watch_debounce_ms = 100
+index_staleness_ms = 3600000
+[event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = [
+  { id = "known-on", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "on", role = "subscribe", event_arg = 0, handler_arg = 1, bus = "receiver" },
+  { id = "known-once", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "once", role = "subscribe", event_arg = 0, handler_arg = 1, bus = "receiver", is_once = true },
+  { id = "known-off", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "off", role = "unsubscribe", event_arg = 0, handler_arg = 1, bus = "receiver" },
+  { id = "known-emit", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "emit", role = "publish", event_arg = 0, bus = "receiver" },
+]

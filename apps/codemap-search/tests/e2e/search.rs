@@ -5,6 +5,261 @@ use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
 
+#[tokio::test]
+async fn test_events_exact_key_negative_controls_and_ranked_search() {
+    let temp = crate::e2e::helpers::event_navigation_repo();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let text = |response: serde_json::Value| {
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let args = serde_json::json!({"query":"saved","event_key":"saved"});
+    let saved = text(
+        client
+            .send_tool_until("search", args, |out| {
+                out.contains("publisher: src/users.ts:2")
+            })
+            .await
+            .unwrap(),
+    );
+    assert_eq!(saved.matches("### Event \"saved\"").count(), 2, "{saved}");
+    assert!(
+        saved.contains("registration: src/events.ts:6")
+            && saved.contains("publisher: src/other.ts:2"),
+        "{saved}"
+    );
+    for section in saved.split("### Event").skip(1) {
+        assert!(
+            !(section.contains("src/other.ts") && section.contains("registration:")),
+            "{saved}"
+        );
+    }
+    for key in [
+        "wrong-method",
+        "wrong-string",
+        "wrong-comment",
+        "wrong-shadow",
+    ] {
+        let out = text(
+            client
+                .send_request(
+                    "tools/call",
+                    serde_json::json!({"name":"search","arguments":{"query":key,"event_key":key}}),
+                )
+                .await
+                .unwrap(),
+        );
+        assert!(out.contains("No eligible event endpoints"), "{out}");
+    }
+    for (key, expected) in [
+        ("opaque", "unresolved publisher"),
+        ("local", "unresolved publisher"),
+        ("unknown-handler", "handler unresolved:"),
+        ("inactive", "statically inactive condition"),
+        ("conditional", "once-only registration"),
+    ] {
+        let out = text(
+            client
+                .send_request(
+                    "tools/call",
+                    serde_json::json!({"name":"search","arguments":{"query":key,"event_key":key}}),
+                )
+                .await
+                .unwrap(),
+        );
+        assert!(out.contains(expected), "{out}");
+        if key == "conditional" {
+            assert!(
+                out.contains("removal observed") && out.contains("conditional:"),
+                "{out}"
+            );
+        }
+    }
+    let dynamic=text(client.send_request("tools/call",serde_json::json!({"name":"read","arguments":{"file_path":"src/controls.ts","offset":6,"limit":1,"view":"relations","include_events":true}})).await.unwrap());
+    assert!(
+        dynamic.contains("event key is not a supported literal/static immutable value"),
+        "{dynamic}"
+    );
+    let ranked=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":true}})).await.unwrap());
+    assert!(
+        ranked.contains("## Event relationships") && ranked.contains("publisher: src/users.ts:2"),
+        "{ranked}"
+    );
+    for arguments in [
+        serde_json::json!({"query":"saved","event_key":""}),
+        serde_json::json!({"query":"saved","include_events":"yes"}),
+    ] {
+        let response = client
+            .send_request(
+                "tools/call",
+                serde_json::json!({"name":"search","arguments":arguments}),
+            )
+            .await
+            .unwrap();
+        assert!(response.get("error").is_some(), "{response}");
+    }
+}
+
+#[tokio::test]
+async fn test_events_query_caps_keep_explicit_omissions() {
+    let source = format!(
+        "import {{EventEmitter}} from 'node:events'; const bus=new EventEmitter();\n{}",
+        "bus.on('busy',()=>{}); bus.emit('busy');\n".repeat(150)
+    );
+    let temp=create_mock_repo(&[("src/busy.ts",&source),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n[search]\nsearch_detail_byte_cap=3000\n[tool_output]\nread_output_byte_cap=3000\n")]).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query":"busy","event_key":"busy"}),
+            |out| out.contains("Event output cap reached"),
+        )
+        .await
+        .unwrap();
+    let out = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        out.contains("registration:") && out.contains("Event output cap reached"),
+        "{out}"
+    );
+    assert!(
+        out.contains("44 extraction omissions")
+            && out.contains("query candidate/endpoint omissions"),
+        "{out}"
+    );
+    assert!(out.len() <= 3000, "{}: {out}", out.len());
+}
+
+#[tokio::test]
+async fn test_events_builtin_api_catalog_and_disable_reach_output() {
+    let mut files = Vec::new();
+    for extension in ["js", "ts"] {
+        for (module, id) in [("events", "plain"), ("node:events", "node")] {
+            files.push((format!("src/{id}.{extension}"),format!("import {{EventEmitter}} from '{module}'; const bus=new EventEmitter(); function handler() {{}}\nbus.on('catalog',handler); bus.addListener('catalog',handler); bus.once('catalog',handler); bus.emit('catalog'); bus.off('catalog',handler); bus.removeListener('catalog',handler);\nconst unrelated={{on(){{}},emit(){{}}}}; unrelated.on('wrong',handler); unrelated.emit('wrong');")));
+        }
+    }
+    for extension in ["js", "ts"] {
+        files.push((format!("src/tauri.{extension}"),"import {listen,once,emit,emitTo} from '@tauri-apps/api/event'; listen('tauri-catalog',()=>{}); once('tauri-catalog',()=>{}); emit('tauri-catalog'); emitTo('child','tauri-catalog');".into()));
+    }
+    let mut rust =
+        "use tauri::{AppHandle,App,Window,WebviewWindow,Webview,Emitter,Listener};\n".to_string();
+    for (i, typ) in ["AppHandle", "App", "Window", "WebviewWindow", "Webview"]
+        .iter()
+        .enumerate()
+    {
+        rust.push_str(&format!("fn endpoint_{i}(app: &{typ}) {{ app.emit(\"rust-catalog\",()); app.emit_to(\"child\",\"rust-catalog\",()); app.listen(\"rust-catalog\", |_| {{}}); app.once(\"rust-catalog\", |_| {{}}); }}\n"));
+    }
+    files.push(("src/lib.rs".into(), rust));
+    files.push(("package.json".into(), "{\"name\":\"event-catalog\"}".into()));
+    let config = "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n";
+    files.push((".codemap/config.toml".into(), config.into()));
+    let borrowed: Vec<_> = files
+        .iter()
+        .map(|(path, source)| (path.as_str(), source.as_str()))
+        .collect();
+    let temp = create_mock_repo(&borrowed).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    for (key, count) in [("catalog", 24), ("tauri-catalog", 8), ("rust-catalog", 20)] {
+        let response = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({"query":key,"event_key":key}),
+                |out| out.contains("API:"),
+            )
+            .await
+            .unwrap();
+        let out = response["result"]["content"][0]["text"].as_str().unwrap();
+        assert_eq!(out.matches("  - API:").count(), count, "{out}");
+        if key == "catalog" {
+            assert_eq!(out.matches("### Event").count(), 4, "{out}");
+        }
+        if key == "rust-catalog" {
+            assert_eq!(out.matches("unresolved ").count(), 20, "{out}");
+            assert!(!out.contains("### Event"), "{out}");
+        }
+    }
+    fs::write(
+        temp.path().join(".codemap/config.toml"),
+        format!("{config}use_builtin_rules=false\n"),
+    )
+    .unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query":"catalog","event_key":"catalog"}),
+            |out| out.contains("No eligible event endpoints"),
+        )
+        .await
+        .unwrap();
+    assert!(
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("No eligible event endpoints"),
+        "{response}"
+    );
+}
+
+#[tokio::test]
+async fn test_events_scope_and_argument_fixed_key_channel_rules() {
+    let rules = r#"
+[update]
+config_auto_update=false
+[event_navigation]
+is_enabled=true
+rules=[
+{id='subscribe',language='typescript',module='packages/api/api.ts',symbol='subscribe',role='subscribe',event_arg=1,handler_arg=2,bus='argument',bus_arg=0},
+{id='publish',language='typescript',module='packages/api/api.ts',symbol='publish',role='publish',event_arg=1,bus='argument',bus_arg=0},
+{id='fixed-register',language='typescript',module='packages/api/api.ts',symbol='registerSaved',role='subscribe',event_key='fixed',handler_arg=0,bus='fixed',bus_identity='application',target='any',channel='ui'},
+{id='fixed-send',language='typescript',module='packages/api/api.ts',symbol='sendSaved',role='publish',event_key='fixed',bus='fixed',bus_identity='application',target='any',channel='worker'}
+]
+"#;
+    let temp=create_mock_repo(&[
+        ("packages/api/api.ts","import {EventEmitter} from 'events'; export const bus=new EventEmitter(); export function subscribe(bus,key,handler){} export function publish(bus,key){} export function registerSaved(handler){} export function sendSaved(){}"),
+        ("packages/client/register.ts","import {bus,subscribe,registerSaved} from '../api/api'; function handler(){} subscribe(bus,'arg',handler); registerSaved(handler);"),
+        ("packages/api/send.ts","import {bus,publish,sendSaved} from './api'; publish(bus,'arg'); sendSaved();"),
+        (".codemap/config.toml",rules),
+    ]).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let all = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query":"arg","event_key":"arg","workspace_scope":"all"}),
+            |out| out.contains("publisher:") && out.contains("registration:"),
+        )
+        .await
+        .unwrap();
+    let text = all["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("publisher:") && text.contains("registration:"),
+        "{all}"
+    );
+    let scoped=client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"arg","event_key":"arg","workspace_scope":"packages/client"}})).await.unwrap();
+    let text = scoped["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("registration:") && !text.contains("publisher:"),
+        "{scoped}"
+    );
+    let fixed=client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"fixed","event_key":"fixed","workspace_scope":"all"}})).await.unwrap();
+    let text = fixed["result"]["content"][0]["text"].as_str().unwrap();
+    assert_eq!(text.matches("### Event").count(), 2, "{fixed}");
+    assert!(
+        text.contains("configured bus assumption")
+            && text.contains("configured key assumption")
+            && text.contains("configured target assumption"),
+        "{fixed}"
+    );
+}
+
 #[test]
 fn test_explicit_filename_is_recalled_after_common_symbols_fill_the_primary_pool() {
     let mut fixtures: Vec<(String, String)> = (0..40)

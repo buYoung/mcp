@@ -1,5 +1,6 @@
 use super::LiveAnchor;
 use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol};
+use crate::tools::live_options::{LiveOptions, LiveView};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use tree_sitter::{Node, Parser, Point, Tree};
@@ -117,6 +118,7 @@ impl Outline {
         file: &ExtractedFile,
         anchors: &[&LiveAnchor],
         resolver: &crate::callers::resolution::SourceResolver<'_>,
+        options: LiveOptions,
     ) -> Self {
         let symbols = &file.symbols;
         let parents: Vec<_> = symbols
@@ -189,6 +191,9 @@ impl Outline {
                 }
                 current = parents[j];
             }
+        }
+        if options.view == LiveView::Relations {
+            selected.retain(|&i| callable(&symbols[i]) && intersects(&symbols[i]));
         }
         // Parent context is retained for readable owner -> member grouping.
         for i in selected.clone() {
@@ -267,6 +272,7 @@ impl Outline {
             .collect();
         let references = tree
             .as_ref()
+            .filter(|_| options.should_include_relations())
             .map(|tree| {
                 super::references::collect_with_resolver(
                     file,

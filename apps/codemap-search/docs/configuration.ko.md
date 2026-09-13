@@ -50,10 +50,10 @@ max_output_bytes = 8388608
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **10**이며 주석으로 표시합니다.
+현재 설정 버전은 **12**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 10
+# codemap-config-version: 12
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -62,6 +62,8 @@ max_output_bytes = 8388608
 - **버전 6부터 `excluded_directories`는 자동으로 만들거나 보충하지 않습니다.** 항목 삭제, `[]` 지정, 키 주석 처리, 새 프로젝트 추가 후에도 목록을 복원하지 않습니다. 수동 변경을 읽어 적용하는 동작은 계속됩니다.
 - 버전 8은 최상위 또는 `[caller_context]`의 활성 테스트 설정을 `[exclude]`로 옮깁니다. 적용값과 사용자 주석을 보존하며 자동 작성 여부는 `config_auto_update`를 따릅니다. 전역 파일을 포함해 기존 위치도 계속 읽습니다. 잘못되거나 충돌하는 값을 동작 변경 없이 옮길 수 없으면 파일을 유지하고 경고합니다.
 - 버전 9는 `[index]` 또는 최상위의 `excluded_directories`, `use_git_exclude`도 `[exclude]`로 옮깁니다. 기존 배열, 명시한 `[]`, 불리언 값과 주석을 보존하며 이 위치 전환으로 디렉터리 규칙을 추가하지 않습니다. 같은 파일에서는 유효한 `[exclude]` 값이 우선합니다.
+- 버전 12는 `[event_navigation].is_enabled` 주석을 추가합니다. 이벤트 색인은 기본적으로 꺼져 있습니다.
+- 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
 - 버전 10은 `[macro_expansion]` 주석 섹션을 추가합니다. 사용자가 켜기 전에는 외부 전처리기를 실행하지 않습니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
@@ -408,3 +410,101 @@ allowed_roots = []
 저장소의 `.codemapignore`는 gitignore 문법으로 색인·`find`·`grep`에서 숨길 경로를 추가합니다.
 
 색인은 UTF-8 소스만 허용합니다. 잘못된 UTF-8 파일은 이전 색인 항목도 제거하며, `overview`·`read`에 최초 오류 바이트 위치와 제외 이유를 표시합니다. `read`의 대체 문자 표시 정책은 유지하고 원본 파일은 변경하지 않습니다.
+
+## read·grep 요청별 출력 제어
+
+다음은 TOML 설정이 아닌 요청 인자입니다. 생략하면 기존 출력을 유지하며, `search.caller_context`에는 영향을 주지 않습니다.
+
+| 인자 | 기본값 | 동작 |
+| --- | --- | --- |
+| `view` | `"full"` | `full`: 심볼과 원문. `source`: 원문만 반환하며 색인 문맥·관계 준비를 생략. `definitions`: 선언만. `relations`: 대상·소유자와 호출·상수 참조만 표시하고 원문은 생략. |
+| `unresolved` | `"list"` | `count`는 같은 미해결 총수만, `list`는 총수와 제한된 이름 목록을 표시. full/relations에 적용. |
+| `expand` | `"none"` | `callable`은 읽은 UTF-8 원문에서 이름 있는 함수·메서드의 경계를 확인. 오래된 색인 좌표나 추정 본문을 사용하지 않음. |
+
+`read` 확장은 유효한 offset/start 별칭을 기준으로 하며 limit/end보다 우선합니다. 지원하는 함수가 없으면 기존 요청 범위와 불가 사유를 반환합니다. 파싱 입력은 `min(max_file_size, 4 MiB)`로 제한하며 너무 큰 파일은 파싱 전에 거절합니다. 붙어 있는 속성·데코레이터를 포함하고 중첩된 이름 있는 함수는 가장 안쪽을 선택합니다. 익명 클로저는 감싸는 이름 있는 함수가 대상입니다. 복합 파일, 파싱 오류, 본문 없는 선언, 다른 코드와 경계 줄을 공유하는 함수는 불가 사유를 표시합니다.
+
+내용 모드 `grep`의 확장은 `-A/-B/-C`를 무시하고 검색식·경로·glob·대소문자·유형·제외 규칙을 유지합니다. 한 파일의 같은 바이트로 검색·파싱·출력을 수행합니다. 경로·줄 순서로 중복 함수를 제거하며, offset/head_limit/next_offset의 단위는 원문 줄이 아닌 함수 묶음 또는 확장 불가 일치 줄입니다. `head_limit=0`도 바이트 한도는 유지합니다. count/files_with_matches에 기본값과 다른 출력 제어를 넣으면 오류로 안내합니다.
+
+read와 확장된 grep은 `read_output_byte_cap`, 관계 문맥은 기존 하위 예산을 지킵니다. 큰 함수를 조용히 자르지 않으며, 표시된 범위에 `expand=none`과 작은 offset/limit을 사용하도록 안내합니다. grep 열 제한으로 생략한 본문도 불완전하다고 표시합니다. 매크로·인코딩·테스트 제외 안내는 해당 문맥 모드에 유지하고, source에는 원문과 확장 처리 안내만 표시합니다. 생략된 옵션으로 이벤트 관계가 추가되지는 않습니다.
+
+## Rust 분석 대상 지정
+
+```toml
+[analysis]
+target_os = "macos"
+```
+
+`target_os`는 선택적인 OS 식별자이며 실행 컴퓨터의 OS를 사용하지 않습니다. 저장소 값이 전역 값보다 우선하고, 빈 문자열은 상속된 대상을 해제합니다. 잘못된 자료형·식별자는 경고 후 하위 설정을 사용합니다. 설정을 다시 읽으면 다음 요청이 새 원문·조건 해석기를 사용하므로 대상 변경만으로 색인을 다시 만들 필요가 없습니다.
+
+Rust의 `target_os="값"`, `all(...)`, `any(...)`, `not(...)`, true/false를 참·거짓·미확정으로 평가합니다. 따라서 `not(target_os="macos")`는 명시한 모든 비-macOS 대상에 적용하며 Windows로 좁히지 않습니다. 대상 미지정, 다른 키·플래그, `cfg_attr`, 지원하지 않는 문자열·토큰은 미확정입니다. 단독 `cfg(test)`는 기존 테스트 문맥 필터가 관리하며 테스트 포함을 실제 Cargo 테스트 빌드로 표현하지 않습니다. 구문 의미는 [Rust 조건부 컴파일 문서](https://doc.rust-lang.org/reference/conditional-compilation.html)를 따릅니다.
+
+import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 조건을 대조한 뒤 정의를 연결합니다. 제한된 경로 모델에서 모듈 소속을 확인할 수 없으면 미해결로 남깁니다. 원문에서 확인한 호출자는 같은 이름의 정의 개수와 관계없이 유지하고, 모호한 이름 매칭에만 생략 기준을 적용합니다. 호출 위치·별칭 예산이 끝나도 이미 확인한 연결은 유지하며 불완전하다고 표시합니다. 별칭은 최대 16단계·256개 이름의 후보 수집에만 사용하며, 각 링크는 별도로 정의 신원을 확인합니다. 명시한 분석 대상은 관계 출력에 표시하지만 실제 빌드·실행을 보장하지 않습니다.
+
+한 응답 안에서는 같은 설정을 사용합니다. 처리 도중 설정이 갱신되면 후속 요청부터 적용합니다.
+
+
+## 이벤트 관계 탐색
+
+이벤트 탐색은 설정에서 켜야 합니다. 필요한 소스를 심볼과 함께 저장하고, 같은 색인 세대의 이벤트 지도를 만든 뒤 한 번에 공개합니다. 애플리케이션 핸들러나 빌드 스크립트를 실행하지 않습니다.
+
+```toml
+[event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = []
+```
+
+`is_enabled` 기본값은 `false`, `use_builtin_rules`는 `true`입니다. 저장소 설정이 전역 설정보다 우선합니다. `rules` 배열은 하위 계층의 배열 전체를 대체하며, `[]`로 상속된 사용자 규칙을 제거할 수 있습니다. `use_builtin_rules=false`로 내장 규칙도 끌 수 있습니다. 잘못된 규칙 배열은 경고 후 하위 계층 값으로 돌아갑니다.
+
+| 요청 | 동작 |
+| --- | --- |
+| `read` / content `grep`: `include_events: true` | `view=full`, `view=relations`에 이벤트 관계를 추가합니다. 기본값은 false이며 `source`, `definitions`에서는 조회도 생략합니다. |
+| `search`: `include_events: true` | 검색된 파일에 관련된 이벤트 관계를 추가합니다. `caller_context`와 독립적입니다. |
+| `search`: `event_key: "saved"` | 일반 순위 검색 대신 정확히 일치하는 이벤트 키를 조회합니다. 기존 `query` 필드는 필요하며 작업공간 선택·`workspace_scope`도 적용합니다. |
+
+발행 위치, 구독 등록 위치, 핸들러 정의 위치는 각각 표시합니다. 파일·줄 번호와 API 규칙, 버스·키 근거, 조건을 함께 볼 수 있습니다. 이 관계는 정적으로 확인한 등록 경로이며 실행·전달·순서·활성 구독 수를 보장하지 않습니다. `once`, 제거 호출, 조건부 등록도 이 제한을 유지합니다. `unresolved=list/count`는 직접 호출의 미해결 이름을 제어하며 이벤트의 불확실성은 별도로 표시합니다.
+
+첫 내장 규칙은 이름을 지정한 ESM import를 사용하는 Node `EventEmitter`(`events`, `node:events`)의 `on`, `addListener`, `once`, `emit`, `off`, `removeListener`와 Tauri 프런트엔드 `listen`, `once`, `emit`, `emitTo`를 다룹니다. Rust Tauri의 `AppHandle`, `App`, `Window`, `WebviewWindow`, `Webview` 호출은 타입·import와 `Emitter`/`Listener` 근거가 있어야 인식하며, 불투명한 핸들만으로 같은 앱 인스턴스라고 연결하지 않습니다. API 의미는 [Node 문서](https://nodejs.org/api/events.html), [Tauri 프런트엔드 문서](https://v2.tauri.app/reference/javascript/api/namespaceevent/), [Tauri Emitter 문서](https://docs.rs/tauri/latest/tauri/trait.Emitter.html)를 기준으로 합니다.
+
+버스 연결에는 같은 불변 모듈 할당 위치와 상대 ESM import·별칭·재수출 근거가 필요합니다. 같은 타입의 다른 할당은 분리합니다. 변경 가능한 변수, 가려진 변수, 함수 내부 할당, 매개변수·팩터리 반환값은 이름만으로 합치지 않습니다. 키는 이스케이프 없는 리터럴, 불변 상수의 별칭, 명시적 TypeScript 문자열 enum 초기값을 지원합니다. Rust 상수는 기존 소스 해석기와 명시한 `[analysis].target_os` 정책을 따릅니다.
+
+동적 키, 지원하지 않는 모듈 별칭·이스케이프, 알 수 없는 핸들러·대상은 미해결로 남습니다. 임의의 래퍼 데이터 흐름, 런타임 DI, 외부 브로커, Flow 문법, 언어를 넘는 실제 전달 경로는 자동 해석하지 않습니다. Tauri 프런트엔드 범위는 가장 가까운 색인된 `src-tauri/tauri.conf.json` 또는 `package.json`을 기준으로 하며, 여러 프로세스가 실제 같은 버스를 쓴다는 증거가 아닙니다. 대상·채널은 정확히 같은 값끼리만 묶고 전체 대상과 특정 대상의 전달 호환성을 추정하지 않습니다.
+
+### 사용자 규칙
+
+`src/known.ts`에 정의된 `KnownBus`를 사용하는 예시입니다.
+
+```toml
+[event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = [
+  { id = "known-on", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "on", role = "subscribe", event_arg = 0, handler_arg = 1, bus = "receiver" },
+  { id = "known-emit", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "emit", role = "publish", event_arg = 0, bus = "receiver" },
+]
+```
+
+규칙은 `language` + `module` + `symbol` + 선택적 `method`가 정확히 맞아야 적용합니다. `module`은 작업공간 기준 정의 파일 경로나 지원하는 외부 import 모듈입니다. 언어는 `typescript`, `javascript`, `rust`입니다. 같은 선택자의 사용자 규칙은 내장 규칙을 대체합니다. 중복 ID·선택자, 와일드카드 선택자, 알 수 없는 필드·역할, 잘못된 인자 위치는 배열 전체를 거부합니다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `role` | `publish`, `subscribe`, `unsubscribe` |
+| `event_arg` / `event_key` | 0부터 시작하는 키 인자 위치 또는 규칙으로 선언하는 고정 키 중 정확히 하나 |
+| `handler_arg` | 콜백 인자 위치. `subscribe`에서 필수이며 정의가 불분명하면 미해결로 표시 |
+| `bus="receiver"` | `method`와 확인된 불변 할당이 필요 |
+| `bus="argument"`, `bus_arg` | 해당 인자에서 확인한 버스 할당 사용 |
+| `bus="fixed"`, `bus_identity` | 확인한 래퍼의 공유 버스를 사용자가 명시. 설정에 따른 가정으로 표시 |
+| `bus="framework"` | 인식된 Tauri 프런트엔드 API와 색인된 애플리케이션 범위에만 허용 |
+| `target_arg` / `target` | 대상 label 인자 또는 `any` 같은 고정 대상 중 선택. 둘을 함께 쓸 수 없으며 알려진 Tauri 프런트엔드 API에는 고정 대상 덮어쓰기를 허용하지 않음 |
+| `channel` | 정확한 채널 이름. 기본값 `default` |
+| `is_once` | 한 번 등록임을 기록하며 실행을 시뮬레이션하지 않음 |
+
+인자 위치는 16 미만이고 사용자 규칙은 최대 64개입니다. 규칙 식별자·대상은 최대 256바이트, 이벤트 키는 비어 있지 않은 최대 256바이트이며 줄바꿈·NUL을 허용하지 않습니다.
+
+예를 들어 Rust `src/shared/output/mod.rs`의 `dispatch_event_json(key, payload)`를 확인했다면 해당 정의 파일을 `module`, 함수명을 `symbol`로 지정하고 `role="publish"`, `event_arg=0`, `bus="fixed"`, `bus_identity="application-events"`, `target="any"`를 사용할 수 있습니다. 프런트엔드 규칙에 같은 버스 ID를 명시하면 설정에 따른 연결로 표시합니다. 고정 버스·키·대상은 모두 설정에 따른 가정이라는 표시를 유지하며 자동으로 증명한 전달 경로로 표현하지 않습니다.
+
+### 갱신과 상한
+
+UTF-8 소스만 저장하며 색인·Git·디렉터리 제외 규칙을 적용합니다. 현재 테스트 코드 포함 규칙은 질의 시 양쪽 이벤트 위치와 근거·핸들러 위치에 적용합니다. 소스, import한 버스·키·핸들러, 규칙, 분석 대상, 제외 설정이 바뀌면 새 세대를 만듭니다. 근거 파일이 바뀐 이전 연결은 갱신 전에도 숨깁니다. 원본 애플리케이션 파일은 변경하지 않습니다.
+
+소스는 파일당 512 KiB, 세대당 64 MiB·4,096파일입니다. 이벤트는 파일당 256개, 세대당 8,192개이며 개별 직렬화 자료는 8 KiB까지입니다. JS/TS 바인딩 해석은 32단계, Rust 값 해석은 16단계로 제한합니다. 질의마다 후보 512개·출력 128개, 최신 소스 확인 128파일·4 MiB를 넘지 않습니다. 기존 read/search 출력 바이트 상한을 유지하고 입력 누락, 추출·질의 상한, 오래된 근거, 출력 생략 수를 표시합니다. 질의마다 작업공간 전체의 이벤트 관계를 다시 훑지 않습니다.
