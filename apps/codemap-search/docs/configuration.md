@@ -29,7 +29,8 @@ The current configuration schema is **11**. The marker is a comment:
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
 - Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
-- Version 12 adds the commented `[event_navigation].is_enabled` opt-in; event indexing remains disabled by default.
+- Version 12 introduced the commented `[event_navigation].is_enabled` opt-in, with event indexing disabled by default in that version.
+- Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 adds a commented `[macro_expansion]` section. Native preprocessing remains disabled until explicitly enabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
@@ -447,7 +448,7 @@ One response uses one configuration snapshot; a concurrent reload applies to sub
 
 ## Indexed event navigation
 
-Event navigation is opt-in. It stores bounded source inputs with the symbol index and builds a separate immutable map before publishing that generation. It does not execute handlers or build scripts.
+Event navigation is enabled by default and needs no extra request option. It stores bounded source inputs with the symbol index and builds a separate immutable map before publishing that generation. It does not execute handlers or build scripts. The following configuration shows the defaults; it is not required to enable the feature.
 
 ```toml
 [event_navigation]
@@ -456,13 +457,16 @@ use_builtin_rules = true
 rules = []
 ```
 
-`is_enabled` defaults to `false`; `use_builtin_rules` defaults to `true`. Repo keys override global keys. The entire `rules` list replaces the lower layer; `[]` removes inherited custom rules. Set `use_builtin_rules=false` to disable the built-in catalog. Invalid lists warn and use the lower layer. Rule, analysis-target and exclusion changes trigger a generation refresh. Until it is ready, queries hide stale event links. Changes to imported keys, bus bindings and handlers rebuild their dependent routes. Original application files are never rewritten.
+`is_enabled` and `use_builtin_rules` both default to `true`. Explicit `is_enabled=false` disables event collection and automatic output; existing values are preserved. Repo keys override global keys. The entire `rules` list replaces the lower layer; `[]` removes inherited custom rules. Set `use_builtin_rules=false` to disable the built-in catalog. Invalid lists warn and use the lower layer. Rule, analysis-target and exclusion changes trigger a generation refresh. Until it is ready, queries hide stale event links. Changes to imported keys, bus bindings and handlers rebuild their dependent routes. Original application files are never rewritten.
 
 | Request | Meaning |
 | --- | --- |
-| `read` / content `grep`: `include_events: true` | Append event relationships in `view=full` or `view=relations`. Defaults to false. `source` and `definitions` skip event lookup. |
-| `search`: `include_events: true` | Append the bounded map for ranked result paths; independent of `caller_context`. |
+| `read` / content `grep`: omitted `include_events` or `true` | In `view=full` or `view=relations`, automatically show eligible events overlapping the returned lines or supporting definitions. No related event means no event section, empty-result notice or reserved event output space. `source` and `definitions` skip event lookup. |
+| `search`: omitted `include_events` or `true` | Automatically append related events for ranked result paths; independent of `caller_context`. No eligible events means no event section or reduction of the normal output budget. |
+| `read` / `grep` / `search`: `include_events: false` | Suppress automatic event context for this request. Non-content grep keeps its existing result shape; explicit `true` still requires content mode. |
 | `search`: `event_key: "saved"` | Query that exact event key instead of ranked text search. `query` remains required. Existing workspace selection and `workspace_scope` apply. |
+
+Automatic routing uses the indexed API and source-location evidence, not matching `on`/`emit` text. Recognized unresolved endpoints still show their reasons. Excluded or stale anchors cannot display a route merely because another endpoint remains eligible. Explicit `event_key` queries retain empty/disabled/not-ready diagnostics for investigating coverage; automatic context omits them.
 
 The map separates publishers, subscription registrations and handler definitions, and lists their original file/line, API rule, bus/key evidence and conditions. A route means static registration evidence. It does not establish delivery, order, active subscription count or removal timing. `unresolved=list/count` continues to govern direct callee names; event uncertainty is reported separately.
 

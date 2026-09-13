@@ -11,7 +11,7 @@ pub struct EventNavigationConfig {
 impl Default for EventNavigationConfig {
     fn default() -> Self {
         Self {
-            is_enabled: false,
+            is_enabled: true,
             use_builtin_rules: true,
             rules: Vec::new(),
         }
@@ -80,6 +80,9 @@ mod tests {
 
     #[test]
     fn test_event_rules_replace_layers_and_reject_conflicting_selectors() {
+        assert!(merge(layer(""), layer("")).is_enabled);
+        assert!(!merge(layer("is_enabled=false"), layer("is_enabled=true")).is_enabled);
+        assert!(!merge(layer(""), layer("is_enabled=false")).is_enabled);
         let rule="{id='custom',language='typescript',module='./src/api.ts',symbol='send',role='publish',event_arg=0,bus='fixed',bus_identity='app'}";
         let global = format!("is_enabled=true\nuse_builtin_rules=false\nrules=[{rule}]\n");
         let inherited = merge(layer(""), layer(&global));

@@ -95,7 +95,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 12;
+const CONFIG_VERSION: u32 = 13;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -1229,11 +1229,18 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
+        version: 13,
+        key: "use_builtin_rules",
+        placement: KeyPlacement::Subtable("event_navigation"),
+        english_block: "# Event analysis and relevant navigation output are enabled by default.\n# Set is_enabled to false only to disable event analysis; explicit values are preserved.\n# use_builtin_rules = true",
+        korean_block: "# 이벤트 분석과 관련 탐색 결과를 기본으로 제공합니다.\n# 이벤트 분석을 끌 때만 is_enabled를 false로 설정하세요. 명시한 값은 유지됩니다.\n# use_builtin_rules = true",
+    },
+    Migration {
         version: 12,
         key: "is_enabled",
         placement: KeyPlacement::Subtable("event_navigation"),
-        english_block: "# Optional indexed event routes. See docs/configuration.md for API rules and limits.\n# is_enabled = false",
-        korean_block: "# 이벤트 관계 색인을 선택적으로 사용합니다. API 규칙과 한계는 docs/configuration.ko.md를 참고하세요.\n# is_enabled = false",
+        english_block: "# Indexed event routes are enabled by default. See docs/configuration.md for API rules and limits.\n# is_enabled = true",
+        korean_block: "# 이벤트 관계 색인은 기본으로 켜져 있습니다. API 규칙과 한계는 docs/configuration.ko.md를 참고하세요.\n# is_enabled = true",
     },
     Migration {
         version: 11,

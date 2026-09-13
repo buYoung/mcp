@@ -46,9 +46,9 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
         .await
         .unwrap();
     let baseline = text(&baseline);
-    assert!(!baseline.contains("Event relationships"));
+    assert!(baseline.contains("Event relationships"), "{baseline}");
     let mut explicit = args.clone();
-    explicit["include_events"] = false.into();
+    explicit["include_events"] = true.into();
     assert_eq!(
         text(
             &client
@@ -58,6 +58,15 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
         ),
         baseline
     );
+    let mut disabled = args.clone();
+    disabled["include_events"] = false.into();
+    let disabled = text(
+        &client
+            .send_request("tools/call", call("read", disabled))
+            .await
+            .unwrap(),
+    );
+    assert!(!disabled.contains("Event relationships"), "{disabled}");
     let raw = baseline.split_once("\n# results\n").unwrap().1;
     for view in ["full", "source", "definitions", "relations"] {
         let mut variant = args.clone();
@@ -95,11 +104,11 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
     for (tool, args) in [
         (
             "grep",
-            serde_json::json!({"path":"src/events.ts","pattern":"appBus.on","-F":true,"view":"relations","include_events":true}),
+            serde_json::json!({"path":"src/events.ts","pattern":"appBus\\.on","view":"relations"}),
         ),
         (
             "read",
-            serde_json::json!({"file_path":"src/events.ts","offset":5,"limit":1,"view":"relations","include_events":true}),
+            serde_json::json!({"file_path":"src/events.ts","offset":5,"limit":1,"view":"relations"}),
         ),
     ] {
         let out = text(
@@ -113,6 +122,43 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
                 && out.contains("registration: src/events.ts:6"),
             "{out}"
         );
+    }
+    // Ordinary code, unrelated methods, strings and comments in a file that
+    // also contains real events must retain their full non-event context.
+    for (tool, args) in [
+        (
+            "read",
+            serde_json::json!({"file_path":"src/controls.ts","offset":11,"limit":3}),
+        ),
+        (
+            "grep",
+            serde_json::json!({"path":"src/controls.ts","pattern":"wrong-method|wrong-string|wrong-comment"}),
+        ),
+        (
+            "grep",
+            serde_json::json!({"path":"src","pattern":"saved","output_mode":"files_with_matches"}),
+        ),
+        (
+            "grep",
+            serde_json::json!({"path":"src","pattern":"saved","output_mode":"count"}),
+        ),
+    ] {
+        let automatic = client
+            .send_request("tools/call", call(tool, args.clone()))
+            .await
+            .unwrap();
+        assert!(!is_error(&automatic), "{automatic}");
+        let automatic = text(&automatic);
+        assert!(!automatic.contains("Event relationships"), "{automatic}");
+        assert!(!automatic.contains("Event output"), "{automatic}");
+        let mut disabled = args;
+        disabled["include_events"] = false.into();
+        let disabled = client
+            .send_request("tools/call", call(tool, disabled))
+            .await
+            .unwrap();
+        assert!(!is_error(&disabled), "{disabled}");
+        assert_eq!(automatic, text(&disabled));
     }
     let invalid=client.send_request("tools/call",call("grep",serde_json::json!({"path":"src","pattern":"saved","output_mode":"files_with_matches","include_events":true}))).await.unwrap();
     assert!(is_error(&invalid), "{invalid}");
@@ -140,7 +186,7 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
             .unwrap();
         assert_eq!(
             tool["inputSchema"]["properties"]["include_events"]["default"],
-            false
+            true
         );
     }
 }
@@ -163,12 +209,12 @@ async fn test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice()
         ("src/register.ts", &registrations),
         (
             ".codemap/config.toml",
-            "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n",
+            "[update]\nconfig_auto_update=false\n",
         ),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
-    let response=client.send_tool_until("grep",serde_json::json!({"path":"src/register.ts","pattern":"bus.on","-F":true,"head_limit":100,"view":"relations","include_events":true}),|out|out.contains("Event relationships")).await.unwrap();
+    let response=client.send_tool_until("grep",serde_json::json!({"path":"src/register.ts","pattern":"bus\\.on","head_limit":100,"view":"relations"}),|out|out.contains("Event relationships")).await.unwrap();
     let out = text(&response);
     assert!(out.contains("publisher: src/a_publish.ts:1"), "{out}");
     assert!(out.contains("registration: src/register.ts:2"), "{out}");

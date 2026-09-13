@@ -201,33 +201,36 @@ cm grep '{"path":"src/config.rs","pattern":"pub fn load","expand":"callable","vi
 
 ## 이벤트 탐색과 통합 회귀 검증
 
-이벤트 탐색은 기본적으로 꺼져 있습니다. 실제 앱을 바꾸지 않고 확인하려면 이번 작업에서 만든 예제 복사본을 사용하세요. 원본 예제와 사용자 규칙은 `tests/fixtures/event_navigation/`에 있습니다. 복사본의 설정에는 `[event_navigation].is_enabled=true`와 `KnownBus`의 정확한 정의 경로를 사용한 규칙이 들어 있습니다.
+이벤트 탐색은 기본으로 켜져 있으며 `include_events`를 생략해도 관련 이벤트가 자동으로 표시됩니다. 실제 앱을 바꾸지 않고 확인하려면 이번 작업에서 만든 예제 복사본을 사용하세요. 원본 예제와 사용자 규칙은 `tests/fixtures/event_navigation/`에 있습니다. 복사본에는 `KnownBus`의 정확한 정의 경로를 사용한 규칙이 들어 있습니다. 기존 설정에 `is_enabled=false`를 명시했다면 그 값은 유지됩니다.
 
 ```sh
 cd /Users/buyong/tmp/cm-nav/event-cli-delivered
 
 # 발행 위치에서 구독 등록·핸들러·상수 정의를 함께 확인
-cm read '{"file_path":"src/users.ts","offset":2,"limit":1,"view":"relations","include_events":true}'
+cm read '{"file_path":"src/users.ts","offset":2,"limit":1,"view":"relations"}'
 
 # 등록 위치에서 반대편 발행 위치 확인
-cm grep '{"path":"src/events.ts","pattern":"appBus.on","-F":true,"view":"relations","include_events":true}'
+cm grep '{"path":"src/events.ts","pattern":"appBus\\.on","view":"relations"}'
 
 # 원문을 보존하면서 이벤트 관계 추가
-cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable","include_events":true}'
+cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable"}'
+
+# 이번 요청에서만 이벤트 관계 생략
+cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable","include_events":false}'
 
 # source 모드는 include_events=true여도 이벤트 조회·출력을 생략
 cm read '{"file_path":"src/users.ts","offset":2,"expand":"callable","view":"source","include_events":true}'
 
 # 불투명한 버스·동적 키·불명확한 핸들러·once·제거 조건
-cm read '{"file_path":"src/controls.ts","offset":3,"limit":8,"view":"relations","include_events":true}'
+cm read '{"file_path":"src/controls.ts","offset":3,"limit":8,"view":"relations"}'
 
-# 문자열과 주석에 적힌 emit은 이벤트가 아님
-cm read '{"file_path":"src/controls.ts","offset":12,"limit":2,"view":"relations","include_events":true}'
+# 문자열과 주석만 있는 구간은 이벤트 섹션과 빈 결과 안내를 생략
+cm read '{"file_path":"src/controls.ts","offset":12,"limit":2,"view":"relations"}'
 ```
 
 같은 키를 쓰는 `otherBus`는 별도 할당이므로 위 정방향·역방향 관계에 합쳐지면 안 됩니다. 상수 근거는 `SAVED — src/events.ts:4`, 구독은 `src/events.ts:6`, 핸들러는 `handleSaved — src/events.ts:5`, 발행은 `src/users.ts:2`로 표시되어야 합니다.
 
-MCP `search`에서는 `{"query":"saved","event_key":"saved"}`로 정확한 키의 전체 지도를 보거나 `{"query":"save users","include_events":true,"caller_context":false}`로 검색 결과에 이벤트만 추가할 수 있습니다. `cm`은 read/grep 명령을 제공하므로 이 요청은 MCP search에서 실행합니다. 작업공간 범위는 기존 `workspace_scope`를 따릅니다.
+MCP `search`에서는 `{"query":"saved","event_key":"saved"}`로 정확한 키의 전체 지도를 보거나 `{"query":"save users","caller_context":false}`로 직접 호출 문맥 없이 관련 이벤트를 자동으로 볼 수 있습니다. `cm`은 read/grep 명령을 제공하므로 이 요청은 MCP search에서 실행합니다. 작업공간 범위는 기존 `workspace_scope`를 따릅니다. 일반 코드는 이벤트가 없을 때 출력 공간을 그대로 사용하며, 인식된 미해결 이벤트는 기존 사유를 유지합니다.
 
 반복 가능한 회귀 검증은 패키지 디렉터리에서 실행합니다.
 

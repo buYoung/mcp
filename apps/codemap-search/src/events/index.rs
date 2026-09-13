@@ -44,6 +44,27 @@ fn overlaps(location: &EventLocation, anchors: &[(String, usize, usize)]) -> boo
         })
 }
 
+fn endpoint_overlaps(endpoint: &EventEndpoint, anchors: &[(String, usize, usize)]) -> bool {
+    overlaps(&endpoint.location, anchors)
+        || endpoint
+            .api_definition
+            .as_ref()
+            .is_some_and(|location| overlaps(location, anchors))
+        || endpoint
+            .handler
+            .as_ref()
+            .is_some_and(|location| overlaps(location, anchors))
+        || endpoint
+            .key_evidence
+            .iter()
+            .any(|location| overlaps(location, anchors))
+        || endpoint.bus.as_ref().is_some_and(|bus| {
+            bus.locations
+                .iter()
+                .any(|location| overlaps(location, anchors))
+        })
+}
+
 impl EventIndex {
     pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
         let started = std::time::Instant::now();
@@ -137,6 +158,7 @@ impl EventIndex {
             scope,
             cap,
             root,
+            None,
         )
     }
     pub fn for_paths(
@@ -146,6 +168,9 @@ impl EventIndex {
         cap: usize,
         root: &Path,
     ) -> String {
+        if anchors.is_empty() {
+            return String::new();
+        }
         let mut selected = BTreeSet::new();
         let mut routes = BTreeSet::new();
         let mut candidate_omissions = 0;
@@ -158,21 +183,7 @@ impl EventIndex {
             for &index in candidates.iter().take(remaining) {
                 inspected += 1;
                 let endpoint = &self.endpoints[index];
-                if overlaps(&endpoint.location, anchors)
-                    || endpoint
-                        .api_definition
-                        .as_ref()
-                        .is_some_and(|location| overlaps(location, anchors))
-                    || endpoint
-                        .handler
-                        .as_ref()
-                        .is_some_and(|l| overlaps(l, anchors))
-                    || endpoint.key_evidence.iter().any(|l| overlaps(l, anchors))
-                    || endpoint
-                        .bus
-                        .as_ref()
-                        .is_some_and(|bus| bus.locations.iter().any(|l| overlaps(l, anchors)))
-                {
+                if endpoint_overlaps(endpoint, anchors) {
                     selected.insert(index);
                     if let Some((bus, key, target, channel)) = endpoint.key() {
                         routes.insert((
@@ -184,6 +195,9 @@ impl EventIndex {
                     }
                 }
             }
+        }
+        if selected.is_empty() {
+            return String::new();
         }
         for route in routes {
             let candidates = self.by_route.get(&route).map(Vec::as_slice).unwrap_or(&[]);
@@ -200,6 +214,7 @@ impl EventIndex {
             scope,
             cap,
             root,
+            Some(anchors),
         )
     }
 
@@ -210,38 +225,26 @@ impl EventIndex {
         scope: Option<&str>,
         cap: usize,
         root: &Path,
+        anchors: Option<&[(String, usize, usize)]>,
     ) -> String {
-        if cap < 512 {
+        if anchors.is_none() && cap < 512 {
             return "[Event output budget unavailable; narrow the source request.]\n"
                 .chars()
                 .take(cap)
                 .collect();
         }
         if !crate::config::get().event_navigation.is_enabled {
+            if anchors.is_some() {
+                return String::new();
+            }
             return "## Event relationships\n\n[Event navigation disabled; set event_navigation.is_enabled=true and wait for indexing.]\n".into();
         }
         if !self.is_enabled || self.stamp != super::config_stamp() {
+            if anchors.is_some() {
+                return String::new();
+            }
             return "## Event relationships\n\n[Event settings/target/exclusions changed; a matching indexed generation is not ready. No stale event links are shown.]\n".into();
         }
-        let header="## Event relationships\n\n_Static registration routes, separate from direct calls. Delivery, registration order and removal timing are not guaranteed._\n";
-        let mut out = header.to_string();
-        if self.has_rust_sources {
-            out.push_str(&format!(
-                "\n_Rust analysis target_os={} (explicit configuration; no host inference)._\n",
-                crate::config::get()
-                    .analysis_target_os
-                    .as_deref()
-                    .unwrap_or("<neutral>")
-            ));
-        }
-        let mut append = |row: &str| {
-            if out.len() + row.len() + 512.min(cap / 2) <= cap {
-                out.push_str(row);
-                true
-            } else {
-                false
-            }
-        };
         let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
         let mut freshness = HashMap::new();
         let mut eligible = Vec::new();
@@ -297,6 +300,40 @@ impl EventIndex {
             eligible.push(endpoint);
         }
         let total = eligible.len();
+        // Automatic context needs a current, allowed endpoint or supporting
+        // definition in the requested lines, not just a surviving route peer.
+        if anchors.is_some_and(|anchors| {
+            !eligible
+                .iter()
+                .any(|endpoint| endpoint_overlaps(endpoint, anchors))
+        }) {
+            return String::new();
+        }
+        if cap < 512 {
+            return "[Event output budget unavailable; narrow the source request.]\n"
+                .chars()
+                .take(cap)
+                .collect();
+        }
+        let header="## Event relationships\n\n_Static registration routes, separate from direct calls. Delivery, registration order and removal timing are not guaranteed._\n";
+        let mut out = header.to_string();
+        if self.has_rust_sources {
+            out.push_str(&format!(
+                "\n_Rust analysis target_os={} (explicit configuration; no host inference)._\n",
+                crate::config::get()
+                    .analysis_target_os
+                    .as_deref()
+                    .unwrap_or("<neutral>")
+            ));
+        }
+        let mut append = |row: &str| {
+            if out.len() + row.len() + 512.min(cap / 2) <= cap {
+                out.push_str(row);
+                true
+            } else {
+                false
+            }
+        };
         let mut groups: BTreeMap<(String, String, String, String), Vec<&EventEndpoint>> =
             BTreeMap::new();
         let mut unresolved = Vec::new();

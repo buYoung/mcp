@@ -1,4 +1,4 @@
-//! Request-scoped presentation. Defaults preserve the existing live-tool contract.
+//! Request-scoped presentation with automatic, relevant event context.
 use super::get_arg;
 use serde_json::Value;
 
@@ -16,7 +16,7 @@ pub(crate) struct LiveOptions {
     pub view: LiveView,
     pub should_list_unresolved: bool,
     pub should_expand_callable: bool,
-    pub should_include_events: bool,
+    pub include_events: Option<bool>,
 }
 
 impl Default for LiveOptions {
@@ -25,7 +25,7 @@ impl Default for LiveOptions {
             view: LiveView::Full,
             should_list_unresolved: true,
             should_expand_callable: false,
-            should_include_events: false,
+            include_events: None,
         }
     }
 }
@@ -65,9 +65,9 @@ impl LiveOptions {
                 == "list",
             should_expand_callable: choice(args, "expand", "none", &["none", "callable"])?
                 == "callable",
-            should_include_events: match get_arg(args, "include_events") {
-                None => false,
-                Some(Value::Bool(value)) => *value,
+            include_events: match get_arg(args, "include_events") {
+                None => None,
+                Some(Value::Bool(value)) => Some(*value),
                 _ => {
                     return Err((
                         -32602,
@@ -82,8 +82,17 @@ impl LiveOptions {
         matches!(self.view, LiveView::Full | LiveView::Relations)
     }
 
+    pub fn should_include_events(self) -> bool {
+        self.include_events.unwrap_or(true) && self.should_include_relations()
+    }
+
     pub fn validate_grep(self, mode: &str) -> Result<(), (i64, String)> {
-        if mode != "content" && self != Self::default() {
+        if mode != "content"
+            && (self.view != LiveView::Full
+                || !self.should_list_unresolved
+                || self.should_expand_callable
+                || self.include_events == Some(true))
+        {
             return Err((
                 -32602,
                 "view/unresolved/expand/include_events controls require grep output_mode='content'.".into(),

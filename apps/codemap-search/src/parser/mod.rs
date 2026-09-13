@@ -95,7 +95,9 @@ pub(crate) fn collect_index_auxiliary(
     let tree = parse_source(&mut parser, source)
         .map_err(|error| format!("{error} for auxiliary tags: {file_path}"))?;
 
-    Ok(collect_index_auxiliary_from_tree(tags_query, &tree, source))
+    let mut auxiliary = collect_index_auxiliary_from_tree(tags_query, &tree, source);
+    auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
+    Ok(auxiliary)
 }
 
 fn collect_index_auxiliary_from_tree(

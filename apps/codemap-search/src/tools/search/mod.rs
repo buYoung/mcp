@@ -533,7 +533,7 @@ pub(crate) fn run_inner_with_metadata(
         .ok_or_else(|| (-32602, "Missing query parameter".to_string()))?;
 
     let should_include_events = match super::get_arg(ctx.arguments, "include_events") {
-        None => false,
+        None => true,
         Some(serde_json::Value::Bool(value)) => *value,
         _ => {
             return Err((
@@ -1041,27 +1041,27 @@ pub(crate) fn run_inner_with_metadata(
         text,
         workspace_scope,
     );
-    if should_include_events {
+    if should_include_events
+        && !ctx.engine.is_warming()
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none()
+    {
         let event_cap = (byte_cap / 2).min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
-        let context_cap = byte_cap.saturating_sub(event_cap + 2);
-        let is_partial = output.text.len() > context_cap;
-        output.text = finish_search_output(output.text, context_cap, is_partial);
-        output.text.push_str("\n\n");
-        if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
-            let notice = "[Event index unavailable or stale; no event links shown.]";
-            output.text.extend(notice.chars().take(event_cap));
-        } else {
-            let anchors = results
-                .iter()
-                .map(|result| (result.file_path.clone(), 1, usize::MAX))
-                .collect::<Vec<_>>();
-            let root = std::env::current_dir().unwrap_or_default();
-            output.text.push_str(&published_snapshot.events().for_paths(
-                &anchors,
-                workspace_scope,
-                event_cap,
-                &root,
-            ));
+        let anchors = results
+            .iter()
+            .map(|result| (result.file_path.clone(), 1, usize::MAX))
+            .collect::<Vec<_>>();
+        let root = std::env::current_dir().unwrap_or_default();
+        let events =
+            published_snapshot
+                .events()
+                .for_paths(&anchors, workspace_scope, event_cap, &root);
+        if !events.is_empty() {
+            let context_cap = byte_cap.saturating_sub(events.len() + 2);
+            let is_partial = output.text.len() > context_cap;
+            output.text = finish_search_output(output.text, context_cap, is_partial);
+            output.text.push_str("\n\n");
+            output.text.push_str(&events);
         }
     }
     tracing::debug!(

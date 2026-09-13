@@ -78,12 +78,6 @@ pub(crate) fn append(
         .map(|limit| limit.saturating_sub(raw.len() + notices.len()))
         .unwrap_or(PAYLOAD_BYTE_CAP * 2 + FRAMING_BYTE_BUDGET);
     let cap = PAYLOAD_BYTE_CAP.min(remaining.saturating_sub(FRAMING_BYTE_BUDGET) / 2);
-    let event_cap = if options.should_include_events && options.should_include_relations() {
-        cap
-    } else {
-        0
-    };
-    let cap = if event_cap > 0 { cap / 2 } else { cap };
     let content = if remaining < FRAMING_BYTE_BUDGET {
         String::new()
     } else if cap < 128 {
@@ -103,6 +97,23 @@ pub(crate) fn append(
             TEST_CONTEXT_EXCLUDED_NOTICE.to_string()
         } else {
             let snapshot = engine.published_snapshot();
+            let events = if options.should_include_events() {
+                let anchors = output
+                    .anchors
+                    .iter()
+                    .map(|anchor| {
+                        (
+                            anchor.file_path.clone(),
+                            anchor.start_line.unwrap_or(1),
+                            anchor.end_line.unwrap_or(usize::MAX),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                snapshot.events().for_paths(&anchors, None, cap, &root)
+            } else {
+                String::new()
+            };
+            let cap = if events.is_empty() { cap } else { cap / 2 };
             let source_files = snapshot.codemap();
             let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
             for anchor in &output.anchors {
@@ -184,24 +195,9 @@ pub(crate) fn append(
                     grouped.len() - OUTLINED_FILE_LIMIT
                 ));
             }
-            if event_cap > 0 {
-                let anchors = output
-                    .anchors
-                    .iter()
-                    .map(|anchor| {
-                        (
-                            anchor.file_path.clone(),
-                            anchor.start_line.unwrap_or(1),
-                            anchor.end_line.unwrap_or(usize::MAX),
-                        )
-                    })
-                    .collect::<Vec<_>>();
+            if !events.is_empty() {
                 rendered.push('\n');
-                rendered.push_str(
-                    &snapshot
-                        .events()
-                        .for_paths(&anchors, None, event_cap, &root),
-                );
+                rendered.push_str(&events);
             }
             rendered
         }

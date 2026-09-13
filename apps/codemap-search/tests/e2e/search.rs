@@ -84,11 +84,13 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
         dynamic.contains("event key is not a supported literal/static immutable value"),
         "{dynamic}"
     );
-    let ranked=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":true}})).await.unwrap());
+    let ranked=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false}})).await.unwrap());
     assert!(
         ranked.contains("## Event relationships") && ranked.contains("publisher: src/users.ts:2"),
         "{ranked}"
     );
+    let hidden=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":false}})).await.unwrap());
+    assert!(!hidden.contains("Event relationships"), "{hidden}");
     for arguments in [
         serde_json::json!({"query":"saved","event_key":""}),
         serde_json::json!({"query":"saved","include_events":"yes"}),
@@ -156,7 +158,7 @@ async fn test_events_builtin_api_catalog_and_disable_reach_output() {
     }
     files.push(("src/lib.rs".into(), rust));
     files.push(("package.json".into(), "{\"name\":\"event-catalog\"}".into()));
-    let config = "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n";
+    let config = "[update]\nconfig_auto_update=false\n";
     files.push((".codemap/config.toml".into(), config.into()));
     let borrowed: Vec<_> = files
         .iter()
@@ -187,7 +189,7 @@ async fn test_events_builtin_api_catalog_and_disable_reach_output() {
     }
     fs::write(
         temp.path().join(".codemap/config.toml"),
-        format!("{config}use_builtin_rules=false\n"),
+        format!("{config}\n[event_navigation]\nuse_builtin_rules=false\n"),
     )
     .unwrap();
     let response = client
