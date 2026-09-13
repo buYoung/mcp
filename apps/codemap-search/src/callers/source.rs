@@ -4,10 +4,11 @@ use std::ops::Range;
 use std::path::Path;
 use tree_sitter::{Parser, Point, Tree};
 
-use crate::parser::CallSite;
+use crate::parser::{CallSite, CodeRange};
 
 pub(super) struct SourceSyntax {
     pub(super) tree: Tree,
+    embedded: Option<Vec<(Range<usize>, SourceSyntax)>>,
 }
 
 impl SourceSyntax {
@@ -17,12 +18,55 @@ impl SourceSyntax {
         let ext = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
         let mut parser = Parser::new();
         parser.set_language(&spec.grammar(ext)).ok()?;
+        let embedded = crate::lang::is_composite_extension(ext).then(|| {
+            crate::parser::composite::extract_sources(
+                std::str::from_utf8(source).unwrap_or(""),
+                ext,
+            )
+            .into_iter()
+            .filter(|part| matches!(part.grammar_ext, "js" | "jsx" | "ts" | "tsx"))
+            .filter_map(|part| {
+                Self::parse(
+                    &format!("embedded.{}", part.grammar_ext),
+                    part.source.as_bytes(),
+                )
+                .map(|syntax| (part.range, syntax))
+            })
+            .collect()
+        });
         Some(Self {
             tree: parser.parse(source, None)?,
+            embedded,
+        })
+    }
+
+    pub(super) fn tree_for_range(&self, range: &CodeRange) -> Option<&Tree> {
+        let Some(embedded) = &self.embedded else {
+            return Some(&self.tree);
+        };
+        let start = Point::new(
+            range.start_line.checked_sub(1)?,
+            range.start_col.checked_sub(1)?,
+        );
+        let end = Point::new(
+            range.end_line.checked_sub(1)?,
+            range.end_col.checked_sub(1)?,
+        );
+        embedded.iter().find_map(|(span, syntax)| {
+            let node = syntax
+                .tree
+                .root_node()
+                .descendant_for_point_range(start, end)?;
+            (span.start <= node.start_byte() && node.end_byte() <= span.end).then_some(&syntax.tree)
         })
     }
 
     pub(super) fn is_code(&self, range: Range<usize>) -> bool {
+        if let Some(embedded) = &self.embedded {
+            return embedded.iter().any(|(span, syntax)| {
+                span.start <= range.start && range.end <= span.end && syntax.is_code(range.clone())
+            });
+        }
         let mut current = self
             .tree
             .root_node()
@@ -64,6 +108,13 @@ impl SourceSyntax {
     }
 
     pub(super) fn is_member_access(&self, range: Range<usize>) -> bool {
+        if let Some(embedded) = &self.embedded {
+            return embedded.iter().any(|(span, syntax)| {
+                span.start <= range.start
+                    && range.end <= span.end
+                    && syntax.is_member_access(range.clone())
+            });
+        }
         let mut current = self
             .tree
             .root_node()
@@ -96,7 +147,7 @@ impl SourceSyntax {
             call.range.end_col.checked_sub(1)?,
         );
         let node = self
-            .tree
+            .tree_for_range(&call.range)?
             .root_node()
             .descendant_for_point_range(start, end)?;
         if node.kind() != "call_expression" {

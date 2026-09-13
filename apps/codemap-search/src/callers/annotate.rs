@@ -1005,9 +1005,6 @@ pub fn annotate_results_with_state(
 mod tests {
     use super::*;
     use crate::callers::fixtures::{cfg, file, has_note, note, render_in_order, sym};
-    use crate::parser::{
-        CallSite, CodeRange, ImportEntry, ImportKind, LocalBinding, NavigationFile,
-    };
     use std::path::PathBuf;
 
     fn parsed_file(root: &Path, path: &str) -> ExtractedFile {
@@ -1125,137 +1122,60 @@ mod tests {
     }
 
     #[test]
-    fn test_receiver_hint_precise_callee_when_enabled() {
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[("nav.ts", "")]);
-        let mut file = file(
-            "nav.ts",
-            vec![
-                sym("save", "fn", 1, 1, Some("User")),
-                sym("save", "fn", 2, 2, Some("File")),
-                sym("run", "fn", 3, 5, None),
-            ],
-        );
-        file.navigation = Some(NavigationFile {
-            calls: vec![CallSite {
-                name: "save".to_string(),
-                receiver: Some("user".to_string()),
-                range: CodeRange {
-                    start_line: 4,
-                    start_col: 5,
-                    end_line: 4,
-                    end_col: 16,
-                },
-                scope_id: Some(300_005),
-            }],
-            references: Vec::new(),
-            local_bindings: vec![LocalBinding {
-                name: "user".to_string(),
-                type_name: Some("User".to_string()),
-                value_type: Some("User".to_string()),
-                range: CodeRange {
-                    start_line: 3,
-                    start_col: 5,
-                    end_line: 3,
-                    end_col: 28,
-                },
-                scope_id: Some(300_005),
-            }],
-            imports: Vec::new(),
-        });
-        let snapshot = vec![file];
-        let requests = vec![AnnotationRequest {
+    fn test_receiver_hint_is_unresolved_without_confirmed_type_resolution() {
+        let (_dir, root) = crate::callers::fixtures::write_repo(&[("nav.ts",
+            "class User { save() {} }\nclass File { save() {} }\nfunction run(user: User) { user.save(); }\n")]);
+        let snapshot = vec![parsed_file(&root, "nav.ts")];
+        let requests = [AnnotationRequest {
             file_path: "nav.ts",
             symbols: &snapshot[0].symbols,
             is_fallback: false,
         }];
-        let mut cfg = cfg();
-        cfg.navigation_context_default = true;
-        let ann = annotate_results(&requests, &snapshot, &cfg, 100_000, &root).unwrap();
+        let mut config = cfg();
+        config.navigation_context_default = true;
+        let ann = annotate_results(&requests, &snapshot, &config, 100_000, &root).unwrap();
         let text = note(&ann, "nav.ts", 3);
+        assert!(text.contains("save (unresolved)"), "{text}");
         assert!(
-            text.contains("User.save — nav.ts:1 (precise)"),
-            "receiver hint should narrow to User.save: {text}"
+            !text.contains("save —"),
+            "unconfirmed receiver has a definition link: {text}"
         );
         assert!(
-            !text.contains("File.save — nav.ts:2 (precise)"),
-            "receiver hint must not attribute to File.save: {text}"
+            !text.contains("(precise)"),
+            "unconfirmed receiver marked precise: {text}"
         );
     }
 
     #[test]
     fn test_navigation_precise_callee_disabled_by_default() {
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[("nav.ts", "")]);
-        let mut file = file(
+        let (_dir, root) = crate::callers::fixtures::write_repo(&[(
             "nav.ts",
-            vec![
-                sym("save", "fn", 1, 1, Some("User")),
-                sym("run", "fn", 3, 5, None),
-            ],
-        );
-        file.navigation = Some(NavigationFile {
-            calls: vec![
-                CallSite {
-                    name: "save".to_string(),
-                    receiver: Some("user".to_string()),
-                    range: CodeRange {
-                        start_line: 4,
-                        start_col: 5,
-                        end_line: 4,
-                        end_col: 16,
-                    },
-                    scope_id: Some(300_005),
-                },
-                CallSite {
-                    name: "consoleLog".to_string(),
-                    receiver: Some("console".to_string()),
-                    range: CodeRange {
-                        start_line: 5,
-                        start_col: 5,
-                        end_line: 5,
-                        end_col: 23,
-                    },
-                    scope_id: Some(300_005),
-                },
-            ],
-            references: Vec::new(),
-            local_bindings: vec![LocalBinding {
-                name: "user".to_string(),
-                type_name: Some("User".to_string()),
-                value_type: Some("User".to_string()),
-                range: CodeRange {
-                    start_line: 3,
-                    start_col: 5,
-                    end_line: 3,
-                    end_col: 28,
-                },
-                scope_id: Some(300_005),
-            }],
-            imports: Vec::new(),
-        });
-        let snapshot = vec![file];
-        let requests = vec![AnnotationRequest {
+            "function save() {}\nfunction run() { save(); console.consoleLog(); }\n",
+        )]);
+        let snapshot = vec![parsed_file(&root, "nav.ts")];
+        let requests = [AnnotationRequest {
             file_path: "nav.ts",
             symbols: &snapshot[0].symbols,
             is_fallback: false,
         }];
         let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
-        let text = note(&ann, "nav.ts", 3);
+        let text = note(&ann, "nav.ts", 2);
         assert!(
-            text.contains("User.save"),
-            "navigation callee display should remain useful: {text}"
+            text.contains("save — nav.ts:1"),
+            "confirmed local definition: {text}"
         );
         assert!(
             !text.contains("(precise)"),
-            "default-off navigation must not emit precise attribution: {text}"
+            "default-off navigation marked precise: {text}"
         );
         assert!(
-            !text.contains("consoleLog"),
-            "navigation callee output should keep the old workspace-defined-name filter: {text}"
+            text.contains("consoleLog (unresolved)"),
+            "unindexed executable call missing: {text}"
         );
     }
 
     #[test]
-    fn test_precise_callers_do_not_hide_fallback_call_sites() {
+    fn test_precise_callers_do_not_include_unresolved_name_matches() {
         let (_dir, root) = crate::callers::fixtures::write_repo(&[
             ("user.ts", "export function save() {}\n"),
             ("file.ts", "export function save() {}\n"),
@@ -1265,78 +1185,34 @@ mod tests {
             ),
             ("other.ts", "export function run2() {\n  save();\n}\n"),
         ]);
-        let user_file = file("user.ts", vec![sym("save", "fn", 1, 1, Some("User"))]);
-        let file_file = file("file.ts", vec![sym("save", "fn", 1, 1, Some("File"))]);
-        let mut caller_file = file("caller.ts", vec![sym("run", "fn", 2, 4, None)]);
-        caller_file.navigation = Some(NavigationFile {
-            calls: vec![CallSite {
-                name: "save".to_string(),
-                receiver: None,
-                range: CodeRange {
-                    start_line: 3,
-                    start_col: 3,
-                    end_line: 3,
-                    end_col: 9,
-                },
-                scope_id: Some(200_004),
-            }],
-            references: Vec::new(),
-            local_bindings: Vec::new(),
-            imports: vec![ImportEntry {
-                local_name: "save".to_string(),
-                imported_name: Some("save".to_string()),
-                source: Some("./user".to_string()),
-                kind: ImportKind::Named,
-                range: CodeRange {
-                    start_line: 1,
-                    start_col: 1,
-                    end_line: 1,
-                    end_col: 30,
-                },
-            }],
-        });
-        let mut other_file = file("other.ts", vec![sym("run2", "fn", 1, 3, None)]);
-        other_file.navigation = Some(NavigationFile {
-            calls: vec![CallSite {
-                name: "save".to_string(),
-                receiver: None,
-                range: CodeRange {
-                    start_line: 2,
-                    start_col: 3,
-                    end_line: 2,
-                    end_col: 9,
-                },
-                scope_id: Some(100_003),
-            }],
-            references: Vec::new(),
-            local_bindings: Vec::new(),
-            imports: Vec::new(),
-        });
-        let snapshot = vec![user_file, file_file, caller_file, other_file];
-        let requests = vec![AnnotationRequest {
+        let snapshot: Vec<_> = ["user.ts", "file.ts", "caller.ts", "other.ts"]
+            .iter()
+            .map(|path| parsed_file(&root, path))
+            .collect();
+        let requests = [AnnotationRequest {
             file_path: "user.ts",
             symbols: &snapshot[0].symbols,
             is_fallback: false,
         }];
-        let mut cfg = cfg();
-        cfg.navigation_context_default = true;
-        let ann = annotate_results(&requests, &snapshot, &cfg, 100_000, &root).unwrap();
+        let mut config = cfg();
+        config.navigation_context_default = true;
+        let ann = annotate_results(&requests, &snapshot, &config, 100_000, &root).unwrap();
         let text = note(&ann, "user.ts", 1);
         assert!(
             text.contains("tree-sitter precise"),
-            "precise source-hint caller should render: {text}"
+            "confirmed import missing: {text}"
         );
         assert!(
             text.contains("run (caller.ts:3)"),
-            "precise caller should point to caller.ts: {text}"
+            "confirmed caller missing: {text}"
         );
         assert!(
-            text.contains("additional callers"),
-            "fallback candidates should not be hidden after a partial precise result: {text}"
+            !text.contains("run2 (other.ts:2)"),
+            "unresolved name attributed to a definition: {text}"
         );
         assert!(
-            text.contains("run2 (other.ts:2)"),
-            "unresolved ambiguous call site should remain visible through fallback: {text}"
+            text.contains("not attributed"),
+            "unresolved observations should remain visible: {text}"
         );
     }
 

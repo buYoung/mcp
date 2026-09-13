@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
 use super::{generic_find_owner, path_indicates_test, LanguageSpec};
-use crate::parser::{CodeRange, ImportEntry, ImportKind};
+use crate::parser::{CallSite, CodeRange, ImportEntry, ImportKind};
 
 const QUERY_STR: &str = concat!(
     include_str!("../../queries/powershell/symbols.scm"),
@@ -183,6 +183,30 @@ impl LanguageSpec for PowerShellSpec {
             kind: ImportKind::Namespace,
             range: range_for_node(node),
         }])
+    }
+
+    fn call_sites_for_capture(&self, node: Node<'_>, source: &[u8]) -> Option<Vec<CallSite>> {
+        if node.kind() != "invokation_expression" {
+            return None;
+        }
+        let mut cursor = node.walk();
+        let children: Vec<_> = node.named_children(&mut cursor).collect();
+        let calls = children
+            .iter()
+            .find(|child| child.kind() == "member_name")
+            .and_then(|member| member.named_child(0))
+            .filter(|name| name.kind() == "simple_name")
+            .and_then(|name| {
+                Some(CallSite {
+                    name: name.utf8_text(source).ok()?.to_string(),
+                    receiver: Some(children.first()?.utf8_text(source).ok()?.to_string()),
+                    range: range_for_node(node),
+                    scope_id: None,
+                })
+            })
+            .into_iter()
+            .collect();
+        Some(calls)
     }
 
     fn collect_exported_names(&self, root: Node<'_>, source: &[u8], out: &mut HashSet<String>) {

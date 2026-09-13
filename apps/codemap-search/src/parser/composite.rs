@@ -3,9 +3,10 @@
 //! non-code bytes are spaces, so tree-sitter ranges continue to point at the outer file.
 
 #[derive(Debug)]
-pub(super) struct CompositeSource {
-    pub(super) grammar_ext: &'static str,
-    pub(super) source: String,
+pub(crate) struct CompositeSource {
+    pub(crate) grammar_ext: &'static str,
+    pub(crate) source: String,
+    pub(crate) range: std::ops::Range<usize>,
 }
 
 struct SourceMasks<'a> {
@@ -41,6 +42,7 @@ impl<'a> SourceMasks<'a> {
         mask[start..end].copy_from_slice(&self.original.as_bytes()[start..end]);
         self.sources.push(CompositeSource {
             grammar_ext,
+            range: start..end,
             // Code regions are delimited by tags or full lines, therefore their byte offsets
             // are UTF-8 boundaries. The remaining bytes are ASCII spaces.
             source: String::from_utf8(mask).expect("composite source mask must be UTF-8"),
@@ -55,7 +57,7 @@ impl<'a> SourceMasks<'a> {
 /// Return embedded executable regions for supported component extensions. The scanner is
 /// deliberately conservative: Vue/Svelte accept only top-level script blocks, Astro accepts
 /// executable scripts anywhere in its document, and an unclosed block is never guessed.
-pub(super) fn extract_sources(source: &str, extension: &str) -> Vec<CompositeSource> {
+pub(crate) fn extract_sources(source: &str, extension: &str) -> Vec<CompositeSource> {
     let mut masks = SourceMasks::new(source);
     let body_start = if extension == "astro" {
         match extract_astro_frontmatter(source, &mut masks) {

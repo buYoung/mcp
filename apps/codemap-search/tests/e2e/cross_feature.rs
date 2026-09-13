@@ -362,7 +362,7 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
         ),
         (
             "src/PowerShellFlow.ps1",
-            "class PowerShellFlow {\n  [void] TargetPowerShell() {}\n  [void] CallerPowerShell() { TargetPowerShell }\n}\n",
+            "class PowerShellFlow {\n  [void] TargetPowerShell() {}\n  [void] CallerPowerShell() { $this.TargetPowerShell() }\n}\n",
         ),
         (
             ".codemap/config.toml",
@@ -565,6 +565,27 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             "src/PowerShellFlow.ps1:3",
         ),
     ] {
+        if path == "src/lua_flow.lua" {
+            // A dynamic table receiver needs binding/mutation analysis before a definition
+            // link can be confirmed. Preserve the executable call without a guessed target.
+            let response = client
+                .send_tool_until(
+                    "search",
+                    serde_json::json!({
+                        "query": caller_query, "caller_context": true
+                    }),
+                    |text| text.contains("target_lua (unresolved)"),
+                )
+                .await
+                .unwrap();
+            let text = response["result"]["content"][0]["text"].as_str().unwrap();
+            assert!(text.contains("target_lua (unresolved)"), "{text}");
+            assert!(
+                !text.contains("LuaFlow.target_lua —"),
+                "unconfirmed table target linked: {text}"
+            );
+            continue;
+        }
         let target_response = client
             .send_tool_until(
                 "search",

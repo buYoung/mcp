@@ -116,7 +116,7 @@ pub(super) fn definition_is_compatible(
 ) -> bool {
     fn family(path: &str) -> Option<&'static str> {
         crate::lang::spec_for_path(Path::new(path)).map(|spec| match spec.language_name() {
-            "javascript" | "typescript" => "ecmascript",
+            "javascript" | "typescript" | "vue" | "astro" | "svelte" => "ecmascript",
             "c" | "cpp" => "c_family",
             language => language,
         })

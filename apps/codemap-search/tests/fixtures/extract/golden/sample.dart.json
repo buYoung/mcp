@@ -24,10 +24,10 @@
       "name": "run",
       "kind": "fn",
       "range": {
-        "startLine": 7,
+        "startLine": 6,
         "startCol": 3,
-        "endLine": 7,
-        "endCol": 13
+        "endLine": 9,
+        "endCol": 4
       },
       "docstring": null,
       "flags": {

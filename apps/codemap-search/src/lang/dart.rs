@@ -170,6 +170,7 @@ impl LanguageSpec for DartSpec {
     fn owner_stop_kinds(&self, _ext: &str) -> &'static [&'static str] {
         &[
             "function_declaration",
+            "method_declaration",
             "local_function_declaration",
             "function_expression",
         ]

@@ -12,6 +12,8 @@ use crate::parser::{
 
 use super::source::SourceSyntax;
 
+mod local;
+
 #[derive(Clone, Copy)]
 pub(crate) struct Target<'a> {
     pub file: &'a ExtractedFile,
@@ -35,6 +37,10 @@ pub(crate) struct SourceResolver<'a> {
 }
 
 pub(crate) fn supports(path: &str) -> bool {
+    supports_modules(path) || local::supports(path)
+}
+
+fn supports_modules(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|ext| ext.to_str()),
         Some("rs" | "go")
@@ -52,7 +58,7 @@ fn node_at<'a>(source: &'a Source, range: &CodeRange) -> Option<Node<'a>> {
     );
     let mut node = source
         .syntax
-        .tree
+        .tree_for_range(range)?
         .root_node()
         .descendant_for_point_range(start, end)?;
     while node.start_position() != start || node.end_position() != end {
@@ -430,6 +436,7 @@ impl<'a> SourceResolver<'a> {
             .into_iter()
             .flatten()
             .copied()
+            .filter(|target| supports_modules(&target.file.file_path))
             .filter(|target| match kind {
                 "call" => target.symbol.kind == "fn" && target.symbol.owner.is_none(),
                 "type" => matches!(
@@ -512,7 +519,7 @@ impl<'a> SourceResolver<'a> {
         name: &str,
         kind: &str,
     ) -> Option<Target<'a>> {
-        if !supports(&file.file_path) {
+        if !supports_modules(&file.file_path) {
             return None;
         }
         let file = self
@@ -936,6 +943,9 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
+        if local::supports(&file.file_path) {
+            return self.resolve_local_call(file, call);
+        }
         let file = self
             .files
             .iter()

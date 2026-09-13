@@ -1,4 +1,4 @@
-mod composite;
+pub(crate) mod composite;
 mod markdown;
 mod sass;
 mod tokenize;
@@ -7,7 +7,7 @@ mod types;
 pub use tokenize::{split_identifier, QueryTokens};
 pub use types::*;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Parser, Query, QueryCursor, Tree};
@@ -308,14 +308,16 @@ fn normalized_collection_owner_type(text: &str) -> Option<String> {
 }
 
 fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
-    if kinds.contains(&node.kind()) {
-        return Some(node);
-    }
-    for child_index in 0..node.child_count() {
-        let child = node.child(child_index as u32).unwrap();
-        if let Some(found) = first_descendant_kind(child, kinds) {
-            return Some(found);
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if kinds.contains(&node.kind()) {
+            return Some(node);
         }
+        pending.extend(
+            (0..node.child_count())
+                .rev()
+                .filter_map(|index| node.child(index as u32)),
+        );
     }
     None
 }
@@ -597,29 +599,61 @@ fn value_type_from_initializer(value_node: Node, source: &[u8]) -> Option<String
         .and_then(|text| base_name_from_text(&text))
 }
 
+fn callable_scope_id(node: Node) -> Option<usize> {
+    if matches!(
+        node.kind(),
+        "function_declaration"
+            | "function_definition"
+            | "method_definition"
+            | "method_declaration"
+            | "constructor_declaration"
+            | "arrow_function"
+            | "function_item"
+            | "method"
+            | "singleton_method"
+            | "class_method_definition"
+            | "function_statement"
+    ) {
+        let range = range_for_node(node);
+        return Some(range.start_line.saturating_mul(100_000) + range.end_line);
+    }
+    None
+}
+
 fn scope_id_for_node(node: Node) -> Option<usize> {
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if matches!(
-            ancestor.kind(),
-            "function_declaration"
-                | "function_definition"
-                | "method_definition"
-                | "method_declaration"
-                | "constructor_declaration"
-                | "arrow_function"
-                | "function_item"
-                | "method"
-                | "singleton_method"
-                | "class_method_definition"
-                | "function_statement"
-        ) {
-            let range = range_for_node(ancestor);
-            return Some(range.start_line.saturating_mul(100_000) + range.end_line);
+        if let Some(scope) = callable_scope_id(ancestor) {
+            return Some(scope);
         }
         current = ancestor.parent();
     }
     None
+}
+
+fn reference_scope_index(tree: &Tree) -> HashMap<usize, Option<usize>> {
+    let mut output = HashMap::new();
+    let mut cursor = tree.walk();
+    let mut ancestors = vec![None];
+    loop {
+        let node = cursor.node();
+        let parent_scope = *ancestors.last().unwrap();
+        output.insert(node.id(), parent_scope);
+        let child_scope = callable_scope_id(node).or(parent_scope);
+        if cursor.goto_first_child() {
+            ancestors.push(child_scope);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return output;
+            }
+            ancestors.pop();
+        }
+    }
 }
 
 fn push_binding_name(names: &mut Vec<String>, name: String) {
@@ -1400,6 +1434,7 @@ fn static_collection_source_context(
     ext: &str,
     site_node: Node,
     source: &[u8],
+    types: &TypeDeclarationIndex<'_>,
 ) -> (Option<String>, Option<String>, Option<CodeRange>) {
     let Some(callable) = enclosing_callable(site_node) else {
         return (None, None, None);
@@ -1413,11 +1448,7 @@ fn static_collection_source_context(
             }
             node = parent;
         }
-        let mut root = site_node;
-        while let Some(parent) = root.parent() {
-            root = parent;
-        }
-        unique_type_declaration_range(root, owner, source)
+        types.unique_range(owner)
     });
     (
         source_owner,
@@ -1426,7 +1457,7 @@ fn static_collection_source_context(
     )
 }
 
-fn named_children(node: Node) -> impl Iterator<Item = Node> {
+fn named_children(node: Node) -> impl DoubleEndedIterator<Item = Node> {
     (0..node.child_count())
         .filter_map(move |index| node.child(index as u32))
         .filter(|child| child.is_named())
@@ -1501,34 +1532,36 @@ fn parameter_type_for_name(node: Node, name: &str, source: &[u8]) -> Option<Stri
 }
 
 fn callable_has_local_binding(node: Node, name: &str, source: &[u8]) -> bool {
-    if matches!(
-        node.kind(),
-        "parameter_declaration"
-            | "formal_parameter"
-            | "parameter"
-            | "local_variable_declaration"
-            | "property_declaration"
-            | "let_declaration"
-            | "declaration"
-    ) && field_or_descendant_name(node, source).as_deref() == Some(name)
-    {
-        return true;
-    }
-    for child in named_children(node) {
-        if matches!(
-            child.kind(),
-            "function_declaration"
-                | "function_definition"
-                | "method_definition"
-                | "method_declaration"
-                | "constructor_declaration"
-                | "function_item"
-        ) {
+    let root_id = node.id();
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if node.id() != root_id
+            && matches!(
+                node.kind(),
+                "function_declaration"
+                    | "function_definition"
+                    | "method_definition"
+                    | "method_declaration"
+                    | "constructor_declaration"
+                    | "function_item"
+            )
+        {
             continue;
         }
-        if callable_has_local_binding(child, name, source) {
+        if matches!(
+            node.kind(),
+            "parameter_declaration"
+                | "formal_parameter"
+                | "parameter"
+                | "local_variable_declaration"
+                | "property_declaration"
+                | "let_declaration"
+                | "declaration"
+        ) && field_or_descendant_name(node, source).as_deref() == Some(name)
+        {
             return true;
         }
+        pending.extend(named_children(node).rev());
     }
     false
 }
@@ -1560,19 +1593,32 @@ fn node_declares_type(node: Node, type_name: &str, source: &[u8]) -> bool {
         == Some(type_name)
 }
 
-fn unique_type_declaration_range(root: Node, type_name: &str, source: &[u8]) -> Option<CodeRange> {
-    fn collect(node: Node, type_name: &str, source: &[u8], ranges: &mut Vec<CodeRange>) {
-        if node_declares_type(node, type_name, source) {
-            ranges.push(range_for_node(node));
+struct TypeDeclarationIndex<'tree> {
+    by_name: HashMap<String, Vec<Node<'tree>>>,
+}
+
+impl<'tree> TypeDeclarationIndex<'tree> {
+    fn new(root: Node<'tree>, source: &[u8]) -> Self {
+        let mut by_name: HashMap<String, Vec<Node<'tree>>> = HashMap::new();
+        let mut pending = vec![root];
+        while let Some(node) = pending.pop() {
+            if is_type_declaration_node(node) {
+                if let Some(name) = node
+                    .child_by_field_name("name")
+                    .and_then(|name| node_text(name, source))
+                {
+                    by_name.entry(name).or_default().push(node);
+                }
+            }
+            pending.extend(named_children(node).rev());
         }
-        for child in named_children(node) {
-            collect(child, type_name, source, ranges);
-        }
+        Self { by_name }
     }
 
-    let mut ranges = Vec::new();
-    collect(root, type_name, source, &mut ranges);
-    (ranges.len() == 1).then(|| ranges.remove(0))
+    fn unique_range(&self, name: &str) -> Option<CodeRange> {
+        let nodes = self.by_name.get(name)?;
+        (nodes.len() == 1).then(|| range_for_node(nodes[0]))
+    }
 }
 
 fn declaration_name_and_type(node: Node, source: &[u8]) -> Option<(String, Option<String>)> {
@@ -1592,64 +1638,57 @@ fn declaration_name_and_type(node: Node, source: &[u8]) -> Option<(String, Optio
 }
 
 fn type_field_type(
-    root: Node,
+    types: &TypeDeclarationIndex<'_>,
     owner_type: &str,
     owner_range: Option<&CodeRange>,
     field_name: &str,
     source: &[u8],
 ) -> Option<Option<String>> {
-    fn visit(
-        node: Node,
-        owner_type: &str,
-        owner_range: Option<&CodeRange>,
-        field_name: &str,
-        source: &[u8],
-    ) -> Option<Option<String>> {
-        if node_declares_type(node, owner_type, source)
-            && owner_range.is_none_or(|range| range_for_node(node) == *range)
-        {
-            fn find_field(
-                node: Node,
-                field_name: &str,
-                source: &[u8],
-                is_owner_root: bool,
-            ) -> Option<Option<String>> {
-                if !is_owner_root && is_type_declaration_node(node) {
-                    return None;
-                }
-                if matches!(
-                    node.kind(),
-                    "function_declaration"
-                        | "function_definition"
-                        | "method_definition"
-                        | "method_declaration"
-                        | "constructor_declaration"
-                        | "function_item"
-                ) {
-                    return None;
-                }
-                if let Some((name, type_name)) = declaration_name_and_type(node, source) {
-                    if name == field_name {
-                        return Some(type_name);
-                    }
-                }
-                for child in named_children(node) {
-                    if let Some(found) = find_field(child, field_name, source, false) {
-                        return Some(found);
-                    }
-                }
-                None
-            }
-            return find_field(node, field_name, source, true);
+    for owner in types.by_name.get(owner_type)? {
+        if owner_range.is_some_and(|range| range_for_node(*owner) != *range) {
+            continue;
         }
-        for child in named_children(node) {
-            if let Some(found) = visit(child, owner_type, owner_range, field_name, source) {
-                return Some(found);
+        // Preserve the original traversal's pruning of nested declarations after
+        // entering a matching outer type.
+        if owner_range.is_none() {
+            let mut ancestor = owner.parent();
+            let mut is_nested_match = false;
+            while let Some(node) = ancestor {
+                if node_declares_type(node, owner_type, source) {
+                    is_nested_match = true;
+                    break;
+                }
+                ancestor = node.parent();
+            }
+            if is_nested_match {
+                continue;
             }
         }
-        None
+        let mut pending = vec![*owner];
+        while let Some(node) = pending.pop() {
+            if node.id() != owner.id() && is_type_declaration_node(node) {
+                continue;
+            }
+            if matches!(
+                node.kind(),
+                "function_declaration"
+                    | "function_definition"
+                    | "method_definition"
+                    | "method_declaration"
+                    | "constructor_declaration"
+                    | "function_item"
+            ) {
+                continue;
+            }
+            if let Some((name, type_name)) = declaration_name_and_type(node, source) {
+                if name == field_name {
+                    return Some(type_name);
+                }
+            }
+            pending.extend(named_children(node).rev());
+        }
     }
-    visit(root, owner_type, owner_range, field_name, source)
+    None
 }
 
 fn normalized_collection_parts(text: &str) -> Vec<String> {
@@ -1678,7 +1717,7 @@ struct ResolvedStaticCollectionIdentity {
 fn static_collection_identity(
     spec: &dyn crate::lang::LanguageSpec,
     ext: &str,
-    root: Node,
+    types: &TypeDeclarationIndex<'_>,
     expression_node: Node,
     site_node: Node,
     source: &[u8],
@@ -1688,7 +1727,7 @@ fn static_collection_identity(
     let parts = normalized_collection_parts(&expression);
     let collection_field = parts.last()?.clone();
     let (source_owner, source_symbol, source_owner_range) =
-        static_collection_source_context(spec, ext, site_node, source);
+        static_collection_source_context(spec, ext, site_node, source, types);
     let callable = enclosing_callable(site_node);
     let (collection_owner_type, owner_expression) = match parts.as_slice() {
         [self_name, _field] if matches!(self_name.as_str(), "this" | "self") => {
@@ -1700,7 +1739,7 @@ fn static_collection_identity(
             {
                 return None;
             }
-            type_field_type(root, &owner, source_owner_range.as_ref(), field, source)??;
+            type_field_type(types, &owner, source_owner_range.as_ref(), field, source)??;
             (owner, "self".to_string())
         }
         [receiver, _field] => {
@@ -1711,7 +1750,7 @@ fn static_collection_identity(
         [self_name, member, _field] if matches!(self_name.as_str(), "this" | "self") => {
             let source_type = source_owner.clone()?;
             let member_type = type_field_type(
-                root,
+                types,
                 &source_type,
                 source_owner_range.as_ref(),
                 member,
@@ -1838,7 +1877,7 @@ struct StaticCollectionCapture<'tree> {
 fn static_collection_edge(
     spec: &dyn crate::lang::LanguageSpec,
     ext: &str,
-    root: Node,
+    types: &TypeDeclarationIndex<'_>,
     kind: StaticCollectionEdgeKind,
     capture: StaticCollectionCapture,
     source: &[u8],
@@ -1853,7 +1892,7 @@ fn static_collection_edge(
     } = static_collection_identity(
         spec,
         ext,
-        root,
+        types,
         capture.expression_node,
         capture.site_node,
         source,
@@ -1913,6 +1952,7 @@ fn collect_static_collection_edges_from_tree(
     let mut seen = HashSet::new();
     let mut cursor = QueryCursor::new();
     let mut matches = cursor.matches(query, tree.root_node(), source);
+    let types = std::cell::OnceCell::new();
     while edges.len() < STATIC_COLLECTION_EDGES_PER_FILE_MAX {
         let Some(query_match) = matches.next() else {
             break;
@@ -1993,7 +2033,7 @@ fn collect_static_collection_edges_from_tree(
                 if let Some(edge) = static_collection_edge(
                     spec,
                     ext,
-                    tree.root_node(),
+                    types.get_or_init(|| TypeDeclarationIndex::new(tree.root_node(), source)),
                     kind,
                     StaticCollectionCapture {
                         site_node: site,
@@ -2009,7 +2049,7 @@ fn collect_static_collection_edges_from_tree(
             if let Some(edge) = static_collection_edge(
                 spec,
                 ext,
-                tree.root_node(),
+                types.get_or_init(|| TypeDeclarationIndex::new(tree.root_node(), source)),
                 StaticCollectionEdgeKind::Consumer,
                 StaticCollectionCapture {
                     site_node: site,
@@ -2133,6 +2173,7 @@ impl TreeSitterExtractor {
 
         let mut query_cursor = QueryCursor::new();
         let mut matches = query_cursor.matches(query, tree.root_node(), source);
+        let reference_scopes = std::cell::OnceCell::new();
 
         while let Some(mat) = matches.next() {
             let mut main_node: Option<(Node, &str)> = None;
@@ -2255,7 +2296,11 @@ impl TreeSitterExtractor {
                             .map(|name| ReferenceSite {
                                 name,
                                 range: range_for_node(node),
-                                scope_id: scope_id_for_node(node),
+                                scope_id: reference_scopes
+                                    .get_or_init(|| reference_scope_index(&tree))
+                                    .get(&node.id())
+                                    .copied()
+                                    .flatten(),
                             })
                             .into_iter()
                             .collect()
@@ -2595,6 +2640,59 @@ impl CodeExtractor for TreeSitterExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deep_collection_owner_lookup_does_not_overflow_the_indexer_stack() {
+        let source = format!(
+            "void Missing::push() {{ items.push_back({}value{}); }}\n",
+            "(".repeat(6000),
+            ")".repeat(6000)
+        );
+        let (extracted, auxiliary) = TreeSitterExtractor::new()
+            .extract_for_index(&source, "deep.cpp")
+            .unwrap();
+        assert!(extracted
+            .symbols
+            .iter()
+            .any(|symbol| symbol.name == "push" && symbol.kind == "fn"));
+        assert!(
+            auxiliary.static_collection_edges.is_empty(),
+            "an undeclared owner must not acquire a collection identity"
+        );
+    }
+
+    #[test]
+    fn indexed_reference_scopes_preserve_nested_callable_and_top_level_boundaries() {
+        let source = "const outside = 1;\nfunction outer(arg) {\n const arrow = () => arg + outside;\n function inner(value) { return value + outside; }\n return inner(arg);\n}\nconst after = outside;\n";
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+            .unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        let index = reference_scope_index(&tree);
+        let mut cursor = tree.walk();
+        loop {
+            let node = cursor.node();
+            assert_eq!(
+                index[&node.id()],
+                scope_id_for_node(node),
+                "scope changed for {} at {:?}",
+                node.kind(),
+                node.start_position()
+            );
+            if cursor.goto_first_child() {
+                continue;
+            }
+            loop {
+                if cursor.goto_next_sibling() {
+                    break;
+                }
+                if !cursor.goto_parent() {
+                    return;
+                }
+            }
+        }
+    }
 
     // --- Rust Parser Tests ---
     #[test]

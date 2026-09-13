@@ -1,5 +1,5 @@
 (function_statement
-  (function_name) @symbol.name) @symbol.ps_function
+  (function_name) @symbol.name) @symbol.fn
 (class_statement
   (simple_name) @symbol.name) @symbol.class
 (enum_statement
@@ -13,5 +13,5 @@
 (statement_list
   (pipeline
     (assignment_expression
-      (left_assignment_expression) @symbol.name))) @symbol.variable
+      (left_assignment_expression) @symbol.name) @symbol.variable))
 (string_literal) @literal.string

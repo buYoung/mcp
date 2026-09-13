@@ -9,12 +9,30 @@
 
 (function_declaration
   signature: (function_signature name: (identifier) @symbol.name)) @symbol.fn
-(method_signature
-  (function_signature name: (identifier) @symbol.name)) @symbol.method
-(constructor_signature name: (identifier) @symbol.name) @symbol.method
-(constant_constructor_signature (identifier) @symbol.name) @symbol.method
-(factory_constructor_signature (identifier) @symbol.name) @symbol.method
-(redirecting_factory_constructor_signature (identifier) @symbol.name) @symbol.method
+(method_declaration
+  signature: (method_signature
+    (function_signature name: (identifier) @symbol.name))) @symbol.method
+(method_declaration
+  signature: (method_signature
+    (constructor_signature name: (identifier) @symbol.name))) @symbol.method
+(method_declaration
+  signature: (method_signature
+    (factory_constructor_signature (identifier) @symbol.name))) @symbol.method
+(class_member
+  (declaration
+    (function_signature name: (identifier) @symbol.name))) @symbol.method
+(class_member
+  (declaration
+    (constructor_signature name: (identifier) @symbol.name))) @symbol.method
+(class_member
+  (declaration
+    (constant_constructor_signature (identifier) @symbol.name))) @symbol.method
+(class_member
+  (declaration
+    (factory_constructor_signature (identifier) @symbol.name))) @symbol.method
+(class_member
+  (declaration
+    (redirecting_factory_constructor_signature (identifier) @symbol.name))) @symbol.method
 
 (top_level_variable_declaration
   (initialized_identifier_list

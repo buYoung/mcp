@@ -5,7 +5,7 @@ use crate::config::TestCodeRules;
 use crate::parser::{CodeRange, ExtractedFile};
 use globset::{GlobBuilder, GlobMatcher};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -26,7 +26,43 @@ struct CacheEntry {
     rules_hash: u64,
     regions: Regions,
 }
-static CACHE: OnceLock<Mutex<HashMap<PathBuf, CacheEntry>>> = OnceLock::new();
+struct RegionCache {
+    entries: HashMap<PathBuf, CacheEntry>,
+    capacity: usize,
+}
+
+impl Default for RegionCache {
+    fn default() -> Self {
+        Self {
+            entries: HashMap::new(),
+            capacity: 1024,
+        }
+    }
+}
+
+impl RegionCache {
+    fn retain_snapshot(&mut self, root: &Path, snapshot: &[ExtractedFile]) {
+        let paths: HashSet<_> = snapshot
+            .iter()
+            .map(|file| root.join(&file.file_path))
+            .collect();
+        self.entries.retain(|path, _| paths.contains(path));
+        // A whole-snapshot scan must fit, or every read/grep reparses the same
+        // large repository. Leave bounded room for live files outside the index.
+        self.capacity = paths.len().saturating_add(1024);
+    }
+
+    fn insert(&mut self, path: PathBuf, entry: CacheEntry) {
+        if !self.entries.contains_key(&path) && self.entries.len() >= self.capacity {
+            if let Some(evicted) = self.entries.keys().next().cloned() {
+                self.entries.remove(&evicted);
+            }
+        }
+        self.entries.insert(path, entry);
+    }
+}
+
+static CACHE: OnceLock<Mutex<RegionCache>> = OnceLock::new();
 
 pub(crate) struct TestCodeFilter {
     root: PathBuf,
@@ -137,9 +173,9 @@ impl TestCodeFilter {
             return Arc::new(Vec::new());
         }
         let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-        let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        if let Ok(entries) = cache.lock() {
-            if let Some(entry) = entries.get(&path) {
+        let cache = CACHE.get_or_init(|| Mutex::new(RegionCache::default()));
+        if let Ok(cache) = cache.lock() {
+            if let Some(entry) = cache.entries.get(&path) {
                 if entry.modified == modified
                     && entry.size_bytes == metadata.len()
                     && entry.rules_hash == self.rules_hash
@@ -197,11 +233,8 @@ impl TestCodeFilter {
         }
         regions.sort_by_key(|region| region.start_byte);
         let regions = Arc::new(regions);
-        if let Ok(mut entries) = cache.lock() {
-            if entries.len() >= 1024 {
-                entries.clear();
-            }
-            entries.insert(
+        if let Ok(mut cache) = cache.lock() {
+            cache.insert(
                 path,
                 CacheEntry {
                     modified,
@@ -293,6 +326,12 @@ impl TestCodeFilter {
     ) -> Cow<'a, [ExtractedFile]> {
         if self.should_include {
             return Cow::Borrowed(snapshot);
+        }
+        if let Ok(mut cache) = CACHE
+            .get_or_init(|| Mutex::new(RegionCache::default()))
+            .lock()
+        {
+            cache.retain_snapshot(&self.root, snapshot);
         }
         // Annotation consumers need declarations/navigation, not potentially large literals.
         let filtered = snapshot
@@ -484,4 +523,52 @@ fn is_test_only_cfg(attribute: &str) -> bool {
         && inner
             .strip_suffix(')')
             .is_some_and(|expression| evaluate(expression, 0) == (Some(false), true))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn large_snapshot_keeps_test_regions_between_reads_and_drops_removed_files() {
+        let root = Path::new("validation-repository");
+        let mut snapshot: Vec<_> = (0..1025)
+            .map(|index| ExtractedFile {
+                file_path: format!("source-{index}.ps1"),
+                total_lines: 1,
+                symbols: Vec::new(),
+                literals: Vec::new(),
+                docstrings: Vec::new(),
+                navigation: None,
+            })
+            .collect();
+        let mut cache = RegionCache::default();
+        cache.retain_snapshot(root, &snapshot);
+        let regions = Arc::new(Vec::new());
+        let entry = || CacheEntry {
+            modified: SystemTime::UNIX_EPOCH,
+            size_bytes: 7,
+            rules_hash: 1,
+            regions: Arc::clone(&regions),
+        };
+        for file in &snapshot {
+            cache.insert(root.join(&file.file_path), entry());
+        }
+        cache.retain_snapshot(root, &snapshot);
+        assert_eq!(cache.entries.len(), snapshot.len());
+        assert!(snapshot.iter().all(|file| {
+            Arc::ptr_eq(
+                &cache.entries[&root.join(&file.file_path)].regions,
+                &regions,
+            )
+        }));
+
+        let removed = snapshot.pop().unwrap();
+        cache.retain_snapshot(root, &snapshot);
+        assert!(!cache.entries.contains_key(&root.join(removed.file_path)));
+        for index in 0..1026 {
+            cache.insert(root.join(format!("live-{index}.ps1")), entry());
+        }
+        assert_eq!(cache.entries.len(), cache.capacity);
+    }
 }
