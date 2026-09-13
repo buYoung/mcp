@@ -67,6 +67,12 @@
 (preproc_function_def
   name: (identifier) @symbol.name) @symbol.fn
 
+(declaration
+  (type_qualifier) @constant.qualifier
+  declarator: (init_declarator
+    declarator: (identifier) @symbol.name) @symbol.const
+  (#match? @constant.qualifier "^(const|constexpr)$"))
+
 ;; String literals (including C++ raw string literals).
 (string_literal) @literal.string
 (raw_string_literal) @literal.string

@@ -39,5 +39,12 @@
 (preproc_function_def
   name: (identifier) @symbol.name) @symbol.fn
 
+;; Initialized immutable values; pointer declarators need a separate constness check.
+(declaration
+  (type_qualifier) @constant.qualifier
+  declarator: (init_declarator
+    declarator: (identifier) @symbol.name) @symbol.const
+  (#eq? @constant.qualifier "const"))
+
 ;; String literals for BM25 index.
 (string_literal) @literal.string

@@ -9,6 +9,18 @@ pub struct CodeRange {
     pub end_col: usize,
 }
 
+impl CodeRange {
+    /// Inclusive last source line for display and line-window comparisons.
+    /// Stored positions remain one-based with an exclusive end for syntax lookup.
+    pub fn end_line_inclusive(&self) -> usize {
+        if self.end_col == 1 && self.end_line > self.start_line {
+            self.end_line - 1
+        } else {
+            self.end_line
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SymbolFlags {

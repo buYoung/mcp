@@ -476,15 +476,10 @@ fn restrict_to_scope(
     ])))
 }
 
-fn has_explicit_target(
-    candidate: &CandidateFile,
-    query_str: &str,
-    query: &QueryTokens,
-    name_frequencies: &HashMap<String, usize>,
-) -> bool {
-    let file_path = candidate.file_path.to_lowercase();
+fn has_explicit_path_target(file_path: &str, query: &QueryTokens) -> bool {
+    let file_path = file_path.to_lowercase();
     let file_name = file_path.rsplit('/').next().unwrap_or(&file_path);
-    if query.raw_words().iter().any(|word| {
+    query.raw_words().iter().any(|word| {
         let word = word
             .trim_matches(['`', '\'', '"', '(', ')', ','])
             .trim_start_matches("./");
@@ -494,10 +489,23 @@ fn has_explicit_target(
             .map_or(word, |(path, _)| path);
         word == file_path
             || word == file_name
+            || std::path::Path::new(file_name)
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                == Some(word)
             || (word.contains('/')
                 && (file_path.ends_with(&format!("/{word}"))
                     || word.ends_with(&format!("/{file_path}"))))
-    }) {
+    })
+}
+
+fn has_explicit_target(
+    candidate: &CandidateFile,
+    query_str: &str,
+    query: &QueryTokens,
+    name_frequencies: &HashMap<String, usize>,
+) -> bool {
+    if has_explicit_path_target(&candidate.file_path, query) {
         return true;
     }
     let raw = query_str
@@ -613,6 +621,11 @@ impl SearcherHandle {
                 }
                 match parse_query_catching_panic(|| query_parser.parse_query(&escaped)) {
                     Some(Ok(q)) => q,
+                    // The plain fallback has no meaningful exclusion-only query.
+                    // Tantivy also reports this when its analyzer drops every token.
+                    Some(Err(tantivy::query::QueryParserError::AllButQueryForbidden)) => {
+                        return Ok(Vec::new())
+                    }
                     Some(Err(e)) => return Err(e.to_string()),
                     None => return Ok(Vec::new()),
                 }
@@ -726,7 +739,9 @@ impl SearcherHandle {
         for candidate in candidates {
             let has_explicit_target =
                 has_explicit_target(&candidate, query_str, &query_tokens, &name_frequencies);
-            let mut path_weight: f32 = if is_test_like_path(&candidate.file_path) {
+            let mut path_weight: f32 = if is_test_like_path(&candidate.file_path)
+                && !has_explicit_path_target(&candidate.file_path, &query_tokens)
+            {
                 TEST_PATH_SCORE_WEIGHT
             } else {
                 1.0

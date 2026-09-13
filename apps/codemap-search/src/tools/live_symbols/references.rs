@@ -1,4 +1,5 @@
 //! Conservative, same-file constant context without enabling the reference index.
+mod declarations;
 
 use super::structure::{callable, symbol_node};
 use crate::parser::ExtractedFile;
@@ -14,7 +15,15 @@ fn declaration_scope(mut node: Node<'_>) -> Option<Node<'_>> {
         node = node.parent()?;
         if !matches!(
             node.kind(),
-            "export_statement" | "lexical_declaration" | "const_declaration"
+            "export_statement"
+                | "lexical_declaration"
+                | "const_declaration"
+                | "field_declaration"
+                | "variable_declaration"
+                | "declaration"
+                | "static_final_declaration_list"
+                | "top_level_variable_declaration"
+                | "class_member"
         ) {
             return Some(node);
         }
@@ -25,7 +34,17 @@ fn namespace(mut node: Node<'_>) -> Option<usize> {
     while let Some(parent) = node.parent() {
         if matches!(
             parent.kind(),
-            "mod_item" | "module" | "internal_module" | "namespace_definition"
+            "mod_item"
+                | "module"
+                | "internal_module"
+                | "namespace_definition"
+                | "class"
+                | "class_declaration"
+                | "class_definition"
+                | "class_specifier"
+                | "struct_specifier"
+                | "struct_declaration"
+                | "object_declaration"
         ) {
             return Some(parent.id());
         }
@@ -49,7 +68,13 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
             "scoped_identifier"
                 | "scoped_type_identifier"
                 | "qualified_identifier"
+                | "qualified_name"
+                | "scope_resolution"
+                | "scoped_property_access_expression"
+                | "class_constant_access_expression"
+                | "variable_name"
                 | "type_annotation"
+                | "user_type"
         ) || parent
             .child_by_field_name("type")
             .is_some_and(|typ| typ == node)
@@ -58,26 +83,52 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
         }
         if matches!(
             kind,
-            "member_expression" | "field_expression" | "selector_expression" | "attribute"
-        ) && ["property", "field", "attribute"]
+            "member_expression"
+                | "field_expression"
+                | "selector_expression"
+                | "attribute"
+                | "member_access_expression"
+                | "field_access"
+                | "member_call_expression"
+        ) && ["property", "field", "attribute", "name"]
             .iter()
             .any(|field| parent.child_by_field_name(field) == Some(node))
+        {
+            return IdentifierRole::Ignore;
+        }
+        if matches!(kind, "navigation_suffix")
+            || (kind == "navigation_expression" && parent.named_child(0) != Some(node))
         {
             return IdentifierRole::Ignore;
         }
         if kind == "pair" && parent.child_by_field_name("key") == Some(node) {
             return IdentifierRole::Ignore;
         }
+        // PHP has separate constant, variable, and function namespaces.
+        if kind == "function_call_expression"
+            && parent.child_by_field_name("function") == Some(node)
+        {
+            return IdentifierRole::Ignore;
+        }
         if matches!(
             kind,
             "parameters"
                 | "formal_parameters"
+                | "parameter_list"
+                | "formal_parameter_list"
+                | "function_value_parameters"
+                | "method_parameters"
                 | "closure_parameters"
                 | "lambda_parameters"
                 | "use_declaration"
                 | "import_statement"
                 | "import_from_statement"
         ) || parent.child_by_field_name("pattern") == Some(node)
+            || parent.child_by_field_name("bound_identifier") == Some(node)
+            || ((kind.ends_with("declarator") || kind.ends_with("declaration"))
+                && parent.child_by_field_name("declarator") == Some(node))
+            || (kind == "assignment" && parent.child_by_field_name("left") == Some(node))
+            || (kind == "variable_declaration" && parent.named_child(0) == Some(node))
             || ((kind.ends_with("declaration")
                 || kind.ends_with("declarator")
                 || kind.ends_with("parameter")
@@ -92,19 +143,7 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
     IdentifierRole::Reference
 }
 
-fn is_const_declaration(kind: &str, node: Node<'_>) -> bool {
-    kind == "const"
-        || (kind == "variable"
-            && node.parent().is_some_and(|parent| {
-                parent.kind() == "lexical_declaration"
-                    && parent
-                        .child_by_field_name("kind")
-                        .is_some_and(|kind| kind.kind() == "const")
-            }))
-}
-
-fn value_preview(node: Node<'_>, source: &str) -> Option<String> {
-    let value = node.child_by_field_name("value")?;
+fn value_preview(value: Node<'_>, source: &str) -> Option<String> {
     // Preserve spaces inside literals; actual line breaks are escaped for a single row.
     let value = value
         .utf8_text(source.as_bytes())
@@ -140,18 +179,18 @@ pub(super) fn collect_with_resolver(
     resolver: Option<&crate::callers::resolution::SourceResolver<'_>>,
 ) -> BTreeMap<usize, Vec<String>> {
     let mut definitions: HashMap<&str, Vec<_>> = HashMap::new();
+    let language = crate::lang::spec_for_path(std::path::Path::new(&file.file_path))
+        .map(|spec| spec.language_name())
+        .unwrap_or("");
     for symbol in &file.symbols {
         if let Some(node) = symbol_node(tree, symbol) {
-            if is_const_declaration(&symbol.kind, node)
-                && node
-                    .child_by_field_name("name")
-                    .and_then(|name| name.utf8_text(source.as_bytes()).ok())
-                    == Some(symbol.name.as_str())
+            if let Some((declaration, value)) =
+                declarations::binding(node, symbol, language, source)
             {
                 definitions
                     .entry(&symbol.name)
                     .or_default()
-                    .push((symbol, node));
+                    .push((symbol, declaration, value));
             }
         }
     }
@@ -187,6 +226,8 @@ pub(super) fn collect_with_resolver(
                             | "function_definition"
                             | "method_definition"
                             | "method_declaration"
+                            | "method"
+                            | "singleton_method"
                             | "class_declaration"
                             | "mod_item"
                     ))
@@ -196,6 +237,8 @@ pub(super) fn collect_with_resolver(
             if matches!(
                 kind,
                 "identifier"
+                    | "simple_identifier"
+                    | "name"
                     | "shorthand_property_identifier"
                     | "shorthand_field_identifier"
                     | "constant"
@@ -209,13 +252,14 @@ pub(super) fn collect_with_resolver(
                             IdentifierRole::Reference
                                 if candidates.len() == 1 && !references.contains_key(name) =>
                             {
-                                let (definition, declaration) = candidates[0];
+                                let (definition, declaration, value) = candidates[0];
                                 if declaration_scope(declaration)
                                     .is_some_and(|scope| is_enclosed_by(node, scope))
                                     && namespace(declaration) == namespace(node)
                                     && !is_enclosed_by(node, declaration)
                                 {
-                                    let value = value_preview(declaration, source)
+                                    let value = value
+                                        .and_then(|value| value_preview(value, source))
                                         .map(|value| format!(" = {value}"))
                                         .unwrap_or_default();
                                     references.insert(
@@ -322,12 +366,199 @@ mod child { fn load_child() { consume(ROOT); } }
     }
 
     #[test]
-    fn test_typescript_const_values_preserve_literal_whitespace() {
+    fn test_language_constant_references_have_source_locations_and_values() {
+        for (path, source) in [
+            (
+                "probe.java",
+                r##"class CmValidationProbe {
+    static final int CM_VALIDATION_LIMIT = 7;
+    static int cm_validation_target() { return CM_VALIDATION_LIMIT; }
+    static int cm_validation_caller() { return cm_validation_target(); }
+    static String cm_validation_string() { return "CM_VALIDATION_LIMIT"; }
+    static int cm_validation_comment() { /* CM_VALIDATION_LIMIT; */ return 0; }
+    static int cm_validation_unknown(External receiver) { return receiver.cm_validation_target(); }
+}
+"##,
+            ),
+            (
+                "probe.cs",
+                r##"class CmValidationProbe {
+    const int CM_VALIDATION_LIMIT = 7;
+    static int cm_validation_target() { return CM_VALIDATION_LIMIT; }
+    static int cm_validation_caller() { return cm_validation_target(); }
+    static string cm_validation_string() { return "CM_VALIDATION_LIMIT"; }
+    static int cm_validation_comment() { /* CM_VALIDATION_LIMIT; */ return 0; }
+    static int cm_validation_unknown(dynamic receiver) { return receiver.cm_validation_target(); }
+}
+"##,
+            ),
+            (
+                "probe.php",
+                r##"<?php
+const CM_VALIDATION_LIMIT = 7;
+function cm_validation_target() { return CM_VALIDATION_LIMIT; }
+function cm_validation_caller() { return cm_validation_target(); }
+function cm_validation_string() { return "CM_VALIDATION_LIMIT"; }
+function cm_validation_comment() { /* CM_VALIDATION_LIMIT; */ return 0; }
+function cm_validation_unknown($receiver) { return $receiver->cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.rb",
+                r##"CM_VALIDATION_LIMIT = 7
+def cm_validation_target()
+  CM_VALIDATION_LIMIT
+end
+def cm_validation_caller()
+  cm_validation_target()
+end
+def cm_validation_string()
+  "CM_VALIDATION_LIMIT"
+end
+def cm_validation_comment()
+  # CM_VALIDATION_LIMIT
+  0
+end
+def cm_validation_unknown(receiver)
+  receiver.cm_validation_target()
+end
+"##,
+            ),
+            (
+                "probe.kt",
+                r##"const val CM_VALIDATION_LIMIT = 7
+fun cm_validation_target(): Int { return CM_VALIDATION_LIMIT; }
+fun cm_validation_caller(): Int { return cm_validation_target(); }
+fun cm_validation_string(): String { return "CM_VALIDATION_LIMIT"; }
+fun cm_validation_comment(): Int { /* CM_VALIDATION_LIMIT; */ return 0; }
+fun cm_validation_unknown(receiver: External): Int { return receiver.cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.swift",
+                r##"let CM_VALIDATION_LIMIT = 7
+func cm_validation_target() -> Int { return CM_VALIDATION_LIMIT; }
+func cm_validation_caller() -> Int { return cm_validation_target(); }
+func cm_validation_string() -> String { return "CM_VALIDATION_LIMIT"; }
+func cm_validation_comment() -> Int { /* CM_VALIDATION_LIMIT; */ return 0; }
+func cm_validation_unknown(_ receiver: External) -> Int { return receiver.cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.dart",
+                r##"const CM_VALIDATION_LIMIT = 7;
+int cm_validation_target() { return CM_VALIDATION_LIMIT; }
+int cm_validation_caller() { return cm_validation_target(); }
+String cm_validation_string() { return "CM_VALIDATION_LIMIT"; }
+int cm_validation_comment() { /* CM_VALIDATION_LIMIT; */ return 0; }
+int cm_validation_unknown(dynamic receiver) { return receiver.cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.scala",
+                r##"val CM_VALIDATION_LIMIT = 7
+def cm_validation_target(): Int = { return CM_VALIDATION_LIMIT; }
+def cm_validation_caller(): Int = { return cm_validation_target(); }
+def cm_validation_string(): String = { return "CM_VALIDATION_LIMIT"; }
+def cm_validation_comment(): Int = { /* CM_VALIDATION_LIMIT; */ return 0; }
+def cm_validation_unknown(receiver: External): Int = { return receiver.cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.groovy",
+                r##"class CmValidationProbe {
+    static final int CM_VALIDATION_LIMIT = 7;
+    static def cm_validation_target() { return CM_VALIDATION_LIMIT; }
+    static def cm_validation_caller() { return cm_validation_target(); }
+    static String cm_validation_string() { return "CM_VALIDATION_LIMIT"; }
+    static def cm_validation_comment() { /* CM_VALIDATION_LIMIT; */ return 0; }
+    static def cm_validation_unknown(def receiver) { return receiver.cm_validation_target(); }
+}
+"##,
+            ),
+            (
+                "probe.c",
+                r##"const int CM_VALIDATION_LIMIT = 7;
+int cm_validation_target(void) { return CM_VALIDATION_LIMIT; }
+int cm_validation_caller(void) { return cm_validation_target(); }
+const char *cm_validation_string(void) { return "CM_VALIDATION_LIMIT"; }
+int cm_validation_comment(void) { /* CM_VALIDATION_LIMIT; */ return 0; }
+int cm_validation_unknown(int (*cm_validation_target)(void)) { return cm_validation_target(); }
+"##,
+            ),
+            (
+                "probe.cpp",
+                r##"const int CM_VALIDATION_LIMIT = 7;
+int cm_validation_target(void) { return CM_VALIDATION_LIMIT; }
+int cm_validation_caller(void) { return cm_validation_target(); }
+const char *cm_validation_string(void) { return "CM_VALIDATION_LIMIT"; }
+int cm_validation_comment(void) { /* CM_VALIDATION_LIMIT; */ return 0; }
+int cm_validation_unknown(int (*cm_validation_target)(void)) { return cm_validation_target(); }
+"##,
+            ),
+        ] {
+            let line = source
+                .lines()
+                .position(|line| line.contains("CM_VALIDATION_LIMIT ="))
+                .unwrap()
+                + 1;
+            assert_eq!(
+                context(source, path, "cm_validation_target"),
+                format!("    - CM_VALIDATION_LIMIT — {path}:{line} = 7\n"),
+                "{path}"
+            );
+            assert!(
+                context(source, path, "cm_validation_string").is_empty(),
+                "{path}"
+            );
+            assert!(
+                context(source, path, "cm_validation_comment").is_empty(),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_constant_values_preserve_literal_whitespace_and_skip_comments() {
         let source = "export const TITLE = '두  칸';\nlet MUTABLE = 3;\nfunction show() { consume(TITLE, obj.TITLE, MUTABLE); }\nfunction shadow(TITLE: string) { consume(TITLE); }\n";
         assert_eq!(
             context(source, "src/page.ts", "show"),
             "    - TITLE — src/page.ts:1 = '두  칸'\n"
         );
         assert!(context(source, "src/page.ts", "shadow").is_empty());
+        for (path, source) in [
+            (
+                "comment.cs",
+                "class A { const int LIMIT /* kept */ = 7; int f() { return LIMIT; } }",
+            ),
+            ("comment.kt", "val LIMIT /* kept */ = 7\nfun f() = LIMIT"),
+        ] {
+            assert_eq!(
+                context(source, path, "f"),
+                format!("    - LIMIT — {path}:1 = 7\n")
+            );
+        }
+    }
+
+    #[test]
+    fn language_constants_do_not_link_parameters_locals_or_foreign_members() {
+        for (path, source) in [
+            ("scope.java", "class A { static final int LIMIT = 7; int f(int LIMIT) { return LIMIT; } }"),
+            ("scope.cs", "class A { const int LIMIT = 7; int f(dynamic other) { return other.LIMIT; } }"),
+            ("scope.php", "<?php const LIMIT = 7; function f($LIMIT) { return $LIMIT; }"),
+            ("class.php", "<?php define('LIMIT', 3); class A { const LIMIT = 7; function f() { return LIMIT; } }"),
+            ("namespace.php", "<?php namespace A; const LIMIT = 7; namespace B; function f() { return LIMIT; }"),
+            ("scope.rb", "module M\n LIMIT = 7\nend\ndef f\n M::LIMIT\nend\n"),
+            ("scope.kt", "const val LIMIT = 7\nfun f(LIMIT: Int): Int { return LIMIT; }"),
+            ("scope.swift", "let LIMIT = 7\nfunc f(_ LIMIT: Int) -> Int { return LIMIT }"),
+            ("scope.dart", "const LIMIT = 7;\nint f(int LIMIT) { return LIMIT; }"),
+            ("scope.scala", "val LIMIT = 7\ndef f(LIMIT: Int): Int = LIMIT"),
+            ("scope.groovy", "class A { static final int LIMIT = 7; int f(int LIMIT) { return LIMIT; } }"),
+            ("scope.c", "const int LIMIT = 7;\nint f(void) { int LIMIT = 3; return LIMIT; }"),
+            ("scope.cpp", "const int LIMIT = 7;\nint f(int LIMIT) { return LIMIT; }"),
+            ("class.java", "class Outer { static final int LIMIT = 7; class Inner { int LIMIT = 3; int f() { return LIMIT; } } }"),
+        ] {
+            assert!(context(source, path, "f").is_empty(), "{path}: {}", context(source, path, "f"));
+        }
     }
 }

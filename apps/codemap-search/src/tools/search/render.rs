@@ -71,7 +71,7 @@ fn get_code_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange)
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
-            let end = std::cmp::min(range.end_line, lines.len());
+            let end = std::cmp::min(range.end_line_inclusive(), lines.len());
             if start < end {
                 return lines[start..end]
                     .iter()
@@ -388,7 +388,7 @@ fn get_summary_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRan
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
             let end = std::cmp::min(
-                std::cmp::min(range.end_line, lines.len()),
+                std::cmp::min(range.end_line_inclusive(), lines.len()),
                 start + SUMMARY_LINES,
             );
             if start < end {
@@ -422,7 +422,7 @@ fn get_signature_snippet(
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
-            let symbol_end = std::cmp::min(range.end_line, lines.len());
+            let symbol_end = std::cmp::min(range.end_line_inclusive(), lines.len());
             let shown_end = std::cmp::min(symbol_end, start + max_lines);
             if start < shown_end {
                 let snippet = lines[start..shown_end]
@@ -496,10 +496,11 @@ pub(super) fn render_anchored_symbols(
     let ranked = symbols;
     let mut render_order: Vec<&crate::parser::ExtractedSymbol> = ranked.clone();
     render_order.sort_by(|a, b| {
-        a.range
-            .start_line
-            .cmp(&b.range.start_line)
-            .then(b.range.end_line.cmp(&a.range.end_line))
+        a.range.start_line.cmp(&b.range.start_line).then(
+            b.range
+                .end_line_inclusive()
+                .cmp(&a.range.end_line_inclusive()),
+        )
     });
 
     // P1 2-tier anchoring. Tier-1 = NAME exactly equals a query word (strict). Tier-2 = the
@@ -507,13 +508,13 @@ pub(super) fn render_anchored_symbols(
     let tier1_ranges: Vec<(usize, usize)> = render_order
         .iter()
         .filter(|s| symbol_is_tier1(s, query))
-        .map(|s| (s.range.start_line, s.range.end_line))
+        .map(|s| (s.range.start_line, s.range.end_line_inclusive()))
         .collect();
     let has_tier1 = !tier1_ranges.is_empty();
     let tier2_ranges: Vec<(usize, usize)> = render_order
         .iter()
         .filter(|s| symbol_matches_query(s, query))
-        .map(|s| (s.range.start_line, s.range.end_line))
+        .map(|s| (s.range.start_line, s.range.end_line_inclusive()))
         .collect();
     let anchor_ranges: &[(usize, usize)] = if has_tier1 {
         &tier1_ranges
@@ -541,7 +542,8 @@ pub(super) fn render_anchored_symbols(
             .iter()
             .copied()
             .filter(|s| {
-                is_anchor_sym(s) && !encloses_anchor_range(s.range.start_line, s.range.end_line)
+                is_anchor_sym(s)
+                    && !encloses_anchor_range(s.range.start_line, s.range.end_line_inclusive())
             })
             .take(anchor_snippet_limit)
             .map(|s| s.range.start_line)
@@ -552,7 +554,7 @@ pub(super) fn render_anchored_symbols(
 
     let mut emitted_ranges: Vec<(usize, usize)> = Vec::new();
     for sym in render_order {
-        let (start, end) = (sym.range.start_line, sym.range.end_line);
+        let (start, end) = (sym.range.start_line, sym.range.end_line_inclusive());
         if emitted_ranges
             .iter()
             .any(|(es, ee)| *es <= start && end <= *ee)
@@ -567,7 +569,10 @@ pub(super) fn render_anchored_symbols(
         }
         text.push_str(&format!(
             "- Symbol: {} ({}) [L{}-{}]\n",
-            sym.name, sym.kind, sym.range.start_line, sym.range.end_line
+            sym.name,
+            sym.kind,
+            sym.range.start_line,
+            sym.range.end_line_inclusive()
         ));
         emitted_starts.insert(start);
         let is_anchor = is_anchor_sym(sym);
@@ -611,7 +616,23 @@ pub(super) fn render_anchored_symbols(
             continue;
         }
         let snippet = if is_summary_container {
+            // A container preview must not cover a complete short member and
+            // suppress that member's declaration/caller annotation as duplicate.
+            let first_member = anchor_ranges
+                .iter()
+                .filter(|&&(member_start, member_end)| {
+                    start <= member_start
+                        && member_end <= end
+                        && (start, end) != (member_start, member_end)
+                })
+                .map(|&(member_start, _)| member_start)
+                .min()
+                .unwrap_or(end.saturating_add(1));
             get_summary_snippet(&source, &sym.range)
+                .lines()
+                .take(first_member.saturating_sub(start))
+                .collect::<Vec<_>>()
+                .join("\n")
         } else {
             get_code_snippet(&source, &sym.range)
         };
@@ -636,7 +657,9 @@ pub(super) fn render_anchored_symbols(
                 }
             }
         }
-        emitted_ranges.push((start, displayed_end));
+        if displayed_lines > 0 {
+            emitted_ranges.push((start, displayed_end));
+        }
     }
     AnchoredRenderOutcome {
         budget_hit: false,

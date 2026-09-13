@@ -172,7 +172,10 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v19 decodes Rust use groups and Go imports from syntax instead of shared text heuristics.
 // v20 fixes PowerShell function kinds/assignment ranges and records static member call names.
 // v21 indexes complete Dart member declarations instead of their signatures alone.
-const EXTRACTION_FORMAT_VERSION: &str = "v21-dart-member-ranges";
+// v22 adds immutable bindings, operators/accessors, and assigned Lua functions.
+// v23 also retains external Dart function declarations found during the replay.
+// v24 drops fake Groovy constructors produced when quoted method parsing recovers.
+const EXTRACTION_FORMAT_VERSION: &str = "v24-groovy-recovery-guard";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1384,7 +1387,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v21-dart-member-ranges");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v24-groovy-recovery-guard");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -1402,7 +1405,7 @@ mod tests {
 
         // Simulate a pre-upgrade index: stamp an outdated version.
         let version_path = index_dir.join(EXTRACTION_FORMAT_FILE);
-        fs::write(&version_path, "v20-powershell-symbol-ranges").unwrap();
+        fs::write(&version_path, "v21-dart-member-ranges").unwrap();
 
         // Instantiation with a stale sidecar rebuilds once: the stored docs are wiped (so the
         // search is empty until re-indexed) and the sidecar is restamped to the current

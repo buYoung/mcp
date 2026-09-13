@@ -156,9 +156,9 @@ impl Outline {
         let intersects = |s: &ExtractedSymbol| {
             anchors.iter().any(|a| {
                 // File-only grep results have no line window and describe the whole file.
-                a.start_line
-                    .zip(a.end_line)
-                    .is_none_or(|(lo, hi)| s.range.start_line <= hi && lo <= s.range.end_line)
+                a.start_line.zip(a.end_line).is_none_or(|(lo, hi)| {
+                    s.range.start_line <= hi && lo <= s.range.end_line_inclusive()
+                })
             })
         };
         let mut roots = BTreeSet::new();
@@ -205,7 +205,7 @@ impl Outline {
         let tree = crate::lang::spec_for_path(path).and_then(|spec| {
             let mut parser = Parser::new();
             parser.set_language(&spec.grammar(ext)).ok()?;
-            parser.parse(&source, None)
+            crate::parser::parse_source(&mut parser, source.as_bytes()).ok()
         });
         let rows = symbols
             .iter()
@@ -250,7 +250,7 @@ impl Outline {
                     signature,
                     file.file_path,
                     s.range.start_line,
-                    s.range.end_line
+                    s.range.end_line_inclusive()
                 )
             })
             .collect();

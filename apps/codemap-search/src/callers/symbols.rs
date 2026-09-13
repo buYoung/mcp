@@ -251,7 +251,7 @@ pub(super) fn is_within_same_named_fn(hit: &ScanHit, name: &str, index: &SymbolI
             def.kind == "fn"
                 && file.file_path == hit.file_path
                 && def.range.start_line <= hit.line_number
-                && hit.line_number <= def.range.end_line
+                && hit.line_number <= def.range.end_line_inclusive()
         })
     })
 }
@@ -265,7 +265,7 @@ pub(super) fn enclosing_fn(file: &ExtractedFile, line: usize) -> Option<&Extract
         if sym.kind != "fn" {
             continue;
         }
-        let (start, end) = (sym.range.start_line, sym.range.end_line);
+        let (start, end) = (sym.range.start_line, sym.range.end_line_inclusive());
         if start <= line && line <= end {
             best = match best {
                 None => Some(sym),

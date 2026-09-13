@@ -8,10 +8,8 @@
   name: (method_index_expression method: (identifier) @symbol.name)) @symbol.method
 
 (assignment_statement
-  (variable_list
-    name: (identifier) @symbol.name)
   (expression_list
-    value: (function_definition))) @symbol.fn
+    value: (function_definition) @symbol.fn))
 
 (assignment_statement
   (variable_list name: (identifier) @symbol.name)) @symbol.variable

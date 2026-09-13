@@ -6,6 +6,39 @@ use std::thread::sleep;
 use std::time::Duration;
 
 #[test]
+fn test_bm25_explicit_test_filename_is_not_demoted() {
+    let temp = create_mock_repo(&[
+        ("src/production.rs", "pub fn append() {}"),
+        ("tests/run/i12032.rs", "pub fn append() {}"),
+    ])
+    .unwrap();
+    run_cli(&["index"], temp.path()).success();
+    run_cli(&["search", "append i12032", "--limit", "10"], temp.path())
+        .success()
+        .stdout(predicates::str::starts_with("tests/run/i12032.rs\n"));
+    run_cli(&["search", "append", "--limit", "10"], temp.path())
+        .success()
+        .stdout(predicates::str::starts_with("src/production.rs\n"));
+}
+
+#[test]
+fn test_bm25_long_camel_case_identifiers() {
+    let temp = create_mock_repo(&[(
+        "src/WrapperScriptUpgradeCrossVersionIntegrationTest.java",
+        "class WrapperScriptUpgradeCrossVersionIntegrationTest {\n    void canUseWrapperFromPreviousVersionToUpgradeToCurrentVersionWrapper() {}\n}\n",
+    )])
+    .unwrap();
+    run_cli(&["index"], temp.path()).success();
+    run_cli(
+        &["search", "canUseWrapperFromPreviousVersionToUpgradeToCurrentVersionWrapper WrapperScriptUpgradeCrossVersionIntegrationTest"],
+        temp.path(),
+    )
+    .success()
+    .stdout(predicates::str::contains("src/WrapperScriptUpgradeCrossVersionIntegrationTest.java"));
+    run_cli(&["search", &"x".repeat(80)], temp.path()).success();
+}
+
+#[test]
 fn test_bm25_basic_search() {
     let temp = create_mock_repo(&[("src/lib.rs", "pub fn find_my_function_name() {}")]).unwrap();
 

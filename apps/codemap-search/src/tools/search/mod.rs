@@ -840,7 +840,10 @@ pub(crate) fn run_inner_with_metadata(
                     }
                     text.push_str(&format!(
                         "- Symbol: {} ({}) [L{}-{}]\n",
-                        sym.name, sym.kind, sym.range.start_line, sym.range.end_line
+                        sym.name,
+                        sym.kind,
+                        sym.range.start_line,
+                        sym.range.end_line_inclusive()
                     ));
                     listed += 1;
                 }
@@ -945,7 +948,9 @@ pub(crate) fn run_inner_with_metadata(
                 notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
                     format!(
                         "{} [L{}-{}]",
-                        sym.name, sym.range.start_line, sym.range.end_line
+                        sym.name,
+                        sym.range.start_line,
+                        sym.range.end_line_inclusive()
                     )
                 }));
             }

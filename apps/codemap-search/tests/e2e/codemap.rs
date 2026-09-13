@@ -2,6 +2,14 @@ use crate::e2e::helpers::{create_mock_repo, run_cli, OPTIONAL_LANGUAGE_SUPPORT_C
 use predicates::prelude::*;
 
 #[test]
+fn test_codemap_exclusive_end_at_next_line() {
+    let temp = create_mock_repo(&[("ops.c", "#define OP_LIMIT(x) \\\n    ((x) + 1)\n")]).unwrap();
+    run_cli(&["codemap", "--path", "ops.c"], temp.path())
+        .success()
+        .stdout(predicates::str::contains("OP_LIMIT (fn) [L1-2]"));
+}
+
+#[test]
 fn test_codemap_root_view() {
     let temp = create_mock_repo(&[
         ("src/main.rs", "fn main() {}"),

@@ -47,7 +47,7 @@ pub(crate) fn significant_symbols(
     let mut functions: Vec<_> = symbols
         .iter()
         .filter(|symbol| FUNCTION_SCOPE_KINDS.contains(&symbol.kind.as_str()))
-        .map(|symbol| (symbol.range.start_line, symbol.range.end_line))
+        .map(|symbol| (symbol.range.start_line, symbol.range.end_line_inclusive()))
         .collect();
     functions.sort_unstable();
     let mut widest: Option<(usize, usize)> = None;
@@ -67,7 +67,7 @@ pub(crate) fn significant_symbols(
             return true;
         }
         let start = symbol.range.start_line;
-        let end = symbol.range.end_line;
+        let end = symbol.range.end_line_inclusive();
         let bound = functions.partition_point(|&(function_start, _)| function_start <= start);
         bound == 0 || {
             let (outer_start, outer_end) = prefixes[bound - 1];
@@ -85,7 +85,7 @@ pub(crate) fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFi
             kind: &s.kind,
             is_exported: s.flags.is_exported,
             start_line: s.range.start_line,
-            end_line: s.range.end_line,
+            end_line: s.range.end_line_inclusive(),
         })
         .collect();
     ExtractedFileSummary {

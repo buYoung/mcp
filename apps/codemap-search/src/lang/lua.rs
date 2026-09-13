@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
-use super::{path_indicates_test, LanguageSpec};
+use super::{path_indicates_test, LanguageSpec, NameDecision};
 use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
 const QUERY_STR: &str = concat!(
@@ -85,7 +85,11 @@ fn receiver_from_function_name(node: Node<'_>, source: &[u8]) -> Option<String> 
         }
         return None;
     }
-    let name = node.child_by_field_name("name")?;
+    let name = if node.kind() == "function_definition" {
+        assigned_function_target(node)?
+    } else {
+        node.child_by_field_name("name")?
+    };
     if !matches!(
         name.kind(),
         "dot_index_expression" | "method_index_expression"
@@ -97,6 +101,27 @@ fn receiver_from_function_name(node: Node<'_>, source: &[u8]) -> Option<String> 
         .or_else(|| name.child_by_field_name("prefix"))
         .or_else(|| name.child_by_field_name("object"))?;
     receiver.utf8_text(source).ok().map(str::to_string)
+}
+
+fn assigned_function_target(node: Node<'_>) -> Option<Node<'_>> {
+    let expressions = node
+        .parent()
+        .filter(|parent| parent.kind() == "expression_list")?;
+    let assignment = expressions
+        .parent()
+        .filter(|parent| parent.kind() == "assignment_statement")?;
+    let mut cursor = expressions.walk();
+    let position = expressions
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() != "comment")
+        .position(|child| child == node)?;
+    let variables = assignment.named_child(0)?;
+    let mut cursor = variables.walk();
+    let target = variables
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() != "comment")
+        .nth(position);
+    target
 }
 
 fn preceding_comment_contains(node: Node<'_>, source: &[u8], marker: &str) -> bool {
@@ -156,6 +181,29 @@ impl LanguageSpec for LuaSpec {
             return !contains_function_ancestor(node);
         }
         true
+    }
+
+    fn name_for_capture(
+        &self,
+        capture_name: &str,
+        node: Node<'_>,
+        _kind: &str,
+        _ext: &str,
+        source: &[u8],
+        _asm_meta_kind_text: &Option<String>,
+    ) -> Option<NameDecision> {
+        if capture_name != "symbol.fn" || node.kind() != "function_definition" {
+            return None;
+        }
+        let name = assigned_function_target(node).and_then(|target| {
+            let name = match target.kind() {
+                "identifier" => target,
+                "dot_index_expression" => target.child_by_field_name("field")?,
+                _ => return None,
+            };
+            name.utf8_text(source).ok().map(str::to_string)
+        });
+        Some(name.map(NameDecision::Name).unwrap_or(NameDecision::Skip))
     }
 
     fn symbol_kind_for_capture(

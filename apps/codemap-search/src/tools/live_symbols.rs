@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 const PAYLOAD_BYTE_CAP: usize = 8192;
 const FRAMING_BYTE_BUDGET: usize = 512;
 const OUTLINED_FILE_LIMIT: usize = 8;
+const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
 
 pub(crate) struct LiveAnchor {
     pub file_path: String,
@@ -51,53 +52,67 @@ pub(crate) fn append(
     } else if engine.is_warming() || engine.is_dead() || engine.last_error().is_some() {
         "[Symbol index unavailable or stale; live results remain available below.]\n".to_string()
     } else {
-        let snapshot = engine.published_snapshot();
-        let source_files = snapshot.codemap();
         let root = std::env::current_dir().unwrap_or_default();
         let test_filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
-        let filtered_files = test_filter.filter_snapshot(&source_files);
-        let files = filtered_files.as_ref();
-        let resolver = crate::callers::resolution::SourceResolver::new(files, &root);
-        let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
-        for anchor in &output.anchors {
-            grouped.entry(&anchor.file_path).or_default().push(anchor);
-        }
-        let mut outlines = Vec::new();
-        let mut has_excluded_test_context = false;
-        for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
-            if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
-                has_excluded_test_context |= file.symbols.iter().any(|symbol| {
-                    anchors.iter().any(|anchor| {
-                        anchor
-                            .start_line
-                            .zip(anchor.end_line)
-                            .is_none_or(|(start, end)| {
-                                symbol.range.start_line <= end && start <= symbol.range.end_line
-                            })
-                    }) && test_filter.is_excluded(path, &symbol.range)
-                });
-            }
-            if let Some(file) = files.iter().find(|file| file.file_path == *path) {
-                outlines.push(structure::Outline::new(file, anchors, &resolver));
-            }
-        }
-        let mut rendered = if has_excluded_test_context {
-            let notice = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
-            if outlines.iter().all(|outline| outline.selected.is_empty()) {
-                notice.to_string()
-            } else {
-                format!("{notice}\n{}", render::render(&outlines, files, cap))
-            }
+        if output
+            .anchors
+            .iter()
+            .all(|anchor| test_filter.is_file_excluded(&anchor.file_path))
+        {
+            TEST_CONTEXT_EXCLUDED_NOTICE.to_string()
         } else {
-            render::render(&outlines, files, cap)
-        };
-        if grouped.len() > OUTLINED_FILE_LIMIT {
-            rendered.push_str(&format!(
-                "[File limit: {} returned files not outlined.]\n",
-                grouped.len() - OUTLINED_FILE_LIMIT
-            ));
+            let snapshot = engine.published_snapshot();
+            let source_files = snapshot.codemap();
+            let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
+            for anchor in &output.anchors {
+                grouped.entry(&anchor.file_path).or_default().push(anchor);
+            }
+            // Preserve every requested outline, but unrelated data/document symbols
+            // cannot contribute call relations and may dwarf the actual code corpus.
+            let filtered_files = test_filter.filter_snapshot(&source_files, |file| {
+                grouped.contains_key(file.file_path.as_str())
+                    || crate::callers::resolution::supports(&file.file_path)
+            });
+            let files = filtered_files.as_ref();
+            let resolver = crate::callers::resolution::SourceResolver::new(files, &root);
+            let mut outlines = Vec::new();
+            let mut has_excluded_test_context = false;
+            for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
+                if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
+                    has_excluded_test_context |= file.symbols.iter().any(|symbol| {
+                        anchors.iter().any(|anchor| {
+                            anchor
+                                .start_line
+                                .zip(anchor.end_line)
+                                .is_none_or(|(start, end)| {
+                                    symbol.range.start_line <= end
+                                        && start <= symbol.range.end_line_inclusive()
+                                })
+                        }) && test_filter.is_excluded(path, &symbol.range)
+                    });
+                }
+                if let Some(file) = files.iter().find(|file| file.file_path == *path) {
+                    outlines.push(structure::Outline::new(file, anchors, &resolver));
+                }
+            }
+            let mut rendered = if has_excluded_test_context {
+                let notice = TEST_CONTEXT_EXCLUDED_NOTICE;
+                if outlines.iter().all(|outline| outline.selected.is_empty()) {
+                    notice.to_string()
+                } else {
+                    format!("{notice}\n{}", render::render(&outlines, files, cap))
+                }
+            } else {
+                render::render(&outlines, files, cap)
+            };
+            if grouped.len() > OUTLINED_FILE_LIMIT {
+                rendered.push_str(&format!(
+                    "[File limit: {} returned files not outlined.]\n",
+                    grouped.len() - OUTLINED_FILE_LIMIT
+                ));
+            }
+            rendered
         }
-        rendered
     };
     let text = format!("# symbols\n\n{content}\n# results\n{raw}");
     if text.len() > limit {

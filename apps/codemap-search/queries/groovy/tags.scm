@@ -5,6 +5,7 @@
 (enum_declaration name: (identifier) @definition.enum)
 (enum_constant name: (identifier) @definition.constant)
 (method_declaration name: (identifier) @definition.method)
-(constructor_declaration name: (identifier) @definition.method)
+((constructor_declaration name: (identifier) @definition.method)
+ (#not-eq? @definition.method "def"))
 (field_declaration declarator: (variable_declarator name: (identifier) @definition.field))
 (method_invocation name: (identifier) @reference.call)

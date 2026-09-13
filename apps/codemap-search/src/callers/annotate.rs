@@ -31,7 +31,7 @@ pub const ANNOTATION_OMITTED_MARKER: &str =
 /// The observation-scope caveat appended whenever a `fn` shows no discoverable callers —
 /// so a zero is never read as "dead code".
 const OBSERVATION_SCOPE_CAVEAT: &str =
-    "_(no direct caller observed — scope: indexed source only (rs/py/ts/tsx/js/jsx/go/java/kt/kts/cs/php/rb/lua), \
+    "_(no direct caller observed — scope: indexed source eligible for caller lookup, \
 direct `name(` calls; callbacks, higher-order/method-reference passing, macro-wrapped, and \
 event/dispatch calls are not counted; approximate)_";
 
@@ -873,7 +873,12 @@ pub fn annotate_results_with_state(
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
-    let filtered_snapshot = test_filter.filter_snapshot(snapshot);
+    let filtered_snapshot = test_filter.filter_snapshot(snapshot, |file| {
+        super::resolution::supports(&file.file_path)
+            || requests
+                .iter()
+                .any(|request| request.file_path == file.file_path)
+    });
     let snapshot = filtered_snapshot.as_ref();
     let index = build_symbol_index(snapshot);
     let resolver = super::resolution::SourceResolver::new(snapshot, root);
@@ -1370,8 +1375,8 @@ mod tests {
             "observation-scope caveat: {text}"
         );
         assert!(
-            text.contains("cs/php/rb/lua"),
-            "observation scope lists fifth-priority languages: {text}"
+            text.contains("scope: indexed source eligible for caller lookup"),
+            "observation scope identifies the eligible indexed source: {text}"
         );
         assert!(
             !text.contains("0 callers"),

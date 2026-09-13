@@ -10,10 +10,10 @@
   name: (type_identifier) @symbol.name) @symbol.type
 
 (function_declaration
-  name: (simple_identifier) @symbol.name) @symbol.fn
+  "func" name: _ @symbol.name "(") @symbol.fn
 
 (protocol_function_declaration
-  name: (simple_identifier) @symbol.name) @symbol.method
+  "func" name: _ @symbol.name "(") @symbol.method
 
 (init_declaration
   name: "init" @symbol.name) @symbol.method

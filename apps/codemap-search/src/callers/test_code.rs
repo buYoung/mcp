@@ -74,6 +74,54 @@ pub(crate) struct TestCodeFilter {
     attributes: BTreeMap<String, Vec<GlobMatcher>>,
     decorators: BTreeMap<String, Vec<GlobMatcher>>,
     calls: BTreeMap<String, Vec<GlobMatcher>>,
+    marker_prefilters: BTreeMap<String, Option<regex::bytes::Regex>>,
+}
+
+fn marker_prefilter(patterns: &[&str], language: &str) -> Option<regex::bytes::Regex> {
+    let mut alternatives = Vec::new();
+    for &pattern in patterns {
+        // A wildcard/alternative may match names with no common literal. Leave
+        // these rules to the syntax filter instead of risking a false negative.
+        if pattern.is_empty() || pattern.contains(['*', '?', '[', ']', '{', '}']) {
+            return None;
+        }
+        let literal = if language == "rust" && pattern == "cfg(test)" {
+            "cfg"
+        } else {
+            pattern
+        };
+        let is_word = |byte: u8| byte.is_ascii_alphanumeric() || byte == b'_';
+        let start = if literal.bytes().next().is_some_and(is_word) {
+            r"(?-u:\b)"
+        } else {
+            ""
+        };
+        let end = if literal.bytes().last().is_some_and(is_word) {
+            r"(?-u:\b)"
+        } else {
+            ""
+        };
+        alternatives.push(format!("{start}{}{end}", regex::escape(literal)));
+    }
+    regex::bytes::Regex::new(&alternatives.join("|")).ok()
+}
+
+fn compile_marker_prefilters(
+    rules: &TestCodeRules,
+) -> BTreeMap<String, Option<regex::bytes::Regex>> {
+    let mut languages: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for map in [&rules.attributes, &rules.decorators, &rules.calls] {
+        for (language, patterns) in map {
+            languages
+                .entry(language)
+                .or_default()
+                .extend(patterns.iter().map(String::as_str));
+        }
+    }
+    languages
+        .into_iter()
+        .map(|(language, patterns)| (language.to_string(), marker_prefilter(&patterns, language)))
+        .collect()
 }
 
 fn compile_patterns(patterns: &[String], is_file: bool) -> Vec<GlobMatcher> {
@@ -127,6 +175,7 @@ impl TestCodeFilter {
             attributes: compile_languages(&rules.attributes),
             decorators: compile_languages(&rules.decorators),
             calls: compile_languages(&rules.calls),
+            marker_prefilters: compile_marker_prefilters(&rules),
             rules,
         }
     }
@@ -137,6 +186,10 @@ impl TestCodeFilter {
         self.file_patterns.iter().any(|(pattern, is_basename)| {
             pattern.is_match(if *is_basename { name } else { &normalized })
         })
+    }
+
+    pub(crate) fn is_file_excluded(&self, file_path: &str) -> bool {
+        !self.should_include && self.is_test_file(file_path)
     }
 
     fn regions(&self, file_path: &str) -> Regions {
@@ -160,9 +213,9 @@ impl TestCodeFilter {
             return Arc::new(Vec::new());
         };
         let language = spec.language_name();
-        if !self.attributes.contains_key(language)
-            && !self.decorators.contains_key(language)
-            && !self.calls.contains_key(language)
+        if self.attributes.get(language).is_none_or(Vec::is_empty)
+            && self.decorators.get(language).is_none_or(Vec::is_empty)
+            && self.calls.get(language).is_none_or(Vec::is_empty)
         {
             return Arc::new(Vec::new());
         }
@@ -187,18 +240,60 @@ impl TestCodeFilter {
         let Ok(source) = std::fs::read(&path) else {
             return Arc::new(Vec::new());
         };
-        let mut parser = Parser::new();
+        let may_have_marker = self
+            .marker_prefilters
+            .get(language)
+            .and_then(Option::as_ref)
+            .is_none_or(|pattern| pattern.is_match(&source));
         let ext = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-        if parser.set_language(&spec.grammar(ext)).is_err() {
-            return Arc::new(Vec::new());
+        let regions = if may_have_marker {
+            self.parse_regions(&source, language, spec.grammar(ext))
+        } else {
+            Vec::new()
+        };
+        let regions = Arc::new(regions);
+        if let Ok(mut cache) = cache.lock() {
+            cache.insert(
+                path,
+                CacheEntry {
+                    modified,
+                    size_bytes: metadata.len(),
+                    rules_hash: self.rules_hash,
+                    regions: Arc::clone(&regions),
+                },
+            );
         }
-        let Some(tree) = parser.parse(&source, None) else {
-            return Arc::new(Vec::new());
+        regions
+    }
+
+    fn parse_regions(
+        &self,
+        source: &[u8],
+        language: &str,
+        grammar: tree_sitter::Language,
+    ) -> Vec<TestRegion> {
+        let mut parser = Parser::new();
+        if parser.set_language(&grammar).is_err() {
+            return Vec::new();
+        }
+        let Ok(tree) = crate::parser::parse_source(&mut parser, source) else {
+            // A possible test marker was found but its extent cannot be proven.
+            // Keep the entire file out of automatic context on parse failure.
+            return vec![TestRegion {
+                start_byte: 0,
+                end_byte: usize::MAX,
+                range: CodeRange {
+                    start_line: 1,
+                    start_col: 1,
+                    end_line: usize::MAX,
+                    end_col: usize::MAX,
+                },
+            }];
         };
         let mut regions = Vec::new();
         let mut nodes = vec![tree.root_node()];
         while let Some(node) = nodes.pop() {
-            if let Some(target) = self.test_scope(node, language, &source) {
+            if let Some(target) = self.test_scope(node, language, source) {
                 let mut beginning = if node.start_byte() < target.start_byte() {
                     node
                 } else {
@@ -232,18 +327,6 @@ impl TestCodeFilter {
             nodes.extend(node.named_children(&mut cursor));
         }
         regions.sort_by_key(|region| region.start_byte);
-        let regions = Arc::new(regions);
-        if let Ok(mut cache) = cache.lock() {
-            cache.insert(
-                path,
-                CacheEntry {
-                    modified,
-                    size_bytes: metadata.len(),
-                    rules_hash: self.rules_hash,
-                    regions: Arc::clone(&regions),
-                },
-            );
-        }
         regions
     }
 
@@ -323,8 +406,9 @@ impl TestCodeFilter {
     pub(crate) fn filter_snapshot<'a>(
         &self,
         snapshot: &'a [ExtractedFile],
+        should_include_file: impl Fn(&ExtractedFile) -> bool,
     ) -> Cow<'a, [ExtractedFile]> {
-        if self.should_include {
+        if self.should_include && snapshot.iter().all(&should_include_file) {
             return Cow::Borrowed(snapshot);
         }
         if let Ok(mut cache) = CACHE
@@ -336,6 +420,7 @@ impl TestCodeFilter {
         // Annotation consumers need declarations/navigation, not potentially large literals.
         let filtered = snapshot
             .iter()
+            .filter(|file| should_include_file(file))
             .map(|file| {
                 let regions = self.regions(&file.file_path);
                 let mut navigation = file.navigation.clone();
@@ -528,6 +613,31 @@ fn is_test_only_cfg(attribute: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn marker_prefilter_preserves_custom_rules_and_syntax_filtering() {
+        let powershell = marker_prefilter(&["Describe", "Context", "It"], "powershell").unwrap();
+        assert!(!powershell.is_match(b"function Write-Output { Get-Item . }"));
+        assert!(powershell.is_match(b"Describe 'case' { It 'works' {} }"));
+        assert!(marker_prefilter(&["*Suite", "Test"], "java").is_none());
+        assert!(marker_prefilter(&["{Fact,Theory}"], "csharp").is_none());
+        assert!(marker_prefilter(&["cfg(test)"], "rust")
+            .unwrap()
+            .is_match(b"#[cfg(all(unix, test))]"));
+        assert!(marker_prefilter(&["Fact"], "csharp")
+            .unwrap()
+            .is_match(b"[Xunit.Fact]"));
+
+        let root = tempfile::tempdir().unwrap();
+        let mut filter = TestCodeFilter::from_config(root.path());
+        filter.should_include = false;
+        filter.file_patterns.clear();
+        std::fs::write(root.path().join("commands.ps1"), b"$text = 'Describe demo {}'\n# It 'comment' {}\nfunction Visible {}\nDescribe 'real' { function Hidden {} }\n").unwrap();
+        let regions = filter.regions("commands.ps1");
+        assert_eq!(regions.len(), 1);
+        assert_eq!(regions[0].range.start_line, 4);
+        assert_eq!(regions[0].range.end_line_inclusive(), 4);
+    }
 
     #[test]
     fn large_snapshot_keeps_test_regions_between_reads_and_drops_removed_files() {

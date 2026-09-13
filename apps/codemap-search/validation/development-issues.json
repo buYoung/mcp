@@ -1,0 +1,231 @@
+{
+  "updated_date": "2026-09-13",
+  "scope": "공개 검증에서 확인한 개선 사항과 남은 작업. 항목 수는 실패 검사 수나 언어별 정확도가 아니다.",
+  "status_meanings": {
+    "fixed": "명시한 재현 범위의 수정과 검증 완료",
+    "mitigated": "오류의 영향 일부를 차단했지만 문법·기능 문제가 남음",
+    "open": "확인한 미해결 문제",
+    "deferred": "사용자가 이번 구현에서 분리함",
+    "unverified": "추가 재실행 또는 원문 판정 필요"
+  },
+  "results": "development-results.json",
+  "issues": [
+    {
+      "id": "constant-context",
+      "status": "fixed",
+      "title": "11개 언어의 상수·불변 바인딩 참조 문맥 누락",
+      "languages": [
+        "java",
+        "csharp",
+        "php",
+        "ruby",
+        "kotlin",
+        "swift",
+        "dart",
+        "scala",
+        "groovy",
+        "c",
+        "cpp"
+      ],
+      "change": "구문 트리로 선언·참조 범위·초기값을 확인해 정의 위치와 값을 표시한다. 문자열·주석·동명 지역 변수·다른 객체의 멤버를 연결하지 않는다.",
+      "evidence": [
+        "26 constant_context checks passed across default/structural profiles",
+        "tools::live_symbols::references library tests"
+      ],
+      "limits": "같은 파일에서 범위를 확인한 비한정 참조가 대상이다. PHP 클래스 상수·비블록 namespace와 C/C++ 포인터 constness는 추정하지 않는다."
+    },
+    {
+      "id": "missing-callable-declarations",
+      "status": "fixed",
+      "title": "연산자·접근자·대입 함수 선언 누락",
+      "languages": [
+        "csharp",
+        "swift",
+        "dart",
+        "lua"
+      ],
+      "change": "C#/Swift 연산자, Dart getter·setter·연산자·external 함수, Lua의 정적인 테이블 필드 대입 함수를 수집한다.",
+      "evidence": [
+        "improvements-final-public-20260913",
+        "improvements-reviewed-csharp-20260913",
+        "operators_accessors_and_assigned_functions_keep_their_source_ranges"
+      ],
+      "limits": "공개 표본과 회귀 사례의 수정이다. 모든 언어 문법의 선언 누락이 해소됐다는 의미는 아니다."
+    },
+    {
+      "id": "long-identifier-search",
+      "status": "fixed",
+      "title": "긴 camelCase 검색어의 Only excluding terms given 오류",
+      "languages": [
+        "all"
+      ],
+      "change": "대소문자 경계를 분리한 뒤 소문자로 정규화한다. 분석기가 모든 토큰을 제거한 경우 빈 결과를 반환한다.",
+      "evidence": [
+        "gradle/gradle: canUseWrapperFromPreviousVersionToUpgradeToCurrentVersionWrapper WrapperScriptUpgradeCrossVersionIntegrationTest",
+        "test_bm25_long_camel_case_identifiers"
+      ]
+    },
+    {
+      "id": "explicit-test-filename-ranking",
+      "status": "fixed",
+      "title": "파일명을 지정했는데 테스트 파일을 일괄 감점하는 문제",
+      "languages": [
+        "all"
+      ],
+      "change": "명시한 파일 경로·이름·확장자 없는 이름이 일치하면 테스트 경로 감점을 적용하지 않는다.",
+      "evidence": [
+        "scala/scala3: append i12032",
+        "test_bm25_explicit_test_filename_is_not_demoted"
+      ],
+      "limits": "이 수정과 별개인 이전 검색 실패 질의는 search-discovery-replay에서 추적한다."
+    },
+    {
+      "id": "inclusive-display-end",
+      "status": "fixed",
+      "title": "파일 끝의 선언 범위가 실제 줄 수보다 1 크게 표시됨",
+      "languages": [
+        "all"
+      ],
+      "change": "내부의 배타적 끝 좌표를 유지하고 출력·줄 단위 포함 판정에 포괄적 끝 줄을 사용한다.",
+      "evidence": [
+        "scala/scala3 six sample files",
+        "openssl/openssl test/radix/quic_ops.c:1870",
+        "test_codemap_exclusive_end_at_next_line"
+      ]
+    },
+    {
+      "id": "container-preview-context",
+      "status": "fixed",
+      "title": "클래스 요약에 가려진 짧은 메서드의 호출 문맥",
+      "languages": [
+        "all"
+      ],
+      "change": "컨테이너 미리보기를 첫 대상 멤버 전에서 끝내고 빈 미리보기는 중복 범위에 등록하지 않는다.",
+      "evidence": [
+        "existing e2e cross_feature caller-context assertions"
+      ]
+    },
+    {
+      "id": "excluded-test-first-read",
+      "status": "fixed",
+      "title": "파일 전체가 제외된 테스트를 읽어도 전체 문맥을 준비하는 낭비",
+      "languages": [
+        "all"
+      ],
+      "change": "모든 요청 파일이 테스트 파일 규칙으로 제외되면 원문과 제외 안내를 바로 반환한다. 일반 문맥에서는 무관한 데이터·문서 색인 복사를 줄이고 테스트 표식이 없는 파일의 파싱을 생략한다.",
+      "evidence": [
+        "improvements-final-powershell-20260913: excluded first read 3.370 ms / 3.967 ms",
+        "marker_prefilter_preserves_custom_rules_and_syntax_filtering"
+      ],
+      "limits": "실행 환경에서 측정한 MCP 요청 시간이며 색인 준비 시간은 제외한다. 일반 코드 문맥 지연은 별도 이슈다."
+    },
+    {
+      "id": "ordinary-context-first-read",
+      "status": "open",
+      "title": "대형 저장소 일반 코드의 첫 자동 문맥 지연",
+      "languages": [
+        "powershell"
+      ],
+      "evidence": [
+        "Azure/azure-powershell src/DevCenter/DevCenterData.AutoRest/custom/New-AzDevCenterUserDevBox.ps1",
+        "improvements-final-powershell-20260913: default 25588.146 ms, structural 39071.153 ms"
+      ],
+      "remaining": "후보 소스 전체의 테스트 영역 분석과 문맥 자료 준비 비용이 남는다. cm은 명령마다 새 MCP 프로세스를 시작한다.",
+      "next_step": "문맥 대상과 호출 후보를 좁힌 뒤 필요한 파일만 파싱하는 흐름으로 개선하고 같은 공개 저장소의 첫 요청을 재측정한다."
+    },
+    {
+      "id": "zsh-nonterminating-parse",
+      "status": "mitigated",
+      "title": "Zinit 파일의 Zsh 파서 무한 처리",
+      "languages": [
+        "zsh"
+      ],
+      "change": "코드 구문 분석에 5000 ms 진행 콜백 제한과 취소 후 parser.reset()을 적용한다. 색인 전체는 약 6.2초에 준비된다.",
+      "evidence": [
+        "zdharma-continuum/zinit zinit-autoload.zsh",
+        "minimal source: c=${x//[^)]}",
+        "improvements-final-public-20260913",
+        "https://github.com/georgeharker/tree-sitter-zsh/issues/37"
+      ],
+      "remaining": "문제 파일은 여전히 구문 분석할 수 없어 두 설정에서 각각 실패 1건으로 남는다. 문법 자체를 고친 것은 아니다.",
+      "next_step": "Zsh 문법의 반복 축약을 수정하거나 수정된 upstream 버전을 검증한다."
+    },
+    {
+      "id": "groovy-quoted-methods",
+      "status": "mitigated",
+      "title": "Groovy 따옴표 메서드를 def 생성자로 오인",
+      "languages": [
+        "groovy"
+      ],
+      "change": "구문 오류 복구가 만든 def 생성자를 선언 목록과 검색용 보조 색인에서 차단한다.",
+      "evidence": [
+        "gradle/gradle platforms/core-configuration/project-features/src/integTest/groovy/org/gradle/features/ProjectFeatureSafetyIntegrationTest.groovy:43",
+        "AST constructor_declaration name=def with ERROR(character_literal)",
+        "improvements-final-groovy-20260913: each profile 53 pass, 0 fail, 11 unverified",
+        "groovy_quoted_method_recovery_does_not_index_def_as_a_constructor"
+      ],
+      "remaining": "따옴표 메서드 자체의 선언 누락은 남아 있다. 잘못된 이름을 올바른 선언으로 추정해 채우지 않는다.",
+      "next_step": "Groovy 문법의 quoted method 선언 지원을 보완하고 SourceUnit 결과와 재대조한다."
+    },
+    {
+      "id": "flow-syntax",
+      "status": "deferred",
+      "title": "React Flow 확장 문법",
+      "languages": [
+        "javascript"
+      ],
+      "decision": "사용자가 이번에는 지원 한계를 명시하고 Flow 구현은 분리하기로 결정했다.",
+      "evidence": [
+        "react/react packages/react-server/src/ReactFlightServerConfigDebugNoop.js:15",
+        "react/react packages/shared/getComponentNameFromType.js:57"
+      ],
+      "remaining": "현재 JavaScript 파서의 지원 범위 밖이다. 누락·범위 차이를 일반 JavaScript 통과로 합치지 않고 원래 보류 기록을 보존한다."
+    },
+    {
+      "id": "non-utf8-index-input",
+      "status": "open",
+      "title": "비 UTF-8 소스의 read와 색인 입력 범위 차이",
+      "languages": [
+        "asm"
+      ],
+      "evidence": [
+        "gnutools/glibc sysdeps/i386/fpu/e_atanhl.S"
+      ],
+      "remaining": "read는 손실 허용 디코딩을 하지만 색인은 해당 파일을 수집하지 않는다. 두 설정에서 실패가 유지된다.",
+      "next_step": "인코딩 입력 계약과 원문 좌표 보존 방식을 정한 뒤 별도로 구현한다."
+    },
+    {
+      "id": "search-discovery-replay",
+      "status": "unverified",
+      "title": "이전 공개 검증의 목표 파일 미노출 질의",
+      "languages": [
+        "python",
+        "typescript",
+        "javascript",
+        "php",
+        "kotlin",
+        "asm",
+        "vue",
+        "svelte"
+      ],
+      "evidence": [
+        "development-results.json public_expansion.profiles[].nonpassing_checks category=search_discovery"
+      ],
+      "remaining": "이전 수정 단계에서 실패한 13개 질의 × 2설정, 26항목이다. 이번 파일명 감점 수정 후 해당 저장소 전부를 다시 실행하지 않았으므로 현재 바이너리의 실패로 단정하지 않는다.",
+      "next_step": "고정된 원래 질의를 현재 바이너리의 새 색인으로 재실행하고 검색 순위·출력 한도·대조기 이름 문제를 분리한다."
+    },
+    {
+      "id": "declaration-oracle-triage",
+      "status": "unverified",
+      "title": "독립 파서와 선언 목록·범위가 다른 보류 항목",
+      "languages": [
+        "all"
+      ],
+      "evidence": [
+        "development-results.json public_expansion.profiles[].nonpassing_checks category=declaration_comparison"
+      ],
+      "remaining": "판정 보류 전체를 제품 오류나 대조기 오류로 분류하지 않았다. C# 연산자·명시적 인터페이스 표기는 위치와 끝 줄을 유지하며 비교를 보정했고, primary constructor 타입 헤더의 Ctags 오분류도 원문으로 확인했다.",
+      "next_step": "나머지 사례를 원문과 별도 파서로 하나씩 분류하고 확정한 제품 결함을 독립 항목으로 추적한다."
+    }
+  ]
+}

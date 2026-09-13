@@ -15,18 +15,21 @@ void main(List<String> arguments) {
   void visit(AstNode node, int functionDepth) {
     String? name;
     int? nameOffset;
+    var kind = 'fn';
     if (node is FunctionDeclaration) {
       name = node.name.lexeme;
       nameOffset = node.name.offset;
+      if (node.isGetter || node.isSetter) kind = 'property';
     } else if (node is MethodDeclaration) {
       name = node.name.lexeme;
       nameOffset = node.name.offset;
+      if (node.isGetter || node.isSetter) kind = 'property';
     } else if (node is ConstructorDeclaration) {
       name = node.name?.lexeme ?? node.typeName?.name ?? 'new';
       nameOffset = node.name?.offset ?? node.typeName?.offset ?? node.offset;
     }
     if (name != null && functionDepth == 0) {
-      declarations.add({'name': name, 'kind': 'fn',
+      declarations.add({'name': name, 'kind': kind,
         'start': result.lineInfo.getLocation(node.offset).lineNumber,
         'name_line': result.lineInfo.getLocation(nameOffset!).lineNumber,
         'end': result.lineInfo.getLocation(node.end - 1).lineNumber});

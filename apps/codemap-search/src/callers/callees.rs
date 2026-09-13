@@ -45,7 +45,7 @@ pub(super) fn discover_callees(
     let content = String::from_utf8(source).ok().unwrap_or_default();
     let lines: Vec<&str> = content.split_inclusive('\n').collect();
     let start = sym.range.start_line.saturating_sub(1);
-    let end = sym.range.end_line.min(lines.len());
+    let end = sym.range.end_line_inclusive().min(lines.len());
     if start >= end {
         return Vec::new();
     }
@@ -94,7 +94,8 @@ pub(super) fn discover_callees(
 }
 
 fn call_is_inside_symbol(call: &CallSite, sym: &ExtractedSymbol) -> bool {
-    sym.range.start_line <= call.range.start_line && call.range.end_line <= sym.range.end_line
+    sym.range.start_line <= call.range.start_line
+        && call.range.end_line_inclusive() <= sym.range.end_line_inclusive()
 }
 
 fn resolve_navigation_callee_display(

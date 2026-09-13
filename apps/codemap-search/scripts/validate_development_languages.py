@@ -212,7 +212,15 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     expected = oracle["declarations"]
     missing, end_mismatch = [], []
     for item in expected:
-        matches = [row for row in actual if row[1] == "fn" and row[0] == item["name"] and row[2] <= item["name_line"] <= row[3]]
+        # The Dart compiler distinguishes property accessors from ordinary calls.
+        # Keep Ctags' language-specific callable kinds under the existing fn mapping.
+        expected_kind = "property" if language == "dart" and item.get("kind") == "property" else "fn"
+        expected_name = item["name"]
+        if language == "csharp":
+            # Ctags prefixes operator names and explicit interface implementations.
+            # Match the source position/end as well; keep its raw declaration below.
+            expected_name = expected_name.removeprefix("operator ").rsplit(".", 1)[-1]
+        matches = [row for row in actual if row[1] == expected_kind and row[0] == expected_name and row[2] <= item["name_line"] <= row[3]]
         if not matches:
             missing.append(item)
         elif item.get("end") is not None and not any(row[3] == item["end"] for row in matches):

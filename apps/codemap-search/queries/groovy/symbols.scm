@@ -7,7 +7,9 @@
 (enum_declaration name: (identifier) @symbol.name) @symbol.enum
 (enum_constant name: (identifier) @symbol.name) @symbol.variant
 (method_declaration name: (identifier) @symbol.name) @symbol.method
-(constructor_declaration name: (identifier) @symbol.name) @symbol.method
+; The grammar can recover a quoted method as a constructor named `def`.
+((constructor_declaration name: (identifier) @symbol.name) @symbol.method
+ (#not-eq? @symbol.name "def"))
 (compact_constructor_declaration name: (identifier) @symbol.name) @symbol.method
 (field_declaration
   declarator: (variable_declarator name: (identifier) @symbol.name)) @symbol.field

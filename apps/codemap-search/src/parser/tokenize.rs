@@ -93,14 +93,13 @@ impl QueryTokens {
 
         for word in query
             .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-'))
-            .filter_map(|word| {
-                let lower = word.to_lowercase();
-                (!lower.is_empty()).then_some(lower)
-            })
+            .filter(|word| !word.is_empty())
         {
-            push_unique(&mut words, &mut word_set, word.clone());
-            push_unique(&mut tokens, &mut token_set, word.clone());
-            for token in split_identifier(&word) {
+            push_unique(&mut words, &mut word_set, word.to_lowercase());
+            push_unique(&mut tokens, &mut token_set, word.to_lowercase());
+            // Case boundaries are part of the identifier. Lowercasing before splitting
+            // loses the short indexed terms, including the fallback for long names.
+            for token in split_identifier(word) {
                 push_unique(&mut tokens, &mut token_set, token);
             }
         }

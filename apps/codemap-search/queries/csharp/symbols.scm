@@ -11,6 +11,7 @@
 (enum_member_declaration name: (identifier) @symbol.name) @symbol.variant
 (constructor_declaration name: (identifier) @symbol.name) @symbol.method
 (method_declaration name: (identifier) @symbol.name) @symbol.method
+(operator_declaration operator: _ @symbol.name) @symbol.method
 (property_declaration name: (identifier) @symbol.name) @symbol.property
 (event_declaration name: (identifier) @symbol.name) @symbol.field
 
@@ -23,4 +24,3 @@
     (variable_declarator name: (identifier) @symbol.name))) @symbol.field
 
 (string_literal) @literal.string
-

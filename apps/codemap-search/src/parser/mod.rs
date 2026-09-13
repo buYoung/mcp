@@ -1,4 +1,6 @@
+mod bounded;
 pub(crate) mod composite;
+pub(crate) use bounded::parse_source;
 mod markdown;
 mod sass;
 mod tokenize;
@@ -86,10 +88,9 @@ pub(crate) fn collect_index_auxiliary(
     parser
         .set_language(&spec.grammar(ext))
         .map_err(|error| error.to_string())?;
-    let tree = parser
-        .parse(file_content, None)
-        .ok_or_else(|| format!("Failed to parse file content for auxiliary tags: {file_path}"))?;
     let source = file_content.as_bytes();
+    let tree = parse_source(&mut parser, source)
+        .map_err(|error| format!("{error} for auxiliary tags: {file_path}"))?;
 
     Ok(collect_index_auxiliary_from_tree(tags_query, &tree, source))
 }
@@ -2126,9 +2127,7 @@ impl TreeSitterExtractor {
         let mut parser = Parser::new();
         let lang = spec.grammar(ext);
         parser.set_language(&lang).map_err(|e| e.to_string())?;
-        let tree = parser
-            .parse(file_content, None)
-            .ok_or("Failed to parse file content")?;
+        let tree = parse_source(&mut parser, file_content.as_bytes())?;
 
         let query = spec.query(ext);
         let navigation_enabled = spec.navigation_enabled(ext);
@@ -2640,6 +2639,48 @@ impl CodeExtractor for TreeSitterExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn zsh_extraction_uses_the_same_parse_limit() {
+        let error = TreeSitterExtractor::new()
+            .extract_for_index("c=${x//[^)]}\n", "stuck.zsh")
+            .unwrap_err();
+        assert!(error.contains("5000 ms per-file limit"), "{error}");
+    }
+
+    #[test]
+    fn groovy_quoted_method_recovery_does_not_index_def_as_a_constructor() {
+        let source = "class Example {\n Example() {}\n def setup() {}\n def 'has a quoted name'() {\n expect:\n 7 == 7\n }\n}\n";
+        let (file, auxiliary) = TreeSitterExtractor::new()
+            .extract_for_index(source, "quoted.groovy")
+            .unwrap();
+        let callables: Vec<_> = file
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == "fn")
+            .map(|symbol| symbol.name.as_str())
+            .collect();
+        assert_eq!(callables, ["Example", "setup"]);
+        assert!(auxiliary.definition_body.contains(&"Example".to_string()));
+        assert!(auxiliary.definition_body.contains(&"setup".to_string()));
+        assert!(!auxiliary.definition_body.contains(&"def".to_string()));
+    }
+
+    #[test]
+    fn operators_accessors_and_assigned_functions_keep_their_source_ranges() {
+        let extractor = TreeSitterExtractor::new();
+        for (path, source, expected) in [
+            ("operator.cs", "class Value {\n public static bool operator ==(Value a, Value b) {\n return true;\n }\n}\n", vec![("==", "fn", 2, 4)]),
+            ("operator.swift", "struct Value {\n static func ==(a: Value, b: Value) -> Bool {\n return true\n }\n}\n", vec![("==", "fn", 2, 4)]),
+            ("accessors.dart", "class Value {\n int get top => 7;\n set top(int value) { print(value); }\n bool operator ==(Object other) {\n return true;\n }\n int operator [](int i) => i;\n void operator []=(int i, int value) {}\n}\nint get bottom => 7;\nexternal void signal();\n", vec![("top", "property", 2, 2), ("top", "property", 3, 3), ("==", "fn", 4, 6), ("[]", "fn", 7, 7), ("[]=", "fn", 8, 8), ("bottom", "property", 10, 10), ("signal", "fn", 11, 11)]),
+            ("assigned.lua", "local g = {}\ng.test_autoinc_id_reset = function()\n return 7\nend\ng.first, g.second = function() return 1 end, function()\n return 2\nend\ng[dynamic] = function() return 3 end\n", vec![("test_autoinc_id_reset", "fn", 2, 4), ("first", "fn", 5, 5), ("second", "fn", 5, 7)]),
+        ] {
+            let file = extractor.extract(source, path).unwrap();
+            let actual: Vec<_> = file.symbols.iter().filter(|symbol| matches!(symbol.kind.as_str(), "fn" | "property"))
+                .map(|symbol| (symbol.name.as_str(), symbol.kind.as_str(), symbol.range.start_line, symbol.range.end_line_inclusive())).collect();
+            assert_eq!(actual, expected, "{path}");
+        }
+    }
 
     #[test]
     fn deep_collection_owner_lookup_does_not_overflow_the_indexer_stack() {

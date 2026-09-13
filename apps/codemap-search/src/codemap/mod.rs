@@ -224,7 +224,10 @@ impl<'a> std::fmt::Display for DetailsCodemap<'a> {
             writeln!(
                 f,
                 "- {} ({}) [L{}-{}]",
-                symbol.name, symbol.kind, symbol.range.start_line, symbol.range.end_line
+                symbol.name,
+                symbol.kind,
+                symbol.range.start_line,
+                symbol.range.end_line_inclusive()
             )?;
         }
 

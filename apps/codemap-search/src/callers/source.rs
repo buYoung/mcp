@@ -35,7 +35,7 @@ impl SourceSyntax {
             .collect()
         });
         Some(Self {
-            tree: parser.parse(source, None)?,
+            tree: crate::parser::parse_source(&mut parser, source).ok()?,
             embedded,
         })
     }
