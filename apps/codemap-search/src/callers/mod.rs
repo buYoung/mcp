@@ -34,6 +34,7 @@
 
 mod annotate;
 mod callees;
+pub(crate) mod resolution;
 mod scan;
 mod source;
 mod symbols;

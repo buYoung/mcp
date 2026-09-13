@@ -76,9 +76,9 @@
       "kind": "named",
       "range": {
         "startLine": 1,
-        "startCol": 1,
+        "startCol": 5,
         "endLine": 1,
-        "endCol": 27
+        "endCol": 26
       }
     }
   ]

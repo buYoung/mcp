@@ -74,6 +74,7 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         "}\n",
     );
     let temp = create_mock_repo(&[
+        ("src/lib.rs", "mod config; mod noise;\n"),
         ("src/config.rs", source),
         (
             "src/noise.rs",

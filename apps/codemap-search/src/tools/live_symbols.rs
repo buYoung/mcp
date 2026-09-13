@@ -57,6 +57,7 @@ pub(crate) fn append(
         let test_filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
         let filtered_files = test_filter.filter_snapshot(&source_files);
         let files = filtered_files.as_ref();
+        let resolver = crate::callers::resolution::SourceResolver::new(files, &root);
         let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
         for anchor in &output.anchors {
             grouped.entry(&anchor.file_path).or_default().push(anchor);
@@ -77,7 +78,7 @@ pub(crate) fn append(
                 });
             }
             if let Some(file) = files.iter().find(|file| file.file_path == *path) {
-                outlines.push(structure::Outline::new(file, anchors));
+                outlines.push(structure::Outline::new(file, anchors, &resolver));
             }
         }
         let mut rendered = if has_excluded_test_context {

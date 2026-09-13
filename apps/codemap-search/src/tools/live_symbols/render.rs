@@ -128,7 +128,7 @@ pub(super) fn render(outlines: &[Outline], snapshot: &[ExtractedFile], cap: usiz
                 }
                 if let Some(rows) = outline.references.get(&i) {
                     let header =
-                        format!("{indent}  - _references (same-file constants, approximate):_\n");
+                        format!("{indent}  - _references (constants; same-file or explicit source import):_\n");
                     let mut references = String::new();
                     for row in rows {
                         let row = format!("{indent}{row}");

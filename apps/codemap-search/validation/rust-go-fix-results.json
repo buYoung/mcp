@@ -1,0 +1,685 @@
+{
+  "schema_version": 1,
+  "scope": "Rust/Go source-scoped resolution fix and explicitly unresolved inferred receivers",
+  "previous_baseline": "baseline.json",
+  "source_base_commit": "25c1f35aa4b8a5a0314d7f021f820b31f570cbad",
+  "binary_sha256": "c4f54486a473c8dd96ab4f197d9f2a32a2cf57fb74f7556e1382e84bc6da222f",
+  "completed_utc": "2026-09-13T01:15:46.714875+00:00",
+  "full_run": {
+    "run_id": "rust-go-final-source-20260913",
+    "binary_sha256": "1953de709f5942818e3a39f46747749f0d54dd8a6e1a4683318699cbd62e6cb7",
+    "counts": {
+      "pass": 470,
+      "fail": 0,
+      "unverified": 0
+    },
+    "regressions": {
+      "pass": 12,
+      "fail": 0,
+      "unverified": 0
+    },
+    "note": "Full suite before the final scope guards and user-selected unresolved policy."
+  },
+  "final_recheck": {
+    "run_id": "rust-go-unresolved-cap-20260913",
+    "counts": {
+      "pass": 82,
+      "fail": 0,
+      "unverified": 0
+    },
+    "regressions": {
+      "pass": 12,
+      "fail": 0,
+      "unverified": 0
+    },
+    "repositories": [
+      {
+        "repository": "bevy",
+        "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+        "profile": "default",
+        "counts": {
+          "pass": 9,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "asset-default-associated-constants",
+            "status": "pass"
+          },
+          {
+            "id": "asset-build-imported-calls",
+            "status": "pass"
+          },
+          {
+            "id": "discover-asset-settings",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "bevy",
+        "sha": "96e3bcfd87f4cb6372dd9da8b5318f3e64899a01",
+        "profile": "structural",
+        "counts": {
+          "pass": 9,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "asset-default-associated-constants",
+            "status": "pass"
+          },
+          {
+            "id": "asset-build-imported-calls",
+            "status": "pass"
+          },
+          {
+            "id": "discover-asset-settings",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "nushell",
+        "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+        "profile": "default",
+        "counts": {
+          "pass": 10,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "macro-is-not-glob-method",
+            "status": "pass"
+          },
+          {
+            "id": "str-iterator-is-not-dataframe",
+            "status": "pass"
+          },
+          {
+            "id": "same-file-and-imported-path-functions",
+            "status": "pass"
+          },
+          {
+            "id": "discover-open-file",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "nushell",
+        "sha": "9a251561a90277d0af466ee845dff706bbf3c3d9",
+        "profile": "structural",
+        "counts": {
+          "pass": 10,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "macro-is-not-glob-method",
+            "status": "pass"
+          },
+          {
+            "id": "str-iterator-is-not-dataframe",
+            "status": "pass"
+          },
+          {
+            "id": "same-file-and-imported-path-functions",
+            "status": "pass"
+          },
+          {
+            "id": "discover-open-file",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "prometheus",
+        "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+        "profile": "default",
+        "counts": {
+          "pass": 11,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "os-expand-is-not-template-method",
+            "status": "pass"
+          },
+          {
+            "id": "builtin-len-is-not-memchunk-method",
+            "status": "pass"
+          },
+          {
+            "id": "loadfile-calls-local-load",
+            "status": "pass"
+          },
+          {
+            "id": "load-callers-exclude-atomic-load",
+            "status": "pass"
+          },
+          {
+            "id": "discover-yaml-config",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "prometheus",
+        "sha": "46ef3704189798f58af5dd4ac7d2f87ac8880f30",
+        "profile": "structural",
+        "counts": {
+          "pass": 11,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "os-expand-is-not-template-method",
+            "status": "pass"
+          },
+          {
+            "id": "builtin-len-is-not-memchunk-method",
+            "status": "pass"
+          },
+          {
+            "id": "loadfile-calls-local-load",
+            "status": "pass"
+          },
+          {
+            "id": "load-callers-exclude-atomic-load",
+            "status": "pass"
+          },
+          {
+            "id": "discover-yaml-config",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "kubernetes",
+        "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+        "profile": "default",
+        "counts": {
+          "pass": 11,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "discover-toleration-merge",
+            "status": "pass"
+          },
+          {
+            "id": "toleration-local-call",
+            "status": "pass"
+          },
+          {
+            "id": "deep-equality-is-not-codegen-fixture",
+            "status": "pass"
+          },
+          {
+            "id": "strconv-parse-is-not-codegen-util",
+            "status": "pass"
+          },
+          {
+            "id": "constant-string-with-duplicate-method-name",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "repository": "kubernetes",
+        "sha": "def9a441f53ae837ee5abfb1a7b9b5e4c314948e",
+        "profile": "structural",
+        "counts": {
+          "pass": 11,
+          "fail": 0,
+          "unverified": 0
+        },
+        "checks": [
+          {
+            "id": "discover-toleration-merge",
+            "status": "pass"
+          },
+          {
+            "id": "toleration-local-call",
+            "status": "pass"
+          },
+          {
+            "id": "deep-equality-is-not-codegen-fixture",
+            "status": "pass"
+          },
+          {
+            "id": "strconv-parse-is-not-codegen-util",
+            "status": "pass"
+          },
+          {
+            "id": "constant-string-with-duplicate-method-name",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callers-and-constant",
+            "status": "pass"
+          },
+          {
+            "id": "probe:callee",
+            "status": "pass"
+          },
+          {
+            "id": "probe:imported-constant",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:include-tests",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:replace-builtins-with-custom",
+            "status": "pass"
+          },
+          {
+            "id": "test-policy:restore",
+            "status": "pass"
+          }
+        ]
+      }
+    ],
+    "case_changes": [
+      {
+        "repository": "bevy",
+        "before": [
+          {
+            "id": "asset-default-associated-constants",
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/bevy_asset/src/lib.rs",
+              "offset": 332,
+              "limit": 11
+            },
+            "contains": [
+              "DEFAULT_UNPROCESSED_FILE_PATH",
+              "crates/bevy_asset/src/lib.rs:346",
+              "DEFAULT_PROCESSED_FILE_PATH",
+              "crates/bevy_asset/src/lib.rs:349"
+            ],
+            "excludes": [],
+            "category": "references"
+          },
+          {
+            "id": "asset-build-imported-calls",
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/bevy_asset/src/lib.rs",
+              "offset": 353,
+              "limit": 8
+            },
+            "section": [
+              "crates/bevy_asset/src/lib.rs",
+              353
+            ],
+            "contains": [
+              "AssetSourceBuilders::init_default_source — crates/bevy_asset/src/io/source.rs:382",
+              "EmbeddedAssetRegistry::register_source — crates/bevy_asset/src/io/embedded/mod.rs:100"
+            ],
+            "excludes": [],
+            "category": "callees"
+          },
+          {
+            "id": "discover-asset-settings",
+            "tool": "search",
+            "arguments": {
+              "query": "asset default file path processed",
+              "workspace_scope": "crates/bevy_asset",
+              "caller_context": false
+            },
+            "contains": [
+              "crates/bevy_asset/src/lib.rs"
+            ],
+            "category": "search_discovery"
+          }
+        ],
+        "after": [
+          {
+            "id": "asset-default-associated-constants",
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/bevy_asset/src/lib.rs",
+              "offset": 332,
+              "limit": 11
+            },
+            "contains": [
+              "DEFAULT_UNPROCESSED_FILE_PATH",
+              "crates/bevy_asset/src/lib.rs:346",
+              "DEFAULT_PROCESSED_FILE_PATH",
+              "crates/bevy_asset/src/lib.rs:349"
+            ],
+            "excludes": [],
+            "category": "references"
+          },
+          {
+            "id": "asset-build-imported-calls",
+            "tool": "read",
+            "arguments": {
+              "file_path": "crates/bevy_asset/src/lib.rs",
+              "offset": 353,
+              "limit": 8
+            },
+            "section": [
+              "crates/bevy_asset/src/lib.rs",
+              353
+            ],
+            "contains": [
+              "App::world_mut — crates/bevy_app/src/app.rs:1176",
+              "init_default_source (unresolved)",
+              "register_source (unresolved)"
+            ],
+            "excludes": [
+              "AssetSourceBuilders::init_default_source —",
+              "EmbeddedAssetRegistry::register_source —"
+            ],
+            "category": "resolution_policy",
+            "policy_note": "User decision: inferred receiver types must be unresolved without definition links; the explicitly typed App receiver must retain its source location.",
+            "callee_list_cap": 30
+          },
+          {
+            "id": "discover-asset-settings",
+            "tool": "search",
+            "arguments": {
+              "query": "asset default file path processed",
+              "workspace_scope": "crates/bevy_asset",
+              "caller_context": false
+            },
+            "contains": [
+              "crates/bevy_asset/src/lib.rs"
+            ],
+            "category": "search_discovery"
+          }
+        ]
+      }
+    ],
+    "runner_sha256": "c8db94ee91c4fbc76f8c8f3b427e4954a18c0f097e4e78c4042bb580b87184f6",
+    "manifest_sha256": "6159a9755b8ebface0666a122dc3b52292f268dfa61ce204a467e3b7a5de98d2"
+  },
+  "source_sha256": {
+    "src/benchmark.rs": "46e50dd5a8a0fa0ea286d74c467a4444395feffd08a7671f878ad8946a69896c",
+    "src/callers/annotate.rs": "dba631cfa9d54570b258328909c27b5e1834b1ec7bb690907a9a35f8b8caf0bd",
+    "src/callers/callees.rs": "f93d2bae9a84e062e39a00d3f568a2550be97ca563061a1edfef3298cd9f4c60",
+    "src/callers/mod.rs": "eeccf157622a8a466c65213b531c29bf7254f65f863f67a1697bf9ce91530ae4",
+    "src/callers/resolution.rs": "c1366aae39f4d1e1d228f0c9732dd3e55827e7c21b5a27138fc52f49f688dfbe",
+    "src/callers/scan.rs": "ac68346f6fbff5dc8527f2ccd725d026964c1050b17d8c47fb2eaf43222a7def",
+    "src/callers/source.rs": "3cd78c093c5d14b14acb4d8b64686fdf3c77cd2da7557ea0be50b98a1a859156",
+    "src/callers/symbols.rs": "6b0893f128411446e05aa409203c4e72a1c6ae0843b2a2ffe6972166a1517fa3",
+    "src/callers/test_code.rs": "d6b918de5d774a15a646ba9e0dfadf7e81e72c334e2f5b81985dc71ff2961b8e",
+    "src/codemap/mod.rs": "3aae2052be80069944af31b337604335e5c18cf324b80955cc5e37f9dd6f42fe",
+    "src/codemap/monorepo.rs": "1b08fc81f83eec44116db5162c02d11811421799a0124ed6dfab6d595166b154",
+    "src/codemap/summary.rs": "7635b40fce9379d5e393786f9c6e0f7f4c7b46ac4cd97b9bfc958b33346d2c00",
+    "src/codemap/tree.rs": "0ed5e50d0c20193dd135d990a47e265f1a3060101e47e684c2797c7a338321a3",
+    "src/config/exclude.rs": "fa462b1303eedc35afbe564577afb58c6701ea472fc53914f0b071f3dc9c84d0",
+    "src/config/scaffold.rs": "19d3c15adcec79bd136d65e67094a616a3fe1bfccad7a2f5367ceb0a5fe7e1e0",
+    "src/config/test_code.rs": "de43e9c7cdbae39247c05eca04a26e1a16a7dabc79d422099747faa00b6a6fff",
+    "src/config.rs": "bedbd39cc40ed97e91642db9374b9a3a0c37fb696abf87ae54d001f32a8327be",
+    "src/config_locale.rs": "e37b95b0d506eb39e984b6456104d2a998747059dc7658d5f4cb34340dc04293",
+    "src/index/engine.rs": "281aa39d4ba5b10972583c223e0a7ac54c473bf82161d41b5ff622db05902539",
+    "src/index/indexer.rs": "ddd84219fff375b9b613b72548dbaa81a9c2e8eb700df0dcd0b3f9a0a0717260",
+    "src/index/mod.rs": "22f445f861261c5a6f9d9cd97a6138ee392baf34b0572bff79cb6d74a1fd3c8f",
+    "src/index/path_role.rs": "20a7a0eabb4bdf907618113503f088c12515c38644377b74f296aeb465cf44cb",
+    "src/index/ranking.rs": "c895b108a5669f7d2bdda893f7f48ae017b96d39f24658b7237c0b3ef0f98198",
+    "src/index/supervisor.rs": "2d97bbc50b2a8a3a2c88571fea52417637e3795b56c86870f80e32a8b8a0fb99",
+    "src/index/watcher.rs": "9c7dd6813a0c890f1a0af6342f783e7bbf84562d1d08ceae68da5e19b08ef5dc",
+    "src/lang/asm.rs": "0b73614b994a745aed367fbb0cc11ed15f99e55e560a053a2ea04448d81e1a13",
+    "src/lang/bash.rs": "130c18994ad1a81d07386c566ae137a10fc71dc8dd5ecd7a9f7f4cdd885c77ce",
+    "src/lang/c_family/c.rs": "c6c62848df5b27920ba637f456cd182adc1f4fc7f381c665a8fddb86153b7936",
+    "src/lang/c_family/cpp.rs": "0050bd036fc64aebc869db88c7cd5c0cf8b2d7bd510210dfe797c6545303eeab",
+    "src/lang/c_family/mod.rs": "6aaf0b30517b7521ea8b49df722c76f93147b36f6781dd8769e80ad3a92b3218",
+    "src/lang/cmake.rs": "479f0979af880a57802df90e9c4953627a80ea7ca3a5ffd3812e81f1fce6dc7e",
+    "src/lang/component.rs": "a932ec53e2570070edd77b66e676d1886a63145e3046ec6ec3a39ef4c6d5f084",
+    "src/lang/containerfile.rs": "e135d7d274676051542c28e0e45791d128a3ab8b860ff334fbb444db697c45fa",
+    "src/lang/csharp.rs": "8a9aaadfcbf0fbd42762a00ca753a5cb98cc8993fa832aac15f8ea22aa030ce1",
+    "src/lang/css.rs": "15b099b14ef2a10fcf66e294611877faa75b8413d6f3a5c281f41cac5b898608",
+    "src/lang/dart.rs": "7a65a5810b50f160faef5730bb0e1c4d0d27682b61b220f18fda28e75c9ddd24",
+    "src/lang/format_support.rs": "40a03bd0225986f55cc79505a1803269babce94b5daf135dfcd7798f123ad6f1",
+    "src/lang/go.rs": "cdfa35215cd6ee998abc6dbf610cddfc5acef6cb40760595c6a32cdf61ae6afc",
+    "src/lang/graphql.rs": "64136d723d8e84ba9826e8d3978740d6f66fa4b4a9e25d93d7456a23a1de6d3d",
+    "src/lang/groovy.rs": "2d24959727cdd17cf97678eb2c71b7fdaf538ec1ac98d66f6315b141907278e5",
+    "src/lang/hcl.rs": "7922d9143d53c74c46fdf0c08987c45a79859cc7b021a3cf5bc595c9fc1d0d1b",
+    "src/lang/html.rs": "5d0105c973d48d61ee8e68a8c46b1dcd351ad8cb7e052128f9575b1ababed224",
+    "src/lang/java.rs": "bd141072c78c2a6ff1705a35b00ccfbb51bfb6915584adc9c90230774b2ce60c",
+    "src/lang/javascript.rs": "11b136b5632baa966966626072f853470d1a71a9d16db306600fe9f1ad970c6d",
+    "src/lang/json.rs": "288043188b3225a8c8ab364e4f787eab9d01d26420cb01173830c2ffefc608ff",
+    "src/lang/kotlin.rs": "65f219753830e8a2f87ab7a7d1ff3b416ef0a86cce680bdfaaa99418455841ff",
+    "src/lang/less.rs": "8111c0b439cff0ab59553ada169a920a961ce1f4001f9cd30e707bc594f8dc04",
+    "src/lang/lua.rs": "ca74988b04cd24c2a25655da999e7df955d98c0a03a3a466a7a038e7a7d6ff0f",
+    "src/lang/make.rs": "012d3bced66177cb62c3edc65e8a5b36fa0a3b153a41c025538c8b65ae0e0cbf",
+    "src/lang/markdown.rs": "c8fb032cba8ad9c309382ca9f0f0c58a0085422d9b0f67079efc657070d7cc79",
+    "src/lang/mod.rs": "507c6415d30fcb84de75969d6243cca3d18c149ca740ff9b479b7abf5a5b80e4",
+    "src/lang/nix.rs": "fc1bf3c453d23211f94921931c2efeb4601a76245e70adbb8423f48c4f17bf0b",
+    "src/lang/php.rs": "536a0ed27893f8eff1b2e0a32e66ba6af4de73148a3918bd128d72d6205ab4a7",
+    "src/lang/powershell.rs": "d44579c72a2c2d26e8a1185a41ce1c80023c8e5117b43f3e34c31f5f0ae9582d",
+    "src/lang/proto.rs": "d0871166fcc6e4033df4d804808d9316ea31cb4493db46c8da46b14881767371",
+    "src/lang/python.rs": "25c215e36b5f68eb1f1d172275cf5acc73c8f7574005f74b0e91ed1ce375104a",
+    "src/lang/ruby.rs": "50e5ba78aa0ac468284b4a46cf3126698c98ee87158640cf9b5274a0df2cd80d",
+    "src/lang/rust.rs": "b95ebe270d9a0d7d35b64e13aaff0a22e8a342ef4a252f080be9c9e116587898",
+    "src/lang/scala.rs": "c040ca9b9490d12adf245c743f1f6154117038d07cd416ecfd678c7882505718",
+    "src/lang/sql.rs": "08d4027f3b4c67be36e8a02842e02c92c28844a73fe7aa9f6ee25babb45aec05",
+    "src/lang/starlark.rs": "c9b0eea3f7e130fe809d78db1d91063ab57e51966ffe16d081020c9be3a36d3f",
+    "src/lang/swift.rs": "9558a88277d7ba55c35c19db9011cb554f80a7345d49a9e82d161e4676da0b70",
+    "src/lang/toml.rs": "644c64817b65731b41686d9f58a7abbe8b642a24794f380fde040f84a59e1017",
+    "src/lang/typescript.rs": "d9861f73c54eb0d880eaa4558597b6992b8104ccac2b7449b643cbdd4a06a90b",
+    "src/lang/xml.rs": "bf6214700c0539f88d8ec07a962739bc231b366feeb061b3bdae5af95c4e6a26",
+    "src/lang/yaml.rs": "d97f205a8c207212784254ebf3f964d065b642cdf55dc88a8e8c85819a4519f2",
+    "src/lang/zsh.rs": "36488f65ee8588474c851a2fed1ba002fa2bc6fd5c2e535be6cb0651cd8b6332",
+    "src/lib.rs": "7ced7fd0d0bb56973543ebe98b2bfcfe9438dd6920bc0d9dc5f408cd497c384f",
+    "src/main.rs": "5473eac656edb741fbe1c68ee1c807b58b80697ef5e8c1c72f063bdd545a55f8",
+    "src/mcp/mod.rs": "b40875fda91c74e0a34732edf549759218c96f145a4b6c4961d836eba488db88",
+    "src/mcp/protocol.rs": "c86154f977b72742b18bbfce3dc056208e1f9409962eb1b9356c564f65886a4a",
+    "src/parser/composite.rs": "922779990e5f0c2c6e6c2e614b219f801dfa9081945307309dc796264ee0f828",
+    "src/parser/markdown.rs": "caa5e2538a0bd13ec900cff0d8530376a9ff36586146aebc6526daf92e164e40",
+    "src/parser/mod.rs": "79d41a9650590bac3322f02ef26a144db1ce06450ecac56dfc463f2cc5833e4b",
+    "src/parser/sass.rs": "20c351dee3cc513a7ae919bb724d23f3a7a7ce650d16108d4e78012c0714e179",
+    "src/parser/tokenize.rs": "87906fc74a6662ca64c7161eab0d16ad47c2096cd1c0e471084829de7fbd51c3",
+    "src/parser/types.rs": "f032601d04103dc818d3f363b34e4303768a2f244cedf54e53bcb8d35fc8dc48",
+    "src/tools/find.rs": "7b1c32cf2f3afc400f7445346a7d296f6e76c064d63f4ed15ab7f126a5b54c91",
+    "src/tools/grep.rs": "e0d0c6fd8592d0778058537eaf9df4e382043b75c4e3d18feedf5ef91c9cd87d",
+    "src/tools/live_symbols/references.rs": "35f0a5baeb4080c2cb2e0942e907c8c5b59a878fdddad80c5628b417ba65fa45",
+    "src/tools/live_symbols/render.rs": "f197173c4a6160bc01b9ed6fce77be1f76462f2ae8b19af9577ed60182f69c05",
+    "src/tools/live_symbols/structure.rs": "b47d1dd4751005d1efeffc794e74e7339c8b94e396721411b33ebf1d43abe0a2",
+    "src/tools/live_symbols.rs": "b93e1fd97c26d4e0a41083c6d210733f6a0e30139a512e0e2673c2b8062ad637",
+    "src/tools/mod.rs": "f7df9accb65301e4a56b577086c83edc338f8aa8dee706a5e471a453062a75b0",
+    "src/tools/overview/monorepo.rs": "2851cc0177344f7934010dc3cd66ee35c5d4384cfeb21cb233c33ed02260d6df",
+    "src/tools/overview.rs": "b76db1eb1a73d6306b9c7f95de92c11cb69bd6424774d11331fcaa3ac467b220",
+    "src/tools/read.rs": "dad1dc93a4bfc6a9ad5ffa4ef316d4486f13e3393cc418e3b9e1c61ec2e34cad",
+    "src/tools/search/mod.rs": "07ba0c11ede8d9dda9f05e10469c552717f85475f4c0e0229a8f0e888cb3490d",
+    "src/tools/search/monorepo.rs": "6f09ee6be4b71c3b9822e77ab6a8ba5797e0a295db3d46f58ecd0149ce3cefc6",
+    "src/tools/search/render.rs": "07aaa5daa88086561a05af18ee0bb4bd228d912109e1bab2d0a88151b7589602",
+    "src/workspace/exclusions.rs": "e1adaae3e44c86fd76f5a0e28ecc57becff723d3e62919dac86d6dbc4fff8f27",
+    "src/workspace.rs": "f3b19c753bdf1a8b3e74125dacf5d488a9c31495fa63cc116fa9fcdb1b3c4991"
+  },
+  "local_checks": {
+    "library_tests": 175,
+    "tools_e2e_tests": 24,
+    "cargo_check": "pass",
+    "clippy_all_targets": "pass",
+    "navigation_fixtures": "pass",
+    "extract_snapshots": 21
+  },
+  "limitations": [
+    "Rust/Go only; other languages remain under separate validation.",
+    "No complete compiler type inference, macro expansion or build-configuration resolution.",
+    "Inferred receiver and external/unindexed targets have no definition links.",
+    "Qualified constant member expressions are outside this reference-collection change."
+  ]
+}

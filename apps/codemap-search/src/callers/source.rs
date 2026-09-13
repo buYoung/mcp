@@ -7,7 +7,7 @@ use tree_sitter::{Parser, Point, Tree};
 use crate::parser::CallSite;
 
 pub(super) struct SourceSyntax {
-    tree: Tree,
+    pub(super) tree: Tree,
 }
 
 impl SourceSyntax {

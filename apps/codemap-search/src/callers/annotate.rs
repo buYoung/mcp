@@ -235,11 +235,14 @@ fn precise_navigation_callers(
     cfg: &CallerConfig,
     runtime_state: AnnotationRuntimeState,
     root: &Path,
+    resolver: &super::resolution::SourceResolver<'_>,
 ) -> Option<Vec<String>> {
-    if !cfg.navigation_context_default || runtime_state.suppresses_navigation() {
+    if (!cfg.navigation_context_default && !super::resolution::supports(target_file_path))
+        || runtime_state.suppresses_navigation()
+    {
         return None;
     }
-    if navigation_index.calls_by_name.is_empty() {
+    if navigation_index.calls_by_name.is_empty() && !super::resolution::supports(target_file_path) {
         return Some(Vec::new());
     }
     let mut inspected = 0usize;
@@ -247,32 +250,55 @@ fn precise_navigation_callers(
     let mut seen = HashSet::new();
     for call_file in snapshot.iter().filter(|file| file.navigation.is_some()) {
         let navigation = call_file.navigation.as_ref().unwrap();
+        let relevant = |call: &&CallSite| {
+            call.name == target.name
+                || navigation.imports.iter().any(|import| {
+                    import.local_name == call.name
+                        && import.imported_name.as_deref() == Some(&target.name)
+                })
+        };
+        if !navigation.calls.iter().any(|call| relevant(&call)) {
+            continue;
+        }
         let syntax = super::read_workspace_file(&call_file.file_path, root)
             .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()));
-        for call in &navigation.calls {
+        for call in navigation.calls.iter().filter(relevant) {
             inspected += 1;
             if inspected > cfg.navigation_callsite_budget {
                 return None;
             }
-            let Some((candidate_file, candidate)) = resolve_navigation_call(
-                call,
-                call_file,
-                snapshot,
-                index,
-                navigation_index,
-                syntax
-                    .as_ref()
-                    .and_then(|syntax| syntax.is_member_call(call))
-                    .unwrap_or(call.receiver.is_some()),
-            ) else {
+            let resolved = if super::resolution::supports(&call_file.file_path) {
+                resolver
+                    .resolve_call(call_file, call)
+                    .filter(|target| target.is_precise)
+                    .map(|target| (target.file, target.symbol))
+            } else {
+                resolve_navigation_call(
+                    call,
+                    call_file,
+                    snapshot,
+                    index,
+                    navigation_index,
+                    syntax
+                        .as_ref()
+                        .and_then(|syntax| syntax.is_member_call(call))
+                        .unwrap_or(call.receiver.is_some()),
+                )
+            };
+            let Some((candidate_file, candidate)) = resolved else {
                 continue;
             };
             if !symbol_identity_matches(candidate_file, candidate, target_file_path, target) {
                 continue;
             }
-            let entry = match enclosing_fn(call_file, call.range.start_line) {
-                Some(enclosing) => {
-                    let name = qualified_name(enclosing, &call_file.file_path);
+            let caller_name = if super::resolution::supports(&call_file.file_path) {
+                resolver.caller_name(call_file, call.range.start_line)
+            } else {
+                enclosing_fn(call_file, call.range.start_line)
+                    .map(|enclosing| qualified_name(enclosing, &call_file.file_path))
+            };
+            let entry = match caller_name {
+                Some(name) => {
                     format!(
                         "{} ({}:{})",
                         name, call_file.file_path, call.range.start_line
@@ -381,6 +407,7 @@ fn render_symbol_annotation(
     byte_budget: usize,
     root: &Path,
     runtime_state: AnnotationRuntimeState,
+    resolver: &super::resolution::SourceResolver<'_>,
 ) -> Option<SymbolAnnotation> {
     if byte_budget == 0 {
         return None;
@@ -421,11 +448,14 @@ fn render_symbol_annotation(
             cfg,
             runtime_state,
             root,
+            resolver,
         ) {
             if !caller_entries.is_empty() {
-                caller_block.push_str(
-                    "  - _callers (tree-sitter precise; import/source resolution confirmed):_\n",
-                );
+                caller_block.push_str(if cfg.navigation_context_default {
+                    "  - _callers (tree-sitter precise; import/source resolution confirmed):_\n"
+                } else {
+                    "  - _callers (source/import resolution checked; approximate):_\n"
+                });
                 for entry in &caller_entries {
                     precise_caller_entries.insert(entry.clone());
                 }
@@ -446,6 +476,7 @@ fn render_symbol_annotation(
         // Map this name's call-site hits to their enclosing fn.
         let mut caller_entries: Vec<String> = Vec::new();
         let mut seen_callers: HashSet<String> = HashSet::new();
+        let mut unattributed_hits = 0usize;
         for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
             if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
                 continue;
@@ -458,9 +489,24 @@ fn render_symbol_annotation(
                 continue;
             }
             let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
-            let entry = match file.and_then(|f| enclosing_fn(f, hit.line_number)) {
-                Some(encl) => {
-                    let qn = qualified_name(encl, &file.unwrap().file_path);
+            if super::resolution::supports(&hit.file_path)
+                && !file.is_some_and(|file| {
+                    resolver.matches_caller(file, &hit.name, hit.line_number, file_path, sym)
+                })
+            {
+                unattributed_hits += 1;
+                continue;
+            }
+            let caller_name = file.and_then(|file| {
+                if super::resolution::supports(&file.file_path) {
+                    resolver.caller_name(file, hit.line_number)
+                } else {
+                    enclosing_fn(file, hit.line_number)
+                        .map(|enclosing| qualified_name(enclosing, &file.file_path))
+                }
+            });
+            let entry = match caller_name {
+                Some(qn) => {
                     format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
                 }
                 None => {
@@ -477,6 +523,9 @@ fn render_symbol_annotation(
             if seen_callers.insert(entry.clone()) {
                 caller_entries.push(entry);
             }
+        }
+        if unattributed_hits > 0 {
+            caller_block.push_str(&format!("  - _`{}` has {own_def_count} definitions; {unattributed_hits} name-matching call site(s) not attributed to this declaration._\n", sym.name));
         }
         let scan_truncated = scan.truncated_names.contains(&sym.name);
         if caller_entries.is_empty() {
@@ -594,10 +643,32 @@ fn render_symbol_annotation(
                 runtime_state,
                 cfg.navigation_context_default,
                 root,
+                resolver,
             )
         })
         .unwrap_or_else(|| discover_callees(sym, file_path, index, root));
     if !callees.is_empty() {
+        let unresolved = callees.iter().filter(|callee| callee.is_unresolved).count();
+        if unresolved > 0 {
+            suffix.push_str(&format!("  - _{unresolved} callee(s) unresolved in indexed source; no definition attributed._\n"));
+            for callee in callees
+                .iter()
+                .filter(|callee| callee.is_unresolved)
+                .take(cfg.callee_list_cap)
+            {
+                suffix.push_str(&format!("    - {} (unresolved)\n", callee.name));
+            }
+            if unresolved > cfg.callee_list_cap {
+                suffix.push_str(&format!(
+                    "    - _… {} more unresolved calls not shown._\n",
+                    unresolved - cfg.callee_list_cap
+                ));
+            }
+        }
+        let callees: Vec<_> = callees
+            .iter()
+            .filter(|callee| !callee.is_unresolved)
+            .collect();
         let shown = callees.len().min(cfg.callee_list_cap);
         let mut rendered_lines = String::new();
         let mut ambiguous_suppressed = 0usize;
@@ -624,6 +695,8 @@ fn render_symbol_annotation(
         if !rendered_lines.is_empty() || ambiguous_suppressed > 0 || callees.len() > shown {
             if has_precise {
                 suffix.push_str("  - _calls (depth 1, tree-sitter precise where marked; fallback approximate):_\n");
+            } else if super::resolution::supports(file_path) {
+                suffix.push_str("  - _calls (depth 1, source/import resolution checked):_\n");
             } else {
                 suffix.push_str("  - _calls (depth 1, approximate, name-match only):_\n");
             }
@@ -803,6 +876,7 @@ pub fn annotate_results_with_state(
     let filtered_snapshot = test_filter.filter_snapshot(snapshot);
     let snapshot = filtered_snapshot.as_ref();
     let index = build_symbol_index(snapshot);
+    let resolver = super::resolution::SourceResolver::new(snapshot, root);
     let should_build_navigation_index =
         cfg.navigation_context_default && !runtime_state.suppresses_navigation();
     let navigation_index_started =
@@ -881,6 +955,7 @@ pub fn annotate_results_with_state(
                 budget,
                 root,
                 runtime_state,
+                &resolver,
             ) {
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
@@ -935,22 +1010,37 @@ mod tests {
     };
     use std::path::PathBuf;
 
+    fn parsed_file(root: &Path, path: &str) -> ExtractedFile {
+        use crate::parser::CodeExtractor;
+        let source = std::fs::read_to_string(root.join(path)).unwrap();
+        let mut file = crate::parser::TreeSitterExtractor::new()
+            .extract(&source, path)
+            .unwrap();
+        file.symbols.retain(|symbol| symbol.kind == "fn");
+        file
+    }
+
+    fn repeated_caller_annotations() -> DetailAnnotations {
+        let annotations = (1..=3).map(|line| (("t.rs".to_string(), line), SymbolAnnotation {
+            name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
+            caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
+        })).collect();
+        DetailAnnotations { annotations }
+    }
+
     #[test]
     fn test_caller_line_shows_enclosing_symbol_and_file_line() {
         // `target_fn` is defined in def.rs and called from inside `caller_fn` in use.rs.
         let (_dir, root) = crate::callers::fixtures::write_repo(&[
             ("def.rs", "pub fn target_fn() {\n    let x = 1;\n}\n"),
-            ("use.rs", "pub fn caller_fn() {\n    target_fn();\n}\n"),
+            ("use.rs", "mod def; use def::target_fn; pub fn caller_fn() {\n    target_fn();\n}\n"),
             (
                 "noise.rs",
                 "fn noise() {\n    let text = \"한국어 target_fn(\";\n    let raw = r#\"target_fn(\"#;\n    // target_fn();\n    /* target_fn(); */\n    object./* member */target_fn();\n}\n",
             ),
             ("foreign.py", "def unrelated():\n    target_fn()\n"),
         ]);
-        let snapshot = vec![
-            file("def.rs", vec![sym("target_fn", "fn", 1, 3, None)]),
-            file("use.rs", vec![sym("caller_fn", "fn", 1, 3, None)]),
-        ];
+        let snapshot = vec![parsed_file(&root, "def.rs"), parsed_file(&root, "use.rs")];
         let requests = vec![AnnotationRequest {
             file_path: "def.rs",
             symbols: &snapshot[0].symbols,
@@ -985,14 +1075,7 @@ mod tests {
             "chain.rs",
             "pub fn c() {}\npub fn d() {\n    c();\n    let text = \"ghost(\";\n    let raw = r#\"ghost(\"#;\n    // ghost();\n    /* ghost(); */\n    object.ghost();\n}\nfn ghost() {}\n",
         )]);
-        let snapshot = vec![file(
-            "chain.rs",
-            vec![
-                sym("c", "fn", 1, 1, None),
-                sym("d", "fn", 2, 9, None),
-                sym("ghost", "fn", 10, 10, None),
-            ],
-        )];
+        let snapshot = vec![parsed_file(&root, "chain.rs")];
         let requests = vec![AnnotationRequest {
             file_path: "chain.rs",
             symbols: &snapshot[0].symbols,
@@ -1007,8 +1090,13 @@ mod tests {
         );
         assert!(text.contains("approximate"), "approximate label: {text}");
         assert!(
-            !text.contains("ghost"),
-            "non-code/member false callee: {text}"
+            !text.contains("ghost —"),
+            "unknown member must not link to the same-named function: {text}"
+        );
+        assert_eq!(
+            text.matches("ghost (unresolved)").count(),
+            1,
+            "only the executable member call is retained: {text}"
         );
         // Literal text is excluded, but interpolation expressions are executable.
         // Exercise both caller and fallback callee consumers with LF and CRLF.
@@ -1022,11 +1110,7 @@ mod tests {
             for line_ending in ["\n", "\r\n"] {
                 let source = source.replace('\n', line_ending);
                 let (_dir, root) = crate::callers::fixtures::write_repo(&[(path, &source)]);
-                let snapshot = vec![file(path, vec![
-                    sym("target", "fn", first_definition, first_definition, None),
-                    sym("ghost", "fn", first_definition + 1, first_definition + 1, None),
-                    sym("runner", "fn", first_definition + 2, source.lines().count(), None),
-                ])];
+                let snapshot = vec![parsed_file(&root, path)];
                 let index = build_symbol_index(&snapshot);
                 let callees = discover_callees(&snapshot[0].symbols[2], path, &index, &root);
                 assert_eq!(callees.iter().map(|callee| callee.name.as_str()).collect::<Vec<_>>(), vec!["target"], "{path}: {callees:?}");
@@ -1264,13 +1348,7 @@ mod tests {
             "engine.rs",
             "pub fn helper() {}\nimpl Engine {\n    pub fn run(&self) {\n        helper();\n    }\n}\n",
         )]);
-        let snapshot = vec![file(
-            "engine.rs",
-            vec![
-                sym("helper", "fn", 1, 1, None),
-                sym("run", "fn", 3, 5, Some("Engine")),
-            ],
-        )];
+        let snapshot = vec![parsed_file(&root, "engine.rs")];
         let requests = vec![AnnotationRequest {
             file_path: "engine.rs",
             symbols: &snapshot[0].symbols,
@@ -1296,14 +1374,7 @@ mod tests {
             "amb.rs",
             "pub fn make() {}\npub fn make() {}\npub fn user() {\n    make();\n}\n",
         )]);
-        let snapshot = vec![file(
-            "amb.rs",
-            vec![
-                sym("make", "fn", 1, 1, None),
-                sym("make", "fn", 2, 2, None),
-                sym("user", "fn", 3, 5, None),
-            ],
-        )];
+        let snapshot = vec![parsed_file(&root, "amb.rs")];
         // Callee side: annotate `user`, which calls `make` (2 defs).
         let req_user = vec![AnnotationRequest {
             file_path: "amb.rs",
@@ -1317,8 +1388,16 @@ mod tests {
             "ambiguous callee line is suppressed, not rendered: {user_text}"
         );
         assert!(
-            user_text.contains("ambiguous callee(s) suppressed"),
+            user_text.contains("callee(s) unresolved"),
             "suppressed ambiguous callees collapse into a visible count note: {user_text}"
+        );
+        assert!(
+            user_text.contains("make (unresolved)"),
+            "unresolved call names remain visible: {user_text}"
+        );
+        assert!(
+            !user_text.contains("make —"),
+            "unresolved calls have no definition link: {user_text}"
         );
         // Caller side: annotating `make` itself → callers listed with an ambiguity label.
         let make_text = note(&ann, "amb.rs", 1);
@@ -1327,8 +1406,8 @@ mod tests {
             "common matched name → attribution-ambiguity label: {make_text}"
         );
         assert!(
-            make_text.contains("user (amb.rs:4)"),
-            "the real call site is still listed: {make_text}"
+            !make_text.contains("user (amb.rs:4)"),
+            "an ambiguous call must not be attributed to either definition: {make_text}"
         );
         assert!(
             !make_text.contains("amb.rs:2"),
@@ -1515,25 +1594,7 @@ mod tests {
         // `driver`. The FIRST emitted in render order must carry the full caller block; the next
         // two collapse to "same as `tick` above". A back-reference must never appear before its
         // original — the live A/B dangling defect.
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[(
-            "t.rs",
-            "pub fn tick() {}\npub fn tick() {}\npub fn tick() {}\npub fn driver() {\n    tick();\n}\n",
-        )]);
-        let snapshot = vec![file(
-            "t.rs",
-            vec![
-                sym("tick", "fn", 1, 1, None),
-                sym("tick", "fn", 2, 2, None),
-                sym("tick", "fn", 3, 3, None),
-                sym("driver", "fn", 4, 6, None),
-            ],
-        )];
-        let requests = vec![AnnotationRequest {
-            file_path: "t.rs",
-            symbols: &snapshot[0].symbols,
-            is_fallback: false,
-        }];
-        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let ann = repeated_caller_annotations();
         // Emit in line order 1,2,3 (the renderer's outermost-first order).
         let rendered = render_in_order(&ann, "t.rs", &[1, 2, 3]);
         assert!(
@@ -1563,25 +1624,7 @@ mod tests {
         // FIRST same-named symbol in line order is skipped, the next EMITTED one must render the
         // full block — never a dangling back-reference (defects 1 & 3). Emulated by simply not
         // emitting the L1 symbol: render only L2 then L3.
-        let (_dir, root) = crate::callers::fixtures::write_repo(&[(
-            "t.rs",
-            "pub fn tick() {}\npub fn tick() {}\npub fn tick() {}\npub fn driver() {\n    tick();\n}\n",
-        )]);
-        let snapshot = vec![file(
-            "t.rs",
-            vec![
-                sym("tick", "fn", 1, 1, None),
-                sym("tick", "fn", 2, 2, None),
-                sym("tick", "fn", 3, 3, None),
-                sym("driver", "fn", 4, 6, None),
-            ],
-        )];
-        let requests = vec![AnnotationRequest {
-            file_path: "t.rs",
-            symbols: &snapshot[0].symbols,
-            is_fallback: false,
-        }];
-        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+        let ann = repeated_caller_annotations();
         // L1 is "skipped" by the renderer (e.g. a summary container) → emit only L2, L3.
         let rendered = render_in_order(&ann, "t.rs", &[2, 3]);
         assert!(

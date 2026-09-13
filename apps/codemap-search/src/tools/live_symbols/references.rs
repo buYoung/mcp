@@ -122,11 +122,22 @@ fn value_preview(node: Node<'_>, source: &str) -> Option<String> {
     }
 }
 
+#[cfg(test)]
 pub(super) fn collect(
     file: &ExtractedFile,
     selected: &BTreeSet<usize>,
     tree: &Tree,
     source: &str,
+) -> BTreeMap<usize, Vec<String>> {
+    collect_with_resolver(file, selected, tree, source, None)
+}
+
+pub(super) fn collect_with_resolver(
+    file: &ExtractedFile,
+    selected: &BTreeSet<usize>,
+    tree: &Tree,
+    source: &str,
+    resolver: Option<&crate::callers::resolution::SourceResolver<'_>>,
 ) -> BTreeMap<usize, Vec<String>> {
     let mut definitions: HashMap<&str, Vec<_>> = HashMap::new();
     for symbol in &file.symbols {
@@ -145,7 +156,7 @@ pub(super) fn collect(
         }
     }
     let mut output = BTreeMap::new();
-    if definitions.is_empty() {
+    if definitions.is_empty() && resolver.is_none() {
         return output;
     }
     for &index in selected {
@@ -218,6 +229,29 @@ pub(super) fn collect(
                             }
                             _ => {}
                         }
+                    } else if matches!(identifier_role(node, root), IdentifierRole::Reference) {
+                        if let Some(target) = resolver.and_then(|resolver| {
+                            resolver.resolve_name(
+                                file,
+                                &crate::parser::CodeRange {
+                                    start_line: node.start_position().row + 1,
+                                    start_col: node.start_position().column + 1,
+                                    end_line: node.end_position().row + 1,
+                                    end_col: node.end_position().column + 1,
+                                },
+                                name,
+                                "const",
+                            )
+                        }) {
+                            references.entry(name).or_insert_with(|| {
+                                format!(
+                                    "    - {name} — {}:{}\n",
+                                    target.file.file_path, target.symbol.range.start_line
+                                )
+                            });
+                        }
+                    } else if matches!(identifier_role(node, root), IdentifierRole::Binding) {
+                        shadowed.insert(name);
                     }
                 }
             }

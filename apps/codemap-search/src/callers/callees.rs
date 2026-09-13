@@ -21,6 +21,7 @@ pub(super) struct DiscoveredCallee {
     pub(super) name: String,
     pub(super) display: String,
     pub(super) is_precise: bool,
+    pub(super) is_unresolved: bool,
 }
 
 /// Discover depth-1 callees of `sym`: names invoked as `identifier(` inside the symbol's
@@ -81,6 +82,7 @@ pub(super) fn discover_callees(
                         name: ident,
                         display,
                         is_precise: false,
+                        is_unresolved: false,
                     });
                 }
             }
@@ -107,6 +109,7 @@ fn resolve_navigation_callee_display(
             name: call.name.clone(),
             display: callee_display(&call.name, index, &call_file.file_path, is_member),
             is_precise: false,
+            is_unresolved: false,
         };
     }
 
@@ -130,6 +133,7 @@ fn resolve_navigation_callee_display(
                     name: call.name.clone(),
                     display: definition_display(file, sym),
                     is_precise: true,
+                    is_unresolved: false,
                 };
             }
         }
@@ -148,6 +152,7 @@ fn resolve_navigation_callee_display(
             name: call.name.clone(),
             display: definition_display(file, sym),
             is_precise: true,
+            is_unresolved: false,
         };
     }
     if same_file.len() > 1 {
@@ -155,6 +160,7 @@ fn resolve_navigation_callee_display(
             name: call.name.clone(),
             display: call.name.clone(),
             is_precise: false,
+            is_unresolved: false,
         };
     }
     if global.len() == 1 {
@@ -163,12 +169,14 @@ fn resolve_navigation_callee_display(
             name: call.name.clone(),
             display: definition_display(file, sym),
             is_precise: true,
+            is_unresolved: false,
         };
     }
     DiscoveredCallee {
         name: call.name.clone(),
         display: call.name.clone(),
         is_precise: false,
+        is_unresolved: false,
     }
 }
 
@@ -179,7 +187,44 @@ pub(super) fn discover_callees_with_navigation(
     runtime_state: AnnotationRuntimeState,
     navigation_context_enabled: bool,
     root: &Path,
+    resolver: &super::resolution::SourceResolver<'_>,
 ) -> Vec<DiscoveredCallee> {
+    if super::resolution::supports(&file.file_path) {
+        let mut found = Vec::new();
+        let mut seen = HashSet::new();
+        for call in resolver.calls(file) {
+            if !call_is_inside_symbol(&call, sym) {
+                continue;
+            }
+            let target = (!runtime_state.suppresses_navigation())
+                .then(|| resolver.resolve_call(file, &call))
+                .flatten();
+            if target.is_some_and(|target| {
+                target.file.file_path == file.file_path && target.symbol.range == sym.range
+            }) {
+                continue;
+            }
+            let callee = match target {
+                Some(target) => DiscoveredCallee {
+                    name: target.symbol.name.clone(),
+                    display: definition_display(target.file, target.symbol),
+                    is_precise: navigation_context_enabled && target.is_precise,
+                    is_unresolved: false,
+                },
+                None => DiscoveredCallee {
+                    name: call.name.clone(),
+                    display: call.name,
+                    is_precise: false,
+                    is_unresolved: true,
+                },
+            };
+            if seen.insert((callee.display.clone(), callee.is_unresolved)) {
+                found.push(callee);
+            }
+        }
+        found.sort_by_key(|callee| callee.is_unresolved);
+        return found;
+    }
     if runtime_state.suppresses_navigation() {
         return discover_callees(sym, &file.file_path, index, root);
     }

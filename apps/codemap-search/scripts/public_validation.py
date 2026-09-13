@@ -280,6 +280,24 @@ class Checks:
         self.record(name, category or tool, not error and has_section and not missing and not unexpected, detail, elapsed, status)
         return text
 
+    def case(self, case):
+        config_path = self.root / ".codemap/config.toml"
+        original = config_path.read_text()
+        try:
+            if "callee_list_cap" in case:
+                cap = case["callee_list_cap"]
+                if not isinstance(cap, int) or not 1 <= cap <= 100:
+                    raise ValueError("Validation callee_list_cap must be between 1 and 100")
+                config_path.write_text(re.sub(r"^callee_list_cap = .*", f"callee_list_cap = {cap}", original, flags=re.M))
+                wait_condition(self.client, case["tool"], case["arguments"],
+                    lambda text, error: not error and all(value in text for value in case.get("contains", [])), timeout=15)
+            return self.query(case["id"], case["tool"], case["arguments"],
+                contains=case.get("contains", []), excludes=case.get("excludes", []),
+                category=case.get("category"), section=tuple(case["section"]) if "section" in case else None)
+        finally:
+            if "callee_list_cap" in case:
+                config_path.write_text(original)
+
 
 def validate_file(checks, spec, path, oracle_binary, output, read_live=True):
     source = (checks.root / path).read_bytes()
@@ -540,8 +558,7 @@ def run_validation(args):
                 for path in result["sample_files"]:
                     validate_file(checks, spec, path, oracle_binary, output, read_live=False)
                 for case in spec["cases"]:
-                    section = tuple(case["section"]) if "section" in case else None
-                    checks.query(case["id"], case["tool"], case["arguments"], contains=case.get("contains", []), excludes=case.get("excludes", []), category=case.get("category"), section=section)
+                    checks.case(case)
                 validate_find(checks, spec)
                 validate_probes(checks, probe, spec["language"])
                 validate_refresh(checks, probe)

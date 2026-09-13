@@ -39,11 +39,17 @@
             353
           ],
           "contains": [
-            "AssetSourceBuilders::init_default_source \u2014 crates/bevy_asset/src/io/source.rs:382",
-            "EmbeddedAssetRegistry::register_source \u2014 crates/bevy_asset/src/io/embedded/mod.rs:100"
+            "App::world_mut \u2014 crates/bevy_app/src/app.rs:1176",
+            "init_default_source (unresolved)",
+            "register_source (unresolved)"
           ],
-          "excludes": [],
-          "category": "callees"
+          "excludes": [
+            "AssetSourceBuilders::init_default_source \u2014",
+            "EmbeddedAssetRegistry::register_source \u2014"
+          ],
+          "category": "resolution_policy",
+          "policy_note": "User decision: inferred receiver types must be unresolved without definition links; the explicitly typed App receiver must retain its source location.",
+          "callee_list_cap": 30
         },
         {
           "id": "discover-asset-settings",

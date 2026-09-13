@@ -93,13 +93,13 @@
   "imports": [
     {
       "localName": "*",
-      "source": "crate::audit::*",
+      "source": "crate::audit",
       "kind": "glob",
       "range": {
         "startLine": 1,
-        "startCol": 1,
+        "startCol": 5,
         "endLine": 1,
-        "endCol": 21
+        "endCol": 20
       }
     },
     {
@@ -109,9 +109,9 @@
       "kind": "named",
       "range": {
         "startLine": 2,
-        "startCol": 1,
+        "startCol": 5,
         "endLine": 2,
-        "endCol": 28
+        "endCol": 27
       }
     }
   ]

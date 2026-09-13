@@ -169,7 +169,8 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // even though the Tantivy schema and MCP JSON contracts are unchanged.
 // `v18` adds Nix symbols, static build relationships, and a new source extension under the same
 // persisted contract, requiring one re-extraction of existing workspaces.
-const EXTRACTION_FORMAT_VERSION: &str = "v18-seventh-priority-build-formats";
+// v19 decodes Rust use groups and Go imports from syntax instead of shared text heuristics.
+const EXTRACTION_FORMAT_VERSION: &str = "v19-rust-go-source-imports";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1381,10 +1382,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(
-            EXTRACTION_FORMAT_VERSION,
-            "v18-seventh-priority-build-formats"
-        );
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v19-rust-go-source-imports");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -1402,7 +1400,7 @@ mod tests {
 
         // Simulate a pre-upgrade index: stamp an outdated version.
         let version_path = index_dir.join(EXTRACTION_FORMAT_FILE);
-        fs::write(&version_path, "v1-legacy").unwrap();
+        fs::write(&version_path, "v18-seventh-priority-build-formats").unwrap();
 
         // Instantiation with a stale sidecar rebuilds once: the stored docs are wiped (so the
         // search is empty until re-indexed) and the sidecar is restamped to the current

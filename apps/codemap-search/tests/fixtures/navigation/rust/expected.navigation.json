@@ -52,13 +52,13 @@
   "imports": [
     {
       "localName": "*",
-      "source": "crate::prelude::*",
+      "source": "crate::prelude",
       "kind": "glob",
       "range": {
         "startLine": 1,
-        "startCol": 1,
+        "startCol": 5,
         "endLine": 1,
-        "endCol": 23
+        "endCol": 22
       }
     },
     {
@@ -68,9 +68,9 @@
       "kind": "named",
       "range": {
         "startLine": 2,
-        "startCol": 1,
+        "startCol": 5,
         "endLine": 2,
-        "endCol": 41
+        "endCol": 40
       }
     }
   ]

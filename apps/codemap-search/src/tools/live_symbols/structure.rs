@@ -36,6 +36,18 @@ pub(super) fn symbol_node<'a>(tree: &'a Tree, s: &ExtractedSymbol) -> Option<Nod
     while node.start_position() != start || node.end_position() != end {
         node = node.parent()?;
     }
+    // A value-less Go const spec has exactly the same range as its identifier.
+    // Prefer the declaration carrying that name over the deepest matching token.
+    let original = node;
+    while node.child_by_field_name("name").is_none() {
+        let Some(parent) = node
+            .parent()
+            .filter(|parent| parent.start_position() == start && parent.end_position() == end)
+        else {
+            return Some(original);
+        };
+        node = parent;
+    }
     Some(node)
 }
 
@@ -98,7 +110,11 @@ pub(super) struct Outline {
 }
 
 impl Outline {
-    pub fn new(file: &ExtractedFile, anchors: &[&LiveAnchor]) -> Self {
+    pub fn new(
+        file: &ExtractedFile,
+        anchors: &[&LiveAnchor],
+        resolver: &crate::callers::resolution::SourceResolver<'_>,
+    ) -> Self {
         let symbols = &file.symbols;
         let parents: Vec<_> = symbols
             .iter()
@@ -240,7 +256,15 @@ impl Outline {
             .collect();
         let references = tree
             .as_ref()
-            .map(|tree| super::references::collect(file, &selected, tree, &source))
+            .map(|tree| {
+                super::references::collect_with_resolver(
+                    file,
+                    &selected,
+                    tree,
+                    &source,
+                    Some(resolver),
+                )
+            })
             .unwrap_or_default();
         let mut children = vec![Vec::new(); symbols.len() + 1];
         for (i, p) in parents.iter().enumerate() {

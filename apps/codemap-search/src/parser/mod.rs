@@ -1061,7 +1061,126 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
     entries
 }
 
+fn rust_import_entries(node: Node, source: &[u8], prefix: &str, entries: &mut Vec<ImportEntry>) {
+    let join = |path: &str| {
+        if prefix.is_empty() {
+            path.to_string()
+        } else if path == "self" {
+            prefix.to_string()
+        } else {
+            format!("{prefix}::{path}")
+        }
+    };
+    match node.kind() {
+        "scoped_use_list" => {
+            let path = node
+                .child_by_field_name("path")
+                .and_then(|path| node_text(path, source))
+                .unwrap_or_default();
+            if let Some(list) = node.child_by_field_name("list") {
+                rust_import_entries(list, source, &join(&path), entries);
+            }
+        }
+        "use_list" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                rust_import_entries(child, source, prefix, entries);
+            }
+        }
+        "identifier" | "scoped_identifier" | "self" | "super" | "crate" | "use_as_clause"
+        | "use_wildcard" => {
+            let path = if node.kind() == "use_as_clause" {
+                node.child_by_field_name("path")
+                    .and_then(|path| node_text(path, source))
+            } else if node.kind() == "use_wildcard" {
+                node.named_child(0)
+                    .and_then(|path| node_text(path, source))
+                    .or(Some(String::new()))
+            } else {
+                node_text(node, source)
+            };
+            let Some(path) = path else { return };
+            let path = if path.is_empty() {
+                prefix.to_string()
+            } else {
+                join(&path)
+            };
+            let imported = path.rsplit("::").next().unwrap_or("");
+            let alias = node
+                .child_by_field_name("alias")
+                .and_then(|alias| node_text(alias, source));
+            let is_glob = node.kind() == "use_wildcard";
+            entries.push(ImportEntry {
+                local_name: if is_glob {
+                    "*".to_string()
+                } else {
+                    alias.unwrap_or_else(|| imported.to_string())
+                },
+                imported_name: (!is_glob).then(|| imported.to_string()),
+                source: Some(path),
+                kind: if is_glob {
+                    ImportKind::Glob
+                } else {
+                    ImportKind::Named
+                },
+                range: range_for_node(node),
+            });
+        }
+        _ => {}
+    }
+}
+
+fn go_import_entries(node: Node, source: &[u8], entries: &mut Vec<ImportEntry>) {
+    if node.kind() == "import_spec" {
+        let Some(path) = node
+            .child_by_field_name("path")
+            .and_then(|path| node_text(path, source))
+        else {
+            return;
+        };
+        let path = string_literal_value(&path);
+        let Some(imported_name) = base_name_from_text(&path) else {
+            return;
+        };
+        let alias = node
+            .child_by_field_name("name")
+            .and_then(|name| node_text(name, source));
+        entries.push(ImportEntry {
+            local_name: alias.clone().unwrap_or_else(|| imported_name.clone()),
+            imported_name: Some(imported_name),
+            source: Some(path),
+            kind: if alias.as_deref() == Some(".") {
+                ImportKind::Glob
+            } else {
+                ImportKind::Named
+            },
+            range: range_for_node(node),
+        });
+    } else if matches!(node.kind(), "import_declaration" | "import_spec_list") {
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            go_import_entries(child, source, entries);
+        }
+    }
+}
+
 fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
+    if node.kind() == "use_declaration" {
+        let mut entries = Vec::new();
+        if let Some(argument) = node.child_by_field_name("argument") {
+            rust_import_entries(argument, source, "", &mut entries);
+        }
+        return entries;
+    }
+    if node.kind() == "import_declaration"
+        && node
+            .named_child(0)
+            .is_some_and(|child| matches!(child.kind(), "import_spec" | "import_spec_list"))
+    {
+        let mut entries = Vec::new();
+        go_import_entries(node, source, &mut entries);
+        return entries;
+    }
     let Some(text) = node_text(node, source) else {
         return Vec::new();
     };
