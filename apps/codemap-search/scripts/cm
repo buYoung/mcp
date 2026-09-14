@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""저장소 루트 설정으로 overview/search/read/grep를 실행합니다. 입력 경로는 현재 디렉터리 기준입니다."""
+
+import argparse
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+def find_workspace_root(caller_dir):
+    candidates = (caller_dir, *caller_dir.parents)
+    for candidate in candidates:
+        if (candidate / '.git').exists():
+            return candidate
+    # Git이 없는 작업공간도 상위 설정을 사용하되, 홈의 전역 설정과 구분합니다.
+    user_home = Path.home().resolve()
+    for candidate in candidates:
+        if candidate != user_home and (candidate / '.codemap/config.toml').is_file():
+            return candidate
+    return caller_dir
+
+
+def resolve_input_paths(tool, arguments, caller_dir, workspace_root):
+    resolved = dict(arguments)
+    if tool == 'grep' and not isinstance(resolved.get('path'), str):
+        resolved['path'] = '.'
+    if tool == 'search':
+        return resolved
+    for key, value in resolved.items():
+        normalized_key = key.replace('_', '').replace('-', '').lower()
+        if tool == 'read':
+            is_path = normalized_key in ('filepath', 'path', 'file', 'query')
+        elif tool == 'overview':
+            is_path = key in ('path', 'file_path', 'file', 'query')
+        else:
+            is_path = key == 'path'
+        if is_path and isinstance(value, str):
+            if tool == 'overview' and value in ('', 'all', '전체'):
+                continue
+            path = Path(value.replace('\\', '/'))
+            path = path if path.is_absolute() else caller_dir / path
+            if tool == 'overview':
+                # Existing paths are cwd-relative; unknown names may be workspace aliases.
+                if not path.exists():
+                    continue
+                try:
+                    resolved[key] = str(path.resolve().relative_to(workspace_root))
+                except ValueError:
+                    resolved[key] = str(path)
+            else:
+                resolved[key] = str(path)
+    return resolved
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('tool', choices=('overview', 'search', 'read', 'grep'), help='호출할 MCP 도구')
+    parser.add_argument('arguments', help='도구에 전달할 JSON 객체')
+    options = parser.parse_args()
+    try:
+        arguments = json.loads(options.arguments)
+    except json.JSONDecodeError as error:
+        parser.error(f'JSON 형식 오류: {error}')
+    if not isinstance(arguments, dict):
+        parser.error('도구 인자는 JSON 객체여야 합니다.')
+
+    caller_dir = Path.cwd()
+    workspace_root = find_workspace_root(caller_dir)
+    arguments = resolve_input_paths(options.tool, arguments, caller_dir, workspace_root)
+    print(f'cm: 작업공간 {workspace_root}', file=sys.stderr)
+    print(f'cm: 저장소 설정 {workspace_root / ".codemap/config.toml"}', file=sys.stderr)
+    binary = Path(__file__).resolve().with_name('codemap-search')
+    if not binary.is_file():
+        binary = Path(__file__).resolve().parent.parent / 'target/release/codemap-search'
+    with subprocess.Popen(
+        [str(binary), 'mcp'],
+        cwd=workspace_root,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    ) as server:
+        request_id = 0
+
+        def request(method, params):
+            nonlocal request_id
+            request_id += 1
+            server.stdin.write(json.dumps({
+                'jsonrpc': '2.0', 'id': request_id,
+                'method': method, 'params': params,
+            }) + '\n')
+            server.stdin.flush()
+            line = server.stdout.readline()
+            if not line:
+                raise RuntimeError('codemap-search가 응답 없이 종료되었습니다. 위의 오류를 확인하세요.')
+            return json.loads(line)
+
+        try:
+            request('initialize', {
+                'protocolVersion': '2025-06-18', 'capabilities': {},
+                'clientInfo': {'name': 'cm', 'version': '1.1'},
+            })
+            server.stdin.write('{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
+            server.stdin.flush()
+            ready_deadline_seconds = time.monotonic() + 30
+            while True:
+                response = request('tools/call', {
+                    'name': options.tool, 'arguments': arguments,
+                })
+                if 'error' in response:
+                    print(json.dumps(response['error'], ensure_ascii=False, indent=2), file=sys.stderr)
+                    return 1
+                result = response['result']
+                content = '\n'.join(
+                    block['text'] for block in result['content']
+                    if block.get('type') == 'text'
+                )
+                if result.get('isError'):
+                    print(content, file=sys.stderr)
+                    return 1
+                # Match diagnostic lines, not the same words inside numbered source.
+                is_warming = any(line.startswith((
+                    '[Symbol index unavailable or stale;',
+                    'Codemap is warming up (',
+                    '_Index is warming up (',
+                    '[Event index unavailable or stale;',
+                )) for line in content.splitlines())
+                if not is_warming or time.monotonic() >= ready_deadline_seconds:
+                    print(content)
+                    return 0
+                time.sleep(0.25)
+        finally:
+            server.stdin.close()
+            try:
+                server.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                server.terminate()
+                try:
+                    server.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    server.kill()
+                    server.wait()
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
+    except (OSError, RuntimeError) as error:
+        print(f'cm: {error}', file=sys.stderr)
+        sys.exit(1)

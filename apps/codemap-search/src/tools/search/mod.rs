@@ -408,35 +408,70 @@ pub struct SearchOutput {
     pub text: String,
 }
 
-fn append_static_collection_relations(
-    results: &[crate::index::SearchResult],
-    snapshot: std::sync::Arc<crate::index::PublishedIndexSnapshot>,
-    mut primary_output: String,
+fn append_search_relations(
+    output: &mut String,
+    anchors: &[(String, usize, usize)],
+    snapshot: &crate::index::PublishedIndexSnapshot,
     workspace_scope: Option<&str>,
-) -> SearchOutput {
+    should_include_calls: bool,
+    should_include_events: bool,
+) {
     let byte_cap = crate::config::get().search_detail_byte_cap;
-    let available_bytes = byte_cap.saturating_sub(primary_output.len());
-    if available_bytes == 0 {
-        return SearchOutput {
-            text: primary_output,
-        };
+    // Ranked snippets and the compact tail own their existing budget. Every
+    // supplementary section shares only the remainder, never truncating them.
+    let relation_cap = byte_cap
+        .saturating_sub(output.len())
+        .min(byte_cap / 2)
+        .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
+    if relation_cap < 256 || anchors.is_empty() {
+        return;
     }
-    let result_paths: HashSet<&str> = results
-        .iter()
-        .map(|result| result.file_path.as_str())
-        .collect();
+    let result_paths: HashSet<&str> = anchors.iter().map(|anchor| anchor.0.as_str()).collect();
     let records = snapshot.records_for_result_paths(&result_paths);
-    let annotation = render::render_static_collection_edges(
-        &result_paths,
-        &snapshot,
+    let mut relations = render::render_static_collection_edges(
+        anchors,
+        snapshot,
         records,
         workspace_scope,
-        available_bytes,
+        relation_cap,
     );
-    primary_output.push_str(&annotation);
-    SearchOutput {
-        text: primary_output,
+
+    let root = std::env::current_dir().unwrap_or_default();
+    let flow_cap = relation_cap.saturating_sub(relations.len() + 2) / 3;
+    let flows = if should_include_calls && flow_cap >= 256 {
+        snapshot
+            .flows()
+            .for_paths(anchors, workspace_scope, flow_cap, &root)
+    } else {
+        String::new()
+    };
+    let remaining = relation_cap.saturating_sub(relations.len() + flows.len() + 6);
+    let events = if should_include_events && remaining >= 256 {
+        snapshot
+            .events()
+            .for_paths(anchors, workspace_scope, remaining, &root)
+    } else {
+        String::new()
+    };
+    let remaining = remaining.saturating_sub(events.len());
+    let implementations = if remaining >= 256 {
+        snapshot.implementations().for_paths_with_call_context(
+            anchors,
+            workspace_scope,
+            remaining,
+            &root,
+            should_include_calls,
+        )
+    } else {
+        String::new()
+    };
+    for section in [events, implementations, flows] {
+        if !section.is_empty() {
+            relations.push_str("\n\n");
+            relations.push_str(&section);
+        }
     }
+    output.push_str(&relations);
 }
 
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
@@ -675,6 +710,7 @@ pub(crate) fn run_inner_with_metadata(
     let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
     let remaining_results = &ordered[detail_results.len()..];
     let mut output_was_capped = false;
+    let mut relation_anchors = Vec::new();
     {
         // Detail view: enclosing code scopes for the pinpointed files,
         // bounded by config caps so a few large or fallback-matched files
@@ -868,6 +904,12 @@ pub(crate) fn run_inner_with_metadata(
                     &mut caller_block_dedup,
                 );
                 snippet_starts.extend(outcome.emitted_starts);
+                relation_anchors.extend(
+                    outcome
+                        .relation_ranges
+                        .into_iter()
+                        .map(|(start, end)| (res.file_path.clone(), start, end)),
+                );
                 if outcome.budget_hit {
                     budget_hit = true;
                     break 'files;
@@ -925,6 +967,12 @@ pub(crate) fn run_inner_with_metadata(
                     caller_annotations.as_ref(),
                     &mut caller_block_dedup,
                 );
+                relation_anchors.extend(
+                    outcome
+                        .relation_ranges
+                        .into_iter()
+                        .map(|(start, end)| (res.file_path.clone(), start, end)),
+                );
                 if outcome.budget_hit {
                     budget_hit = true;
                     break 'files;
@@ -943,6 +991,7 @@ pub(crate) fn run_inner_with_metadata(
                     render::truncate_literal(&lit.text, literal_max_len),
                     lit.line
                 ));
+                relation_anchors.push((res.file_path.clone(), lit.line, lit.line));
             }
             if res.matched_literals.len() > literal_limit {
                 text.push_str(&format!(
@@ -1038,78 +1087,37 @@ pub(crate) fn run_inner_with_metadata(
     }
 
     let is_partial = output_was_capped || text.len() > byte_cap;
-    let text = finish_search_output(text, byte_cap, is_partial);
-    let mut output = append_static_collection_relations(
-        &results,
-        std::sync::Arc::clone(&published_snapshot),
-        text,
-        workspace_scope,
-    );
-    if !ctx.engine.is_warming() && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
-        let event_cap = (byte_cap / 2).min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
-        let anchors = results
-            .iter()
-            .map(|result| (result.file_path.clone(), 1, usize::MAX))
-            .collect::<Vec<_>>();
-        let root = std::env::current_dir().unwrap_or_default();
-        let flow_anchors = results
-            .iter()
-            .take(result_branch_threshold.max(1))
-            .filter(|result| !result.symbol_fallback)
-            .flat_map(|result| {
-                result
-                    .matched_symbols
-                    .iter()
-                    .filter(|symbol| symbol.kind == "fn")
-                    .take(2)
-                    .map(|symbol| {
-                        (
-                            result.file_path.clone(),
-                            symbol.range.start_line,
-                            symbol.range.end_line_inclusive(),
-                        )
-                    })
-            })
-            .collect::<Vec<_>>();
-        let flows = if caller_context_enabled {
-            published_snapshot.flows().for_paths(
-                &flow_anchors,
-                workspace_scope,
-                event_cap / 3,
-                &root,
-            )
-        } else {
-            String::new()
-        };
-        let event_cap = event_cap.saturating_sub(flows.len() + usize::from(!flows.is_empty()));
-        let events = if should_include_events {
-            published_snapshot
-                .events()
-                .for_paths(&anchors, workspace_scope, event_cap, &root)
-        } else {
-            String::new()
-        };
-        let implementations = published_snapshot
-            .implementations()
-            .for_paths_with_call_context(
-                &anchors,
-                workspace_scope,
-                event_cap.saturating_sub(events.len()),
-                &root,
-                caller_context_enabled,
-            );
-        let relations = [events, implementations, flows]
-            .into_iter()
-            .filter(|text| !text.is_empty())
-            .collect::<Vec<_>>()
-            .join("\n");
-        if !relations.is_empty() {
-            let context_cap = byte_cap.saturating_sub(relations.len() + 2);
-            let is_partial = output.text.len() > context_cap;
-            output.text = finish_search_output(output.text, context_cap, is_partial);
-            output.text.push_str("\n\n");
-            output.text.push_str(&relations);
+    let mut text = finish_search_output(text, byte_cap, is_partial);
+    // A clipped primary body no longer guarantees that all collected anchors
+    // remain visible. It already carries the search-cap notice; skip relations.
+    if !is_partial
+        && !ctx.engine.is_warming()
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none()
+    {
+        // Merge only overlapping/adjacent displayed ranges, never gaps in source.
+        // Preserve ranked file order for the bounded flow evaluator.
+        let mut anchors: Vec<(String, usize, usize)> = Vec::new();
+        for (path, start, end) in relation_anchors {
+            if let Some(anchor) = anchors.iter_mut().find(|anchor| {
+                anchor.0 == path
+                    && start <= anchor.2.saturating_add(1)
+                    && anchor.1 <= end.saturating_add(1)
+            }) {
+                anchor.1 = anchor.1.min(start);
+                anchor.2 = anchor.2.max(end);
+            } else {
+                anchors.push((path, start, end));
+            }
         }
+        append_search_relations(
+            &mut text,
+            &anchors,
+            &published_snapshot,
+            workspace_scope,
+            caller_context_enabled,
+            should_include_events,
+        );
     }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
@@ -1121,5 +1129,5 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(output)
+    Ok(SearchOutput { text })
 }

@@ -302,7 +302,7 @@ pub fn list_tools() -> Value {
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
-        "include_events": { "type": "boolean", "default": true, "description": "Automatically append a separate bounded static event map when matched paths have eligible related events; independent of caller_context. False suppresses it. An explicit event_navigation.is_enabled=false disables event analysis." },
+        "include_events": { "type": "boolean", "default": true, "description": "Append a bounded static event map for displayed matching evidence, within the space left after ranked results; independent of caller_context. False suppresses it. An explicit event_navigation.is_enabled=false disables event analysis." },
         "event_key": { "type": "string", "description": "Optional exact event key (1-256 bytes). Selects the dedicated indexed event map instead of ranked text search; query remains required. Bus identity and qualifiers stay separate; no runtime delivery guarantee." },
         "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
         "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },

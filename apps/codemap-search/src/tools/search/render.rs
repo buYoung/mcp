@@ -298,7 +298,7 @@ fn has_static_owner_connection(
 
 /// Render resolved producer-to-consumer pairs in bytes left after the ranked result body.
 pub(super) fn render_static_collection_edges(
-    result_paths: &std::collections::HashSet<&str>,
+    anchors: &[(String, usize, usize)],
     snapshot: &crate::index::PublishedIndexSnapshot,
     records: Vec<&crate::index::StaticCollectionRecord>,
     workspace_scope: Option<&str>,
@@ -315,9 +315,16 @@ pub(super) fn render_static_collection_edges(
         .iter()
         .filter(|record| record.edge.kind == StaticCollectionEdgeKind::Producer)
         .collect();
-    // Prioritize endpoints in the ranked result paths. The deterministic record order still
+    let is_displayed = |record: &crate::index::StaticCollectionRecord| {
+        anchors.iter().any(|(path, start, end)| {
+            path == &record.file_path
+                && *start <= record.edge.range.end_line_inclusive()
+                && record.edge.range.start_line <= *end
+        })
+    };
+    // Prioritize endpoints in the displayed evidence. The deterministic record order still
     // resolves ties, but irrelevant counterparts can no longer consume the pair budget first.
-    producers.sort_by_key(|record| !result_paths.contains(record.file_path.as_str()));
+    producers.sort_by_key(|record| !is_displayed(record));
     let mut consumers_by_collection = std::collections::HashMap::new();
     for record in records
         .iter()
@@ -333,7 +340,7 @@ pub(super) fn render_static_collection_edges(
             .push(record);
     }
     for consumers in consumers_by_collection.values_mut() {
-        consumers.sort_by_key(|record| !result_paths.contains(record.file_path.as_str()));
+        consumers.sort_by_key(|record| !is_displayed(record));
     }
     let mut seen_edges = std::collections::HashSet::new();
     let mut group_order = Vec::new();
@@ -350,9 +357,7 @@ pub(super) fn render_static_collection_edges(
             continue;
         };
         for consumer in consumers {
-            if !result_paths.contains(producer.file_path.as_str())
-                && !result_paths.contains(consumer.file_path.as_str())
-            {
+            if !is_displayed(producer) && !is_displayed(consumer) {
                 continue;
             }
             if workspace_scope.is_some_and(|scope| {
@@ -547,6 +552,9 @@ pub(super) struct AnchoredRenderCaps {
 pub(super) struct AnchoredRenderOutcome {
     pub(super) budget_hit: bool,
     pub(super) emitted_starts: std::collections::HashSet<usize>,
+    /// Query-matched declaration headers and source windows actually displayed.
+    /// Container summaries and unrelated signature rows cannot seed relations.
+    pub(super) relation_ranges: Vec<(usize, usize)>,
 }
 
 /// The shared P1 2-tier anchoring + P2-loop-2 C1/C3 render path for a name-matched file's
@@ -576,6 +584,7 @@ pub(super) fn render_anchored_symbols(
         content: std::cell::OnceCell::new(),
     };
     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    let mut relation_ranges = Vec::new();
     let AnchoredRenderCaps {
         snippet_max_lines,
         anchor_snippet_limit,
@@ -657,6 +666,7 @@ pub(super) fn render_anchored_symbols(
             return AnchoredRenderOutcome {
                 budget_hit: true,
                 emitted_starts,
+                relation_ranges,
             };
         }
         text.push_str(&format!(
@@ -671,6 +681,9 @@ pub(super) fn render_anchored_symbols(
         let encloses_anchor = encloses_anchor_range(start, end);
         let is_summary_container = any_match && encloses_anchor && (has_tier1 || !is_anchor);
         let is_full_anchor = any_match && is_anchor && !is_summary_container;
+        if is_full_anchor {
+            relation_ranges.push((start, start));
+        }
         let is_overcap_anchor = is_full_anchor && !promoted_anchor_starts.contains(&start);
         // Over-match suppression (#3): when NO symbol matched the query (`!any_match` — the file
         // ranked in on path/docstring and these are its own symbols, e.g. forward declarations or
@@ -704,6 +717,9 @@ pub(super) fn render_anchored_symbols(
                 let shown = sig.lines().count();
                 let displayed_end = start + shown.saturating_sub(1);
                 emitted_ranges.push((start, displayed_end));
+                if is_full_anchor {
+                    relation_ranges.push((start, displayed_end));
+                }
             }
             continue;
         }
@@ -750,6 +766,7 @@ pub(super) fn render_anchored_symbols(
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,
+                    relation_ranges,
                 };
             }
             let capped = cap_snippet(&snippet, snippet_max_lines, remaining);
@@ -797,11 +814,15 @@ pub(super) fn render_anchored_symbols(
             let complete_end = displayed_end.saturating_sub(usize::from(is_byte_clipped));
             if complete_end >= snippet_start {
                 emitted_ranges.push((snippet_start, complete_end));
+                if is_full_anchor {
+                    relation_ranges.push((snippet_start, complete_end));
+                }
             }
         }
     }
     AnchoredRenderOutcome {
         budget_hit: false,
         emitted_starts,
+        relation_ranges,
     }
 }
