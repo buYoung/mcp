@@ -1,4 +1,109 @@
 {
+  "implementations": {
+    "sourceDigest": "b73304a2c099151a191afab65ad379bd0d513a9dc7ee00542e0c21756514f7f7",
+    "units": [
+      {
+        "language": "powershell",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Demo.Helper",
+              "source": "Demo.Helper",
+              "kind": "namespace",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 28
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [],
+        "types": [
+          {
+            "name": "PowerShellFlow",
+            "qualifiedName": "PowerShellFlow",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "TargetPowerShell",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 4,
+                  "endCol": 33
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              },
+              {
+                "name": "CallerPowerShell",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 5,
+                  "endLine": 7,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Import-Module",

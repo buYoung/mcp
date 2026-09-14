@@ -1,4 +1,92 @@
 {
+  "implementations": {
+    "sourceDigest": "aa39ef6717b734419ae6c5974ad67c8e4083ef252e1263604db8a27679699067",
+    "units": [
+      {
+        "language": "scala",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [
+          {
+            "name": "Script",
+            "qualifiedName": "Script",
+            "range": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 3,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "run",
+                "range": {
+                  "startLine": 2,
+                  "startCol": 3,
+                  "endLine": 2,
+                  "endCol": 38
+                },
+                "parameters": [],
+                "returnType": "Unit",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "println",
+            "range": {
+              "startLine": 2,
+              "startCol": 21,
+              "endLine": 2,
+              "endCol": 38
+            },
+            "receiver": {
+              "name": "Script",
+              "arguments": [],
+              "range": {
+                "startLine": 2,
+                "startCol": 21,
+                "endLine": 2,
+                "endCol": 38
+              }
+            },
+            "namespace": "Script",
+            "enclosingSymbol": "run",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "println",

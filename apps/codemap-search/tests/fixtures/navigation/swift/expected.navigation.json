@@ -1,4 +1,133 @@
 {
+  "implementations": {
+    "sourceDigest": "f742de4dcb2788786afd6f6cad8a3d4bfdabf790075e2cd329b675b81dddc6ae",
+    "units": [
+      {
+        "language": "swift",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Foundation",
+              "source": "Foundation",
+              "kind": "namespace",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 18
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [],
+        "types": [
+          {
+            "name": "SwiftFlow",
+            "qualifiedName": "SwiftFlow",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "targetSwift",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 4,
+                  "endCol": 26
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              },
+              {
+                "name": "callerSwift",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 5,
+                  "endLine": 7,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "targetSwift",
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 22
+            },
+            "receiver": {
+              "name": "SwiftFlow",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 9,
+                "endLine": 6,
+                "endCol": 22
+              }
+            },
+            "namespace": "SwiftFlow",
+            "enclosingSymbol": "callerSwift",
+            "argumentCount": null,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "targetSwift",

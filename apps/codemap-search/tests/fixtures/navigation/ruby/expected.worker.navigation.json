@@ -1,4 +1,86 @@
 {
+  "implementations": {
+    "sourceDigest": "da6e2def1a687ab1257a806d4291fd3d50485c628624efb8ed1b3811312c83c5",
+    "units": [
+      {
+        "language": "ruby",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "job",
+              "importedName": "job",
+              "source": "./job",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 23
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "queue",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 10,
+              "endLine": 2,
+              "endCol": 15
+            }
+          },
+          {
+            "name": "processor",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 17,
+              "endLine": 2,
+              "endCol": 26
+            }
+          },
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 3,
+              "endLine": 3,
+              "endCol": 21
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "next",

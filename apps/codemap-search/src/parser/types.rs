@@ -145,6 +145,8 @@ pub struct ImportEntry {
 #[serde(rename_all = "camelCase")]
 pub struct NavigationFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementations: Option<crate::implementations::ImplementationFile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub macro_expansion: Option<MacroExpansionInfo>,
     #[serde(default)]
     pub calls: Vec<CallSite>,

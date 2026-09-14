@@ -1,4 +1,165 @@
 {
+  "implementations": {
+    "sourceDigest": "759ff7e82fd7c7915f76ae54ffedad4becf8bb7fe31df7f660fc899344514279",
+    "units": [
+      {
+        "language": "rust",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "*",
+              "source": "crate::prelude",
+              "kind": "glob",
+              "range": {
+                "startLine": 1,
+                "startCol": 5,
+                "endLine": 1,
+                "endCol": 22
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Service",
+              "importedName": "UserService",
+              "source": "crate::user::UserService",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 5,
+                "endLine": 2,
+                "endCol": 40
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "service",
+            "scope": {
+              "startLine": 10,
+              "startCol": 14,
+              "endLine": 14,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 5,
+              "endLine": 11,
+              "endCol": 43
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "UserService",
+            "qualifiedName": "UserService",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 24
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "UserService",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 6,
+                "endLine": 6,
+                "endCol": 17
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "save",
+                "range": {
+                  "startLine": 7,
+                  "startCol": 5,
+                  "endLine": 7,
+                  "endCol": 26
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "",
+            "conditions": []
+          }
+        ],
+        "calls": [
+          {
+            "name": "save",
+            "range": {
+              "startLine": 12,
+              "startCol": 5,
+              "endLine": 12,
+              "endCol": 19
+            },
+            "receiver": {
+              "name": "Service",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 18,
+                "endLine": 11,
+                "endCol": 25
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "new",

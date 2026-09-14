@@ -1,4 +1,131 @@
 {
+  "implementations": {
+    "sourceDigest": "c8949e729fb3a9b1ea80b7d165b05b5d7af0f54af55794ac9b1d4e498d7cef2d",
+    "units": [
+      {
+        "language": "csharp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "Rule",
+              "source": "Demo.Rule",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "passed",
+            "scope": {
+              "startLine": 5,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 35
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Policy",
+            "qualifiedName": "Policy",
+            "range": {
+              "startLine": 2,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Allow",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 8,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Rule"
+                ],
+                "returnType": "bool",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "Check",
+            "range": {
+              "startLine": 6,
+              "startCol": 22,
+              "endLine": 6,
+              "endCol": 34
+            },
+            "receiver": {
+              "name": "Rule",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 23,
+                "endLine": 4,
+                "endCol": 27
+              }
+            },
+            "namespace": "Policy",
+            "enclosingSymbol": "Allow",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Check",

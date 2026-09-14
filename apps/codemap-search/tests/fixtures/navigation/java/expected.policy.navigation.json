@@ -1,4 +1,155 @@
 {
+  "implementations": {
+    "sourceDigest": "d984d5ae49340209991255ac1fa50e5fe39f8df07661a336eb6897798bbf9f3d",
+    "units": [
+      {
+        "language": "java",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "List",
+              "importedName": "List",
+              "source": "java.util",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 23
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "List",
+              "importedName": "java.util.List",
+              "source": "java.util.List",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 23
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 19,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 9,
+              "endLine": 14,
+              "endCol": 27
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderPolicy",
+            "qualifiedName": "OrderPolicy",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 10,
+                  "startCol": 5,
+                  "endLine": 19,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Order"
+                ],
+                "returnType": "List<String>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "isEmpty",
+            "range": {
+              "startLine": 15,
+              "startCol": 13,
+              "endLine": 15,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "String"
+              ],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 21
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "toList",

@@ -62,6 +62,110 @@
   "literals": [],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "2f26c41fa5646f7f5f27488da232e51a4dbf2f1dccbb8fe3c6079f26c44c1e67",
+      "units": [
+        {
+          "language": "groovy",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "Helper",
+                "source": "demo.Helper",
+                "kind": "namespace",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 3,
+                  "endCol": 1
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              }
+            },
+            {
+              "entry": {
+                "localName": "Helper",
+                "importedName": "demo.Helper",
+                "source": "demo.Helper",
+                "kind": "named",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 3,
+                  "endCol": 1
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Worker",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 10,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 5,
+                    "endLine": 9,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "start",

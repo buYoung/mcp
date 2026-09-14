@@ -1,4 +1,374 @@
 {
+  "implementations": {
+    "sourceDigest": "0786d630c55fdfc9c100ca8a7548ca55d9b6582402509febe0ce6b216042c973",
+    "units": [
+      {
+        "language": "go",
+        "namespace": "checkout",
+        "imports": [
+          {
+            "entry": {
+              "localName": "context",
+              "importedName": "context",
+              "source": "context",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 8,
+                "endLine": 3,
+                "endCol": 17
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 32,
+              "startCol": 72,
+              "endLine": 44,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 33,
+              "startCol": 2,
+              "endLine": 33,
+              "endCol": 33
+            }
+          },
+          {
+            "name": "audit",
+            "scope": {
+              "startLine": 32,
+              "startCol": 72,
+              "endLine": 44,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 34,
+              "startCol": 2,
+              "endLine": 34,
+              "endCol": 40
+            }
+          },
+          {
+            "name": "err",
+            "scope": {
+              "startLine": 32,
+              "startCol": 72,
+              "endLine": 44,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 36,
+              "startCol": 5,
+              "endLine": 36,
+              "endCol": 43
+            }
+          },
+          {
+            "name": "err",
+            "scope": {
+              "startLine": 32,
+              "startCol": 72,
+              "endLine": 44,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 39,
+              "startCol": 5,
+              "endLine": 39,
+              "endCol": 33
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderLine",
+            "qualifiedName": "checkout.OrderLine",
+            "range": {
+              "startLine": 5,
+              "startCol": 6,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "OrderDTO",
+            "qualifiedName": "checkout.OrderDTO",
+            "range": {
+              "startLine": 10,
+              "startCol": 6,
+              "endLine": 12,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Mapper",
+            "qualifiedName": "checkout.Mapper",
+            "range": {
+              "startLine": 14,
+              "startCol": 6,
+              "endLine": 16,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "MapOrder",
+                "range": {
+                  "startLine": 15,
+                  "startCol": 2,
+                  "endLine": 15,
+                  "endCol": 32
+                },
+                "parameters": [
+                  "[]OrderLine"
+                ],
+                "returnType": "OrderDTO",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Repository",
+            "qualifiedName": "checkout.Repository",
+            "range": {
+              "startLine": 18,
+              "startCol": 6,
+              "endLine": 20,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Save",
+                "range": {
+                  "startLine": 19,
+                  "startCol": 2,
+                  "endLine": 19,
+                  "endCol": 39
+                },
+                "parameters": [
+                  "context.Context",
+                  "OrderDTO"
+                ],
+                "returnType": "error",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Inventory",
+            "qualifiedName": "checkout.Inventory",
+            "range": {
+              "startLine": 22,
+              "startCol": 6,
+              "endLine": 24,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Reserve",
+                "range": {
+                  "startLine": 23,
+                  "startCol": 2,
+                  "endLine": 23,
+                  "endCol": 45
+                },
+                "parameters": [
+                  "context.Context",
+                  "[]OrderLine"
+                ],
+                "returnType": "error",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Service",
+            "qualifiedName": "checkout.Service",
+            "range": {
+              "startLine": 26,
+              "startCol": 6,
+              "endLine": 30,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 45,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "*Service",
+              "arguments": [],
+              "range": {
+                "startLine": 32,
+                "startCol": 9,
+                "endLine": 32,
+                "endCol": 17
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "Submit",
+                "range": {
+                  "startLine": 32,
+                  "startCol": 1,
+                  "endLine": 44,
+                  "endCol": 2
+                },
+                "parameters": [
+                  "context.Context",
+                  "[]OrderLine"
+                ],
+                "returnType": "error",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": true,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "checkout",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "MapOrder",

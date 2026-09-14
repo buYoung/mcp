@@ -1,4 +1,182 @@
 {
+  "implementations": {
+    "sourceDigest": "4836399237c7f1510a3084539cedd08e49a40c75b8f103f7c48cb4395e64c3cd",
+    "units": [
+      {
+        "language": "cpp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "policy",
+              "importedName": "policy",
+              "source": "policy.hpp",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 22,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "vector",
+              "importedName": "vector",
+              "source": "vector",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 22,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 22,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 7,
+              "startCol": 9,
+              "endLine": 7,
+              "endCol": 43
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderPolicy",
+            "qualifiedName": "OrderPolicy",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 22,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 6,
+                  "startCol": 5,
+                  "endLine": 17,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Order"
+                ],
+                "returnType": "std::vector<std::string>",
+                "qualifiers": "const",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "push_back",
+            "range": {
+              "startLine": 10,
+              "startCol": 17,
+              "endLine": 10,
+              "endCol": 48
+            },
+            "receiver": {
+              "name": "std::vector",
+              "arguments": [
+                "std::string"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 33
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          },
+          {
+            "name": "empty",
+            "range": {
+              "startLine": 13,
+              "startCol": 13,
+              "endLine": 13,
+              "endCol": 29
+            },
+            "receiver": {
+              "name": "std::vector",
+              "arguments": [
+                "std::string"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 33
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "check",

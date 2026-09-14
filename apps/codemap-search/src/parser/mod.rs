@@ -2555,8 +2555,16 @@ impl TreeSitterExtractor {
             }
         }
 
+        navigation.implementations = crate::implementations::collect(
+            spec.language_name(),
+            file_path,
+            &tree,
+            source,
+            &symbols,
+            &navigation,
+        );
         let docstrings = symbols.iter().filter_map(|s| s.docstring.clone()).collect();
-        let navigation = if navigation_enabled {
+        let navigation = if navigation_enabled || navigation.implementations.is_some() {
             Some(navigation)
         } else {
             None
@@ -2626,6 +2634,13 @@ impl TreeSitterExtractor {
         // assigning these explicitly documents and protects the public coordinate contract.
         extracted.file_path = file_path.to_string();
         extracted.total_lines = file_content.lines().count();
+        if let Some(facts) = extracted
+            .navigation
+            .as_mut()
+            .and_then(|navigation| navigation.implementations.as_mut())
+        {
+            facts.source_digest = crate::implementations::digest(file_content.as_bytes());
+        }
         Ok((extracted, auxiliary))
     }
 }
@@ -2652,6 +2667,13 @@ fn merge_composite_part(
         push_unique(&mut extracted.docstrings, docstring);
     }
     if let (Some(target), Some(source)) = (&mut extracted.navigation, part.navigation) {
+        if let Some(facts) = source.implementations {
+            if let Some(existing) = &mut target.implementations {
+                existing.merge(facts);
+            } else {
+                target.implementations = Some(facts);
+            }
+        }
         for call in source.calls {
             push_unique(&mut target.calls, call);
         }

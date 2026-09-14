@@ -1,4 +1,266 @@
 {
+  "implementations": {
+    "sourceDigest": "64d137292d8fc16c1a4a93db08fbe035b2aba1b54a7e8597e211e53e35a442a8",
+    "units": [
+      {
+        "language": "rust",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "*",
+              "source": "crate::audit",
+              "kind": "glob",
+              "range": {
+                "startLine": 1,
+                "startCol": 5,
+                "endLine": 1,
+                "endCol": 20
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "OrderRepo",
+              "importedName": "OrderRepo",
+              "source": "crate::repo::OrderRepo",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 5,
+                "endLine": 2,
+                "endCol": 27
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 34,
+              "startCol": 75,
+              "endLine": 42,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 35,
+              "startCol": 9,
+              "endLine": 35,
+              "endCol": 52
+            }
+          },
+          {
+            "name": "audit",
+            "scope": {
+              "startLine": 34,
+              "startCol": 75,
+              "endLine": 42,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 36,
+              "startCol": 9,
+              "endLine": 36,
+              "endCol": 58
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderLine",
+            "qualifiedName": "OrderLine",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "OrderDto",
+            "qualifiedName": "OrderDto",
+            "range": {
+              "startLine": 9,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Mapper",
+            "qualifiedName": "Mapper",
+            "range": {
+              "startLine": 13,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "map",
+                "range": {
+                  "startLine": 14,
+                  "startCol": 5,
+                  "endLine": 14,
+                  "endCol": 52
+                },
+                "parameters": [
+                  "&[OrderLine]"
+                ],
+                "returnType": "OrderDto",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "CheckoutService",
+            "qualifiedName": "CheckoutService",
+            "range": {
+              "startLine": 23,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 1
+            },
+            "parameters": [
+              "M",
+              "I"
+            ],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "CheckoutService",
+              "arguments": [
+                "M",
+                "I"
+              ],
+              "range": {
+                "startLine": 29,
+                "startCol": 12,
+                "endLine": 29,
+                "endCol": 33
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "submit",
+                "range": {
+                  "startLine": 34,
+                  "startCol": 5,
+                  "endLine": 42,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "&[OrderLine]"
+                ],
+                "returnType": "Result<OrderDto,String>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "map",

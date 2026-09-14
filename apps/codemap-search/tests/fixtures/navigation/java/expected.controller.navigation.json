@@ -1,4 +1,182 @@
 {
+  "implementations": {
+    "sourceDigest": "445f5fe58fe55b770fb437237f79cfb81c0c46dcfa45e2b727d6cb6402b9d0f8",
+    "units": [
+      {
+        "language": "java",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "PostMapping",
+              "importedName": "PostMapping",
+              "source": "org.springframework.web.bind.annotation",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 60
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "ResponseEntity",
+              "importedName": "ResponseEntity",
+              "source": "org.springframework.http",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 48
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "PostMapping",
+              "importedName": "org.springframework.web.bind.annotation.PostMapping",
+              "source": "org.springframework.web.bind.annotation.PostMapping",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 60
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "ResponseEntity",
+              "importedName": "org.springframework.http.ResponseEntity",
+              "source": "org.springframework.http.ResponseEntity",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 48
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "request",
+            "scope": {
+              "startLine": 14,
+              "startCol": 47,
+              "endLine": 18,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 15,
+              "startCol": 9,
+              "endLine": 15,
+              "endCol": 52
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 14,
+              "startCol": 47,
+              "endLine": 18,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 16,
+              "startCol": 9,
+              "endLine": 16,
+              "endCol": 51
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutController",
+            "qualifiedName": "CheckoutController",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 19,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "post",
+                "range": {
+                  "startLine": 13,
+                  "startCol": 5,
+                  "endLine": 18,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "String"
+                ],
+                "returnType": "ResponseEntity<Receipt>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse",

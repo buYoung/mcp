@@ -56,6 +56,91 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "211301645bf55b82483718548b7b76f07b64479d08e14b7b728504cc226b32be",
+      "units": [
+        {
+          "language": "dart",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "helper",
+                "importedName": "helper",
+                "source": "package:demo/helper.dart",
+                "kind": "named",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 35
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Worker",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 10,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 3,
+                    "endLine": 9,
+                    "endCol": 4
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "start",

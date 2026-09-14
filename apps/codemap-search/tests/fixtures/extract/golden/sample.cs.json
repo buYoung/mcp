@@ -164,6 +164,210 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "67ed205be22227c5099f09fb52f6b27690bdc04a832c014e54fa5fc29d9745fd",
+      "units": [
+        {
+          "language": "csharp",
+          "namespace": "Demo",
+          "imports": [
+            {
+              "entry": {
+                "localName": "WorkerAlias",
+                "importedName": "Worker",
+                "source": "Demo.Worker",
+                "kind": "named",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 33
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 27,
+                "endCol": 1
+              }
+            },
+            {
+              "entry": {
+                "localName": "Helpers",
+                "importedName": "Helpers",
+                "source": "Demo.Helpers",
+                "kind": "named",
+                "range": {
+                  "startLine": 2,
+                  "startCol": 1,
+                  "endLine": 2,
+                  "endCol": 27
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 27,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [
+            {
+              "name": "nested",
+              "scope": {
+                "startLine": 20,
+                "startCol": 5,
+                "endLine": 24,
+                "endCol": 6
+              },
+              "range": {
+                "startLine": 22,
+                "startCol": 9,
+                "endLine": 22,
+                "endCol": 47
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "IWorker",
+              "qualifiedName": "Demo.IWorker",
+              "range": {
+                "startLine": 6,
+                "startCol": 1,
+                "endLine": 9,
+                "endCol": 2
+              },
+              "namespace": "Demo",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 27,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "Execute",
+                  "range": {
+                    "startLine": 8,
+                    "startCol": 5,
+                    "endLine": 8,
+                    "endCol": 20
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": true,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": true,
+              "isExported": true,
+              "isAbstract": true,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            },
+            {
+              "name": "Worker",
+              "qualifiedName": "Demo.Worker",
+              "range": {
+                "startLine": 11,
+                "startCol": 1,
+                "endLine": 25,
+                "endCol": 2
+              },
+              "namespace": "Demo",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 27,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [
+                {
+                  "name": "IWorker",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 12,
+                    "startCol": 37,
+                    "endLine": 12,
+                    "endCol": 44
+                  }
+                }
+              ],
+              "methods": [
+                {
+                  "name": "Execute",
+                  "range": {
+                    "startLine": 18,
+                    "startCol": 5,
+                    "endLine": 24,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": [
+            {
+              "name": "WorkerAlias",
+              "range": {
+                "startLine": 22,
+                "startCol": 22,
+                "endLine": 22,
+                "endCol": 46
+              },
+              "receiver": {
+                "name": "Demo.Worker",
+                "arguments": [],
+                "range": {
+                  "startLine": 22,
+                  "startCol": 22,
+                  "endLine": 22,
+                  "endCol": 46
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "Execute",
+              "argumentCount": 1,
+              "conditions": []
+            }
+          ]
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "Trace",

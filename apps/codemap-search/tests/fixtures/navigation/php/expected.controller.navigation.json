@@ -1,4 +1,80 @@
 {
+  "implementations": {
+    "sourceDigest": "40236a96aad00e4f36f3e135809cb1fc0c6955950b53a3535b4983168a0796a6",
+    "units": [
+      {
+        "language": "php",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Request",
+              "importedName": "Request",
+              "source": "Demo\\Request",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 18
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "$service",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 17,
+              "endLine": 3,
+              "endCol": 33
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "submit",
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "Service",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 17,
+                "endLine": 3,
+                "endCol": 24
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "handle",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse",

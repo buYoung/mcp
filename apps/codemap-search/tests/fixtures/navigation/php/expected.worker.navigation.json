@@ -1,4 +1,141 @@
 {
+  "implementations": {
+    "sourceDigest": "5d5b7fa8fce5d25064c58f3c16f4044efb585115b354747e287a06af00b935c5",
+    "units": [
+      {
+        "language": "php",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Job",
+              "importedName": "Job",
+              "source": "Demo\\Job",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 14
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "$queue",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 15,
+              "endLine": 3,
+              "endCol": 27
+            }
+          },
+          {
+            "name": "$processor",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 29,
+              "endLine": 3,
+              "endCol": 49
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "next",
+            "range": {
+              "startLine": 5,
+              "startCol": 12,
+              "endLine": 5,
+              "endCol": 26
+            },
+            "receiver": {
+              "name": "Queue",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 15,
+                "endLine": 3,
+                "endCol": 20
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "work",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "process",
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 30
+            },
+            "receiver": {
+              "name": "Processor",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 29,
+                "endLine": 3,
+                "endCol": 38
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "work",
+            "argumentCount": 1,
+            "conditions": []
+          },
+          {
+            "name": "ack",
+            "range": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 7,
+              "endCol": 22
+            },
+            "receiver": {
+              "name": "Queue",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 15,
+                "endLine": 3,
+                "endCol": 20
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "work",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "next",

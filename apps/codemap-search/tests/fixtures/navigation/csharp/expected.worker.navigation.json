@@ -1,4 +1,178 @@
 {
+  "implementations": {
+    "sourceDigest": "8ce2d0ea8ae711dbd84aded6713a6cffcacc75b5af53746938312026822ad5dc",
+    "units": [
+      {
+        "language": "csharp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Job",
+              "importedName": "Job",
+              "source": "Demo.Job",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 22
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 12,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 5,
+              "startCol": 5,
+              "endLine": 9,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 32
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Worker",
+            "qualifiedName": "Worker",
+            "range": {
+              "startLine": 2,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 12,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Run",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 9,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Queue",
+                  "Processor"
+                ],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "Next",
+            "range": {
+              "startLine": 6,
+              "startCol": 19,
+              "endLine": 6,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "Queue",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 21,
+                "endLine": 4,
+                "endCol": 26
+              }
+            },
+            "namespace": "Worker",
+            "enclosingSymbol": "Run",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "Process",
+            "range": {
+              "startLine": 7,
+              "startCol": 9,
+              "endLine": 7,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "Processor",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 34,
+                "endLine": 4,
+                "endCol": 43
+              }
+            },
+            "namespace": "Worker",
+            "enclosingSymbol": "Run",
+            "argumentCount": 1,
+            "conditions": []
+          },
+          {
+            "name": "Ack",
+            "range": {
+              "startLine": 8,
+              "startCol": 9,
+              "endLine": 8,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "Queue",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 21,
+                "endLine": 4,
+                "endCol": 26
+              }
+            },
+            "namespace": "Worker",
+            "enclosingSymbol": "Run",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Next",

@@ -108,7 +108,16 @@ pub struct EventInput {
 }
 impl EventInput {
     pub(crate) fn capture(source: &str, path: &str) -> Option<Self> {
-        if !crate::config::get().event_navigation.is_enabled || !super::eligible(path) {
+        let source_path = std::path::Path::new(path);
+        // Rust declaration/implementation navigation shares the same immutable
+        // module input. Disabling event output must not disable type resolution.
+        let is_type_resolution_input = source_path.extension().is_some_and(|ext| ext == "rs")
+            || source_path
+                .file_name()
+                .is_some_and(|name| name == "Cargo.toml");
+        if !super::eligible(path)
+            || !crate::config::get().event_navigation.is_enabled && !is_type_resolution_input
+        {
             return None;
         }
         Some(if source.len() <= super::SOURCE_BYTES_PER_FILE {

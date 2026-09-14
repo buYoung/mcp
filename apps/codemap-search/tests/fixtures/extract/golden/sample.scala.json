@@ -75,6 +75,126 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "b5a87a6728868b3e75cd6a6897e42c08172ac35b2fd03af948493d183344bf56",
+      "units": [
+        {
+          "language": "scala",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "Helper",
+                "source": "demo.Helper",
+                "kind": "namespace",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 19
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 9,
+                "endCol": 1
+              }
+            },
+            {
+              "entry": {
+                "localName": "Helper",
+                "importedName": "demo.Helper",
+                "source": "demo.Helper",
+                "kind": "named",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 19
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 9,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [
+            {
+              "name": "name",
+              "scope": {
+                "startLine": 3,
+                "startCol": 14,
+                "endLine": 8,
+                "endCol": 2
+              },
+              "range": {
+                "startLine": 4,
+                "startCol": 3,
+                "endLine": 4,
+                "endCol": 21
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Worker",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 8,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 9,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 3,
+                    "endLine": 7,
+                    "endCol": 35
+                  },
+                  "parameters": [],
+                  "returnType": "Unit",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "start",

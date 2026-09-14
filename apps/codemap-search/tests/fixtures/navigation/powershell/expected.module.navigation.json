@@ -1,4 +1,19 @@
 {
+  "implementations": {
+    "sourceDigest": "7da977470e1d5f3e8fe3c9f77846bf52676786e19eaea14da4a8f6c1eaed18a6",
+    "units": [
+      {
+        "language": "powershell",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Start-Worker",

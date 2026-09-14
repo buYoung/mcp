@@ -134,6 +134,139 @@
     "An internal helper that is not exported."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "c41cc935038937120300d3f6a9da625ebb783d8e04112277814198e7c5485410",
+      "units": [
+        {
+          "language": "rust",
+          "namespace": "",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "label",
+              "scope": {
+                "startLine": 10,
+                "startCol": 27,
+                "endLine": 13,
+                "endCol": 6
+              },
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 38
+              }
+            },
+            {
+              "name": "Config",
+              "scope": {
+                "startLine": 28,
+                "startCol": 24,
+                "endLine": 30,
+                "endCol": 2
+              },
+              "range": {
+                "startLine": 29,
+                "startCol": 5,
+                "endLine": 29,
+                "endCol": 28
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Config",
+              "qualifiedName": "Config",
+              "range": {
+                "startLine": 4,
+                "startCol": 1,
+                "endLine": 6,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 31,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [
+            {
+              "owner": {
+                "name": "Config",
+                "arguments": [],
+                "range": {
+                  "startLine": 8,
+                  "startCol": 6,
+                  "endLine": 8,
+                  "endCol": 12
+                }
+              },
+              "contracts": [],
+              "methods": [
+                {
+                  "name": "load",
+                  "range": {
+                    "startLine": 10,
+                    "startCol": 5,
+                    "endLine": 13,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "Self",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": true,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "legacy_load",
+                  "range": {
+                    "startLine": 17,
+                    "startCol": 5,
+                    "endLine": 19,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "Self",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": true,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "namespace": "",
+              "conditions": []
+            }
+          ],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "load",

@@ -1,4 +1,153 @@
 {
+  "implementations": {
+    "sourceDigest": "42895cb943551cbc42a3a4e9413d4f1deef81e577513c320ff5070b3761459bf",
+    "units": [
+      {
+        "language": "groovy",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Helper",
+              "source": "demo.Helper",
+              "kind": "namespace",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Helper",
+              "importedName": "demo.Helper",
+              "source": "demo.Helper",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [],
+        "types": [
+          {
+            "name": "GroovyFlow",
+            "qualifiedName": "GroovyFlow",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "targetGroovy",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 4,
+                  "endCol": 27
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              },
+              {
+                "name": "callerGroovy",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 5,
+                  "endLine": 7,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "targetGroovy",
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "GroovyFlow",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 9,
+                "endLine": 6,
+                "endCol": 23
+              }
+            },
+            "namespace": "GroovyFlow",
+            "enclosingSymbol": "callerGroovy",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "targetGroovy",

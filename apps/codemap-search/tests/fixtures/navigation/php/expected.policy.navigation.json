@@ -1,4 +1,80 @@
 {
+  "implementations": {
+    "sourceDigest": "1864a7d2398155eae7447617508d21ceb054b3e6214c8198a129829cfbfc81e4",
+    "units": [
+      {
+        "language": "php",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "Rule",
+              "source": "Demo\\Rule",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 15
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "$rule",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 16,
+              "endLine": 3,
+              "endCol": 26
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "check",
+            "range": {
+              "startLine": 5,
+              "startCol": 12,
+              "endLine": 5,
+              "endCol": 26
+            },
+            "receiver": {
+              "name": "Rule",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 16,
+                "endLine": 3,
+                "endCol": 20
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "allow",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "check",

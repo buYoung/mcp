@@ -154,6 +154,173 @@
     "An exported top-level function."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "53303dde7710095e8110114d210e00042b4b852c7a96c05459106f47a3b5ff9e",
+      "units": [
+        {
+          "language": "kotlin",
+          "namespace": "",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "query",
+              "scope": {
+                "startLine": 5,
+                "startCol": 25,
+                "endLine": 8,
+                "endCol": 6
+              },
+              "range": {
+                "startLine": 6,
+                "startCol": 9,
+                "endLine": 6,
+                "endCol": 42
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Repository",
+              "qualifiedName": "Repository",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 24,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 30,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "fetch",
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 5,
+                    "endLine": 8,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "legacyFetch",
+                  "range": {
+                    "startLine": 11,
+                    "startCol": 5,
+                    "endLine": 14,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "privateHelper",
+                  "range": {
+                    "startLine": 16,
+                    "startCol": 5,
+                    "endLine": 18,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": true,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "testFetch",
+                  "range": {
+                    "startLine": 20,
+                    "startCol": 5,
+                    "endLine": 23,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": [
+            {
+              "name": "fetch",
+              "range": {
+                "startLine": 22,
+                "startCol": 9,
+                "endLine": 22,
+                "endCol": 16
+              },
+              "receiver": {
+                "name": "Repository",
+                "arguments": [],
+                "range": {
+                  "startLine": 22,
+                  "startCol": 9,
+                  "endLine": 22,
+                  "endCol": 16
+                }
+              },
+              "namespace": "Repository",
+              "enclosingSymbol": "testFetch",
+              "argumentCount": 0,
+              "conditions": []
+            }
+          ]
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "fetch",

@@ -168,6 +168,134 @@
     "A free function."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "191c85219d2cc22d7daccdff99aee0a1232ad133660a4ff09dce832c7d678f99",
+      "units": [
+        {
+          "language": "python",
+          "namespace": "",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "query",
+              "scope": {
+                "startLine": 8,
+                "startCol": 9,
+                "endLine": 10,
+                "endCol": 21
+              },
+              "range": {
+                "startLine": 9,
+                "startCol": 9,
+                "endLine": 9,
+                "endCol": 38
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Repository",
+              "qualifiedName": "Repository",
+              "range": {
+                "startLine": 4,
+                "startCol": 1,
+                "endLine": 18,
+                "endCol": 20
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 32,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "fetch",
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 5,
+                    "endLine": 10,
+                    "endCol": 21
+                  },
+                  "parameters": [
+                    "?"
+                  ],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": false,
+                  "conditions": []
+                },
+                {
+                  "name": "_private_method",
+                  "range": {
+                    "startLine": 12,
+                    "startCol": 5,
+                    "endLine": 13,
+                    "endCol": 17
+                  },
+                  "parameters": [
+                    "?"
+                  ],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": false,
+                  "conditions": []
+                },
+                {
+                  "name": "legacy_fetch",
+                  "range": {
+                    "startLine": 16,
+                    "startCol": 5,
+                    "endLine": 18,
+                    "endCol": 20
+                  },
+                  "parameters": [
+                    "?"
+                  ],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": false,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "fetch",

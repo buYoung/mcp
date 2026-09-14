@@ -1,4 +1,118 @@
 {
+  "implementations": {
+    "sourceDigest": "9d944e18435b24bc88316290e2ebacc9e3a1149d3d613289a1641f396acb890f",
+    "units": [
+      {
+        "language": "php",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Repo",
+              "importedName": "Repository",
+              "source": "Demo\\Repository",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 29
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "$mapper",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 14,
+              "endLine": 3,
+              "endCol": 28
+            }
+          },
+          {
+            "name": "$repo",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 30,
+              "endLine": 3,
+              "endCol": 40
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "map",
+            "range": {
+              "startLine": 5,
+              "startCol": 12,
+              "endLine": 5,
+              "endCol": 26
+            },
+            "receiver": {
+              "name": "Mapper",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 14,
+                "endLine": 3,
+                "endCol": 20
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "save",
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 22
+            },
+            "receiver": {
+              "name": "Repo",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 30,
+                "endLine": 3,
+                "endCol": 34
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "map",

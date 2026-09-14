@@ -156,6 +156,107 @@
     "An exported free function."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "8d5fdb4518908f4f4756570e1956241b60be30093100984f68657610855f6cd7",
+      "units": [
+        {
+          "language": "typescript",
+          "namespace": "",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "endpoint",
+              "scope": {
+                "startLine": 6,
+                "startCol": 19,
+                "endLine": 9,
+                "endCol": 4
+              },
+              "range": {
+                "startLine": 7,
+                "startCol": 11,
+                "endLine": 7,
+                "endCol": 52
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "UserService",
+              "qualifiedName": "UserService",
+              "range": {
+                "startLine": 4,
+                "startCol": 8,
+                "endLine": 17,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 33,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "fetch",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 3,
+                    "endLine": 9,
+                    "endCol": 4
+                  },
+                  "parameters": [],
+                  "returnType": "string",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "legacyFetch",
+                  "range": {
+                    "startLine": 14,
+                    "startCol": 3,
+                    "endLine": 16,
+                    "endCol": 4
+                  },
+                  "parameters": [],
+                  "returnType": "string",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "describe",

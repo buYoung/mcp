@@ -66,6 +66,10 @@ fn endpoint_overlaps(endpoint: &EventEndpoint, anchors: &[(String, usize, usize)
 }
 
 impl EventIndex {
+    pub(crate) fn indexed_sources(&self) -> &HashMap<String, String> {
+        &self.sources
+    }
+
     pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
         let started = std::time::Instant::now();
         let cfg = crate::config::get();

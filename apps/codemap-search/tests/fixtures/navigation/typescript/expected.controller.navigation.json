@@ -1,4 +1,157 @@
 {
+  "implementations": {
+    "sourceDigest": "0709ca0b195d4fdc425423c2feec0d9427d2f6a57c75c0bec758cd36e8159729",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Response",
+              "importedName": "Response",
+              "source": "./http",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 35
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "parseOrder",
+              "importedName": "parseOrder",
+              "source": "./parser",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 39
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "payload",
+            "scope": {
+              "startLine": 9,
+              "startCol": 36,
+              "endLine": 13,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 11,
+              "endLine": 10,
+              "endCol": 45
+            }
+          },
+          {
+            "name": "result",
+            "scope": {
+              "startLine": 9,
+              "startCol": 36,
+              "endLine": 13,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 11,
+              "endLine": 11,
+              "endCol": 54
+            }
+          },
+          {
+            "name": "RequestBody",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 38
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutController",
+            "qualifiedName": "CheckoutController",
+            "range": {
+              "startLine": 6,
+              "startCol": 8,
+              "endLine": 14,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "post",
+                "range": {
+                  "startLine": 9,
+                  "startCol": 3,
+                  "endLine": 13,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "RequestBody"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parseOrder",

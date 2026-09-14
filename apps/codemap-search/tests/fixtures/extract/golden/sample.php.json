@@ -167,6 +167,153 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "e7898468a7af09a1a12ea91f7b5d0b0ccd1034fe3b868e81204d5572ac5d0cf7",
+      "units": [
+        {
+          "language": "php",
+          "namespace": "Demo",
+          "imports": [
+            {
+              "entry": {
+                "localName": "AppClock",
+                "importedName": "Clock",
+                "source": "Demo\\Support\\Clock",
+                "kind": "named",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 1,
+                  "endLine": 5,
+                  "endCol": 36
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 30,
+                "endCol": 1
+              }
+            },
+            {
+              "entry": {
+                "localName": "worker",
+                "importedName": "worker",
+                "source": "./worker.php",
+                "kind": "named",
+                "range": {
+                  "startLine": 6,
+                  "startCol": 1,
+                  "endLine": 6,
+                  "endCol": 28
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 30,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [
+            {
+              "name": "$clock",
+              "scope": {
+                "startLine": 10,
+                "startCol": 1,
+                "endLine": 21,
+                "endCol": 2
+              },
+              "range": {
+                "startLine": 14,
+                "startCol": 25,
+                "endLine": 14,
+                "endCol": 40
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Demo.Worker",
+              "range": {
+                "startLine": 8,
+                "startCol": 1,
+                "endLine": 21,
+                "endCol": 2
+              },
+              "namespace": "Demo",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 30,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 14,
+                    "startCol": 5,
+                    "endLine": 20,
+                    "endCol": 6
+                  },
+                  "parameters": [
+                    "AppClock"
+                  ],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": [
+            {
+              "name": "tick",
+              "range": {
+                "startLine": 17,
+                "startCol": 9,
+                "endLine": 17,
+                "endCol": 23
+              },
+              "receiver": {
+                "name": "AppClock",
+                "arguments": [],
+                "range": {
+                  "startLine": 14,
+                  "startCol": 25,
+                  "endLine": 14,
+                  "endCol": 33
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "run",
+              "argumentCount": 0,
+              "conditions": []
+            }
+          ]
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "helper",

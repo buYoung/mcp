@@ -1,4 +1,146 @@
 {
+  "implementations": {
+    "sourceDigest": "14df71d8735dc8fb4a49da22d233ee45d5dfd0e08bbf0ec6ee16ddfeda6bb6e1",
+    "units": [
+      {
+        "language": "kotlin",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "Rule",
+              "source": "com.example",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 4,
+              "startCol": 46,
+              "endLine": 11,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 5,
+              "startCol": 9,
+              "endLine": 5,
+              "endCol": 67
+            }
+          },
+          {
+            "name": "names",
+            "scope": {
+              "startLine": 4,
+              "startCol": 46,
+              "endLine": 11,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 55
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderPolicy",
+            "qualifiedName": "OrderPolicy",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 12,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 11,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Order"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "emptyList",
+            "range": {
+              "startLine": 8,
+              "startCol": 20,
+              "endLine": 8,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "OrderPolicy",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 20,
+                "endLine": 8,
+                "endCol": 31
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "filter",

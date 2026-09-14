@@ -1,4 +1,144 @@
 {
+  "implementations": {
+    "sourceDigest": "37e232eab4affae0d6815aea2fce648a8471d9a9a01be0e9d34988801e784aca",
+    "units": [
+      {
+        "language": "javascript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Cache",
+              "source": "./cache",
+              "kind": "default",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 29
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "persist",
+              "importedName": "save",
+              "source": "./user",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 55
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "UserService",
+              "importedName": "UserService",
+              "source": "./user",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 55
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "user",
+            "scope": {
+              "startLine": 4,
+              "startCol": 23,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 5,
+              "startCol": 9,
+              "endLine": 5,
+              "endCol": 33
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Controller",
+            "qualifiedName": "Controller",
+            "range": {
+              "startLine": 11,
+              "startCol": 8,
+              "endLine": 15,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "handle",
+                "range": {
+                  "startLine": 12,
+                  "startCol": 3,
+                  "endLine": 14,
+                  "endCol": 4
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "UserService",

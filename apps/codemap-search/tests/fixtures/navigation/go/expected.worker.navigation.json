@@ -1,4 +1,139 @@
 {
+  "implementations": {
+    "sourceDigest": "eba3baf6f355ed93c420721d20257de3d154464135b4076cd91d348d2df9df90",
+    "units": [
+      {
+        "language": "go",
+        "namespace": "checkout",
+        "imports": [
+          {
+            "entry": {
+              "localName": "context",
+              "importedName": "context",
+              "source": "context",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 8,
+                "endLine": 3,
+                "endCol": 17
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 24,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 11,
+              "startCol": 49,
+              "endLine": 23,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 2,
+              "endLine": 12,
+              "endCol": 30
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 11,
+              "startCol": 49,
+              "endLine": 23,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 18,
+              "startCol": 2,
+              "endLine": 18,
+              "endCol": 47
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Worker",
+            "qualifiedName": "checkout.Worker",
+            "range": {
+              "startLine": 5,
+              "startCol": 6,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 24,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "Worker",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 15
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "Tick",
+                "range": {
+                  "startLine": 11,
+                  "startCol": 1,
+                  "endLine": 23,
+                  "endCol": 2
+                },
+                "parameters": [
+                  "context.Context"
+                ],
+                "returnType": "error",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "checkout",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Next",

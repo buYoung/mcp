@@ -1,4 +1,184 @@
 {
+  "implementations": {
+    "sourceDigest": "5daebd0c534b182fbdce9e857ed24e0c99005b876399cf4c26a205609188d43e",
+    "units": [
+      {
+        "language": "rust",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "HashMap",
+              "importedName": "HashMap",
+              "source": "std::collections::HashMap",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 5,
+                "endLine": 1,
+                "endCol": 30
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 29,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 11,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 9,
+              "endLine": 16,
+              "endCol": 24
+            }
+          },
+          {
+            "name": "outcomes",
+            "scope": {
+              "startLine": 11,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 22,
+              "startCol": 9,
+              "endLine": 22,
+              "endCol": 43
+            }
+          },
+          {
+            "name": "failure",
+            "scope": {
+              "startLine": 11,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 23,
+              "startCol": 13,
+              "endLine": 23,
+              "endCol": 20
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Policy",
+            "qualifiedName": "Policy",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 29,
+              "endCol": 1
+            },
+            "parameters": [
+              "R"
+            ],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "Policy",
+              "arguments": [
+                "R"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 18
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 11,
+                  "startCol": 5,
+                  "endLine": 27,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "&Order"
+                ],
+                "returnType": "HashMap<String,bool>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "",
+            "conditions": []
+          }
+        ],
+        "calls": [
+          {
+            "name": "is_empty",
+            "range": {
+              "startLine": 18,
+              "startCol": 12,
+              "endLine": 18,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "Vec",
+              "arguments": [
+                "_"
+              ],
+              "range": {
+                "startLine": 12,
+                "startCol": 23,
+                "endLine": 12,
+                "endCol": 29
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "collect",

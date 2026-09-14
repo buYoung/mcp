@@ -67,6 +67,106 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "f1f0f08a9f678aafd770198ad8d8de2a30aa5007af1bdf6f056d1bd1ebbe331b",
+      "units": [
+        {
+          "language": "swift",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "Foundation",
+                "source": "Foundation",
+                "kind": "namespace",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 18
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [
+            {
+              "name": "name",
+              "scope": {
+                "startLine": 3,
+                "startCol": 22,
+                "endLine": 10,
+                "endCol": 2
+              },
+              "range": {
+                "startLine": 4,
+                "startCol": 5,
+                "endLine": 4,
+                "endCol": 30
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Worker",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 10,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 5,
+                    "endLine": 9,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "start",

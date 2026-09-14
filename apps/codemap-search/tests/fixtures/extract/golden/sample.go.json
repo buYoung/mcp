@@ -150,6 +150,141 @@
     "TestServerStart is a Go test entry point."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "6a7d20bcc115c9c16de3e3613b7496b006ce55a2fb20ed75039986c0ac82b317",
+      "units": [
+        {
+          "language": "go",
+          "namespace": "sample",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "endpoint",
+              "scope": {
+                "startLine": 10,
+                "startCol": 33,
+                "endLine": 13,
+                "endCol": 2
+              },
+              "range": {
+                "startLine": 11,
+                "startCol": 2,
+                "endLine": 11,
+                "endCol": 30
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Server",
+              "qualifiedName": "sample.Server",
+              "range": {
+                "startLine": 5,
+                "startCol": 6,
+                "endLine": 7,
+                "endCol": 2
+              },
+              "namespace": "sample",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 36,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [
+            {
+              "owner": {
+                "name": "*Server",
+                "arguments": [],
+                "range": {
+                  "startLine": 10,
+                  "startCol": 9,
+                  "endLine": 10,
+                  "endCol": 16
+                }
+              },
+              "contracts": [],
+              "methods": [
+                {
+                  "name": "Start",
+                  "range": {
+                    "startLine": 10,
+                    "startCol": 1,
+                    "endLine": 13,
+                    "endCol": 2
+                  },
+                  "parameters": [],
+                  "returnType": "string",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": true,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "namespace": "sample",
+              "conditions": []
+            },
+            {
+              "owner": {
+                "name": "*Server",
+                "arguments": [],
+                "range": {
+                  "startLine": 18,
+                  "startCol": 9,
+                  "endLine": 18,
+                  "endCol": 16
+                }
+              },
+              "contracts": [],
+              "methods": [
+                {
+                  "name": "LegacyStart",
+                  "range": {
+                    "startLine": 18,
+                    "startCol": 1,
+                    "endLine": 20,
+                    "endCol": 2
+                  },
+                  "parameters": [],
+                  "returnType": "string",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": true,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "namespace": "sample",
+              "conditions": []
+            }
+          ],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "Start",

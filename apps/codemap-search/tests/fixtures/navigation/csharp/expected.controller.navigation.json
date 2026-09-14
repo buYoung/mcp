@@ -1,4 +1,131 @@
 {
+  "implementations": {
+    "sourceDigest": "ba054c2a6685a446ebfc2ccb8342bbecdff826786f2e08ab3c188ff093a92391",
+    "units": [
+      {
+        "language": "csharp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Request",
+              "importedName": "Request",
+              "source": "Demo.Request",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 30
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "request",
+            "scope": {
+              "startLine": 5,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 39
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Controller",
+            "qualifiedName": "Controller",
+            "range": {
+              "startLine": 2,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Handle",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 8,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Service"
+                ],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "Submit",
+            "range": {
+              "startLine": 7,
+              "startCol": 9,
+              "endLine": 7,
+              "endCol": 32
+            },
+            "receiver": {
+              "name": "Service",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 24,
+                "endLine": 4,
+                "endCol": 31
+              }
+            },
+            "namespace": "Controller",
+            "enclosingSymbol": "Handle",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Parse",

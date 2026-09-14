@@ -1,4 +1,143 @@
 {
+  "implementations": {
+    "sourceDigest": "109f16a5ac3bcd37a60ae79faab898a32f08aade45aca401f651c09cf2ac92b5",
+    "units": [
+      {
+        "language": "rust",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Response",
+              "importedName": "Response",
+              "source": "crate::http::Response",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 5,
+                "endLine": 1,
+                "endCol": 26
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "payload",
+            "scope": {
+              "startLine": 11,
+              "startCol": 70,
+              "endLine": 15,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 9,
+              "endLine": 12,
+              "endCol": 42
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 11,
+              "startCol": 70,
+              "endLine": 15,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 9,
+              "endLine": 13,
+              "endCol": 59
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutHandler",
+            "qualifiedName": "CheckoutHandler",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            },
+            "parameters": [
+              "S"
+            ],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "CheckoutHandler",
+              "arguments": [
+                "S"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 27
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "post",
+                "range": {
+                  "startLine": 11,
+                  "startCol": 5,
+                  "endLine": 15,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Bytes"
+                ],
+                "returnType": "Result<Response,Error>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse_order",

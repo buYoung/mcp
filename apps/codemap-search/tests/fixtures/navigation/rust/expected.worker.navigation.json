@@ -1,4 +1,158 @@
 {
+  "implementations": {
+    "sourceDigest": "e45d3562cb9ff790549fcd7a5ebdea6e9d7f12ef8e0c36171ab8d4e899e211ea",
+    "units": [
+      {
+        "language": "rust",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "warn",
+              "importedName": "warn",
+              "source": "tracing::warn",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 5,
+                "endLine": 1,
+                "endCol": 18
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 13,
+              "startCol": 51,
+              "endLine": 25,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 14,
+              "startCol": 9,
+              "endLine": 17,
+              "endCol": 11
+            }
+          },
+          {
+            "name": "retry",
+            "scope": {
+              "startLine": 13,
+              "startCol": 51,
+              "endLine": 25,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 19,
+              "startCol": 16,
+              "endLine": 19,
+              "endCol": 27
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 13,
+              "startCol": 51,
+              "endLine": 25,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 23,
+              "startCol": 9,
+              "endLine": 23,
+              "endCol": 58
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Worker",
+            "qualifiedName": "Worker",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            },
+            "parameters": [
+              "Q",
+              "P"
+            ],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "Worker",
+              "arguments": [
+                "Q",
+                "P"
+              ],
+              "range": {
+                "startLine": 8,
+                "startCol": 12,
+                "endLine": 8,
+                "endCol": 24
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "tick",
+                "range": {
+                  "startLine": 13,
+                  "startCol": 5,
+                  "endLine": 25,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "Result<(),Error>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "next",

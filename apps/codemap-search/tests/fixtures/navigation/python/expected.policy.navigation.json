@@ -1,4 +1,123 @@
 {
+  "implementations": {
+    "sourceDigest": "2f3e9001126a07802313961b392146503933b15809c16d336047fc5fb178dfe5",
+    "units": [
+      {
+        "language": "python",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Protocol",
+              "importedName": "Protocol",
+              "source": "typing",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 28
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 9,
+              "startCol": 5,
+              "endLine": 16,
+              "endCol": 20
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 5,
+              "endLine": 9,
+              "endCol": 29
+            }
+          },
+          {
+            "name": "passed",
+            "scope": {
+              "startLine": 11,
+              "startCol": 9,
+              "endLine": 13,
+              "endCol": 53
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 9,
+              "endLine": 11,
+              "endCol": 35
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Rule",
+            "qualifiedName": "Rule",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 40
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "check",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 5,
+                  "endLine": 5,
+                  "endCol": 40
+                },
+                "parameters": [
+                  "?",
+                  "?"
+                ],
+                "returnType": "bool",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": false,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "check",

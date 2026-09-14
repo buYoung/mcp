@@ -1,4 +1,264 @@
 {
+  "implementations": {
+    "sourceDigest": "fe9a147210ff97723c32be00659e83a4a4ad83d15ce110eb3aeb5e5aacc4be80",
+    "units": [
+      {
+        "language": "go",
+        "namespace": "checkout",
+        "imports": [
+          {
+            "entry": {
+              "localName": "json",
+              "importedName": "json",
+              "source": "encoding/json",
+              "kind": "named",
+              "range": {
+                "startLine": 4,
+                "startCol": 2,
+                "endLine": 4,
+                "endCol": 17
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 28,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "http",
+              "importedName": "http",
+              "source": "net/http",
+              "kind": "named",
+              "range": {
+                "startLine": 5,
+                "startCol": 2,
+                "endLine": 5,
+                "endCol": 12
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 28,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "decoder",
+            "scope": {
+              "startLine": 12,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 2,
+              "endLine": 13,
+              "endCol": 36
+            }
+          },
+          {
+            "name": "request",
+            "scope": {
+              "startLine": 12,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 14,
+              "startCol": 2,
+              "endLine": 14,
+              "endCol": 28
+            }
+          },
+          {
+            "name": "err",
+            "scope": {
+              "startLine": 12,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 15,
+              "startCol": 5,
+              "endLine": 15,
+              "endCol": 36
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 12,
+              "startCol": 68,
+              "endLine": 27,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 20,
+              "startCol": 2,
+              "endLine": 20,
+              "endCol": 56
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Handler",
+            "qualifiedName": "checkout.Handler",
+            "range": {
+              "startLine": 8,
+              "startCol": 6,
+              "endLine": 10,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 28,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "Handler",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 9,
+                "endLine": 12,
+                "endCol": 16
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "ServeHTTP",
+                "range": {
+                  "startLine": 12,
+                  "startCol": 1,
+                  "endLine": 27,
+                  "endCol": 2
+                },
+                "parameters": [
+                  "http.ResponseWriter",
+                  "*http.Request"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "checkout",
+            "conditions": []
+          }
+        ],
+        "calls": [
+          {
+            "name": "WriteHeader",
+            "range": {
+              "startLine": 16,
+              "startCol": 3,
+              "endLine": 16,
+              "endCol": 39
+            },
+            "receiver": {
+              "name": "http.ResponseWriter",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 30,
+                "endLine": 12,
+                "endCol": 49
+              }
+            },
+            "namespace": "checkout",
+            "enclosingSymbol": "ServeHTTP",
+            "argumentCount": 1,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          },
+          {
+            "name": "Context",
+            "range": {
+              "startLine": 20,
+              "startCol": 35,
+              "endLine": 20,
+              "endCol": 46
+            },
+            "receiver": {
+              "name": "*http.Request",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 53,
+                "endLine": 12,
+                "endCol": 66
+              }
+            },
+            "namespace": "checkout",
+            "enclosingSymbol": "ServeHTTP",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "WriteHeader",
+            "range": {
+              "startLine": 22,
+              "startCol": 3,
+              "endLine": 22,
+              "endCol": 48
+            },
+            "receiver": {
+              "name": "http.ResponseWriter",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 30,
+                "endLine": 12,
+                "endCol": 49
+              }
+            },
+            "namespace": "checkout",
+            "enclosingSymbol": "ServeHTTP",
+            "argumentCount": 1,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "NewDecoder",

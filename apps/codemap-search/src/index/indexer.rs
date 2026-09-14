@@ -62,6 +62,7 @@ pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 pub struct PublishedIndexSnapshot {
     codemap: CodemapSnapshot,
     event_index: crate::events::EventIndex,
+    implementation_index: crate::implementations::ImplementationIndex,
     workspace_catalog: crate::codemap::WorkspaceCatalog,
     records: Vec<StaticCollectionRecord>,
     records_by_path: HashMap<String, Vec<usize>>,
@@ -171,9 +172,15 @@ impl PublishedIndexSnapshot {
             "published workspace catalog"
         );
         let event_index = crate::events::EventIndex::build(&files, event_inputs);
+        let files = Arc::new(files);
+        let implementation_index = crate::implementations::ImplementationIndex::build(
+            Arc::clone(&files),
+            event_index.indexed_sources(),
+        );
         Self {
-            codemap: Arc::new(files),
+            codemap: files,
             event_index,
+            implementation_index,
             workspace_catalog,
             records,
             records_by_path,
@@ -185,6 +192,10 @@ impl PublishedIndexSnapshot {
 
     pub(crate) fn events(&self) -> &crate::events::EventIndex {
         &self.event_index
+    }
+
+    pub(crate) fn implementations(&self) -> &crate::implementations::ImplementationIndex {
+        &self.implementation_index
     }
 
     pub fn codemap(&self) -> CodemapSnapshot {

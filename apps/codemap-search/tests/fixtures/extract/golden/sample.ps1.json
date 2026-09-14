@@ -71,6 +71,90 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "43eaa1662cfa8333ea0976f044031a36a0019bbaa172fe9c29571e1bf1700485",
+      "units": [
+        {
+          "language": "powershell",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "Demo.Helper",
+                "source": "Demo.Helper",
+                "kind": "namespace",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 28
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 10,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Worker",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 9,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 10,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "Run",
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 5,
+                    "endLine": 8,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "Import-Module",

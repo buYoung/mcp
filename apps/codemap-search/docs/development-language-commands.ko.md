@@ -243,3 +243,29 @@ cargo test --locked --lib events::
 ```
 
 검증에서만 쓰는 임시 앱의 생성·편집·삭제, import한 버스·키의 변경, 규칙·대상·Git/디렉터리 제외 설정의 재로드, 테스트 코드 포함 전환, 재시작을 확인합니다. 원본 Corral에는 이 예제 설정을 적용하지 않았습니다. Corral에서 확인한 사용자 규칙의 `platform:window-op` 연결은 명시적으로 선언한 버스 가정이며 실제 이벤트 전달을 보장하지 않습니다. 자세한 근거와 남은 한계는 저장소 루트의 `docs/briefs/evidence/codemap-nav/event-map.json`과 `integration.json`에 기록합니다.
+
+## 추상 선언과 구현 후보
+
+검증용 예제는 `/Users/buyong/tmp/cm-nav/implementations`에 보존합니다. 별도 기능 설정 없이 선언→구현, 구현→선언, 호출→후보를 확인합니다.
+
+```sh
+cd /Users/buyong/tmp/cm-nav/implementations
+
+# 추상 선언 → EmailSender.send·SmsSender.send의 정의 위치
+cm read '{"file_path":"src/sender.ts","offset":2,"limit":1}'
+
+# 구현 → Sender.send 선언 위치
+cm read '{"file_path":"src/email.ts","offset":3,"limit":1,"view":"relations"}'
+
+# 타입이 있는 호출 → 선언·구현 후보, 실제 실행 대상은 unresolved
+cm grep '{"path":"src/notify.ts","pattern":"sender\\.send","view":"relations"}'
+
+# 문자열 또는 타입을 알 수 없는 호출만 읽으면 구현 섹션 없음
+cm read '{"file_path":"src/notify.ts","offset":5,"limit":1}'
+cm read '{"file_path":"src/notify.ts","offset":6,"limit":1}'
+
+# 관계 없이 원문 확인
+cm read '{"file_path":"src/sender.ts","offset":1,"limit":3,"view":"source"}'
+```
+
+지원 문법, 자동 표시 조건과 미해결 범위는 [추상 선언·구현 탐색](implementation-navigation.ko.md)에 정리했습니다. 이 기능의 언어별 회귀 검증은 `cargo test --locked --lib implementations::tests::`, 실제 MCP 검증은 `cargo test --locked --test e2e_tests test_implementation_`로 다시 실행할 수 있습니다.

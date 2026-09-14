@@ -129,6 +129,160 @@
     "@deprecated use start instead"
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "9cb9b1f26c4eb33a91b2ae82308695a39b902a50143e14b45d20a4c20ebb6d91",
+      "units": [
+        {
+          "language": "cpp",
+          "namespace": "",
+          "imports": [],
+          "shadows": [],
+          "types": [
+            {
+              "name": "Point",
+              "qualifiedName": "Point",
+              "range": {
+                "startLine": 6,
+                "startCol": 1,
+                "endLine": 13,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 29,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "label",
+                  "range": {
+                    "startLine": 10,
+                    "startCol": 5,
+                    "endLine": 12,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "char",
+                  "qualifiers": "const",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            },
+            {
+              "name": "Service",
+              "qualifiedName": "Service",
+              "range": {
+                "startLine": 16,
+                "startCol": 1,
+                "endLine": 28,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 29,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "start",
+                  "range": {
+                    "startLine": 19,
+                    "startCol": 5,
+                    "endLine": 19,
+                    "endCol": 18
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "startLegacy",
+                  "range": {
+                    "startLine": 24,
+                    "startCol": 5,
+                    "endLine": 24,
+                    "endCol": 24
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "hiddenState",
+                  "range": {
+                    "startLine": 27,
+                    "startCol": 5,
+                    "endLine": 27,
+                    "endCol": 23
+                  },
+                  "parameters": [],
+                  "returnType": "int",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": false,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [],
     "references": [],
     "localBindings": [],

@@ -1,4 +1,122 @@
 {
+  "implementations": {
+    "sourceDigest": "2c385760a21fd03235dc4729469db2af32438b601d541752849cf707074d5b79",
+    "units": [
+      {
+        "language": "go",
+        "namespace": "main",
+        "imports": [
+          {
+            "entry": {
+              "localName": "fmt",
+              "importedName": "fmt",
+              "source": "fmt",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 8,
+                "endLine": 3,
+                "endCol": 13
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "service",
+            "scope": {
+              "startLine": 9,
+              "startCol": 12,
+              "endLine": 13,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 2,
+              "endLine": 10,
+              "endCol": 27
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "UserService",
+            "qualifiedName": "main.UserService",
+            "range": {
+              "startLine": 5,
+              "startCol": 6,
+              "endLine": 5,
+              "endCol": 26
+            },
+            "namespace": "main",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [
+          {
+            "owner": {
+              "name": "*UserService",
+              "arguments": [],
+              "range": {
+                "startLine": 7,
+                "startCol": 15,
+                "endLine": 7,
+                "endCol": 27
+              }
+            },
+            "contracts": [],
+            "methods": [
+              {
+                "name": "Save",
+                "range": {
+                  "startLine": 7,
+                  "startCol": 1,
+                  "endLine": 7,
+                  "endCol": 38
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": true,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "namespace": "main",
+            "conditions": []
+          }
+        ],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Save",

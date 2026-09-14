@@ -1,4 +1,68 @@
 {
+  "implementations": {
+    "sourceDigest": "1d96b91524dee55ea979855c7cd5c69ff1ebcbbd66c1e8225d625f1a1e6b9c58",
+    "units": [
+      {
+        "language": "php",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [
+          {
+            "name": "Basic",
+            "qualifiedName": "Basic",
+            "range": {
+              "startLine": 2,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "ready",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 4,
+                  "endCol": 37
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [],
   "references": [],
   "localBindings": [],

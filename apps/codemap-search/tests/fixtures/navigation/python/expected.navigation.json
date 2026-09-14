@@ -1,4 +1,145 @@
 {
+  "implementations": {
+    "sourceDigest": "f71bf0c60a176417811e9b4b673fd9da23c29ccd6fcfbbeaf696b945a854997f",
+    "units": [
+      {
+        "language": "python",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "UserService",
+              "importedName": "UserService",
+              "source": "services.user",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 38
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "os",
+              "kind": "default",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 10
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "UserService",
+              "importedName": "UserService",
+              "source": "services.user",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 38
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "user",
+            "scope": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 23
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 25
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Controller",
+            "qualifiedName": "Controller",
+            "range": {
+              "startLine": 11,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 14
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "handle",
+                "range": {
+                  "startLine": 12,
+                  "startCol": 5,
+                  "endLine": 13,
+                  "endCol": 14
+                },
+                "parameters": [
+                  "?"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": false,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "UserService",

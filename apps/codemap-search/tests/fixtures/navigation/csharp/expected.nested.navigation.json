@@ -1,4 +1,155 @@
 {
+  "implementations": {
+    "sourceDigest": "6b62d8eeb7c998496cddf1397a887b7c612705771ac1aad4cebee51913cf94f0",
+    "units": [
+      {
+        "language": "csharp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Repo",
+              "importedName": "Repository",
+              "source": "Demo.Repository",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 30
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 5,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 32
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Service",
+            "qualifiedName": "Service",
+            "range": {
+              "startLine": 2,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Run",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 8,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "Mapper",
+                  "Repo"
+                ],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "Map",
+            "range": {
+              "startLine": 6,
+              "startCol": 19,
+              "endLine": 6,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "Mapper",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 21,
+                "endLine": 4,
+                "endCol": 27
+              }
+            },
+            "namespace": "Service",
+            "enclosingSymbol": "Run",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "Save",
+            "range": {
+              "startLine": 7,
+              "startCol": 9,
+              "endLine": 7,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "Repo",
+              "arguments": [],
+              "range": {
+                "startLine": 4,
+                "startCol": 36,
+                "endLine": 4,
+                "endCol": 40
+              }
+            },
+            "namespace": "Service",
+            "enclosingSymbol": "Run",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Map",

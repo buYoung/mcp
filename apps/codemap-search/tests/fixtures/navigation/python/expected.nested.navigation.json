@@ -1,4 +1,269 @@
 {
+  "implementations": {
+    "sourceDigest": "f220156d9d14e5c5f3fbd8eff323791bc339ff3fdb9bed19f181033d54bd9d82",
+    "units": [
+      {
+        "language": "python",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "dataclass",
+              "importedName": "dataclass",
+              "source": "dataclasses",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 34
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Decimal",
+              "importedName": "Decimal",
+              "source": "decimal",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 28
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "dataclass",
+              "importedName": "dataclass",
+              "source": "dataclasses",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 34
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Decimal",
+              "importedName": "Decimal",
+              "source": "decimal",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 28
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "total",
+            "scope": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 7,
+              "endCol": 19
+            },
+            "range": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 7,
+              "endCol": 19
+            }
+          },
+          {
+            "name": "self",
+            "scope": {
+              "startLine": 19,
+              "startCol": 9,
+              "endLine": 21,
+              "endCol": 29
+            },
+            "range": {
+              "startLine": 19,
+              "startCol": 9,
+              "endLine": 19,
+              "endCol": 25
+            }
+          },
+          {
+            "name": "self",
+            "scope": {
+              "startLine": 19,
+              "startCol": 9,
+              "endLine": 21,
+              "endCol": 29
+            },
+            "range": {
+              "startLine": 20,
+              "startCol": 9,
+              "endLine": 20,
+              "endCol": 35
+            }
+          },
+          {
+            "name": "self",
+            "scope": {
+              "startLine": 19,
+              "startCol": 9,
+              "endLine": 21,
+              "endCol": 29
+            },
+            "range": {
+              "startLine": 21,
+              "startCol": 9,
+              "endLine": 21,
+              "endCol": 29
+            }
+          },
+          {
+            "name": "total",
+            "scope": {
+              "startLine": 25,
+              "startCol": 9,
+              "endLine": 34,
+              "endCol": 19
+            },
+            "range": {
+              "startLine": 28,
+              "startCol": 9,
+              "endLine": 28,
+              "endCol": 56
+            }
+          },
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 25,
+              "startCol": 9,
+              "endLine": 34,
+              "endCol": 19
+            },
+            "range": {
+              "startLine": 29,
+              "startCol": 9,
+              "endLine": 29,
+              "endCol": 36
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderDto",
+            "qualifiedName": "OrderDto",
+            "range": {
+              "startLine": 6,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 19
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "CheckoutService",
+            "qualifiedName": "CheckoutService",
+            "range": {
+              "startLine": 17,
+              "startCol": 1,
+              "endLine": 34,
+              "endCol": 19
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 35,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "submit",
+                "range": {
+                  "startLine": 24,
+                  "startCol": 5,
+                  "endLine": 34,
+                  "endCol": 19
+                },
+                "parameters": [
+                  "?",
+                  "list[dict[str,Decimal]]"
+                ],
+                "returnType": "OrderDto",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": false,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "dataclass",

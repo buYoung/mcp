@@ -1,4 +1,212 @@
 {
+  "implementations": {
+    "sourceDigest": "5b54b53ce9b2675c12845adbefcc2382d9aeff3ed9d5fe0d987ff68579d8bb0c",
+    "units": [
+      {
+        "language": "cpp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "order",
+              "importedName": "order",
+              "source": "order.hpp",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "memory",
+              "importedName": "memory",
+              "source": "memory",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "vector",
+              "importedName": "vector",
+              "source": "vector",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 4,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 9,
+              "endLine": 13,
+              "endCol": 39
+            }
+          },
+          {
+            "name": "audit",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 14,
+              "startCol": 9,
+              "endLine": 14,
+              "endCol": 70
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Result",
+            "qualifiedName": "Result",
+            "range": {
+              "startLine": 6,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "CheckoutService",
+            "qualifiedName": "CheckoutService",
+            "range": {
+              "startLine": 10,
+              "startCol": 1,
+              "endLine": 26,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "submit",
+                "range": {
+                  "startLine": 12,
+                  "startCol": 5,
+                  "endLine": 20,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "std::vector<OrderLine>"
+                ],
+                "returnType": "Result<OrderDto>",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "commit",
+            "range": {
+              "startLine": 18,
+              "startCol": 9,
+              "endLine": 18,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "auto",
+              "arguments": [],
+              "range": {
+                "startLine": 14,
+                "startCol": 9,
+                "endLine": 14,
+                "endCol": 13
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "map",

@@ -74,6 +74,7 @@ fn class_scope(mut node: Node) -> Option<usize> {
             "class"
                 | "class_definition"
                 | "class_declaration"
+                | "abstract_class_declaration"
                 | "class_specifier"
                 | "struct_specifier"
                 | "class_statement"
@@ -495,6 +496,7 @@ mod tests {
     #[test]
     fn class_members_require_the_languages_receiver_and_the_same_class_scope() {
         for (name, source, good_line) in [
+            ("abstract.ts", "abstract class A {\n abstract target(): void;\n run() { this.target(); }\n bad() { target(); }\n}\nclass B extends A { target() {} }\n", 3),
             ("case.ts", "class A {\n target() {}\n run() { this.target(); }\n bare() { target(); }\n nested() { function inner() { this.target(); } }\n}\n", 3),
             ("case.php", "<?php class A {\n function target() {}\n function run() { $this->target(); }\n function bare() { target(); }\n}\n", 3),
             ("case.ps1", "class A {\n [void] target() {}\n [void] run() { $this.target() }\n [void] bare() { target }\n}\n", 3),

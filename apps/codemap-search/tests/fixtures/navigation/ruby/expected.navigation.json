@@ -1,4 +1,68 @@
 {
+  "implementations": {
+    "sourceDigest": "248e88b5ce13e79ac3482b128537bcf7c9a949b58bc5e239ed84af000319ff46",
+    "units": [
+      {
+        "language": "ruby",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [
+          {
+            "name": "Basic",
+            "qualifiedName": "Basic",
+            "range": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 4
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "ready",
+                "range": {
+                  "startLine": 2,
+                  "startCol": 3,
+                  "endLine": 3,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [],
   "references": [],
   "localBindings": [],

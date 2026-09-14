@@ -1,4 +1,220 @@
 {
+  "implementations": {
+    "sourceDigest": "0fb549d1f1ca0b345e82497f1572fefcfd7826e10ef832fe0b50621e3f65bc93",
+    "units": [
+      {
+        "language": "java",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "UserService",
+              "importedName": "UserService",
+              "source": "com.example",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 32
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "UserService",
+              "importedName": "com.example.UserService",
+              "source": "com.example.UserService",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 32
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "userService",
+            "scope": {
+              "startLine": 4,
+              "startCol": 16,
+              "endLine": 7,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 5,
+              "startCol": 9,
+              "endLine": 5,
+              "endCol": 53
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Controller",
+            "qualifiedName": "Controller",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "run",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 7,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "UserService",
+            "qualifiedName": "UserService",
+            "range": {
+              "startLine": 10,
+              "startCol": 1,
+              "endLine": 12,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "save",
+                "range": {
+                  "startLine": 11,
+                  "startCol": 5,
+                  "endLine": 11,
+                  "endCol": 19
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "UserService",
+            "range": {
+              "startLine": 5,
+              "startCol": 35,
+              "endLine": 5,
+              "endCol": 52
+            },
+            "receiver": {
+              "name": "Controller",
+              "arguments": [],
+              "range": {
+                "startLine": 5,
+                "startCol": 35,
+                "endLine": 5,
+                "endCol": 52
+              }
+            },
+            "namespace": "Controller",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "save",
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 27
+            },
+            "receiver": {
+              "name": "UserService",
+              "arguments": [],
+              "range": {
+                "startLine": 5,
+                "startCol": 9,
+                "endLine": 5,
+                "endCol": 20
+              }
+            },
+            "namespace": "Controller",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "UserService",

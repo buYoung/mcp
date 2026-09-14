@@ -1,4 +1,89 @@
 {
+  "implementations": {
+    "sourceDigest": "7ed21390b80337c6b54b423a39eb34bc62a8d1420066c142dbefe0ed53757795",
+    "units": [
+      {
+        "language": "python",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "json",
+              "kind": "default",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 12
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "parse_order",
+              "importedName": "parse_order",
+              "source": "checkout.parser",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 40
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 10,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "payload",
+            "scope": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 9,
+              "endCol": 33
+            },
+            "range": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 7,
+              "endCol": 52
+            }
+          },
+          {
+            "name": "result",
+            "scope": {
+              "startLine": 7,
+              "startCol": 5,
+              "endLine": 9,
+              "endCol": 33
+            },
+            "range": {
+              "startLine": 8,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 37
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse_order",

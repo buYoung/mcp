@@ -1,4 +1,91 @@
 {
+  "implementations": {
+    "sourceDigest": "55b6bc4faa76b2f483514599d53afb428196b828995a7c2321ea049d29703475",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "useEffect",
+              "importedName": "useEffect",
+              "source": "react",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 45
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "useState",
+              "importedName": "useState",
+              "source": "react",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 45
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "orders",
+            "scope": {
+              "startLine": 3,
+              "startCol": 69,
+              "endLine": 17,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 9,
+              "endLine": 4,
+              "endCol": 59
+            }
+          },
+          {
+            "name": "setOrders",
+            "scope": {
+              "startLine": 3,
+              "startCol": 69,
+              "endLine": 17,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 9,
+              "endLine": 4,
+              "endCol": 59
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "useState",

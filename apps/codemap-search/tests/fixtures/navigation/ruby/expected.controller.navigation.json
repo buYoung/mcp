@@ -1,4 +1,71 @@
 {
+  "implementations": {
+    "sourceDigest": "a7dbb1c72f8b46a7bdde6f95ab2aa0683452cafc3b83f029ff6dd07c9eb563af",
+    "units": [
+      {
+        "language": "ruby",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "request",
+              "importedName": "request",
+              "source": "./request",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 27
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "service",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 12,
+              "endLine": 2,
+              "endCol": 19
+            }
+          },
+          {
+            "name": "request",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 3,
+              "endLine": 3,
+              "endCol": 28
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse",

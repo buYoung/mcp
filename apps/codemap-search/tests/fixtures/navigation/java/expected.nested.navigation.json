@@ -1,4 +1,302 @@
 {
+  "implementations": {
+    "sourceDigest": "8d5e7771bf37f3bef09acd59ab52633e91bec217e73f7eb742b848187970c214",
+    "units": [
+      {
+        "language": "java",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "List",
+              "importedName": "List",
+              "source": "java.util",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 23
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 33,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Service",
+              "importedName": "Service",
+              "source": "org.springframework.stereotype",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 47
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 33,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "List",
+              "importedName": "java.util.List",
+              "source": "java.util.List",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 23
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 33,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Service",
+              "importedName": "org.springframework.stereotype.Service",
+              "source": "org.springframework.stereotype.Service",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 47
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 33,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 17,
+              "startCol": 43,
+              "endLine": 25,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 18,
+              "startCol": 9,
+              "endLine": 18,
+              "endCol": 42
+            }
+          },
+          {
+            "name": "event",
+            "scope": {
+              "startLine": 17,
+              "startCol": 43,
+              "endLine": 25,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 19,
+              "startCol": 9,
+              "endLine": 19,
+              "endCol": 77
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutService",
+            "qualifiedName": "CheckoutService",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 32,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 33,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "submit",
+                "range": {
+                  "startLine": 16,
+                  "startCol": 5,
+                  "endLine": 25,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "List<OrderLine>"
+                ],
+                "returnType": "Receipt",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Receipt",
+            "qualifiedName": "CheckoutService.Receipt",
+            "range": {
+              "startLine": 27,
+              "startCol": 5,
+              "endLine": 31,
+              "endCol": 6
+            },
+            "namespace": "CheckoutService",
+            "scope": {
+              "startLine": 5,
+              "startCol": 23,
+              "endLine": 32,
+              "endCol": 2
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "from",
+                "range": {
+                  "startLine": 28,
+                  "startCol": 9,
+                  "endLine": 30,
+                  "endCol": 10
+                },
+                "parameters": [
+                  "OrderDto"
+                ],
+                "returnType": "Receipt",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": true,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": true,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "total",
+            "range": {
+              "startLine": 19,
+              "startCol": 64,
+              "endLine": 19,
+              "endCol": 75
+            },
+            "receiver": {
+              "name": "OrderDto",
+              "arguments": [],
+              "range": {
+                "startLine": 18,
+                "startCol": 9,
+                "endLine": 18,
+                "endCol": 17
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "commit",
+            "range": {
+              "startLine": 23,
+              "startCol": 9,
+              "endLine": 23,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "AuditEvent",
+              "arguments": [],
+              "range": {
+                "startLine": 19,
+                "startCol": 9,
+                "endLine": 19,
+                "endCol": 19
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "Receipt",
+            "range": {
+              "startLine": 29,
+              "startCol": 20,
+              "endLine": 29,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "CheckoutService.Receipt",
+              "arguments": [],
+              "range": {
+                "startLine": 29,
+                "startCol": 20,
+                "endLine": 29,
+                "endCol": 33
+              }
+            },
+            "namespace": "CheckoutService.Receipt",
+            "enclosingSymbol": "from",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "map",

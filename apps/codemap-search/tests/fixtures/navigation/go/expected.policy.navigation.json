@@ -1,4 +1,107 @@
 {
+  "implementations": {
+    "sourceDigest": "b35600bb11afb892530b35ff08beae295500c328d321688b9d84dad4db4370a4",
+    "units": [
+      {
+        "language": "go",
+        "namespace": "checkout",
+        "imports": [
+          {
+            "entry": {
+              "localName": "errors",
+              "importedName": "errors",
+              "source": "errors",
+              "kind": "named",
+              "range": {
+                "startLine": 3,
+                "startCol": 8,
+                "endLine": 3,
+                "endCol": 16
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "failures",
+            "scope": {
+              "startLine": 9,
+              "startCol": 51,
+              "endLine": 20,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 2,
+              "endLine": 10,
+              "endCol": 24
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "Rule",
+            "qualifiedName": "checkout.Rule",
+            "range": {
+              "startLine": 5,
+              "startCol": 6,
+              "endLine": 7,
+              "endCol": 2
+            },
+            "namespace": "checkout",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Check",
+                "range": {
+                  "startLine": 6,
+                  "startCol": 2,
+                  "endLine": 6,
+                  "endCol": 22
+                },
+                "parameters": [
+                  "OrderDTO"
+                ],
+                "returnType": "bool",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "Check",

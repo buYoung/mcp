@@ -1,4 +1,169 @@
 {
+  "implementations": {
+    "sourceDigest": "28b4e780142fdfa222180b7bcfdc1b3260ad7aee107ae30ab0d0e6864fb76d93",
+    "units": [
+      {
+        "language": "cpp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "worker",
+              "importedName": "worker",
+              "source": "worker.hpp",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 6,
+              "startCol": 9,
+              "endLine": 6,
+              "endCol": 34
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 9,
+              "endLine": 12,
+              "endCol": 48
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutWorker",
+            "qualifiedName": "CheckoutWorker",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 21,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "tick",
+                "range": {
+                  "startLine": 5,
+                  "startCol": 5,
+                  "endLine": 14,
+                  "endCol": 6
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "valid",
+            "range": {
+              "startLine": 7,
+              "startCol": 14,
+              "endLine": 7,
+              "endCol": 25
+            },
+            "receiver": {
+              "name": "auto",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 9,
+                "endLine": 6,
+                "endCol": 13
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ]
+          },
+          {
+            "name": "id",
+            "range": {
+              "startLine": 13,
+              "startCol": 20,
+              "endLine": 13,
+              "endCol": 32
+            },
+            "receiver": {
+              "name": "auto",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 9,
+                "endLine": 12,
+                "endCol": 13
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "next",

@@ -1041,27 +1041,40 @@ pub(crate) fn run_inner_with_metadata(
         text,
         workspace_scope,
     );
-    if should_include_events
-        && !ctx.engine.is_warming()
-        && !ctx.engine.is_dead()
-        && ctx.engine.last_error().is_none()
-    {
+    if !ctx.engine.is_warming() && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
         let event_cap = (byte_cap / 2).min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
         let anchors = results
             .iter()
             .map(|result| (result.file_path.clone(), 1, usize::MAX))
             .collect::<Vec<_>>();
         let root = std::env::current_dir().unwrap_or_default();
-        let events =
+        let events = if should_include_events {
             published_snapshot
                 .events()
-                .for_paths(&anchors, workspace_scope, event_cap, &root);
-        if !events.is_empty() {
-            let context_cap = byte_cap.saturating_sub(events.len() + 2);
+                .for_paths(&anchors, workspace_scope, event_cap, &root)
+        } else {
+            String::new()
+        };
+        let implementations = published_snapshot
+            .implementations()
+            .for_paths_with_call_context(
+                &anchors,
+                workspace_scope,
+                event_cap.saturating_sub(events.len()),
+                &root,
+                caller_context_enabled,
+            );
+        let relations = [events, implementations]
+            .into_iter()
+            .filter(|text| !text.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
+        if !relations.is_empty() {
+            let context_cap = byte_cap.saturating_sub(relations.len() + 2);
             let is_partial = output.text.len() > context_cap;
             output.text = finish_search_output(output.text, context_cap, is_partial);
             output.text.push_str("\n\n");
-            output.text.push_str(&events);
+            output.text.push_str(&relations);
         }
     }
     tracing::debug!(

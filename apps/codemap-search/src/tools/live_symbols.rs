@@ -113,6 +113,29 @@ pub(crate) fn append(
             } else {
                 String::new()
             };
+            let anchors = output
+                .anchors
+                .iter()
+                .map(|anchor| {
+                    (
+                        anchor.file_path.clone(),
+                        anchor.start_line.unwrap_or(1),
+                        anchor.end_line.unwrap_or(usize::MAX),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let implementations = if matches!(options.view, LiveView::Full | LiveView::Relations) {
+                snapshot.implementations().for_paths(
+                    &anchors,
+                    None,
+                    if events.is_empty() { cap / 2 } else { cap / 3 },
+                    &root,
+                )
+            } else {
+                String::new()
+            };
+            let cap = cap
+                .saturating_sub(implementations.len() + usize::from(!implementations.is_empty()));
             let cap = if events.is_empty() { cap } else { cap / 2 };
             let source_files = snapshot.codemap();
             let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
@@ -198,6 +221,10 @@ pub(crate) fn append(
             if !events.is_empty() {
                 rendered.push('\n');
                 rendered.push_str(&events);
+            }
+            if !implementations.is_empty() {
+                rendered.push('\n');
+                rendered.push_str(&implementations);
             }
             rendered
         }

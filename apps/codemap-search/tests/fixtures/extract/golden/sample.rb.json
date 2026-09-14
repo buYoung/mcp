@@ -164,6 +164,154 @@
   ],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "24879133539725c7d092b53e9e5944d9f85e6bee3c62fb0eac87cd62968682af",
+      "units": [
+        {
+          "language": "ruby",
+          "namespace": "",
+          "imports": [
+            {
+              "entry": {
+                "localName": "worker",
+                "importedName": "worker",
+                "source": "./worker",
+                "kind": "named",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 26
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 24,
+                "endCol": 1
+              }
+            }
+          ],
+          "shadows": [
+            {
+              "name": "clock",
+              "scope": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 18,
+                "endCol": 4
+              },
+              "range": {
+                "startLine": 8,
+                "startCol": 13,
+                "endLine": 8,
+                "endCol": 18
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Worker",
+              "qualifiedName": "Demo.Worker",
+              "range": {
+                "startLine": 4,
+                "startCol": 3,
+                "endLine": 17,
+                "endCol": 6
+              },
+              "namespace": "Demo",
+              "scope": {
+                "startLine": 3,
+                "startCol": 1,
+                "endLine": 18,
+                "endCol": 4
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "run",
+                  "range": {
+                    "startLine": 8,
+                    "startCol": 5,
+                    "endLine": 11,
+                    "endCol": 8
+                  },
+                  "parameters": [
+                    "?"
+                  ],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": false,
+                  "conditions": []
+                },
+                {
+                  "name": "helper",
+                  "range": {
+                    "startLine": 15,
+                    "startCol": 5,
+                    "endLine": 16,
+                    "endCol": 8
+                  },
+                  "parameters": [],
+                  "returnType": "",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": [
+            {
+              "name": "helper",
+              "range": {
+                "startLine": 9,
+                "startCol": 7,
+                "endLine": 9,
+                "endCol": 15
+              },
+              "receiver": {
+                "name": "Demo.Worker",
+                "arguments": [],
+                "range": {
+                  "startLine": 9,
+                  "startCol": 7,
+                  "endLine": 9,
+                  "endCol": 15
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "run",
+              "argumentCount": 0,
+              "conditions": []
+            }
+          ]
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "helper",

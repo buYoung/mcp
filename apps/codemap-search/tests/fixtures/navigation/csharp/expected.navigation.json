@@ -1,4 +1,68 @@
 {
+  "implementations": {
+    "sourceDigest": "93e8215eed20a875753ae61c80ea0c1b65dd902750de79dfa49e17f49cd03c13",
+    "units": [
+      {
+        "language": "csharp",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [
+          {
+            "name": "Basic",
+            "qualifiedName": "Basic",
+            "range": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "Ready",
+                "range": {
+                  "startLine": 3,
+                  "startCol": 5,
+                  "endLine": 3,
+                  "endCol": 27
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [],
   "references": [],
   "localBindings": [],

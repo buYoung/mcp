@@ -1,4 +1,71 @@
 {
+  "implementations": {
+    "sourceDigest": "bb2dace5fc58fe9d983855bff4bec6e265137c05341331ac4aa5d07a0ff7a32d",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "useMemo",
+              "importedName": "useMemo",
+              "source": "react",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 33
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 24,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "visible",
+            "scope": {
+              "startLine": 11,
+              "startCol": 4,
+              "endLine": 23,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 9,
+              "endLine": 12,
+              "endCol": 79
+            }
+          },
+          {
+            "name": "MenuItem",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 24,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 3,
+              "endCol": 65
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "useMemo",

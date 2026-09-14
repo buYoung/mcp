@@ -1,4 +1,19 @@
 {
+  "implementations": {
+    "sourceDigest": "f7005a1787b3e0b000c6454c4651caa406127d6a8a91b455563cfaa1eb9705da",
+    "units": [
+      {
+        "language": "groovy",
+        "namespace": "",
+        "imports": [],
+        "shadows": [],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [],
   "references": [
     {

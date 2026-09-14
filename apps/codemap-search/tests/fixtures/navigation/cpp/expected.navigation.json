@@ -1,4 +1,187 @@
 {
+  "implementations": {
+    "sourceDigest": "71e1dfa3daca62e4ab4377ca5cc263bc940c5e3d93d30583215c72c64a19ac45",
+    "units": [
+      {
+        "language": "cpp",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "user",
+              "importedName": "user",
+              "source": "user.hpp",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "vector",
+              "importedName": "vector",
+              "source": "vector",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 3,
+                "endCol": 1
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "user",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 5,
+              "endLine": 12,
+              "endCol": 15
+            }
+          },
+          {
+            "name": "pointer",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 5,
+              "endLine": 13,
+              "endCol": 27
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "User",
+            "qualifiedName": "User",
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 18,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "save",
+                "range": {
+                  "startLine": 6,
+                  "startCol": 5,
+                  "endLine": 6,
+                  "endCol": 19
+                },
+                "parameters": [],
+                "returnType": "void",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "save",
+            "range": {
+              "startLine": 14,
+              "startCol": 5,
+              "endLine": 14,
+              "endCol": 16
+            },
+            "receiver": {
+              "name": "User",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 5,
+                "endLine": 12,
+                "endCol": 9
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          },
+          {
+            "name": "save",
+            "range": {
+              "startLine": 15,
+              "startCol": 5,
+              "endLine": 15,
+              "endCol": 20
+            },
+            "receiver": {
+              "name": "User",
+              "arguments": [],
+              "range": {
+                "startLine": 13,
+                "startCol": 5,
+                "endLine": 13,
+                "endCol": 9
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "save",

@@ -1,4 +1,122 @@
 {
+  "implementations": {
+    "sourceDigest": "8653cab2d6a20d3256b0758fccfd8b99e255e913c837930bfcd3f8bc1eff84dd",
+    "units": [
+      {
+        "language": "kotlin",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "PostMapping",
+              "importedName": "PostMapping",
+              "source": "org.springframework.web.bind.annotation",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 59
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "request",
+            "scope": {
+              "startLine": 8,
+              "startCol": 53,
+              "endLine": 12,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 9,
+              "endLine": 9,
+              "endCol": 41
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 8,
+              "startCol": 53,
+              "endLine": 12,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 9,
+              "endLine": 10,
+              "endCol": 46
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "CheckoutController",
+            "qualifiedName": "CheckoutController",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "post",
+                "range": {
+                  "startLine": 7,
+                  "startCol": 5,
+                  "endLine": 12,
+                  "endCol": 6
+                },
+                "parameters": [
+                  "String"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "parse",

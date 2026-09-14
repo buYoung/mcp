@@ -1138,8 +1138,7 @@ fn request_refresh_if_index_scope_changed(
         && previous.use_git_exclude == current.use_git_exclude
         && previous.macro_expansion == current.macro_expansion
         && previous.event_navigation == current.event_navigation
-        && (previous.analysis_target_os == current.analysis_target_os
-            || !current.event_navigation.is_enabled)
+        && previous.analysis_target_os == current.analysis_target_os
     {
         return;
     }

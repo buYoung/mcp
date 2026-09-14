@@ -1,4 +1,86 @@
 {
+  "implementations": {
+    "sourceDigest": "3e4531db70eb7c7753aad03f16b5b6a2dc131b0e325dfa52f9d36f152d536c29",
+    "units": [
+      {
+        "language": "ruby",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "repo",
+              "importedName": "repo",
+              "source": "./repo",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "mapper",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 9,
+              "endLine": 2,
+              "endCol": 15
+            }
+          },
+          {
+            "name": "repo",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 17,
+              "endLine": 2,
+              "endCol": 21
+            }
+          },
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 3,
+              "endLine": 3,
+              "endCol": 21
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "map",

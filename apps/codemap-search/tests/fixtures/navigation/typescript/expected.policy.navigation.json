@@ -1,4 +1,184 @@
 {
+  "implementations": {
+    "sourceDigest": "e5a4b0dcb8519a1af4d559441d757e4f61067ada54900c39fb293ae3bcca4e64",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "Rule",
+              "source": "./rules",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 37
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 19,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "active",
+            "scope": {
+              "startLine": 8,
+              "startCol": 43,
+              "endLine": 17,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 11,
+              "endLine": 9,
+              "endCol": 66
+            }
+          },
+          {
+            "name": "names",
+            "scope": {
+              "startLine": 8,
+              "startCol": 43,
+              "endLine": 17,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 11,
+              "endLine": 15,
+              "endCol": 7
+            }
+          },
+          {
+            "name": "ruleName",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 15,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 13,
+              "endCol": 8
+            }
+          },
+          {
+            "name": "severity",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 15,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 13,
+              "endCol": 8
+            }
+          },
+          {
+            "name": "metadata",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 15,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 13,
+              "endCol": 8
+            }
+          },
+          {
+            "name": "RuleResult",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 19,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 3,
+              "endCol": 68
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderPolicy",
+            "qualifiedName": "OrderPolicy",
+            "range": {
+              "startLine": 5,
+              "startCol": 8,
+              "endLine": 18,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 19,
+              "endCol": 1
+            },
+            "parameters": [
+              "T"
+            ],
+            "bases": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 8,
+                  "startCol": 3,
+                  "endLine": 17,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "Order"
+                ],
+                "returnType": "RuleResult<T>[]",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "filter",

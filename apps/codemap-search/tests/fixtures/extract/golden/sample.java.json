@@ -117,6 +117,173 @@
     "Old fetcher."
   ],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "f6b7bbf8106d6773c83b7ab01ceb3b5494e27ca02d1fc35dd020a1c76e05c2d2",
+      "units": [
+        {
+          "language": "java",
+          "namespace": "",
+          "imports": [],
+          "shadows": [
+            {
+              "name": "label",
+              "scope": {
+                "startLine": 5,
+                "startCol": 27,
+                "endLine": 8,
+                "endCol": 6
+              },
+              "range": {
+                "startLine": 6,
+                "startCol": 9,
+                "endLine": 6,
+                "endCol": 40
+              }
+            }
+          ],
+          "types": [
+            {
+              "name": "Sample",
+              "qualifiedName": "Sample",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 24,
+                "endCol": 2
+              },
+              "namespace": "",
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 25,
+                "endCol": 1
+              },
+              "parameters": [],
+              "bases": [],
+              "methods": [
+                {
+                  "name": "fetch",
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 5,
+                    "endLine": 8,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "String",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "legacyFetch",
+                  "range": {
+                    "startLine": 11,
+                    "startCol": 5,
+                    "endLine": 14,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "String",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "packagePrivateHelper",
+                  "range": {
+                    "startLine": 16,
+                    "startCol": 5,
+                    "endLine": 18,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "String",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                },
+                {
+                  "name": "testFetch",
+                  "range": {
+                    "startLine": 20,
+                    "startCol": 5,
+                    "endLine": 23,
+                    "endCol": 6
+                  },
+                  "parameters": [],
+                  "returnType": "void",
+                  "qualifiers": "",
+                  "isAbstract": false,
+                  "isStatic": false,
+                  "isPrivate": false,
+                  "isFinal": false,
+                  "isVirtual": true,
+                  "isOverride": false,
+                  "isPointerReceiver": false,
+                  "hasKnownSignature": true,
+                  "conditions": []
+                }
+              ],
+              "isContract": false,
+              "isExported": true,
+              "isAbstract": false,
+              "isFinal": false,
+              "isComplete": true,
+              "conditions": []
+            }
+          ],
+          "implementations": [],
+          "calls": [
+            {
+              "name": "Sample",
+              "range": {
+                "startLine": 22,
+                "startCol": 9,
+                "endLine": 22,
+                "endCol": 21
+              },
+              "receiver": {
+                "name": "Sample",
+                "arguments": [],
+                "range": {
+                  "startLine": 22,
+                  "startCol": 9,
+                  "endLine": 22,
+                  "endCol": 21
+                }
+              },
+              "namespace": "Sample",
+              "enclosingSymbol": "testFetch",
+              "argumentCount": 0,
+              "conditions": []
+            }
+          ]
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [
       {
         "name": "fetch",

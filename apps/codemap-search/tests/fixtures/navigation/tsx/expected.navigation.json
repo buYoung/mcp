@@ -1,4 +1,56 @@
 {
+  "implementations": {
+    "sourceDigest": "572313d1dae7ee6db27eb52fd324395fa1ee2c567ffc5ce8dc66343aefc2ed9c",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Panel",
+              "importedName": "Panel",
+              "source": "./panel",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 33
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 11,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "panel",
+            "scope": {
+              "startLine": 3,
+              "startCol": 24,
+              "endLine": 10,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 11,
+              "endLine": 4,
+              "endCol": 30
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "open",

@@ -42,6 +42,21 @@
   "literals": [],
   "docstrings": [],
   "navigation": {
+    "implementations": {
+      "sourceDigest": "ba93d1cc43613c327a1023e8776d9110f524d5f0033baf6526b30be935e3293f",
+      "units": [
+        {
+          "language": "groovy",
+          "namespace": "",
+          "imports": [],
+          "shadows": [],
+          "types": [],
+          "implementations": [],
+          "calls": []
+        }
+      ],
+      "omitted": 0
+    },
     "calls": [],
     "references": [
       {

@@ -1,4 +1,91 @@
 {
+  "implementations": {
+    "sourceDigest": "f24a4d25153659f6a7c00da51282152f5faebc62c3455def55a2f4dd94a3bd27",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "useMemo",
+              "importedName": "useMemo",
+              "source": "react",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 33
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 32,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "formatMoney",
+              "importedName": "formatMoney",
+              "source": "../money",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 40
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 32,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "rows",
+            "scope": {
+              "startLine": 12,
+              "startCol": 4,
+              "endLine": 31,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 9,
+              "endLine": 20,
+              "endCol": 4
+            }
+          },
+          {
+            "name": "LineItem",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 32,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 58
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "useMemo",

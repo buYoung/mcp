@@ -1,4 +1,153 @@
 {
+  "implementations": {
+    "sourceDigest": "3461fb23e77662773d06a1ae59f08e313952d4db71e67f05486f40eeb2fb333c",
+    "units": [
+      {
+        "language": "kotlin",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "UserAlias",
+              "importedName": "User",
+              "source": "com.example",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 37
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "user",
+            "scope": {
+              "startLine": 11,
+              "startCol": 11,
+              "endLine": 14,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 5,
+              "endLine": 12,
+              "endCol": 33
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "User",
+            "qualifiedName": "User",
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "save",
+                "range": {
+                  "startLine": 4,
+                  "startCol": 5,
+                  "endLine": 4,
+                  "endCol": 18
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": false,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "Saver",
+            "qualifiedName": "Saver",
+            "range": {
+              "startLine": 7,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "save",
+                "range": {
+                  "startLine": 8,
+                  "startCol": 5,
+                  "endLine": 8,
+                  "endCol": 15
+                },
+                "parameters": [],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": true,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": true,
+            "isExported": true,
+            "isAbstract": true,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "UserAlias",

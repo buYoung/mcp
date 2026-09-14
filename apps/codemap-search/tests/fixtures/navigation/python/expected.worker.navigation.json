@@ -1,4 +1,84 @@
 {
+  "implementations": {
+    "sourceDigest": "c3b92b63fdd42133e85f3cbc355291413ff2d1eee96334e8255fe57769f7417b",
+    "units": [
+      {
+        "language": "python",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "logging",
+              "kind": "default",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 15
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "logger",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 37
+            }
+          },
+          {
+            "name": "job",
+            "scope": {
+              "startLine": 8,
+              "startCol": 5,
+              "endLine": 15,
+              "endCol": 19
+            },
+            "range": {
+              "startLine": 8,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 27
+            }
+          },
+          {
+            "name": "receipt",
+            "scope": {
+              "startLine": 8,
+              "startCol": 5,
+              "endLine": 15,
+              "endCol": 19
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 5,
+              "endLine": 13,
+              "endCol": 37
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "getLogger",

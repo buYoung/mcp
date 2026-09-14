@@ -1,4 +1,167 @@
 {
+  "implementations": {
+    "sourceDigest": "decfce4232b1f15dc3f06ca94a945b85f0104107416e8b7b9e9cbe7a6ebf0055",
+    "units": [
+      {
+        "language": "javascript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "Rule",
+              "source": "./rules",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 32
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "active",
+            "scope": {
+              "startLine": 8,
+              "startCol": 19,
+              "endLine": 15,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 11,
+              "endLine": 9,
+              "endCol": 66
+            }
+          },
+          {
+            "name": "names",
+            "scope": {
+              "startLine": 8,
+              "startCol": 19,
+              "endLine": 15,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 10,
+              "startCol": 11,
+              "endLine": 13,
+              "endCol": 7
+            }
+          },
+          {
+            "name": "ruleName",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 13,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 11,
+              "endCol": 69
+            }
+          },
+          {
+            "name": "severity",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 13,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 11,
+              "endCol": 69
+            }
+          },
+          {
+            "name": "metadata",
+            "scope": {
+              "startLine": 10,
+              "startCol": 40,
+              "endLine": 13,
+              "endCol": 6
+            },
+            "range": {
+              "startLine": 11,
+              "startCol": 13,
+              "endLine": 11,
+              "endCol": 69
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderPolicy",
+            "qualifiedName": "OrderPolicy",
+            "range": {
+              "startLine": 3,
+              "startCol": 8,
+              "endLine": 16,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 17,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "evaluate",
+                "range": {
+                  "startLine": 8,
+                  "startCol": 3,
+                  "endLine": 15,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "?"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": false,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "filter",

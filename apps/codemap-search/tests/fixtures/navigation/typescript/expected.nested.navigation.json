@@ -1,4 +1,284 @@
 {
+  "implementations": {
+    "sourceDigest": "2cbb081e330114f01f140ed882d7c0669e95d59f6b224a946c9fe8499310fc00",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "OrderRepository",
+              "importedName": "OrderRepository",
+              "source": "./repository",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 48
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "createAudit",
+              "importedName": "createAudit",
+              "source": "./audit",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 39
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "total",
+            "scope": {
+              "startLine": 12,
+              "startCol": 51,
+              "endLine": 15,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 13,
+              "startCol": 11,
+              "endLine": 13,
+              "endCol": 91
+            }
+          },
+          {
+            "name": "dto",
+            "scope": {
+              "startLine": 25,
+              "startCol": 45,
+              "endLine": 31,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 26,
+              "startCol": 11,
+              "endLine": 26,
+              "endCol": 44
+            }
+          },
+          {
+            "name": "audit",
+            "scope": {
+              "startLine": 25,
+              "startCol": 45,
+              "endLine": 31,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 27,
+              "startCol": 11,
+              "endLine": 27,
+              "endCol": 41
+            }
+          },
+          {
+            "name": "OrderLine",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 4,
+              "startCol": 1,
+              "endLine": 4,
+              "endCol": 64
+            }
+          },
+          {
+            "name": "OrderDto",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 5,
+              "startCol": 1,
+              "endLine": 5,
+              "endCol": 75
+            }
+          }
+        ],
+        "types": [
+          {
+            "name": "OrderMapper",
+            "qualifiedName": "OrderMapper",
+            "range": {
+              "startLine": 11,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "mapOrder",
+                "range": {
+                  "startLine": 12,
+                  "startCol": 3,
+                  "endLine": 15,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "readonlyOrderLine[]"
+                ],
+                "returnType": "OrderDto",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": false,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          },
+          {
+            "name": "CheckoutService",
+            "qualifiedName": "CheckoutService",
+            "range": {
+              "startLine": 18,
+              "startCol": 8,
+              "endLine": 36,
+              "endCol": 2
+            },
+            "namespace": "",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 37,
+              "endCol": 1
+            },
+            "parameters": [],
+            "bases": [],
+            "methods": [
+              {
+                "name": "submit",
+                "range": {
+                  "startLine": 25,
+                  "startCol": 3,
+                  "endLine": 31,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "readonlyOrderLine[]"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": false,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              },
+              {
+                "name": "toDto",
+                "range": {
+                  "startLine": 33,
+                  "startCol": 3,
+                  "endLine": 35,
+                  "endCol": 4
+                },
+                "parameters": [
+                  "OrderDto"
+                ],
+                "returnType": "",
+                "qualifiers": "",
+                "isAbstract": false,
+                "isStatic": false,
+                "isPrivate": true,
+                "isFinal": false,
+                "isVirtual": true,
+                "isOverride": false,
+                "isPointerReceiver": false,
+                "hasKnownSignature": true,
+                "conditions": []
+              }
+            ],
+            "isContract": false,
+            "isExported": true,
+            "isAbstract": false,
+            "isFinal": false,
+            "isComplete": true,
+            "conditions": []
+          }
+        ],
+        "implementations": [],
+        "calls": [
+          {
+            "name": "toDto",
+            "range": {
+              "startLine": 29,
+              "startCol": 29,
+              "endLine": 29,
+              "endCol": 44
+            },
+            "receiver": {
+              "name": "CheckoutService",
+              "arguments": [],
+              "range": {
+                "startLine": 29,
+                "startCol": 29,
+                "endLine": 29,
+                "endCol": 44
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": []
+          }
+        ]
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "reduce",

@@ -1,4 +1,56 @@
 {
+  "implementations": {
+    "sourceDigest": "0b7a17a6eb60e329d71ebd61ee151b88b4b5fa4b138dd70543992009c0b5bf3e",
+    "units": [
+      {
+        "language": "ruby",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "rule",
+              "importedName": "rule",
+              "source": "./rule",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "rule",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 2,
+              "startCol": 11,
+              "endLine": 2,
+              "endCol": 15
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "check",

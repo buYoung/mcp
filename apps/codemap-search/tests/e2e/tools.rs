@@ -37,6 +37,184 @@ fn sample_repo() -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn test_implementation_rust_target_reload_with_events_disabled() {
+    let config = |target: &str| {
+        format!("[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[analysis]\ntarget_os='{target}'\n")
+    };
+    let temp=create_mock_repo(&[
+        ("src/lib.rs","pub trait Runner { fn run(&self); }\npub struct Linux;\n#[cfg(target_os=\"linux\")]\nimpl Runner for Linux { fn run(&self) {} }\npub struct Mac;\n#[cfg(target_os=\"macos\")]\nimpl Runner for Mac { fn run(&self) {} }\n"),
+        (".codemap/config.toml",&config("linux")),
+    ]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args =
+        serde_json::json!({"file_path":"src/lib.rs","offset":1,"limit":1,"view":"relations"});
+    let output = text(
+        &client
+            .send_tool_until("read", args.clone(), |out| {
+                out.contains("implementation candidate: Linux.run")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        output.contains("Linux.run — src/lib.rs:4")
+            && !output.contains("Mac.run")
+            && !output.contains("Event relationships"),
+        "{output}"
+    );
+    std::fs::write(temp.path().join(".codemap/config.toml"), config("macos")).unwrap();
+    let output = text(
+        &client
+            .send_tool_until("read", args, |out| {
+                out.contains("implementation candidate: Mac.run")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        output.contains("Mac.run — src/lib.rs:7")
+            && !output.contains("Linux.run")
+            && !output.contains("Event relationships"),
+        "{output}"
+    );
+}
+
+#[tokio::test]
+async fn test_implementation_context_cli_views_refresh_and_restart() {
+    let implementation="import {Base} from './base';\nexport class Child extends Base { run(): number { return 1; } }\nexport function invoke(value: Base) { return value.run(); }\n";
+    let temp=create_mock_repo(&[
+        ("src/base.ts","export abstract class Base { abstract run(): number; }\nexport const unrelated = 'class Fake extends Base { run() {} }';\n"),
+        ("src/child.ts",implementation),
+        ("src/child.test.ts","import {Base} from './base'; class TestChild extends Base { run(): number { return 2; } }"),
+        ("ignored/child.ts","import {Base} from '../src/base'; class IgnoredChild extends Base { run(): number { return 3; } }"),
+        (".codemap/config.toml","[update]\nconfig_auto_update=false\n[exclude]\nexcluded_directories=['ignored']\n"),
+    ]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let args = serde_json::json!({"file_path":"src/base.ts","offset":1,"limit":1});
+    let baseline = text(
+        &client
+            .send_tool_until("read", args.clone(), |out| {
+                out.contains("implementation candidate: Child.run")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        baseline.contains("Child.run — src/child.ts:2"),
+        "{baseline}"
+    );
+    assert!(
+        baseline.contains("declaration reference: invoke — src/child.ts:3"),
+        "{baseline}"
+    );
+    assert!(
+        !baseline.contains("TestChild")
+            && !baseline.contains("IgnoredChild")
+            && !baseline.contains("Fake.run"),
+        "{baseline}"
+    );
+    let raw = baseline.split_once("\n# results\n").unwrap().1;
+    for view in ["source", "definitions", "relations"] {
+        let mut variant = args.clone();
+        variant["view"] = view.into();
+        let output = text(
+            &client
+                .send_request("tools/call", call("read", variant))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(
+            output.contains("## Implementations"),
+            view == "relations",
+            "{output}"
+        );
+        if view == "source" {
+            assert_eq!(output, raw);
+        }
+    }
+    for (tool, args) in [
+        (
+            "grep",
+            serde_json::json!({"path":"src/child.ts","pattern":"value\\.run","view":"relations"}),
+        ),
+        (
+            "search",
+            serde_json::json!({"query":"Base","workspace_scope":"all"}),
+        ),
+    ] {
+        let output = text(
+            &client
+                .send_request("tools/call", call(tool, args))
+                .await
+                .unwrap(),
+        );
+        assert!(output.contains("## Implementations"), "{output}");
+        if tool == "grep" {
+            assert!(output.contains("runtime target: unresolved"), "{output}");
+        }
+    }
+    for (tool, args) in [
+        (
+            "read",
+            serde_json::json!({"file_path":"src/base.ts","offset":2,"limit":1}),
+        ),
+        (
+            "grep",
+            serde_json::json!({"path":"src/base.ts","pattern":"unrelated"}),
+        ),
+        (
+            "grep",
+            serde_json::json!({"path":"src/child.ts","pattern":"run","output_mode":"files_with_matches"}),
+        ),
+    ] {
+        let output = text(
+            &client
+                .send_request("tools/call", call(tool, args))
+                .await
+                .unwrap(),
+        );
+        assert!(!output.contains("## Implementations"), "{output}");
+    }
+    let output=text(&client.send_request("tools/call",call("search",serde_json::json!({"query":"Base","workspace_scope":"all","caller_context":false}))).await.unwrap());
+    let relations = output.split_once("## Implementations").unwrap().1;
+    assert!(
+        !relations.contains("declaration reference:") && !relations.contains("call declaration:"),
+        "{output}"
+    );
+    client.child.kill().await.unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let restarted = text(
+        &client
+            .send_tool_until("read", args.clone(), |out| {
+                out.contains("implementation candidate: Child.run")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        restarted.contains("Child.run — src/child.ts:2"),
+        "{restarted}"
+    );
+    std::fs::write(
+        temp.path().join("src/child.ts"),
+        "export const replacement = true;\n",
+    )
+    .unwrap();
+    let changed = text(
+        &client
+            .send_tool_until("read", args, |out| {
+                out.contains("implementation: unresolved")
+            })
+            .await
+            .unwrap(),
+    );
+    assert!(
+        !changed.contains("Child.run") && !changed.contains("declaration reference: invoke"),
+        "{changed}"
+    );
+}
+
+#[tokio::test]
 async fn test_events_live_modes_forward_reverse_and_schema() {
     let temp = crate::e2e::helpers::event_navigation_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

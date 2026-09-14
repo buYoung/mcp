@@ -1,4 +1,101 @@
 {
+  "implementations": {
+    "sourceDigest": "444f5e7b08167fffa998da038db785471b9b0e38029f237bd8d24db79f359e2d",
+    "units": [
+      {
+        "language": "typescript",
+        "namespace": "",
+        "imports": [
+          {
+            "entry": {
+              "localName": "useState",
+              "importedName": "useState",
+              "source": "react",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 34
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 23,
+              "endCol": 1
+            }
+          }
+        ],
+        "shadows": [
+          {
+            "name": "errors",
+            "scope": {
+              "startLine": 8,
+              "startCol": 44,
+              "endLine": 22,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 9,
+              "endLine": 9,
+              "endCol": 53
+            }
+          },
+          {
+            "name": "setErrors",
+            "scope": {
+              "startLine": 8,
+              "startCol": 44,
+              "endLine": 22,
+              "endCol": 2
+            },
+            "range": {
+              "startLine": 9,
+              "startCol": 9,
+              "endLine": 9,
+              "endCol": 53
+            }
+          },
+          {
+            "name": "nextErrors",
+            "scope": {
+              "startLine": 11,
+              "startCol": 50,
+              "endLine": 19,
+              "endCol": 4
+            },
+            "range": {
+              "startLine": 12,
+              "startCol": 11,
+              "endLine": 12,
+              "endCol": 55
+            }
+          },
+          {
+            "name": "Props",
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 23,
+              "endCol": 1
+            },
+            "range": {
+              "startLine": 3,
+              "startCol": 1,
+              "endLine": 6,
+              "endCol": 3
+            }
+          }
+        ],
+        "types": [],
+        "implementations": [],
+        "calls": []
+      }
+    ],
+    "omitted": 0
+  },
   "calls": [
     {
       "name": "useState",
