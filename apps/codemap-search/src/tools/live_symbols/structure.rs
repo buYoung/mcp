@@ -106,6 +106,7 @@ fn signature(s: &ExtractedSymbol, tree: Option<&Tree>, source: &str, is_go: bool
 
 pub(super) struct Outline {
     pub file: ExtractedFile,
+    pub anchor_line: usize,
     pub parents: Vec<Option<usize>>,
     pub selected: BTreeSet<usize>,
     pub rows: Vec<String>,
@@ -307,6 +308,10 @@ impl Outline {
         visit(symbols.len(), &children, &mut order);
         Self {
             file: file.clone(),
+            anchor_line: anchors
+                .first()
+                .and_then(|anchor| anchor.start_line)
+                .unwrap_or(1),
             parents,
             selected,
             rows,

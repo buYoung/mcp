@@ -85,6 +85,98 @@ fn get_code_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange)
     String::new()
 }
 
+fn evidence_window(
+    source: &RenderSource<'_>,
+    range: &crate::parser::CodeRange,
+    query: &crate::parser::QueryTokens,
+    max_lines: usize,
+) -> (String, usize) {
+    if query.is_identifier_lookup()
+        || max_lines == 0
+        || range.end_line_inclusive().saturating_sub(range.start_line) < max_lines
+    {
+        return (get_code_snippet(source, range), range.start_line);
+    }
+    let Some(content) = source.content() else {
+        return (String::new(), range.start_line);
+    };
+    let lines = content.lines().collect::<Vec<_>>();
+    let start = range.start_line.saturating_sub(1).min(lines.len());
+    let end = range.end_line_inclusive().min(lines.len());
+    if start >= end {
+        return (String::new(), range.start_line);
+    }
+    let coverage = lines[start..end]
+        .iter()
+        .map(|line| {
+            let tokens = crate::parser::QueryTokens::parse(line);
+            query
+                .tokens()
+                .iter()
+                .enumerate()
+                .filter_map(|(i, token)| tokens.contains_token(token).then_some(i))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let mut counts = vec![0usize; query.tokens().len()];
+    let mut body_counts = vec![0usize; query.tokens().len()];
+    let mut covered = 0;
+    let mut body_covered = 0;
+    let mut best = (0, 0, 0);
+    for (index, hits) in coverage.iter().enumerate() {
+        for &hit in hits {
+            if counts[hit] == 0 {
+                covered += 1;
+            }
+            counts[hit] += 1;
+        }
+        if index > 0 {
+            for &hit in hits {
+                if body_counts[hit] == 0 {
+                    body_covered += 1;
+                }
+                body_counts[hit] += 1;
+            }
+        }
+        if index >= max_lines {
+            for &hit in &coverage[index - max_lines] {
+                counts[hit] -= 1;
+                if counts[hit] == 0 {
+                    covered -= 1;
+                }
+            }
+        }
+        if index > max_lines {
+            for &hit in &coverage[index - max_lines] {
+                body_counts[hit] -= 1;
+                if body_counts[hit] == 0 {
+                    body_covered -= 1;
+                }
+            }
+        }
+        let window = index.saturating_add(1).saturating_sub(max_lines);
+        if (covered, body_covered) > (best.0, best.1) {
+            best = (covered, body_covered, window);
+        }
+    }
+    let first_hit = coverage
+        .iter()
+        .enumerate()
+        .skip(best.2)
+        .take(max_lines)
+        .find(|(_, hits)| !hits.is_empty())
+        .map_or(best.2, |(i, _)| i);
+    let window_start = start + best.2.max(first_hit.saturating_sub(2));
+    let window_end = (window_start + max_lines).min(end);
+    let snippet = lines[window_start..window_end]
+        .iter()
+        .enumerate()
+        .map(|(i, line)| format!("{:>6}→{}", window_start + i + 1, line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    (snippet, window_start + 1)
+}
+
 /// Whether a symbol is a "query-matching symbol" (P1, Tier-2): any sub-token of its NAME, or
 /// of its OWNER (the enclosing type/impl/class), intersects the query token set. The
 /// owner-token path is load-bearing — it keeps a query like "StorageFactory get" anchoring the
@@ -510,7 +602,7 @@ pub(super) fn render_anchored_symbols(
         .filter(|s| symbol_is_tier1(s, query))
         .map(|s| (s.range.start_line, s.range.end_line_inclusive()))
         .collect();
-    let has_tier1 = !tier1_ranges.is_empty();
+    let has_tier1 = query.is_identifier_lookup() && !tier1_ranges.is_empty();
     let tier2_ranges: Vec<(usize, usize)> = render_order
         .iter()
         .filter(|s| symbol_matches_query(s, query))
@@ -615,7 +707,7 @@ pub(super) fn render_anchored_symbols(
             }
             continue;
         }
-        let snippet = if is_summary_container {
+        let (snippet, snippet_start) = if is_summary_container {
             // A container preview must not cover a complete short member and
             // suppress that member's declaration/caller annotation as duplicate.
             let first_member = anchor_ranges
@@ -628,19 +720,61 @@ pub(super) fn render_anchored_symbols(
                 .map(|&(member_start, _)| member_start)
                 .min()
                 .unwrap_or(end.saturating_add(1));
-            get_summary_snippet(&source, &sym.range)
-                .lines()
-                .take(first_member.saturating_sub(start))
-                .collect::<Vec<_>>()
-                .join("\n")
+            (
+                get_summary_snippet(&source, &sym.range)
+                    .lines()
+                    .take(first_member.saturating_sub(start))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                start,
+            )
         } else {
-            get_code_snippet(&source, &sym.range)
+            evidence_window(&source, &sym.range, query, snippet_max_lines)
         };
         let snippet_lines = snippet.lines().count();
-        let displayed_lines = snippet_lines.min(snippet_max_lines);
-        let displayed_end = start + displayed_lines.saturating_sub(1);
+        let mut displayed_lines = snippet_lines.min(snippet_max_lines);
+        let mut displayed_end = snippet_start + displayed_lines.saturating_sub(1);
+        let mut is_byte_clipped = false;
         if !snippet.is_empty() {
-            let capped = cap_snippet(&snippet, snippet_max_lines, byte_cap);
+            let needs_notice = !is_summary_container
+                && (snippet_start > start
+                    || displayed_end < end
+                    || text.len() + snippet.len() + 64 > byte_cap);
+            let notice_reserve = if needs_notice {
+                serde_json::json!({"file_path":file_path,"offset":usize::MAX,"limit":usize::MAX,"view":"source"}).to_string().len() + 160
+            } else {
+                0
+            };
+            let remaining = byte_cap.saturating_sub(text.len() + 64 + notice_reserve);
+            if remaining < 64 {
+                return AnchoredRenderOutcome {
+                    budget_hit: true,
+                    emitted_starts,
+                };
+            }
+            let capped = cap_snippet(&snippet, snippet_max_lines, remaining);
+            let shown_lines = capped
+                .lines()
+                .filter_map(|line| {
+                    line.split_once('→')
+                        .and_then(|(number, _)| number.trim().parse::<usize>().ok())
+                })
+                .collect::<Vec<_>>();
+            displayed_lines = shown_lines.len();
+            displayed_end = shown_lines.last().copied().unwrap_or(snippet_start);
+            is_byte_clipped = capped.ends_with("\n… (truncated)");
+            if needs_notice && displayed_lines > 0 {
+                // Repeat a partially printed last line; never skip its hidden suffix.
+                let next = if is_byte_clipped {
+                    displayed_end
+                } else if displayed_end < end {
+                    displayed_end + 1
+                } else {
+                    start
+                };
+                let request = serde_json::json!({"file_path":file_path,"offset":next,"limit":end.saturating_sub(next).saturating_add(1).min(snippet_max_lines.max(1)),"view":"source"});
+                text.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
+            }
             text.push_str(&format!("```\n{}\n```\n", capped));
         }
         if !is_summary_container {
@@ -658,7 +792,10 @@ pub(super) fn render_anchored_symbols(
             }
         }
         if displayed_lines > 0 {
-            emitted_ranges.push((start, displayed_end));
+            let complete_end = displayed_end.saturating_sub(usize::from(is_byte_clipped));
+            if complete_end >= snippet_start {
+                emitted_ranges.push((snippet_start, complete_end));
+            }
         }
     }
     AnchoredRenderOutcome {

@@ -63,6 +63,7 @@ pub struct PublishedIndexSnapshot {
     codemap: CodemapSnapshot,
     event_index: crate::events::EventIndex,
     implementation_index: crate::implementations::ImplementationIndex,
+    flow_index: crate::flow::FlowIndex,
     workspace_catalog: crate::codemap::WorkspaceCatalog,
     records: Vec<StaticCollectionRecord>,
     records_by_path: HashMap<String, Vec<usize>>,
@@ -94,6 +95,14 @@ impl PublishedIndexSnapshot {
     pub(crate) fn from_files_and_edges_with_events(
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
+    ) -> Self {
+        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None)
+    }
+
+    pub(crate) fn from_files_and_edges_with_flow(
+        files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
+        event_inputs: crate::events::EventInputs,
+        flow_store: Option<crate::flow::IndexedFlowStore>,
     ) -> Self {
         const STATIC_COLLECTION_EDGES_PER_FILE_MAX: usize = 256;
         let mut files = Vec::with_capacity(files_and_edges.len());
@@ -177,10 +186,20 @@ impl PublishedIndexSnapshot {
             Arc::clone(&files),
             event_index.indexed_sources(),
         );
+        let flow_index = if let Some(store) = flow_store {
+            crate::flow::FlowIndex::indexed(Arc::clone(&files), store, event_index.shared_sources())
+        } else {
+            crate::flow::FlowIndex::build(
+                Arc::clone(&files),
+                Default::default(),
+                event_index.shared_sources(),
+            )
+        };
         Self {
             codemap: files,
             event_index,
             implementation_index,
+            flow_index,
             workspace_catalog,
             records,
             records_by_path,
@@ -196,6 +215,9 @@ impl PublishedIndexSnapshot {
 
     pub(crate) fn implementations(&self) -> &crate::implementations::ImplementationIndex {
         &self.implementation_index
+    }
+    pub(crate) fn flows(&self) -> &crate::flow::FlowIndex {
+        &self.flow_index
     }
 
     pub fn codemap(&self) -> CodemapSnapshot {

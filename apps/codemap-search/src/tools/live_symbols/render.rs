@@ -107,7 +107,6 @@ pub(super) fn render(
     };
     let mut relation_used = 0;
     let mut relation_omitted = 0;
-    let mut relation_targets = 0;
     let mut reference_omitted = 0;
     if options.should_include_relations() {
         for (outline, selection) in outlines.iter().zip(&mut selections) {
@@ -116,7 +115,6 @@ pub(super) fn render(
                     continue;
                 }
                 let symbol = &outline.file.symbols[i];
-                relation_targets += 1;
                 let detail = if outline.file.macro_expansion().is_some() {
                     "  - [Call and constant-reference attribution unresolved after preprocessing.]\n".to_string()
                 } else {
@@ -201,8 +199,8 @@ pub(super) fn render(
             out.push_str(&format!("[Rust analysis target_os={target_os}; static source conditions, not a runtime execution guarantee.]\n\n"));
         }
     }
-    let mut emitted = 0;
     for (outline, selection) in outlines.iter().zip(&selections) {
+        let mut emitted = 0;
         for &i in &outline.order {
             let show = selection.symbols.contains(&i) || selection.relation_headers.contains(&i);
             if !show {
@@ -217,17 +215,18 @@ pub(super) fn render(
                 out.push_str(references);
             }
         }
-    }
-    if emitted == 0 {
-        out.push_str("[No indexed declaration or callable identified for this region.]\n");
+        if emitted == 0 && outline.selected.is_empty() {
+            out.push_str(&super::diagnostics::no_declaration(
+                &outline.file,
+                outline.anchor_line,
+                options.view == LiveView::Relations,
+            ));
+        }
     }
     if symbol_omitted > 0 {
         out.push_str(&format!(
             "[Symbol output cap: {symbol_omitted} entries not shown.]\n"
         ));
-    }
-    if options.should_include_relations() && relation_targets == 0 {
-        out.push_str("[No callable identified for caller/callee lookup.]\n");
     }
     if relation_omitted > 0 {
         out.push_str(&format!(

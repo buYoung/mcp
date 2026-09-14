@@ -37,6 +37,153 @@ fn sample_repo() -> tempfile::TempDir {
 }
 
 #[tokio::test]
+async fn test_generic_value_relationships_persist_and_follow_live_views() {
+    let source = "const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
+    let temp = create_mock_repo(&[("src/bus.ts", source), ("src/plain.ts", "// nothing to compose\n42;\n"), (".codemap/config.toml", "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
+    for _ in 0..2 {
+        let mut client = McpClient::spawn(temp.path()).await.unwrap();
+        let response = client
+            .send_tool_until(
+                "read",
+                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1}),
+                |out| out.contains("possible callback invocation"),
+            )
+            .await
+            .unwrap();
+        let output = text(&response);
+        assert!(
+            output.contains("notify — src/bus.ts:5") && output.contains("6→export function setup"),
+            "{output}"
+        );
+        assert!(output.len() <= 16_384, "{}", output.len());
+        for (tool, args, expected) in [
+            (
+                "grep",
+                serde_json::json!({"path":"src/bus.ts","pattern":"export function setup"}),
+                true,
+            ),
+            (
+                "grep",
+                serde_json::json!({"path":"src/bus.ts","pattern":"setup","output_mode":"count"}),
+                false,
+            ),
+            (
+                "read",
+                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"view":"source"}),
+                false,
+            ),
+            (
+                "read",
+                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"view":"definitions"}),
+                false,
+            ),
+            (
+                "read",
+                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"view":"relations","include_events":false}),
+                true,
+            ),
+            (
+                "read",
+                serde_json::json!({"file_path":"src/plain.ts","offset":1,"limit":2}),
+                false,
+            ),
+            ("search", serde_json::json!({"query":"setup"}), true),
+            (
+                "search",
+                serde_json::json!({"query":"setup","caller_context":false}),
+                false,
+            ),
+        ] {
+            let output = text(
+                &client
+                    .send_request("tools/call", call(tool, args.clone()))
+                    .await
+                    .unwrap(),
+            );
+            assert_eq!(
+                output.contains("## Value relationships"),
+                expected,
+                "{tool} {args}: {output}"
+            );
+        }
+        client.kill().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn test_live_diagnostics_distinguish_empty_excluded_and_stale_source() {
+    let temp=create_mock_repo(&[("src/empty.ts","// comment\n42;\n"),("src/defs.ts","export function beforeChange() {}\n"),("ignored/hidden.ts","export function hidden() {}\n"),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[exclude]\nexcluded_directories=['ignored']\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    client
+        .send_tool_until(
+            "read",
+            serde_json::json!({"file_path":"src/defs.ts","offset":1,"limit":1}),
+            |text| text.contains("beforeChange [function"),
+        )
+        .await
+        .unwrap();
+    let empty = text(
+        &client
+            .send_request(
+                "tools/call",
+                call(
+                    "read",
+                    serde_json::json!({"file_path":"src/empty.ts","offset":1,"limit":2}),
+                ),
+            )
+            .await
+            .unwrap(),
+    );
+    assert!(
+        empty.contains("No declaration context — src/empty.ts:1") && empty.contains("Next: read"),
+        "{empty}"
+    );
+    assert!(
+        !empty.contains("No callable identified") && !empty.contains("No indexed declaration"),
+        "{empty}"
+    );
+    let excluded = text(
+        &client
+            .send_request(
+                "tools/call",
+                call(
+                    "read",
+                    serde_json::json!({"file_path":"ignored/hidden.ts","offset":1,"limit":1}),
+                ),
+            )
+            .await
+            .unwrap(),
+    );
+    assert!(
+        excluded.contains("excluded from the current index")
+            && excluded.contains("1→export function hidden"),
+        "{excluded}"
+    );
+    std::fs::write(
+        temp.path().join("src/defs.ts"),
+        "export function afterChange() {}\n",
+    )
+    .unwrap();
+    let stale = text(
+        &client
+            .send_request(
+                "tools/call",
+                call(
+                    "read",
+                    serde_json::json!({"file_path":"src/defs.ts","offset":1,"limit":1}),
+                ),
+            )
+            .await
+            .unwrap(),
+    );
+    assert!(
+        stale.contains("source changed since indexing") && !stale.contains("beforeChange"),
+        "{stale}"
+    );
+    assert!(stale.contains("afterChange()"), "{stale}");
+}
+
+#[tokio::test]
 async fn test_implementation_rust_target_reload_with_events_disabled() {
     let config = |target: &str| {
         format!("[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[analysis]\ntarget_os='{target}'\n")
@@ -450,7 +597,22 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
                 assert!(out.contains("LIMIT — src/lib.rs:1 = 7"), "{out}");
                 assert!(!out.contains("# results"), "{out}");
             }
-            _ => assert_eq!(out, full),
+            _ => {
+                // Bounded value summaries can stop at a different point under load.
+                // The declarations, call totals and live source contract is stable.
+                let stable = |value: &str| {
+                    let (context, source) = value.split_once("\n# results\n").unwrap();
+                    let context = context
+                        .split("\n## Value relationships")
+                        .next()
+                        .unwrap()
+                        .split("\n## Analysis diagnostics")
+                        .next()
+                        .unwrap();
+                    (context.trim_end().to_string(), source.to_string())
+                };
+                assert_eq!(stable(&out), stable(&full));
+            }
         }
     }
     let count = client.send_request("tools/call", call("read", serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":5,"view":"relations","unresolved":"count"}))).await.unwrap();

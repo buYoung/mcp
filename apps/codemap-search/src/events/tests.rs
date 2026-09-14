@@ -289,6 +289,36 @@ fn test_event_endpoint_and_input_caps_report_omissions() {
     let input = EventInput::capture(&oversized, "src/oversized.ts").unwrap();
     assert!(input.source.is_none());
     assert!(input.unavailable_reason.is_some());
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("src")).unwrap();
+    std::fs::write(root.path().join("src/oversized.ts"), &oversized).unwrap();
+    let mut inputs = EventInputs::default();
+    inputs.insert("src/oversized.ts".into(), Some(input));
+    let index = EventIndex::build(&[], inputs);
+    let output = index.for_paths(
+        &[("src/oversized.ts".into(), 1, 4)],
+        None,
+        1024,
+        root.path(),
+    );
+    assert!(
+        output.contains("src/oversized.ts:1")
+            && output.contains("exceeds")
+            && output.contains("Next: read"),
+        "{output}"
+    );
+    assert!(
+        !output.contains("Event relationships"),
+        "unavailable input must not look like an empty event result"
+    );
+    assert!(index
+        .for_paths(
+            &[("src/unrelated.ts".into(), 1, 4)],
+            None,
+            1024,
+            root.path()
+        )
+        .is_empty());
 }
 
 #[test]

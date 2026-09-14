@@ -68,6 +68,7 @@ pub struct QueryTokens {
     word_set: HashSet<String>,
     token_set: HashSet<String>,
     has_qualified_word: bool,
+    has_identifier_spelling: bool,
     search_text: String,
 }
 
@@ -118,6 +119,9 @@ impl QueryTokens {
             word_set,
             token_set,
             has_qualified_word,
+            has_identifier_spelling: query.split_whitespace().any(|word| {
+                split_identifier(word).len() > 1 || word.contains("::") || word.contains('.')
+            }),
             search_text,
         }
     }
@@ -152,6 +156,12 @@ impl QueryTokens {
 
     pub fn has_qualified_word(&self) -> bool {
         self.has_qualified_word
+    }
+
+    /// A literal/qualified/camel/snake identifier keeps definition-first ranking.
+    /// Plain multi-word queries use combined evidence coverage instead.
+    pub fn is_identifier_lookup(&self) -> bool {
+        self.raw_words.len() == 1 || self.has_identifier_spelling
     }
 
     pub fn is_empty(&self) -> bool {

@@ -13,6 +13,7 @@ pub(crate) struct EventIndex {
     by_key: HashMap<String, Vec<usize>>,
     by_route: HashMap<(String, String, String, String), Vec<usize>>,
     unavailable_sources: usize,
+    unavailable_details: BTreeMap<String, String>,
     omitted_endpoints: usize,
     is_enabled: bool,
     has_rust_sources: bool,
@@ -69,12 +70,16 @@ impl EventIndex {
     pub(crate) fn indexed_sources(&self) -> &HashMap<String, String> {
         &self.sources
     }
+    pub(crate) fn shared_sources(&self) -> Arc<HashMap<String, String>> {
+        Arc::clone(&self.sources)
+    }
 
-    pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
+    pub fn build(files: &[ExtractedFile], mut inputs: EventInputs) -> Self {
         let started = std::time::Instant::now();
         let cfg = crate::config::get();
         let stamp = super::config_stamp();
         let unavailable_sources = inputs.unavailable;
+        let unavailable_details = std::mem::take(&mut inputs.unavailable_details);
         let sources = Arc::new(inputs.into_sources());
         let mut extraction = if cfg.event_navigation.is_enabled {
             super::extract::extract(
@@ -149,6 +154,7 @@ impl EventIndex {
             by_key,
             by_route,
             unavailable_sources: unavailable_sources + extraction.parse_failures,
+            unavailable_details,
             omitted_endpoints: extraction.omitted,
             is_enabled: cfg.event_navigation.is_enabled,
             has_rust_sources,
@@ -201,7 +207,7 @@ impl EventIndex {
             }
         }
         if selected.is_empty() {
-            return String::new();
+            return self.input_diagnostics(anchors, scope, cap, root);
         }
         for route in routes {
             let candidates = self.by_route.get(&route).map(Vec::as_slice).unwrap_or(&[]);
@@ -212,14 +218,65 @@ impl EventIndex {
                 selected.insert(index);
             }
         }
-        self.render(
+        let output = self.render(
             &selected.into_iter().collect::<Vec<_>>(),
             candidate_omissions,
             scope,
             cap,
             root,
             Some(anchors),
-        )
+        );
+        let diagnostics =
+            self.input_diagnostics(anchors, scope, cap.saturating_sub(output.len() + 1), root);
+        if diagnostics.is_empty() {
+            output
+        } else if output.is_empty() {
+            diagnostics
+        } else {
+            format!("{output}\n{diagnostics}")
+        }
+    }
+
+    fn input_diagnostics(
+        &self,
+        anchors: &[(String, usize, usize)],
+        scope: Option<&str>,
+        cap: usize,
+        root: &Path,
+    ) -> String {
+        if !crate::config::get().event_navigation.is_enabled {
+            return String::new();
+        }
+        let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
+        let mut output = String::new();
+        let mut seen = BTreeSet::new();
+        for (path, start, end) in anchors {
+            if !seen.insert(path)
+                || !under_scope(path, scope)
+                || filter.is_file_excluded(path)
+                || !crate::workspace::walk_root_is_visible(&root.join(path), true)
+            {
+                continue;
+            }
+            let Some(reason) = self.unavailable_details.get(path) else {
+                continue;
+            };
+            let request = serde_json::json!({"file_path":path,"offset":start,"limit":end.saturating_sub(*start).saturating_add(1).clamp(1,20),"view":"source"});
+            let row = format!(
+                "- event input unavailable — {path}:{start}: {reason}. Next: read {request}\n"
+            );
+            let header = if output.is_empty() {
+                "## Analysis diagnostics\n\n"
+            } else {
+                ""
+            };
+            if output.len() + header.len() + row.len() > cap {
+                break;
+            }
+            output.push_str(header);
+            output.push_str(&row);
+        }
+        output
     }
 
     fn render(

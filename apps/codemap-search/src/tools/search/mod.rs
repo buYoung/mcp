@@ -275,7 +275,7 @@ fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
                 .end_line
                 .saturating_sub(symbol.range.start_line)
                 .saturating_add(1);
-            format_read_suggestion(&res.file_path, symbol.range.start_line, limit)
+            format_read_suggestion(&res.file_path, symbol.range.start_line, limit.min(40))
         });
     }
     res.matched_literals
@@ -1048,6 +1048,36 @@ pub(crate) fn run_inner_with_metadata(
             .map(|result| (result.file_path.clone(), 1, usize::MAX))
             .collect::<Vec<_>>();
         let root = std::env::current_dir().unwrap_or_default();
+        let flow_anchors = results
+            .iter()
+            .take(result_branch_threshold.max(1))
+            .filter(|result| !result.symbol_fallback)
+            .flat_map(|result| {
+                result
+                    .matched_symbols
+                    .iter()
+                    .filter(|symbol| symbol.kind == "fn")
+                    .take(2)
+                    .map(|symbol| {
+                        (
+                            result.file_path.clone(),
+                            symbol.range.start_line,
+                            symbol.range.end_line_inclusive(),
+                        )
+                    })
+            })
+            .collect::<Vec<_>>();
+        let flows = if caller_context_enabled {
+            published_snapshot.flows().for_paths(
+                &flow_anchors,
+                workspace_scope,
+                event_cap / 3,
+                &root,
+            )
+        } else {
+            String::new()
+        };
+        let event_cap = event_cap.saturating_sub(flows.len() + usize::from(!flows.is_empty()));
         let events = if should_include_events {
             published_snapshot
                 .events()
@@ -1064,7 +1094,7 @@ pub(crate) fn run_inner_with_metadata(
                 &root,
                 caller_context_enabled,
             );
-        let relations = [events, implementations]
+        let relations = [events, implementations, flows]
             .into_iter()
             .filter(|text| !text.is_empty())
             .collect::<Vec<_>>()

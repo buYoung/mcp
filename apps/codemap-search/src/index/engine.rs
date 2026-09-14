@@ -21,6 +21,10 @@ struct StoredExtractedFileRef<'a> {
     static_collection_edges: &'a [StaticCollectionEdge],
     #[serde(skip_serializing_if = "Option::is_none")]
     event_input: Option<&'a crate::events::EventInput>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    flow_file: Option<&'a crate::flow::FlowFile>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    flow_digest: Option<&'a str>,
 }
 
 #[derive(Deserialize)]
@@ -32,6 +36,8 @@ struct StoredExtractedFile {
     static_collection_edges: Vec<StaticCollectionEdge>,
     #[serde(default)]
     event_input: Option<crate::events::EventInput>,
+    #[serde(default)]
+    flow_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,7 +188,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v23 also retains external Dart function declarations found during the replay.
 // v24 drops fake Groovy constructors produced when quoted method parsing recovers.
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
-const EXTRACTION_FORMAT_VERSION: &str = "v29-indexed-implementations";
+const EXTRACTION_FORMAT_VERSION: &str = "v30-lazy-value-summaries";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -802,6 +808,7 @@ impl TantivySearchEngine {
             if extracted.macro_expansion().is_some() {
                 auxiliary.static_collection_edges.clear();
                 auxiliary.event_input = None;
+                auxiliary.flow_file = None;
             }
 
             let term = Term::from_field_text(self.file_path_field, &rel_path);
@@ -817,6 +824,11 @@ impl TantivySearchEngine {
                 extracted: &extracted,
                 static_collection_edges: &auxiliary.static_collection_edges,
                 event_input: auxiliary.event_input.as_ref(),
+                flow_file: auxiliary.flow_file.as_ref(),
+                flow_digest: auxiliary
+                    .flow_file
+                    .as_ref()
+                    .map(|flow| flow.digest.as_str()),
             };
             let json_str = match serde_json::to_string(&stored_extracted) {
                 Ok(js) => js,
@@ -1139,6 +1151,7 @@ impl TantivySearchEngine {
         let searcher = snapshot_reader.searcher();
         let mut files_and_edges = Vec::new();
         let mut event_inputs = crate::events::EventInputs::default();
+        let mut flow_documents = std::collections::BTreeMap::new();
         // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
         // complete on large repos.
         let doc_addresses = searcher
@@ -1157,12 +1170,20 @@ impl TantivySearchEngine {
             let stored = serde_json::from_str::<StoredExtractedFile>(json)
                 .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
             event_inputs.insert(stored.extracted.file_path.clone(), stored.event_input);
+            if let Some(digest) = stored.flow_digest {
+                flow_documents.insert(stored.extracted.file_path.clone(), (doc_address, digest));
+            }
             files_and_edges.push((stored.extracted, stored.static_collection_edges));
         }
         Ok(
-            super::indexer::PublishedIndexSnapshot::from_files_and_edges_with_events(
+            super::indexer::PublishedIndexSnapshot::from_files_and_edges_with_flow(
                 files_and_edges,
                 event_inputs,
+                Some(crate::flow::IndexedFlowStore {
+                    searcher,
+                    field: self.extracted_json_field,
+                    documents: flow_documents,
+                }),
             ),
         )
     }
@@ -1514,7 +1535,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v29-indexed-implementations");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v30-lazy-value-summaries");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

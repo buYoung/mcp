@@ -33,6 +33,7 @@ pub(crate) struct IndexAuxiliary {
     pub format_text: Vec<String>,
     pub static_collection_edges: Vec<StaticCollectionEdge>,
     pub event_input: Option<crate::events::EventInput>,
+    pub flow_file: Option<crate::flow::FlowFile>,
 }
 
 const INDEX_AUXILIARY_MAX_CHARS: usize = 2048;
@@ -55,6 +56,10 @@ impl TreeSitterExtractor {
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
         let (extracted, mut auxiliary) = self.extract_parts(file_content, file_path, true)?;
         auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
+        if let Some(flow) = &mut auxiliary.flow_file {
+            flow.digest = crate::implementations::digest(file_content.as_bytes());
+            flow.apply_path_constraints(file_path, file_content);
+        }
         Ok((extracted, auxiliary))
     }
 }
@@ -97,6 +102,17 @@ pub(crate) fn collect_index_auxiliary(
 
     let mut auxiliary = collect_index_auxiliary_from_tree(tags_query, &tree, source);
     auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
+    let (file, _) = TreeSitterExtractor::new().extract_parts(file_content, file_path, false)?;
+    auxiliary.flow_file = crate::flow::collect(
+        spec.language_name(),
+        &tree,
+        source,
+        &file.symbols,
+        &file.navigation.unwrap_or_default(),
+    );
+    if let Some(flow) = &mut auxiliary.flow_file {
+        flow.apply_path_constraints(file_path, file_content);
+    }
     Ok(auxiliary)
 }
 
@@ -2563,6 +2579,10 @@ impl TreeSitterExtractor {
             &symbols,
             &navigation,
         );
+        if collect_auxiliary {
+            auxiliary.flow_file =
+                crate::flow::collect(spec.language_name(), &tree, source, &symbols, &navigation);
+        }
         let docstrings = symbols.iter().filter_map(|s| s.docstring.clone()).collect();
         let navigation = if navigation_enabled || navigation.implementations.is_some() {
             Some(navigation)
@@ -2698,6 +2718,13 @@ fn merge_composite_part(
     }
     for edge in part_auxiliary.static_collection_edges {
         push_unique(&mut auxiliary.static_collection_edges, edge);
+    }
+    if let Some(flow) = part_auxiliary.flow_file {
+        if let Some(existing) = &mut auxiliary.flow_file {
+            existing.merge(flow);
+        } else {
+            auxiliary.flow_file = Some(flow);
+        }
     }
 }
 

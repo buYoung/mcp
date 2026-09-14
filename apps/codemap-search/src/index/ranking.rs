@@ -188,6 +188,14 @@ fn exact_boost_eligible(
     if !(whole_exact || subtoken_exact) {
         return false;
     }
+    if !query.is_identifier_lookup()
+        && !query
+            .tokens()
+            .iter()
+            .all(|term| term_hits_symbol_name(sym, term))
+    {
+        return false;
+    }
     let owner_match_count = owner_query_match_count(sym, query);
     let has_owner_evidence = owner_match_count > 0;
     if whole_exact
@@ -346,6 +354,39 @@ fn symbol_signal_multiplier(scored_symbols: &[SymbolMatch<'_>]) -> f32 {
         .map(|scored| scored.signal_score)
         .fold(0.0_f32, f32::max);
     (1.0 + best_signal).min(SYMBOL_SIGNAL_SCORE_CAP)
+}
+
+fn composite_coverage_multiplier(
+    symbols: &[ExtractedSymbol],
+    scored: &[SymbolMatch<'_>],
+    path: &str,
+    query: &QueryTokens,
+) -> f32 {
+    if query.is_identifier_lookup() || query.is_empty() {
+        return 1.0;
+    }
+    let best = scored
+        .iter()
+        .map(|symbol| symbol.term_match_count)
+        .max()
+        .unwrap_or(0) as f32
+        / query.tokens().len() as f32;
+    let combined = query
+        .tokens()
+        .iter()
+        .filter(|term| {
+            term_hits_path(path, term)
+                || symbols.iter().any(|symbol| {
+                    term_hits_symbol_name(symbol, term)
+                        || symbol
+                            .docstring
+                            .as_ref()
+                            .is_some_and(|doc| doc.to_lowercase().contains((*term).as_str()))
+                })
+        })
+        .count() as f32
+        / query.tokens().len() as f32;
+    0.25 + 0.75 * (0.75 * best + 0.25 * combined)
 }
 
 fn candidate_from_doc(
@@ -830,18 +871,22 @@ impl SearcherHandle {
                 })
                 .collect();
             scored_symbols.sort_by(|a, b| {
-                b.exact_boost_eligible
-                    .cmp(&a.exact_boost_eligible)
-                    .then(b.exact_hit.cmp(&a.exact_hit))
-                    .then(b.term_match_count.cmp(&a.term_match_count))
-                    .then(b.owner_match_count.cmp(&a.owner_match_count))
-                    .then(b.path_match_count.cmp(&a.path_match_count))
-                    .then_with(|| {
-                        b.signal_score
-                            .partial_cmp(&a.signal_score)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    })
-                    .then(a.symbol.range.start_line.cmp(&b.symbol.range.start_line))
+                (if query_tokens.is_identifier_lookup() {
+                    std::cmp::Ordering::Equal
+                } else {
+                    b.term_match_count.cmp(&a.term_match_count)
+                })
+                .then(b.exact_boost_eligible.cmp(&a.exact_boost_eligible))
+                .then(b.exact_hit.cmp(&a.exact_hit))
+                .then(b.term_match_count.cmp(&a.term_match_count))
+                .then(b.owner_match_count.cmp(&a.owner_match_count))
+                .then(b.path_match_count.cmp(&a.path_match_count))
+                .then_with(|| {
+                    b.signal_score
+                        .partial_cmp(&a.signal_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .then(a.symbol.range.start_line.cmp(&b.symbol.range.start_line))
             });
 
             // Post-rank adjustment (see the constants above): an exact discriminative
@@ -889,6 +934,12 @@ impl SearcherHandle {
                 adjusted_score *= QUALIFIED_LITERAL_SCORE_BOOST;
             }
             adjusted_score *= symbol_signal_multiplier(&scored_symbols);
+            adjusted_score *= composite_coverage_multiplier(
+                &all_symbols,
+                &scored_symbols,
+                &candidate.file_path,
+                &query_tokens,
+            );
             adjusted_score *= path_weight;
             adjusted_score += language_prior_adjustment(&candidate.file_path, &normalized_context);
             // Apply the filename preference after the language prior, so equally

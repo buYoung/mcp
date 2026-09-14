@@ -1,5 +1,6 @@
 //! Indexed member and call context above untouched live filesystem results.
 pub(crate) mod callable;
+mod diagnostics;
 mod references;
 mod render;
 mod structure;
@@ -134,8 +135,23 @@ pub(crate) fn append(
             } else {
                 String::new()
             };
-            let cap = cap
-                .saturating_sub(implementations.len() + usize::from(!implementations.is_empty()));
+            let flows = if options.should_include_relations() {
+                snapshot.flows().for_paths_with_unresolved(
+                    &anchors,
+                    None,
+                    (cap / 2).min(cap.saturating_sub(implementations.len() + events.len() / 2)),
+                    &root,
+                    options.should_list_unresolved,
+                )
+            } else {
+                String::new()
+            };
+            let cap = cap.saturating_sub(
+                implementations.len()
+                    + flows.len()
+                    + usize::from(!flows.is_empty())
+                    + usize::from(!implementations.is_empty()),
+            );
             let cap = if events.is_empty() { cap } else { cap / 2 };
             let source_files = snapshot.codemap();
             let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
@@ -153,6 +169,18 @@ pub(crate) fn append(
             let mut has_excluded_test_context = false;
             let mut encoding_notices = Vec::new();
             for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
+                let file = source_files.iter().find(|file| file.file_path == *path);
+                if let Some(reason) = crate::workspace::source_encoding_exclusion(&root.join(path))
+                {
+                    encoding_notices.push(format!("[{path}: {reason}]\n"));
+                    continue;
+                }
+                if let Some(notice) =
+                    diagnostics::unavailable(file, anchors[0], &root, snapshot.flows().digest(path))
+                {
+                    encoding_notices.push(notice);
+                    continue;
+                }
                 if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
                     has_excluded_test_context |= file.symbols.iter().any(|symbol| {
                         anchors.iter().any(|anchor| {
@@ -225,6 +253,10 @@ pub(crate) fn append(
             if !implementations.is_empty() {
                 rendered.push('\n');
                 rendered.push_str(&implementations);
+            }
+            if !flows.is_empty() {
+                rendered.push('\n');
+                rendered.push_str(&flows);
             }
             rendered
         }

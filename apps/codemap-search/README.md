@@ -93,6 +93,8 @@ In monorepos, `overview` on a directory selects that exact scope for later `sear
 
 MCP `read`/`grep` show live source alongside enclosing declarations and call relationships. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
 
+Relevant source wrappers also show bounded argument, return, closure, field and callback-use relationships automatically. These work independently of event API rules and distinguish source evidence, built-in models and unresolved candidates. Stale dependencies are withheld. Composite queries prioritize term coverage and bounded body evidence while exact identifier queries keep exact-name preference. See the [value-navigation reference and CLI examples](./docs/value-navigation.ko.md) for supported cases, limits and verification commands.
+
 Tools are read-only over their configured filesystem scope. The server itself writes its index and, when enabled, repo configuration. No MCP resources or prompts are registered.
 
 ## Configure exclusions and output

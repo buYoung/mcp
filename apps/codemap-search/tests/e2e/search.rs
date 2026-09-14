@@ -6,6 +6,38 @@ use std::thread::sleep;
 use std::time::Duration;
 
 #[tokio::test]
+async fn test_composite_query_preserves_coverage_body_evidence_and_continuation() {
+    let partial = format!(
+        "/** queue callback queue callback */\nexport function callback() {{\n{}\n}}",
+        (0..80)
+            .map(|i| format!("const padding{i} = 'callback';\n"))
+            .collect::<String>()
+    );
+    let window=format!("/** queue callback dispatch */\nexport function processQueueCallbackDispatch() {{\n{}return deliver(queue, callback, dispatch);\n}}",(0..150).map(|i|format!("const padding{i} = {i};\n")).collect::<String>());
+    let temp=create_mock_repo(&[("src/partial.ts",&partial),("src/complete.ts","/** queue callback dispatch */\nexport function routeQueueCallbackDispatch() { return 1; }"),("src/window.ts",&window),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[search]\nsearch_detail_snippet_max_lines=12\n")]).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let response=client.send_tool_until("search",serde_json::json!({"query":"queue callback dispatch","workspace_scope":"all","caller_context":false}),|text|text.contains("### File:")).await.unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(!output.starts_with("### File: src/partial.ts"), "{output}");
+    assert!(
+        output.contains("deliver(queue, callback, dispatch)"),
+        "{output}"
+    );
+    assert!(
+        output.contains("source window:") && output.contains("Next: read {"),
+        "{output}"
+    );
+    let response=client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"callback","workspace_scope":"all","caller_context":false}})).await.unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        output.starts_with("### File: src/partial.ts"),
+        "exact lookup changed: {output}"
+    );
+}
+
+#[tokio::test]
 async fn test_events_exact_key_negative_controls_and_ranked_search() {
     let temp = crate::e2e::helpers::event_navigation_repo();
     let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
