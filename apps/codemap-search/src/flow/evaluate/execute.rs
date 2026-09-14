@@ -215,6 +215,10 @@ impl Query<'_> {
                     return self.transfer(value, &location, "object field → value", true);
                 }
                 if let Some((path, unit, class)) = self.objects[id].class.clone() {
+                    if !self.should_model_instances {
+                        return self
+                            .unknown(&location, "class/prototype identity may have been modified");
+                    }
                     return self.method(&path, unit, class, &key_name, frame, &location);
                 }
                 self.unknown(
@@ -223,6 +227,12 @@ impl Query<'_> {
                 )
             }
             ValueKind::Class { path, unit, class } => {
+                if key_name == "prototype" {
+                    self.should_model_instances = false;
+                }
+                if !self.should_model_instances {
+                    return self.unknown(&location, "class/prototype semantics are unresolved");
+                }
                 let is_static = self.index.unit(&path, unit).is_some_and(|unit| {
                     unit.classes[class]
                         .methods
@@ -348,13 +358,16 @@ impl Query<'_> {
             }
             ValueKind::Class { path, unit, class } => {
                 let language = self.index.unit(&path, unit).unwrap().language.clone();
-                if matches!(language.as_str(), "c" | "cpp" | "go" | "rust") {
+                if !matches!(language.as_str(), "typescript" | "javascript")
+                    || !self.should_model_instances
+                {
+                    self.diagnostic(&location, "instance layout/copy/descriptor semantics are outside the bounded object summary");
                     return self.unknown(
                         &location,
-                        "instance copy/reference semantics are outside the bounded object summary",
+                        "instance layout/copy/descriptor semantics are outside the bounded object summary",
                     );
                 }
-                if !is_constructor && !matches!(language.as_str(), "python" | "dart") {
+                if !is_constructor {
                     return self.unknown(
                         &location,
                         "class invocation does not prove instance construction",
@@ -820,6 +833,14 @@ impl Query<'_> {
             ExpressionKind::Field { object, key } => {
                 let object = self.expression(object, frame, depth + 1);
                 let key = self.expression(key, frame, depth + 1);
+                if matches!(self.values[object].kind, ValueKind::Class { .. }) {
+                    self.should_model_instances = false;
+                    self.diagnostic(
+                        location,
+                        "class member mutation invalidates instance summaries",
+                    );
+                    return;
+                }
                 if matches!(
                     self.values[object].kind,
                     ValueKind::MapConstructor | ValueKind::MapPrototype
@@ -835,6 +856,14 @@ impl Query<'_> {
                     self.values[object].kind.clone(),
                     self.values[key].kind.clone(),
                 ) {
+                    if key == Constant::String("__proto__".into()) {
+                        self.objects[object].is_invalidated = true;
+                        self.diagnostic(
+                            location,
+                            "prototype mutation invalidates this object summary",
+                        );
+                        return;
+                    }
                     let value = self.transfer(
                         value,
                         &Location {
@@ -875,6 +904,7 @@ impl Query<'_> {
                 break;
             }
             match self.values[value].kind {
+                ValueKind::Class { .. } => self.should_model_instances = false,
                 ValueKind::Object(object) => {
                     self.objects[object].is_invalidated = true;
                     pending.extend(self.objects[object].fields.values().copied());

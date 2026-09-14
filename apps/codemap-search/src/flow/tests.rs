@@ -72,6 +72,9 @@ fn test_instances_keys_external_calls_and_mutable_captures_do_not_create_links()
         ("constructor returns another object", "class Handle { constructor() { return { fire: external }; } fire() { notify(); } } const handle = new Handle(); handle.fire();"),
         ("overwritten builtin", "Map = external; const a = new Map(); a.set('x', notify); const f = a.get('x'); f();"),
         ("aliased builtin prototype", "const Native = Map; Native.prototype.set = external; const a = new Map(); a.set('x', notify); const f = a.get('x'); f();"),
+        ("instance prototype mutation", "class Handle { fire() { notify(); } } const handle = new Handle(); handle.__proto__ = { fire: external }; handle.fire();"),
+        ("class prototype mutation", "class Handle { fire() { notify(); } } Handle.prototype.fire = external; const handle = new Handle(); handle.fire();"),
+        ("static method mutation", "class Handle { static fire() { notify(); } } Handle.fire = external; Handle.fire();"),
         ("conditional", "let f = notify; if (flag) { f = external; } f();"),
     ];
     for (name, body) in cases {
@@ -89,6 +92,22 @@ fn test_instances_keys_external_calls_and_mutable_captures_do_not_create_links()
             "{name}: {}",
             super::render::render(&query, 20_000)
         );
+    }
+}
+
+#[test]
+fn test_language_specific_properties_and_constructors_remain_unresolved() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    for (path, source, line, forbidden) in [
+        ("Sample.cs", "class Program {\npublic static void Notify() {}\npublic static void Other() {}\npublic static void Setup() { var h = new Holder(Program.Notify); h.Callback(); }\n}\nclass Holder { public System.Action Callback { get { return Program.Other; } set {} } public Holder(System.Action cb) { this.Callback = cb; } }\n", 4, 2),
+        ("Sample.java", "class Program {\nstatic void notifyHandler() {}\nstatic void other() {}\nstatic void setup() { new Handler() { public void fire() { Program.other(); } }.fire(); }\n}\nclass Handler { public void fire() { Program.notifyHandler(); } }\n", 4, 2),
+        ("sample.py", "def notify(value): pass\ndef setup():\n    handlers = {'get': notify}\n    handlers.get('missing')\n", 4, 1),
+    ] {
+        let (index, root) = build(&[(path, source)]);
+        let mut query = super::evaluate::Query::new(&index, root.path(), None);
+        query.run(&[(path.into(), line, line)]);
+        assert!(!query.steps.iter().any(|step| step.relation == "source-resolved call" && step.from.path == path && step.from.range.start_line == forbidden), "{path}: {}", super::render::render(&query, 10_000));
+        assert!(!query.diagnostics.is_empty(), "{path}: missing unresolved boundary");
     }
 }
 

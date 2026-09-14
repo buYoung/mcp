@@ -482,6 +482,13 @@ impl<'a> Collector<'a> {
             return self.push(node, ExpressionKind::Read { name, binding });
         }
         if let Some((object, key, is_static)) = field_parts(node) {
+            if self.unit.language == "python" && node.kind() == "attribute" {
+                self.issue(
+                    node,
+                    "Python attribute/descriptor lookup is distinct from dictionary indexing",
+                );
+                return self.push(node, ExpressionKind::Unknown { reason: "Python attribute/descriptor lookup is distinct from dictionary indexing".into(), inputs: Vec::new() });
+            }
             let object = self.expression(object, depth + 1);
             let key = if is_static {
                 self.push(
@@ -562,6 +569,23 @@ impl<'a> Collector<'a> {
             for member in children(members).into_iter().take(64) {
                 if is_comment(member) {
                     continue;
+                }
+                if self.unit.language == "lua"
+                    && text(member, self.source).trim_start().starts_with('[')
+                    && member
+                        .child_by_field_name("key")
+                        .or_else(|| member.child_by_field_name("name"))
+                        .is_none_or(|key| {
+                            !matches!(literal(key, self.source), Some(Constant::String(_)))
+                        })
+                {
+                    return self.push(
+                        node,
+                        ExpressionKind::Unknown {
+                            reason: "computed Lua table key is not a static field name".into(),
+                            inputs: Vec::new(),
+                        },
+                    );
                 }
                 if self.unit.language == "python"
                     && member.child_by_field_name("key").is_some_and(|key| {
