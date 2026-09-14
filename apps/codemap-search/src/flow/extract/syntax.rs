@@ -332,7 +332,16 @@ pub(super) fn pattern_names(node: Node<'_>, source: &[u8]) -> Vec<String> {
             .map(|node| pattern_names(node, source))
             .unwrap_or_default();
     }
-    if matches!(node.kind(), "pattern" | "binding_pattern") {
+    if matches!(
+        node.kind(),
+        "pattern"
+            | "binding_pattern"
+            | "mut_pattern"
+            | "tuple_pattern"
+            | "pattern_list"
+            | "tuple"
+            | "expression_list"
+    ) {
         return children(node)
             .into_iter()
             .flat_map(|node| pattern_names(node, source))
@@ -713,7 +722,11 @@ pub(super) fn is_expression(node: Node<'_>) -> bool {
         || node.kind().ends_with("literal")
         || matches!(
             node.kind(),
-            "integer"
+            "tuple_expression"
+                | "tuple"
+                | "unit_expression"
+                | "expression_list"
+                | "integer"
                 | "string"
                 | "number"
                 | "binary_expression"
@@ -725,4 +738,88 @@ pub(super) fn is_expression(node: Node<'_>) -> bool {
                 | "attribute"
                 | "selector_expression"
         )
+}
+
+/// Only native tuple patterns, never JS array/object destructuring or rest patterns.
+pub(super) fn tuple_bindings(node: Node<'_>, source: &[u8]) -> Option<Vec<(String, Vec<usize>)>> {
+    fn collect(
+        node: Node<'_>,
+        source: &[u8],
+        path: &mut Vec<usize>,
+        out: &mut Vec<(String, Vec<usize>)>,
+    ) -> Option<()> {
+        if path.len() > 16 {
+            return None;
+        }
+        if is_identifier(node) {
+            out.push((identifier(node, source), path.clone()));
+            return Some(());
+        }
+        if text(node, source).trim() == "_" {
+            return Some(());
+        }
+        if matches!(node.kind(), "mut_pattern" | "pattern" | "binding_pattern")
+            && node.named_child_count() == 1
+        {
+            return collect(node.named_child(0)?, source, path, out);
+        }
+        if !matches!(
+            node.kind(),
+            "tuple_pattern" | "pattern_list" | "tuple" | "expression_list"
+        ) {
+            return None;
+        }
+        for (i, child) in children(node)
+            .into_iter()
+            .filter(|child| !is_comment(*child))
+            .enumerate()
+        {
+            path.push(i);
+            collect(child, source, path, out)?;
+            path.pop();
+        }
+        Some(())
+    }
+    let mut out = Vec::new();
+    collect(node, source, &mut Vec::new(), &mut out)?;
+    Some(out)
+}
+
+pub(super) fn conditional_parts(node: Node<'_>) -> Option<(Node<'_>, Node<'_>, Option<Node<'_>>)> {
+    if !matches!(
+        node.kind(),
+        "if_expression"
+            | "if_statement"
+            | "elif_clause"
+            | "conditional_expression"
+            | "ternary_expression"
+    ) {
+        return None;
+    }
+    // Binding conditions and Go init clauses need an additional binding scope.
+    if node.child_by_field_name("initializer").is_some() {
+        return None;
+    }
+    let condition = node.child_by_field_name("condition")?;
+    if matches!(condition.kind(), "let_condition" | "let_chain") {
+        return None;
+    }
+    let consequence = node
+        .child_by_field_name("consequence")
+        .or_else(|| node.child_by_field_name("body"))?;
+    let mut cursor = node.walk();
+    let alternatives = node
+        .children_by_field_name("alternative", &mut cursor)
+        .collect::<Vec<_>>();
+    if alternatives.len() > 1 {
+        return None;
+    }
+    let alternative = alternatives.first().copied().map(|node| {
+        if matches!(node.kind(), "else_clause") && node.named_child_count() == 1 {
+            node.named_child(0).unwrap()
+        } else {
+            node
+        }
+    });
+    Some((condition, consequence, alternative))
 }

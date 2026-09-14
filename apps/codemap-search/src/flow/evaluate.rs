@@ -1,3 +1,4 @@
+mod control;
 mod execute;
 mod resolve;
 use super::index::{BindingKey, FunctionKey, Location};
@@ -78,6 +79,8 @@ enum ValueKind {
         class: usize,
     },
     Object(usize),
+    Tuple(Vec<ValueId>),
+    Alternatives(Vec<ValueId>),
     Parameter,
     Unknown(String),
     Namespace {
@@ -104,6 +107,7 @@ struct Frame {
     values: BTreeMap<BindingKey, ValueId>,
     receiver: Option<ValueId>,
 }
+#[derive(Clone)]
 struct Object {
     location: Location,
     fields: BTreeMap<Constant, ValueId>,
@@ -112,12 +116,14 @@ struct Object {
     is_invalidated: bool,
 }
 struct Store {
+    conditions: Vec<(usize, bool)>,
     object: usize,
     key: Option<Constant>,
     value: ValueId,
     location: Location,
 }
 struct Read {
+    conditions: Vec<(usize, bool)>,
     object: usize,
     key: Option<Constant>,
     location: Location,
@@ -143,6 +149,8 @@ pub(super) struct Query<'a> {
     closures: Vec<Closure>,
     objects: Vec<Object>,
     root_context: usize,
+    conditions: Vec<(usize, bool)>,
+    next_condition: usize,
     field_writes: HashMap<(usize, Constant), usize>,
     should_model_collections: bool,
     should_model_instances: bool,
@@ -194,6 +202,8 @@ impl<'a> Query<'a> {
             closures: Vec::new(),
             objects: Vec::new(),
             root_context: 0,
+            conditions: Vec::new(),
+            next_condition: 0,
             field_writes: HashMap::new(),
             should_model_collections: true,
             should_model_instances: true,
@@ -551,8 +561,16 @@ impl<'a> Query<'a> {
         self.steps.push(Step {
             from: from.clone(),
             to: to.clone(),
-            relation: relation.into(),
-            evidence,
+            relation: if !self.conditions.is_empty() && relation == "source-resolved call" {
+                "conditional call target".into()
+            } else {
+                relation.into()
+            },
+            evidence: if self.conditions.is_empty() {
+                evidence
+            } else {
+                Evidence::Candidate
+            },
             detail,
             is_interesting,
         });
@@ -595,7 +613,17 @@ impl<'a> Query<'a> {
                 .stores
                 .iter()
                 .filter(|store| {
-                    store.object == read.object && store.key.is_some() && store.key == read.key
+                    store.object == read.object
+                        && store.key.is_some()
+                        && store.key == read.key
+                        && !self.objects[store.object].is_invalidated
+                        && store.conditions.iter().all(|(id, is_consequence)| {
+                            read.conditions
+                                .iter()
+                                .all(|(other_id, other_is_consequence)| {
+                                    id != other_id || is_consequence == other_is_consequence
+                                })
+                        })
                 })
                 .take(16)
                 .map(|store| (store.location.clone(), store.value))

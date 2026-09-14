@@ -2,4 +2,4 @@ Inspect folder contents and directory structure, or choose a workspace scope. Us
 
 Root output lists workspace paths, file/symbol counts and leading languages. Every listed scope is valid; basenames must be unique. Do not infer language or ownership from a folder name alone. Confirm scope for broad changes. A scope/folder narrows and sets the active scope for search; subdirectories stay narrow, a file selects its parent, and all resets repo-wide search.
 
-Folders list significant file/symbol names without ranges. A file lists significant indexed declarations with exact ranges; unexported function-local declarations may be omitted. Missing symbols are not proof of absent source. Skip overview when a previous result already gives the range you need.
+Folders list significant declarations with source-backed signatures and nested fields/methods, without line ranges. A file lists significant indexed declarations with exact ranges; unexported function-local declarations may be omitted. Missing symbols are not proof of absent source. Skip overview when a previous result already gives the range you need.

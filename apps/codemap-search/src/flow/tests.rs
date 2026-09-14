@@ -32,7 +32,14 @@ fn test_source_wrappers_returned_handles_and_callbacks_need_no_package_rules() {
     let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
     let source="const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
     let (index, root) = build(&[("bus.ts", source)]);
-    let output = index.for_paths(&[("bus.ts".into(), 6, 6)], None, 12_000, root.path());
+    let output = index.for_paths_with_debug(
+        &[("bus.ts".into(), 6, 6)],
+        None,
+        12_000,
+        root.path(),
+        true,
+        true,
+    );
     assert!(
         output.contains("argument 1 → parameter")
             && output.contains("returned value → call result"),
@@ -118,7 +125,14 @@ fn test_output_and_analysis_budgets_are_explicit() {
         "function forward(value) { return value; }\nfunction setup() { return forward('ok'); }\n";
     let (index, root) = build(&[("small.ts", source)]);
     for cap in [256, 512, 1024] {
-        let output = index.for_paths(&[("small.ts".into(), 2, 2)], None, cap, root.path());
+        let output = index.for_paths_with_debug(
+            &[("small.ts".into(), 2, 2)],
+            None,
+            cap,
+            root.path(),
+            true,
+            true,
+        );
         assert!(output.len() <= cap, "{cap}: {}", output.len());
         if cap <= 512 {
             assert!(
@@ -134,7 +148,14 @@ fn test_output_and_analysis_budgets_are_explicit() {
             .collect::<String>()
     );
     let (index, root) = build(&[("large.ts", &source)]);
-    let output = index.for_paths(&[("large.ts".into(), 1, 1)], None, 2048, root.path());
+    let output = index.for_paths_with_debug(
+        &[("large.ts".into(), 1, 1)],
+        None,
+        2048,
+        root.path(),
+        true,
+        true,
+    );
     assert!(output.contains("budget exceeded"), "{output}");
     let declarations = (0..3000)
         .map(|i| format!("const v{i} = {i};"))
@@ -175,7 +196,7 @@ fn test_composite_scripts_use_original_source_ranges_and_digest() {
         ("Sample.astro", "---\nfunction forward(value) { return value; }\nfunction setup() { return forward('ok'); }\n---\n<div />\n"),
     ] {
         let (index, root) = build(&[(path, source)]);
-        let output = index.for_paths(&[(path.into(), 3, 3)], None, 4096, root.path());
+        let output = index.for_paths_with_debug(&[(path.into(), 3, 3)], None, 4096, root.path(), true, true);
         assert!(output.contains("argument 1 → parameter") && output.contains(&format!("{path}:2")), "{path}: {output}");
         assert_eq!(index.digest(path), Some(crate::implementations::digest(source.as_bytes()).as_str()));
     }
@@ -186,7 +207,14 @@ fn test_instance_map_initializers_share_only_the_allocated_receiver() {
     let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
     let source = "class Broker {\nroutes = new Map();\nadd(key, handler) { this.routes.set(key, handler); }\nfire(key) { const f = this.routes.get(key); f(); }\n}\nfunction notify() {}\nexport function setup() { const a = new Broker(); const b = new Broker(); a.add('x', notify); b.fire('x'); }\n";
     let (index, root) = build(&[("broker.ts", source)]);
-    let output = index.for_paths(&[("broker.ts".into(), 7, 7)], None, 12000, root.path());
+    let output = index.for_paths_with_debug(
+        &[("broker.ts".into(), 7, 7)],
+        None,
+        12000,
+        root.path(),
+        true,
+        true,
+    );
     assert!(
         output.contains("value → collection store")
             && !output.contains("possible callback invocation"),
@@ -194,7 +222,14 @@ fn test_instance_map_initializers_share_only_the_allocated_receiver() {
     );
     let source = source.replace("b.fire('x')", "a.fire('x')");
     let (index, root) = build(&[("broker.ts", &source)]);
-    let output = index.for_paths(&[("broker.ts".into(), 7, 7)], None, 12000, root.path());
+    let output = index.for_paths_with_debug(
+        &[("broker.ts".into(), 7, 7)],
+        None,
+        12000,
+        root.path(),
+        true,
+        true,
+    );
     assert!(
         output.contains("possible callback invocation") && output.contains("notify — broker.ts:6"),
         "{output}"
@@ -222,7 +257,8 @@ fn test_shell_and_build_conditions_keep_unresolved_boundaries() {
         ),
     ] {
         let (index, root) = build(&[(path, source)]);
-        let output = index.for_paths(&[(path.into(), 1, 5)], None, 2048, root.path());
+        let output =
+            index.for_paths_with_debug(&[(path.into(), 1, 5)], None, 2048, root.path(), true, true);
         assert!(
             output.contains("unresolved") && !output.contains("[source]"),
             "{path}: {output}"
@@ -238,7 +274,14 @@ fn test_returned_instance_field_and_relative_reexport_preserve_source_identity()
         ("api.ts", "export { connect as create } from './handle';\n"),
         ("main.ts", "import { create } from './api';\nfunction notify() {}\nexport function setup() { const handle = create(notify); handle.fire(); }\n"),
     ]);
-    let output = index.for_paths(&[("main.ts".into(), 3, 3)], None, 16_000, root.path());
+    let output = index.for_paths_with_debug(
+        &[("main.ts".into(), 3, 3)],
+        None,
+        16_000,
+        root.path(),
+        true,
+        true,
+    );
     assert!(
         output.contains("value → object field")
             && output.contains("object field → value")
@@ -251,14 +294,23 @@ fn test_returned_instance_field_and_relative_reexport_preserve_source_identity()
         "export function connect(handler) { return external(); }",
     )
     .unwrap();
-    let changed = index.for_paths(&[("main.ts".into(), 3, 3)], None, 16_000, root.path());
+    let changed = index.for_paths_with_debug(
+        &[("main.ts".into(), 3, 3)],
+        None,
+        16_000,
+        root.path(),
+        true,
+        true,
+    );
     assert!(!changed.contains("value → object field"), "{changed}");
     assert!(changed.contains("changed since indexing"), "{changed}");
-    let scoped = index.for_paths(
+    let scoped = index.for_paths_with_debug(
         &[("main.ts".into(), 3, 3)],
         Some("main.ts"),
         16_000,
         root.path(),
+        true,
+        true,
     );
     assert!(!scoped.contains("value → object field"), "{scoped}");
 }
@@ -293,7 +345,14 @@ fn test_simple_forwarding_language_profiles() {
             .position(|line| line.contains("setup") || line.contains("Setup"))
             .unwrap()
             + 1;
-        let output = index.for_paths(&[(path.into(), line, line)], None, 16_000, root.path());
+        let output = index.for_paths_with_debug(
+            &[(path.into(), line, line)],
+            None,
+            16_000,
+            root.path(),
+            true,
+            true,
+        );
         if !output.contains("returned value → call result")
             || !output.contains("argument 1 → parameter")
         {

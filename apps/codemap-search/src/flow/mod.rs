@@ -25,6 +25,7 @@ pub(crate) struct RequestBudget {
     shown: std::collections::BTreeMap<String, String>,
     shown_diagnostics: std::collections::BTreeSet<String>,
     work_limit: Option<&'static str>,
+    has_omissions: bool,
 }
 
 impl RequestBudget {
@@ -48,7 +49,14 @@ impl RequestBudget {
         self.work_limit.is_none()
     }
 
-    pub(crate) fn notice(&self) -> String {
+    pub(crate) fn notice(&self, should_debug: bool) -> String {
+        if !should_debug {
+            return if self.work_limit.is_some() || self.has_omissions {
+                "[분석 제한: 보조 관계 일부 생략. 상세: debug=true.]\n".into()
+            } else {
+                String::new()
+            };
+        }
         self.work_limit.map_or_else(String::new, |reason| format!(
             "[Partial value analysis: {reason}. This limit is shared across returned files; additional value relationships may be missing.]\n"
         ))

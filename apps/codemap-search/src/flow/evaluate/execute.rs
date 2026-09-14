@@ -96,6 +96,113 @@ impl Query<'_> {
                 let closure = self.closure(key, captures, receiver);
                 self.value(ValueKind::Function(closure), definition, Evidence::Source)
             }
+            ExpressionKind::Tuple(items) => {
+                location.name = format!("tuple ({} values)", items.len());
+                let values = items
+                    .iter()
+                    .map(|item| self.expression(*item, frame, depth + 1))
+                    .collect();
+                self.value(ValueKind::Tuple(values), location, Evidence::Source)
+            }
+            ExpressionKind::Block(statements) => self
+                .statements(&statements, frame, depth + 1)
+                .unwrap_or_else(|| {
+                    self.value(ValueKind::Tuple(Vec::new()), location, Evidence::Source)
+                }),
+            ExpressionKind::Conditional {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                let condition = self.expression(condition, frame, depth + 1);
+                self.branches(
+                    condition,
+                    frame,
+                    &location,
+                    |query, frame, is_consequence| {
+                        Some(query.expression(
+                            if is_consequence {
+                                consequence
+                            } else {
+                                alternative
+                            },
+                            frame,
+                            depth + 1,
+                        ))
+                    },
+                )
+                .unwrap_or(0)
+            }
+            ExpressionKind::Logical {
+                left,
+                right,
+                is_and,
+            } => {
+                let left = self.expression(left, frame, depth + 1);
+                self.branches(left, frame, &location, |query, frame, is_consequence| {
+                    Some(if is_consequence == is_and {
+                        query.expression(right, frame, depth + 1)
+                    } else {
+                        left
+                    })
+                })
+                .unwrap_or(0)
+            }
+            ExpressionKind::Not(operand) => {
+                let operand = self.expression(operand, frame, depth + 1);
+                match self.values[operand].kind {
+                    ValueKind::Constant(Constant::Boolean(value)) => self.value(
+                        ValueKind::Constant(Constant::Boolean(!value)),
+                        location,
+                        Evidence::Source,
+                    ),
+                    _ => self.unknown(&location, "boolean operand is unresolved"),
+                }
+            }
+            ExpressionKind::Equal {
+                left,
+                right,
+                is_negated,
+            } => {
+                let left = self.expression(left, frame, depth + 1);
+                let right = self.expression(right, frame, depth + 1);
+                let equal = match (&self.values[left].kind, &self.values[right].kind) {
+                    (
+                        ValueKind::Constant(Constant::Boolean(a)),
+                        ValueKind::Constant(Constant::Boolean(b)),
+                    ) => Some(a == b),
+                    (
+                        ValueKind::Constant(Constant::String(a)),
+                        ValueKind::Constant(Constant::String(b)),
+                    ) if matches!(
+                        self.index
+                            .unit(&frame.key.path, frame.key.unit)
+                            .unwrap()
+                            .language
+                            .as_str(),
+                        "rust" | "go" | "python" | "javascript" | "typescript"
+                    ) =>
+                    {
+                        Some(a == b)
+                    }
+                    (
+                        ValueKind::Constant(Constant::Number(a)),
+                        ValueKind::Constant(Constant::Number(b)),
+                    ) if a == b => Some(true),
+                    _ => None,
+                };
+                equal
+                    .map(|equal| {
+                        self.value(
+                            ValueKind::Constant(Constant::Boolean(equal != is_negated)),
+                            location.clone(),
+                            Evidence::Source,
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        self.unknown(&location, "comparison/coercion semantics are unresolved")
+                    })
+            }
             ExpressionKind::Object { class, fields } => {
                 let language = self
                     .index
@@ -169,6 +276,26 @@ impl Query<'_> {
         let ValueKind::Constant(key) = self.values[key].kind.clone() else {
             return self.unknown(location, "dynamic field key unresolved");
         };
+        if matches!(
+            self.values[object].kind,
+            ValueKind::Tuple(_) | ValueKind::Alternatives(_)
+        ) {
+            let index = match &key {
+                Constant::Number(value) | Constant::String(value) => value.parse::<usize>().ok(),
+                _ => None,
+            };
+            let location = Location {
+                name: format!(
+                    "{}[{}]",
+                    self.values[object].location.name,
+                    index.map_or_else(|| "?".into(), |index| index.to_string())
+                ),
+                ..location.clone()
+            };
+            return index
+                .map(|index| self.tuple_item(object, index, &location))
+                .unwrap_or_else(|| self.unknown(&location, "tuple index is unresolved"));
+        }
         let key_name = match &key {
             Constant::String(name) => name.clone(),
             Constant::Number(name) => name.clone(),
@@ -346,6 +473,22 @@ impl Query<'_> {
             name: format!("call {}", self.values[callable].location.name),
             ..location.clone()
         };
+        if matches!(self.values[callable].kind, ValueKind::Alternatives(_))
+            || self.values[callable].evidence == Evidence::Candidate
+                && matches!(self.values[callable].kind, ValueKind::Function(_))
+        {
+            self.conditional_call(callable, &location);
+            for argument in &arguments {
+                self.invalidate_escaped(*argument, &location);
+            }
+            if let Some(receiver) = receiver {
+                self.invalidate_escaped(receiver, &location);
+            }
+            return self.unknown(
+                &location,
+                "conditional call target; branch selection is unresolved",
+            );
+        }
         match self.values[callable].kind.clone() {
             ValueKind::Function(closure) => {
                 if is_constructor {
@@ -714,7 +857,7 @@ impl Query<'_> {
         frame: &mut Frame,
         depth: usize,
     ) -> Option<ValueId> {
-        for statement in statements {
+        for (position, statement) in statements.iter().enumerate() {
             let location = Location {
                 path: frame.key.path.clone(),
                 range: statement.range.clone(),
@@ -724,6 +867,87 @@ impl Query<'_> {
                 return Some(0);
             }
             match &statement.kind {
+                StatementKind::Branch {
+                    condition,
+                    consequence,
+                    alternative,
+                } => {
+                    let condition = self.expression(*condition, frame, depth + 1);
+                    if let ValueKind::Constant(Constant::Boolean(is_consequence)) =
+                        self.values[condition].kind
+                    {
+                        if let Some(value) = self.statements(
+                            if is_consequence {
+                                consequence
+                            } else {
+                                alternative
+                            },
+                            frame,
+                            depth + 1,
+                        ) {
+                            return Some(value);
+                        }
+                    } else {
+                        return self.branches(
+                            condition,
+                            frame,
+                            &location,
+                            |query, frame, is_consequence| {
+                                query
+                                    .statements(
+                                        if is_consequence {
+                                            consequence
+                                        } else {
+                                            alternative
+                                        },
+                                        frame,
+                                        depth + 1,
+                                    )
+                                    .or_else(|| {
+                                        query.statements(
+                                            &statements[position + 1..],
+                                            frame,
+                                            depth + 1,
+                                        )
+                                    })
+                            },
+                        );
+                    }
+                }
+                StatementKind::Destructure { bindings, value } => {
+                    let value = self.expression(*value, frame, depth + 1);
+                    for (binding, path) in bindings {
+                        let mut item = value;
+                        for &index in path {
+                            item = self.tuple_item(item, index, &location);
+                        }
+                        let name = self
+                            .index
+                            .unit(&frame.key.path, frame.key.unit)
+                            .unwrap()
+                            .bindings[*binding]
+                            .name
+                            .clone();
+                        let item = self.transfer(
+                            item,
+                            &Location {
+                                name,
+                                ..location.clone()
+                            },
+                            "tuple → binding",
+                            true,
+                        );
+                        let key = BindingKey {
+                            path: frame.key.path.clone(),
+                            unit: frame.key.unit,
+                            binding: *binding,
+                        };
+                        frame.values.insert(key.clone(), item);
+                        if frame.key.function == 0 {
+                            self.globals.insert(key, item);
+                        }
+                    }
+                }
                 StatementKind::Bind { binding, value } => {
                     let value = self.expression(*value, frame, depth + 1);
                     let name = self
@@ -830,9 +1054,40 @@ impl Query<'_> {
                     self.globals.insert(key, value);
                 }
             }
-            ExpressionKind::Field { object, key } => {
-                let object = self.expression(object, frame, depth + 1);
+            ExpressionKind::Field {
+                object: object_node,
+                key,
+            } => {
+                let object = self.expression(object_node, frame, depth + 1);
                 let key = self.expression(key, frame, depth + 1);
+                if matches!(
+                    self.values[object].kind,
+                    ValueKind::Tuple(_) | ValueKind::Alternatives(_)
+                ) {
+                    let index = match &self.values[key].kind {
+                        ValueKind::Constant(Constant::Number(value) | Constant::String(value)) => {
+                            value.parse::<usize>().ok()
+                        }
+                        _ => None,
+                    };
+                    let updated = match (self.values[object].kind.clone(), index) {
+                        (ValueKind::Tuple(mut items), Some(index))
+                            if index < items.len()
+                                && self
+                                    .index
+                                    .unit(&frame.key.path, frame.key.unit)
+                                    .unwrap()
+                                    .language
+                                    == "rust" =>
+                        {
+                            items[index] = value;
+                            self.value(ValueKind::Tuple(items), location.clone(), Evidence::Source)
+                        }
+                        _ => self.unknown(location, "tuple mutation target is unresolved"),
+                    };
+                    self.assign(object_node, updated, frame, location, depth + 1);
+                    return;
+                }
                 if matches!(self.values[object].kind, ValueKind::Class { .. }) {
                     self.should_model_instances = false;
                     self.diagnostic(
@@ -905,6 +1160,9 @@ impl Query<'_> {
             }
             match self.values[value].kind {
                 ValueKind::Class { .. } => self.should_model_instances = false,
+                ValueKind::Tuple(ref items) | ValueKind::Alternatives(ref items) => {
+                    pending.extend(items.iter().copied())
+                }
                 ValueKind::Object(object) => {
                     self.objects[object].is_invalidated = true;
                     pending.extend(self.objects[object].fields.values().copied());
@@ -933,6 +1191,7 @@ impl Query<'_> {
         match (method, arguments) {
             ("set", [_, value]) => {
                 self.stores.push(Store {
+                    conditions: self.conditions.clone(),
                     object,
                     key,
                     value: *value,
@@ -954,6 +1213,7 @@ impl Query<'_> {
             ("get", [_]) => {
                 let read = self.reads.len();
                 self.reads.push(Read {
+                    conditions: self.conditions.clone(),
                     object,
                     key,
                     location: location.clone(),

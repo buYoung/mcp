@@ -7,3 +7,5 @@ Matched functions can add depth-one callers/callees and bounded value relationsh
 Supplementary sections use only displayed matching evidence, share the bytes left after ranked details/tail, and never shorten search results. Named declaration sections and file-grouped results are limited to grep/read. [analysis limit] marks unavailable/bounded value summaries; [unresolved] marks unproven value/call semantics.
 
 Unsupported arguments are errors: path and per-request limit are not supported. Scope with a workspace_scope listed by root overview (alias: scope). Use the documented keys query, caller_context, language_hint and extension_hint.
+
+Value relationships group paths and repeated function-passing locations, omitting opaque intermediate chains. debug=true exposes bounded detailed evidence and analysis diagnostics without raising analysis budgets.

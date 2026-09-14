@@ -1,3 +1,4 @@
+mod compact;
 use super::evaluate::{Evidence, Query};
 use super::index::Location;
 use std::collections::BTreeSet;
@@ -29,7 +30,7 @@ fn diagnostic_key(diagnostic: &super::evaluate::Diagnostic) -> String {
 
 #[cfg(test)]
 pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
-    render_with_context(query, cap, None, None, None)
+    render_with_context(query, cap, None, None, None, true)
 }
 
 pub(super) fn render_with_context(
@@ -38,7 +39,11 @@ pub(super) fn render_with_context(
     current_file: Option<&str>,
     mut budget: Option<&mut super::RequestBudget>,
     section_anchors: Option<&[(String, usize, usize)]>,
+    should_debug: bool,
 ) -> String {
+    if !should_debug {
+        return compact::render(query, cap, current_file, budget, section_anchors);
+    }
     let mut diagnostics = query
         .diagnostics
         .iter()

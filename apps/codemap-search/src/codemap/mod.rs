@@ -1,4 +1,5 @@
 mod monorepo;
+mod outline;
 mod summary;
 mod tree;
 pub(crate) use monorepo::WorkspaceCatalog;
@@ -195,8 +196,12 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
                 // Significant symbols only, names/kinds without line ranges: the folder
                 // view orients within a known folder but is not a locator — exact
                 // positions come from search/grep (overview must not substitute for search).
-                for symbol in &file.symbols {
-                    writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
+                if let Some(outline) = &file.outline {
+                    write!(f, "{outline}")?;
+                } else {
+                    for symbol in &file.symbols {
+                        writeln!(f, "  - {} ({})", symbol.name, symbol.kind)?;
+                    }
                 }
             }
         }
@@ -331,7 +336,8 @@ impl CodemapGenerator {
                 None => "",
             };
             let symbol_count = if parent == normalized_folder {
-                let summary = summarize_file(file);
+                let mut summary = summarize_file(file);
+                summary.outline = outline::render(file);
                 let count = summary.symbol_count;
                 files_in_folder.push(summary);
                 count

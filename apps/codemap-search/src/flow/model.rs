@@ -105,6 +105,24 @@ pub(crate) enum ExpressionKind {
     },
     Literal(Constant),
     Function(FunctionId),
+    Tuple(Vec<NodeId>),
+    Block(Vec<Statement>),
+    Conditional {
+        condition: NodeId,
+        consequence: NodeId,
+        alternative: NodeId,
+    },
+    Not(NodeId),
+    Logical {
+        left: NodeId,
+        right: NodeId,
+        is_and: bool,
+    },
+    Equal {
+        left: NodeId,
+        right: NodeId,
+        is_negated: bool,
+    },
     Object {
         class: Option<String>,
         fields: Vec<(String, NodeId)>,
@@ -136,6 +154,15 @@ pub(crate) struct Statement {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum StatementKind {
+    Branch {
+        condition: NodeId,
+        consequence: Vec<Statement>,
+        alternative: Vec<Statement>,
+    },
+    Destructure {
+        bindings: Vec<(BindingId, Vec<usize>)>,
+        value: NodeId,
+    },
     Bind {
         binding: BindingId,
         value: NodeId,

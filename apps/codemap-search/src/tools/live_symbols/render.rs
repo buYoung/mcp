@@ -147,11 +147,6 @@ pub(super) fn render(
         );
     }
     let path = &outline.file.file_path;
-    let section_kind = if options.view == LiveView::Relations {
-        "relations"
-    } else {
-        "symbols"
-    };
     let headers: BTreeMap<_, _> = outline
         .order
         .iter()
@@ -164,7 +159,13 @@ pub(super) fn render(
                 .collect::<Vec<_>>()
                 .join(" ");
             let name = name.chars().take(400).collect::<String>();
-            (i, format!("\n### {name} {section_kind}\n\n"))
+            (
+                i,
+                format!(
+                    "\n### {} {name}\n\n",
+                    crate::declarations::kind_label(&outline.file.symbols[i])
+                ),
+            )
         })
         .collect();
     let mut chosen = BTreeSet::new();

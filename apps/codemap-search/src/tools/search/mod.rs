@@ -415,6 +415,7 @@ fn append_search_relations(
     workspace_scope: Option<&str>,
     should_include_calls: bool,
     should_include_events: bool,
+    should_debug: bool,
 ) {
     let byte_cap = crate::config::get().search_detail_byte_cap;
     // Ranked snippets and the compact tail own their existing budget. Every
@@ -439,9 +440,14 @@ fn append_search_relations(
     let root = std::env::current_dir().unwrap_or_default();
     let flow_cap = relation_cap.saturating_sub(relations.len() + 2) / 3;
     let flows = if should_include_calls && flow_cap >= 256 {
-        snapshot
-            .flows()
-            .for_paths(anchors, workspace_scope, flow_cap, &root)
+        snapshot.flows().for_paths_with_debug(
+            anchors,
+            workspace_scope,
+            flow_cap,
+            &root,
+            true,
+            should_debug,
+        )
     } else {
         String::new()
     };
@@ -1117,6 +1123,7 @@ pub(crate) fn run_inner_with_metadata(
             workspace_scope,
             caller_context_enabled,
             should_include_events,
+            super::live_options::debug_requested(ctx.arguments)?,
         );
     }
     tracing::debug!(

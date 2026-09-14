@@ -221,6 +221,7 @@ pub(super) fn build(
                         &file.file_path,
                         &mut flow_budget,
                         should_include_indirect,
+                        options.should_debug,
                     )
                 });
                 append_relation(&mut relations, text, relation_cap);
@@ -232,7 +233,7 @@ pub(super) fn build(
     }
     (
         contexts,
-        super::bounded_notice(&flow_budget.notice(), notice_cap),
+        super::bounded_notice(&flow_budget.notice(options.should_debug), notice_cap),
     )
 }
 
@@ -250,8 +251,7 @@ fn append_relation(context: &mut String, text: String, cap: usize) {
     if context.len() + nested.len() <= cap {
         context.push_str(&nested);
     } else {
-        let notice =
-            "[Additional relationships omitted by output budget; narrow this file/window.]\n";
+        let notice = "[Additional relationships omitted by output budget.]\n";
         context.push_str(&super::bounded_notice(
             notice,
             cap.saturating_sub(context.len()),

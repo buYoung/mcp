@@ -52,7 +52,7 @@ async fn test_generic_value_relationships_persist_and_follow_live_views() {
             .unwrap();
         let output = text(&response);
         assert!(
-            output.contains("notify — L5") && output.contains("6→export function setup"),
+            output.contains("notify · L5") && output.contains("6→export function setup"),
             "{output}"
         );
         assert!(output.len() <= 16_384, "{}", output.len());
@@ -591,7 +591,7 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
                 }
             }
             "relations" => {
-                assert!(out.contains("\n### target relations\n"), "{out}");
+                assert!(out.contains("\n### fn target\n"), "{out}");
                 assert!(out.contains("caller (L7)"), "{out}");
                 assert!(out.contains("LIMIT — L1 = 7"), "{out}");
                 assert!(!out.contains("# results"), "{out}");

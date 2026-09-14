@@ -70,6 +70,7 @@ fn file_summaries(files: &[crate::parser::ExtractedFile]) -> Vec<ExtractedFileSu
             total_lines: file.total_lines,
             symbol_count: significant_symbols(&file.symbols).count(),
             symbols: Vec::new(),
+            outline: None,
         })
         .collect();
     files_summary.sort_by(|left, right| left.file_path.cmp(&right.file_path));

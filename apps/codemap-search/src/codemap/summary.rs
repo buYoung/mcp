@@ -13,6 +13,7 @@ pub struct ExtractedFileSummary<'a> {
     pub total_lines: usize,
     pub symbol_count: usize,
     pub symbols: Vec<ExtractedSymbolSummary<'a>>,
+    pub(crate) outline: Option<String>,
 }
 
 /// One directory node in the root overview: its path plus the number of source
@@ -93,6 +94,7 @@ pub(crate) fn summarize_file(file: &crate::parser::ExtractedFile) -> ExtractedFi
         total_lines: file.total_lines,
         symbol_count: symbols.len(),
         symbols,
+        outline: None,
     }
 }
 

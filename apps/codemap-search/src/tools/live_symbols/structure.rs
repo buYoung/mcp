@@ -1,166 +1,11 @@
 use super::LiveAnchor;
-use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol};
+use crate::declarations::{add_impl_containers, live_signature, parents, visibility};
+pub(super) use crate::declarations::{callable, container, symbol_node};
+use crate::parser::{ExtractedFile, ExtractedSymbol};
 use crate::tools::live_options::{LiveOptions, LiveView};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use tree_sitter::{Node, Parser, Point, Tree};
-
-pub(super) fn callable(s: &ExtractedSymbol) -> bool {
-    matches!(s.kind.as_str(), "fn" | "function" | "method")
-}
-
-pub(super) fn container(s: &ExtractedSymbol) -> bool {
-    matches!(
-        s.kind.as_str(),
-        "class" | "impl" | "struct" | "interface" | "trait" | "type" | "enum"
-    )
-}
-
-fn bounds(r: &CodeRange) -> ((usize, usize), (usize, usize)) {
-    ((r.start_line, r.start_col), (r.end_line, r.end_col))
-}
-
-fn contains(outer: &ExtractedSymbol, inner: &ExtractedSymbol) -> bool {
-    let (a, b) = bounds(&outer.range);
-    let (c, d) = bounds(&inner.range);
-    a <= c && d <= b && (a != c || b != d)
-}
-
-pub(super) fn symbol_node<'a>(
-    tree: &'a Tree,
-    s: &ExtractedSymbol,
-    source: &str,
-) -> Option<Node<'a>> {
-    let r = &s.range;
-    let start = Point::new(
-        r.start_line.saturating_sub(1),
-        r.start_col.saturating_sub(1),
-    );
-    let end = Point::new(r.end_line.saturating_sub(1), r.end_col.saturating_sub(1));
-    let mut node = tree.root_node().descendant_for_point_range(start, end)?;
-    while !crate::parser::node_matches_source_range(node, source.as_bytes(), r) {
-        node = node.parent()?;
-    }
-    // A value-less Go const spec has exactly the same range as its identifier.
-    // Prefer the declaration carrying that name over the deepest matching token.
-    let original = node;
-    while node.child_by_field_name("name").is_none() {
-        let Some(parent) = node.parent().filter(|parent| {
-            crate::parser::node_matches_source_range(*parent, source.as_bytes(), r)
-        }) else {
-            return Some(original);
-        };
-        node = parent;
-    }
-    Some(node)
-}
-
-fn text(node: Node<'_>, source: &str) -> Option<String> {
-    Some(
-        node.utf8_text(source.as_bytes())
-            .ok()?
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
-}
-
-fn signature(s: &ExtractedSymbol, tree: Option<&Tree>, source: &str, is_go: bool) -> String {
-    let Some(node) = tree.and_then(|t| symbol_node(t, s, source)) else {
-        return s.name.clone();
-    };
-    if is_go && callable(s) {
-        let parameters = node
-            .child_by_field_name("parameters")
-            .and_then(|n| text(n, source));
-        if let Some(parameters) = parameters {
-            let receiver = node.child_by_field_name("receiver").and_then(|receiver| {
-                let mut cursor = receiver.walk();
-                let value = receiver
-                    .named_children(&mut cursor)
-                    .find_map(|p| p.child_by_field_name("type").and_then(|n| text(n, source)));
-                value
-            });
-            let result = node
-                .child_by_field_name("result")
-                .and_then(|n| text(n, source))
-                .map(|x| format!(" {x}"))
-                .unwrap_or_default();
-            return format!(
-                "{}{}{parameters}{result}",
-                receiver.map(|x| format!("({x}).")).unwrap_or_default(),
-                s.name
-            );
-        }
-    }
-    if matches!(s.kind.as_str(), "field" | "variable" | "const") {
-        if let Some(typ) = node
-            .child_by_field_name("type")
-            .and_then(|n| text(n, source))
-        {
-            return format!("{} {typ}", s.name);
-        }
-    }
-    s.name.clone()
-}
-
-/// Rust tags index impl members but may omit the impl itself. Preserve the
-/// existing same-file type grouping; otherwise use the actual live impl span.
-/// These containers belong only to the live outline, never the indexed codemap.
-fn add_detached_impl_containers(file: &mut ExtractedFile, tree: &Tree, source: &str) {
-    let original_len = file.symbols.len();
-    let mut pending = vec![tree.root_node()];
-    while let Some(node) = pending.pop() {
-        if node.kind() == "impl_item" {
-            let start = node.start_position();
-            let end = node.end_position();
-            let range = CodeRange {
-                start_line: start.row + 1,
-                start_col: start.column + 1,
-                end_line: end.row + 1,
-                end_col: end.column + 1,
-            };
-            let original = &file.symbols[..original_len];
-            let owner = original.iter().find_map(|symbol| {
-                let (a, b) = bounds(&range);
-                let (c, d) = bounds(&symbol.range);
-                (a <= c && d <= b && callable(symbol))
-                    .then_some(symbol.owner.as_deref())
-                    .flatten()
-            });
-            if let Some(owner) = owner.filter(|owner| {
-                !original
-                    .iter()
-                    .any(|symbol| container(symbol) && symbol.name == *owner)
-            }) {
-                let name = node
-                    .child_by_field_name("type")
-                    .and_then(|node| text(node, source))
-                    .unwrap_or_else(|| owner.to_string());
-                let name = node
-                    .child_by_field_name("trait")
-                    .and_then(|node| text(node, source))
-                    .map_or_else(|| name.clone(), |contract| format!("{contract} for {name}"));
-                file.symbols.push(ExtractedSymbol {
-                    name,
-                    kind: "impl".into(),
-                    range,
-                    docstring: None,
-                    flags: crate::parser::SymbolFlags {
-                        has_todo: false,
-                        has_fixme: false,
-                        is_test: false,
-                        is_exported: false,
-                        is_deprecated: false,
-                    },
-                    owner: None,
-                });
-            }
-        }
-        let mut cursor = node.walk();
-        pending.extend(node.named_children(&mut cursor));
-    }
-}
+use tree_sitter::Parser;
 
 pub(super) struct Outline {
     pub file: ExtractedFile,
@@ -195,46 +40,11 @@ impl Outline {
         let mut file = file.clone();
         if ext == "rs" {
             if let Some(tree) = tree.as_ref() {
-                add_detached_impl_containers(&mut file, tree, &source);
+                add_impl_containers(&mut file, tree, &source);
             }
         }
         let symbols = &file.symbols;
-        let parents: Vec<_> = symbols
-            .iter()
-            .enumerate()
-            .map(|(i, s)| {
-                let lexical = symbols
-                    .iter()
-                    .enumerate()
-                    .filter(|(j, c)| *j != i && contains(c, s))
-                    .min_by_key(|(_, c)| {
-                        (
-                            c.range.end_line - c.range.start_line,
-                            c.range.end_col.saturating_sub(c.range.start_col),
-                        )
-                    })
-                    .map(|(j, _)| j);
-                if lexical.is_some() {
-                    return lexical;
-                }
-                s.owner.as_deref().and_then(|owner| {
-                    let matches: Vec<_> = symbols
-                        .iter()
-                        .enumerate()
-                        .filter(|(j, c)| {
-                            *j != i
-                                && container(c)
-                                && c.name == owner
-                                && !symbols
-                                    .iter()
-                                    .any(|outer| callable(outer) && contains(outer, c))
-                        })
-                        .map(|(j, _)| j)
-                        .collect();
-                    (matches.len() == 1).then(|| matches[0])
-                })
-            })
-            .collect();
+        let parents = parents(symbols);
         let mut selected = BTreeSet::new();
         let intersects = |s: &ExtractedSymbol| {
             anchors.iter().any(|a| {
@@ -309,20 +119,16 @@ impl Outline {
                 } else {
                     s.kind.as_str()
                 };
-                let visibility = if is_inside_callable && s.kind != "field" {
-                    "local"
-                } else if s.flags.is_exported {
-                    "exported"
-                } else {
-                    "not exported"
-                };
+                let visibility = visibility(s, tree.as_ref(), &source, ext, is_inside_callable)
+                    .map(|value| format!(", {value}"))
+                    .unwrap_or_default();
                 let is_expanded = file
                     .macro_expansion()
                     .is_some_and(|info| info.is_expanded_symbol(s));
                 let signature = if is_expanded {
                     s.name.clone()
                 } else {
-                    signature(s, tree.as_ref(), &source, ext == "go")
+                    live_signature(s, tree.as_ref(), &source, ext == "go")
                 };
                 let signature = if signature.chars().count() > 400 {
                     format!(
@@ -333,7 +139,7 @@ impl Outline {
                     signature
                 };
                 format!(
-                    "{}- {} [{kind}, {visibility}{}] — L{}-{}\n",
+                    "{}- {} [{kind}{visibility}{}] — L{}-{}\n",
                     "  ".repeat(depth),
                     signature,
                     if is_expanded { ", macro expansion" } else { "" },

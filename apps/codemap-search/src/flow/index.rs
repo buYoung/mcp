@@ -37,6 +37,7 @@ impl FileContext<'_> {
         current_file: &str,
         budget: &mut super::RequestBudget,
         should_include_indirect: bool,
+        should_debug: bool,
     ) -> String {
         super::render::render_with_context(
             &self.query,
@@ -44,6 +45,7 @@ impl FileContext<'_> {
             Some(current_file),
             Some(budget),
             (!should_include_indirect).then_some(anchors),
+            should_debug,
         )
     }
 }
@@ -266,22 +268,14 @@ impl FlowIndex {
             name: function.name.clone(),
         })
     }
-    pub(crate) fn for_paths(
-        &self,
-        anchors: &[(String, usize, usize)],
-        scope: Option<&str>,
-        cap: usize,
-        root: &Path,
-    ) -> String {
-        self.for_paths_with_unresolved(anchors, scope, cap, root, true)
-    }
-    pub(crate) fn for_paths_with_unresolved(
+    pub(crate) fn for_paths_with_debug(
         &self,
         anchors: &[(String, usize, usize)],
         scope: Option<&str>,
         cap: usize,
         root: &Path,
         should_list_unresolved: bool,
+        should_debug: bool,
     ) -> String {
         if cap < 256
             || anchors.is_empty()
@@ -292,7 +286,7 @@ impl FlowIndex {
         let mut query = super::evaluate::Query::new(self, root, scope);
         query.should_list_unresolved = should_list_unresolved;
         query.run(anchors);
-        super::render::render_with_context(&query, cap, None, None, None)
+        super::render::render_with_context(&query, cap, None, None, None, should_debug)
     }
 
     pub(crate) fn prepare_file<'a>(

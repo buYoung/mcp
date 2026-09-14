@@ -132,7 +132,16 @@ pub(crate) fn collect(
                     && !node.has_error()
                     && !has_opaque_modifiers(node, source)
                     && !matches!(language, "bash" | "zsh" | "powershell")
-                    && !has_conditional_parent(node),
+                    && (!has_conditional_parent(node)
+                        || matches!(
+                            node.kind(),
+                            "arrow_function"
+                                | "lambda"
+                                | "lambda_expression"
+                                | "function_expression"
+                                | "anonymous_function"
+                                | "closure_expression"
+                        )),
                 is_method: is_method(node),
                 is_static: text(node, source)
                     .split('(')
@@ -344,6 +353,9 @@ impl<'a> Collector<'a> {
                     let names = pattern_names(pattern, self.source);
                     let scope = range(scope(node));
                     for name in names {
+                        if name == "_" && matches!(self.unit.language.as_str(), "go" | "rust") {
+                            continue;
+                        }
                         let id = self.binding(name, node, scope.clone(), BindingKind::Local);
                         self.declarations.entry(node.id()).or_default().push(id);
                     }
@@ -475,6 +487,93 @@ impl<'a> Collector<'a> {
         }
         if let Some(value) = literal(node, self.source) {
             return self.push(node, ExpressionKind::Literal(value));
+        }
+        if matches!(
+            node.kind(),
+            "tuple_expression" | "tuple" | "unit_expression" | "expression_list"
+        ) {
+            let items = children(node);
+            if items.len() > 32 {
+                self.issue(node, "tuple item budget exceeded");
+                return 0;
+            }
+            let items = items
+                .into_iter()
+                .map(|item| self.expression(item, depth + 1))
+                .collect();
+            return self.push(node, ExpressionKind::Tuple(items));
+        }
+        if let Some((condition, consequence, alternative)) = conditional_parts(node) {
+            let condition = self.expression(condition, depth + 1);
+            let consequence = self.branch_expression(consequence, depth + 1);
+            let alternative = alternative
+                .map(|node| self.branch_expression(node, depth + 1))
+                .unwrap_or_else(|| self.push(node, ExpressionKind::Tuple(Vec::new())));
+            return self.push(
+                node,
+                ExpressionKind::Conditional {
+                    condition,
+                    consequence,
+                    alternative,
+                },
+            );
+        }
+        if matches!(
+            node.kind(),
+            "unary_expression" | "unary_operator" | "not_operator"
+        ) {
+            if let Some(operand) = node
+                .child_by_field_name("argument")
+                .or_else(|| node.child_by_field_name("operand"))
+                .or_else(|| node.named_child(0))
+            {
+                let operator =
+                    std::str::from_utf8(&self.source[node.start_byte()..operand.start_byte()])
+                        .unwrap_or("")
+                        .trim();
+                if matches!(operator, "!" | "not") {
+                    let operand = self.expression(operand, depth + 1);
+                    return self.push(node, ExpressionKind::Not(operand));
+                }
+            }
+        }
+        if matches!(
+            node.kind(),
+            "binary_expression" | "binary_operator" | "comparison_operator" | "boolean_operator"
+        ) {
+            if let Some((left, right)) = node
+                .child_by_field_name("left")
+                .zip(node.child_by_field_name("right"))
+            {
+                let operator =
+                    std::str::from_utf8(&self.source[left.end_byte()..right.start_byte()])
+                        .unwrap_or("")
+                        .trim();
+                if matches!(operator, "&&" | "||" | "and" | "or") {
+                    let left = self.expression(left, depth + 1);
+                    let right = self.expression(right, depth + 1);
+                    return self.push(
+                        node,
+                        ExpressionKind::Logical {
+                            left,
+                            right,
+                            is_and: matches!(operator, "&&" | "and"),
+                        },
+                    );
+                }
+                if matches!(operator, "==" | "===" | "!=" | "!==") {
+                    let left = self.expression(left, depth + 1);
+                    let right = self.expression(right, depth + 1);
+                    return self.push(
+                        node,
+                        ExpressionKind::Equal {
+                            left,
+                            right,
+                            is_negated: operator.starts_with('!'),
+                        },
+                    );
+                }
+            }
         }
         if is_identifier(node) {
             let name = identifier(node, self.source);
@@ -647,6 +746,41 @@ impl<'a> Collector<'a> {
             .collect();
         self.push(node, ExpressionKind::Unknown { reason, inputs })
     }
+    fn branch_statements(&mut self, node: Node<'a>, function: usize) -> Vec<Statement> {
+        if is_statement_container(node) {
+            let mut result = Vec::new();
+            for child in children(node) {
+                self.statement(child, function, &mut result);
+            }
+            result
+        } else {
+            let mut result = Vec::new();
+            self.statement(node, function, &mut result);
+            result
+        }
+    }
+    fn branch_expression(&mut self, node: Node<'a>, depth: usize) -> NodeId {
+        if is_statement_container(node) {
+            let mut pending = children(node);
+            while let Some(child) = pending.pop() {
+                if is_return(child) {
+                    self.issue(
+                        child,
+                        "nonlocal return inside a value expression is not summarized",
+                    );
+                    self.unit.functions[self.active_function].is_available = false;
+                    return 0;
+                }
+                if !self.function_ids.contains_key(&child.id()) {
+                    pending.extend(children(child));
+                }
+            }
+            let statements = self.statements(node, self.active_function);
+            self.push(node, ExpressionKind::Block(statements))
+        } else {
+            self.expression(node, depth + 1)
+        }
+    }
     fn statements(&mut self, node: Node<'a>, function: usize) -> Vec<Statement> {
         let is_expression_body = function != 0 && !is_statement_container(node);
         if is_expression_body {
@@ -657,10 +791,32 @@ impl<'a> Collector<'a> {
             }];
         }
         let mut result = Vec::new();
-        for statement in children(node) {
+        let body = children(node)
+            .into_iter()
+            .filter(|child| !is_comment(*child))
+            .collect::<Vec<_>>();
+        for (position, statement) in body.iter().copied().enumerate() {
             if result.len() >= NODES_PER_FILE {
                 self.issue(statement, "statement budget exceeded");
                 break;
+            }
+            let tail = if statement.kind() == "expression_statement" {
+                statement.named_child(0).unwrap_or(statement)
+            } else {
+                statement
+            };
+            if self.unit.language == "rust"
+                && function != 0
+                && position + 1 == body.len()
+                && tail.kind() == "if_expression"
+                && !text(statement, self.source).trim_end().ends_with(';')
+            {
+                let value = self.expression(tail, 0);
+                result.push(Statement {
+                    range: range(statement),
+                    kind: StatementKind::Return(value),
+                });
+                continue;
             }
             self.statement(statement, function, &mut result);
         }
@@ -706,6 +862,51 @@ impl<'a> Collector<'a> {
                         },
                     )
                 });
+            let pattern = binding_parts(node).map(|(pattern, _)| pattern);
+            let projection = pattern
+                .and_then(|pattern| tuple_bindings(pattern, self.source))
+                .map(|mut items| {
+                    if matches!(self.unit.language.as_str(), "go" | "rust") {
+                        items.retain(|(name, _)| name != "_");
+                    }
+                    items
+                });
+            if let Some(projection) =
+                projection.filter(|items| items.iter().any(|(_, path)| !path.is_empty()))
+            {
+                if projection.len() == ids.len() {
+                    result.push(Statement {
+                        range: range(node),
+                        kind: StatementKind::Destructure {
+                            bindings: ids
+                                .into_iter()
+                                .zip(projection)
+                                .map(|(id, (_, path))| (id, path))
+                                .collect(),
+                            value,
+                        },
+                    });
+                    return;
+                }
+            }
+            let value = if ids.len() > 1
+                || pattern.is_some_and(|node| {
+                    matches!(
+                        node.kind(),
+                        "tuple_pattern" | "pattern_list" | "tuple" | "expression_list"
+                    )
+                }) {
+                self.issue(node, "destructuring pattern is outside the tuple summary");
+                self.push(
+                    node,
+                    ExpressionKind::Unknown {
+                        reason: "destructuring pattern is unresolved".into(),
+                        inputs: Vec::new(),
+                    },
+                )
+            } else {
+                value
+            };
             for id in ids {
                 self.unit.bindings[id].initializer = Some(value);
                 result.push(Statement {
@@ -719,14 +920,15 @@ impl<'a> Collector<'a> {
             let values = return_values(node);
             let value = if values.len() == 1 {
                 self.expression(values[0], 0)
+            } else if values.len() <= 32 {
+                let items = values
+                    .into_iter()
+                    .map(|value| self.expression(value, 0))
+                    .collect();
+                self.push(node, ExpressionKind::Tuple(items))
             } else {
-                self.push(
-                    node,
-                    ExpressionKind::Unknown {
-                        reason: "multiple/empty return values are not summarized".into(),
-                        inputs: Vec::new(),
-                    },
-                )
+                self.issue(node, "tuple return budget exceeded");
+                0
             };
             result.push(Statement {
                 range: range(node),
@@ -761,9 +963,25 @@ impl<'a> Collector<'a> {
             });
             return;
         }
+        if let Some((condition, consequence, alternative)) = conditional_parts(node) {
+            let condition = self.expression(condition, 0);
+            let consequence = self.branch_statements(consequence, function);
+            let alternative = alternative
+                .map(|node| self.branch_statements(node, function))
+                .unwrap_or_default();
+            result.push(Statement {
+                range: range(node),
+                kind: StatementKind::Branch {
+                    condition,
+                    consequence,
+                    alternative,
+                },
+            });
+            return;
+        }
         if is_control(node) {
             let reason = format!(
-                "{} control flow requires a conditional summary",
+                "{} control flow is outside the bounded summary",
                 node.kind()
             );
             self.issue(node, &reason);

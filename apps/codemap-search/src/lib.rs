@@ -3,6 +3,7 @@ pub mod callers;
 pub mod codemap;
 pub mod config;
 mod config_locale;
+pub(crate) mod declarations;
 pub mod events;
 pub(crate) mod flow;
 pub mod implementations;
