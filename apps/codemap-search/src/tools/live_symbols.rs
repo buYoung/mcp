@@ -1,4 +1,4 @@
-//! Indexed member and call context above untouched live filesystem results.
+//! Indexed declaration sections above live filesystem results.
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
@@ -37,9 +37,25 @@ pub(crate) struct LiveOutput {
     pub footer: Option<String>,
     // Fully emitted source only; matching anchors also include column omissions.
     pub source_ranges: Vec<(String, usize, usize)>,
+    // Exact producer-written path prefixes to omit beneath a file heading.
+    // Source view retains the original text, including these prefixes.
+    pub path_prefixes: Vec<std::ops::Range<usize>>,
 }
 
 impl LiveOutput {
+    fn append_file_source(&self, file: &LiveFileSpan, text: &mut String) {
+        let mut start = file.start_byte;
+        for prefix in self
+            .path_prefixes
+            .iter()
+            .filter(|prefix| file.start_byte <= prefix.start && prefix.end <= file.end_byte)
+        {
+            text.push_str(&self.text[start..prefix.start]);
+            start = prefix.end;
+        }
+        text.push_str(&self.text[start..file.end_byte]);
+    }
+
     pub fn record_source(&mut self, path: &str, start: usize, end: usize) {
         if let Some(last) = self
             .source_ranges
@@ -143,12 +159,7 @@ fn frame(output: &LiveOutput, contexts: &[String], notice: &str, options: LiveOp
         text.push_str(notice);
         for (i, file) in output.files.iter().enumerate() {
             let path = file.file_path.replace('\r', "\\r").replace('\n', "\\n");
-            let section = if options.view == LiveView::Relations {
-                "relations"
-            } else {
-                "symbols"
-            };
-            text.push_str(&format!("\n\n## {}. {path}\n\n### {section}\n\n", i + 1));
+            text.push_str(&format!("\n\n## {}. {path}\n\n", i + 1));
             let context = &contexts[i];
             if context.is_empty() {
                 text.push_str("[Symbol context omitted by output/file budget.]\n");
@@ -157,7 +168,7 @@ fn frame(output: &LiveOutput, contexts: &[String], notice: &str, options: LiveOp
             }
             if options.view == LiveView::Full {
                 text.push_str("\n### results\n");
-                text.push_str(&output.text[file.start_byte..file.end_byte]);
+                output.append_file_source(file, &mut text);
             }
         }
         if let Some(footer) = &output.footer {

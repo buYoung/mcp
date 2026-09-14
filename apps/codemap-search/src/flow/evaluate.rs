@@ -60,6 +60,7 @@ pub(super) struct Step {
 pub(super) struct Diagnostic {
     pub location: Location,
     pub reason: String,
+    pub is_analysis_limit: bool,
 }
 #[derive(Clone)]
 struct Value {
@@ -262,7 +263,7 @@ impl<'a> Query<'a> {
                 })
                 .take(4)
             {
-                self.diagnostic(
+                self.analysis_limit(
                     &Location {
                         range: issue.range.clone(),
                         ..location.clone()
@@ -451,6 +452,12 @@ impl<'a> Query<'a> {
         self.work_limit.is_none()
     }
     fn diagnostic(&mut self, location: &Location, reason: &str) {
+        self.record_diagnostic(location, reason, false);
+    }
+    fn analysis_limit(&mut self, location: &Location, reason: &str) {
+        self.record_diagnostic(location, reason, true);
+    }
+    fn record_diagnostic(&mut self, location: &Location, reason: &str, is_analysis_limit: bool) {
         if self.diagnostics.len() < 16
             && !self.diagnostics.iter().any(|item| {
                 item.location.path == location.path
@@ -461,6 +468,7 @@ impl<'a> Query<'a> {
             self.diagnostics.push(Diagnostic {
                 location: location.clone(),
                 reason: reason.into(),
+                is_analysis_limit,
             });
         }
     }

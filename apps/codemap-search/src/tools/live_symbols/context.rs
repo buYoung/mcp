@@ -116,57 +116,116 @@ pub(super) fn build(
             } else {
                 available
             };
-            context.push_str(&render::render(
+            let (sections, notice) = render::render(
                 outline,
                 annotations.as_ref(),
                 symbol_cap,
                 options,
                 &mut hints,
-            ));
-            if options.should_include_relations() {
-                let anchors: Vec<_> = grouped
-                    .get(file.file_path.as_str())
-                    .into_iter()
-                    .flatten()
-                    .map(|anchor| {
-                        (
-                            anchor.file_path.clone(),
-                            anchor.start_line.unwrap_or(1),
-                            anchor.end_line.unwrap_or(usize::MAX),
-                        )
-                    })
-                    .collect();
-                let available = share.saturating_sub(context.len());
-                if options.should_include_events() {
+            );
+            // Reserve every declaration section before adding auxiliary relations.
+            let section_bytes: usize = sections.iter().map(|section| section.text.len()).sum();
+            let mut relation_remaining = available.saturating_sub(section_bytes + notice.len());
+            context.push_str(&notice);
+            let section_count = sections.len();
+            let is_single_declaration = outline
+                .focused
+                .iter()
+                .filter_map(|&i| outline.chain(i).first().copied())
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                == 1;
+            let file_anchors = grouped
+                .get(file.file_path.as_str())
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            let anchors = file_anchors
+                .iter()
+                .map(|anchor| {
+                    (
+                        anchor.file_path.clone(),
+                        anchor.start_line.unwrap_or(1),
+                        anchor.end_line.unwrap_or(usize::MAX),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let flow_context = if options.should_include_relations() {
+                snapshot.flows().prepare_file(
+                    &anchors,
+                    relation_remaining,
+                    &root,
+                    options.should_list_unresolved,
+                    &mut flow_budget,
+                )
+            } else {
+                None
+            };
+            for (position, section) in sections.into_iter().enumerate() {
+                context.push_str(&section.text);
+                if !options.should_include_relations() {
+                    continue;
+                }
+                let relation_cap = relation_remaining / (section_count - position);
+                if relation_cap < 256 {
+                    continue;
+                }
+                let anchors = match section.root {
+                    Some(root) => outline.section_anchors(root, file_anchors),
+                    None => file_anchors
+                        .iter()
+                        .map(|anchor| {
+                            (
+                                anchor.file_path.clone(),
+                                anchor.start_line.unwrap_or(1),
+                                anchor.end_line.unwrap_or(usize::MAX),
+                            )
+                        })
+                        .collect(),
+                };
+                let mut relations = String::new();
+                if options.should_include_events() && relation_cap / 2 >= 256 {
                     let text = snapshot.events().for_paths_with_context(
                         &anchors,
                         None,
-                        available / 2,
+                        relation_cap / 2,
                         &root,
                         Some(&file.file_path),
                         Some(&mut shown_routes),
                     );
-                    append_relation(context, text, share);
+                    append_relation(&mut relations, text, relation_cap);
                 }
-                let available = share.saturating_sub(context.len());
-                let text = snapshot.implementations().for_paths_with_context(
-                    &anchors,
-                    None,
-                    available / 2,
-                    &root,
-                    true,
-                    Some(&file.file_path),
-                );
-                append_relation(context, text, share);
-                let available = share.saturating_sub(context.len() + 32);
-                let text = snapshot.flows().for_file(
-                    &anchors,
-                    available,
-                    &root,
-                    options.should_list_unresolved,
-                    &mut flow_budget,
-                );
-                append_relation(context, text, share);
+                let available = relation_cap.saturating_sub(relations.len());
+                if available / 2 >= 256 {
+                    let text = snapshot.implementations().for_paths_with_context(
+                        &anchors,
+                        None,
+                        available / 2,
+                        &root,
+                        true,
+                        Some(&file.file_path),
+                    );
+                    append_relation(&mut relations, text, relation_cap);
+                }
+                let available = relation_cap.saturating_sub(relations.len() + 32);
+                let text = flow_context.as_ref().map_or_else(String::new, |flow| {
+                    // A focused callable/owner retains connected flow through other
+                    // functions. Multiple sections show steps touching each declaration.
+                    let should_include_indirect = is_single_declaration
+                        && section.root.is_some_and(|root| {
+                            let symbol = &outline.file.symbols[root];
+                            structure::callable(symbol) || structure::container(symbol)
+                        });
+                    flow.render_section(
+                        &anchors,
+                        available,
+                        &file.file_path,
+                        &mut flow_budget,
+                        should_include_indirect,
+                    )
+                });
+                append_relation(&mut relations, text, relation_cap);
+                relation_remaining = relation_remaining.saturating_sub(relations.len());
+                context.push_str(&relations);
             }
         }
         remaining = remaining.saturating_sub(context.len());

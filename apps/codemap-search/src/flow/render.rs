@@ -29,7 +29,7 @@ fn diagnostic_key(diagnostic: &super::evaluate::Diagnostic) -> String {
 
 #[cfg(test)]
 pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
-    render_with_context(query, cap, None, None)
+    render_with_context(query, cap, None, None, None)
 }
 
 pub(super) fn render_with_context(
@@ -37,10 +37,15 @@ pub(super) fn render_with_context(
     cap: usize,
     current_file: Option<&str>,
     mut budget: Option<&mut super::RequestBudget>,
+    section_anchors: Option<&[(String, usize, usize)]>,
 ) -> String {
     let mut diagnostics = query
         .diagnostics
         .iter()
+        .filter(|diagnostic| {
+            section_anchors
+                .is_none_or(|anchors| super::index::overlaps(&diagnostic.location, anchors))
+        })
         .filter(|diagnostic| {
             !budget.as_ref().is_some_and(|budget| {
                 budget
@@ -81,6 +86,12 @@ pub(super) fn render_with_context(
         let mut steps = query
             .steps
             .iter()
+            .filter(|step| {
+                section_anchors.is_none_or(|anchors| {
+                    super::index::overlaps(&step.from, anchors)
+                        || super::index::overlaps(&step.to, anchors)
+                })
+            })
             .filter(|step| {
                 step.is_interesting
                     || (step.relation == "source-resolved call"
@@ -188,8 +199,13 @@ pub(super) fn render_with_context(
         .filter(|_| query.should_list_unresolved)
         .take(3)
     {
+        let status = if diagnostic.is_analysis_limit {
+            "analysis limit"
+        } else {
+            "unresolved"
+        };
         let row = format!(
-            "- [unresolved] {}: {}.\n",
+            "- [{status}] {}: {}.\n",
             display(&diagnostic.location, current_file),
             diagnostic.reason,
         );

@@ -15,6 +15,7 @@ pub(super) struct ExpansionPage {
     text: Vec<String>,
     anchors: Vec<LiveAnchor>,
     source_lines: Vec<Vec<usize>>,
+    path_prefixes: Vec<Vec<std::ops::Range<usize>>>,
 }
 
 impl ExpansionPage {
@@ -32,6 +33,7 @@ impl ExpansionPage {
             text: Vec::new(),
             anchors: Vec::new(),
             source_lines: Vec::new(),
+            path_prefixes: Vec::new(),
         }
     }
 
@@ -90,6 +92,7 @@ impl ExpansionPage {
             }
             let mut has_omitted_columns = false;
             let mut source_lines = Vec::new();
+            let mut path_prefixes = Vec::new();
             for line in start..=end {
                 let value = lines
                     .get(line.saturating_sub(1))
@@ -107,6 +110,9 @@ impl ExpansionPage {
                     source_lines.push(line);
                 }
                 let value = cap_line(value, max_columns, is_match);
+                let prefix_start = text.len();
+                path_prefixes
+                    .push(prefix_start..prefix_start + path.len() + usize::from(show_lines));
                 if show_lines {
                     text.push_str(&format!("{path}{sep}{line}{sep}{value}\n"));
                 } else {
@@ -121,6 +127,7 @@ impl ExpansionPage {
             }
             if text.len() > self.cap {
                 source_lines.clear();
+                path_prefixes.clear();
                 text = format!("[Callable body unavailable: {path}:{start}-{end} exceeds the output cap. Read this range with expand=none and smaller offset/limit windows.]\n");
             }
             if self.used + text.len() > self.cap {
@@ -130,6 +137,7 @@ impl ExpansionPage {
             self.used += text.len();
             self.text.push(text);
             self.source_lines.push(source_lines);
+            self.path_prefixes.push(path_prefixes);
             self.anchors.push(LiveAnchor {
                 file_path: path.into(),
                 start_line: Some(start),
@@ -153,14 +161,20 @@ impl ExpansionPage {
             notices,
             ..LiveOutput::default()
         };
-        for ((text, anchor), lines) in self
+        for (((text, anchor), lines), prefixes) in self
             .text
             .into_iter()
             .zip(self.anchors)
             .zip(self.source_lines)
+            .zip(self.path_prefixes)
         {
             let start = output.text.len();
             output.text.push_str(&text);
+            output.path_prefixes.extend(
+                prefixes
+                    .into_iter()
+                    .map(|range| start + range.start..start + range.end),
+            );
             output.record_file(&anchor.file_path, start, output.text.len());
             for line in lines {
                 output.record_source(&anchor.file_path, line, line);

@@ -9,7 +9,7 @@ pub(super) fn callable(s: &ExtractedSymbol) -> bool {
     matches!(s.kind.as_str(), "fn" | "function" | "method")
 }
 
-fn container(s: &ExtractedSymbol) -> bool {
+pub(super) fn container(s: &ExtractedSymbol) -> bool {
     matches!(
         s.kind.as_str(),
         "class" | "impl" | "struct" | "interface" | "trait" | "type" | "enum"
@@ -104,6 +104,64 @@ fn signature(s: &ExtractedSymbol, tree: Option<&Tree>, source: &str, is_go: bool
     s.name.clone()
 }
 
+/// Rust tags index impl members but may omit the impl itself. Preserve the
+/// existing same-file type grouping; otherwise use the actual live impl span.
+/// These containers belong only to the live outline, never the indexed codemap.
+fn add_detached_impl_containers(file: &mut ExtractedFile, tree: &Tree, source: &str) {
+    let original_len = file.symbols.len();
+    let mut pending = vec![tree.root_node()];
+    while let Some(node) = pending.pop() {
+        if node.kind() == "impl_item" {
+            let start = node.start_position();
+            let end = node.end_position();
+            let range = CodeRange {
+                start_line: start.row + 1,
+                start_col: start.column + 1,
+                end_line: end.row + 1,
+                end_col: end.column + 1,
+            };
+            let original = &file.symbols[..original_len];
+            let owner = original.iter().find_map(|symbol| {
+                let (a, b) = bounds(&range);
+                let (c, d) = bounds(&symbol.range);
+                (a <= c && d <= b && callable(symbol))
+                    .then_some(symbol.owner.as_deref())
+                    .flatten()
+            });
+            if let Some(owner) = owner.filter(|owner| {
+                !original
+                    .iter()
+                    .any(|symbol| container(symbol) && symbol.name == *owner)
+            }) {
+                let name = node
+                    .child_by_field_name("type")
+                    .and_then(|node| text(node, source))
+                    .unwrap_or_else(|| owner.to_string());
+                let name = node
+                    .child_by_field_name("trait")
+                    .and_then(|node| text(node, source))
+                    .map_or_else(|| name.clone(), |contract| format!("{contract} for {name}"));
+                file.symbols.push(ExtractedSymbol {
+                    name,
+                    kind: "impl".into(),
+                    range,
+                    docstring: None,
+                    flags: crate::parser::SymbolFlags {
+                        has_todo: false,
+                        has_fixme: false,
+                        is_test: false,
+                        is_exported: false,
+                        is_deprecated: false,
+                    },
+                    owner: None,
+                });
+            }
+        }
+        let mut cursor = node.walk();
+        pending.extend(node.named_children(&mut cursor));
+    }
+}
+
 pub(super) struct Outline {
     pub file: ExtractedFile,
     pub anchor_line: usize,
@@ -122,6 +180,24 @@ impl Outline {
         resolver: &crate::callers::resolution::SourceResolver<'_>,
         options: LiveOptions,
     ) -> Self {
+        let mut source = std::fs::read(&file.file_path).unwrap_or_default();
+        let root = std::env::current_dir().unwrap_or_default();
+        crate::callers::test_code::TestCodeFilter::from_config(&root)
+            .mask_source(&file.file_path, &mut source);
+        let source = String::from_utf8(source).unwrap_or_default();
+        let path = Path::new(&file.file_path);
+        let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
+        let tree = crate::lang::spec_for_path(path).and_then(|spec| {
+            let mut parser = Parser::new();
+            parser.set_language(&spec.grammar(ext)).ok()?;
+            crate::parser::parse_source(&mut parser, source.as_bytes()).ok()
+        });
+        let mut file = file.clone();
+        if ext == "rs" {
+            if let Some(tree) = tree.as_ref() {
+                add_detached_impl_containers(&mut file, tree, &source);
+            }
+        }
         let symbols = &file.symbols;
         let parents: Vec<_> = symbols
             .iter()
@@ -212,18 +288,6 @@ impl Outline {
                 current = parents[j];
             }
         }
-        let mut source = std::fs::read(&file.file_path).unwrap_or_default();
-        let root = std::env::current_dir().unwrap_or_default();
-        crate::callers::test_code::TestCodeFilter::from_config(&root)
-            .mask_source(&file.file_path, &mut source);
-        let source = String::from_utf8(source).unwrap_or_default();
-        let path = Path::new(&file.file_path);
-        let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
-        let tree = crate::lang::spec_for_path(path).and_then(|spec| {
-            let mut parser = Parser::new();
-            parser.set_language(&spec.grammar(ext)).ok()?;
-            crate::parser::parse_source(&mut parser, source.as_bytes()).ok()
-        });
         let rows = symbols
             .iter()
             .enumerate()
@@ -283,7 +347,7 @@ impl Outline {
             .filter(|_| options.should_include_relations())
             .map(|tree| {
                 super::references::collect_with_resolver(
-                    file,
+                    &file,
                     &focused,
                     tree,
                     &source,
@@ -314,7 +378,7 @@ impl Outline {
         let mut order = Vec::new();
         visit(symbols.len(), &children, &mut order);
         Self {
-            file: file.clone(),
+            file,
             anchor_line: anchors
                 .first()
                 .and_then(|anchor| anchor.start_line)
@@ -337,5 +401,41 @@ impl Outline {
         }
         chain.reverse();
         chain
+    }
+
+    pub fn section_anchors(
+        &self,
+        root: usize,
+        anchors: &[&LiveAnchor],
+    ) -> Vec<(String, usize, usize)> {
+        let mut ranges = Vec::new();
+        for &i in &self.focused {
+            if self.chain(i).first() != Some(&root) {
+                continue;
+            }
+            let range = &self.file.symbols[i].range;
+            for anchor in anchors {
+                let start = range.start_line.max(anchor.start_line.unwrap_or(1));
+                let end = range
+                    .end_line_inclusive()
+                    .min(anchor.end_line.unwrap_or(usize::MAX));
+                if start <= end {
+                    ranges.push((start, end));
+                }
+            }
+        }
+        ranges.sort_unstable();
+        let mut merged: Vec<(String, usize, usize)> = Vec::new();
+        for (start, end) in ranges {
+            if let Some(last) = merged
+                .last_mut()
+                .filter(|last| start <= last.2.saturating_add(1))
+            {
+                last.2 = last.2.max(end);
+            } else {
+                merged.push((self.file.file_path.clone(), start, end));
+            }
+        }
+        merged
     }
 }

@@ -1,4 +1,4 @@
-Orient or choose a workspace scope. In a ready monorepo, initial_instructions already contains the root scopes; do not repeat a no-path overview. For known identifiers or file/line locations, use scoped grep or read directly. For unknown implementation locations, search workspace_scope="all" first, then narrow.
+Inspect folder contents and directory structure, or choose a workspace scope. Use a folder path for orientation. In a ready monorepo, initial_instructions already contains the root scopes; do not repeat a no-path overview. For known identifiers or file/line locations, use scoped grep or read directly. For unknown implementation locations, search workspace_scope="all" first, then narrow.
 
 Root output lists workspace paths, file/symbol counts and leading languages. Every listed scope is valid; basenames must be unique. Do not infer language or ownership from a folder name alone. Confirm scope for broad changes. A scope/folder narrows and sets the active scope for search; subdirectories stay narrow, a file selects its parent, and all resets repo-wide search.
 

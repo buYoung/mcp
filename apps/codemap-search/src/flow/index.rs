@@ -24,6 +24,30 @@ pub(super) struct Location {
     pub name: String,
 }
 
+/// Evaluate a file once and reuse the result across declaration sections.
+pub(crate) struct FileContext<'a> {
+    query: super::evaluate::Query<'a>,
+}
+
+impl FileContext<'_> {
+    pub(crate) fn render_section(
+        &self,
+        anchors: &[(String, usize, usize)],
+        cap: usize,
+        current_file: &str,
+        budget: &mut super::RequestBudget,
+        should_include_indirect: bool,
+    ) -> String {
+        super::render::render_with_context(
+            &self.query,
+            cap,
+            Some(current_file),
+            Some(budget),
+            (!should_include_indirect).then_some(anchors),
+        )
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct IndexedFlowStore {
     pub searcher: tantivy::Searcher,
@@ -268,36 +292,31 @@ impl FlowIndex {
         let mut query = super::evaluate::Query::new(self, root, scope);
         query.should_list_unresolved = should_list_unresolved;
         query.run(anchors);
-        super::render::render_with_context(&query, cap, None, None)
+        super::render::render_with_context(&query, cap, None, None, None)
     }
 
-    pub(crate) fn for_file(
-        &self,
+    pub(crate) fn prepare_file<'a>(
+        &'a self,
         anchors: &[(String, usize, usize)],
         cap: usize,
-        root: &Path,
+        root: &'a Path,
         should_list_unresolved: bool,
         budget: &mut super::RequestBudget,
-    ) -> String {
+    ) -> Option<FileContext<'a>> {
         if cap < 256
             || anchors.is_empty()
             || self.target_os != crate::config::get().analysis_target_os
             || !anchors.iter().any(|anchor| self.has_file(&anchor.0))
             || !budget.has_work()
         {
-            return String::new();
+            return None;
         }
         let mut query = super::evaluate::Query::new(self, root, None);
         query.restore_budget(budget);
         query.should_list_unresolved = should_list_unresolved;
         query.run(anchors);
         query.save_budget(budget);
-        super::render::render_with_context(
-            &query,
-            cap,
-            anchors.first().map(|anchor| anchor.0.as_str()),
-            Some(budget),
-        )
+        Some(FileContext { query })
     }
 }
 

@@ -784,7 +784,7 @@ impl Query<'_> {
                     for expression in expressions {
                         self.expression(*expression, frame, depth + 1);
                     }
-                    self.diagnostic(&location, reason);
+                    self.analysis_limit(&location, reason);
                     return Some(self.unknown(&location, reason));
                 }
             }

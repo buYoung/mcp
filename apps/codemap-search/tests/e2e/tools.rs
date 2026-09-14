@@ -591,7 +591,7 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
                 }
             }
             "relations" => {
-                assert!(out.contains("\n### relations\n"), "{out}");
+                assert!(out.contains("\n### target relations\n"), "{out}");
                 assert!(out.contains("caller (L7)"), "{out}");
                 assert!(out.contains("LIMIT — L1 = 7"), "{out}");
                 assert!(!out.contains("# results"), "{out}");
@@ -910,7 +910,7 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         "{grep_out}"
     );
     assert!(
-        raw.contains("src/config.rs:6:    read_layer(CODEMAP_DIR_NAME);"),
+        raw.contains("6:    read_layer(CODEMAP_DIR_NAME);") && !raw.contains("src/config.rs:"),
         "{raw}"
     );
     std::fs::write(
@@ -1531,11 +1531,15 @@ async fn test_grep_content_is_default_mode() {
         .await
         .unwrap();
     let out = text(&resp);
-    // Default is now content mode: lines render as `file:line:text` with line numbers.
+    // The file heading owns the path; source rows keep their exact line numbers.
     assert!(
         out.lines()
-            .any(|l| l.starts_with("src/util.rs:") && l.contains("TODO")),
-        "content line format `file:line:text` expected by default: {out:?}"
+            .any(|l| l.starts_with("## ") && l.ends_with("src/util.rs"))
+            && out
+                .lines()
+                .any(|l| l.starts_with("2:") && l.contains("TODO"))
+            && !out.contains("src/util.rs:2:"),
+        "file heading and pathless `line:text` expected by default: {out:?}"
     );
     assert!(
         !out.contains("ignored/secret.rs"),
@@ -1562,11 +1566,15 @@ async fn test_grep_content_mode_line_format() {
         .await
         .unwrap();
     let out = text(&resp);
-    // Expect `path:line:text`
+    // A grouped result must not repeat its file heading on every source row.
     assert!(
         out.lines()
-            .any(|l| l.starts_with("src/core.rs:") && l.contains("run_engine")),
-        "content line format `file:line:text` expected: {out:?}"
+            .any(|l| l.starts_with("## ") && l.ends_with("src/core.rs"))
+            && out
+                .lines()
+                .any(|l| l.starts_with("1:") && l.contains("run_engine"))
+            && !out.contains("src/core.rs:1:"),
+        "file heading and pathless `line:text` expected: {out:?}"
     );
 }
 

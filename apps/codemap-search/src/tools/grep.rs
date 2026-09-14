@@ -502,6 +502,9 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 }
                 let start = output.text.len();
                 output.text.push_str(&row.text);
+                output
+                    .path_prefixes
+                    .push(start..start + row.path.len() + usize::from(show_line_numbers));
                 output.record_file(&row.path, start, output.text.len());
                 if row.is_source_complete {
                     if let Ok(line) = usize::try_from(row.line_number) {

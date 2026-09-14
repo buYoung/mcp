@@ -70,6 +70,7 @@ pub(super) fn annotate(
 
 fn select_chain(
     outline: &Outline,
+    headers: &BTreeMap<usize, String>,
     i: usize,
     chosen: &mut BTreeSet<usize>,
     used: &mut usize,
@@ -79,7 +80,7 @@ fn select_chain(
     let cost: usize = chain
         .iter()
         .filter(|j| !chosen.contains(j))
-        .map(|&j| outline.rows[j].len())
+        .map(|&j| outline.rows[j].len() + headers.get(&j).map_or(0, String::len))
         .sum();
     if *used + cost > cap {
         return false;
@@ -107,24 +108,65 @@ fn bounded_detail(text: &str, cap: usize) -> String {
     output
 }
 
+pub(super) struct SymbolSection {
+    pub root: Option<usize>,
+    pub text: String,
+}
+
 pub(super) fn render(
     outline: &Outline,
     annotations: Option<&DetailAnnotations>,
     cap: usize,
     options: LiveOptions,
     hints: &mut super::ReadHints<'_>,
-) -> String {
+) -> (Vec<SymbolSection>, String) {
     if outline.selected.is_empty() {
-        return super::bounded_notice(
+        let title = if options.view == LiveView::Relations {
+            "relations"
+        } else {
+            "symbols"
+        };
+        let header = format!("\n### {title}\n\n");
+        if cap < header.len() {
+            return (Vec::new(), String::new());
+        }
+        let notice = super::bounded_notice(
             &super::diagnostics::no_declaration(
                 &outline.file,
                 outline.anchor_line,
                 options.view == LiveView::Relations,
             ),
-            cap,
+            cap - header.len(),
+        );
+        return (
+            vec![SymbolSection {
+                root: None,
+                text: format!("{header}{notice}"),
+            }],
+            String::new(),
         );
     }
     let path = &outline.file.file_path;
+    let section_kind = if options.view == LiveView::Relations {
+        "relations"
+    } else {
+        "symbols"
+    };
+    let headers: BTreeMap<_, _> = outline
+        .order
+        .iter()
+        .copied()
+        .filter(|&i| outline.parents[i].is_none())
+        .map(|i| {
+            let name = outline.file.symbols[i]
+                .name
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            let name = name.chars().take(400).collect::<String>();
+            (i, format!("\n### {name} {section_kind}\n\n"))
+        })
+        .collect();
     let mut chosen = BTreeSet::new();
     let mut used = 0;
     let mut details = BTreeMap::new();
@@ -141,7 +183,7 @@ pub(super) fn render(
         .filter(|i| outline.selected.contains(i) && outline.focused.contains(i))
         .collect();
     for &i in &focused {
-        if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
+        if !select_chain(outline, &headers, i, &mut chosen, &mut used, content_cap) {
             omitted_symbols += 1;
             let line = outline.file.symbols[i].range.start_line;
             if hints.next(path, line).is_some() {
@@ -209,7 +251,7 @@ pub(super) fn render(
             {
                 continue;
             }
-            if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
+            if !select_chain(outline, &headers, i, &mut chosen, &mut used, content_cap) {
                 omitted_symbols += 1;
                 let line = outline.file.symbols[i].range.start_line;
                 if hints.next(path, line).is_some() {
@@ -218,30 +260,38 @@ pub(super) fn render(
             }
         }
     }
-    let mut output = String::new();
+    let mut sections: Vec<SymbolSection> = Vec::new();
     for &i in &outline.order {
         if chosen.contains(&i) {
+            if let Some(header) = headers.get(&i) {
+                sections.push(SymbolSection {
+                    root: Some(i),
+                    text: header.clone(),
+                });
+            }
+            let output = &mut sections
+                .last_mut()
+                .expect("selected chains retain their root")
+                .text;
             output.push_str(&outline.rows[i]);
             if let Some(detail) = details.get(&i) {
                 output.push_str(detail);
             }
         }
     }
+    let mut notice_output = String::new();
     if omitted_symbols > 0 || omitted_relations > 0 {
         let mut notice = format!("[Symbol context budget: {omitted_symbols} declarations omitted; {omitted_relations} relation groups omitted or partial.");
         if let Some((line, next)) =
             next_line.and_then(|line| hints.next(path, line).map(|next| (line, next)))
         {
-            if output.len() + notice.len() + next.len() + 10 <= cap {
+            if used + notice.len() + next.len() + 10 <= cap {
                 notice.push_str(&format!(" Next: {next}"));
                 hints.record(path, line);
             }
         }
         notice.push_str("]\n");
-        output.push_str(&super::bounded_notice(
-            &notice,
-            cap.saturating_sub(output.len()),
-        ));
+        notice_output.push_str(&super::bounded_notice(&notice, cap.saturating_sub(used)));
     }
-    output
+    (sections, notice_output)
 }
