@@ -303,8 +303,13 @@ fn precise_navigation_callers(
         if !navigation.calls.iter().any(|call| relevant(&call)) {
             continue;
         }
-        let syntax = super::read_workspace_file(&call_file.file_path, root)
-            .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()));
+        let has_source_resolution = super::resolution::supports(&call_file.file_path);
+        let syntax = if has_source_resolution {
+            None
+        } else {
+            super::read_workspace_file(&call_file.file_path, root)
+                .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()))
+        };
         for call in navigation.calls.iter().filter(relevant) {
             if !index.includes(&call_file.file_path, &call.range) {
                 continue;
@@ -316,7 +321,7 @@ fn precise_navigation_callers(
                     is_partial: true,
                 });
             }
-            let resolved = if super::resolution::supports(&call_file.file_path) {
+            let resolved = if has_source_resolution {
                 resolver
                     .resolve_call(call_file, call)
                     .filter(|target| target.is_precise)
@@ -340,7 +345,7 @@ fn precise_navigation_callers(
             if !symbol_identity_matches(candidate_file, candidate, target_file_path, target) {
                 continue;
             }
-            let caller_name = if super::resolution::supports(&call_file.file_path) {
+            let caller_name = if has_source_resolution {
                 resolver.caller_name(call_file, call.range.start_line)
             } else {
                 enclosing_fn(call_file, call.range.start_line)

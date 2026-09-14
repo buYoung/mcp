@@ -54,13 +54,24 @@ impl TreeSitterExtractor {
         file_content: &str,
         file_path: &str,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
-        let (extracted, mut auxiliary) = self.extract_parts(file_content, file_path, true)?;
+        let (extracted, mut auxiliary) = self.extract_parts(file_content, file_path, true, true)?;
         auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
         if let Some(flow) = &mut auxiliary.flow_file {
             flow.digest = crate::implementations::digest(file_content.as_bytes());
             flow.apply_path_constraints(file_path, file_content);
         }
         Ok((extracted, auxiliary))
+    }
+
+    /// Live source resolution uses declarations and navigation, but never implementation
+    /// facts. Keep the same extraction rules without rebuilding those facts on each lookup.
+    pub(crate) fn extract_for_resolution(
+        &self,
+        file_content: &str,
+        file_path: &str,
+    ) -> Result<ExtractedFile, String> {
+        self.extract_parts(file_content, file_path, false, false)
+            .map(|(extracted, _)| extracted)
     }
 }
 
@@ -102,7 +113,8 @@ pub(crate) fn collect_index_auxiliary(
 
     let mut auxiliary = collect_index_auxiliary_from_tree(tags_query, &tree, source);
     auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
-    let (file, _) = TreeSitterExtractor::new().extract_parts(file_content, file_path, false)?;
+    let (file, _) =
+        TreeSitterExtractor::new().extract_parts(file_content, file_path, false, true)?;
     auxiliary.flow_file = crate::flow::collect(
         spec.language_name(),
         &tree,
@@ -2134,12 +2146,19 @@ impl TreeSitterExtractor {
         file_content: &str,
         file_path: &str,
         collect_auxiliary: bool,
+        should_collect_implementations: bool,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
         let path = Path::new(file_path);
         let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
 
         if is_composite_extension(ext) {
-            return self.extract_composite_parts(file_content, file_path, ext, collect_auxiliary);
+            return self.extract_composite_parts(
+                file_content,
+                file_path,
+                ext,
+                collect_auxiliary,
+                should_collect_implementations,
+            );
         }
         if ext == "sass" {
             return sass::extract(file_content, file_path, collect_auxiliary);
@@ -2147,7 +2166,13 @@ impl TreeSitterExtractor {
         if matches!(ext, "md" | "mdx") {
             return markdown::extract(file_content, file_path, collect_auxiliary);
         }
-        self.extract_language_parts(file_content, file_path, ext, collect_auxiliary)
+        self.extract_language_parts(
+            file_content,
+            file_path,
+            ext,
+            collect_auxiliary,
+            should_collect_implementations,
+        )
     }
 
     /// Reuse the existing language walk against a same-length composite source mask. `file_path`
@@ -2158,6 +2183,7 @@ impl TreeSitterExtractor {
         file_path: &str,
         grammar_ext: &str,
         collect_auxiliary: bool,
+        should_collect_implementations: bool,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
         let ext = grammar_ext;
 
@@ -2571,14 +2597,16 @@ impl TreeSitterExtractor {
             }
         }
 
-        navigation.implementations = crate::implementations::collect(
-            spec.language_name(),
-            file_path,
-            &tree,
-            source,
-            &symbols,
-            &navigation,
-        );
+        if should_collect_implementations {
+            navigation.implementations = crate::implementations::collect(
+                spec.language_name(),
+                file_path,
+                &tree,
+                source,
+                &symbols,
+                &navigation,
+            );
+        }
         if collect_auxiliary {
             auxiliary.flow_file =
                 crate::flow::collect(spec.language_name(), &tree, source, &symbols, &navigation);
@@ -2609,6 +2637,7 @@ impl TreeSitterExtractor {
         file_path: &str,
         extension: &str,
         collect_auxiliary: bool,
+        should_collect_implementations: bool,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
         let mut extracted = ExtractedFile {
             file_path: file_path.to_string(),
@@ -2624,8 +2653,13 @@ impl TreeSitterExtractor {
         auxiliary.format_text.push(file_content.to_string());
 
         if extension != "astro" || !composite::has_unterminated_astro_frontmatter(file_content) {
-            let (markup, markup_auxiliary) =
-                self.extract_language_parts(file_content, file_path, extension, false)?;
+            let (markup, markup_auxiliary) = self.extract_language_parts(
+                file_content,
+                file_path,
+                extension,
+                false,
+                should_collect_implementations,
+            )?;
             merge_composite_part(&mut extracted, &mut auxiliary, markup, markup_auxiliary);
         }
 
@@ -2638,6 +2672,7 @@ impl TreeSitterExtractor {
                     file_path,
                     embedded.grammar_ext,
                     collect_auxiliary,
+                    should_collect_implementations,
                 )?
             };
             merge_composite_part(&mut extracted, &mut auxiliary, part, part_auxiliary);
@@ -2730,7 +2765,7 @@ fn merge_composite_part(
 
 impl CodeExtractor for TreeSitterExtractor {
     fn extract(&self, file_content: &str, file_path: &str) -> Result<ExtractedFile, String> {
-        self.extract_parts(file_content, file_path, false)
+        self.extract_parts(file_content, file_path, false, true)
             .map(|(extracted, _)| extracted)
     }
 }

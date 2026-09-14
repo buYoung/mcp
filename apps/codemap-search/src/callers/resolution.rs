@@ -6,9 +6,9 @@ use std::rc::Rc;
 
 use tree_sitter::{Node, Point};
 
-use crate::parser::{
-    CallSite, CodeExtractor, CodeRange, ExtractedFile, ExtractedSymbol, ImportKind,
-};
+#[cfg(test)]
+use crate::parser::CodeExtractor;
+use crate::parser::{CallSite, CodeRange, ExtractedFile, ExtractedSymbol, ImportKind};
 
 use super::source::SourceSyntax;
 
@@ -336,7 +336,7 @@ impl<'a> SourceResolver<'a> {
             self.test_filter.mask_source(file, &mut bytes);
             let text = String::from_utf8(bytes).ok()?;
             let extracted = crate::parser::TreeSitterExtractor::new()
-                .extract(&text, file)
+                .extract_for_resolution(&text, file)
                 .ok()?;
             SourceSyntax::parse(file, text.as_bytes()).map(|syntax| {
                 Rc::new(Source {
