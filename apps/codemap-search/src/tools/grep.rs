@@ -95,6 +95,7 @@ struct ContentRow {
     path: String,
     line_number: u64,
     is_match: bool,
+    is_source_complete: bool,
 }
 
 fn content_anchors(page: &[ContentRow]) -> Vec<LiveAnchor> {
@@ -481,6 +482,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                         path: f.path.clone(),
                         line_number: hit.line_number,
                         is_match: hit.is_match,
+                        is_source_complete: max_columns == 0 || hit.text.len() <= max_columns,
                     });
                 }
             }
@@ -501,6 +503,11 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 let start = output.text.len();
                 output.text.push_str(&row.text);
                 output.record_file(&row.path, start, output.text.len());
+                if row.is_source_complete {
+                    if let Ok(line) = usize::try_from(row.line_number) {
+                        output.record_source(&row.path, line, line);
+                    }
+                }
             }
             if let Some(f) = &footer {
                 output.text.push('\n');

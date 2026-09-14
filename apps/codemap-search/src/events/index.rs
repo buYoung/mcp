@@ -277,7 +277,7 @@ impl EventIndex {
         let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
         let mut output = String::new();
         let mut seen = BTreeSet::new();
-        for (path, start, end) in anchors {
+        for (path, start, _) in anchors {
             if !seen.insert(path)
                 || !under_scope(path, scope)
                 || filter.is_file_excluded(path)
@@ -288,10 +288,7 @@ impl EventIndex {
             let Some(reason) = self.unavailable_details.get(path) else {
                 continue;
             };
-            let request = serde_json::json!({"file_path":path,"offset":start,"limit":end.saturating_sub(*start).saturating_add(1).clamp(1,20),"view":"source"});
-            let row = format!(
-                "- event input unavailable — {path}:{start}: {reason}. Next: read {request}\n"
-            );
+            let row = format!("- event input unavailable — {path}:{start}: {reason}.\n");
             let header = if output.is_empty() {
                 "## Analysis diagnostics\n\n"
             } else {

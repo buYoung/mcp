@@ -304,7 +304,7 @@ fn test_event_endpoint_and_input_caps_report_omissions() {
     assert!(
         output.contains("src/oversized.ts:1")
             && output.contains("exceeds")
-            && output.contains("Next: read"),
+            && !output.contains("Next: read"),
         "{output}"
     );
     assert!(

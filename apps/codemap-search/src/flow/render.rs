@@ -1,6 +1,6 @@
 use super::evaluate::{Evidence, Query};
 use super::index::Location;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 fn display(location: &Location, current_file: Option<&str>) -> String {
     let name = location
@@ -14,10 +14,16 @@ fn display(location: &Location, current_file: Option<&str>) -> String {
         crate::locations::display(&location.path, location.range.start_line, current_file)
     )
 }
-fn read_hint(location: &Location) -> String {
+fn diagnostic_key(diagnostic: &super::evaluate::Diagnostic) -> String {
+    let location = &diagnostic.location;
     format!(
-        "read {}",
-        serde_json::json!({"file_path":location.path,"offset":location.range.start_line,"limit":location.range.end_line_inclusive().saturating_sub(location.range.start_line).saturating_add(1).clamp(1,12),"view":"source"})
+        "{}:{}:{}:{}:{}:{}",
+        location.path,
+        location.range.start_line,
+        location.range.start_col,
+        location.range.end_line,
+        location.range.end_col,
+        diagnostic.reason
     )
 }
 
@@ -30,9 +36,21 @@ pub(super) fn render_with_context(
     query: &Query<'_>,
     cap: usize,
     current_file: Option<&str>,
-    mut shown: Option<&mut BTreeMap<String, String>>,
+    mut budget: Option<&mut super::RequestBudget>,
 ) -> String {
-    if cap < 256 || !query.is_relevant && query.diagnostics.is_empty() {
+    let mut diagnostics = query
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            !budget.as_ref().is_some_and(|budget| {
+                budget
+                    .shown_diagnostics
+                    .contains(&diagnostic_key(diagnostic))
+            })
+        })
+        .collect::<Vec<_>>();
+    let work_limit = query.work_limit.as_ref().filter(|_| budget.is_none());
+    if cap < 256 || !query.is_relevant && diagnostics.is_empty() && work_limit.is_none() {
         return String::new();
     }
     let mut output = if query.is_relevant && cap < 768 {
@@ -42,10 +60,11 @@ pub(super) fn render_with_context(
     } else {
         "## Analysis diagnostics\n\n".into()
     };
+    let header_len = output.len();
     let mut seen = BTreeSet::new();
     let mut omitted = None;
     let mut capped_rows = None;
-    let mut unresolved_rows = query.diagnostics.len();
+    let mut unresolved_rows = diagnostics.len();
     let mut shared_files = BTreeSet::new();
     let mut append = |row: String, location: &Location, reserve: usize| {
         if !seen.insert(row.clone()) {
@@ -117,19 +136,25 @@ pub(super) fn render_with_context(
                 display(&step.from, None),
                 display(&step.to, None)
             );
-            if let Some(previous_file) = shown.as_ref().and_then(|shown| shown.get(&canonical)) {
+            if let Some(previous_file) = budget
+                .as_ref()
+                .and_then(|budget| budget.shown.get(&canonical))
+            {
                 if Some(previous_file.as_str()) != current_file {
                     shared_files.insert(previous_file.clone());
                 }
                 continue;
             }
-            if shown.as_ref().is_some_and(|shown| shown.len() >= 128) {
+            if budget
+                .as_ref()
+                .is_some_and(|budget| budget.shown.len() >= 128)
+            {
                 capped_rows = Some(step.to.clone());
                 break;
             }
             // Keep diagnostic/continuation space even when relationships are plentiful.
             let reserve = 256
-                + if query.should_list_unresolved && !query.diagnostics.is_empty() {
+                + if query.should_list_unresolved && !diagnostics.is_empty() {
                     (cap / 3).min(900)
                 } else {
                     0
@@ -137,8 +162,8 @@ pub(super) fn render_with_context(
             if !append(row, &step.to, reserve) {
                 break;
             }
-            if let (Some(shown), Some(path)) = (shown.as_mut(), current_file) {
-                shown.insert(canonical, path.into());
+            if let (Some(budget), Some(path)) = (budget.as_mut(), current_file) {
+                budget.shown.insert(canonical, path.into());
             }
         }
     }
@@ -153,25 +178,26 @@ pub(super) fn render_with_context(
             }
         }
     }
-    let mut diagnostics = query.diagnostics.iter().collect::<Vec<_>>();
     diagnostics
         .sort_by_key(|diagnostic| !super::index::overlaps(&diagnostic.location, &query.anchors));
     if query.should_list_unresolved && diagnostics.len() > 3 {
         capped_rows.get_or_insert_with(|| diagnostics[3].location.clone());
     }
     for diagnostic in diagnostics
-        .into_iter()
+        .iter()
         .filter(|_| query.should_list_unresolved)
         .take(3)
     {
         let row = format!(
-            "- [unresolved] {}: {}. Next: {}\n",
+            "- [unresolved] {}: {}.\n",
             display(&diagnostic.location, current_file),
             diagnostic.reason,
-            read_hint(&diagnostic.location)
         );
         if !append(row, &diagnostic.location, 256) {
             break;
+        }
+        if let Some(budget) = budget.as_mut() {
+            budget.shown_diagnostics.insert(diagnostic_key(diagnostic));
         }
     }
     if !query.should_list_unresolved && unresolved_rows > 0 {
@@ -181,19 +207,40 @@ pub(super) fn render_with_context(
             .map(|diagnostic| &diagnostic.location)
             .or_else(|| query.steps.first().map(|step| &step.to))
         {
-            append(format!("- {unresolved_rows} unresolved value relationships/diagnostics (names omitted).\n"), location, 256);
-        }
-    }
-    if let Some(location) = omitted.or(capped_rows) {
-        let note=format!("\n[Value-flow output budget reached; additional relationships/diagnostics omitted. Continue at {}]\n",read_hint(&location));
-        if output.len() + note.len() <= cap {
-            output.push_str(&note);
-        } else {
-            let note = "\n[Value-flow output budget reached; narrow the source window.]\n";
-            if output.len() + note.len() <= cap {
-                output.push_str(note);
+            if append(format!("- {unresolved_rows} unresolved value relationships/diagnostics (names omitted).\n"), location, 256) {
+                if let Some(budget) = budget.as_mut() {
+                    budget.shown_diagnostics.extend(diagnostics.iter().map(|diagnostic| diagnostic_key(diagnostic)));
+                }
             }
         }
     }
-    output
+    if let Some((reason, location)) = work_limit {
+        let at = if query.should_list_unresolved {
+            format!(" — {}", display(location, current_file))
+        } else {
+            String::new()
+        };
+        let note = format!(
+            "\n[Partial value analysis: {reason}{at}; additional relationships may be missing.]\n"
+        );
+        if output.len() + note.len() <= cap {
+            output.push_str(&note);
+        } else {
+            let note = format!("\n[Partial value analysis: {reason}.]\n");
+            if output.len() + note.len() <= cap {
+                output.push_str(&note);
+            }
+        }
+    }
+    if omitted.or(capped_rows).is_some() {
+        let note = "\n[Value-flow output budget reached; additional relationships/diagnostics omitted. Narrow the source window.]\n";
+        if output.len() + note.len() <= cap {
+            output.push_str(note);
+        }
+    }
+    if output.len() == header_len {
+        String::new()
+    } else {
+        output
+    }
 }

@@ -12,6 +12,7 @@ use crate::index::EngineSupervisor;
 
 pub(super) const PAYLOAD_BYTE_CAP: usize = 8192;
 const OUTLINED_FILE_LIMIT: usize = 8;
+const SHARED_NOTICE_CAP: usize = 256;
 const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
 
 #[derive(Clone)]
@@ -34,9 +35,23 @@ pub(crate) struct LiveOutput {
     pub notices: Vec<String>,
     pub files: Vec<LiveFileSpan>,
     pub footer: Option<String>,
+    // Fully emitted source only; matching anchors also include column omissions.
+    pub source_ranges: Vec<(String, usize, usize)>,
 }
 
 impl LiveOutput {
+    pub fn record_source(&mut self, path: &str, start: usize, end: usize) {
+        if let Some(last) = self
+            .source_ranges
+            .last_mut()
+            .filter(|last| last.0 == path && start >= last.1 && start <= last.2.saturating_add(1))
+        {
+            last.2 = last.2.max(end);
+        } else {
+            self.source_ranges.push((path.into(), start, end));
+        }
+    }
+
     /// Record boundaries while producing live text, never by parsing source or paths
     /// back out of formatted grep rows. Keep the producer's page/file order.
     pub fn record_file(&mut self, path: &str, start_byte: usize, end_byte: usize) {
@@ -52,11 +67,42 @@ impl LiveOutput {
     }
 }
 
-pub(super) fn context_read_hint(path: &str, line: usize) -> String {
-    format!(
-        "read {}",
-        serde_json::json!({"file_path":path,"offset":line.max(1),"limit":1})
-    )
+pub(super) struct ReadHints<'a> {
+    source_ranges: &'a [(String, usize, usize)],
+    shown: std::collections::BTreeSet<(String, usize)>,
+}
+
+impl<'a> ReadHints<'a> {
+    fn new(output: &'a LiveOutput, options: LiveOptions) -> Self {
+        Self {
+            source_ranges: if options.view == LiveView::Full {
+                &output.source_ranges
+            } else {
+                &[]
+            },
+            shown: Default::default(),
+        }
+    }
+
+    fn next(&self, path: &str, line: usize) -> Option<String> {
+        if self.shown.len() >= 3
+            || self.shown.contains(&(path.into(), line))
+            || self
+                .source_ranges
+                .iter()
+                .any(|(file, start, end)| file == path && *start <= line && line <= *end)
+        {
+            return None;
+        }
+        Some(format!(
+            "read {}",
+            serde_json::json!({"file_path":path,"offset":line.max(1),"limit":1})
+        ))
+    }
+
+    fn record(&mut self, path: &str, line: usize) {
+        self.shown.insert((path.into(), line));
+    }
 }
 
 pub(super) fn bounded_notice(notice: &str, cap: usize) -> String {
@@ -71,7 +117,7 @@ pub(super) fn bounded_notice(notice: &str, cap: usize) -> String {
     }
 }
 
-fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> String {
+fn frame(output: &LiveOutput, contexts: &[String], notice: &str, options: LiveOptions) -> String {
     let mut text = String::from("# codemap-search\n\n");
     if output.files.is_empty() {
         text.push_str(&output.text);
@@ -89,19 +135,12 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
             }
         }
         if output.files.len() > OUTLINED_FILE_LIMIT {
-            let file = &output.files[OUTLINED_FILE_LIMIT];
-            let line = output
-                .anchors
-                .iter()
-                .find(|anchor| anchor.file_path == file.file_path)
-                .and_then(|anchor| anchor.start_line)
-                .unwrap_or(1);
             text.push_str(&format!(
-                "[File limit: {} returned files not outlined. Next: {}]\n",
+                "[File limit: {} returned files not outlined; narrow the path for their context.]\n",
                 output.files.len() - OUTLINED_FILE_LIMIT,
-                context_read_hint(&file.file_path, line)
             ));
         }
+        text.push_str(notice);
         for (i, file) in output.files.iter().enumerate() {
             let path = file.file_path.replace('\r', "\\r").replace('\n', "\\n");
             let section = if options.view == LiveView::Relations {
@@ -158,14 +197,19 @@ pub(crate) fn append(
         }
         return Ok(text);
     }
-    let empty = frame(&output, &vec![String::new(); output.files.len()], options);
+    let empty = frame(
+        &output,
+        &vec![String::new(); output.files.len()],
+        "",
+        options,
+    );
     let limit = output_byte_cap.unwrap_or(usize::MAX);
     if empty.len() > limit {
         return Err((-32602, "Read window leaves no room for file/section headers; retry with a smaller limit or view=source.".into()));
     }
     let cap = limit.saturating_sub(empty.len()).min(PAYLOAD_BYTE_CAP * 2);
-    let contexts = context::build(engine, &output, cap, options);
-    let text = frame(&output, &contexts, options);
+    let (contexts, notice) = context::build(engine, &output, cap, options);
+    let text = frame(&output, &contexts, &notice, options);
     if text.len() > limit {
         return Err((
             -32602,

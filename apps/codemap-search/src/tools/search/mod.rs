@@ -6,8 +6,11 @@
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`,
 //! so it never needs `&mut` access to the engine.
 
+mod arguments;
 mod monorepo;
 pub mod render;
+
+pub(crate) use arguments::validate as validate_arguments;
 
 use crate::tools::ToolContext;
 use std::collections::{BTreeSet, HashSet};
@@ -514,6 +517,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 }
 
 pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String)> {
+    validate_arguments(ctx.arguments)?;
     if monorepo::should_use(ctx) {
         return monorepo::run_with_metadata(ctx);
     }

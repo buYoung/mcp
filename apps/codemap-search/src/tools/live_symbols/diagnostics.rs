@@ -2,13 +2,6 @@ use super::LiveAnchor;
 use crate::parser::ExtractedFile;
 use std::path::Path;
 
-pub(super) fn read_hint(path: &str, line: usize) -> String {
-    format!(
-        "read {}",
-        serde_json::json!({"file_path":path,"offset":line.max(1),"limit":12,"view":"source"})
-    )
-}
-
 /// Diagnose only a requested, permission-checked path. Never enumerate excluded
 /// source while trying to explain a failed query.
 pub(super) fn unavailable(
@@ -46,9 +39,8 @@ pub(super) fn unavailable(
         "source changed since indexing; declaration and relation locations are withheld until refresh".into()
     };
     Some(format!(
-        "[Navigation unavailable — {}:{line}: {reason}. Next: {}]\n",
+        "[Navigation unavailable — {}:{line}: {reason}.]\n",
         anchor.file_path,
-        read_hint(&anchor.file_path, line)
     ))
 }
 
@@ -60,17 +52,8 @@ pub(super) fn no_declaration(file: &ExtractedFile, line: usize, relations_only: 
     } else {
         "returned lines do not overlap an indexed declaration"
     };
-    let nearest = file
-        .symbols
-        .iter()
-        .filter(|symbol| !relations_only || super::structure::callable(symbol))
-        .min_by_key(|symbol| symbol.range.start_line.abs_diff(line));
-    let next = nearest.map_or_else(
-        || read_hint(&file.file_path, line),
-        |symbol| read_hint(&file.file_path, symbol.range.start_line),
-    );
     format!(
-        "[No declaration context — {}:{line}: {reason}. Next: {next}]\n",
+        "[No declaration context — {}:{line}: {reason}.]\n",
         file.file_path
     )
 }

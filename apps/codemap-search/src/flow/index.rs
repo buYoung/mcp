@@ -282,6 +282,8 @@ impl FlowIndex {
         if cap < 256
             || anchors.is_empty()
             || self.target_os != crate::config::get().analysis_target_os
+            || !anchors.iter().any(|anchor| self.has_file(&anchor.0))
+            || !budget.has_work()
         {
             return String::new();
         }
@@ -294,7 +296,7 @@ impl FlowIndex {
             &query,
             cap,
             anchors.first().map(|anchor| anchor.0.as_str()),
-            Some(&mut budget.shown),
+            Some(budget),
         )
     }
 }

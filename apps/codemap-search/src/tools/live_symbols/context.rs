@@ -10,12 +10,18 @@ pub(super) fn build(
     output: &LiveOutput,
     cap: usize,
     options: LiveOptions,
-) -> Vec<String> {
+) -> (Vec<String>, String) {
     let mut contexts = vec![String::new(); output.files.len()];
     let count = output.files.len().min(OUTLINED_FILE_LIMIT);
     if count == 0 || cap < 128 {
-        return contexts;
+        return (contexts, String::new());
     }
+    let notice_cap = if options.should_include_relations() {
+        cap.min(super::SHARED_NOTICE_CAP)
+    } else {
+        0
+    };
+    let cap = cap.saturating_sub(notice_cap);
     let root = std::env::current_dir().unwrap_or_default();
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let mut grouped = BTreeMap::new();
@@ -89,10 +95,12 @@ pub(super) fn build(
             }
         }
     }
-    let annotations = render::annotate(&outlines, &source_files, cap / 2, options);
+    let annotations =
+        render::annotate(&outlines, &source_files, cap / 2, options, &root, &resolver);
     let mut remaining = cap;
     let mut flow_budget = crate::flow::RequestBudget::default();
     let mut shown_routes = crate::events::ShownRoutes::default();
+    let mut hints = super::ReadHints::new(output, options);
     for (i, file) in output.files.iter().take(count).enumerate() {
         // Unused space is carried forward; every remaining file first receives a share.
         let share = remaining / (count - i);
@@ -113,6 +121,7 @@ pub(super) fn build(
                 annotations.as_ref(),
                 symbol_cap,
                 options,
+                &mut hints,
             ));
             if options.should_include_relations() {
                 let anchors: Vec<_> = grouped
@@ -162,7 +171,10 @@ pub(super) fn build(
         }
         remaining = remaining.saturating_sub(context.len());
     }
-    contexts
+    (
+        contexts,
+        super::bounded_notice(&flow_budget.notice(), notice_cap),
+    )
 }
 
 fn append_relation(context: &mut String, text: String, cap: usize) {

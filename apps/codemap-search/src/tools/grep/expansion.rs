@@ -14,6 +14,7 @@ pub(super) struct ExpansionPage {
     has_full_page: bool,
     text: Vec<String>,
     anchors: Vec<LiveAnchor>,
+    source_lines: Vec<Vec<usize>>,
 }
 
 impl ExpansionPage {
@@ -30,6 +31,7 @@ impl ExpansionPage {
             has_full_page: false,
             text: Vec::new(),
             anchors: Vec::new(),
+            source_lines: Vec::new(),
         }
     }
 
@@ -87,6 +89,7 @@ impl ExpansionPage {
                 text.push_str(&format!("[Callable expansion unavailable at {path}:{start}: {reason}. Showing matched source only.]\n"));
             }
             let mut has_omitted_columns = false;
+            let mut source_lines = Vec::new();
             for line in start..=end {
                 let value = lines
                     .get(line.saturating_sub(1))
@@ -100,6 +103,9 @@ impl ExpansionPage {
                 let is_match = matches.contains(&line);
                 let sep = if is_match { ':' } else { '-' };
                 has_omitted_columns |= max_columns > 0 && value.len() > max_columns;
+                if max_columns == 0 || value.len() <= max_columns {
+                    source_lines.push(line);
+                }
                 let value = cap_line(value, max_columns, is_match);
                 if show_lines {
                     text.push_str(&format!("{path}{sep}{line}{sep}{value}\n"));
@@ -114,6 +120,7 @@ impl ExpansionPage {
                 text.push_str(&format!("[Callable source incomplete at {path}:{start}-{end}: grep_max_columns omitted long lines. Use read with expand=none and this line range.]\n"));
             }
             if text.len() > self.cap {
+                source_lines.clear();
                 text = format!("[Callable body unavailable: {path}:{start}-{end} exceeds the output cap. Read this range with expand=none and smaller offset/limit windows.]\n");
             }
             if self.used + text.len() > self.cap {
@@ -122,6 +129,7 @@ impl ExpansionPage {
             }
             self.used += text.len();
             self.text.push(text);
+            self.source_lines.push(source_lines);
             self.anchors.push(LiveAnchor {
                 file_path: path.into(),
                 start_line: Some(start),
@@ -145,10 +153,18 @@ impl ExpansionPage {
             notices,
             ..LiveOutput::default()
         };
-        for (text, anchor) in self.text.into_iter().zip(self.anchors) {
+        for ((text, anchor), lines) in self
+            .text
+            .into_iter()
+            .zip(self.anchors)
+            .zip(self.source_lines)
+        {
             let start = output.text.len();
             output.text.push_str(&text);
             output.record_file(&anchor.file_path, start, output.text.len());
+            for line in lines {
+                output.record_source(&anchor.file_path, line, line);
+            }
             output.anchors.push(anchor);
         }
         output

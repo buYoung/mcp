@@ -967,14 +967,18 @@ pub fn annotate_results_with_state(
     root: &Path,
     runtime_state: AnnotationRuntimeState,
 ) -> Option<DetailAnnotations> {
+    let resolver = super::resolution::SourceResolver::new(snapshot, root);
     annotate_with_presentation(
         requests,
         snapshot,
         cfg,
         available_bytes,
         root,
-        runtime_state,
-        true,
+        AnnotationPresentation {
+            runtime_state,
+            should_list_unresolved: true,
+            resolver: &resolver,
+        },
     )
 }
 
@@ -985,6 +989,7 @@ pub(crate) fn annotate_live_results(
     available_bytes: usize,
     root: &Path,
     should_list_unresolved: bool,
+    resolver: &super::resolution::SourceResolver<'_>,
 ) -> Option<DetailAnnotations> {
     annotate_with_presentation(
         requests,
@@ -992,9 +997,18 @@ pub(crate) fn annotate_live_results(
         cfg,
         available_bytes,
         root,
-        AnnotationRuntimeState::default(),
-        should_list_unresolved,
+        AnnotationPresentation {
+            runtime_state: AnnotationRuntimeState::default(),
+            should_list_unresolved,
+            resolver,
+        },
     )
+}
+
+struct AnnotationPresentation<'a, 'source> {
+    runtime_state: AnnotationRuntimeState,
+    should_list_unresolved: bool,
+    resolver: &'a super::resolution::SourceResolver<'source>,
 }
 
 fn annotate_with_presentation(
@@ -1003,15 +1017,18 @@ fn annotate_with_presentation(
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
-    runtime_state: AnnotationRuntimeState,
-    should_list_unresolved: bool,
+    presentation: AnnotationPresentation<'_, '_>,
 ) -> Option<DetailAnnotations> {
+    let AnnotationPresentation {
+        runtime_state,
+        should_list_unresolved,
+        resolver,
+    } = presentation;
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
     test_filter.retain_snapshot_cache(snapshot);
     let index = build_symbol_index(snapshot, Some(&test_filter));
-    let resolver = super::resolution::SourceResolver::new(snapshot, root);
     let should_build_navigation_index =
         cfg.navigation_context_default && !runtime_state.suppresses_navigation();
     let navigation_index_started =
@@ -1091,7 +1108,7 @@ fn annotate_with_presentation(
                 budget,
                 root,
                 runtime_state,
-                &resolver,
+                resolver,
                 should_list_unresolved,
             ) {
                 let reserved = annotation.full_len();

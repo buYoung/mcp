@@ -135,7 +135,7 @@ async fn test_live_diagnostics_distinguish_empty_excluded_and_stale_source() {
             .unwrap(),
     );
     assert!(
-        empty.contains("No declaration context — src/empty.ts:1") && empty.contains("Next: read"),
+        empty.contains("No declaration context — src/empty.ts:1") && !empty.contains("Next: read"),
         "{empty}"
     );
     assert!(

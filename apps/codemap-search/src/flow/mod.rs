@@ -23,6 +23,36 @@ pub(crate) struct RequestBudget {
     steps: usize,
     files: std::collections::HashMap<String, bool>,
     shown: std::collections::BTreeMap<String, String>,
+    shown_diagnostics: std::collections::BTreeSet<String>,
+    work_limit: Option<&'static str>,
+}
+
+impl RequestBudget {
+    fn has_work(&mut self) -> bool {
+        if self.work_limit.is_none() {
+            self.work_limit = if self
+                .deadline
+                .is_some_and(|deadline| std::time::Instant::now() > deadline)
+            {
+                Some("value-flow time budget reached")
+            } else if self.operations > NODES_PER_QUERY {
+                Some("value-flow node budget reached")
+            } else if self.values + 1 >= NODES_PER_QUERY {
+                Some("value-flow value budget reached")
+            } else if self.steps >= NODES_PER_QUERY {
+                Some("value-flow relationship budget reached")
+            } else {
+                None
+            };
+        }
+        self.work_limit.is_none()
+    }
+
+    pub(crate) fn notice(&self) -> String {
+        self.work_limit.map_or_else(String::new, |reason| format!(
+            "[Partial value analysis: {reason}. This limit is shared across returned files; additional value relationships may be missing.]\n"
+        ))
+    }
 }
 
 pub(crate) const NODES_PER_FILE: usize = 4096;

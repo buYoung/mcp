@@ -156,6 +156,7 @@ impl McpServer {
 
                 match name {
                     "search" => {
+                        crate::tools::search::validate_arguments(arguments)?;
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately

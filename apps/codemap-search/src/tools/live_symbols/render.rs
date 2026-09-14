@@ -11,6 +11,8 @@ pub(super) fn annotate(
     snapshot: &[ExtractedFile],
     cap: usize,
     options: LiveOptions,
+    root: &std::path::Path,
+    resolver: &crate::callers::resolution::SourceResolver<'_>,
 ) -> Option<DetailAnnotations> {
     if !options.should_include_relations() || cap < 128 {
         return None;
@@ -55,14 +57,14 @@ pub(super) fn annotate(
         navigation_callsite_budget: cfg.navigation_callsite_budget,
         navigation_store_references: cfg.navigation_store_references,
     };
-    let root = std::env::current_dir().unwrap_or_default();
     crate::callers::annotate_live_results(
         &requests,
         snapshot,
         &caller_cfg,
         cap,
-        &root,
+        root,
         options.should_list_unresolved,
+        resolver,
     )
 }
 
@@ -110,6 +112,7 @@ pub(super) fn render(
     annotations: Option<&DetailAnnotations>,
     cap: usize,
     options: LiveOptions,
+    hints: &mut super::ReadHints<'_>,
 ) -> String {
     if outline.selected.is_empty() {
         return super::bounded_notice(
@@ -128,9 +131,8 @@ pub(super) fn render(
     let mut omitted_symbols = 0;
     let mut omitted_relations = 0;
     let mut next_line = None;
-    // Reserve an actionable continuation, even when every byte could fit a row.
-    let hint = super::context_read_hint(path, outline.anchor_line);
-    let reserve = (hint.len() + 135).min(cap);
+    // Keep omission counts, with an optional unseen declaration as continuation.
+    let reserve = (path.len() + 220).min(cap);
     let content_cap = cap.saturating_sub(reserve);
     let focused: Vec<_> = outline
         .order
@@ -141,7 +143,10 @@ pub(super) fn render(
     for &i in &focused {
         if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
             omitted_symbols += 1;
-            next_line.get_or_insert(outline.file.symbols[i].range.start_line);
+            let line = outline.file.symbols[i].range.start_line;
+            if hints.next(path, line).is_some() {
+                next_line.get_or_insert(line);
+            }
         }
     }
     let callables: Vec<_> = focused
@@ -191,7 +196,6 @@ pub(super) fn render(
             let bounded = bounded_detail(&detail, share);
             if bounded.len() < detail.len() {
                 omitted_relations += 1;
-                next_line.get_or_insert(symbol.range.start_line);
             }
             used += bounded.len();
             details.insert(i, bounded);
@@ -207,7 +211,10 @@ pub(super) fn render(
             }
             if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
                 omitted_symbols += 1;
-                next_line.get_or_insert(outline.file.symbols[i].range.start_line);
+                let line = outline.file.symbols[i].range.start_line;
+                if hints.next(path, line).is_some() {
+                    next_line.get_or_insert(line);
+                }
             }
         }
     }
@@ -221,8 +228,16 @@ pub(super) fn render(
         }
     }
     if omitted_symbols > 0 || omitted_relations > 0 {
-        let next = super::context_read_hint(path, next_line.unwrap_or(outline.anchor_line));
-        let notice = format!("[Symbol context budget: {omitted_symbols} declarations omitted; {omitted_relations} relation groups omitted or partial. Next: {next}]\n");
+        let mut notice = format!("[Symbol context budget: {omitted_symbols} declarations omitted; {omitted_relations} relation groups omitted or partial.");
+        if let Some((line, next)) =
+            next_line.and_then(|line| hints.next(path, line).map(|next| (line, next)))
+        {
+            if output.len() + notice.len() + next.len() + 10 <= cap {
+                notice.push_str(&format!(" Next: {next}"));
+                hints.record(path, line);
+            }
+        }
+        notice.push_str("]\n");
         output.push_str(&super::bounded_notice(
             &notice,
             cap.saturating_sub(output.len()),

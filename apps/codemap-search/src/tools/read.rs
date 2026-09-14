@@ -272,6 +272,9 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
     };
     if let Some(anchor) = output.anchors.first() {
         let path = anchor.file_path.clone();
+        let start = anchor.start_line.unwrap_or(1);
+        let end = anchor.end_line.unwrap_or(start);
+        output.record_source(&path, start, end);
         output.record_file(&path, 0, output.text.len());
     }
     Ok(output)

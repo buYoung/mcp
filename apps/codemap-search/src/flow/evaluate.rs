@@ -42,7 +42,7 @@ mod tests {
         assert!(
             output.contains("time budget reached")
                 && output.contains("slow.ts")
-                && output.contains("read"),
+                && !output.contains("Next: read"),
             "{output}"
         );
     }
@@ -155,6 +155,7 @@ pub(super) struct Query<'a> {
     callback_uses: Vec<CallbackUse>,
     pub steps: Vec<Step>,
     pub diagnostics: Vec<Diagnostic>,
+    pub work_limit: Option<(&'static str, Location)>,
     pub is_relevant: bool,
     pub should_list_unresolved: bool,
     pub anchors: Vec<(String, usize, usize)>,
@@ -205,6 +206,7 @@ impl<'a> Query<'a> {
             callback_uses: Vec::new(),
             steps: Vec::new(),
             diagnostics: Vec::new(),
+            work_limit: None,
             is_relevant: false,
             should_list_unresolved: true,
             anchors: Vec::new(),
@@ -220,6 +222,7 @@ impl<'a> Query<'a> {
     }
 
     pub(super) fn save_budget(&mut self, budget: &mut super::RequestBudget) {
+        budget.work_limit = self.work_limit.as_ref().map(|(reason, _)| *reason);
         budget.operations = self.operations;
         budget.source_bytes = self.source_bytes;
         budget.values = self.prior_values + self.values.len().saturating_sub(1);
@@ -241,6 +244,9 @@ impl<'a> Query<'a> {
                 },
                 name: "flow input".into(),
             };
+            if !self.has_work(&location) {
+                break;
+            }
             if !self.index.has_file(path) || !self.allowed(&location) {
                 continue;
             }
@@ -265,6 +271,9 @@ impl<'a> Query<'a> {
                 );
             }
             for (unit, summary) in file.units.iter().enumerate() {
+                if !self.has_work(&location) {
+                    break;
+                }
                 let mut found = false;
                 for (function, procedure) in summary.functions.iter().enumerate().skip(1) {
                     if procedure.range.start_line <= *end
@@ -293,6 +302,9 @@ impl<'a> Query<'a> {
                             unit,
                             function,
                         };
+                        if !self.has_work(&location) {
+                            break;
+                        }
                         let callers = self.callers(&key);
                         if callers.is_empty() {
                             roots.insert(key);
@@ -311,17 +323,32 @@ impl<'a> Query<'a> {
             }
         }
         for key in roots.into_iter().take(16) {
-            self.analyze_root(key);
-            if self.operations > NODES_PER_QUERY || Instant::now() > self.deadline {
+            if self
+                .index
+                .location(&key)
+                .is_some_and(|location| !self.has_work(&location))
+            {
                 break;
             }
+            self.analyze_root(key);
         }
         // Expand only procedures sharing a proven lexical storage/receiver binding.
         // Runtime object equality and collection keys are checked again when joining.
         let mut peers = BTreeSet::new();
-        for binding in self.touched.iter().take(32) {
-            let users = self.index.users(binding);
+        let touched: Vec<_> = self.touched.iter().take(32).cloned().collect();
+        for binding in touched {
+            if self.work_limit.is_some() {
+                break;
+            }
+            let users = self.index.users(&binding);
             for user in users.iter().filter(|key| key.function != 0).take(16) {
+                if self
+                    .index
+                    .location(user)
+                    .is_some_and(|location| !self.has_work(&location))
+                {
+                    break;
+                }
                 let callers = self.callers(user);
                 if callers.is_empty() {
                     peers.insert(user.clone());
@@ -331,7 +358,11 @@ impl<'a> Query<'a> {
             }
         }
         for key in peers.into_iter().take(16) {
-            if self.operations > NODES_PER_QUERY || Instant::now() > self.deadline {
+            if self
+                .index
+                .location(&key)
+                .is_some_and(|location| !self.has_work(&location))
+            {
                 break;
             }
             if !self.executed.contains(&key) {
@@ -407,19 +438,17 @@ impl<'a> Query<'a> {
     }
     fn tick(&mut self, location: &Location) -> bool {
         self.operations += 1;
-        if self.operations > NODES_PER_QUERY || Instant::now() > self.deadline {
-            self.diagnostic(
-                location,
-                if self.operations > NODES_PER_QUERY {
-                    "value-flow node budget reached"
-                } else {
-                    "value-flow time budget reached"
-                },
-            );
-            false
-        } else {
-            true
+        self.has_work(location)
+    }
+    fn has_work(&mut self, location: &Location) -> bool {
+        if self.work_limit.is_none() {
+            if self.operations > NODES_PER_QUERY {
+                self.work_limit = Some(("value-flow node budget reached", location.clone()));
+            } else if Instant::now() > self.deadline {
+                self.work_limit = Some(("value-flow time budget reached", location.clone()));
+            }
         }
+        self.work_limit.is_none()
     }
     fn diagnostic(&mut self, location: &Location, reason: &str) {
         if self.diagnostics.len() < 16
@@ -437,7 +466,8 @@ impl<'a> Query<'a> {
     }
     fn value(&mut self, kind: ValueKind, location: Location, evidence: Evidence) -> ValueId {
         if self.prior_values + self.values.len() >= NODES_PER_QUERY {
-            self.diagnostic(&location, "value-flow value budget reached");
+            self.work_limit
+                .get_or_insert(("value-flow value budget reached", location));
             return 0;
         }
         let id = self.values.len();
@@ -502,10 +532,12 @@ impl<'a> Query<'a> {
         detail: Option<String>,
         is_interesting: bool,
     ) {
-        if from.path.is_empty()
-            || to.path.is_empty()
-            || self.prior_steps + self.steps.len() >= NODES_PER_QUERY
-        {
+        if from.path.is_empty() || to.path.is_empty() {
+            return;
+        }
+        if self.prior_steps + self.steps.len() >= NODES_PER_QUERY {
+            self.work_limit
+                .get_or_insert(("value-flow relationship budget reached", to.clone()));
             return;
         }
         self.steps.push(Step {
@@ -546,6 +578,10 @@ impl<'a> Query<'a> {
             return;
         }
         for read_id in 0..self.reads.len() {
+            let location = self.reads[read_id].location.clone();
+            if !self.tick(&location) {
+                break;
+            }
             let read = &self.reads[read_id];
             let matching = self
                 .stores

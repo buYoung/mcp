@@ -122,7 +122,7 @@ fn test_output_and_analysis_budgets_are_explicit() {
         assert!(output.len() <= cap, "{cap}: {}", output.len());
         if cap <= 512 {
             assert!(
-                output.contains("budget reached") && output.contains("read"),
+                output.contains("budget reached") && output.contains("Narrow the source window"),
                 "{cap}: {output}"
             );
         }
