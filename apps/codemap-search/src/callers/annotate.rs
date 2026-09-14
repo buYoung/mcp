@@ -825,6 +825,7 @@ pub struct AnnotationRequest<'a> {
 /// above" back-reference whose original block was never emitted (the live A/B dangling defect).
 pub struct DetailAnnotations {
     annotations: HashMap<(String, usize), SymbolAnnotation>,
+    exact_annotations: HashMap<(String, usize, usize), SymbolAnnotation>,
 }
 
 /// Caller-block dedup state owned by the renderer across emitted symbols: `name → already-emitted
@@ -863,14 +864,40 @@ impl PreparedAnnotation {
 }
 
 impl DetailAnnotations {
+    pub(crate) fn render_for_symbol(
+        &self,
+        file_path: &str,
+        symbol: &ExtractedSymbol,
+        seen: &CallerBlockDedup,
+    ) -> Option<PreparedAnnotation> {
+        self.exact_annotations
+            .get(&(
+                file_path.to_string(),
+                symbol.range.start_line,
+                symbol.range.start_col,
+            ))
+            .map(|annotation| {
+                let (text, record) = annotation.render(seen);
+                PreparedAnnotation { text, record }
+            })
+    }
+
     /// Live member context: retain depth-one call relations, excluding decorator and
     /// non-call reference payloads. Native search continues to use `render` unchanged.
     pub(crate) fn render_live_relations(
         &self,
         file_path: &str,
         start_line: usize,
+        start_col: Option<usize>,
     ) -> Option<String> {
-        self.annotations.get(&(file_path.to_string(), start_line)).map(|ann| {
+        let annotation = match start_col {
+            Some(column) => {
+                self.exact_annotations
+                    .get(&(file_path.to_string(), start_line, column))
+            }
+            None => self.annotations.get(&(file_path.to_string(), start_line)),
+        };
+        annotation.map(|ann| {
             if ann.caller_block.is_empty() && ann.suffix.is_empty() {
                 return ANNOTATION_OMITTED_MARKER.to_string();
             }
@@ -1028,6 +1055,7 @@ fn annotate_with_presentation(
     let scan = scan_workspace(&names, cfg, root, &index)?;
 
     let mut annotations: HashMap<(String, usize), SymbolAnnotation> = HashMap::new();
+    let mut exact_annotations = HashMap::new();
     // Two-counter: the annotation budget is the smaller of the sub-budget and the
     // remaining overall-cap space; both deplete as annotations are reserved. Reservation is
     // against the FULL (un-deduped) length — the render-order dedup only ever emits that or
@@ -1064,6 +1092,14 @@ fn annotate_with_presentation(
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
                 overall_remaining = overall_remaining.saturating_sub(reserved);
+                exact_annotations.insert(
+                    (
+                        req.file_path.to_string(),
+                        sym.range.start_line,
+                        sym.range.start_col,
+                    ),
+                    annotation.clone(),
+                );
                 annotations.insert(
                     (req.file_path.to_string(), sym.range.start_line),
                     annotation,
@@ -1102,7 +1138,10 @@ fn annotate_with_presentation(
             .unwrap_or_default();
         metrics.trace();
     }
-    Some(DetailAnnotations { annotations })
+    Some(DetailAnnotations {
+        annotations,
+        exact_annotations,
+    })
 }
 
 #[cfg(test)]
@@ -1142,7 +1181,7 @@ mod tests {
             };
             let annotations = annotate_results(&request, &files, &cfg, 8192, &root).unwrap();
             let out = annotations
-                .render_live_relations(&target.file_path, 1)
+                .render_live_relations(&target.file_path, 1, None)
                 .unwrap();
             assert!(out.contains("first (src/lib.rs:3)"), "{out}");
             assert!(!out.contains("foreign ("), "{out}");
@@ -1174,7 +1213,10 @@ mod tests {
             name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
             caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
         })).collect();
-        DetailAnnotations { annotations }
+        DetailAnnotations {
+            annotations,
+            exact_annotations: HashMap::new(),
+        }
     }
 
     #[test]

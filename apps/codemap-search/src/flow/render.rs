@@ -1,15 +1,18 @@
 use super::evaluate::{Evidence, Query};
 use super::index::Location;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-fn display(location: &Location) -> String {
+fn display(location: &Location, current_file: Option<&str>) -> String {
     let name = location
         .name
         .chars()
         .take(120)
         .collect::<String>()
         .replace(['\n', '\r'], " ");
-    format!("{name} — {}:{}", location.path, location.range.start_line)
+    format!(
+        "{name} — {}",
+        crate::locations::display(&location.path, location.range.start_line, current_file)
+    )
 }
 fn read_hint(location: &Location) -> String {
     format!(
@@ -18,7 +21,17 @@ fn read_hint(location: &Location) -> String {
     )
 }
 
+#[cfg(test)]
 pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
+    render_with_context(query, cap, None, None)
+}
+
+pub(super) fn render_with_context(
+    query: &Query<'_>,
+    cap: usize,
+    current_file: Option<&str>,
+    mut shown: Option<&mut BTreeMap<String, String>>,
+) -> String {
     if cap < 256 || !query.is_relevant && query.diagnostics.is_empty() {
         return String::new();
     }
@@ -33,6 +46,7 @@ pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
     let mut omitted = None;
     let mut capped_rows = None;
     let mut unresolved_rows = query.diagnostics.len();
+    let mut shared_files = BTreeSet::new();
     let mut append = |row: String, location: &Location, reserve: usize| {
         if !seen.insert(row.clone()) {
             return true;
@@ -94,9 +108,25 @@ pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
             let row = format!(
                 "- [{state}] {}: {} → {}{detail}\n",
                 step.relation,
-                display(&step.from),
-                display(&step.to)
+                display(&step.from, current_file),
+                display(&step.to, current_file)
             );
+            let canonical = format!(
+                "[{state}] {}: {} → {}{detail}",
+                step.relation,
+                display(&step.from, None),
+                display(&step.to, None)
+            );
+            if let Some(previous_file) = shown.as_ref().and_then(|shown| shown.get(&canonical)) {
+                if Some(previous_file.as_str()) != current_file {
+                    shared_files.insert(previous_file.clone());
+                }
+                continue;
+            }
+            if shown.as_ref().is_some_and(|shown| shown.len() >= 128) {
+                capped_rows = Some(step.to.clone());
+                break;
+            }
             // Keep diagnostic/continuation space even when relationships are plentiful.
             let reserve = 256
                 + if query.should_list_unresolved && !query.diagnostics.is_empty() {
@@ -105,6 +135,20 @@ pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
                     0
                 };
             if !append(row, &step.to, reserve) {
+                break;
+            }
+            if let (Some(shown), Some(path)) = (shown.as_mut(), current_file) {
+                shown.insert(canonical, path.into());
+            }
+        }
+    }
+    if let Some(location) = query.steps.first().map(|step| &step.to) {
+        for path in shared_files {
+            if !append(
+                format!("- shared value relationships: see the `{path}` file section above.\n"),
+                location,
+                256,
+            ) {
                 break;
             }
         }
@@ -122,7 +166,7 @@ pub(super) fn render(query: &Query<'_>, cap: usize) -> String {
     {
         let row = format!(
             "- [unresolved] {}: {}. Next: {}\n",
-            display(&diagnostic.location),
+            display(&diagnostic.location, current_file),
             diagnostic.reason,
             read_hint(&diagnostic.location)
         );

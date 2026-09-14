@@ -6,6 +6,7 @@ mod index;
 mod javascript;
 mod rules;
 pub(crate) use index::EventIndex;
+pub(crate) use index::ShownRoutes;
 mod model;
 pub use model::*;
 

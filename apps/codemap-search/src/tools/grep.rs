@@ -428,6 +428,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     ),
                     anchors: Vec::new(),
                     notices: Vec::new(),
+                    ..LiveOutput::default()
                 });
             }
             let rows: Vec<(String, usize)> = files
@@ -461,6 +462,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 text: out,
                 anchors,
                 notices: Vec::new(),
+                ..LiveOutput::default()
             })
         }
         "content" => {
@@ -487,24 +489,26 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     text: format!("No matches found\n{}", no_match_hint()),
                     anchors: Vec::new(),
                     notices: Vec::new(),
+                    ..LiveOutput::default()
                 });
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
-            let mut out = page
-                .iter()
-                .map(|row| row.text.as_str())
-                .collect::<Vec<_>>()
-                .join("\n");
-            if let Some(f) = footer {
-                out.push('\n');
-                out.push_str(&f);
+            let mut output = LiveOutput::default();
+            for row in &page {
+                if !output.text.is_empty() {
+                    output.text.push('\n');
+                }
+                let start = output.text.len();
+                output.text.push_str(&row.text);
+                output.record_file(&row.path, start, output.text.len());
             }
-            let anchors = content_anchors(&page);
-            Ok(LiveOutput {
-                text: out,
-                anchors,
-                notices: Vec::new(),
-            })
+            if let Some(f) = &footer {
+                output.text.push('\n');
+                output.text.push_str(f);
+            }
+            output.anchors = content_anchors(&page);
+            output.footer = footer;
+            Ok(output)
         }
         // default: files_with_matches
         _ => {
@@ -513,6 +517,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     text: format!("No matches found\n{}", no_match_hint()),
                     anchors: Vec::new(),
                     notices: Vec::new(),
+                    ..LiveOutput::default()
                 });
             }
             // Sort ONLY this mode by mtime descending, ties by filename ascending (Claude
@@ -540,6 +545,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 text: out,
                 anchors,
                 notices: Vec::new(),
+                ..LiveOutput::default()
             })
         }
     }

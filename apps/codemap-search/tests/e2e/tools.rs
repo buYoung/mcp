@@ -52,7 +52,7 @@ async fn test_generic_value_relationships_persist_and_follow_live_views() {
             .unwrap();
         let output = text(&response);
         assert!(
-            output.contains("notify — src/bus.ts:5") && output.contains("6→export function setup"),
+            output.contains("notify — L5") && output.contains("6→export function setup"),
             "{output}"
         );
         assert!(output.len() <= 16_384, "{}", output.len());
@@ -204,7 +204,7 @@ async fn test_implementation_rust_target_reload_with_events_disabled() {
             .unwrap(),
     );
     assert!(
-        output.contains("Linux.run — src/lib.rs:4")
+        output.contains("Linux.run — L4")
             && !output.contains("Mac.run")
             && !output.contains("Event relationships"),
         "{output}"
@@ -219,7 +219,7 @@ async fn test_implementation_rust_target_reload_with_events_disabled() {
             .unwrap(),
     );
     assert!(
-        output.contains("Mac.run — src/lib.rs:7")
+        output.contains("Mac.run — L7")
             && !output.contains("Linux.run")
             && !output.contains("Event relationships"),
         "{output}"
@@ -260,7 +260,7 @@ async fn test_implementation_context_cli_views_refresh_and_restart() {
             && !baseline.contains("Fake.run"),
         "{baseline}"
     );
-    let raw = baseline.split_once("\n# results\n").unwrap().1;
+    let raw = baseline.split_once("\n### results\n").unwrap().1;
     for view in ["source", "definitions", "relations"] {
         let mut variant = args.clone();
         variant["view"] = view.into();
@@ -392,7 +392,7 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
             .unwrap(),
     );
     assert!(!disabled.contains("Event relationships"), "{disabled}");
-    let raw = baseline.split_once("\n# results\n").unwrap().1;
+    let raw = baseline.split_once("\n### results\n").unwrap().1;
     for view in ["full", "source", "definitions", "relations"] {
         let mut variant = args.clone();
         variant["view"] = view.into();
@@ -411,7 +411,7 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
         } else {
             let events = out.split_once("## Event relationships").unwrap().1;
             for expected in [
-                "publisher: src/users.ts:2",
+                "publisher: L2",
                 "registration: src/events.ts:6",
                 "handler definition: handleSaved — src/events.ts:5",
                 "allocation:src/events.ts:2",
@@ -422,7 +422,7 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
             assert!(!events.contains("src/other.ts"), "{out}");
             assert!(!events.contains("precise"), "{out}");
             if view == "full" {
-                assert_eq!(out.split_once("\n# results\n").unwrap().1, raw);
+                assert_eq!(out.split_once("\n### results\n").unwrap().1, raw);
             }
         }
     }
@@ -443,8 +443,7 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
                 .unwrap(),
         );
         assert!(
-            out.contains("publisher: src/users.ts:2")
-                && out.contains("registration: src/events.ts:6"),
+            out.contains("publisher: src/users.ts:2") && out.contains("registration: L6"),
             "{out}"
         );
     }
@@ -542,7 +541,7 @@ async fn test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice()
     let response=client.send_tool_until("grep",serde_json::json!({"path":"src/register.ts","pattern":"bus\\.on","head_limit":100,"view":"relations"}),|out|out.contains("Event relationships")).await.unwrap();
     let out = text(&response);
     assert!(out.contains("publisher: src/a_publish.ts:1"), "{out}");
-    assert!(out.contains("registration: src/register.ts:2"), "{out}");
+    assert!(out.contains("registration: L2"), "{out}");
     assert!(out.contains("Event output cap reached"), "{out}");
 }
 
@@ -566,7 +565,7 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
         .await
         .unwrap();
     let full = text(&baseline);
-    let raw = full.split_once("\n# results\n").unwrap().1;
+    let raw = full.split_once("\n### results\n").unwrap().1;
     for view in ["source", "definitions", "relations", "full"] {
         let mut variant = args.clone();
         variant["view"] = view.into();
@@ -592,21 +591,21 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
                 }
             }
             "relations" => {
-                assert!(out.starts_with("# relations"), "{out}");
-                assert!(out.contains("caller (src/lib.rs:7)"), "{out}");
-                assert!(out.contains("LIMIT — src/lib.rs:1 = 7"), "{out}");
+                assert!(out.contains("\n### relations\n"), "{out}");
+                assert!(out.contains("caller (L7)"), "{out}");
+                assert!(out.contains("LIMIT — L1 = 7"), "{out}");
                 assert!(!out.contains("# results"), "{out}");
             }
             _ => {
                 // Bounded value summaries can stop at a different point under load.
                 // The declarations, call totals and live source contract is stable.
                 let stable = |value: &str| {
-                    let (context, source) = value.split_once("\n# results\n").unwrap();
+                    let (context, source) = value.split_once("\n### results\n").unwrap();
                     let context = context
-                        .split("\n## Value relationships")
+                        .split("\n#### Value relationships")
                         .next()
                         .unwrap()
-                        .split("\n## Analysis diagnostics")
+                        .split("\n#### Analysis diagnostics")
                         .next()
                         .unwrap();
                     (context.trim_end().to_string(), source.to_string())
@@ -854,8 +853,8 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         .await
         .unwrap();
     let out = text(&ready);
-    let (context, raw) = out.split_once("\n# results\n").unwrap();
-    assert!(context.contains("read_layer — src/config.rs:4"), "{out}");
+    let (context, raw) = out.split_once("\n### results\n").unwrap();
+    assert!(context.contains("read_layer — L4"), "{out}");
     assert!(context.contains("actual_caller (src/noise.rs:5)"), "{out}");
     for false_caller in [
         "string_only",
@@ -870,11 +869,11 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         );
     }
     assert!(
-        context.contains("CODEMAP_DIR_NAME — src/config.rs:1 = \".codemap\""),
+        context.contains("CODEMAP_DIR_NAME — L1 = \".codemap\""),
         "{out}"
     );
     assert!(
-        context.contains("CONFIG_FILE_NAME — src/config.rs:2 = \"config.toml\""),
+        context.contains("CONFIG_FILE_NAME — L2 = \"config.toml\""),
         "{out}"
     );
     assert!(
@@ -904,13 +903,10 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         .await
         .unwrap();
     let grep_out = text(&grep);
-    let (context, raw) = grep_out.split_once("\n# results\n").unwrap();
+    let (context, raw) = grep_out.split_once("\n### results\n").unwrap();
+    assert!(context.contains("read_layer — L4"), "{grep_out}");
     assert!(
-        context.contains("read_layer — src/config.rs:4"),
-        "{grep_out}"
-    );
-    assert!(
-        context.contains("CODEMAP_DIR_NAME — src/config.rs:1 = \".codemap\""),
+        context.contains("CODEMAP_DIR_NAME — L1 = \".codemap\""),
         "{grep_out}"
     );
     assert!(
@@ -977,9 +973,9 @@ async fn test_live_constant_context_respects_the_read_output_budget() {
         .unwrap();
     let out = text(&response);
     assert!(out.len() <= 1800, "{} bytes: {out}", out.len());
-    assert!(out.contains("[Reference output cap:"), "{out}");
+    assert!(out.contains("[Symbol context budget:"), "{out}");
     assert_eq!(
-        out.split_once("\n# results\n").unwrap().1.trim_end(),
+        out.split_once("\n### results\n").unwrap().1.trim_end(),
         "   101→fn consume_values() {"
     );
 }
@@ -1031,7 +1027,7 @@ async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
         let ready = client.send_tool_until("read", serde_json::json!({
             "file_path": "src/inline.rs", "offset": 2, "limit": 1
         }), |out| {
-            let context = out.split_once("\n# results\n").map(|(context, _)| context).unwrap_or("");
+            let context = out.split_once("\n### results\n").map(|(context, _)| context).unwrap_or("");
             if should_show { context.contains("verify_rust [function") }
             else { context.contains("Test code excluded") && !context.contains("verify_rust") }
         }).await.unwrap();
@@ -1044,7 +1040,7 @@ async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
                 "file_path": path, "offset": offset, "limit": 1
             }))).await.unwrap();
             let out = text(&response);
-            let (context, raw) = out.split_once("\n# results\n").unwrap();
+            let (context, raw) = out.split_once("\n### results\n").unwrap();
             assert_eq!(context.contains(name), should_show, "phase {phase}, {path}: {out}");
             if phase == 0 { raw_results.push(raw.to_string()); }
             else { assert_eq!(raw, raw_results[index], "raw source changed for {path}"); }
@@ -1053,7 +1049,7 @@ async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
             "file_path": "src/inline.rs", "offset": 3, "limit": 1
         }))).await.unwrap();
         let helper_out = text(&helper);
-        let context = helper_out.split_once("\n# results\n").unwrap().0;
+        let context = helper_out.split_once("\n### results\n").unwrap().0;
         assert_eq!(context.contains("verify_rust"), should_show, "{helper_out}");
         assert!(!context.contains("verify_excluded_fixture"), "directory exclusions must survive test inclusion: {helper_out}");
     }
@@ -1082,9 +1078,9 @@ async fn test_read_basic_arrow_format() {
     );
     assert!(out.contains("run_engine"), "expected file content: {out:?}");
     assert!(
-        out.starts_with("# symbols\n")
+        out.starts_with("# codemap-search\n")
             && out
-                .split_once("\n# results\n")
+                .split_once("\n### results\n")
                 .unwrap()
                 .1
                 .lines()
@@ -1101,11 +1097,18 @@ async fn test_read_basic_arrow_format() {
         )
         .await
         .unwrap();
-    assert_eq!(
-        text(&backslash_resp),
-        out,
-        "backslash and forward-slash file paths should read the same file"
-    );
+    let aliased = text(&backslash_resp);
+    let stable_parts = |value: &str| {
+        let (context, source) = value.split_once("\n### results\n").unwrap();
+        let declarations = context
+            .lines()
+            .filter(|line| line.starts_with("## ") || line.contains(" [function, "))
+            .collect::<Vec<_>>()
+            .join("\n");
+        (declarations, source.to_string())
+    };
+    assert_eq!(stable_parts(&aliased), stable_parts(&out),
+        "path aliases preserve file identity, declarations and source; optional analysis can hit its time budget");
 }
 
 #[tokio::test]

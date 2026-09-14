@@ -141,10 +141,22 @@ impl ExpansionPage {
                 self.total, self.offset
             ));
         }
-        LiveOutput {
-            text: self.text.concat().trim_end_matches('\n').to_string(),
-            anchors: self.anchors,
+        let mut output = LiveOutput {
             notices,
+            ..LiveOutput::default()
+        };
+        for (text, anchor) in self.text.into_iter().zip(self.anchors) {
+            let start = output.text.len();
+            output.text.push_str(&text);
+            output.record_file(&anchor.file_path, start, output.text.len());
+            output.anchors.push(anchor);
         }
+        output
+            .text
+            .truncate(output.text.trim_end_matches('\n').len());
+        if let Some(last) = output.files.last_mut() {
+            last.end_byte = output.text.len();
+        }
+        output
     }
 }

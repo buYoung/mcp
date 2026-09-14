@@ -12,6 +12,19 @@ pub(crate) use index::FlowIndex;
 pub(crate) use index::IndexedFlowStore;
 pub(crate) use model::*;
 
+/// File-grouped live output shares the original query work limits. Each file has
+/// its own value identities, while validated inputs and consumed work are reused.
+#[derive(Default)]
+pub(crate) struct RequestBudget {
+    deadline: Option<std::time::Instant>,
+    operations: usize,
+    source_bytes: usize,
+    values: usize,
+    steps: usize,
+    files: std::collections::HashMap<String, bool>,
+    shown: std::collections::BTreeMap<String, String>,
+}
+
 pub(crate) const NODES_PER_FILE: usize = 4096;
 pub(crate) const FUNCTIONS_PER_FILE: usize = 256;
 pub(crate) const NODES_PER_QUERY: usize = 4096;

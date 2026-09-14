@@ -73,17 +73,21 @@ impl Eligibility<'_> {
 }
 
 impl ImplementationIndex {
-    fn display_method(&self, id: usize) -> String {
+    fn display_method(&self, id: usize, current_file: Option<&str>) -> String {
         let method = &self.methods[id];
         format!(
-            "{}.{} — {}:{}",
+            "{}.{} — {}",
             self.typ(method.owner).qualified_name,
             method.declaration.name,
-            method.location.path,
-            method.location.range.start_line
+            crate::locations::display(
+                &method.location.path,
+                method.location.range.start_line,
+                current_file
+            )
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn for_paths(
         &self,
         anchors: &[(String, usize, usize)],
@@ -101,6 +105,18 @@ impl ImplementationIndex {
         cap: usize,
         root: &Path,
         should_include_calls: bool,
+    ) -> String {
+        self.for_paths_with_context(anchors, scope, cap, root, should_include_calls, None)
+    }
+
+    pub(crate) fn for_paths_with_context(
+        &self,
+        anchors: &[(String, usize, usize)],
+        scope: Option<&str>,
+        cap: usize,
+        root: &Path,
+        should_include_calls: bool,
+        current_file: Option<&str>,
     ) -> String {
         if anchors.is_empty() || self.target_os != crate::config::get().analysis_target_os {
             return String::new();
@@ -180,7 +196,7 @@ impl ImplementationIndex {
             let method = &self.methods[id];
             let mut section = format!(
                 "\n### {}{}\n",
-                self.display_method(id),
+                self.display_method(id, current_file),
                 if method.declaration.is_abstract {
                     " [abstract declaration]"
                 } else {
@@ -201,7 +217,7 @@ impl ImplementationIndex {
                 related = true;
                 section.push_str(&format!(
                     "- implementation candidate: {}{}\n",
-                    self.display_method(link.implementation),
+                    self.display_method(link.implementation, current_file),
                     if link.is_pointer {
                         " [pointer receiver; *T method set]"
                     } else {
@@ -222,7 +238,7 @@ impl ImplementationIndex {
                 related = true;
                 section.push_str(&format!(
                     "- implements/overrides declaration: {}\n",
-                    self.display_method(link.declaration)
+                    self.display_method(link.declaration, current_file)
                 ));
             }
             if !related && method.declaration.is_abstract {
@@ -247,8 +263,13 @@ impl ImplementationIndex {
                 rows += 1;
                 related = true;
                 section.push_str(&format!(
-                    "- declaration reference: {} — {}:{}\n",
-                    call.name, call.location.path, call.location.range.start_line
+                    "- declaration reference: {} — {}\n",
+                    call.name,
+                    crate::locations::display(
+                        &call.location.path,
+                        call.location.range.start_line,
+                        current_file
+                    )
                 ));
             }
             if related {
@@ -258,11 +279,14 @@ impl ImplementationIndex {
         for id in calls {
             let call = &self.calls[id];
             let mut section = format!(
-                "\n### {} — {}:{}\n- call declaration: {}\n",
+                "\n### {} — {}\n- call declaration: {}\n",
                 call.name,
-                call.location.path,
-                call.location.range.start_line,
-                self.display_method(call.declaration)
+                crate::locations::display(
+                    &call.location.path,
+                    call.location.range.start_line,
+                    current_file
+                ),
+                self.display_method(call.declaration, current_file)
             );
             for &link_id in self.forward.get(&call.declaration).into_iter().flatten() {
                 let link = &self.links[link_id];
@@ -276,7 +300,7 @@ impl ImplementationIndex {
                 rows += 1;
                 section.push_str(&format!(
                     "- implementation candidate: {}{}\n",
-                    self.display_method(link.implementation),
+                    self.display_method(link.implementation, current_file),
                     if link.is_pointer {
                         " [pointer receiver; *T method set]"
                     } else {

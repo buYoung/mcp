@@ -27,14 +27,25 @@ fn under_scope(path: &str, scope: Option<&str>) -> bool {
                 .is_some_and(|rest| rest.starts_with('/'))
     })
 }
-fn display(location: &EventLocation) -> String {
+fn display(location: &EventLocation, current_file: Option<&str>) -> String {
+    let position =
+        crate::locations::display(&location.file_path, location.range.start_line, current_file);
     match location.name.as_deref() {
-        Some(name) => format!(
-            "{name} — {}:{}",
-            location.file_path, location.range.start_line
-        ),
-        None => format!("{}:{}", location.file_path, location.range.start_line),
+        Some(name) => format!("{name} — {position}"),
+        None => position,
     }
+}
+
+#[derive(Default)]
+struct RenderContext<'a> {
+    anchors: Option<&'a [(String, usize, usize)]>,
+    current_file: Option<&'a str>,
+    shown_routes: Option<&'a mut ShownRoutes>,
+}
+
+#[derive(Default)]
+pub(crate) struct ShownRoutes {
+    files: BTreeMap<(String, String, String, String), String>,
 }
 fn overlaps(location: &EventLocation, anchors: &[(String, usize, usize)]) -> bool {
     anchors.is_empty()
@@ -168,7 +179,7 @@ impl EventIndex {
             scope,
             cap,
             root,
-            None,
+            RenderContext::default(),
         )
     }
     pub fn for_paths(
@@ -177,6 +188,18 @@ impl EventIndex {
         scope: Option<&str>,
         cap: usize,
         root: &Path,
+    ) -> String {
+        self.for_paths_with_context(anchors, scope, cap, root, None, None)
+    }
+
+    pub(crate) fn for_paths_with_context(
+        &self,
+        anchors: &[(String, usize, usize)],
+        scope: Option<&str>,
+        cap: usize,
+        root: &Path,
+        current_file: Option<&str>,
+        shown_routes: Option<&mut ShownRoutes>,
     ) -> String {
         if anchors.is_empty() {
             return String::new();
@@ -224,7 +247,11 @@ impl EventIndex {
             scope,
             cap,
             root,
-            Some(anchors),
+            RenderContext {
+                anchors: Some(anchors),
+                current_file,
+                shown_routes,
+            },
         );
         let diagnostics =
             self.input_diagnostics(anchors, scope, cap.saturating_sub(output.len() + 1), root);
@@ -286,8 +313,13 @@ impl EventIndex {
         scope: Option<&str>,
         cap: usize,
         root: &Path,
-        anchors: Option<&[(String, usize, usize)]>,
+        context: RenderContext<'_>,
     ) -> String {
+        let RenderContext {
+            anchors,
+            current_file,
+            mut shown_routes,
+        } = context;
         if anchors.is_none() && cap < 512 {
             return "[Event output budget unavailable; narrow the source request.]\n"
                 .chars()
@@ -411,6 +443,24 @@ impl EventIndex {
         let mut was_capped = false;
         let mut rendered_endpoints = 0;
         for ((identity, key, target, channel), endpoints) in groups {
+            let route = (
+                identity.clone(),
+                key.clone(),
+                target.clone(),
+                channel.clone(),
+            );
+            if let Some(previous_file) = shown_routes
+                .as_ref()
+                .and_then(|shown| shown.files.get(&route))
+            {
+                let section = format!("\n### Event {key:?}\n- shared route: see the `{previous_file}` file section above.\n");
+                if !append(&section) {
+                    was_capped = true;
+                    break;
+                }
+                rendered_endpoints += endpoints.len();
+                continue;
+            }
             let bus = endpoints[0].bus.as_ref().unwrap();
             let section=format!("\n### Event {key:?}\n- bus: `{identity}` — {}{}\n- target: `{target}`; channel: `{channel}`\n",bus.description,if bus.is_configured_assumption {" [configured bus assumption]"}else{""});
             if !append(&section) {
@@ -422,7 +472,7 @@ impl EventIndex {
                 row.push_str(&format!(
                     "- {}: {}{}\n  - API: `{}`{}\n",
                     endpoint.role.label(),
-                    display(&endpoint.location),
+                    display(&endpoint.location, current_file),
                     endpoint
                         .enclosing_symbol
                         .as_ref()
@@ -437,7 +487,10 @@ impl EventIndex {
                 ));
                 row.push_str(&format!("  - rule: `{}`\n", endpoint.api_rule));
                 if let Some(location) = &endpoint.api_definition {
-                    row.push_str(&format!("  - API definition: {}\n", display(location)));
+                    row.push_str(&format!(
+                        "  - API definition: {}\n",
+                        display(location, current_file)
+                    ));
                 }
                 if endpoint.is_target_configured {
                     row.push_str(
@@ -452,10 +505,16 @@ impl EventIndex {
                     .find(|location| location.name.is_some())
                     .or_else(|| endpoint.key_evidence.first())
                 {
-                    row.push_str(&format!("  - key evidence: {}\n", display(evidence)));
+                    row.push_str(&format!(
+                        "  - key evidence: {}\n",
+                        display(evidence, current_file)
+                    ));
                 }
                 if let Some(handler) = &endpoint.handler {
-                    row.push_str(&format!("  - handler definition: {}\n", display(handler)));
+                    row.push_str(&format!(
+                        "  - handler definition: {}\n",
+                        display(handler, current_file)
+                    ));
                 }
                 if let Some(reason) = &endpoint.handler_reason {
                     row.push_str(&format!("  - handler unresolved: {reason}\n"));
@@ -482,6 +541,9 @@ impl EventIndex {
             if was_capped {
                 break;
             }
+            if let (Some(shown), Some(path)) = (shown_routes.as_mut(), current_file) {
+                shown.files.insert(route, path.into());
+            }
         }
         for endpoint in unresolved {
             if was_capped {
@@ -495,12 +557,15 @@ impl EventIndex {
             let mut row = format!(
                 "\n- unresolved {}: {} — {reasons}\n  - API: `{}`; key: {:?}\n",
                 endpoint.role.label(),
-                display(&endpoint.location),
+                display(&endpoint.location, current_file),
                 endpoint.api_identity,
                 endpoint.event_key
             );
             if let Some(handler) = &endpoint.handler {
-                row.push_str(&format!("  - handler definition: {}\n", display(handler)));
+                row.push_str(&format!(
+                    "  - handler definition: {}\n",
+                    display(handler, current_file)
+                ));
             }
             if let Some(reason) = &endpoint.handler_reason {
                 row.push_str(&format!("  - handler unresolved: {reason}\n"));

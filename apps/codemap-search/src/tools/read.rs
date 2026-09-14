@@ -167,6 +167,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
                 .to_string(),
             anchors: Vec::new(),
             notices: Vec::new(),
+            ..LiveOutput::default()
         });
     }
 
@@ -188,6 +189,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
             ),
             anchors: Vec::new(),
             notices: Vec::new(),
+            ..LiveOutput::default()
         });
     }
 
@@ -262,9 +264,15 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
             end_line: Some(start_line.saturating_add(window.len().saturating_sub(1))),
         }]
     };
-    Ok(LiveOutput {
+    let mut output = LiveOutput {
         text: rendered,
         anchors,
         notices,
-    })
+        ..LiveOutput::default()
+    };
+    if let Some(anchor) = output.anchors.first() {
+        let path = anchor.file_path.clone();
+        output.record_file(&path, 0, output.text.len());
+    }
+    Ok(output)
 }

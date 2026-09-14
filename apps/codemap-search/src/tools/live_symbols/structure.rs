@@ -109,6 +109,7 @@ pub(super) struct Outline {
     pub anchor_line: usize,
     pub parents: Vec<Option<usize>>,
     pub selected: BTreeSet<usize>,
+    pub focused: BTreeSet<usize>,
     pub rows: Vec<String>,
     pub order: Vec<usize>,
     pub references: BTreeMap<usize, Vec<String>>,
@@ -168,7 +169,13 @@ impl Outline {
             })
         };
         let mut roots = BTreeSet::new();
-        for (i, _) in symbols.iter().enumerate().filter(|(_, s)| intersects(s)) {
+        let focused: BTreeSet<_> = symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, symbol)| intersects(symbol))
+            .map(|(i, _)| i)
+            .collect();
+        for &i in &focused {
             let mut current = Some(i);
             while let Some(j) = current {
                 // Free functions and other top-level declarations are scope roots too.
@@ -193,6 +200,7 @@ impl Outline {
                 current = parents[j];
             }
         }
+        selected.extend(&focused);
         if options.view == LiveView::Relations {
             selected.retain(|&i| callable(&symbols[i]) && intersects(&symbols[i]));
         }
@@ -261,11 +269,10 @@ impl Outline {
                     signature
                 };
                 format!(
-                    "{}{} [{kind}, {visibility}{}] — {}:{}-{}\n",
+                    "{}- {} [{kind}, {visibility}{}] — L{}-{}\n",
                     "  ".repeat(depth),
                     signature,
                     if is_expanded { ", macro expansion" } else { "" },
-                    file.file_path,
                     s.range.start_line,
                     s.range.end_line_inclusive()
                 )
@@ -277,7 +284,7 @@ impl Outline {
             .map(|tree| {
                 super::references::collect_with_resolver(
                     file,
-                    &selected,
+                    &focused,
                     tree,
                     &source,
                     Some(resolver),
@@ -314,6 +321,7 @@ impl Outline {
                 .unwrap_or(1),
             parents,
             selected,
+            focused,
             rows,
             order,
             references,

@@ -136,6 +136,8 @@ pub(super) struct Query<'a> {
     operations: usize,
     files: HashMap<String, bool>,
     source_bytes: usize,
+    prior_values: usize,
+    prior_steps: usize,
     values: Vec<Value>,
     closures: Vec<Closure>,
     objects: Vec<Object>,
@@ -180,6 +182,8 @@ impl<'a> Query<'a> {
             operations: 0,
             files: HashMap::new(),
             source_bytes: 0,
+            prior_values: 0,
+            prior_steps: 0,
             values: vec![Value {
                 kind: ValueKind::Unknown("analysis budget exhausted".into()),
                 location: sentinel,
@@ -206,6 +210,23 @@ impl<'a> Query<'a> {
             anchors: Vec::new(),
         }
     }
+    pub(super) fn restore_budget(&mut self, budget: &mut super::RequestBudget) {
+        self.deadline = *budget.deadline.get_or_insert(self.deadline);
+        self.operations = budget.operations;
+        self.source_bytes = budget.source_bytes;
+        self.prior_values = budget.values;
+        self.prior_steps = budget.steps;
+        self.files = std::mem::take(&mut budget.files);
+    }
+
+    pub(super) fn save_budget(&mut self, budget: &mut super::RequestBudget) {
+        budget.operations = self.operations;
+        budget.source_bytes = self.source_bytes;
+        budget.values = self.prior_values + self.values.len().saturating_sub(1);
+        budget.steps = self.prior_steps + self.steps.len();
+        budget.files = std::mem::take(&mut self.files);
+    }
+
     pub(super) fn run(&mut self, anchors: &[(String, usize, usize)]) {
         self.anchors = anchors.iter().take(FILES_PER_QUERY).cloned().collect();
         let mut roots = BTreeSet::new();
@@ -415,7 +436,7 @@ impl<'a> Query<'a> {
         }
     }
     fn value(&mut self, kind: ValueKind, location: Location, evidence: Evidence) -> ValueId {
-        if self.values.len() >= NODES_PER_QUERY {
+        if self.prior_values + self.values.len() >= NODES_PER_QUERY {
             self.diagnostic(&location, "value-flow value budget reached");
             return 0;
         }
@@ -481,7 +502,10 @@ impl<'a> Query<'a> {
         detail: Option<String>,
         is_interesting: bool,
     ) {
-        if from.path.is_empty() || to.path.is_empty() || self.steps.len() >= NODES_PER_QUERY {
+        if from.path.is_empty()
+            || to.path.is_empty()
+            || self.prior_steps + self.steps.len() >= NODES_PER_QUERY
+        {
             return;
         }
         self.steps.push(Step {

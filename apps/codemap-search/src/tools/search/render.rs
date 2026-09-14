@@ -779,7 +779,9 @@ pub(super) fn render_anchored_symbols(
         }
         if !is_summary_container {
             if let Some(annotations) = caller_annotations {
-                if let Some(prepared) = annotations.render(file_path, start, caller_block_dedup) {
+                if let Some(prepared) =
+                    annotations.render_for_symbol(file_path, sym, caller_block_dedup)
+                {
                     if text.len() + prepared.text().len() <= byte_cap {
                         text.push_str(prepared.text());
                         prepared.commit(caller_block_dedup);

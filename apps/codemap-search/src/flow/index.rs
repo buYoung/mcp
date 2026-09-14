@@ -268,7 +268,34 @@ impl FlowIndex {
         let mut query = super::evaluate::Query::new(self, root, scope);
         query.should_list_unresolved = should_list_unresolved;
         query.run(anchors);
-        super::render::render(&query, cap)
+        super::render::render_with_context(&query, cap, None, None)
+    }
+
+    pub(crate) fn for_file(
+        &self,
+        anchors: &[(String, usize, usize)],
+        cap: usize,
+        root: &Path,
+        should_list_unresolved: bool,
+        budget: &mut super::RequestBudget,
+    ) -> String {
+        if cap < 256
+            || anchors.is_empty()
+            || self.target_os != crate::config::get().analysis_target_os
+        {
+            return String::new();
+        }
+        let mut query = super::evaluate::Query::new(self, root, None);
+        query.restore_budget(budget);
+        query.should_list_unresolved = should_list_unresolved;
+        query.run(anchors);
+        query.save_budget(budget);
+        super::render::render_with_context(
+            &query,
+            cap,
+            anchors.first().map(|anchor| anchor.0.as_str()),
+            Some(&mut budget.shown),
+        )
     }
 }
 

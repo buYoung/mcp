@@ -8,6 +8,7 @@ pub(crate) mod flow;
 pub mod implementations;
 pub mod index;
 pub mod lang;
+pub(crate) mod locations;
 pub mod mcp;
 pub mod parser;
 pub mod tools;

@@ -1,23 +1,30 @@
 //! Indexed member and call context above untouched live filesystem results.
 pub(crate) mod callable;
+mod context;
 mod diagnostics;
+mod locations;
 mod references;
 mod render;
 mod structure;
 
 use super::live_options::{LiveOptions, LiveView};
 use crate::index::EngineSupervisor;
-use std::collections::BTreeMap;
 
 pub(super) const PAYLOAD_BYTE_CAP: usize = 8192;
-const FRAMING_BYTE_BUDGET: usize = 512;
 const OUTLINED_FILE_LIMIT: usize = 8;
 const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
 
+#[derive(Clone)]
 pub(crate) struct LiveAnchor {
     pub file_path: String,
     pub start_line: Option<usize>,
     pub end_line: Option<usize>,
+}
+
+pub(crate) struct LiveFileSpan {
+    pub file_path: String,
+    pub start_byte: usize,
+    pub end_byte: usize,
 }
 
 #[derive(Default)]
@@ -25,17 +32,117 @@ pub(crate) struct LiveOutput {
     pub text: String,
     pub anchors: Vec<LiveAnchor>,
     pub notices: Vec<String>,
+    pub files: Vec<LiveFileSpan>,
+    pub footer: Option<String>,
 }
 
-/// Read and grep remain live filesystem operations. Missing or warming index
-/// context never triggers a synchronous rebuild or replaces their source results.
+impl LiveOutput {
+    /// Record boundaries while producing live text, never by parsing source or paths
+    /// back out of formatted grep rows. Keep the producer's page/file order.
+    pub fn record_file(&mut self, path: &str, start_byte: usize, end_byte: usize) {
+        if let Some(last) = self.files.last_mut().filter(|last| last.file_path == path) {
+            last.end_byte = end_byte;
+        } else {
+            self.files.push(LiveFileSpan {
+                file_path: path.into(),
+                start_byte,
+                end_byte,
+            });
+        }
+    }
+}
+
+pub(super) fn context_read_hint(path: &str, line: usize) -> String {
+    format!(
+        "read {}",
+        serde_json::json!({"file_path":path,"offset":line.max(1),"limit":1})
+    )
+}
+
+pub(super) fn bounded_notice(notice: &str, cap: usize) -> String {
+    if notice.len() <= cap {
+        return notice.into();
+    }
+    let fallback = "[Context omitted by output budget; narrow this file/window.]\n";
+    if fallback.len() <= cap {
+        fallback.into()
+    } else {
+        String::new()
+    }
+}
+
+fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> String {
+    let mut text = String::from("# codemap-search\n\n");
+    if output.files.is_empty() {
+        text.push_str(&output.text);
+    } else {
+        text.push_str("Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n");
+        if options.should_include_relations() {
+            if let Some(target_os) = crate::config::get().analysis_target_os.as_deref() {
+                if output
+                    .files
+                    .iter()
+                    .any(|file| file.file_path.ends_with(".rs"))
+                {
+                    text.push_str(&format!("[Rust analysis target_os={target_os}; static source conditions, not a runtime execution guarantee.]\n"));
+                }
+            }
+        }
+        if output.files.len() > OUTLINED_FILE_LIMIT {
+            let file = &output.files[OUTLINED_FILE_LIMIT];
+            let line = output
+                .anchors
+                .iter()
+                .find(|anchor| anchor.file_path == file.file_path)
+                .and_then(|anchor| anchor.start_line)
+                .unwrap_or(1);
+            text.push_str(&format!(
+                "[File limit: {} returned files not outlined. Next: {}]\n",
+                output.files.len() - OUTLINED_FILE_LIMIT,
+                context_read_hint(&file.file_path, line)
+            ));
+        }
+        for (i, file) in output.files.iter().enumerate() {
+            let path = file.file_path.replace('\r', "\\r").replace('\n', "\\n");
+            let section = if options.view == LiveView::Relations {
+                "relations"
+            } else {
+                "symbols"
+            };
+            text.push_str(&format!("\n\n## {}. {path}\n\n### {section}\n\n", i + 1));
+            let context = &contexts[i];
+            if context.is_empty() {
+                text.push_str("[Symbol context omitted by output/file budget.]\n");
+            } else {
+                text.push_str(context);
+            }
+            if options.view == LiveView::Full {
+                text.push_str("\n### results\n");
+                text.push_str(&output.text[file.start_byte..file.end_byte]);
+            }
+        }
+        if let Some(footer) = &output.footer {
+            text.push('\n');
+            text.push_str(footer);
+        }
+    }
+    for notice in &output.notices {
+        if !text.ends_with('\n') {
+            text.push('\n');
+        }
+        text.push_str(notice);
+    }
+    text
+}
+
+/// Source stays byte-for-byte compatible. Rich views reserve every returned source
+/// row and file heading before sharing one bounded context budget across files.
 pub(crate) fn append(
     engine: &EngineSupervisor,
     output: LiveOutput,
     output_byte_cap: Option<usize>,
     options: LiveOptions,
 ) -> Result<String, (i64, String)> {
-    // This return precedes snapshots, test filters, resolvers and relation scans.
     if options.view == LiveView::Source {
         let text = if output.notices.is_empty() {
             output.text
@@ -51,222 +158,19 @@ pub(crate) fn append(
         }
         return Ok(text);
     }
-    let raw = if options.view == LiveView::Full {
-        output.text
-    } else {
-        String::new()
-    };
-    let notices = if output.notices.is_empty() {
-        String::new()
-    } else {
-        format!("{}\n", output.notices.join("\n"))
-    };
-    let frame = |content: &str| match options.view {
-        LiveView::Full => format!("# symbols\n\n{notices}{content}\n# results\n{raw}"),
-        LiveView::Relations => format!("# relations\n\n{notices}{content}"),
-        _ => format!("# symbols\n\n{notices}{content}"),
-    };
+    let empty = frame(&output, &vec![String::new(); output.files.len()], options);
     let limit = output_byte_cap.unwrap_or(usize::MAX);
-    let empty = frame("");
     if empty.len() > limit {
-        return Err((
-            -32602,
-            "Read window leaves no room for section headers; retry with a smaller limit."
-                .to_string(),
-        ));
+        return Err((-32602, "Read window leaves no room for file/section headers; retry with a smaller limit or view=source.".into()));
     }
-    let remaining = output_byte_cap
-        .map(|limit| limit.saturating_sub(raw.len() + notices.len()))
-        .unwrap_or(PAYLOAD_BYTE_CAP * 2 + FRAMING_BYTE_BUDGET);
-    let cap = PAYLOAD_BYTE_CAP.min(remaining.saturating_sub(FRAMING_BYTE_BUDGET) / 2);
-    let content = if remaining < FRAMING_BYTE_BUDGET {
-        String::new()
-    } else if cap < 128 {
-        "[No room for symbol context; narrow the read window.]\n".to_string()
-    } else if output.anchors.is_empty() {
-        "[No returned source location for symbol lookup.]\n".to_string()
-    } else if engine.is_warming() || engine.is_dead() || engine.last_error().is_some() {
-        "[Symbol index unavailable or stale; live results remain available below.]\n".to_string()
-    } else {
-        let root = std::env::current_dir().unwrap_or_default();
-        let test_filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
-        if output
-            .anchors
-            .iter()
-            .all(|anchor| test_filter.is_file_excluded(&anchor.file_path))
-        {
-            TEST_CONTEXT_EXCLUDED_NOTICE.to_string()
-        } else {
-            let snapshot = engine.published_snapshot();
-            let events = if options.should_include_events() {
-                let anchors = output
-                    .anchors
-                    .iter()
-                    .map(|anchor| {
-                        (
-                            anchor.file_path.clone(),
-                            anchor.start_line.unwrap_or(1),
-                            anchor.end_line.unwrap_or(usize::MAX),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                snapshot.events().for_paths(&anchors, None, cap, &root)
-            } else {
-                String::new()
-            };
-            let anchors = output
-                .anchors
-                .iter()
-                .map(|anchor| {
-                    (
-                        anchor.file_path.clone(),
-                        anchor.start_line.unwrap_or(1),
-                        anchor.end_line.unwrap_or(usize::MAX),
-                    )
-                })
-                .collect::<Vec<_>>();
-            let implementations = if matches!(options.view, LiveView::Full | LiveView::Relations) {
-                snapshot.implementations().for_paths(
-                    &anchors,
-                    None,
-                    if events.is_empty() { cap / 2 } else { cap / 3 },
-                    &root,
-                )
-            } else {
-                String::new()
-            };
-            let flows = if options.should_include_relations() {
-                snapshot.flows().for_paths_with_unresolved(
-                    &anchors,
-                    None,
-                    (cap / 2).min(cap.saturating_sub(implementations.len() + events.len() / 2)),
-                    &root,
-                    options.should_list_unresolved,
-                )
-            } else {
-                String::new()
-            };
-            let cap = cap.saturating_sub(
-                implementations.len()
-                    + flows.len()
-                    + usize::from(!flows.is_empty())
-                    + usize::from(!implementations.is_empty()),
-            );
-            let cap = if events.is_empty() { cap } else { cap / 2 };
-            let source_files = snapshot.codemap();
-            let mut grouped: BTreeMap<&str, Vec<&LiveAnchor>> = BTreeMap::new();
-            for anchor in &output.anchors {
-                grouped.entry(&anchor.file_path).or_default().push(anchor);
-            }
-            // Only outlines need a filtered copy. Relations keep the shared snapshot
-            // and check test exclusions lazily for matching definitions/call sites.
-            let filtered_files = test_filter.filter_snapshot(&source_files, |file| {
-                grouped.contains_key(file.file_path.as_str())
-            });
-            let files = filtered_files.as_ref();
-            let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root);
-            let mut outlines = Vec::new();
-            let mut has_excluded_test_context = false;
-            let mut encoding_notices = Vec::new();
-            for (path, anchors) in grouped.iter().take(OUTLINED_FILE_LIMIT) {
-                let file = source_files.iter().find(|file| file.file_path == *path);
-                if let Some(reason) = crate::workspace::source_encoding_exclusion(&root.join(path))
-                {
-                    encoding_notices.push(format!("[{path}: {reason}]\n"));
-                    continue;
-                }
-                if let Some(notice) =
-                    diagnostics::unavailable(file, anchors[0], &root, snapshot.flows().digest(path))
-                {
-                    encoding_notices.push(notice);
-                    continue;
-                }
-                if let Some(file) = source_files.iter().find(|file| file.file_path == *path) {
-                    has_excluded_test_context |= file.symbols.iter().any(|symbol| {
-                        anchors.iter().any(|anchor| {
-                            anchor
-                                .start_line
-                                .zip(anchor.end_line)
-                                .is_none_or(|(start, end)| {
-                                    symbol.range.start_line <= end
-                                        && start <= symbol.range.end_line_inclusive()
-                                })
-                        }) && test_filter.is_excluded(path, &symbol.range)
-                    });
-                }
-                if let Some(file) = files.iter().find(|file| file.file_path == *path) {
-                    if let Some(info) = file
-                        .navigation
-                        .as_ref()
-                        .and_then(|navigation| navigation.macro_expansion.as_ref())
-                    {
-                        encoding_notices.push(format!("[{path}: {}]\n", info.notice));
-                    }
-                    outlines.push(structure::Outline::new(file, anchors, &resolver, options));
-                } else if let Some(reason) =
-                    crate::workspace::source_encoding_exclusion(&root.join(path))
-                {
-                    encoding_notices.push(format!("[{path}: {reason}]\n"));
-                }
-            }
-            let mut encoding_notices = encoding_notices.concat();
-            if encoding_notices.len() > cap / 2 {
-                let mut end = cap / 2;
-                while !encoding_notices.is_char_boundary(end) {
-                    end = end.saturating_sub(1);
-                }
-                encoding_notices.truncate(end);
-                encoding_notices.push_str("…\n");
-            }
-            let render_cap = cap.saturating_sub(encoding_notices.len());
-            let mut rendered = if has_excluded_test_context {
-                let notice = TEST_CONTEXT_EXCLUDED_NOTICE;
-                if outlines.iter().all(|outline| outline.selected.is_empty()) {
-                    notice.to_string()
-                } else {
-                    format!(
-                        "{notice}\n{}",
-                        render::render(&outlines, &source_files, render_cap, options)
-                    )
-                }
-            } else {
-                render::render(&outlines, &source_files, render_cap, options)
-            };
-            if !encoding_notices.is_empty() {
-                let notices = encoding_notices;
-                rendered = if outlines.is_empty() {
-                    notices
-                } else {
-                    format!("{notices}\n{rendered}")
-                };
-            }
-            if grouped.len() > OUTLINED_FILE_LIMIT {
-                rendered.push_str(&format!(
-                    "[File limit: {} returned files not outlined.]\n",
-                    grouped.len() - OUTLINED_FILE_LIMIT
-                ));
-            }
-            if !events.is_empty() {
-                rendered.push('\n');
-                rendered.push_str(&events);
-            }
-            if !implementations.is_empty() {
-                rendered.push('\n');
-                rendered.push_str(&implementations);
-            }
-            if !flows.is_empty() {
-                rendered.push('\n');
-                rendered.push_str(&flows);
-            }
-            rendered
-        }
-    };
-    let text = frame(&content);
+    let cap = limit.saturating_sub(empty.len()).min(PAYLOAD_BYTE_CAP * 2);
+    let contexts = context::build(engine, &output, cap, options);
+    let text = frame(&output, &contexts, options);
     if text.len() > limit {
         return Err((
             -32602,
             "Read window plus symbol context exceeds the output cap; retry with a smaller limit."
-                .to_string(),
+                .into(),
         ));
     }
     Ok(text)

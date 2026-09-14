@@ -49,8 +49,24 @@ pub(super) fn discover_callees(
     if start >= end {
         return Vec::new();
     }
-    let body_start: usize = lines[..start].iter().map(|line| line.len()).sum();
-    let body = lines[start..end].concat();
+    let mut body_start: usize = lines[..start].iter().map(|line| line.len()).sum();
+    let mut body_end: usize = lines[..end].iter().map(|line| line.len()).sum();
+    if sym.range.start_col > 0
+        && sym.range.end_col > 0
+        && (sym.range.start_line, sym.range.start_col) < (sym.range.end_line, sym.range.end_col)
+    {
+        body_start += sym.range.start_col - 1;
+        let end_row = sym.range.end_line.saturating_sub(1).min(lines.len());
+        body_end = lines[..end_row]
+            .iter()
+            .map(|line| line.len())
+            .sum::<usize>()
+            + sym.range.end_col
+            - 1;
+    }
+    let Some(body) = content.get(body_start..body_end) else {
+        return Vec::new();
+    };
     let mut found = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     let bytes: Vec<(usize, char)> = body.char_indices().collect();
@@ -94,8 +110,8 @@ pub(super) fn discover_callees(
 }
 
 fn call_is_inside_symbol(call: &CallSite, sym: &ExtractedSymbol) -> bool {
-    sym.range.start_line <= call.range.start_line
-        && call.range.end_line_inclusive() <= sym.range.end_line_inclusive()
+    (sym.range.start_line, sym.range.start_col) <= (call.range.start_line, call.range.start_col)
+        && (call.range.end_line, call.range.end_col) <= (sym.range.end_line, sym.range.end_col)
 }
 
 fn resolve_navigation_callee_display(

@@ -1,85 +1,48 @@
 use super::structure::{callable, Outline};
-use crate::callers::{AnnotationRequest, CallerConfig};
+use crate::callers::{AnnotationRequest, CallerConfig, DetailAnnotations};
 use crate::parser::ExtractedFile;
 use crate::tools::live_options::{LiveOptions, LiveView};
 use std::collections::{BTreeMap, BTreeSet};
 
-struct Selection {
-    symbols: BTreeSet<usize>,
-    relation_headers: BTreeSet<usize>,
-    relations: BTreeMap<usize, String>,
-    references: BTreeMap<usize, String>,
-}
-
-fn add_chain(
-    outline: &Outline,
-    i: usize,
-    chosen: &mut BTreeSet<usize>,
-    used: &mut usize,
-    cap: usize,
-    extra: usize,
-) -> bool {
-    let chain = outline.chain(i);
-    let cost = chain
-        .iter()
-        .filter(|j| !chosen.contains(j))
-        .map(|&j| outline.rows[j].len())
-        .sum::<usize>()
-        + extra;
-    if *used + cost > cap {
-        return false;
-    }
-    chosen.extend(chain);
-    *used += cost;
-    true
-}
-
-pub(super) fn render(
+/// One workspace scan, interleaving requested callables across files so a large
+/// first class cannot reserve every annotation before another file is considered.
+pub(super) fn annotate(
     outlines: &[Outline],
     snapshot: &[ExtractedFile],
     cap: usize,
     options: LiveOptions,
-) -> String {
-    let mut selections = Vec::new();
-    let mut symbol_used = 0;
-    let mut symbol_omitted = 0;
-    for outline in outlines {
-        let mut chosen = BTreeSet::new();
-        for &i in &outline.order {
-            if options.view != LiveView::Relations
-                && outline.selected.contains(&i)
-                && !add_chain(outline, i, &mut chosen, &mut symbol_used, cap, 0)
-            {
-                symbol_omitted += 1;
-            }
-        }
-        selections.push(Selection {
-            symbols: chosen,
-            relation_headers: BTreeSet::new(),
-            relations: BTreeMap::new(),
-            references: BTreeMap::new(),
-        });
+) -> Option<DetailAnnotations> {
+    if !options.should_include_relations() || cap < 128 {
+        return None;
     }
-    let cfg = crate::config::get();
-    let selected_symbols: Vec<Vec<_>> = outlines
+    let symbols: Vec<Vec<_>> = outlines
         .iter()
-        .map(|o| {
-            o.order
+        .map(|outline| {
+            outline
+                .order
                 .iter()
-                .filter(|i| o.selected.contains(i) && callable(&o.file.symbols[**i]))
-                .map(|&i| o.file.symbols[i].clone())
+                .copied()
+                .filter(|i| outline.focused.contains(i) && callable(&outline.file.symbols[*i]))
+                .map(|i| outline.file.symbols[i].clone())
                 .collect()
         })
         .collect();
-    let requests: Vec<_> = outlines
-        .iter()
-        .zip(&selected_symbols)
-        .map(|(o, s)| AnnotationRequest {
-            file_path: &o.file.file_path,
-            symbols: s,
-            is_fallback: false,
-        })
-        .collect();
+    let mut requests = Vec::new();
+    for position in 0..symbols.iter().map(Vec::len).max().unwrap_or(0) {
+        for (outline, symbols) in outlines.iter().zip(&symbols) {
+            if let Some(symbol) = symbols.get(position) {
+                requests.push(AnnotationRequest {
+                    file_path: &outline.file.file_path,
+                    symbols: std::slice::from_ref(symbol),
+                    is_fallback: false,
+                });
+            }
+        }
+    }
+    if requests.is_empty() {
+        return None;
+    }
+    let cfg = crate::config::get();
     let caller_cfg = CallerConfig {
         scan_cap: cfg.scan_cap,
         caller_list_cap: cfg.caller_list_cap,
@@ -93,150 +56,177 @@ pub(super) fn render(
         navigation_store_references: cfg.navigation_store_references,
     };
     let root = std::env::current_dir().unwrap_or_default();
-    let annotations = if options.should_include_relations() {
-        crate::callers::annotate_live_results(
-            &requests,
-            snapshot,
-            &caller_cfg,
-            cap,
-            &root,
-            options.should_list_unresolved,
-        )
-    } else {
-        None
-    };
-    let mut relation_used = 0;
-    let mut relation_omitted = 0;
-    let mut reference_omitted = 0;
-    if options.should_include_relations() {
-        for (outline, selection) in outlines.iter().zip(&mut selections) {
-            for &i in &outline.order {
-                if !outline.selected.contains(&i) || !callable(&outline.file.symbols[i]) {
-                    continue;
-                }
-                let symbol = &outline.file.symbols[i];
-                let detail = if outline.file.macro_expansion().is_some() {
-                    "  - [Call and constant-reference attribution unresolved after preprocessing.]\n".to_string()
-                } else {
-                    annotations
-                        .as_ref()
-                        .and_then(|a| {
-                            a.render_live_relations(
-                                &outline.file.file_path,
-                                symbol.range.start_line,
-                            )
-                        })
-                        .unwrap_or_else(|| {
-                            "  - [Caller/callee unavailable or omitted by scan/output budget.]\n"
-                                .to_string()
-                        })
-                };
-                let indent = "  ".repeat(outline.chain(i).len() - 1);
-                let indented = detail
-                    .lines()
-                    .map(|line| format!("{indent}{line}\n"))
-                    .collect::<String>();
-                if add_chain(
-                    outline,
-                    i,
-                    &mut selection.relation_headers,
-                    &mut relation_used,
-                    cap,
-                    indented.len(),
-                ) {
-                    selection.relations.insert(i, indented);
-                } else {
-                    relation_omitted += 1;
-                }
-                if let Some(rows) = outline
-                    .references
-                    .get(&i)
-                    .filter(|_| outline.file.macro_expansion().is_none())
-                {
-                    let header =
-                        format!("{indent}  - _references (constants; same-file or explicit source import):_\n");
-                    let mut references = String::new();
-                    for row in rows {
-                        let row = format!("{indent}{row}");
-                        let extra = row.len()
-                            + if references.is_empty() {
-                                header.len()
-                            } else {
-                                0
-                            };
-                        if add_chain(
-                            outline,
-                            i,
-                            &mut selection.relation_headers,
-                            &mut relation_used,
-                            cap,
-                            extra,
-                        ) {
-                            if references.is_empty() {
-                                references.push_str(&header);
-                            }
-                            references.push_str(&row);
-                        } else {
-                            reference_omitted += 1;
-                        }
-                    }
-                    selection.references.insert(i, references);
-                }
-            }
-        }
+    crate::callers::annotate_live_results(
+        &requests,
+        snapshot,
+        &caller_cfg,
+        cap,
+        &root,
+        options.should_list_unresolved,
+    )
+}
+
+fn select_chain(
+    outline: &Outline,
+    i: usize,
+    chosen: &mut BTreeSet<usize>,
+    used: &mut usize,
+    cap: usize,
+) -> bool {
+    let chain = outline.chain(i);
+    let cost: usize = chain
+        .iter()
+        .filter(|j| !chosen.contains(j))
+        .map(|&j| outline.rows[j].len())
+        .sum();
+    if *used + cost > cap {
+        return false;
     }
-    let mut out = match options.view {
-        LiveView::Full => "Scope: enclosing declarations and members. Declaration locations and access are shown below. Verify behavior in # results.\n\n",
-        LiveView::Relations => "Relations for the returned source anchors. Definition locations identify targets; unresolved calls have no attributed definition.\n\n",
-        _ => "Scope: enclosing declarations and members. Declaration locations and access are shown below.\n\n",
-    }.to_string();
-    if options.should_include_relations()
-        && outlines
-            .iter()
-            .any(|outline| outline.file.file_path.ends_with(".rs"))
-    {
-        if let Some(target_os) = cfg.analysis_target_os.as_deref() {
-            out.push_str(&format!("[Rust analysis target_os={target_os}; static source conditions, not a runtime execution guarantee.]\n\n"));
+    chosen.extend(chain);
+    *used += cost;
+    true
+}
+
+fn bounded_detail(text: &str, cap: usize) -> String {
+    let mut output = String::new();
+    let mut lines = text.split_inclusive('\n').peekable();
+    while let Some(line) = lines.next() {
+        let required = line.len()
+            + if line.trim_end().ends_with(":_") {
+                lines.peek().map_or(0, |next| next.len())
+            } else {
+                0
+            };
+        if output.len() + required > cap {
+            break;
         }
+        output.push_str(line);
     }
-    for (outline, selection) in outlines.iter().zip(&selections) {
-        let mut emitted = 0;
-        for &i in &outline.order {
-            let show = selection.symbols.contains(&i) || selection.relation_headers.contains(&i);
-            if !show {
-                continue;
-            }
-            out.push_str(&outline.rows[i]);
-            emitted += 1;
-            if let Some(detail) = selection.relations.get(&i) {
-                out.push_str(detail);
-            }
-            if let Some(references) = selection.references.get(&i) {
-                out.push_str(references);
-            }
-        }
-        if emitted == 0 && outline.selected.is_empty() {
-            out.push_str(&super::diagnostics::no_declaration(
+    output
+}
+
+pub(super) fn render(
+    outline: &Outline,
+    annotations: Option<&DetailAnnotations>,
+    cap: usize,
+    options: LiveOptions,
+) -> String {
+    if outline.selected.is_empty() {
+        return super::bounded_notice(
+            &super::diagnostics::no_declaration(
                 &outline.file,
                 outline.anchor_line,
                 options.view == LiveView::Relations,
-            ));
+            ),
+            cap,
+        );
+    }
+    let path = &outline.file.file_path;
+    let mut chosen = BTreeSet::new();
+    let mut used = 0;
+    let mut details = BTreeMap::new();
+    let mut omitted_symbols = 0;
+    let mut omitted_relations = 0;
+    let mut next_line = None;
+    // Reserve an actionable continuation, even when every byte could fit a row.
+    let hint = super::context_read_hint(path, outline.anchor_line);
+    let reserve = (hint.len() + 135).min(cap);
+    let content_cap = cap.saturating_sub(reserve);
+    let focused: Vec<_> = outline
+        .order
+        .iter()
+        .copied()
+        .filter(|i| outline.selected.contains(i) && outline.focused.contains(i))
+        .collect();
+    for &i in &focused {
+        if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
+            omitted_symbols += 1;
+            next_line.get_or_insert(outline.file.symbols[i].range.start_line);
         }
     }
-    if symbol_omitted > 0 {
-        out.push_str(&format!(
-            "[Symbol output cap: {symbol_omitted} entries not shown.]\n"
+    let callables: Vec<_> = focused
+        .iter()
+        .copied()
+        .filter(|i| chosen.contains(i) && callable(&outline.file.symbols[*i]))
+        .collect();
+    if options.should_include_relations() {
+        for (position, &i) in callables.iter().enumerate() {
+            let symbol = &outline.file.symbols[i];
+            let indent = "  ".repeat(outline.chain(i).len().saturating_sub(1));
+            let detail = if outline.file.macro_expansion().is_some() {
+                "  - [Call and constant-reference attribution unresolved after preprocessing.]\n"
+                    .into()
+            } else {
+                annotations
+                    .and_then(|annotations| {
+                        annotations.render_live_relations(
+                            path,
+                            symbol.range.start_line,
+                            Some(symbol.range.start_col),
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
+                    })
+            };
+            let detail = super::locations::calls(&detail, path);
+            let mut detail = detail
+                .lines()
+                .map(|line| format!("{indent}{line}\n"))
+                .collect::<String>();
+            if let Some(rows) = outline
+                .references
+                .get(&i)
+                .filter(|_| outline.file.macro_expansion().is_none())
+            {
+                detail.push_str(&format!(
+                    "{indent}  - _references (constants; same-file or explicit source import):_\n"
+                ));
+                for row in rows {
+                    detail.push_str(&indent);
+                    detail.push_str(&super::locations::reference(row, path));
+                }
+            }
+            let share = content_cap.saturating_sub(used) / (callables.len() - position);
+            let bounded = bounded_detail(&detail, share);
+            if bounded.len() < detail.len() {
+                omitted_relations += 1;
+                next_line.get_or_insert(symbol.range.start_line);
+            }
+            used += bounded.len();
+            details.insert(i, bounded);
+        }
+    }
+    // Unmatched siblings provide compact owner/member context only. Their bodies,
+    // call graphs and references do not compete with directly requested symbols.
+    if options.view != LiveView::Relations {
+        for &i in &outline.order {
+            if !outline.selected.contains(&i) || outline.focused.contains(&i) || chosen.contains(&i)
+            {
+                continue;
+            }
+            if !select_chain(outline, i, &mut chosen, &mut used, content_cap) {
+                omitted_symbols += 1;
+                next_line.get_or_insert(outline.file.symbols[i].range.start_line);
+            }
+        }
+    }
+    let mut output = String::new();
+    for &i in &outline.order {
+        if chosen.contains(&i) {
+            output.push_str(&outline.rows[i]);
+            if let Some(detail) = details.get(&i) {
+                output.push_str(detail);
+            }
+        }
+    }
+    if omitted_symbols > 0 || omitted_relations > 0 {
+        let next = super::context_read_hint(path, next_line.unwrap_or(outline.anchor_line));
+        let notice = format!("[Symbol context budget: {omitted_symbols} declarations omitted; {omitted_relations} relation groups omitted or partial. Next: {next}]\n");
+        output.push_str(&super::bounded_notice(
+            &notice,
+            cap.saturating_sub(output.len()),
         ));
     }
-    if relation_omitted > 0 {
-        out.push_str(&format!(
-            "[Relation output cap: {relation_omitted} targets not shown.]\n"
-        ));
-    }
-    if reference_omitted > 0 {
-        out.push_str(&format!(
-            "[Reference output cap: {reference_omitted} entries not shown.]\n"
-        ));
-    }
-    out
+    output
 }
