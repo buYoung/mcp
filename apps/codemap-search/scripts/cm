@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""저장소 루트 설정으로 overview/search/read/grep를 실행합니다. 입력 경로는 현재 디렉터리 기준입니다."""
+"""저장소 루트 설정으로 overview/search/read/grep/find를 실행합니다. 입력 경로는 현재 디렉터리 기준입니다."""
 
 import argparse
 import json
@@ -24,7 +24,7 @@ def find_workspace_root(caller_dir):
 
 def resolve_input_paths(tool, arguments, caller_dir, workspace_root):
     resolved = dict(arguments)
-    if tool == 'grep' and not isinstance(resolved.get('path'), str):
+    if tool in ('grep', 'find') and not isinstance(resolved.get('path'), str):
         resolved['path'] = '.'
     if tool == 'search':
         return resolved
@@ -56,7 +56,7 @@ def resolve_input_paths(tool, arguments, caller_dir, workspace_root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('tool', choices=('overview', 'search', 'read', 'grep'), help='호출할 MCP 도구')
+    parser.add_argument('tool', choices=('overview', 'search', 'read', 'grep', 'find'), help='호출할 MCP 도구')
     parser.add_argument('arguments', help='도구에 전달할 JSON 객체')
     options = parser.parse_args()
     try:
