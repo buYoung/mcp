@@ -1,9 +1,13 @@
-//! Bounded source value relationships. Passing a function is not evidence of execution.
+//! Persisted source summaries retain index compatibility and freshness digests.
+//! Value relationship evaluation/rendering is not part of navigation requests.
+#[cfg(test)]
 mod evaluate;
 mod extract;
 mod index;
 mod model;
+#[cfg(test)]
 mod outcome;
+#[cfg(test)]
 mod render;
 #[cfg(test)]
 mod tests;
@@ -13,8 +17,8 @@ pub(crate) use index::FlowIndex;
 pub(crate) use index::IndexedFlowStore;
 pub(crate) use model::*;
 
-/// File-grouped live output shares the original query work limits. Each file has
-/// its own value identities, while validated inputs and consumed work are reused.
+/// Internal evaluator tests share accounting between isolated function summaries.
+#[cfg(test)]
 #[derive(Default)]
 pub(crate) struct RequestBudget {
     deadline: Option<std::time::Instant>,
@@ -29,48 +33,14 @@ pub(crate) struct RequestBudget {
     has_omissions: bool,
 }
 
-impl RequestBudget {
-    fn has_work(&mut self) -> bool {
-        if self.work_limit.is_none() {
-            self.work_limit = if self
-                .deadline
-                .is_some_and(|deadline| std::time::Instant::now() > deadline)
-            {
-                Some("value-flow time budget reached")
-            } else if self.operations > NODES_PER_QUERY {
-                Some("value-flow node budget reached")
-            } else if self.values + 1 >= NODES_PER_QUERY {
-                Some("value-flow value budget reached")
-            } else if self.steps >= NODES_PER_QUERY {
-                Some("value-flow relationship budget reached")
-            } else {
-                None
-            };
-        }
-        self.work_limit.is_none()
-    }
-
-    pub(crate) fn notice(&self, should_debug: bool) -> String {
-        if !should_debug {
-            return if self.work_limit.is_some() || self.has_omissions {
-                "[분석 제한: 보조 관계 일부 생략. 상세: debug=true.]\n".into()
-            } else {
-                String::new()
-            };
-        }
-        self.work_limit.map_or_else(String::new, |reason| format!(
-            "[Partial value analysis: {reason}. This limit is shared across returned files; additional value relationships may be missing.]\n"
-        ))
-    }
-}
-
 pub(crate) const NODES_PER_FILE: usize = 4096;
 pub(crate) const FUNCTIONS_PER_FILE: usize = 256;
+#[cfg(test)]
 pub(crate) const NODES_PER_QUERY: usize = 4096;
+#[cfg(test)]
 pub(crate) const FILES_PER_QUERY: usize = 24;
+#[cfg(test)]
 pub(crate) const CALL_DEPTH: usize = 8;
-#[cfg(not(test))]
-pub(crate) const QUERY_TIME_MS: u64 = 100;
 // Unit suites run concurrent, unoptimized parsers. Check the deadline explicitly
 // in the budget test rather than making semantic assertions depend on CPU load.
 #[cfg(test)]

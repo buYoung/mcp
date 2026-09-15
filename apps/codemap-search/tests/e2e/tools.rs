@@ -37,30 +37,30 @@ fn sample_repo() -> tempfile::TempDir {
 }
 
 #[tokio::test]
-async fn test_generic_value_relationships_persist_and_follow_live_views() {
+async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
     let source = "const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
     let temp = create_mock_repo(&[("src/bus.ts", source), ("src/plain.ts", "// nothing to compose\n42;\n"), (".codemap/config.toml", "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
-    for _ in 0..2 {
+    for should_debug in [false, true] {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         let response = client
             .send_tool_until(
                 "read",
-                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1}),
-                |out| out.contains("possible callback invocation"),
+                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"debug":should_debug}),
+                |out| out.contains("setup [function"),
             )
             .await
             .unwrap();
         let output = text(&response);
         assert!(
-            output.contains("notify · L5") && output.contains("6→export function setup"),
+            output.contains("setup [function") && output.contains("6→export function setup"),
             "{output}"
         );
         assert!(output.len() <= 16_384, "{}", output.len());
-        for (tool, args, expected) in [
+        for (tool, mut args, expected) in [
             (
                 "grep",
                 serde_json::json!({"path":"src/bus.ts","pattern":"export function setup"}),
-                true,
+                false,
             ),
             (
                 "grep",
@@ -80,20 +80,23 @@ async fn test_generic_value_relationships_persist_and_follow_live_views() {
             (
                 "read",
                 serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"view":"relations","include_events":false}),
-                true,
+                false,
             ),
             (
                 "read",
                 serde_json::json!({"file_path":"src/plain.ts","offset":1,"limit":2}),
                 false,
             ),
-            ("search", serde_json::json!({"query":"setup"}), true),
+            ("search", serde_json::json!({"query":"setup"}), false),
             (
                 "search",
                 serde_json::json!({"query":"setup","caller_context":false}),
                 false,
             ),
         ] {
+            if args.get("output_mode").is_none() {
+                args["debug"] = should_debug.into();
+            }
             let output = text(
                 &client
                     .send_request("tools/call", call(tool, args.clone()))
@@ -103,6 +106,12 @@ async fn test_generic_value_relationships_persist_and_follow_live_views() {
             assert_eq!(
                 output.contains("## Value relationships"),
                 expected,
+                "{tool} {args}: {output}"
+            );
+            assert!(
+                !output.contains("Analysis diagnostics")
+                    && !output.contains("보조 관계 일부 생략")
+                    && !output.contains("Partial value analysis"),
                 "{tool} {args}: {output}"
             );
         }

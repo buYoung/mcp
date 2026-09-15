@@ -323,7 +323,6 @@ pub(super) fn append_relations(
     scope: Option<&str>,
     should_include_calls: bool,
     should_include_events: bool,
-    should_debug: bool,
 ) {
     let cap = crate::config::get().search_detail_byte_cap;
     let mut remaining = cap
@@ -331,7 +330,6 @@ pub(super) fn append_relations(
         .min(cap / 2)
         .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
     let root = std::env::current_dir().unwrap_or_default();
-    let mut budget = crate::flow::RequestBudget::default();
     let mut insertions = Vec::new();
     for (file_number, file) in files.iter().enumerate() {
         let anchors = file
@@ -343,13 +341,6 @@ pub(super) fn append_relations(
         if file_cap < 256 || anchors.is_empty() {
             continue;
         }
-        let flow = if should_include_calls {
-            snapshot
-                .flows()
-                .prepare_file(&anchors, file_cap, &root, true, scope, &mut budget)
-        } else {
-            None
-        };
         let eligible = file
             .sections
             .iter()
@@ -374,24 +365,7 @@ pub(super) fn append_relations(
                 scope,
                 section_cap,
             );
-            let flow_cap = section_cap.saturating_sub(relations.len() + 32) / 3;
-            let values = flow
-                .as_ref()
-                .map(|flow| {
-                    flow.render_section(
-                        &section.anchors,
-                        flow_cap,
-                        &file.path,
-                        &mut budget,
-                        eligible == 1
-                            && section.root.as_ref().is_some_and(|root| {
-                                declarations::callable(root) || declarations::container(root)
-                            }),
-                        should_debug,
-                    )
-                })
-                .unwrap_or_default();
-            let other_cap = section_cap.saturating_sub(relations.len() + values.len() + 32);
+            let other_cap = section_cap.saturating_sub(relations.len() + 32);
             let events = if should_include_events {
                 snapshot.events().for_paths_with_context(
                     &section.anchors,
@@ -412,7 +386,7 @@ pub(super) fn append_relations(
                 should_include_calls,
                 Some(&file.path),
             );
-            for part in [events, implementations, values] {
+            for part in [events, implementations] {
                 if !part.is_empty() {
                     relations.push('\n');
                     relations.push_str(&part);
@@ -430,12 +404,6 @@ pub(super) fn append_relations(
                 remaining -= nested.len();
                 insertions.push((section.insertion, nested));
             }
-        }
-    }
-    let note = budget.notice(should_debug);
-    if !note.is_empty() && note.len() <= remaining {
-        if let Some(section) = files.iter().flat_map(|file| &file.sections).next() {
-            insertions.push((section.insertion, format!("\n{note}")));
         }
     }
     insertions.sort_by_key(|(offset, _)| std::cmp::Reverse(*offset));

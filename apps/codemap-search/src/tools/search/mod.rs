@@ -1053,7 +1053,6 @@ pub(crate) fn run_inner_with_metadata(
             workspace_scope,
             caller_context_enabled,
             should_include_events,
-            super::live_options::debug_requested(ctx.arguments)?,
         );
     }
     tracing::debug!(

@@ -10,18 +10,12 @@ pub(super) fn build(
     output: &LiveOutput,
     cap: usize,
     options: LiveOptions,
-) -> (Vec<String>, String) {
+) -> Vec<String> {
     let mut contexts = vec![String::new(); output.files.len()];
     let count = output.files.len().min(OUTLINED_FILE_LIMIT);
     if count == 0 || cap < 128 {
-        return (contexts, String::new());
+        return contexts;
     }
-    let notice_cap = if options.should_include_relations() {
-        cap.min(super::SHARED_NOTICE_CAP)
-    } else {
-        0
-    };
-    let cap = cap.saturating_sub(notice_cap);
     let root = std::env::current_dir().unwrap_or_default();
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let mut grouped = BTreeMap::new();
@@ -98,7 +92,6 @@ pub(super) fn build(
     let annotations =
         render::annotate(&outlines, &source_files, cap / 2, options, &root, &resolver);
     let mut remaining = cap;
-    let mut flow_budget = crate::flow::RequestBudget::default();
     let mut shown_routes = crate::events::ShownRoutes::default();
     let mut hints = super::ReadHints::new(output, options);
     for (i, file) in output.files.iter().take(count).enumerate() {
@@ -128,39 +121,10 @@ pub(super) fn build(
             let mut relation_remaining = available.saturating_sub(section_bytes + notice.len());
             context.push_str(&notice);
             let section_count = sections.len();
-            let is_single_declaration = outline
-                .focused
-                .iter()
-                .filter_map(|&i| outline.chain(i).first().copied())
-                .collect::<std::collections::BTreeSet<_>>()
-                .len()
-                == 1;
             let file_anchors = grouped
                 .get(file.file_path.as_str())
                 .map(Vec::as_slice)
                 .unwrap_or_default();
-            let anchors = file_anchors
-                .iter()
-                .map(|anchor| {
-                    (
-                        anchor.file_path.clone(),
-                        anchor.start_line.unwrap_or(1),
-                        anchor.end_line.unwrap_or(usize::MAX),
-                    )
-                })
-                .collect::<Vec<_>>();
-            let flow_context = if options.should_include_relations() {
-                snapshot.flows().prepare_file(
-                    &anchors,
-                    relation_remaining,
-                    &root,
-                    options.should_list_unresolved,
-                    None,
-                    &mut flow_budget,
-                )
-            } else {
-                None
-            };
             for (position, section) in sections.into_iter().enumerate() {
                 context.push_str(&section.text);
                 if !options.should_include_relations() {
@@ -207,35 +171,13 @@ pub(super) fn build(
                     );
                     append_relation(&mut relations, text, relation_cap);
                 }
-                let available = relation_cap.saturating_sub(relations.len() + 32);
-                let text = flow_context.as_ref().map_or_else(String::new, |flow| {
-                    // A focused callable/owner retains connected flow through other
-                    // functions. Multiple sections show steps touching each declaration.
-                    let should_include_indirect = is_single_declaration
-                        && section.root.is_some_and(|root| {
-                            let symbol = &outline.file.symbols[root];
-                            structure::callable(symbol) || structure::container(symbol)
-                        });
-                    flow.render_section(
-                        &anchors,
-                        available,
-                        &file.file_path,
-                        &mut flow_budget,
-                        should_include_indirect,
-                        options.should_debug,
-                    )
-                });
-                append_relation(&mut relations, text, relation_cap);
                 relation_remaining = relation_remaining.saturating_sub(relations.len());
                 context.push_str(&relations);
             }
         }
         remaining = remaining.saturating_sub(context.len());
     }
-    (
-        contexts,
-        super::bounded_notice(&flow_budget.notice(options.should_debug), notice_cap),
-    )
+    contexts
 }
 
 fn append_relation(context: &mut String, text: String, cap: usize) {

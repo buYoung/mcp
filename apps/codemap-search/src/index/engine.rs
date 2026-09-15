@@ -1180,7 +1180,9 @@ impl TantivySearchEngine {
                 files_and_edges,
                 event_inputs,
                 Some(crate::flow::IndexedFlowStore {
+                    #[cfg(test)]
                     searcher,
+                    #[cfg(test)]
                     field: self.extracted_json_field,
                     documents: flow_documents,
                 }),

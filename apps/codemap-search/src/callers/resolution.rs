@@ -295,6 +295,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     /// Borrow the already parsed Rust source for additional source-grounded facts.
+    #[cfg(test)]
     pub(crate) fn inspect_rust<T>(
         &self,
         path: &str,

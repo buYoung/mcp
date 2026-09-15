@@ -4,10 +4,8 @@ content (default) groups results under numbered file headings, with separate `##
 
 files_with_matches and count return only file names or counts. offset/head_limit paginate returned rows with total count and next_offset. With expand=callable, repeated matches share the smallest named callable body, -A/-B/-C are ignored, and pagination counts callable/fallback groups. Input, output and column omissions are explicit; oversized bodies need narrower read windows.
 
-Eligible event, implementation and value relationships are automatic in full/relations. include_events=false suppresses only events; explicit event_navigation.is_enabled=false disables event analysis. Source/definitions and file/count modes skip relationships. Non-default view/unresolved/expand/debug and include_events=true require content mode. unresolved=count hides unresolved names. Static source/model/candidate relationships do not guarantee runtime delivery or callback execution.
+Eligible event and implementation relationships are automatic in full/relations. include_events=false suppresses only events; explicit event_navigation.is_enabled=false disables event analysis. Source/definitions and file/count modes skip relationships. Non-default view/unresolved/expand/debug and include_events=true require content mode. unresolved=count hides unresolved names. Static source/model/candidate relationships do not guarantee runtime delivery or callback execution.
 
 Respects .gitignore/.codemapignore; include_ignored bypasses them. After zero matches, check path/glob/type, case, regex syntax, multiline and ignore rules; do not rerun unchanged. When file/line evidence is sufficient, use it directly; no overview or reread is required.
 
-Detailed analysis limits are hidden by default; debug=true shows bounded diagnostic reasons and full value-relationship evidence. Source truncation, stale context and unresolved call targets remain visible. Debug does not change analysis budgets or source output.
-
-Value relationships prioritize proven condition/outcome summaries. Rust serde_json object guards use a type-checked API model; conditional error creation is not observed execution, and unproven error conversions keep the return payload unresolved. debug=true retains the passing steps and model evidence.
+Source truncation, stale context and unresolved call targets remain visible. The legacy debug boolean is accepted for compatibility and has no effect.

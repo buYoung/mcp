@@ -12,7 +12,6 @@ use crate::index::EngineSupervisor;
 
 pub(super) const PAYLOAD_BYTE_CAP: usize = 8192;
 const OUTLINED_FILE_LIMIT: usize = 8;
-const SHARED_NOTICE_CAP: usize = 256;
 const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
 
 #[derive(Clone)]
@@ -133,7 +132,7 @@ pub(super) fn bounded_notice(notice: &str, cap: usize) -> String {
     }
 }
 
-fn frame(output: &LiveOutput, contexts: &[String], notice: &str, options: LiveOptions) -> String {
+fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> String {
     let mut text = String::from("# codemap-search\n\n");
     if output.files.is_empty() {
         text.push_str(&output.text);
@@ -156,7 +155,6 @@ fn frame(output: &LiveOutput, contexts: &[String], notice: &str, options: LiveOp
                 output.files.len() - OUTLINED_FILE_LIMIT,
             ));
         }
-        text.push_str(notice);
         for (i, file) in output.files.iter().enumerate() {
             let path = file.file_path.replace('\r', "\\r").replace('\n', "\\n");
             text.push_str(&format!("\n\n## {}. {path}\n\n", i + 1));
@@ -208,19 +206,14 @@ pub(crate) fn append(
         }
         return Ok(text);
     }
-    let empty = frame(
-        &output,
-        &vec![String::new(); output.files.len()],
-        "",
-        options,
-    );
+    let empty = frame(&output, &vec![String::new(); output.files.len()], options);
     let limit = output_byte_cap.unwrap_or(usize::MAX);
     if empty.len() > limit {
         return Err((-32602, "Read window leaves no room for file/section headers; retry with a smaller limit or view=source.".into()));
     }
     let cap = limit.saturating_sub(empty.len()).min(PAYLOAD_BYTE_CAP * 2);
-    let (contexts, notice) = context::build(engine, &output, cap, options);
-    let text = frame(&output, &contexts, &notice, options);
+    let contexts = context::build(engine, &output, cap, options);
+    let text = frame(&output, &contexts, options);
     if text.len() > limit {
         return Err((
             -32602,

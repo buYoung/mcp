@@ -1,22 +1,29 @@
 use super::*;
 use crate::parser::ExtractedFile;
 use std::collections::{BTreeMap, HashMap};
+#[cfg(test)]
 use std::ops::Deref;
+#[cfg(test)]
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+#[cfg(test)]
+use std::sync::Mutex;
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) struct FunctionKey {
     pub path: String,
     pub unit: usize,
     pub function: usize,
 }
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) struct BindingKey {
     pub path: String,
     pub unit: usize,
     pub binding: usize,
 }
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct Location {
     pub path: String,
@@ -24,35 +31,11 @@ pub(super) struct Location {
     pub name: String,
 }
 
-/// Evaluate a file once and reuse the result across declaration sections.
-pub(crate) struct FileContext<'a> {
-    query: super::evaluate::Query<'a>,
-}
-
-impl FileContext<'_> {
-    pub(crate) fn render_section(
-        &self,
-        anchors: &[(String, usize, usize)],
-        cap: usize,
-        current_file: &str,
-        budget: &mut super::RequestBudget,
-        should_include_indirect: bool,
-        should_debug: bool,
-    ) -> String {
-        super::render::render_with_context(
-            &self.query,
-            cap,
-            Some(current_file),
-            Some(budget),
-            (!should_include_indirect).then_some(anchors),
-            should_debug,
-        )
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct IndexedFlowStore {
+    #[cfg(test)]
     pub searcher: tantivy::Searcher,
+    #[cfg(test)]
     pub field: tantivy::schema::Field,
     pub documents: BTreeMap<String, (tantivy::DocAddress, String)>,
 }
@@ -61,21 +44,25 @@ enum Store {
     Memory(BTreeMap<String, Arc<FlowFile>>),
     Indexed(IndexedFlowStore),
 }
+#[cfg(test)]
 struct FileData {
     file: Arc<FlowFile>,
     users: HashMap<BindingKey, Vec<FunctionKey>>,
     cost: usize,
 }
+#[cfg(test)]
 #[derive(Default)]
 struct Cache {
     entries: HashMap<String, (Arc<FileData>, u64)>,
     clock: u64,
     nodes: usize,
 }
+#[cfg(test)]
 pub(super) struct UnitRef {
     file: Arc<FileData>,
     unit: usize,
 }
+#[cfg(test)]
 impl Deref for UnitRef {
     type Target = FlowUnit;
     fn deref(&self) -> &Self::Target {
@@ -83,14 +70,18 @@ impl Deref for UnitRef {
     }
 }
 
-/// Only bounded, requested summaries are decoded. The immutable Tantivy searcher
-/// pins their generation without retaining another full source/IR population.
+/// Navigation uses the stored source digests for freshness checks. Decoding
+/// summaries and their query cache are retained only for internal evaluator tests.
 #[derive(Clone)]
 pub(crate) struct FlowIndex {
     store: Store,
+    #[cfg(test)]
     cache: Arc<Mutex<Cache>>,
+    #[cfg(test)]
     pub(super) codemap: Arc<Vec<ExtractedFile>>,
+    #[cfg(test)]
     pub(super) sources: Arc<HashMap<String, String>>,
+    #[cfg(test)]
     pub(super) target_os: Option<String>,
 }
 impl std::fmt::Debug for FlowIndex {
@@ -130,11 +121,17 @@ impl FlowIndex {
         store: Store,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
+        #[cfg(not(test))]
+        let _ = (codemap, sources);
         Self {
             store,
+            #[cfg(test)]
             cache: Arc::new(Mutex::new(Cache::default())),
+            #[cfg(test)]
             codemap,
+            #[cfg(test)]
             sources,
+            #[cfg(test)]
             target_os: crate::config::get().analysis_target_os.clone(),
         }
     }
@@ -144,6 +141,7 @@ impl FlowIndex {
             Store::Indexed(store) => store.documents.keys().map(String::as_str).collect(),
         }
     }
+    #[cfg(test)]
     pub(super) fn has_file(&self, path: &str) -> bool {
         match &self.store {
             Store::Memory(files) => files.contains_key(path),
@@ -156,6 +154,7 @@ impl FlowIndex {
             Store::Indexed(store) => store.documents.get(path).map(|(_, digest)| digest.as_str()),
         }
     }
+    #[cfg(test)]
     fn data(&self, path: &str) -> Option<Arc<FileData>> {
         {
             let mut cache = self.cache.lock().ok()?;
@@ -241,24 +240,29 @@ impl FlowIndex {
         }
         Some(file)
     }
+    #[cfg(test)]
     pub(super) fn file(&self, path: &str) -> Option<Arc<FlowFile>> {
         self.data(path).map(|data| Arc::clone(&data.file))
     }
+    #[cfg(test)]
     pub(super) fn unit(&self, path: &str, unit: usize) -> Option<UnitRef> {
         let file = self.data(path)?;
         (unit < file.file.units.len()).then_some(UnitRef { file, unit })
     }
+    #[cfg(test)]
     pub(super) fn users(&self, key: &BindingKey) -> Vec<FunctionKey> {
         self.data(&key.path)
             .and_then(|data| data.users.get(key).cloned())
             .unwrap_or_default()
     }
+    #[cfg(test)]
     pub(super) fn function(&self, key: &FunctionKey) -> Option<FunctionSummary> {
         self.unit(&key.path, key.unit)?
             .functions
             .get(key.function)
             .cloned()
     }
+    #[cfg(test)]
     pub(super) fn location(&self, key: &FunctionKey) -> Option<Location> {
         let unit = self.unit(&key.path, key.unit)?;
         let function = unit.functions.get(key.function)?;
@@ -289,33 +293,9 @@ impl FlowIndex {
         query.run(anchors);
         super::render::render_with_context(&query, cap, None, None, None, should_debug)
     }
-
-    pub(crate) fn prepare_file<'a>(
-        &'a self,
-        anchors: &[(String, usize, usize)],
-        cap: usize,
-        root: &'a Path,
-        should_list_unresolved: bool,
-        scope: Option<&'a str>,
-        budget: &mut super::RequestBudget,
-    ) -> Option<FileContext<'a>> {
-        if cap < 256
-            || anchors.is_empty()
-            || self.target_os != crate::config::get().analysis_target_os
-            || !anchors.iter().any(|anchor| self.has_file(&anchor.0))
-            || !budget.has_work()
-        {
-            return None;
-        }
-        let mut query = super::evaluate::Query::new(self, root, scope);
-        query.restore_budget(budget);
-        query.should_list_unresolved = should_list_unresolved;
-        query.run(anchors);
-        query.save_budget(budget);
-        Some(FileContext { query })
-    }
 }
 
+#[cfg(test)]
 pub(super) fn overlaps(location: &Location, anchors: &[(String, usize, usize)]) -> bool {
     anchors.iter().any(|(path, start, end)| {
         path == &location.path
@@ -323,6 +303,7 @@ pub(super) fn overlaps(location: &Location, anchors: &[(String, usize, usize)]) 
             && *start <= location.range.end_line_inclusive()
     })
 }
+#[cfg(test)]
 pub(super) fn contains(outer: &crate::parser::CodeRange, inner: &crate::parser::CodeRange) -> bool {
     (outer.start_line, outer.start_col) <= (inner.start_line, inner.start_col)
         && (inner.end_line, inner.end_col) <= (outer.end_line, outer.end_col)
