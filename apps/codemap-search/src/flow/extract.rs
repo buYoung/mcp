@@ -485,6 +485,15 @@ impl<'a> Collector<'a> {
         if let Some(&function) = self.function_ids.get(&node.id()) {
             return self.push(node, ExpressionKind::Function(function));
         }
+        if self.unit.language == "rust"
+            && node.kind() == "try_expression"
+            && text(node, self.source).trim_end().ends_with('?')
+        {
+            if let Some(inner) = node.named_child(0) {
+                let value = self.expression(inner, depth + 1);
+                return self.push(node, ExpressionKind::Try(value));
+            }
+        }
         if let Some(value) = literal(node, self.source) {
             return self.push(node, ExpressionKind::Literal(value));
         }
@@ -531,6 +540,10 @@ impl<'a> Collector<'a> {
                     std::str::from_utf8(&self.source[node.start_byte()..operand.start_byte()])
                         .unwrap_or("")
                         .trim();
+                if operator == "-" {
+                    let operand = self.expression(operand, depth + 1);
+                    return self.push(node, ExpressionKind::Negate(operand));
+                }
                 if matches!(operator, "!" | "not") {
                     let operand = self.expression(operand, depth + 1);
                     return self.push(node, ExpressionKind::Not(operand));

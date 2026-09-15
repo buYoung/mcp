@@ -148,6 +148,29 @@ impl Query<'_> {
                 })
                 .unwrap_or(0)
             }
+            ExpressionKind::Try(value) => {
+                self.expression(value, frame, depth + 1);
+                self.unknown(
+                    &location,
+                    "error propagation requires a proven Result/Option model",
+                )
+            }
+            ExpressionKind::Negate(value) => {
+                let value = self.expression(value, frame, depth + 1);
+                match &self.values[value].kind {
+                    ValueKind::Constant(Constant::Number(number)) => {
+                        let number = number
+                            .strip_prefix('-')
+                            .map_or_else(|| format!("-{number}"), str::to_string);
+                        self.value(
+                            ValueKind::Constant(Constant::Number(number)),
+                            location,
+                            Evidence::Source,
+                        )
+                    }
+                    _ => self.unknown(&location, "numeric operand is unresolved"),
+                }
+            }
             ExpressionKind::Not(operand) => {
                 let operand = self.expression(operand, frame, depth + 1);
                 match self.values[operand].kind {

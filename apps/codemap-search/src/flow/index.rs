@@ -268,6 +268,7 @@ impl FlowIndex {
             name: function.name.clone(),
         })
     }
+    #[cfg(test)]
     pub(crate) fn for_paths_with_debug(
         &self,
         anchors: &[(String, usize, usize)],
@@ -295,6 +296,7 @@ impl FlowIndex {
         cap: usize,
         root: &'a Path,
         should_list_unresolved: bool,
+        scope: Option<&'a str>,
         budget: &mut super::RequestBudget,
     ) -> Option<FileContext<'a>> {
         if cap < 256
@@ -305,7 +307,7 @@ impl FlowIndex {
         {
             return None;
         }
-        let mut query = super::evaluate::Query::new(self, root, None);
+        let mut query = super::evaluate::Query::new(self, root, scope);
         query.restore_budget(budget);
         query.should_list_unresolved = should_list_unresolved;
         query.run(anchors);

@@ -7,15 +7,24 @@
 //! so it never needs `&mut` access to the engine.
 
 mod arguments;
+mod grouped;
 mod monorepo;
 pub mod render;
 
 pub(crate) use arguments::validate as validate_arguments;
 
 use crate::tools::ToolContext;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 
 const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
+fn search_cap_footer(byte_cap: usize) -> &'static str {
+    if byte_cap < 512 {
+        "\n[Partial search output: byte cap; narrow query/read.]\n"
+    } else {
+        SEARCH_CAP_FOOTER
+    }
+}
+
 pub(crate) const DEFAULT_SEARCH_LIMIT: usize = 100;
 
 fn truncate_to_char_boundary(text: &mut String, max_len: usize) {
@@ -40,15 +49,15 @@ fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> 
     if byte_cap == 0 {
         return String::new();
     }
-    if SEARCH_CAP_FOOTER.len() >= byte_cap {
-        let mut footer = SEARCH_CAP_FOOTER.to_string();
+    if search_cap_footer(byte_cap).len() >= byte_cap {
+        let mut footer = search_cap_footer(byte_cap).to_string();
         truncate_to_char_boundary(&mut footer, byte_cap);
         return footer;
     }
 
     let mut fence_close = "";
     loop {
-        let reserve = SEARCH_CAP_FOOTER.len() + fence_close.len();
+        let reserve = search_cap_footer(byte_cap).len() + fence_close.len();
         let allowed = byte_cap.saturating_sub(reserve);
         truncate_to_char_boundary(&mut text, allowed);
         let next_fence_close = if has_open_markdown_fence(&text) {
@@ -62,16 +71,16 @@ fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> 
         fence_close = next_fence_close;
     }
 
-    format!("{text}{fence_close}{SEARCH_CAP_FOOTER}")
+    format!("{text}{fence_close}{}", search_cap_footer(byte_cap))
 }
 
 fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str) {
-    if byte_cap <= SEARCH_CAP_FOOTER.len() {
+    if byte_cap <= search_cap_footer(byte_cap).len() {
         return;
     }
 
     let mut note = note.to_string();
-    let note_room = byte_cap - SEARCH_CAP_FOOTER.len();
+    let note_room = byte_cap - search_cap_footer(byte_cap).len();
     if note.len() >= note_room {
         text.clear();
         truncate_to_char_boundary(&mut note, note_room);
@@ -81,7 +90,7 @@ fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str)
 
     let mut fence_close = "";
     loop {
-        let reserve = SEARCH_CAP_FOOTER.len() + fence_close.len() + note.len();
+        let reserve = search_cap_footer(byte_cap).len() + fence_close.len() + note.len();
         let allowed = byte_cap.saturating_sub(reserve);
         truncate_to_char_boundary(text, allowed);
         let next_fence_close = if has_open_markdown_fence(text) {
@@ -408,78 +417,6 @@ pub struct SearchOutput {
     pub text: String,
 }
 
-fn append_search_relations(
-    output: &mut String,
-    anchors: &[(String, usize, usize)],
-    snapshot: &crate::index::PublishedIndexSnapshot,
-    workspace_scope: Option<&str>,
-    should_include_calls: bool,
-    should_include_events: bool,
-    should_debug: bool,
-) {
-    let byte_cap = crate::config::get().search_detail_byte_cap;
-    // Ranked snippets and the compact tail own their existing budget. Every
-    // supplementary section shares only the remainder, never truncating them.
-    let relation_cap = byte_cap
-        .saturating_sub(output.len())
-        .min(byte_cap / 2)
-        .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
-    if relation_cap < 256 || anchors.is_empty() {
-        return;
-    }
-    let result_paths: HashSet<&str> = anchors.iter().map(|anchor| anchor.0.as_str()).collect();
-    let records = snapshot.records_for_result_paths(&result_paths);
-    let mut relations = render::render_static_collection_edges(
-        anchors,
-        snapshot,
-        records,
-        workspace_scope,
-        relation_cap,
-    );
-
-    let root = std::env::current_dir().unwrap_or_default();
-    let flow_cap = relation_cap.saturating_sub(relations.len() + 2) / 3;
-    let flows = if should_include_calls && flow_cap >= 256 {
-        snapshot.flows().for_paths_with_debug(
-            anchors,
-            workspace_scope,
-            flow_cap,
-            &root,
-            true,
-            should_debug,
-        )
-    } else {
-        String::new()
-    };
-    let remaining = relation_cap.saturating_sub(relations.len() + flows.len() + 6);
-    let events = if should_include_events && remaining >= 256 {
-        snapshot
-            .events()
-            .for_paths(anchors, workspace_scope, remaining, &root)
-    } else {
-        String::new()
-    };
-    let remaining = remaining.saturating_sub(events.len());
-    let implementations = if remaining >= 256 {
-        snapshot.implementations().for_paths_with_call_context(
-            anchors,
-            workspace_scope,
-            remaining,
-            &root,
-            should_include_calls,
-        )
-    } else {
-        String::new()
-    };
-    for section in [events, implementations, flows] {
-        if !section.is_empty() {
-            relations.push_str("\n\n");
-            relations.push_str(&section);
-        }
-    }
-    output.push_str(&relations);
-}
-
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
 /// top-level file. The diversity unit for the detail-head reorder.
 fn parent_dir(file_path: &str) -> &str {
@@ -716,7 +653,8 @@ pub(crate) fn run_inner_with_metadata(
     let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
     let remaining_results = &ordered[detail_results.len()..];
     let mut output_was_capped = false;
-    let mut relation_anchors = Vec::new();
+    let mut grouped_files = Vec::new();
+    text.push_str("# codemap-search\n");
     {
         // Detail view: enclosing code scopes for the pinpointed files,
         // bounded by config caps so a few large or fallback-matched files
@@ -802,208 +740,215 @@ pub(crate) fn run_inner_with_metadata(
         // to a "same as `name` above" back-reference instead of re-printing. Threaded into every
         // file's `render_anchored_symbols` call.
         let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
-        'files: for &res in detail_results {
+        for &res in detail_results {
             if text.len() >= byte_cap {
                 budget_hit = true;
                 break;
             }
             rendered_detail_count += 1;
-            text.push_str(&format!(
-                "### File: {} ({} lines)\n",
-                res.file_path, res.total_lines
-            ));
-            // Hints, compressed (Child 05 byte-flatten): match_reason and the cross-path/ambiguity
-            // note share one line; the read suggestion is its own short line.
-            let mut hint_line = format!("- match: {}", match_reason(res));
-            if let Some(ambiguity) = ambiguity_note(res, &cross_path) {
-                hint_line.push_str(&format!("; {ambiguity}"));
+            let snapshot_files = published_snapshot.codemap();
+            let mut file_output = grouped::FileOutput::new(
+                &res.file_path,
+                rendered_detail_count,
+                snapshot_files
+                    .iter()
+                    .find(|file| file.file_path == res.file_path),
+                text.len(),
+                byte_cap,
+            );
+            if !file_output.can_fit(0) {
+                budget_hit = true;
+                break;
             }
-            let mut hints = format!("{hint_line}\n");
-            if let Some(info) = published_snapshot
-                .codemap()
-                .iter()
-                .find(|file| file.file_path == res.file_path)
-                .and_then(|file| file.navigation.as_ref()?.macro_expansion.as_ref())
             {
-                hints.push_str(&format!("- {}\n", info.notice));
-            }
-            if let Some(suggestion) = read_suggestion(res) {
-                hints.push_str(&format!("- {suggestion}\n"));
-            }
-            if text.len() + hints.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
-                text.push_str(&hints);
-            }
-            if anchor_maps_enabled {
-                if let Some(anchor_map) = anchor_map(res, &query_tokens) {
-                    if text.len() + anchor_map.len() + SEARCH_CAP_FOOTER.len() < byte_cap {
-                        text.push_str(&anchor_map);
+                let text = &mut file_output;
+                // Hints, compressed (Child 05 byte-flatten): match_reason and the cross-path/ambiguity
+                // note share one line; the read suggestion is its own short line.
+                let mut hint_line = format!("- match: {}", match_reason(res));
+                if let Some(ambiguity) = ambiguity_note(res, &cross_path) {
+                    hint_line.push_str(&format!("; {ambiguity}"));
+                }
+                let mut hints = format!("{hint_line}\n");
+                if let Some(info) = published_snapshot
+                    .codemap()
+                    .iter()
+                    .find(|file| file.file_path == res.file_path)
+                    .and_then(|file| file.navigation.as_ref()?.macro_expansion.as_ref())
+                {
+                    hints.push_str(&format!("- {}\n", info.notice));
+                }
+                if let Some(suggestion) = read_suggestion(res) {
+                    hints.push_str(&format!("- {suggestion}\n"));
+                }
+                if text.can_fit(hints.len() + 128) {
+                    text.push_str(&hints);
+                }
+                if anchor_maps_enabled {
+                    if let Some(anchor_map) = anchor_map(res, &query_tokens) {
+                        if text.can_fit(anchor_map.len() + 128) {
+                            text.push_str(&anchor_map);
+                        }
                     }
                 }
-            }
 
-            if res.symbol_fallback {
-                // Matched via docstring/path, not a symbol name — render
-                // symbol names + ranges ONLY (no snippets) for the bulk so
-                // we never `cat` the file. Still count-capped.
-                //
-                // P1 §6 exception: even in this list-only fallback, if some
-                // of the file's symbols DO match the query, render the
-                // matching ones in detail first — the agent ranked this file
-                // in and a matching symbol here is the likely target — then
-                // the count-capped name list for the rest. P1 §4 priority:
-                // Tier-1 (exact-name) symbols are taken FIRST, then Tier-2
-                // (sub-token/owner) symbols fill the remaining slots, so an
-                // exactly-named symbol is never crowded out of the cap by a
-                // loose token match — Tier-1 → Tier-2 only, never a
-                // non-matching filler.
-                //
-                // P2-loop-2 C1/C3 unification: the selected matching symbols
-                // go through the SAME shared anchoring/render path as the
-                // name-matched branch — full snippets only for promoted
-                // anchors (`search_anchor_snippet_limit`, Tier-1 first), a
-                // 2-line summary for a container enclosing an anchor member
-                // (e.g. `Signal` around its `send`), and a ≤3-line signature
-                // for over-cap / Tier-2 demotions — instead of the prior
-                // loop-1 "5 full snippets, no caps" rule that flooded a large
-                // fallback file. With zero matching symbols the render set is
-                // empty and the behavior is unchanged (P1 §5): pure
-                // path/docstring/literal hits do not regress.
-                const FALLBACK_SNIPPET_CAP: usize = 5;
-                let mut matched_in_fallback: Vec<&crate::parser::ExtractedSymbol> = res
-                    .matched_symbols
-                    .iter()
-                    .filter(|s| render::symbol_is_tier1(s, &query_tokens))
-                    .collect();
-                if matched_in_fallback.len() < FALLBACK_SNIPPET_CAP {
-                    for sym in res.matched_symbols.iter().filter(|s| {
-                        !render::symbol_is_tier1(s, &query_tokens)
-                            && render::symbol_matches_query(s, &query_tokens)
-                    }) {
-                        if matched_in_fallback.len() >= FALLBACK_SNIPPET_CAP {
+                if res.symbol_fallback {
+                    // Matched via docstring/path, not a symbol name — render
+                    // symbol names + ranges ONLY (no snippets) for the bulk so
+                    // we never `cat` the file. Still count-capped.
+                    //
+                    // P1 §6 exception: even in this list-only fallback, if some
+                    // of the file's symbols DO match the query, render the
+                    // matching ones in detail first — the agent ranked this file
+                    // in and a matching symbol here is the likely target — then
+                    // the count-capped name list for the rest. P1 §4 priority:
+                    // Tier-1 (exact-name) symbols are taken FIRST, then Tier-2
+                    // (sub-token/owner) symbols fill the remaining slots, so an
+                    // exactly-named symbol is never crowded out of the cap by a
+                    // loose token match — Tier-1 → Tier-2 only, never a
+                    // non-matching filler.
+                    //
+                    // P2-loop-2 C1/C3 unification: the selected matching symbols
+                    // go through the SAME shared anchoring/render path as the
+                    // name-matched branch — full snippets only for promoted
+                    // anchors (`search_anchor_snippet_limit`, Tier-1 first), a
+                    // 2-line summary for a container enclosing an anchor member
+                    // (e.g. `Signal` around its `send`), and a ≤3-line signature
+                    // for over-cap / Tier-2 demotions — instead of the prior
+                    // loop-1 "5 full snippets, no caps" rule that flooded a large
+                    // fallback file. With zero matching symbols the render set is
+                    // empty and the behavior is unchanged (P1 §5): pure
+                    // path/docstring/literal hits do not regress.
+                    const FALLBACK_SNIPPET_CAP: usize = 5;
+                    let mut matched_in_fallback: Vec<&crate::parser::ExtractedSymbol> = res
+                        .matched_symbols
+                        .iter()
+                        .filter(|s| render::symbol_is_tier1(s, &query_tokens))
+                        .collect();
+                    if matched_in_fallback.len() < FALLBACK_SNIPPET_CAP {
+                        for sym in res.matched_symbols.iter().filter(|s| {
+                            !render::symbol_is_tier1(s, &query_tokens)
+                                && render::symbol_matches_query(s, &query_tokens)
+                        }) {
+                            if matched_in_fallback.len() >= FALLBACK_SNIPPET_CAP {
+                                break;
+                            }
+                            matched_in_fallback.push(sym);
+                        }
+                    }
+                    matched_in_fallback.truncate(FALLBACK_SNIPPET_CAP);
+                    // Every symbol handed to the render path is "shown in detail"
+                    // and must be excluded from the residual name list — even one
+                    // the path deduped (a member fully inside an already-shown
+                    // range) or dropped at the byte cap — so a matching symbol is
+                    // never both rendered AND re-listed below.
+                    let mut snippet_starts: std::collections::HashSet<usize> = matched_in_fallback
+                        .iter()
+                        .map(|s| s.range.start_line)
+                        .collect();
+                    let render_caps = render::AnchoredRenderCaps {
+                        snippet_max_lines,
+                        anchor_snippet_limit: cfg.search_anchor_snippet_limit,
+                        byte_cap,
+                    };
+                    let outcome = render::render_anchored_symbols(
+                        text,
+                        &res.file_path,
+                        matched_in_fallback,
+                        &query_tokens,
+                        &render_caps,
+                        caller_annotations.as_ref(),
+                        &mut caller_block_dedup,
+                    );
+                    snippet_starts.extend(outcome.emitted_starts);
+
+                    if outcome.budget_hit {
+                        budget_hit = true;
+                    }
+                    // Name list for the remaining symbols (those not already
+                    // shown in detail), count-capped as before.
+                    let mut listed = 0usize;
+                    for sym in res.matched_symbols.iter() {
+                        if snippet_starts.contains(&sym.range.start_line) {
+                            continue;
+                        }
+                        if listed >= symbol_limit {
                             break;
                         }
-                        matched_in_fallback.push(sym);
+                        if !text.start_symbol(sym, None) {
+                            budget_hit = true;
+                            break;
+                        }
+                        listed += 1;
                     }
-                }
-                matched_in_fallback.truncate(FALLBACK_SNIPPET_CAP);
-                // Every symbol handed to the render path is "shown in detail"
-                // and must be excluded from the residual name list — even one
-                // the path deduped (a member fully inside an already-shown
-                // range) or dropped at the byte cap — so a matching symbol is
-                // never both rendered AND re-listed below.
-                let mut snippet_starts: std::collections::HashSet<usize> = matched_in_fallback
-                    .iter()
-                    .map(|s| s.range.start_line)
-                    .collect();
-                let render_caps = render::AnchoredRenderCaps {
-                    snippet_max_lines,
-                    anchor_snippet_limit: cfg.search_anchor_snippet_limit,
-                    byte_cap,
-                };
-                let outcome = render::render_anchored_symbols(
-                    &mut text,
-                    &res.file_path,
-                    matched_in_fallback,
-                    &query_tokens,
-                    &render_caps,
-                    caller_annotations.as_ref(),
-                    &mut caller_block_dedup,
-                );
-                snippet_starts.extend(outcome.emitted_starts);
-                relation_anchors.extend(
-                    outcome
-                        .relation_ranges
-                        .into_iter()
-                        .map(|(start, end)| (res.file_path.clone(), start, end)),
-                );
-                if outcome.budget_hit {
-                    budget_hit = true;
-                    break 'files;
-                }
-                // Name list for the remaining symbols (those not already
-                // shown in detail), count-capped as before.
-                let mut listed = 0usize;
-                for sym in res.matched_symbols.iter() {
-                    if snippet_starts.contains(&sym.range.start_line) {
-                        continue;
-                    }
-                    if listed >= symbol_limit {
-                        break;
-                    }
-                    text.push_str(&format!(
-                        "- Symbol: {} ({}) [L{}-{}]\n",
-                        sym.name,
-                        sym.kind,
-                        sym.range.start_line,
-                        sym.range.end_line_inclusive()
-                    ));
-                    listed += 1;
-                }
-                let remaining = res
-                    .matched_symbols
-                    .len()
-                    .saturating_sub(snippet_starts.len() + listed);
-                if remaining > 0 {
-                    text.push_str(&format!(
+                    let remaining = res
+                        .matched_symbols
+                        .len()
+                        .saturating_sub(snippet_starts.len() + listed);
+                    if remaining > 0 {
+                        text.push_str(&format!(
                         "- _… {remaining} more symbols not shown; use overview/read to inspect._\n"
                     ));
-                }
-            } else {
-                // Name-matched file: emit capped snippets via the shared
-                // anchoring/render path (P1 2-tier + P2-loop-2 C1/C3). The
-                // symbol cap is applied on the SELECTION order (strongest
-                // matches first — exact-name hits lead) BEFORE the function's
-                // internal range sort, so a promoted symbol deep in a large
-                // file is never cut in favor of earlier-but-weaker matches,
-                // and the function's promoted-anchor pick stays rank-ordered.
-                let skipped_for_cap = res.matched_symbols.len().saturating_sub(symbol_limit);
-                let symbols: Vec<&crate::parser::ExtractedSymbol> =
-                    res.matched_symbols.iter().take(symbol_limit).collect();
-                let render_caps = render::AnchoredRenderCaps {
-                    snippet_max_lines,
-                    anchor_snippet_limit: cfg.search_anchor_snippet_limit,
-                    byte_cap,
-                };
-                let outcome = render::render_anchored_symbols(
-                    &mut text,
-                    &res.file_path,
-                    symbols,
-                    &query_tokens,
-                    &render_caps,
-                    caller_annotations.as_ref(),
-                    &mut caller_block_dedup,
-                );
-                relation_anchors.extend(
-                    outcome
-                        .relation_ranges
-                        .into_iter()
-                        .map(|(start, end)| (res.file_path.clone(), start, end)),
-                );
-                if outcome.budget_hit {
-                    budget_hit = true;
-                    break 'files;
-                }
-                if skipped_for_cap > 0 {
-                    text.push_str(&format!(
+                    }
+                } else {
+                    // Name-matched file: emit capped snippets via the shared
+                    // anchoring/render path (P1 2-tier + P2-loop-2 C1/C3). The
+                    // symbol cap is applied on the SELECTION order (strongest
+                    // matches first — exact-name hits lead) BEFORE the function's
+                    // internal range sort, so a promoted symbol deep in a large
+                    // file is never cut in favor of earlier-but-weaker matches,
+                    // and the function's promoted-anchor pick stays rank-ordered.
+                    let skipped_for_cap = res.matched_symbols.len().saturating_sub(symbol_limit);
+                    let symbols: Vec<&crate::parser::ExtractedSymbol> =
+                        res.matched_symbols.iter().take(symbol_limit).collect();
+                    let render_caps = render::AnchoredRenderCaps {
+                        snippet_max_lines,
+                        anchor_snippet_limit: cfg.search_anchor_snippet_limit,
+                        byte_cap,
+                    };
+                    let outcome = render::render_anchored_symbols(
+                        text,
+                        &res.file_path,
+                        symbols,
+                        &query_tokens,
+                        &render_caps,
+                        caller_annotations.as_ref(),
+                        &mut caller_block_dedup,
+                    );
+
+                    if outcome.budget_hit {
+                        budget_hit = true;
+                    }
+                    if skipped_for_cap > 0 {
+                        text.push_str(&format!(
                         "- _… {skipped_for_cap} more symbols not shown; use overview/read to inspect._\n"
+                    ));
+                    }
+                }
+
+                // Literals: length-truncated and count-capped.
+                for lit in res.matched_literals.iter().take(literal_limit) {
+                    if !text.push_source(&format!(
+                        "- Literal: {:?} [L{}]\n",
+                        render::truncate_literal(&lit.text, literal_max_len),
+                        lit.line
+                    )) {
+                        budget_hit = true;
+                        break;
+                    }
+                    text.literal_anchor(lit.line);
+                }
+                if res.matched_literals.len() > literal_limit {
+                    text.push_source(&format!(
+                        "- _… {} more literals not shown._\n",
+                        res.matched_literals.len() - literal_limit
                     ));
                 }
             }
-
-            // Literals: length-truncated and count-capped.
-            for lit in res.matched_literals.iter().take(literal_limit) {
-                text.push_str(&format!(
-                    "- Literal: {:?} [L{}]\n",
-                    render::truncate_literal(&lit.text, literal_max_len),
-                    lit.line
-                ));
-                relation_anchors.push((res.file_path.clone(), lit.line, lit.line));
-            }
-            if res.matched_literals.len() > literal_limit {
-                text.push_str(&format!(
-                    "- _… {} more literals not shown._\n",
-                    res.matched_literals.len() - literal_limit
-                ));
+            budget_hit |= file_output.budget_hit;
+            file_output.write_primary(&mut text);
+            grouped_files.push(file_output);
+            if budget_hit {
+                break;
             }
         }
         if budget_hit {
@@ -1101,24 +1046,9 @@ pub(crate) fn run_inner_with_metadata(
         && !ctx.engine.is_dead()
         && ctx.engine.last_error().is_none()
     {
-        // Merge only overlapping/adjacent displayed ranges, never gaps in source.
-        // Preserve ranked file order for the bounded flow evaluator.
-        let mut anchors: Vec<(String, usize, usize)> = Vec::new();
-        for (path, start, end) in relation_anchors {
-            if let Some(anchor) = anchors.iter_mut().find(|anchor| {
-                anchor.0 == path
-                    && start <= anchor.2.saturating_add(1)
-                    && anchor.1 <= end.saturating_add(1)
-            }) {
-                anchor.1 = anchor.1.min(start);
-                anchor.2 = anchor.2.max(end);
-            } else {
-                anchors.push((path, start, end));
-            }
-        }
-        append_search_relations(
+        grouped::append_relations(
             &mut text,
-            &anchors,
+            &grouped_files,
             &published_snapshot,
             workspace_scope,
             caller_context_enabled,

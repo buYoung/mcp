@@ -1,4 +1,5 @@
 mod compact;
+mod outcomes;
 use super::evaluate::{Evidence, Query};
 use super::index::Location;
 use std::collections::BTreeSet;
@@ -71,6 +72,15 @@ pub(super) fn render_with_context(
         "## Analysis diagnostics\n\n".into()
     };
     let header_len = output.len();
+    outcomes::append(
+        query,
+        &mut output,
+        cap,
+        current_file,
+        budget.as_deref_mut(),
+        section_anchors,
+        true,
+    );
     let mut seen = BTreeSet::new();
     let mut omitted = None;
     let mut capped_rows = None;

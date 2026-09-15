@@ -98,6 +98,7 @@ impl ImplementationIndex {
         self.for_paths_with_call_context(anchors, scope, cap, root, true)
     }
 
+    #[cfg(test)]
     pub(crate) fn for_paths_with_call_context(
         &self,
         anchors: &[(String, usize, usize)],

@@ -18,9 +18,12 @@ async fn test_composite_query_preserves_coverage_body_evidence_and_continuation(
     let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
         .await
         .unwrap();
-    let response=client.send_tool_until("search",serde_json::json!({"query":"queue callback dispatch","workspace_scope":"all","caller_context":false}),|text|text.contains("### File:")).await.unwrap();
+    let response=client.send_tool_until("search",serde_json::json!({"query":"queue callback dispatch","workspace_scope":"all","caller_context":false}),|text|text.contains("## 1. ")).await.unwrap();
     let output = response["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(!output.starts_with("### File: src/partial.ts"), "{output}");
+    assert!(
+        output.lines().find(|line| line.starts_with("## ")) != Some("## 1. src/partial.ts"),
+        "{output}"
+    );
     assert!(
         output.contains("deliver(queue, callback, dispatch)"),
         "{output}"
@@ -32,7 +35,7 @@ async fn test_composite_query_preserves_coverage_body_evidence_and_continuation(
     let response=client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"callback","workspace_scope":"all","caller_context":false}})).await.unwrap();
     let output = response["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        output.starts_with("### File: src/partial.ts"),
+        output.lines().find(|line| line.starts_with("## ")) == Some("## 1. src/partial.ts"),
         "exact lookup changed: {output}"
     );
 }
@@ -118,7 +121,10 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
     );
     let ranked=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false}})).await.unwrap());
     assert!(
-        ranked.contains("## Event relationships") && ranked.contains("publisher: src/users.ts:2"),
+        ranked.contains("## 1. src/users.ts")
+            && ranked.contains("#### Event relationships")
+            && ranked.contains("publisher: L2 in save")
+            && ranked.contains("handler definition: handleSaved — src/events.ts:5"),
         "{ranked}"
     );
     let hidden=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":false}})).await.unwrap());

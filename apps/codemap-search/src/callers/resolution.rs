@@ -294,6 +294,19 @@ impl<'a> SourceResolver<'a> {
         }
     }
 
+    /// Borrow the already parsed Rust source for additional source-grounded facts.
+    pub(crate) fn inspect_rust<T>(
+        &self,
+        path: &str,
+        inspect: impl FnOnce(&str, &tree_sitter::Tree) -> T,
+    ) -> Option<T> {
+        if !path.ends_with(".rs") {
+            return None;
+        }
+        let source = self.source(path)?;
+        Some(inspect(&source.text, &source.syntax.tree))
+    }
+
     pub(crate) fn condition_at(&self, file: &str, range: &CodeRange) -> Option<bool> {
         self.record_dependency(file, range);
         let source = self.source(file)?;

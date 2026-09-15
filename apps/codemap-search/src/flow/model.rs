@@ -113,6 +113,8 @@ pub(crate) enum ExpressionKind {
         alternative: NodeId,
     },
     Not(NodeId),
+    Negate(NodeId),
+    Try(NodeId),
     Logical {
         left: NodeId,
         right: NodeId,

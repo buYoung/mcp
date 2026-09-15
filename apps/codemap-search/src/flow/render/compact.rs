@@ -37,8 +37,23 @@ pub(super) fn render(
     if cap < 256 {
         return String::new();
     }
+    let mut output = "## Value relationships\n".to_string();
+    let models = super::outcomes::append(
+        query,
+        &mut output,
+        cap,
+        current_file,
+        budget.as_deref_mut(),
+        anchors,
+        false,
+    );
+    let has_model_omissions = query
+        .outcomes
+        .iter()
+        .filter(|outcome| anchors.is_none_or(|anchors| outcome.overlaps(anchors)))
+        .any(|outcome| !models.iter().any(|shown| shown.key() == outcome.key()));
     let mut groups: BTreeMap<String, Vec<Row>> = BTreeMap::new();
-    let mut is_partial = budget.is_none() && query.work_limit.is_some();
+    let mut is_partial = has_model_omissions || budget.is_none() && query.work_limit.is_some();
     let mut unresolved = 0usize;
     let mut steps = query
         .steps
@@ -47,6 +62,7 @@ pub(super) fn render(
             query.is_relevant
                 && step.is_interesting
                 && step.relation != "opaque result → member use"
+                && !models.iter().any(|outcome| outcome.explains_passing(step))
                 && (step.relation != "returned value → call result"
                     || step.to.name.starts_with("call "))
                 && anchors.is_none_or(|anchors| {
@@ -163,10 +179,9 @@ pub(super) fn render(
             unresolved += 1;
         }
     }
-    if groups.is_empty() && unresolved == 0 {
+    if groups.is_empty() && unresolved == 0 && models.is_empty() && !has_model_omissions {
         return String::new();
     }
-    let mut output = "## Value relationships\n".to_string();
     for (path, rows) in groups {
         let header = if current_file == Some(path.as_str()) {
             String::new()

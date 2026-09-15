@@ -1,5 +1,6 @@
 mod control;
 mod execute;
+mod outcomes;
 mod resolve;
 use super::index::{BindingKey, FunctionKey, Location};
 use super::*;
@@ -163,6 +164,8 @@ pub(super) struct Query<'a> {
     reads: Vec<Read>,
     callback_uses: Vec<CallbackUse>,
     pub steps: Vec<Step>,
+    pub outcomes: Vec<super::outcome::ConditionalOutcome>,
+    should_collect_outcomes: bool,
     pub diagnostics: Vec<Diagnostic>,
     pub work_limit: Option<(&'static str, Location)>,
     pub is_relevant: bool,
@@ -216,6 +219,8 @@ impl<'a> Query<'a> {
             reads: Vec::new(),
             callback_uses: Vec::new(),
             steps: Vec::new(),
+            outcomes: Vec::new(),
+            should_collect_outcomes: true,
             diagnostics: Vec::new(),
             work_limit: None,
             is_relevant: false,
@@ -237,12 +242,15 @@ impl<'a> Query<'a> {
         budget.operations = self.operations;
         budget.source_bytes = self.source_bytes;
         budget.values = self.prior_values + self.values.len().saturating_sub(1);
-        budget.steps = self.prior_steps + self.steps.len();
+        budget.steps = self.prior_steps + self.steps.len() + self.outcomes.len();
         budget.files = std::mem::take(&mut self.files);
     }
 
     pub(super) fn run(&mut self, anchors: &[(String, usize, usize)]) {
         self.anchors = anchors.iter().take(FILES_PER_QUERY).cloned().collect();
+        if self.should_collect_outcomes {
+            self.collect_outcomes(anchors);
+        }
         let mut roots = BTreeSet::new();
         for (path, start, end) in anchors.iter().take(FILES_PER_QUERY) {
             let location = Location {
@@ -381,11 +389,12 @@ impl<'a> Query<'a> {
             }
         }
         self.join_collections();
-        self.is_relevant = self.steps.iter().any(|step| step.is_interesting)
-            && self.steps.iter().any(|step| {
-                super::index::overlaps(&step.from, anchors)
-                    || super::index::overlaps(&step.to, anchors)
-            });
+        self.is_relevant = !self.outcomes.is_empty()
+            || self.steps.iter().any(|step| step.is_interesting)
+                && self.steps.iter().any(|step| {
+                    super::index::overlaps(&step.from, anchors)
+                        || super::index::overlaps(&step.to, anchors)
+                });
     }
     fn analyze_root(&mut self, key: FunctionKey) {
         self.root_context += 1;
@@ -553,7 +562,7 @@ impl<'a> Query<'a> {
         if from.path.is_empty() || to.path.is_empty() {
             return;
         }
-        if self.prior_steps + self.steps.len() >= NODES_PER_QUERY {
+        if self.prior_steps + self.steps.len() + self.outcomes.len() >= NODES_PER_QUERY {
             self.work_limit
                 .get_or_insert(("value-flow relationship budget reached", to.clone()));
             return;

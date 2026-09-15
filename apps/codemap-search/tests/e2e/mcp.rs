@@ -77,7 +77,7 @@ async fn test_mcp_branching_hybrid_view() {
 
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(
-        text.matches("### File:").count(),
+        text.matches("\n### results\n").count(),
         5,
         "top-threshold files get the detail view: {text:?}"
     );
@@ -585,8 +585,8 @@ async fn test_search_hint_is_applied_by_mcp() {
         .unwrap();
     let no_hint_text = no_hint["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        no_hint_text.find("### File: src/policy.rs").unwrap()
-            < no_hint_text.find("### File: src/policy.ts").unwrap(),
+        no_hint_text.find("## 1. src/policy.rs").unwrap()
+            < no_hint_text.find("## 2. src/policy.ts").unwrap(),
         "baseline fixture should put the Rust file first: {no_hint_text:?}"
     );
 
@@ -606,8 +606,8 @@ async fn test_search_hint_is_applied_by_mcp() {
         .unwrap();
     let hinted_text = hinted["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        hinted_text.find("### File: src/policy.ts").unwrap()
-            < hinted_text.find("### File: src/policy.rs").unwrap(),
+        hinted_text.find("## 1. src/policy.ts").unwrap()
+            < hinted_text.find("## 2. src/policy.rs").unwrap(),
         "MCP search should pass language/extension hints into ranking: {hinted_text:?}"
     );
 }
@@ -736,7 +736,7 @@ async fn test_caller_context_broad_match_hybrid_tail() {
         .unwrap();
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(
-        text.matches("### File:").count(),
+        text.matches("\n### results\n").count(),
         5,
         "top-threshold files render detail sections: {text}"
     );

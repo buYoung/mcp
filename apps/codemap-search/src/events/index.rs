@@ -182,6 +182,7 @@ impl EventIndex {
             RenderContext::default(),
         )
     }
+    #[cfg(test)]
     pub fn for_paths(
         &self,
         anchors: &[(String, usize, usize)],

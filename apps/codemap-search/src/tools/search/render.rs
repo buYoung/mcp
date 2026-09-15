@@ -552,9 +552,6 @@ pub(super) struct AnchoredRenderCaps {
 pub(super) struct AnchoredRenderOutcome {
     pub(super) budget_hit: bool,
     pub(super) emitted_starts: std::collections::HashSet<usize>,
-    /// Query-matched declaration headers and source windows actually displayed.
-    /// Container summaries and unrelated signature rows cannot seed relations.
-    pub(super) relation_ranges: Vec<(usize, usize)>,
 }
 
 /// The shared P1 2-tier anchoring + P2-loop-2 C1/C3 render path for a name-matched file's
@@ -571,7 +568,7 @@ pub(super) struct AnchoredRenderOutcome {
 /// enclosing an anchor are excluded from the promoted cap so a summarized container never
 /// steals a full-snippet slot from a real member anchor (P2-loop-2 promoted/summary interaction).
 pub(super) fn render_anchored_symbols(
-    text: &mut String,
+    text: &mut super::grouped::FileOutput,
     file_path: &str,
     symbols: Vec<&crate::parser::ExtractedSymbol>,
     query: &crate::parser::QueryTokens,
@@ -584,7 +581,6 @@ pub(super) fn render_anchored_symbols(
         content: std::cell::OnceCell::new(),
     };
     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
-    let mut relation_ranges = Vec::new();
     let AnchoredRenderCaps {
         snippet_max_lines,
         anchor_snippet_limit,
@@ -666,23 +662,21 @@ pub(super) fn render_anchored_symbols(
             return AnchoredRenderOutcome {
                 budget_hit: true,
                 emitted_starts,
-                relation_ranges,
             };
         }
-        text.push_str(&format!(
-            "- Symbol: {} ({}) [L{}-{}]\n",
-            sym.name,
-            sym.kind,
-            sym.range.start_line,
-            sym.range.end_line_inclusive()
-        ));
+        if !text.start_symbol(sym, source.content()) {
+            return AnchoredRenderOutcome {
+                budget_hit: true,
+                emitted_starts,
+            };
+        }
         emitted_starts.insert(start);
         let is_anchor = is_anchor_sym(sym);
         let encloses_anchor = encloses_anchor_range(start, end);
         let is_summary_container = any_match && encloses_anchor && (has_tier1 || !is_anchor);
         let is_full_anchor = any_match && is_anchor && !is_summary_container;
         if is_full_anchor {
-            relation_ranges.push((start, start));
+            text.anchor(start, start);
         }
         let is_overcap_anchor = is_full_anchor && !promoted_anchor_starts.contains(&start);
         // Over-match suppression (#3): when NO symbol matched the query (`!any_match` — the file
@@ -713,12 +707,30 @@ pub(super) fn render_anchored_symbols(
                 } else {
                     sig.clone()
                 };
-                text.push_str(&format!("```\n{body}\n```\n"));
-                let shown = sig.lines().count();
+                let remaining = text.remaining_bytes().saturating_sub(40);
+                if remaining < 64 {
+                    return AnchoredRenderOutcome {
+                        budget_hit: true,
+                        emitted_starts,
+                    };
+                }
+                let capped = cap_snippet(&body, sig_lines + 1, remaining);
+                let is_clipped = capped.ends_with("\n… (truncated)");
+                if !text.push_source(&format!("```\n{capped}\n```\n")) {
+                    return AnchoredRenderOutcome {
+                        budget_hit: true,
+                        emitted_starts,
+                    };
+                }
+                let shown = capped
+                    .lines()
+                    .filter(|line| line.contains('→'))
+                    .count()
+                    .saturating_sub(usize::from(is_clipped));
                 let displayed_end = start + shown.saturating_sub(1);
                 emitted_ranges.push((start, displayed_end));
                 if is_full_anchor {
-                    relation_ranges.push((start, displayed_end));
+                    text.anchor(start, displayed_end);
                 }
             }
             continue;
@@ -755,18 +767,19 @@ pub(super) fn render_anchored_symbols(
             let needs_notice = !is_summary_container
                 && (snippet_start > start
                     || displayed_end < end
-                    || text.len() + snippet.len() + 64 > byte_cap);
+                    || snippet.len() + 8 > text.remaining_bytes());
             let notice_reserve = if needs_notice {
                 serde_json::json!({"file_path":file_path,"offset":usize::MAX,"limit":usize::MAX,"view":"source"}).to_string().len() + 160
             } else {
                 0
             };
-            let remaining = byte_cap.saturating_sub(text.len() + 64 + notice_reserve);
-            if remaining < 64 {
+            let remaining = text
+                .remaining_bytes()
+                .saturating_sub(8 + notice_reserve + if needs_notice { 32 } else { 0 });
+            if remaining == 0 {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,
-                    relation_ranges,
                 };
             }
             let capped = cap_snippet(&snippet, snippet_max_lines, remaining);
@@ -780,6 +793,7 @@ pub(super) fn render_anchored_symbols(
             displayed_lines = shown_lines.len();
             displayed_end = shown_lines.last().copied().unwrap_or(snippet_start);
             is_byte_clipped = capped.ends_with("\n… (truncated)");
+            let mut source_block = String::new();
             if needs_notice && displayed_lines > 0 {
                 // Repeat a partially printed last line; never skip its hidden suffix.
                 let next = if is_byte_clipped {
@@ -790,22 +804,25 @@ pub(super) fn render_anchored_symbols(
                     start
                 };
                 let request = serde_json::json!({"file_path":file_path,"offset":next,"limit":end.saturating_sub(next).saturating_add(1).min(snippet_max_lines.max(1)),"view":"source"});
-                text.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
+                source_block.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
             }
-            text.push_str(&format!("```\n{}\n```\n", capped));
+            source_block.push_str(&format!("```\n{}\n```\n", capped));
+            if !text.push_source(&source_block) {
+                return AnchoredRenderOutcome {
+                    budget_hit: true,
+                    emitted_starts,
+                };
+            }
         }
         if !is_summary_container {
             if let Some(annotations) = caller_annotations {
                 if let Some(prepared) =
                     annotations.render_for_symbol(file_path, sym, caller_block_dedup)
                 {
-                    if text.len() + prepared.text().len() <= byte_cap {
-                        text.push_str(prepared.text());
+                    if text.push_annotation(prepared.text()) {
                         prepared.commit(caller_block_dedup);
-                    } else if text.len() + crate::callers::ANNOTATION_OMITTED_MARKER.len()
-                        <= byte_cap
-                    {
-                        text.push_str(crate::callers::ANNOTATION_OMITTED_MARKER);
+                    } else if !text.push_annotation(crate::callers::ANNOTATION_OMITTED_MARKER) {
+                        text.budget_hit = true;
                     }
                 }
             }
@@ -815,7 +832,7 @@ pub(super) fn render_anchored_symbols(
             if complete_end >= snippet_start {
                 emitted_ranges.push((snippet_start, complete_end));
                 if is_full_anchor {
-                    relation_ranges.push((snippet_start, complete_end));
+                    text.anchor(snippet_start, complete_end);
                 }
             }
         }
@@ -823,6 +840,5 @@ pub(super) fn render_anchored_symbols(
     AnchoredRenderOutcome {
         budget_hit: false,
         emitted_starts,
-        relation_ranges,
     }
 }

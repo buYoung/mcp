@@ -29,7 +29,7 @@ async fn test_config_threshold_override_changes_branching() {
         "threshold=1 + 2 matches should push one match into the ranked tail: {text:?}"
     );
     assert_eq!(
-        text.matches("### File:").count(),
+        text.matches("\n### results\n").count(),
         1,
         "exactly one file gets the detail view at threshold=1: {text:?}"
     );

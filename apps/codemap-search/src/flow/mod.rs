@@ -3,6 +3,7 @@ mod evaluate;
 mod extract;
 mod index;
 mod model;
+mod outcome;
 mod render;
 #[cfg(test)]
 mod tests;

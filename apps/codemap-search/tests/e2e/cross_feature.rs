@@ -150,7 +150,7 @@ async fn test_cross_bm25_mcp_branching() {
 
     let text_large = res_large["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text_large.contains("a.rs"));
-    assert_eq!(text_large.matches("### File:").count(), 5);
+    assert_eq!(text_large.matches("\n### results\n").count(), 5);
     assert!(text_large.contains("fn query_func")); // detail sections carry source
 
     // 3. Remove files to make < 5 matches.
@@ -166,7 +166,7 @@ async fn test_cross_bm25_mcp_branching() {
             |t| {
                 !t.contains("Other matches")
                     && t.contains("fn query_func")
-                    && t.matches("### File:").count() == 4
+                    && t.matches("\n### results\n").count() == 4
             },
         )
         .await
@@ -174,7 +174,7 @@ async fn test_cross_bm25_mcp_branching() {
 
     let text_small = res_small["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text_small.contains("fn query_func"));
-    assert_eq!(text_small.matches("### File:").count(), 4);
+    assert_eq!(text_small.matches("\n### results\n").count(), 4);
 }
 
 #[test]

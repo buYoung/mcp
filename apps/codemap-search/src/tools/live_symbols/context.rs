@@ -155,6 +155,7 @@ pub(super) fn build(
                     relation_remaining,
                     &root,
                     options.should_list_unresolved,
+                    None,
                     &mut flow_budget,
                 )
             } else {

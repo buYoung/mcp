@@ -7,3 +7,5 @@ Eligible event, implementation and value relationships are automatic within each
 expand=callable reads the smallest containing supported named callable, including attached attributes, and overrides limit/end. Parser/input/output limits are explicit; oversized bodies require expand=none and smaller windows. Large unbounded reads and windows exceeding the output cap are refused. Read only evidence still needed; a partial analysis notice is not a request to reread the same source.
 
 Detailed analysis limits are hidden by default; debug=true shows bounded diagnostic reasons and full value-relationship evidence. Source truncation, stale context and unresolved call targets remain visible. Debug does not change analysis budgets or source output.
+
+Value relationships prioritize proven condition/outcome summaries. Rust serde_json object guards use a type-checked API model; conditional error creation is not observed execution, and unproven error conversions keep the return payload unresolved. debug=true retains the passing steps and model evidence.

@@ -9,3 +9,5 @@ Eligible event, implementation and value relationships are automatic in full/rel
 Respects .gitignore/.codemapignore; include_ignored bypasses them. After zero matches, check path/glob/type, case, regex syntax, multiline and ignore rules; do not rerun unchanged. When file/line evidence is sufficient, use it directly; no overview or reread is required.
 
 Detailed analysis limits are hidden by default; debug=true shows bounded diagnostic reasons and full value-relationship evidence. Source truncation, stale context and unresolved call targets remain visible. Debug does not change analysis budgets or source output.
+
+Value relationships prioritize proven condition/outcome summaries. Rust serde_json object guards use a type-checked API model; conditional error creation is not observed execution, and unproven error conversions keep the return payload unresolved. debug=true retains the passing steps and model evidence.
