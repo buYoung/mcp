@@ -416,17 +416,17 @@ allowed_roots = []
 
 ## Live request controls
 
-These are request arguments, not persistent TOML settings. Omitted options preserve existing output. `search.caller_context` retains its independent meaning.
+These are request arguments, not persistent TOML settings. Content-mode `grep` defaults to callable expansion; `read` keeps its requested line window by default. `search.caller_context` retains its independent meaning.
 
 | Argument | Default | Result |
 | --- | --- | --- |
 | `view` | `"full"` | `full`: symbols plus source; `source`: live output only, bypassing indexed context and relation preparation; `definitions`: declarations only; `relations`: anchored target/owner identities with calls and constant references, without source. |
 | `unresolved` | `"list"` | `count` keeps the same unresolved total without formatting individual names; `list` includes the bounded names. Applies to full/relations. |
-| `expand` | `"none"` | `callable` resolves a supported named callable from the live UTF-8 buffer; no stale indexed bounds or guessed body. |
+| `expand` | Content `grep`: `"callable"`; `read`: `"none"` | `callable` resolves a supported named callable from the live UTF-8 buffer; no stale indexed bounds or guessed body. Explicit `none` preserves matching rows or the requested read window. |
 
 In `read`, callable expansion uses the effective offset/start alias and overrides limit/end. Outside a supported callable, the original window is returned with an unavailable notice. Expansion parsing is limited to `min(max_file_size, 4 MiB)`; too-large input is refused before parsing. Attached attributes are included, nested named callables select the innermost boundary, and anonymous closures use their enclosing named callable. Composite files, unparseable bodies, prototypes without bodies and callables sharing boundary lines with other code receive an explicit unsupported notice.
 
-In content-mode `grep`, expansion ignores `-A/-B/-C` while preserving pattern, path, glob, case, type and exclusion behavior. Matching, parsing and rendering use one buffer per file. Output is ordered by path/range; `offset`, `head_limit`, and `next_offset` count unique callable groups (or matched-line fallback groups), not source rows. `head_limit=0` removes the group-count limit, not the byte cap. Non-default controls with `count` or `files_with_matches` are rejected.
+In content-mode `grep`, callable expansion is the default for every view, including `source`. It ignores `-A/-B/-C` while preserving pattern, path, glob, case, type and exclusion behavior. Matching, parsing and rendering use one buffer per file. Output is ordered by path/range; `offset`, `head_limit`, and `next_offset` count unique callable groups (or matched-line fallback groups), not source rows. `head_limit=0` removes the group-count limit, not the byte cap. Set `expand="none"` for matching rows, line-based pagination and `-A/-B/-C` context. `count` and `files_with_matches` do not expand when the option is omitted; explicit `expand="callable"` is rejected in those modes.
 
 Read and expanded grep retain `read_output_byte_cap`; annotations retain their existing budgets. Oversized callable bodies are never silently split: use the displayed source range with `expand=none` and line windows. Grep column omissions are marked as incomplete. Macro/encoding/test-context notices remain in applicable context views; `source` contains only live filesystem output and operational expansion notices. No event relations are added by omitted options.
 

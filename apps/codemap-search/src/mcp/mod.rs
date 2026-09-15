@@ -226,7 +226,8 @@ impl McpServer {
                         }))
                     }
                     "grep" => {
-                        let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
+                        let options =
+                            crate::tools::live_options::LiveOptions::parse_grep(arguments)?;
                         let output = crate::tools::grep::grep_with_metadata(arguments)?;
                         let output_mode = arguments
                             .get("output_mode")

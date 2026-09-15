@@ -232,8 +232,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         .get("output_mode")
         .and_then(|v| v.as_str())
         .unwrap_or("content");
-    let options = super::live_options::LiveOptions::parse(args)?;
-    options.validate_grep(output_mode)?;
+    let options = super::live_options::LiveOptions::parse_grep(args)?;
     let case_insensitive = arg_bool(args, "-i", false);
     let multiline = arg_bool(args, "multiline", false);
     let show_line_numbers = arg_bool(args, "-n", true);

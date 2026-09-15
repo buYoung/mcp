@@ -81,6 +81,19 @@ impl LiveOptions {
         })
     }
 
+    pub fn parse_grep(args: &Value) -> Result<Self, (i64, String)> {
+        let mode = args
+            .get("output_mode")
+            .and_then(Value::as_str)
+            .unwrap_or("content");
+        let mut options = Self::parse(args)?;
+        if mode == "content" && get_arg(args, "expand").is_none() {
+            options.should_expand_callable = true;
+        }
+        options.validate_grep(mode)?;
+        Ok(options)
+    }
+
     pub fn should_include_relations(self) -> bool {
         matches!(self.view, LiveView::Full | LiveView::Relations)
     }

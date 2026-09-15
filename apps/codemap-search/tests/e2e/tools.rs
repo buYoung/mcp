@@ -645,7 +645,11 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
         assert_eq!(tool["inputSchema"]["properties"]["view"]["default"], "full");
         assert_eq!(
             tool["inputSchema"]["properties"]["expand"]["default"],
-            "none"
+            if tool["name"] == "grep" {
+                "callable"
+            } else {
+                "none"
+            }
         );
         assert_eq!(
             tool["inputSchema"]["properties"]["unresolved"]["default"],
@@ -683,7 +687,7 @@ async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     assert!(out.starts_with("     1→#[allow(dead_code)]"), "{out}");
     assert!(out.ends_with("     5→}"), "{out}");
     assert!(!out.contains("neighbor"), "{out}");
-    let first = client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"marker","-A":50,"-B":10,"expand":"callable","head_limit":1,"view":"source"}))).await.unwrap();
+    let first = client.send_request("tools/call",call("grep",serde_json::json!({"path":"src/lib.rs","pattern":"marker","-A":50,"-B":10,"head_limit":1,"view":"source"}))).await.unwrap();
     let out = text(&first);
     assert_eq!(out.matches("fn first()").count(), 1, "{out}");
     assert!(out.contains("next_offset=1"), "{out}");
@@ -1547,7 +1551,7 @@ async fn test_grep_content_is_default_mode() {
             && out
                 .lines()
                 .any(|l| l.starts_with("2:") && l.contains("TODO"))
-            && !out.contains("src/util.rs:2:"),
+            && !out.lines().any(|l| l.starts_with("src/util.rs:2:")),
         "file heading and pathless `line:text` expected by default: {out:?}"
     );
     assert!(
