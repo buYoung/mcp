@@ -1,0 +1,1919 @@
+[
+  {
+    "language": "c",
+    "kind": "detected",
+    "path": "c/detected/example.c",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "af3a8c471862378aec0cf94f7205f3b62cc15473639168e1d4a4435ad3e3f3d7",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:c:example.c::Router[key:cb]",
+        "value": "parameter:example.c:79:cb",
+        "location": {
+          "path": "example.c",
+          "line": 3,
+          "column": 40
+        },
+        "function": "example.c:79",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:c:example.c::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.c",
+          "line": 4,
+          "column": 24
+        },
+        "function": "example.c:140",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:c:example.c::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.c",
+          "line": 4,
+          "column": 24
+        },
+        "function": "example.c:140",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "c",
+    "kind": "missed",
+    "path": "c/missed/example.c",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "890463841fc44e41199e8b5a862d7e777250dbf4c21a2f29dff4b7f382798603",
+    "storage_facts": [],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.c:109:current",
+        "value": "unknown:",
+        "location": {
+          "path": "example.c",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.c:109",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "cpp",
+    "kind": "detected",
+    "path": "cpp/detected/example.cpp",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "a163fed1816e4996df00168331b2b9ab4e8926a89b83d5b455a6f6bd8732cfb1",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:cpp:example.cpp::Router[key:cb]",
+        "value": "parameter:example.cpp:72:f",
+        "location": {
+          "path": "example.cpp",
+          "line": 4,
+          "column": 45
+        },
+        "function": "example.cpp:72",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:cpp:example.cpp::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.cpp",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.cpp:131",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:cpp:example.cpp::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.cpp",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.cpp:131",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "cpp",
+    "kind": "missed",
+    "path": "cpp/missed/example.cpp",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "338f8ea0e6e99bd89c0f0996e56a5479eaf5563a7585ac6bc12ea3b9d214c2b1",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:cpp:example.cpp::Router[key:cb]",
+        "value": "parameter:example.cpp:72:f",
+        "location": {
+          "path": "example.cpp",
+          "line": 4,
+          "column": 45
+        },
+        "function": "example.cpp:72",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [],
+    "intermediate_relations": []
+  },
+  {
+    "language": "csharp",
+    "kind": "detected",
+    "path": "csharp/detected/example.cs",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "11192aef14fec0eb8b8bfcb914aa7c7ee21c4d97cc5156796935451ef05521dc",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:csharp:example.cs::Router[key:cb]",
+        "value": "parameter:example.cs:48:f",
+        "location": {
+          "path": "example.cs",
+          "line": 4,
+          "column": 30
+        },
+        "function": "example.cs:48",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:csharp:example.cs::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.cs",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.cs:92",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:csharp:example.cs::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.cs",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.cs:92",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "csharp",
+    "kind": "missed",
+    "path": "csharp/missed/example.cs",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "fa0c69f248814e30b11f528dad8f09744a35bb5b7b67ad907ebf321e80d872fd",
+    "storage_facts": [],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.cs:134:Fired",
+        "value": "unknown:",
+        "location": {
+          "path": "example.cs",
+          "line": 5,
+          "column": 26
+        },
+        "function": "example.cs:134",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "dart",
+    "kind": "detected",
+    "path": "dart/detected/example.dart",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "de3e795ab6f1739b75f69145dbdca4d97649d46c8a4e50cb897816eb12d73849",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:dart:example.dart::Router[key:cb]",
+        "value": "parameter:example.dart:47:f",
+        "location": {
+          "path": "example.dart",
+          "line": 3,
+          "column": 37
+        },
+        "function": "example.dart:47",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:dart:example.dart::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.dart",
+          "line": 4,
+          "column": 17
+        },
+        "function": "example.dart:98",
+        "conditions": [
+          "callable_receiver_required",
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "dart",
+    "kind": "missed",
+    "path": "dart/missed/example.dart",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "e2ec53c37a96e5854ebbfb98ae839a5deb40f1f7b1737555115529524cd94a4b",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:dart:example.dart::Router[key:callbacks]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.dart",
+          "line": 4,
+          "column": 5
+        },
+        "function": "example.dart:82",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.dart:155:first",
+        "value": "unknown:",
+        "location": {
+          "path": "example.dart",
+          "line": 8,
+          "column": 5
+        },
+        "function": "example.dart:155",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "go",
+    "kind": "detected",
+    "path": "go/detected/example.go",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "55d11349ceb40d0baaada77a497ab560e7cb4a5ff22fe3185e3eb32b3750cb19",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:.::Router[key:cb]",
+        "value": "parameter:example.go:3:1:f",
+        "location": {
+          "path": "example.go",
+          "line": 3,
+          "column": 38
+        },
+        "function": "example.go:3:1",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:.::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.go",
+          "line": 4,
+          "column": 27
+        },
+        "function": "example.go:4:1",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "go",
+    "kind": "missed",
+    "path": "go/missed/example.go",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "98f937bbdbede8f99f691fa6eb08d0b71ee58500cd4d26098568d4b52928c8ef",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:.::Router[key:cb]",
+        "value": "parameter:example.go:4:1:f",
+        "location": {
+          "path": "example.go",
+          "line": 4,
+          "column": 38
+        },
+        "function": "example.go:4:1",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "member_invoke",
+        "target": "result:example.go:6:10[key:Call]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.go",
+          "line": 7,
+          "column": 5
+        },
+        "function": "example.go:5:1",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": [
+      {
+        "kind": "stored_value_argument",
+        "line": 6,
+        "conditions": [
+          "callee_consumption_unproven",
+          "registration_and_call_order_unproven",
+          "same_receiver_required"
+        ]
+      }
+    ]
+  },
+  {
+    "language": "groovy",
+    "kind": "detected",
+    "path": "groovy/detected/example.groovy",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "d9cebedd61cf6018767aa6b0e84a0f0da3f4c89ee2cffa0637dfa1cbe65e5f3f",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:groovy:example.groovy::Router[key:cb]",
+        "value": "parameter:example.groovy:34:f",
+        "location": {
+          "path": "example.groovy",
+          "line": 3,
+          "column": 31
+        },
+        "function": "example.groovy:34",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:groovy:example.groovy::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.groovy",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.groovy:79",
+        "conditions": [
+          "callable_receiver_required",
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "groovy",
+    "kind": "missed",
+    "path": "groovy/missed/example.groovy",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "ed9f53a0a63ac4af3d0efb95b955cab85e767cbcb913f368390ccbcaf839733f",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:groovy:example.groovy::Router[key:stored]",
+        "value": "parameter:example.groovy:46:f",
+        "location": {
+          "path": "example.groovy",
+          "line": 3,
+          "column": 31
+        },
+        "function": "example.groovy:46",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.groovy:140:callback[key:call]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.groovy",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.groovy:140",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "unresolved:example.groovy:140:callback[key:call]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.groovy",
+          "line": 5,
+          "column": 19
+        },
+        "function": "example.groovy:140",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "java",
+    "kind": "detected",
+    "path": "java/detected/example.java",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "bf0a0fa2034df893b01abfeb23478b930d56e54430c479b448458ee24472e959",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:java:example.java::Router[key:cb]",
+        "value": "parameter:example.java:36:f",
+        "location": {
+          "path": "example.java",
+          "line": 3,
+          "column": 32
+        },
+        "function": "example.java:36",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:java:example.java::Router[key:cb][key:run]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.java",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.java:82",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:java:example.java::Router[key:cb][key:run]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.java",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.java:82",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "java",
+    "kind": "missed",
+    "path": "java/missed/example.java",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "1eff0103d2589bef05f09ce0245f27457d4e92023baf092c0f86788909f6bdd7",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:java:example.java::Router[key:cb]",
+        "value": "parameter:example.java:36:f",
+        "location": {
+          "path": "example.java",
+          "line": 3,
+          "column": 32
+        },
+        "function": "example.java:36",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.java:82:run",
+        "value": "unknown:",
+        "location": {
+          "path": "example.java",
+          "line": 6,
+          "column": 9
+        },
+        "function": "example.java:82",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "javascript",
+    "kind": "detected",
+    "path": "javascript/detected/example.js",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "c7bea2a9879594ae059d8e90e3d16614038f625c5f894f6689581119ffff308e",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.js::Router[key:cb]",
+        "value": "parameter:example.js:2:3:f",
+        "location": {
+          "path": "example.js",
+          "line": 2,
+          "column": 16
+        },
+        "function": "example.js:2:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "member_invoke",
+        "target": "receiver:example.js::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.js",
+          "line": 3,
+          "column": 12
+        },
+        "function": "example.js:3:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "javascript",
+    "kind": "missed",
+    "path": "javascript/missed/example.js",
+    "storage_line": 2,
+    "invocation_line": 5,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "2e5508509ab9df4f0b573adee8304115d02d06e1515b10850dfce13dc3849a1d",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.js::Router[key:cb]",
+        "value": "parameter:example.js:2:3:f",
+        "location": {
+          "path": "example.js",
+          "line": 2,
+          "column": 16
+        },
+        "function": "example.js:2:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [],
+    "intermediate_relations": []
+  },
+  {
+    "language": "kotlin",
+    "kind": "detected",
+    "path": "kotlin/detected/example.kt",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "3a646c7a0dfb613b64772a447974bcd36d7dfb1e4e0e16988014d578e04bbf18",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:kotlin:example.kt::Router[key:cb]",
+        "value": "parameter:example.kt:52:f",
+        "location": {
+          "path": "example.kt",
+          "line": 3,
+          "column": 34
+        },
+        "function": "example.kt:52",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:kotlin:example.kt::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.kt",
+          "line": 4,
+          "column": 18
+        },
+        "function": "example.kt:99",
+        "conditions": [
+          "callable_receiver_required",
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "kotlin",
+    "kind": "missed",
+    "path": "kotlin/missed/example.kt",
+    "storage_line": 5,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "2849170c732bbdf3a33fdf2a2d351dc05540ff4146880434190dba63a1cb3a2e",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:kotlin:example.kt::Router[key:stored]",
+        "value": "parameter:example.kt:111:f",
+        "location": {
+          "path": "example.kt",
+          "line": 5,
+          "column": 34
+        },
+        "function": "example.kt:111",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:kotlin:example.kt::Router[key:callback]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.kt",
+          "line": 6,
+          "column": 18
+        },
+        "function": "example.kt:162",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:kotlin:example.kt::Router[key:callback]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.kt",
+          "line": 6,
+          "column": 18
+        },
+        "function": "example.kt:162",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "lua",
+    "kind": "detected",
+    "path": "lua/detected/example.lua",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "c82b6ce527d3f730598b17a79aea34b0e5a474acd90ee03c813f984440da303c",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:lua:example.lua::Router[key:cb]",
+        "value": "parameter:example.lua:18:f",
+        "location": {
+          "path": "example.lua",
+          "line": 2,
+          "column": 28
+        },
+        "function": "example.lua:18",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:lua:example.lua::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.lua",
+          "line": 3,
+          "column": 24
+        },
+        "function": "example.lua:66",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:lua:example.lua::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.lua",
+          "line": 3,
+          "column": 24
+        },
+        "function": "example.lua:66",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "lua",
+    "kind": "missed",
+    "path": "lua/missed/example.lua",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "2fa0f07d0c61fb5cf3d434af08ffa6fa826e8f85d8e2824466a6a384e766ebb6",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:lua:example.lua::Router[key:cb]",
+        "value": "parameter:example.lua:18:f",
+        "location": {
+          "path": "example.lua",
+          "line": 2,
+          "column": 28
+        },
+        "function": "example.lua:18",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:lua:example.lua::Router[container:entries][key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.lua",
+          "line": 3,
+          "column": 24
+        },
+        "function": "example.lua:66",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:lua:example.lua::Router[container:entries][key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.lua",
+          "line": 3,
+          "column": 24
+        },
+        "function": "example.lua:66",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "php",
+    "kind": "detected",
+    "path": "php/detected/example.php",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "60fcf7546bc2586a2734ccfca4c7043d9b37ebff76831af6d665c869e0fd843e",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:php:example.php::Router[key:cb]",
+        "value": "parameter:example.php:42:$f",
+        "location": {
+          "path": "example.php",
+          "line": 4,
+          "column": 28
+        },
+        "function": "example.php:42",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:php:example.php::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.php",
+          "line": 5,
+          "column": 23
+        },
+        "function": "example.php:92",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:php:example.php::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.php",
+          "line": 5,
+          "column": 23
+        },
+        "function": "example.php:92",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "php",
+    "kind": "missed",
+    "path": "php/missed/example.php",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "d31fa68e77e9b29e5239b4dfa315acba2973608b73b740130e4418995436a56c",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:php:example.php::Router[key:cb]",
+        "value": "parameter:example.php:42:$f",
+        "location": {
+          "path": "example.php",
+          "line": 4,
+          "column": 28
+        },
+        "function": "example.php:42",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:php:example.php::Router[key:name]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.php",
+          "line": 7,
+          "column": 9
+        },
+        "function": "example.php:92",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:php:example.php::Router[key:name]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.php",
+          "line": 7,
+          "column": 9
+        },
+        "function": "example.php:92",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "python",
+    "kind": "detected",
+    "path": "python/detected/example.py",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "6eefdd32b0869d0ff98c4ab57d300da4b83a32323d603b85986f01bc8024eb5c",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:python:example.py::Router[key:cb]",
+        "value": "parameter:example.py:18:f",
+        "location": {
+          "path": "example.py",
+          "line": 3,
+          "column": 9
+        },
+        "function": "example.py:18",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:python:example.py::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.py",
+          "line": 5,
+          "column": 9
+        },
+        "function": "example.py:69",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:python:example.py::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.py",
+          "line": 5,
+          "column": 9
+        },
+        "function": "example.py:69",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "python",
+    "kind": "missed",
+    "path": "python/missed/example.py",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "a8e8d19f9d9361dd92d4b8a09c03d0877fbaddac55e2ed35734b2457c1153b37",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:python:example.py::Router[key:cb]",
+        "value": "parameter:example.py:18:f",
+        "location": {
+          "path": "example.py",
+          "line": 3,
+          "column": 9
+        },
+        "function": "example.py:18",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "result:example.py:98",
+        "value": "unknown:",
+        "location": {
+          "path": "example.py",
+          "line": 6,
+          "column": 9
+        },
+        "function": "example.py:69",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "ruby",
+    "kind": "detected",
+    "path": "ruby/detected/example.rb",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "60d329e093ccecb937d016182fbff26a87e7d8107a2f31cda68b5bc2c3d9bc2c",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:ruby:example.rb::Router[key:cb]",
+        "value": "parameter:example.rb:15:f",
+        "location": {
+          "path": "example.rb",
+          "line": 3,
+          "column": 5
+        },
+        "function": "example.rb:15",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:ruby:example.rb::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rb",
+          "line": 6,
+          "column": 5
+        },
+        "function": "example.rb:54",
+        "conditions": [
+          "callable_receiver_required",
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "ruby",
+    "kind": "missed",
+    "path": "ruby/missed/example.rb",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "6ac3b416da462a8e4541fcf71563a2f7bbde737a54861bfc800ce6da896be3b9",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:ruby:example.rb::Router[key:cb]",
+        "value": "parameter:example.rb:15:f",
+        "location": {
+          "path": "example.rb",
+          "line": 3,
+          "column": 5
+        },
+        "function": "example.rb:15",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:ruby:example.rb::Router[key:instance_variable_get]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rb",
+          "line": 6,
+          "column": 5
+        },
+        "function": "example.rb:54",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:ruby:example.rb::Router[key:instance_variable_get]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rb",
+          "line": 6,
+          "column": 5
+        },
+        "function": "example.rb:54",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "invoke",
+        "target": "result:example.rb:67[key:call]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rb",
+          "line": 6,
+          "column": 5
+        },
+        "function": "example.rb:54",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "result:example.rb:67[key:call]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rb",
+          "line": 6,
+          "column": 5
+        },
+        "function": "example.rb:54",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "rust",
+    "kind": "detected",
+    "path": "rust/detected/example.rs",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "3114c1078f1231b4cbe599760c7452b786c79ebc3e042fe30ce617c93f2f76cf",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.rs::Router[key:cb]",
+        "value": "parameter:example.rs:3:5:f",
+        "location": {
+          "path": "example.rs",
+          "line": 3,
+          "column": 38
+        },
+        "function": "example.rs:3:5",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:example.rs::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.rs",
+          "line": 4,
+          "column": 22
+        },
+        "function": "example.rs:4:5",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "rust",
+    "kind": "missed",
+    "path": "rust/missed/example.rs",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "a3a2f2be6e1a3be4da0fc7f040adddbc2655276ce5c5e2d140fb225e7c335bce",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.rs::Router[key:cb]",
+        "value": "parameter:example.rs:3:5:f",
+        "location": {
+          "path": "example.rs",
+          "line": 3,
+          "column": 47
+        },
+        "function": "example.rs:3:5",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [],
+    "intermediate_relations": [
+      {
+        "kind": "stored_object_method_candidate",
+        "line": 5,
+        "conditions": [
+          "registration_and_call_order_unproven",
+          "same_receiver_required"
+        ]
+      }
+    ]
+  },
+  {
+    "language": "scala",
+    "kind": "detected",
+    "path": "scala/detected/example.scala",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "961386c73800d0dd05853422cd427682f56826fc36a15fbf5f73b6714132831d",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:scala:example.scala::Router[key:cb]",
+        "value": "parameter:example.scala:49:f",
+        "location": {
+          "path": "example.scala",
+          "line": 3,
+          "column": 40
+        },
+        "function": "example.scala:49",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:scala:example.scala::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.scala",
+          "line": 4,
+          "column": 24
+        },
+        "function": "example.scala:102",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:scala:example.scala::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.scala",
+          "line": 4,
+          "column": 24
+        },
+        "function": "example.scala:102",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "scala",
+    "kind": "missed",
+    "path": "scala/missed/example.scala",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "209ade1d07bd0c6969c75f8ecbb73808f1f19eea10ce5373ae6531b2d6caa981",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:scala:example.scala::Router[key:callbacks]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.scala",
+          "line": 4,
+          "column": 5
+        },
+        "function": "example.scala:82",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "unresolved:example.scala:160:first",
+        "value": "unknown:",
+        "location": {
+          "path": "example.scala",
+          "line": 8,
+          "column": 5
+        },
+        "function": "example.scala:160",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "swift",
+    "kind": "detected",
+    "path": "swift/detected/example.swift",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 2,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "41fde500a0766971b52b564a1ca6125851ea33c2ebe40a8ae9760107fcd58d92",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:swift:example.swift::Router[key:cb]",
+        "value": "parameter:example.swift:53:f",
+        "location": {
+          "path": "example.swift",
+          "line": 3,
+          "column": 47
+        },
+        "function": "example.swift:53",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:swift:example.swift::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.swift",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.swift:113",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:swift:example.swift::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.swift",
+          "line": 4,
+          "column": 19
+        },
+        "function": "example.swift:113",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "swift",
+    "kind": "missed",
+    "path": "swift/missed/example.swift",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "a5329de53dcdd0a49968bdacd22a9e1e281a1eeff5154fd5b59a9c50005336f0",
+    "storage_facts": [],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:swift:example.swift::Router[key:callbacks][key:0]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.swift",
+          "line": 6,
+          "column": 19
+        },
+        "function": "example.swift:182",
+        "conditions": [
+          "control_flow_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      },
+      {
+        "kind": "member_invoke",
+        "target": "receiver:swift:example.swift::Router[key:callbacks][key:0]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.swift",
+          "line": 6,
+          "column": 19
+        },
+        "function": "example.swift:182",
+        "conditions": [
+          "control_flow_unproven",
+          "method_dispatch_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "typescript",
+    "kind": "detected",
+    "path": "typescript/detected/example.ts",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "b84320eea6548cf00e5342c1f25b17892133df1354fc9e7770387b88307c292c",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.ts::Router[key:cb]",
+        "value": "parameter:example.ts:3:3:f",
+        "location": {
+          "path": "example.ts",
+          "line": 3,
+          "column": 28
+        },
+        "function": "example.ts:3:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "receiver:example.ts::Router[key:cb]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.ts",
+          "line": 4,
+          "column": 12
+        },
+        "function": "example.ts:4:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "typescript",
+    "kind": "missed",
+    "path": "typescript/missed/example.ts",
+    "storage_line": 2,
+    "invocation_line": 6,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "2e657062783404bca55ad1860e8a4a45cdd4a0aa4364b3287da4820741e13f94",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "receiver:example.ts::Router[key:cb]",
+        "value": "parameter:example.ts:2:3:cb",
+        "location": {
+          "path": "example.ts",
+          "line": 2,
+          "column": 15
+        },
+        "function": "example.ts:2:3",
+        "conditions": [],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [],
+    "intermediate_relations": []
+  },
+  {
+    "language": "assembly",
+    "kind": "detected",
+    "path": "assembly/detected/example.asm",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "e457316128e4cd176b7d106e207ead8fa8460bf728d9677f7e542da2699710d0",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "global:example.asm::Handlers[container:entries][literal:0]",
+        "value": "function:example.asm::Callback",
+        "location": {
+          "path": "example.asm",
+          "line": 4,
+          "column": 1
+        },
+        "function": "table:Handlers",
+        "conditions": [
+          "assembly_address_table",
+          "linker_binding_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [
+      {
+        "kind": "invoke",
+        "target": "global:example.asm::Handlers[container:entries][dynamic_key:example.asm:index:8]",
+        "value": "unknown:",
+        "location": {
+          "path": "example.asm",
+          "line": 8,
+          "column": 1
+        },
+        "function": "indirect:example.asm",
+        "conditions": [
+          "assembly_control_flow_unproven",
+          "table_entry_index_required",
+          "register_provenance_subset"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "intermediate_relations": []
+  },
+  {
+    "language": "assembly",
+    "kind": "missed",
+    "path": "assembly/missed/example.asm",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "status": "unresolved",
+    "call_matches": 0,
+    "argument_matches": 0,
+    "parse_errors": [],
+    "source_sha256": "fbb4ab4e9640e15d9f2229cf4a09157e78925b2185fbc738d91dc8e7c81b3bb2",
+    "storage_facts": [
+      {
+        "kind": "store",
+        "target": "global:example.asm::Handlers[container:entries][literal:0]",
+        "value": "function:example.asm::Callback",
+        "location": {
+          "path": "example.asm",
+          "line": 4,
+          "column": 1
+        },
+        "function": "table:Handlers",
+        "conditions": [
+          "assembly_address_table",
+          "linker_binding_unproven"
+        ],
+        "via": [],
+        "argument_index": null
+      }
+    ],
+    "target_invocation_facts": [],
+    "intermediate_relations": []
+  }
+]

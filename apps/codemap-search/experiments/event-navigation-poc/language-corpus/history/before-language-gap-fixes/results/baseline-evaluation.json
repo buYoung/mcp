@@ -1,0 +1,1317 @@
+{
+  "unit": "source-reviewed endpoint pair",
+  "scope": "selected examples; not repository-wide recall or precision",
+  "runtime_delivery_verified": false,
+  "summary": {
+    "bevy": {
+      "development": {
+        "reference_pairs": 2,
+        "conditional_candidates": 0,
+        "argument_transfer_only": 0,
+        "unresolved": 2,
+        "input_unavailable": 0
+      },
+      "evaluation": {
+        "reference_pairs": 2,
+        "conditional_candidates": 0,
+        "argument_transfer_only": 0,
+        "unresolved": 2,
+        "input_unavailable": 0
+      },
+      "negative_controls": {
+        "pairs": 0,
+        "incorrect_connections": 0
+      }
+    },
+    "client-go": {
+      "development": {
+        "reference_pairs": 5,
+        "conditional_candidates": 5,
+        "argument_transfer_only": 0,
+        "unresolved": 0,
+        "input_unavailable": 0
+      },
+      "evaluation": {
+        "reference_pairs": 2,
+        "conditional_candidates": 1,
+        "argument_transfer_only": 0,
+        "unresolved": 1,
+        "input_unavailable": 0
+      },
+      "negative_controls": {
+        "pairs": 2,
+        "incorrect_connections": 0
+      }
+    },
+    "livestore": {
+      "development": {
+        "reference_pairs": 5,
+        "conditional_candidates": 5,
+        "argument_transfer_only": 0,
+        "unresolved": 0,
+        "input_unavailable": 0
+      },
+      "evaluation": {
+        "reference_pairs": 2,
+        "conditional_candidates": 0,
+        "argument_transfer_only": 0,
+        "unresolved": 2,
+        "input_unavailable": 0
+      },
+      "negative_controls": {
+        "pairs": 4,
+        "incorrect_connections": 0
+      }
+    },
+    "vendure": {
+      "development": {
+        "reference_pairs": 3,
+        "conditional_candidates": 3,
+        "argument_transfer_only": 0,
+        "unresolved": 0,
+        "input_unavailable": 0
+      },
+      "evaluation": {
+        "reference_pairs": 2,
+        "conditional_candidates": 0,
+        "argument_transfer_only": 0,
+        "unresolved": 2,
+        "input_unavailable": 0
+      },
+      "negative_controls": {
+        "pairs": 2,
+        "incorrect_connections": 0
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "ls_refresh",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "ls_reactive",
+        577,
+        577
+      ],
+      "invocation": [
+        "ls_reactive",
+        520,
+        520
+      ],
+      "description": "인스턴스 Set에 저장한 refresh 콜백의 순회 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/reactive.ts",
+            "line": 577,
+            "column": 5
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/reactive.ts",
+            "line": 520,
+            "column": 7
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/reactive.ts:531",
+            "iteration_may_be_empty",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "ls_graph_unsubscribe",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "ls_devtools",
+        135,
+        138
+      ],
+      "invocation": [
+        "ls_devtools",
+        232,
+        232
+      ],
+      "description": "구독 ID로 저장한 해지 함수 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 4,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "ls_live_unsubscribe",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "ls_devtools",
+        272,
+        275
+      ],
+      "invocation": [
+        "ls_devtools",
+        283,
+        283
+      ],
+      "description": "독립 Map의 live-query 구독 해지",
+      "status": "conditional_candidate",
+      "matching_relations": 4,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "ls_reply_resolve",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "ls_shared",
+        254,
+        254
+      ],
+      "invocation": [
+        "ls_shared",
+        219,
+        219
+      ],
+      "description": "nonce로 조회한 callback 객체의 resolve 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 254,
+            "column": 15
+          },
+          "invocation": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 219,
+            "column": 11
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:218",
+            "key_equality_required:result:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:318:10=parameter:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:216:48:{ data }[key:data][key:nonce]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 254,
+            "column": 51
+          },
+          "invocation": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 219,
+            "column": 11
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:218",
+            "key_equality_required:result:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:318:10=parameter:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:216:48:{ data }[key:data][key:nonce]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        }
+      ],
+      "language": "JavaScript"
+    },
+    {
+      "id": "ls_reply_reject",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "ls_shared",
+        254,
+        254
+      ],
+      "invocation": [
+        "ls_shared",
+        221,
+        221
+      ],
+      "description": "같은 callback 객체의 조건부 reject 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 254,
+            "column": 15
+          },
+          "invocation": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 221,
+            "column": 11
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:218",
+            "key_equality_required:result:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:318:10=parameter:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:216:48:{ data }[key:data][key:nonce]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        },
+        {
+          "storage": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 254,
+            "column": 60
+          },
+          "invocation": {
+            "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+            "line": 221,
+            "column": 11
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:218",
+            "key_equality_required:result:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:318:10=parameter:packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:216:48:{ data }[key:data][key:nonce]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        }
+      ],
+      "language": "JavaScript"
+    },
+    {
+      "id": "v_blocking",
+      "repository": "vendure",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "v_bus",
+        200,
+        206
+      ],
+      "invocation": [
+        "v_bus",
+        219,
+        219
+      ],
+      "description": "생성자 키 Map의 blocking handler 옵션 저장·호출",
+      "status": "conditional_candidate",
+      "matching_relations": 4,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 201,
+            "column": 17
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "conditional_control:packages/core/src/event-bus/event-bus.ts:200",
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unknown:[element:*]=parameter:packages/core/src/event-bus/event-bus.ts:116:5:event[key:constructor]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        },
+        {
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 206,
+            "column": 13
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unknown:[element:*]=parameter:packages/core/src/event-bus/event-bus.ts:116:5:event[key:constructor]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        },
+        {
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 201,
+            "column": 17
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "conditional_control:packages/core/src/event-bus/event-bus.ts:200",
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unknown:[element:*]=parameter:packages/core/src/event-bus/event-bus.ts:215:5:event[key:constructor]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "v_progress",
+      "repository": "vendure",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "v_job",
+        212,
+        212
+      ],
+      "invocation": [
+        "v_job",
+        224,
+        224
+      ],
+      "description": "Job별 progress listener 배열 저장·호출",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 212,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 224,
+            "column": 13
+          },
+          "conditions": [
+            "fallback_path_unresolved:145",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/core/src/job-queue/job.ts:211:5:eventType=key:progress",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 212,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 224,
+            "column": 13
+          },
+          "conditions": [
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/core/src/job-queue/job.ts:211:5:eventType=parameter:packages/core/src/job-queue/job.ts:222:5:eventType",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "v_queue_process",
+      "repository": "vendure",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "v_bull",
+        316,
+        316
+      ],
+      "invocation": [
+        "v_bull",
+        142,
+        142
+      ],
+      "description": "queueName별 process 함수 저장·호출. Bull worker의 실행은 별도 경계",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+            "line": 316,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+            "line": 142,
+            "column": 42
+          },
+          "conditions": [
+            "conditional_control:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:126",
+            "key_equality_required:parameter:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:312:5:queueName=parameter:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:118:32:bullJob[key:name]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "TypeScript"
+    },
+    {
+      "id": "go_add_adapter",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "go_example",
+        188,
+        188
+      ],
+      "invocation": [
+        "go_controller",
+        423,
+        423
+      ],
+      "description": "함수 필드 AddFunc 저장과 adapter 내부 호출. 전체 informer 경로가 아님",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "examples/workqueue/main.go",
+            "line": 188,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/controller.go",
+            "line": 423,
+            "column": 3
+          },
+          "conditions": [
+            "conditional_control:tools/cache/controller.go:422",
+            "constructor_schema_only",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "go_update_adapter",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "go_example",
+        194,
+        194
+      ],
+      "invocation": [
+        "go_controller",
+        430,
+        430
+      ],
+      "description": "함수 필드 UpdateFunc 저장과 adapter 내부 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "examples/workqueue/main.go",
+            "line": 194,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/controller.go",
+            "line": 430,
+            "column": 3
+          },
+          "conditions": [
+            "conditional_control:tools/cache/controller.go:429",
+            "constructor_schema_only",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "go_delete_adapter",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "go_example",
+        200,
+        200
+      ],
+      "invocation": [
+        "go_controller",
+        437,
+        437
+      ],
+      "description": "함수 필드 DeleteFunc 저장과 adapter 내부 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "examples/workqueue/main.go",
+            "line": 200,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/controller.go",
+            "line": 437,
+            "column": 3
+          },
+          "conditions": [
+            "conditional_control:tools/cache/controller.go:436",
+            "constructor_schema_only",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "go_listener_handler",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "go_shared",
+        1424,
+        1424
+      ],
+      "invocation": [
+        "go_shared",
+        1507,
+        1507
+      ],
+      "description": "리스너에 저장한 handler 객체의 OnUpdate. 채널 전달 전체는 별도",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence": [
+        {
+          "storage": {
+            "path": "tools/cache/shared_informer.go",
+            "line": 1424,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/shared_informer.go",
+            "line": 1507,
+            "column": 5
+          },
+          "conditions": [
+            "conditional_control:tools/cache/shared_informer.go:1505",
+            "constructor_schema_only",
+            "iteration_may_be_empty",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "go_index_function",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "non_event_callback",
+      "storage": [
+        "go_index",
+        164,
+        164
+      ],
+      "invocation": [
+        "go_index",
+        184,
+        194
+      ],
+      "description": "IndexFunc의 저장·호출이며 이벤트 버스가 아닌 대조 사례",
+      "status": "conditional_candidate",
+      "matching_relations": 8,
+      "evidence": [
+        {
+          "storage": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 164,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 184,
+            "column": 25
+          },
+          "conditions": [
+            "conditional_control:tools/cache/thread_safe_store.go:182",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:tools/cache/thread_safe_store.go:155:1:newIndexers[container:keys][element:*]=parameter:tools/cache/thread_safe_store.go:174:1:name",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 164,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 194,
+            "column": 22
+          },
+          "conditions": [
+            "conditional_control:tools/cache/thread_safe_store.go:192",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:tools/cache/thread_safe_store.go:155:1:newIndexers[container:keys][element:*]=parameter:tools/cache/thread_safe_store.go:174:1:name",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        },
+        {
+          "storage": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 164,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/thread_safe_store.go",
+            "line": 184,
+            "column": 25
+          },
+          "conditions": [
+            "conditional_control:tools/cache/thread_safe_store.go:182",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:tools/cache/thread_safe_store.go:155:1:newIndexers[container:keys][element:*]=receiver:tools/cache::storeIndex[key:indexers][container:keys][element:*]",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "storage_to_invocation"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "b_boxed_observer",
+      "repository": "bevy",
+      "phase": "development",
+      "kind": "callback",
+      "storage": [
+        "b_observer",
+        224,
+        235
+      ],
+      "invocation": [
+        "b_runner",
+        79,
+        123
+      ],
+      "description": "Observer의 boxed system에서 runner의 system 실행까지",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Rust"
+    },
+    {
+      "id": "b_message_buffer",
+      "repository": "bevy",
+      "phase": "development",
+      "kind": "data_route",
+      "storage": [
+        "b_messages",
+        125,
+        145
+      ],
+      "invocation": [
+        "b_iterator",
+        52,
+        99
+      ],
+      "description": "World-local 메시지 버퍼 생산과 reader cursor 소비",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Rust"
+    },
+    {
+      "id": "ls_mesh_queue",
+      "repository": "livestore",
+      "phase": "evaluation",
+      "kind": "data_route",
+      "storage": [
+        "ls_mesh",
+        608,
+        610
+      ],
+      "invocation": [
+        "ls_mesh",
+        229,
+        233
+      ],
+      "description": "channelName별 Queue 저장과 수신 packet의 Queue 전달",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "ls_rpc_client",
+      "repository": "livestore",
+      "phase": "evaluation",
+      "kind": "data_route",
+      "storage": [
+        "ls_rpc",
+        179,
+        187
+      ],
+      "invocation": [
+        "ls_rpc",
+        68,
+        77
+      ],
+      "description": "requestId로 찾은 clientId를 writeResponse 인자로 전달",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "v_method_hook",
+      "repository": "vendure",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "v_hooks",
+        77,
+        82
+      ],
+      "invocation": [
+        "v_otel",
+        20,
+        32
+      ],
+      "description": "class/method hook 저장과 별도 서비스의 pre/post 호출",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "v_dashboard_callback",
+      "repository": "vendure",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "v_dashboard",
+        98,
+        100
+      ],
+      "invocation": [
+        "v_dashboard",
+        27,
+        33
+      ],
+      "description": "전역 registry가 보관한 Set의 extension callback 호출",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "go_list_callback",
+      "repository": "client-go",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "go_listwatch",
+        265,
+        271
+      ],
+      "invocation": [
+        "go_listwatch",
+        277,
+        289
+      ],
+      "description": "ListWatch 객체에 보관한 list 함수 호출",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence": [
+        {
+          "storage": {
+            "path": "tools/cache/listwatch.go",
+            "line": 267,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/listwatch.go",
+            "line": 281,
+            "column": 10
+          },
+          "conditions": [
+            "conditional_control:tools/cache/listwatch.go:280",
+            "constructor_schema_only",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        },
+        {
+          "storage": {
+            "path": "tools/cache/listwatch.go",
+            "line": 269,
+            "column": 3
+          },
+          "invocation": {
+            "path": "tools/cache/listwatch.go",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "constructor_schema_only",
+            "multiple_writes_may_replace_value",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ],
+          "kind": "stored_object_method_candidate"
+        }
+      ],
+      "language": "Go"
+    },
+    {
+      "id": "go_fifo_process",
+      "repository": "client-go",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "go_controller",
+        1042,
+        1048
+      ],
+      "invocation": [
+        "go_fifo",
+        603,
+        603
+      ],
+      "description": "Config.Process closure가 controller와 Pop 인자를 거쳐 호출됨",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Go"
+    },
+    {
+      "id": "b_system_id",
+      "repository": "bevy",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "b_registry",
+        456,
+        478
+      ],
+      "invocation": [
+        "b_registry",
+        700,
+        734
+      ],
+      "description": "새 entity의 RegisteredSystem을 SystemId로 조회하여 호출",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Rust"
+    },
+    {
+      "id": "b_gltf_handler",
+      "repository": "bevy",
+      "phase": "evaluation",
+      "kind": "callback",
+      "storage": [
+        "b_gltf_example",
+        67,
+        85
+      ],
+      "invocation": [
+        "b_gltf_loader",
+        1751,
+        1762
+      ],
+      "description": "World의 Arc 레지스트리에서 load-local 복제를 거친 trait hook 호출",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Rust"
+    },
+    {
+      "id": "no_ls_graph_to_live",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "ls_devtools",
+        135,
+        138
+      ],
+      "invocation": [
+        "ls_devtools",
+        283,
+        283
+      ],
+      "description": "동일 subscriptionId여도 서로 다른 Map",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "no_ls_live_to_graph",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "ls_devtools",
+        272,
+        275
+      ],
+      "invocation": [
+        "ls_devtools",
+        232,
+        232
+      ],
+      "description": "역방향 Map 교차 연결 금지",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "no_ls_debug_to_sync",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "ls_devtools",
+        198,
+        198
+      ],
+      "invocation": [
+        "ls_devtools",
+        321,
+        321
+      ],
+      "description": "서로 다른 구독 레지스트리",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "no_ls_sync_to_debug",
+      "repository": "livestore",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "ls_devtools",
+        304,
+        313
+      ],
+      "invocation": [
+        "ls_devtools",
+        206,
+        206
+      ],
+      "description": "서로 다른 구독 레지스트리",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "no_go_add_to_delete",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "go_example",
+        188,
+        188
+      ],
+      "invocation": [
+        "go_controller",
+        437,
+        437
+      ],
+      "description": "같은 adapter 안의 다른 callback 필드",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Go"
+    },
+    {
+      "id": "no_go_delete_to_add",
+      "repository": "client-go",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "go_example",
+        200,
+        200
+      ],
+      "invocation": [
+        "go_controller",
+        423,
+        423
+      ],
+      "description": "AddFunc와 DeleteFunc 구분",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "Go"
+    },
+    {
+      "id": "no_v_progress_to_queue",
+      "repository": "vendure",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "v_job",
+        212,
+        212
+      ],
+      "invocation": [
+        "v_bull",
+        142,
+        142
+      ],
+      "description": "독립 Job과 queue 전략 레지스트리",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    },
+    {
+      "id": "no_v_blocking_to_rx",
+      "repository": "vendure",
+      "phase": "development",
+      "kind": "negative",
+      "storage": [
+        "v_bus",
+        200,
+        206
+      ],
+      "invocation": [
+        "v_bus",
+        117,
+        117
+      ],
+      "description": "blocking Map과 외부 RxJS stream 구분",
+      "status": "correctly_unjoined",
+      "matching_relations": 0,
+      "evidence": [],
+      "language": "TypeScript"
+    }
+  ],
+  "languages": {
+    "TypeScript": {
+      "conditional_candidate": 6,
+      "unresolved": 4,
+      "correctly_unjoined": 6
+    },
+    "JavaScript": {
+      "conditional_candidate": 2
+    },
+    "Go": {
+      "conditional_candidate": 6,
+      "unresolved": 1,
+      "correctly_unjoined": 2
+    },
+    "Rust": {
+      "unresolved": 4
+    }
+  }
+}

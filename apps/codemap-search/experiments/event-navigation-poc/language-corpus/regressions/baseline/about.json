@@ -1,0 +1,18 @@
+{
+  "scope": "현재 PoC 코드 변경 없이 수행한 언어별 저장→최종 호출 예시 대조",
+  "semantic_relation_exists_in_both_variants": true,
+  "detected_means": "S에서 I까지 조건부 소스 관계를 찾음",
+  "missed_means": "S와 I 사이에는 의미상 연결이 있지만 현재 분석기는 해당 쌍을 찾지 못함; 정상 무연결 반례가 아님",
+  "target_programs_executed": false,
+  "run_command": "/tmp/codemap-event-poc-venv/bin/python run.py",
+  "source_markers": {
+    "S": "저장",
+    "I": "최종 호출"
+  },
+  "counts": {
+    "languages": 18,
+    "detected": 18,
+    "missed": 18,
+    "parser_error_files": 0
+  }
+}

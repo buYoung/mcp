@@ -1,0 +1,9 @@
+<?php
+class Router {
+    private $cb;
+    function install($f) { $this->cb = $f; } // S
+    function fire() {
+        $name = 'cb';
+        ($this->$name)(); // I
+    }
+}

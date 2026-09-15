@@ -1,0 +1,86 @@
+{
+  "livestore": {
+    "url": "https://github.com/livestorejs/livestore.git",
+    "revision": "287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "development": [
+      "packages/@livestore/livestore/src/reactive.ts",
+      "packages/@livestore/livestore/src/store/devtools.ts",
+      "packages/@livestore/common/src/make-client-session.ts",
+      "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js"
+    ],
+    "evaluation": [
+      "packages/@livestore/webmesh/src/node.ts",
+      "packages/@livestore/utils/src/effect/RpcClient.ts"
+    ]
+  },
+  "vendure": {
+    "url": "https://github.com/vendurehq/vendure.git",
+    "revision": "f78f402f1f706e42ab8e3b47698245846e958081",
+    "development": [
+      "packages/core/src/event-bus/event-bus.ts",
+      "packages/core/src/job-queue/job.ts",
+      "packages/core/src/job-queue/polling-job-queue-strategy.ts",
+      "packages/core/src/job-queue/job-queue.service.ts",
+      "packages/core/src/job-queue/job-queue.ts",
+      "packages/core/src/service/services/order.service.ts",
+      "packages/core/src/service/services/channel.service.ts",
+      "packages/core/src/service/services/collection.service.ts",
+      "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts"
+    ],
+    "evaluation": [
+      "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+      "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+      "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+      "packages/dashboard/src/lib/framework/registry/global-registry.ts"
+    ]
+  },
+  "client-go": {
+    "url": "https://github.com/kubernetes/client-go.git",
+    "revision": "30803019f93fc7d7fccd93d115927705bf712be7",
+    "development": [
+      "tools/cache/controller.go",
+      "tools/cache/shared_informer.go",
+      "tools/cache/thread_safe_store.go",
+      "tools/cache/store.go",
+      "tools/cache/index.go",
+      "tools/leaderelection/leasecandidate.go",
+      "informers/coordination/v1beta1/leasecandidate.go",
+      "informers/factory.go",
+      "examples/workqueue/main.go"
+    ],
+    "evaluation": [
+      "tools/cache/listwatch.go",
+      "tools/cache/reflector.go",
+      "tools/cache/delta_fifo.go"
+    ]
+  },
+  "bevy": {
+    "url": "https://github.com/bevyengine/bevy.git",
+    "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+    "development": [
+      "crates/bevy_ecs/src/observer/distributed_storage.rs",
+      "crates/bevy_ecs/src/observer/centralized_storage.rs",
+      "crates/bevy_ecs/src/observer/mod.rs",
+      "crates/bevy_ecs/src/observer/runner.rs",
+      "crates/bevy_ecs/src/event/trigger.rs",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs",
+      "crates/bevy_ecs/src/world/mod.rs",
+      "crates/bevy_app/src/sub_app.rs",
+      "crates/bevy_ecs/src/message/messages.rs",
+      "crates/bevy_ecs/src/message/message_registry.rs",
+      "crates/bevy_ecs/src/message/iterators.rs",
+      "crates/bevy_ecs/src/message/message_reader.rs",
+      "crates/bevy_ecs/src/message/message_writer.rs",
+      "examples/ecs/observer_propagation.rs",
+      "examples/audio/pitch.rs"
+    ],
+    "evaluation": [
+      "crates/bevy_ecs/src/system/system_registry.rs",
+      "crates/bevy_gltf/src/loader/extensions/mod.rs",
+      "crates/bevy_gltf/src/loader/mod.rs",
+      "crates/bevy_gltf/src/lib.rs",
+      "examples/ecs/one_shot_systems.rs",
+      "examples/gltf/gltf_extension_mesh_2d.rs"
+    ]
+  }
+}

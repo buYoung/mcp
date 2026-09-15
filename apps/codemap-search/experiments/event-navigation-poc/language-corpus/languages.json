@@ -1,0 +1,218 @@
+{
+  "scope": "사용자가 확정한 현재 지원 개발 언어 전체. Assembly 포함; 셸·문서·마크업·설정·빌드·인프라 형식 제외.",
+  "product_registry": {
+    "path": "src/lang/mod.rs",
+    "lines": [
+      512,
+      554
+    ],
+    "spec_count": 41,
+    "additional_format": "sass"
+  },
+  "excluded": [
+    "bash",
+    "zsh",
+    "powershell",
+    "sql",
+    "json",
+    "toml",
+    "yaml",
+    "html",
+    "xml",
+    "css",
+    "less",
+    "sass",
+    "vue",
+    "astro",
+    "svelte",
+    "hcl",
+    "dockerfile",
+    "nix",
+    "proto",
+    "graphql",
+    "make",
+    "document",
+    "cmake",
+    "starlark"
+  ],
+  "languages": {
+    "assembly": {
+      "name": "Assembly",
+      "extensions": [
+        ".s",
+        ".S",
+        ".asm"
+      ],
+      "product_navigation": true,
+      "product_flow": false,
+      "poc_engine": "polyglot"
+    },
+    "c": {
+      "name": "C",
+      "extensions": [
+        ".c"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "cpp": {
+      "name": "C++",
+      "extensions": [
+        ".h",
+        ".cpp",
+        ".cc",
+        ".cxx",
+        ".hpp",
+        ".hh",
+        ".hxx"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "csharp": {
+      "name": "C#",
+      "extensions": [
+        ".cs"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "dart": {
+      "name": "Dart",
+      "extensions": [
+        ".dart"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "go": {
+      "name": "Go",
+      "extensions": [
+        ".go"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "legacy"
+    },
+    "groovy": {
+      "name": "Groovy",
+      "extensions": [
+        ".groovy"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "java": {
+      "name": "Java",
+      "extensions": [
+        ".java"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "javascript": {
+      "name": "JavaScript",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "legacy"
+    },
+    "kotlin": {
+      "name": "Kotlin",
+      "extensions": [
+        ".kt",
+        ".kts"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "lua": {
+      "name": "Lua",
+      "extensions": [
+        ".lua"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "php": {
+      "name": "PHP",
+      "extensions": [
+        ".php"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "python": {
+      "name": "Python",
+      "extensions": [
+        ".py"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "ruby": {
+      "name": "Ruby",
+      "extensions": [
+        ".rb"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "rust": {
+      "name": "Rust",
+      "extensions": [
+        ".rs"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "legacy"
+    },
+    "scala": {
+      "name": "Scala",
+      "extensions": [
+        ".scala",
+        ".sc"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "swift": {
+      "name": "Swift",
+      "extensions": [
+        ".swift"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "polyglot"
+    },
+    "typescript": {
+      "name": "TypeScript",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "product_navigation": true,
+      "product_flow": true,
+      "poc_engine": "legacy"
+    }
+  }
+}

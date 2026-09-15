@@ -1,0 +1,3925 @@
+{
+  "repositories": {
+    "livestore": {
+      "revision": "287936d11d3e6c7afbaacaf1ece14bf162120219",
+      "source_sha256": {
+        "packages/@livestore/livestore/src/reactive.ts": "b86ded89488744ddd5d49f14a6d5a9fa03cc34771d64b0d6e7236d45f8d10a95",
+        "packages/@livestore/livestore/src/store/devtools.ts": "0ca218b59ea70ecb231fb46cb32f3c18f38e24e7f27ce7244f8435cdf793ff73",
+        "packages/@livestore/common/src/make-client-session.ts": "f77c6d8b78ba98213a02099b673de461855a9a7ae643a8f645157d47d86b76cc",
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js": "a054938c943b2c146599880d9e2ea1912086f2275dcdf564bd0204f2c54b46c8",
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
+      }
+    },
+    "vendure": {
+      "revision": "f78f402f1f706e42ab8e3b47698245846e958081",
+      "source_sha256": {
+        "packages/core/src/event-bus/event-bus.ts": "bbcd40bc052ac29d57e68eaa283263c9925f61825babbee81ab72d0fed8565cc",
+        "packages/core/src/job-queue/job.ts": "9a4a55574c6370aae5bc3d20828364e8257d44074481bf003699a4c1c400150e",
+        "packages/core/src/job-queue/polling-job-queue-strategy.ts": "870697df42df48ee085619d93f8f14d013907b0fb1c66feb76ee7586a43035ee",
+        "packages/core/src/job-queue/job-queue.service.ts": "e0f5d038f93d647752b4921596a37f95d6250a86a1c2484f3378a3db82f04efa",
+        "packages/core/src/job-queue/job-queue.ts": "2563118b33b4ca33f2e4152f66f5176430ac59a081fbc20a177149162770fa20",
+        "packages/core/src/service/services/order.service.ts": "d144cf75f59d99a84df5fc911eb57fffcf910ded770e525f3f0e624199cd72b3",
+        "packages/core/src/service/services/channel.service.ts": "fe1ac9d733a5384e021e7783da223a9fefbf42a75818adc851d602c2c77bdbe3",
+        "packages/core/src/service/services/collection.service.ts": "590fd332270671dbdd5945cc30561f4f18c5650116009afb2e257b09b3b5fb47",
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts": "006414108dfbb368246b33c8dffe7492c1e81b0b674961bf0fcac0fda73475a1",
+        "packages/telemetry-plugin/src/service/method-hooks.service.ts": "a78d9719546e1c861c51d2162862afe1449970fdbd18d0ce432c08a47728a39d",
+        "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts": "5c263d6dd63a7ad2db08bc1a56695c0d0254fa3b5b00ad493c96fcd4c17666e4",
+        "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts": "f66a01202bbfde6cc1028a2ca3f636917eb33aa8690494e20a99135ab15ea4d3",
+        "packages/dashboard/src/lib/framework/registry/global-registry.ts": "64dbf6cc217ebeca775e9bc48a8c5e645aa31ce3f041e6c8caef2d5ef03aba8e"
+      }
+    },
+    "client-go": {
+      "revision": "30803019f93fc7d7fccd93d115927705bf712be7",
+      "source_sha256": {
+        "tools/cache/controller.go": "a58fd5a4acf6f57fc0dac473b10e11ed262c859700e252744af22fa87c0fec71",
+        "tools/cache/fifo.go": "0760469de81f3ac9555d44ff2baf44cdcba05d7ed822fac8568a513730ae5d2b",
+        "tools/cache/the_real_fifo.go": "b1e9ae089c896ca256eff27bd253875f345b9bb7f81b0760f67b5c9fad73751d",
+        "tools/cache/shared_informer.go": "06e7156fff1779882029c823706df766500bff21f1242ed7057ca74a78b4fc9e",
+        "tools/cache/thread_safe_store.go": "8b818faacc57d844b18ff4e4d49c691b4a7795fd1982b89b2debe0a8bd290969",
+        "tools/cache/store.go": "720651560ad175a62405d8fab8c3d78ddd2b328d5e20d510904a576e1128fcab",
+        "tools/cache/index.go": "6f20907b1a0eabcac0ea0f2226559fcc21b5314a6225f2b34cf2536bcfecdf42",
+        "tools/leaderelection/leasecandidate.go": "200c4f82c6c09169b20eede283218c95ef7e2d0eb39110382cfab902a86c4c97",
+        "informers/coordination/v1beta1/leasecandidate.go": "e92a55a9e5fa1e9c615126b16b0f914bcbc5954e90fc0f1aec1d23dbfb5c0cb1",
+        "informers/factory.go": "847e60159914e707af069ae7040860ee7057c39bee6c2283db2a2048fb3c3d62",
+        "examples/workqueue/main.go": "ca3c50bfdb269f748e2b67b9ad6972223cced50b3186de6db5e9aa30439fbddd",
+        "tools/cache/listwatch.go": "6d4b35a578e0b427e21ebdd911232e6f9d9333878af3d07b9ae9acb3d7e6f8ee",
+        "tools/cache/reflector.go": "2e5ae22e9a248545040fbceab3da7ecc8ca7faa92928ff3509cdcef3ca07c348",
+        "tools/cache/delta_fifo.go": "e52bd0d79151a8220b927ae748226be10d68c7286067022fa55ed9ff2eee816d"
+      }
+    },
+    "bevy": {
+      "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+      "source_sha256": {
+        "crates/bevy_ecs/src/observer/distributed_storage.rs": "07c4a643ab5acbf47aaa1ac453e6863ddca657695231d5e21cb7789bfd081a31",
+        "crates/bevy_ecs/src/observer/centralized_storage.rs": "efff4ea0119ce255f1f31d71c49fb8fefd81127785e8d3efdab17c8617f081cb",
+        "crates/bevy_ecs/src/observer/mod.rs": "185ff5c3649de24a67e97bc8c7ec6ab9e9fe586195969d62c72bb14aaee16a3e",
+        "crates/bevy_ecs/src/observer/runner.rs": "042fdd337742d077291f8ae013133fd47b8cd4b14c44652fa27fad7e3bf95193",
+        "crates/bevy_ecs/src/event/trigger.rs": "477d65667da999ce6f9b111e47cef2a767b70b94a7d58145a9f5ee73317d0f84",
+        "crates/bevy_ecs/src/world/entity_access/world_mut.rs": "f06b056edfdbed848364170722a6f3ec6c624bc89b0898daaa93351ec3f4750d",
+        "crates/bevy_ecs/src/world/mod.rs": "149f47f49dea1a4cdfa62704b100838d53fc20aab403efab4e0e4266fdf1e56e",
+        "crates/bevy_app/src/sub_app.rs": "b0357b854710728cd2f0f1b56265cb3e4267e00f66858c90aa2757ea6a29dbf7",
+        "crates/bevy_ecs/src/message/messages.rs": "32186c29d0c71e82420d631e779ca1309418d476bfb9a3ca0da01b78e21efc15",
+        "crates/bevy_ecs/src/message/message_registry.rs": "befa1adb66914e777e1b62fa214f757a9d59e80477322385a5ca6f1917f0af79",
+        "crates/bevy_ecs/src/message/iterators.rs": "e3df3ebb85edb584c3538561ed6a989bad9b023a9866c77cfc67f05888b1a8a9",
+        "crates/bevy_ecs/src/message/message_reader.rs": "cd8cfbc869c037087ef812eac017b5e25baee81932d15a80c65e823f5b6fa7cf",
+        "crates/bevy_ecs/src/message/message_writer.rs": "652f528a341d1ac4d534a595f5aa170da38c7a5793c43edf8aaa83dfef96e387",
+        "examples/ecs/observer_propagation.rs": "d3e8e4c2024cb18811c8a1f76eed160b06b8a9dc0b772e3fc2fab6b94db988b7",
+        "examples/audio/pitch.rs": "16299f1c70443e845c74f4dced2343b04e1a96c5d2d34141e8fe0e9f3551ee46",
+        "crates/bevy_ecs/src/system/system_registry.rs": "e3797de6d02e154a1d6ffed765c31a2f90535a07617d6f90c6c57ecfbae5a692",
+        "crates/bevy_gltf/src/loader/extensions/mod.rs": "07f8c5ffb77ff57f90fa3d212257ff1fdec5d7d6188903ad667e673585657a1c",
+        "crates/bevy_gltf/src/loader/mod.rs": "1a6daa2c12122a3ce904bfb6860d4fca5dffe81ea78d5d8edb4ebd5e81c998b7",
+        "crates/bevy_gltf/src/lib.rs": "a68e777eae13d5281380c66fead81d232bb191e9214b760f8ffb6678035c08fc",
+        "examples/ecs/one_shot_systems.rs": "6d1d6ccc4ac07882797ee651064055efdd935a164b23e320d0b205cf9408de7a",
+        "examples/gltf/gltf_extension_mesh_2d.rs": "344ee91d13ab9b291a1d4d97a2887cb61c3fb7f028448df356c5b18e0461a9a1",
+        "crates/bevy_pbr/src/gltf.rs": "8fc874543c7068754f357cb0d40ce2a776f9a57db1937ec37392203b7eb2a872"
+      }
+    },
+    "libuv": {
+      "revision": "a1ccce950cd470b131522dda40253e0c4f677900",
+      "source_sha256": {
+        "src/unix/async.c": "847fb085b9f3838c1121765903aef08836f92a8e33be0bacb2e1bbf4100eebab",
+        "src/timer.c": "5a2326203a3ac21b16093e0928db393e00caf919c1ede5316ac7174b72daf217",
+        "include/uv/unix.h": "bfa9e31bccf6991f795074316d323eaeef5dcdf6b1b6b8b9d1093e871e6484db"
+      }
+    },
+    "pokered": {
+      "revision": "a1a22aaf84d1675bcdbaeb194592379d586d838e",
+      "source_sha256": {
+        "engine/items/item_effects.asm": "76b570b5216bbbcf6d9528c4704d931744a3740cce88afdc4f4f8f700449dda1",
+        "engine/gfx/palettes.asm": "b35fc75544788d447227841dc02aef951daf4f8e8ba754be9e61af025c4a852e"
+      }
+    },
+    "entt": {
+      "revision": "85c6bba014049b5de8fad49d25424df2f1f6a8c1",
+      "source_sha256": {
+        "src/entt/signal/sigh.hpp": "cee207cb80a53337e218910e97462d73ccc83f9595f9a84ad95f92ce7b2e1ffe",
+        "src/entt/signal/delegate.hpp": "df83cada6c241550a050db6e57e30f65cc402ca7f36affe51908fb3e2269d0d1",
+        "test/entt/signal/sigh.cpp": "a1ed7aad5385508602b84d4b3f91fbb0e7f82a00e14cf1d2d0812fcccb53720a",
+        "test/entt/signal/dispatcher.cpp": "7bab62a0bf6050fbf4ef6380647450e47b754212b67569822be047175e10e72e",
+        "src/entt/signal/dispatcher.hpp": "f92307fce27408fd68d8bf4e463dbd282211c939fc47d005995f163909c0bf1c"
+      }
+    },
+    "reactive": {
+      "revision": "94b5d5ab912789f5abe9a72138a25bbd716fe59c",
+      "source_sha256": {
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs": "fb683a3d9bd2471af2ce53cf3f48e1ea13f41ec6efec0b502e6d2dcc33aac6c3",
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs": "4a90869babc27b209936f6588f945da533918cc44ba7fdccd44329d718187ef6"
+      }
+    },
+    "flutter": {
+      "revision": "27fec0e365a374f1d9c1ffb24b57b4fc69966c9a",
+      "source_sha256": {
+        "packages/flutter/lib/src/foundation/memory_allocations.dart": "28d09992bae05a66dba7f7ec1ce83bad3c48e43c7fe715079c4b475b4d75080b",
+        "packages/flutter/test/foundation/memory_allocations_test.dart": "397a2876d2a6be55e977d4cfa5492115982ab329ec36d9e291a198a5064aebb8"
+      }
+    },
+    "grails-core": {
+      "revision": "b449d532af9ee613da956e828405b1afc07393d4",
+      "source_sha256": {
+        "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy": "08650b5c793cdda8931ca89d6953bbe41c934e45bde856b3244a54b92413a311",
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy": "944e4d349e509b590b00a217e7574d7f88cd11e23d7709152bb81f0f6af2a496",
+        "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy": "9631e62326641df9b5c5ad552945d92ef3e9f1f232f3d27b0a7e6e28511364b7",
+        "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy": "8e5d8b6a0dc7efa4f055496136b38dde22bbdaa81b0fd461941e1c48e1dc6314",
+        "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy": "d16f6ae81f3f69e201b50932b7b185482411fa9d1eeb5d37182600b213d55034"
+      }
+    },
+    "eventbus": {
+      "revision": "0194926b3bcf70cc0d7bfd3c5da16708dd5ab876",
+      "source_sha256": {
+        "EventBus/src/org/greenrobot/eventbus/Subscription.java": "5a537505295d07dd89f9d67c6fbc035c6f61fdbf3532c0f7b0411fd334646821",
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java": "fc4a2194f4c1faf0364dc10dbf5d5b74782844532ce78980c626dfc2ff5ceb93",
+        "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java": "2fc08c2cc17477dd1f8aa180342a8a80fd1ae21b2c5b6a90c0a4ae3815e1f87a",
+        "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java": "90adaf54214e39020c4ccaef0ff71b364eaa73917a5a2c17079906af86ca5f66"
+      }
+    },
+    "reaktive": {
+      "revision": "9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b",
+      "source_sha256": {
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt": "b6a6fc0b713521c260033a40c147787663179d81b225d58fb3e7acc34a46eb8c",
+        "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt": "3808c2c1036a748e90894f2df3f4b64495ae34fb861d87e104573167d70acb8d",
+        "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/PublishSubjectTest.kt": "3a218860ac21a056bfa94f1a4f7e252c8ebba08abb2a8988f2851f44633cc5aa"
+      }
+    },
+    "hump": {
+      "revision": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4",
+      "source_sha256": {
+        "signal.lua": "4f311197119177453d8759add39531905da2d3590a7e3a7befc618e46f31b051"
+      }
+    },
+    "event-dispatcher": {
+      "revision": "945f0a388a7b5d370f23e9faa1d5d48bff70a909",
+      "source_sha256": {
+        "EventDispatcher.php": "acca3a77f5c31578773a450be4485d4fd733af5e6fe93c5f5c134367d503d15d",
+        "Tests/EventDispatcherTest.php": "c2fb25ecb55d33634bbc0a09be53d2461f2e6320deb4167092fa08f1b65370fa"
+      }
+    },
+    "blinker": {
+      "revision": "c3364059663df1ddce32799d6b1922af89a345f6",
+      "source_sha256": {
+        "src/blinker/base.py": "4290eebd75dcc09178f65501707e418924f8e91cfdc121bb556fe9ecdff4dbb3",
+        "tests/test_signals.py": "170085932a31787640df616afb2cc64bf051ec7947c812c9bbc56313ccdae606"
+      }
+    },
+    "observer": {
+      "revision": "5c871444fd184e1c55af38c7c3b70b769698c891",
+      "source_sha256": {
+        "lib/observer.rb": "1530988fc0d668c8d7f37dc0543776f0738d1437e7c524e25ed291ac022d7d07",
+        "test/test_observer.rb": "0f108b2360b24e9aca2ce8712d47fa4ad0dc1606538a94ab25f602f5dd070cf8"
+      }
+    },
+    "monix": {
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00"
+      }
+    },
+    "rxswift": {
+      "revision": "3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84",
+      "source_sha256": {
+        "RxSwift/Subjects/PublishSubject.swift": "66a11928443b33841e9e364f97036d4eda9a548f1c2700d1efb01b3936a72b5e",
+        "RxSwift/Extensions/Bag+Rx.swift": "5bf4c615b18012693f97eeaefa692eea79504777d08585d09682ce5e701c5569",
+        "RxSwift/AnyObserver.swift": "ae61a5d2a6dac70f25ebfa3b6f254af4486eaa7eb43b893f5598bbd648624d4a",
+        "Tests/RxSwiftTests/Observable+SubscriptionTest.swift": "bac2238e0f0d4eecda783169e10751c36166dfa82da49b61b0e8dbbd984ebdad",
+        "RxSwift/Disposables/SubscriptionDisposable.swift": "3cbeec16292367b7fc6cb5a31a4c66fdf0956806ee5cdbad588c33775be00e26"
+      }
+    }
+  },
+  "fixtures": {
+    "fixtures/javascript/callbacks.js": "c26379209466a628d28bdd588e0475dfbee37824c4d701bb6cb5aabfccbff980",
+    "fixtures/typescript/callbacks.ts": "e2a3fb100278ec51cd500c2d2f2f8f8b354ed01e771467b7415deb21bb0e21b8",
+    "fixtures/go/callbacks.go": "9659e338e10f5d8f96a988e8303387a29f8e17c49a2b049b59d75c26400f5687",
+    "fixtures/rust/callbacks.rs": "ab593c6649372ab838c6299dea99bb6cad88ece7af03455da8fdbca2fa3242fd",
+    "fixtures/python/callbacks.py": "4a8255790e2cfa3b77fd07a96378f2f785e6877bf739ce25068c1d84bab02fef",
+    "fixtures/c/callbacks.c": "26d04b334a5226fea7675ec46edd12c1f849747d69a2a33ad8404dee10d13796",
+    "fixtures/cpp/callbacks.cpp": "66f2ac1a351e9feaa3894123172f5ba10ed7c616ff94a6573b7d54519c6d0b02",
+    "fixtures/csharp/callbacks.cs": "d29b0f6b6d3ed1fbf4c099d0bc19035a0aeac354cb699b2ad57319eb974ea788",
+    "fixtures/dart/callbacks.dart": "4780af974ed58386f5d8536e499caf2e24831c477f0f734f442fa9cab4b65c3c",
+    "fixtures/groovy/callbacks.groovy": "5d1164471b415c331c31f48a5cf0d77779938faf128cba898031232f8b5b2e31",
+    "fixtures/java/callbacks.java": "aa0cd1c0c45b363211d54bd4ec5ca388aa255aee06fded5aa4a06910fe046c5a",
+    "fixtures/kotlin/callbacks.kt": "37304548011969ed7f6cb3a7962e1d0ddf71127f6d9d498f1f5addab07b417a2",
+    "fixtures/lua/callbacks.lua": "811a36ae110ff2703aee59795f02cc723d6f952cb34707b19285ac75ff236e7e",
+    "fixtures/php/callbacks.php": "c5d650e764fa8c2dd9eb35ad9584c42ebc7bcd1a50d66cf5aba2fb802f668347",
+    "fixtures/ruby/callbacks.rb": "aba936882a15d2235faf7bcee0d861ffb6b40888abb7d6a2ecdcff7e004d5d81",
+    "fixtures/scala/callbacks.scala": "d8041070d7df83614fcd4b3d27fa16d6d3d9ac34a0f7ede2f9b8dd5b6fa85c4a",
+    "fixtures/swift/callbacks.swift": "06556d15a18ef80bfc6cc7d4094b9d80bdca88a503d1f7150e7bf60f2bcbab0f",
+    "fixtures/assembly/callbacks.asm": "bcef5e79e368fc2dc4f545acbd585d138782418fbe3e393daff6c6667c6922fa"
+  },
+  "cases": {
+    "ls_refresh": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/reactive.ts",
+        "start": 577,
+        "end": 577,
+        "sha256": "6d3e582d6beb2c9ff85e7baed023acd2524f6a1324c4aa6af4855e7b9b51c63b",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/reactive.ts#L577-L577"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/reactive.ts",
+        "start": 520,
+        "end": 520,
+        "sha256": "725f5d850cce5741cb563fe1de981cb4fbb7227bfa4efbadf47a9e65e9c9f798",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/reactive.ts#L520-L520"
+      }
+    ],
+    "ls_graph_unsubscribe": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 135,
+        "end": 138,
+        "sha256": "26a5f4c287b49cb817d0836b20f20ea1b28eff16bb332bfe48f3b1622d1dfae9",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L135-L138"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 232,
+        "end": 232,
+        "sha256": "131f280138591099fb56d5b28689c53504fe720cb456c5eb60f2209559818b86",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L232-L232"
+      }
+    ],
+    "ls_live_unsubscribe": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 272,
+        "end": 275,
+        "sha256": "d9d2d4fc9bc6a553a1c9d5731ec44b356162f84952289a042b21151088db1dc2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L272-L275"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 283,
+        "end": 283,
+        "sha256": "e5dcc92a9062a91ebadb3d55bd2577d2108e08b862eab036532d4afb3aa18e4b",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L283-L283"
+      }
+    ],
+    "ls_reply_resolve": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 254,
+        "end": 254,
+        "sha256": "6848bdc2101ed5191ea4a3813893e1a97e9d0580223fa03d7054bdd29ed221c7",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L254-L254"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 219,
+        "end": 219,
+        "sha256": "1df440f3e28126e07be484c7b2c8f3b07c34c3e20dfdbe047f325042a5d57060",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L219-L219"
+      }
+    ],
+    "ls_reply_reject": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 254,
+        "end": 254,
+        "sha256": "6848bdc2101ed5191ea4a3813893e1a97e9d0580223fa03d7054bdd29ed221c7",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L254-L254"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 221,
+        "end": 221,
+        "sha256": "e23aaa8a62607727729c1f6f45ae189060765f3c8f75503c8532761ecc43d027",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L221-L221"
+      }
+    ],
+    "v_blocking": [
+      {
+        "role": "storage",
+        "path": "packages/core/src/event-bus/event-bus.ts",
+        "start": 200,
+        "end": 206,
+        "sha256": "89c1d021c233bd06175402ea81eb8bf80f3a50d15d498f7d8bf2b65a2f929293",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/event-bus/event-bus.ts#L200-L206"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/core/src/event-bus/event-bus.ts",
+        "start": 219,
+        "end": 219,
+        "sha256": "9eee3e62c0974100007adc0f64fc26ce39c82830cada1005c19fb70475251828",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/event-bus/event-bus.ts#L219-L219"
+      }
+    ],
+    "v_progress": [
+      {
+        "role": "storage",
+        "path": "packages/core/src/job-queue/job.ts",
+        "start": 212,
+        "end": 212,
+        "sha256": "9287979b45195b31a1403b00a33c2f7572024d961551c512360b6834d9c0ac1f",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/job-queue/job.ts#L212-L212"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/core/src/job-queue/job.ts",
+        "start": 224,
+        "end": 224,
+        "sha256": "e12f041b8a907381ef8a8310d4f9e6e62a80be22bdb02d0cc08e3c46b42208bd",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/job-queue/job.ts#L224-L224"
+      }
+    ],
+    "v_queue_process": [
+      {
+        "role": "storage",
+        "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        "start": 316,
+        "end": 316,
+        "sha256": "62ada845a64ca6970b65950fa5f3802e99d3925ebf2d97496f0ab823e0015dce",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts#L316-L316"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        "start": 142,
+        "end": 142,
+        "sha256": "dbdc1261f03a135926c8b1e8744d346ce8c388a982d21f332823e18b5a91aa59",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts#L142-L142"
+      }
+    ],
+    "go_add_adapter": [
+      {
+        "role": "storage",
+        "path": "examples/workqueue/main.go",
+        "start": 188,
+        "end": 188,
+        "sha256": "663fb4b1e14e8286f69f2764f00c826f58894c75ec388a89b1453cfa60067500",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/examples/workqueue/main.go#L188-L188"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/controller.go",
+        "start": 423,
+        "end": 423,
+        "sha256": "c70fbc0851e7df0656c48b6269ea507290961bc995ba366a9af1881f0dedebcb",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L423-L423"
+      }
+    ],
+    "go_update_adapter": [
+      {
+        "role": "storage",
+        "path": "examples/workqueue/main.go",
+        "start": 194,
+        "end": 194,
+        "sha256": "269504ea12305b6924b53d21ebddcb4db9fcde45601d7540b978ce862538cbad",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/examples/workqueue/main.go#L194-L194"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/controller.go",
+        "start": 430,
+        "end": 430,
+        "sha256": "8a9dbf5d195978993fefeb1d5154e969f79b56597b72b7997f50c741c6368206",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L430-L430"
+      }
+    ],
+    "go_delete_adapter": [
+      {
+        "role": "storage",
+        "path": "examples/workqueue/main.go",
+        "start": 200,
+        "end": 200,
+        "sha256": "f7ee89fcc0d2339f4f118d7ab627ef2ceffdd640986d58628118edd5eae47c42",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/examples/workqueue/main.go#L200-L200"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/controller.go",
+        "start": 437,
+        "end": 437,
+        "sha256": "90b73bf2533453928ee6b13f1a3b91b39961d4eff2456d0f77a19c1e08a53336",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L437-L437"
+      }
+    ],
+    "go_listener_handler": [
+      {
+        "role": "storage",
+        "path": "tools/cache/shared_informer.go",
+        "start": 1424,
+        "end": 1424,
+        "sha256": "3b3180a1a8a59812d8316144963a8431eddfe7b51fe739075570b98a68166aee",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/shared_informer.go#L1424-L1424"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/shared_informer.go",
+        "start": 1507,
+        "end": 1507,
+        "sha256": "f664c75a4bef117e2762239fdff350948f0c5d446cbb1f05eedc357cca00a589",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/shared_informer.go#L1507-L1507"
+      }
+    ],
+    "go_index_function": [
+      {
+        "role": "storage",
+        "path": "tools/cache/thread_safe_store.go",
+        "start": 164,
+        "end": 164,
+        "sha256": "59de7937f57c0638c5b0b421e3d1c18dafcbfe1f7675c36499c4d91342c12114",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/thread_safe_store.go#L164-L164"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/thread_safe_store.go",
+        "start": 184,
+        "end": 194,
+        "sha256": "d8e2af1822cd7c133cb01ac6f3a2691aecad8867edeb1e9f7d0aebaceedb8ac6",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/thread_safe_store.go#L184-L194"
+      }
+    ],
+    "b_boxed_observer": [
+      {
+        "role": "storage",
+        "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "start": 224,
+        "end": 235,
+        "sha256": "d7a7de4fb4570ade004639397a8bb764f748065d791b81f5de61284f7ba7fe6d",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/observer/distributed_storage.rs#L224-L235"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_ecs/src/observer/runner.rs",
+        "start": 79,
+        "end": 123,
+        "sha256": "11d4eed0caff3bb6469e2d590c5e0b446c0f5a104567991a3258caadbed459e5",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/observer/runner.rs#L79-L123"
+      }
+    ],
+    "b_message_buffer": [
+      {
+        "role": "storage",
+        "path": "crates/bevy_ecs/src/message/messages.rs",
+        "start": 125,
+        "end": 145,
+        "sha256": "2af092e500dd80fd1826d71fa9e454a7dcc33e5910cdd0d630370ab056a5c1ab",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/message/messages.rs#L125-L145"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_ecs/src/message/iterators.rs",
+        "start": 52,
+        "end": 99,
+        "sha256": "9ffa38ae5ed199f398035a7e84e70f07d26c2cd41d60dbe664fab45715342620",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/message/iterators.rs#L52-L99"
+      }
+    ],
+    "ls_mesh_queue": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/webmesh/src/node.ts",
+        "start": 608,
+        "end": 610,
+        "sha256": "41b9a637a9454df9427162bf648ba410b119d6005ce36d53f151d8e3978e3e66",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/webmesh/src/node.ts#L608-L610"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/webmesh/src/node.ts",
+        "start": 229,
+        "end": 233,
+        "sha256": "4ca29ddc662449588c25722357f1cc8af284d59e9a5481668f43b70578b423d3",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/webmesh/src/node.ts#L229-L233"
+      }
+    ],
+    "ls_rpc_client": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+        "start": 179,
+        "end": 187,
+        "sha256": "8342c7b38ad8551745a77fe5bd39fab3ded38019714d14bfb4959807df9b72b2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/utils/src/effect/RpcClient.ts#L179-L187"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+        "start": 68,
+        "end": 77,
+        "sha256": "116fda56e89e47b4a610a74922282a50d55df7bace7a6373a505b29459165142",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/utils/src/effect/RpcClient.ts#L68-L77"
+      }
+    ],
+    "v_method_hook": [
+      {
+        "role": "storage",
+        "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+        "start": 77,
+        "end": 82,
+        "sha256": "0710370614eefb29b8860da835c0381fc2a11aedc0d48d0133c35c987c9c1bfe",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/telemetry-plugin/src/service/method-hooks.service.ts#L77-L82"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+        "start": 20,
+        "end": 32,
+        "sha256": "567b1e2640e1e96661e988095429bb57efde65432bd589cff1cb98e3b9c1ce59",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts#L20-L32"
+      }
+    ],
+    "v_dashboard_callback": [
+      {
+        "role": "storage",
+        "path": "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        "start": 98,
+        "end": 100,
+        "sha256": "60b3149d2bbeb58ef5d4d11a49343105123dbe082fdee4b4cff8ffada5bdcdd9",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts#L98-L100"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        "start": 27,
+        "end": 33,
+        "sha256": "60117fde85ab28ae68251bde1d562a790ea618aa91108a55e90191f481be23aa",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts#L27-L33"
+      }
+    ],
+    "go_list_callback": [
+      {
+        "role": "storage",
+        "path": "tools/cache/listwatch.go",
+        "start": 265,
+        "end": 271,
+        "sha256": "16a4273775dea9f538ed57d550a217a170cbe87e9f33d6015b5e0b6f31223ea1",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/listwatch.go#L265-L271"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/listwatch.go",
+        "start": 277,
+        "end": 289,
+        "sha256": "8856fccfdc01b69e663f8e988e1cf296e224bc82482c8baa4cbaf250b49644eb",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/listwatch.go#L277-L289"
+      }
+    ],
+    "go_fifo_process": [
+      {
+        "role": "storage",
+        "path": "tools/cache/controller.go",
+        "start": 1042,
+        "end": 1048,
+        "sha256": "6f599b58a54f8fc1e3d2c4874e0a365f80135519d39fccab2e1226b31f842b78",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L1042-L1048"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/delta_fifo.go",
+        "start": 603,
+        "end": 603,
+        "sha256": "6967ad8885918df1d6dca4fca61a684f0e3df5ab19037d66804f41c9b8d5904c",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/delta_fifo.go#L603-L603"
+      }
+    ],
+    "b_system_id": [
+      {
+        "role": "storage",
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "start": 456,
+        "end": 478,
+        "sha256": "7f05ca1ea921c9a082fa767cefc75270fcd2b66f8dd61789883fd1bd6ad95f3d",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/system/system_registry.rs#L456-L478"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "start": 700,
+        "end": 734,
+        "sha256": "cecdd1c5495fcfccb9a4e34654fba7ce415aa6c47d58f45567f37f72bcc0a5a3",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/system/system_registry.rs#L700-L734"
+      }
+    ],
+    "b_gltf_handler": [
+      {
+        "role": "storage",
+        "path": "examples/gltf/gltf_extension_mesh_2d.rs",
+        "start": 67,
+        "end": 85,
+        "sha256": "c8e1811732441857ef33ed90e7fb45e4f3014b46ed7ae6965c5cc0e6b6314285",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/examples/gltf/gltf_extension_mesh_2d.rs#L67-L85"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_gltf/src/loader/mod.rs",
+        "start": 1751,
+        "end": 1762,
+        "sha256": "921bc9f5b978d18de0c70a9586704f3052bc63f3ccb2b72b887ec7a4870113f8",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_gltf/src/loader/mod.rs#L1751-L1762"
+      }
+    ],
+    "no_ls_graph_to_live": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 135,
+        "end": 138,
+        "sha256": "26a5f4c287b49cb817d0836b20f20ea1b28eff16bb332bfe48f3b1622d1dfae9",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L135-L138"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 283,
+        "end": 283,
+        "sha256": "e5dcc92a9062a91ebadb3d55bd2577d2108e08b862eab036532d4afb3aa18e4b",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L283-L283"
+      }
+    ],
+    "no_ls_live_to_graph": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 272,
+        "end": 275,
+        "sha256": "d9d2d4fc9bc6a553a1c9d5731ec44b356162f84952289a042b21151088db1dc2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L272-L275"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 232,
+        "end": 232,
+        "sha256": "131f280138591099fb56d5b28689c53504fe720cb456c5eb60f2209559818b86",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L232-L232"
+      }
+    ],
+    "no_ls_debug_to_sync": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 198,
+        "end": 198,
+        "sha256": "31aa2d8d1d776f60f6c557d9e3e0657b3f8b8742195e6f79470839e8b75bfdde",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L198-L198"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 321,
+        "end": 321,
+        "sha256": "7e5b4350f29a6acf3f1000aeb00b9529b58c52241839ba5eb6c418564df1172a",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L321-L321"
+      }
+    ],
+    "no_ls_sync_to_debug": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 304,
+        "end": 313,
+        "sha256": "01c4d3bdde0f2d5727eb0e3c707c8ea6b2a733b69670ed29c435fb00529e568d",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L304-L313"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/livestore/src/store/devtools.ts",
+        "start": 206,
+        "end": 206,
+        "sha256": "0f5f2c7d89352228b7c9a338e44626f7e61ae1c5d61785d46dc938b8d2b12889",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/livestore/src/store/devtools.ts#L206-L206"
+      }
+    ],
+    "no_go_add_to_delete": [
+      {
+        "role": "storage",
+        "path": "examples/workqueue/main.go",
+        "start": 188,
+        "end": 188,
+        "sha256": "663fb4b1e14e8286f69f2764f00c826f58894c75ec388a89b1453cfa60067500",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/examples/workqueue/main.go#L188-L188"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/controller.go",
+        "start": 437,
+        "end": 437,
+        "sha256": "90b73bf2533453928ee6b13f1a3b91b39961d4eff2456d0f77a19c1e08a53336",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L437-L437"
+      }
+    ],
+    "no_go_delete_to_add": [
+      {
+        "role": "storage",
+        "path": "examples/workqueue/main.go",
+        "start": 200,
+        "end": 200,
+        "sha256": "f7ee89fcc0d2339f4f118d7ab627ef2ceffdd640986d58628118edd5eae47c42",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/examples/workqueue/main.go#L200-L200"
+      },
+      {
+        "role": "invocation",
+        "path": "tools/cache/controller.go",
+        "start": 423,
+        "end": 423,
+        "sha256": "c70fbc0851e7df0656c48b6269ea507290961bc995ba366a9af1881f0dedebcb",
+        "url": "https://github.com/kubernetes/client-go/blob/30803019f93fc7d7fccd93d115927705bf712be7/tools/cache/controller.go#L423-L423"
+      }
+    ],
+    "no_v_progress_to_queue": [
+      {
+        "role": "storage",
+        "path": "packages/core/src/job-queue/job.ts",
+        "start": 212,
+        "end": 212,
+        "sha256": "9287979b45195b31a1403b00a33c2f7572024d961551c512360b6834d9c0ac1f",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/job-queue/job.ts#L212-L212"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        "start": 142,
+        "end": 142,
+        "sha256": "dbdc1261f03a135926c8b1e8744d346ce8c388a982d21f332823e18b5a91aa59",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts#L142-L142"
+      }
+    ],
+    "no_v_blocking_to_rx": [
+      {
+        "role": "storage",
+        "path": "packages/core/src/event-bus/event-bus.ts",
+        "start": 200,
+        "end": 206,
+        "sha256": "89c1d021c233bd06175402ea81eb8bf80f3a50d15d498f7d8bf2b65a2f929293",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/event-bus/event-bus.ts#L200-L206"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/core/src/event-bus/event-bus.ts",
+        "start": 117,
+        "end": 117,
+        "sha256": "24f1d7a66ff91cc22c943f05b31dda10534aea2c1deea273aabe21b6d1f0320e",
+        "url": "https://github.com/vendurehq/vendure/blob/f78f402f1f706e42ab8e3b47698245846e958081/packages/core/src/event-bus/event-bus.ts#L117-L117"
+      }
+    ],
+    "js-provider-map-not-cleanup": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 254,
+        "end": 254,
+        "sha256": "6848bdc2101ed5191ea4a3813893e1a97e9d0580223fa03d7054bdd29ed221c7",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L254-L254"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 211,
+        "end": 211,
+        "sha256": "cb6ad3dfb0018b07c6a065d1655dedea1279aef71884806a3bb8eff9a32d7644",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L211-L211"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 22,
+        "end": 24,
+        "sha256": "24fee170979e703ba7ffdc9cd241d8604a67f9f238f968664190cd1d6cf55950",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L22-L24"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 210,
+        "end": 213,
+        "sha256": "8f61308391f22d455591600fe006796d2e56e1ffe24cffc3e4031849c4d039a2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L210-L213"
+      }
+    ],
+    "js-cleanup-not-provider-map": [
+      {
+        "role": "storage",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 195,
+        "end": 195,
+        "sha256": "9c96b5e65f8741a6dbd84b3fb723f7823773d7d5d22ea7103a150f3f3b838ae2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L195-L195"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 219,
+        "end": 221,
+        "sha256": "20fa4035897a0d35b4fd002175aa8905d2f194667a324f7590a36bb25fe37905",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L219-L221"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 183,
+        "end": 196,
+        "sha256": "87968c03dc792344505e62c89c6288624c36cc40a203e97ba4181118bbf04fc2",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L183-L196"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "start": 216,
+        "end": 223,
+        "sha256": "ab616e65839743fd95ec3444de760f9a49212c52fccad7b7dcc66401f29b5e10",
+        "url": "https://github.com/livestorejs/livestore/blob/287936d11d3e6c7afbaacaf1ece14bf162120219/packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js#L216-L223"
+      }
+    ],
+    "rust-custom-runner-proof-boundary": [
+      {
+        "role": "storage",
+        "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "start": 238,
+        "end": 273,
+        "sha256": "11cae7deec0cd4557e49d6b6fb5026fc6b0b1b18b83c707b83869b3f37d0e9ba",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/observer/distributed_storage.rs#L238-L273"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_ecs/src/observer/runner.rs",
+        "start": 90,
+        "end": 110,
+        "sha256": "63cc74d0cc9587df380f8c19ca82408a22795cff7c7317abeab2d199cdfd2521",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/observer/runner.rs#L90-L110"
+      },
+      {
+        "role": "evidence",
+        "path": "crates/bevy_ecs/src/observer/mod.rs",
+        "start": 171,
+        "end": 182,
+        "sha256": "63248a858841edf9fbb17104312496cbe2f92928fa5b5784c3d1e9ebff11eed2",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_ecs/src/observer/mod.rs#L171-L182"
+      }
+    ],
+    "rust-gltf-clone-identity-boundary": [
+      {
+        "role": "storage",
+        "path": "crates/bevy_pbr/src/gltf.rs",
+        "start": 13,
+        "end": 29,
+        "sha256": "ead40b3a6c24acdb6cd210761f7be058f069c16bbe3de00aa60123867dc0b4a2",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_pbr/src/gltf.rs#L13-L29"
+      },
+      {
+        "role": "invocation",
+        "path": "crates/bevy_gltf/src/loader/mod.rs",
+        "start": 259,
+        "end": 267,
+        "sha256": "fd24e75cbef8608cafc8c7c8ed62bfaa058588b7520c907471f3765ccd62ae44",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_gltf/src/loader/mod.rs#L259-L267"
+      },
+      {
+        "role": "evidence",
+        "path": "crates/bevy_gltf/src/loader/extensions/mod.rs",
+        "start": 569,
+        "end": 572,
+        "sha256": "69c827e01cfd2749b996179e56140b0dd1d29b3a440494e8b2b9f0af74864ade",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_gltf/src/loader/extensions/mod.rs#L569-L572"
+      },
+      {
+        "role": "evidence",
+        "path": "crates/bevy_gltf/src/lib.rs",
+        "start": 302,
+        "end": 310,
+        "sha256": "796c316ab06363db199409d8d50e1fd05948a481eb2437e6966c28c3baeaaebb",
+        "url": "https://github.com/bevyengine/bevy/blob/29fe519f32a14503c8c0fab0baacafe76842bb76/crates/bevy_gltf/src/lib.rs#L302-L310"
+      }
+    ],
+    "c-async": [
+      {
+        "role": "storage",
+        "path": "src/unix/async.c",
+        "start": 80,
+        "end": 80,
+        "sha256": "df2ce2df18344eaeaf60dfce4c3ab76d06aa6fb3395756367f5218647f14ce34",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/unix/async.c#L80-L80"
+      },
+      {
+        "role": "invocation",
+        "path": "src/unix/async.c",
+        "start": 155,
+        "end": 158,
+        "sha256": "15da3872a48d0271946be97d88fd48efdeccd4f1bb513c6d1280612b63c08d5a",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/unix/async.c#L155-L158"
+      },
+      {
+        "role": "evidence",
+        "path": "src/unix/async.c",
+        "start": 72,
+        "end": 84,
+        "sha256": "3441394825451500f5e2296d523f853e02d97583610d2659b1bf14649faa3896",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/unix/async.c#L72-L84"
+      },
+      {
+        "role": "evidence",
+        "path": "src/unix/async.c",
+        "start": 138,
+        "end": 158,
+        "sha256": "fa73df435f72a6704c87fdd6f8f6b38529e9aa3587f04ba20370e2d7286dcc0a",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/unix/async.c#L138-L158"
+      }
+    ],
+    "c-async-not-timer": [
+      {
+        "role": "storage",
+        "path": "src/unix/async.c",
+        "start": 80,
+        "end": 80,
+        "sha256": "df2ce2df18344eaeaf60dfce4c3ab76d06aa6fb3395756367f5218647f14ce34",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/unix/async.c#L80-L80"
+      },
+      {
+        "role": "invocation",
+        "path": "src/timer.c",
+        "start": 192,
+        "end": 192,
+        "sha256": "5c7bd2fa3ce162ae07a527cf66a3f2f30a386dc648f678aa029b025510553058",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/timer.c#L192-L192"
+      },
+      {
+        "role": "evidence",
+        "path": "include/uv/unix.h",
+        "start": 332,
+        "end": 338,
+        "sha256": "de19c90b6ee9a044824e67406e0c876fb31f20a651caf2576115f29fc0d8fc47",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/include/uv/unix.h#L332-L338"
+      }
+    ],
+    "c-timer-instance": [
+      {
+        "role": "storage",
+        "path": "src/timer.c",
+        "start": 82,
+        "end": 82,
+        "sha256": "41bfa06b27e095e9f2b915236b80e3099108a36798c385f3ff03a5efcd4d0a2b",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/timer.c#L82-L82"
+      },
+      {
+        "role": "invocation",
+        "path": "src/timer.c",
+        "start": 185,
+        "end": 192,
+        "sha256": "640630138ded845ef8f7cd4ce90d74c2adf91657a47389267a357850f20f7fd0",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/timer.c#L185-L192"
+      },
+      {
+        "role": "evidence",
+        "path": "src/timer.c",
+        "start": 67,
+        "end": 91,
+        "sha256": "25a12324c50cedf6bcad092d5edf0074a2087def688b13b059239267ebc503ee",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/timer.c#L67-L91"
+      },
+      {
+        "role": "evidence",
+        "path": "src/timer.c",
+        "start": 172,
+        "end": 192,
+        "sha256": "d623cc7bfded493f25532e7cd4d50e3b7f5304c1db17c6df4f295f3a9a14ddf8",
+        "url": "https://github.com/libuv/libuv/blob/a1ccce950cd470b131522dda40253e0c4f677900/src/timer.c#L172-L192"
+      }
+    ],
+    "assembly-item-table": [
+      {
+        "role": "storage",
+        "path": "engine/items/item_effects.asm",
+        "start": 25,
+        "end": 25,
+        "sha256": "e0fe353ce24d752db9edbde4b2ccd8e2878d3633e71c4ae9abf01808a84f220c",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L25-L25"
+      },
+      {
+        "role": "invocation",
+        "path": "engine/items/item_effects.asm",
+        "start": 7,
+        "end": 16,
+        "sha256": "9421c134788df2232ad3c64e126d0f5b983de587084acf780ae7e6f6edd90334",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L7-L16"
+      },
+      {
+        "role": "evidence",
+        "path": "engine/items/item_effects.asm",
+        "start": 4,
+        "end": 25,
+        "sha256": "8ff9d32de108d93490210059311eb30d43990133cd39c233224366ddd0548ddd",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L4-L25"
+      }
+    ],
+    "assembly-separate-tables": [
+      {
+        "role": "storage",
+        "path": "engine/gfx/palettes.asm",
+        "start": 247,
+        "end": 247,
+        "sha256": "e1c1eb25dc1514433a2ff1db8a2d8f8dfa68fa5d466283ff2c5ed1aee77c5013",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/gfx/palettes.asm#L247-L247"
+      },
+      {
+        "role": "invocation",
+        "path": "engine/items/item_effects.asm",
+        "start": 7,
+        "end": 16,
+        "sha256": "9421c134788df2232ad3c64e126d0f5b983de587084acf780ae7e6f6edd90334",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L7-L16"
+      },
+      {
+        "role": "evidence",
+        "path": "engine/gfx/palettes.asm",
+        "start": 243,
+        "end": 250,
+        "sha256": "1ce2ee46f8b2db5e31df28ee7a3fc8f7c116a384a4593453208cc0c4750cae1b",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/gfx/palettes.asm#L243-L250"
+      },
+      {
+        "role": "evidence",
+        "path": "engine/items/item_effects.asm",
+        "start": 7,
+        "end": 18,
+        "sha256": "f6ed9e5ebf0d519ed4dd9e69e35f864fc82fb711246375bb6941e54a2cb802d6",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L7-L18"
+      }
+    ],
+    "assembly-index-choice": [
+      {
+        "role": "storage",
+        "path": "engine/items/item_effects.asm",
+        "start": 20,
+        "end": 24,
+        "sha256": "61689b4ce435663c7f83ca9801ab3a159c1ef2eec33e003b7133944866536182",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L20-L24"
+      },
+      {
+        "role": "invocation",
+        "path": "engine/items/item_effects.asm",
+        "start": 4,
+        "end": 16,
+        "sha256": "db78901fb667f964341b1826b2e02b13083e536a2b2792aaa7cc881bee1e8d2d",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L4-L16"
+      },
+      {
+        "role": "evidence",
+        "path": "engine/items/item_effects.asm",
+        "start": 18,
+        "end": 25,
+        "sha256": "b00aaa30bc17c09997ee31b02cc7f26b4df0efedd51f9cd5eb913c5e62cd077b",
+        "url": "https://github.com/pret/pokered/blob/a1a22aaf84d1675bcdbaeb194592379d586d838e/engine/items/item_effects.asm#L18-L25"
+      }
+    ],
+    "cpp-delegate-publish": [
+      {
+        "role": "storage",
+        "path": "src/entt/signal/sigh.hpp",
+        "start": 416,
+        "end": 425,
+        "sha256": "79b1158fecc5b4644ed4d84e71fb288876169fd6b11d1700e3c28e8a3094dd23",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/sigh.hpp#L416-L425"
+      },
+      {
+        "role": "invocation",
+        "path": "src/entt/signal/sigh.hpp",
+        "start": 173,
+        "end": 176,
+        "sha256": "808ff898d5276774f96bf8f75025ea47e8f288c24f6f17f6e66dac18c67ecc1d",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/sigh.hpp#L173-L176"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/delegate.hpp",
+        "start": 137,
+        "end": 148,
+        "sha256": "cea3b3beb52506c714574bbc0cffa851f18ad4b510713ed9e9daf9cc8e55e50c",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/delegate.hpp#L137-L148"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/delegate.hpp",
+        "start": 261,
+        "end": 264,
+        "sha256": "0adb8c24a8d77b20aa20806b02d785d023e36e13b3571d69fe3329601041ec79",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/delegate.hpp#L261-L264"
+      },
+      {
+        "role": "evidence",
+        "path": "test/entt/signal/sigh.cpp",
+        "start": 168,
+        "end": 173,
+        "sha256": "1bf08514a737f1bf855fcc5e2527dd29b207e9f9ffa86a1354db1a3e603ccca9",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/sigh.cpp#L168-L173"
+      }
+    ],
+    "cpp-named-default-queue": [
+      {
+        "role": "storage",
+        "path": "test/entt/signal/dispatcher.cpp",
+        "start": 164,
+        "end": 164,
+        "sha256": "ee65a809b0df4c5f9446d33e24fd457289b9f27b51fd23a590b25e4b1a0ef387",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/dispatcher.cpp#L164-L164"
+      },
+      {
+        "role": "invocation",
+        "path": "test/entt/signal/dispatcher.cpp",
+        "start": 165,
+        "end": 165,
+        "sha256": "c6b2c6e3c56718d77d6735435c37720d0bbd542f22f858f5b2b90319c8cc5058",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/dispatcher.cpp#L165-L165"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/dispatcher.hpp",
+        "start": 118,
+        "end": 126,
+        "sha256": "5fc3bd6686798d418de366cc5053cfdb27fc41a06421d3188d7b38bf820270c7",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/dispatcher.hpp#L118-L126"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/dispatcher.hpp",
+        "start": 257,
+        "end": 280,
+        "sha256": "73304162ad275b07e75cc4a0905a2376071cbb201d266d3bf9e3ef5a14202863",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/dispatcher.hpp#L257-L280"
+      },
+      {
+        "role": "evidence",
+        "path": "test/entt/signal/dispatcher.cpp",
+        "start": 167,
+        "end": 171,
+        "sha256": "58a07a0ecccdfd50417f66dad4dc640a33c5371ba3b4cbc67cf92559fba3fad5",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/dispatcher.cpp#L167-L171"
+      }
+    ],
+    "cpp-raii-disconnect": [
+      {
+        "role": "storage",
+        "path": "test/entt/signal/sigh.cpp",
+        "start": 325,
+        "end": 325,
+        "sha256": "654eade4b4d2a64129525db3d87c68b097c6047947505f80085fab8fd90fca7b",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/sigh.cpp#L325-L325"
+      },
+      {
+        "role": "invocation",
+        "path": "test/entt/signal/sigh.cpp",
+        "start": 333,
+        "end": 333,
+        "sha256": "2fe660f669973b91c02fe91bacb46676eb5dc969a58c2fa2304dff28d754bd13",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/sigh.cpp#L333-L333"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/sigh.hpp",
+        "start": 290,
+        "end": 293,
+        "sha256": "198b3b2d13547edca9197dbbe773db08efa5bb97b770d12ce48ed53610f0e7a5",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/sigh.hpp#L290-L293"
+      },
+      {
+        "role": "evidence",
+        "path": "src/entt/signal/sigh.hpp",
+        "start": 247,
+        "end": 253,
+        "sha256": "f07c3a307c1e5184d8072cce0eb0b4d5f88252151f36fa71beaa303f77358dd4",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/src/entt/signal/sigh.hpp#L247-L253"
+      },
+      {
+        "role": "evidence",
+        "path": "test/entt/signal/sigh.cpp",
+        "start": 325,
+        "end": 336,
+        "sha256": "39e77039e06fb1bd0bce0fc74db0d4a3306d1407a2935f28dd25eb136fb9d83e",
+        "url": "https://github.com/skypjack/entt/blob/85c6bba014049b5de8fad49d25424df2f1f6a8c1/test/entt/signal/sigh.cpp#L325-L336"
+      }
+    ],
+    "csharp-subject-observer": [
+      {
+        "role": "storage",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 199,
+        "end": 210,
+        "sha256": "0d3fde5264e88b0278e28b8f71ca72e54441de8be93d66d6b727ecc0253f2f27",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L199-L210"
+      },
+      {
+        "role": "invocation",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 136,
+        "end": 150,
+        "sha256": "65c6af29babd0d2aa028a98aa24a77a298b1a97f87c6c6fa3aaa80ec72618f2d",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L136-L150"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 260,
+        "end": 279,
+        "sha256": "404b2b0252da51fdbaba1091ce2473f8c48ef17675d71acfeaeec02acad5b9f7",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L260-L279"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 332,
+        "end": 360,
+        "sha256": "7bc84e837c08d8a3509e92006b3428679e567c98e2b33414734f570eaf0db89c",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L332-L360"
+      }
+    ],
+    "csharp-subscription-disposed": [
+      {
+        "role": "storage",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 331,
+        "end": 331,
+        "sha256": "4836e9cf80bf9e19fb5ca108e8762f4e1e6c0b3923b5cfb615def8add147f56f",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L331-L331"
+      },
+      {
+        "role": "invocation",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 343,
+        "end": 343,
+        "sha256": "272c3ea80a84a68b525c850e97b79056e3105b3b9f0174a24e0974098b26b17b",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L343-L343"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 334,
+        "end": 334,
+        "sha256": "1e524f66b6c0e109667191d11e0b1297ad4e0ac86b5eb1aea3eed633dc0b70fa",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L334-L334"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 217,
+        "end": 253,
+        "sha256": "234f654cdea4e56a2cee8e5b897b36ef765cc686649771b49fec754eed5c818b",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L217-L253"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 270,
+        "end": 279,
+        "sha256": "3967058e4e6ff9fda521eb31500a44c7ab9acc913a70e16d05b92ad3b77e0351",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L270-L279"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 351,
+        "end": 355,
+        "sha256": "581c2c251ade0ef89394607ec8d2da88d47cf208863d1b207b2861c5215a72f0",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L351-L355"
+      }
+    ],
+    "csharp-subject-disposed": [
+      {
+        "role": "storage",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 332,
+        "end": 333,
+        "sha256": "4bea8b2e17f3d51597f70921b18219f8e65b0a8f88382b198aec4e15e9b3b570",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L332-L333"
+      },
+      {
+        "role": "invocation",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 344,
+        "end": 344,
+        "sha256": "e95b76398b9ae9b156aa9939d96a9d968bc39eed9b05d721c508155aeda0dd9f",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L344-L344"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 138,
+        "end": 150,
+        "sha256": "67549e08f70f34a5355c28bc152aa7a745e0bee4be63323912c69bbe8de2d066",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L138-L150"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        "start": 290,
+        "end": 293,
+        "sha256": "437b41ae78aa0f280d46ab77052c97a570003fab776f2537e73d111c010cae66",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs#L290-L293"
+      },
+      {
+        "role": "evidence",
+        "path": "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        "start": 335,
+        "end": 347,
+        "sha256": "08afc1c4a843da335050fd965cfac7fa9f3154b4a756bab17cae7d8edad0d623",
+        "url": "https://github.com/dotnet/reactive/blob/94b5d5ab912789f5abe9a72138a25bbd716fe59c/Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs#L335-L347"
+      }
+    ],
+    "dart-memory-listener": [
+      {
+        "role": "storage",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 151,
+        "end": 155,
+        "sha256": "eb323007259cfcb910480a987c78e9ff6016195d943ea4559a880321854a02a3",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L151-L155"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 252,
+        "end": 254,
+        "sha256": "74c16f8bc9997a07288ef4d1d5fca6b47667fcb95cd45290fefd17dcbe9c8b76",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L252-L254"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 245,
+        "end": 254,
+        "sha256": "538b1b4299b2bbb61f166b69f333c6d7b884eda3031f53a62516ea10ff3eefb1",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L245-L254"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/flutter/test/foundation/memory_allocations_test.dart",
+        "start": 43,
+        "end": 51,
+        "sha256": "2d79aa32145c4c0b14e2af41f1d67a5beb3bf55fd13e5dc09a04d825af6d690e",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/test/foundation/memory_allocations_test.dart#L43-L51"
+      }
+    ],
+    "dart-add-during-dispatch": [
+      {
+        "role": "storage",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 151,
+        "end": 155,
+        "sha256": "eb323007259cfcb910480a987c78e9ff6016195d943ea4559a880321854a02a3",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L151-L155"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 250,
+        "end": 254,
+        "sha256": "97d99bc294732187ea58bb8064a0c74a76deab747dc2ca8c17ecebe2f7fd5293",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L250-L254"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/flutter/test/foundation/memory_allocations_test.dart",
+        "start": 101,
+        "end": 120,
+        "sha256": "d9ab7dff6be7157b1952c28d0cf344bdb94751f1a6657bea72c680827d46fcca",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/test/foundation/memory_allocations_test.dart#L101-L120"
+      }
+    ],
+    "dart-remove-during-dispatch": [
+      {
+        "role": "storage",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 151,
+        "end": 155,
+        "sha256": "eb323007259cfcb910480a987c78e9ff6016195d943ea4559a880321854a02a3",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L151-L155"
+      },
+      {
+        "role": "invocation",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 252,
+        "end": 254,
+        "sha256": "74c16f8bc9997a07288ef4d1d5fca6b47667fcb95cd45290fefd17dcbe9c8b76",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L252-L254"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        "start": 182,
+        "end": 191,
+        "sha256": "af9775f796f632540193097c146f895382f65e6977512b4cae8d4ad4f4cc6d91",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/lib/src/foundation/memory_allocations.dart#L182-L191"
+      },
+      {
+        "role": "evidence",
+        "path": "packages/flutter/test/foundation/memory_allocations_test.dart",
+        "start": 131,
+        "end": 146,
+        "sha256": "4c9e082728f9b4da6bfa8b51495d9bc5b222c2fd17288ef27599fa1b8e8a9109",
+        "url": "https://github.com/flutter/flutter/blob/27fec0e365a374f1d9c1ffb24b57b4fc69966c9a/packages/flutter/test/foundation/memory_allocations_test.dart#L131-L146"
+      }
+    ],
+    "groovy-closure-delivery": [
+      {
+        "role": "storage",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        "start": 42,
+        "end": 45,
+        "sha256": "5245122f027f45222f65e7da7db972f8602de8e1b4c6662ab9b68fe778e337cb",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy#L42-L45"
+      },
+      {
+        "role": "invocation",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "start": 64,
+        "end": 79,
+        "sha256": "8a29a13a867a9b6e41ff331d6243962697a7d05e58c6a158ca7f0ccfa7a3b2b0",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy#L64-L79"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+        "start": 40,
+        "end": 44,
+        "sha256": "d52d1c385c5c43f6db2b69a6313eceae0c9941c293f3cad4af876fdc3f29b6bb",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy#L40-L44"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "start": 118,
+        "end": 124,
+        "sha256": "0ce34c0faada38464bbcc0f907ee7f33fe2ce4f4c978319739e7c1e5e1168228",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy#L118-L124"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+        "start": 41,
+        "end": 46,
+        "sha256": "1c61286a28bfc809eb949287ae5bb12427da5d68296e1138d99f7734e7134ab1",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy#L41-L46"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        "start": 47,
+        "end": 50,
+        "sha256": "beaaac8d4b82675c4a3c491f2807cc7c265847c98ff35709a3659e91e71eb18f",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy#L47-L50"
+      }
+    ],
+    "groovy-keyed-subscription": [
+      {
+        "role": "storage",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+        "start": 40,
+        "end": 44,
+        "sha256": "d52d1c385c5c43f6db2b69a6313eceae0c9941c293f3cad4af876fdc3f29b6bb",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy#L40-L44"
+      },
+      {
+        "role": "invocation",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "start": 113,
+        "end": 124,
+        "sha256": "4920839d59a494d329d6fcff6bec3ce2d46442f79fae63dc273a37659f455923",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy#L113-L124"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "start": 52,
+        "end": 54,
+        "sha256": "1ca94185efc0220a1466d2c9e51f47ba59b565acb4ba64b04b372d0c2a3b83b5",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy#L52-L54"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "start": 102,
+        "end": 110,
+        "sha256": "4a88ce6d659c20554d58f4ee8b0349ee4436eb22e4b3929f374283f592f97e65",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy#L102-L110"
+      }
+    ],
+    "groovy-reply-not-subscriber": [
+      {
+        "role": "storage",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "start": 49,
+        "end": 49,
+        "sha256": "8cd0582296ae42d46c2522225b5a78ceae56348790c2c3cdc8b96a83c1d46481",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy#L49-L49"
+      },
+      {
+        "role": "invocation",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "start": 74,
+        "end": 79,
+        "sha256": "e79bb52b685a88aa3fbf8bd553241305543f53d1aca57bf4023cf7836c9c8c20",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy#L74-L79"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "start": 40,
+        "end": 50,
+        "sha256": "76f783fe94ac89d139a8f7ac0bdc569be5733761d965346c7866843ded6e56e3",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy#L40-L50"
+      },
+      {
+        "role": "evidence",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "start": 81,
+        "end": 87,
+        "sha256": "e91cae87c1e5622ae55472e711cb731343e7fcbace626d66be71bd0b7c6ad45f",
+        "url": "https://github.com/apache/grails-core/blob/b449d532af9ee613da956e828405b1afc07393d4/grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy#L81-L87"
+      }
+    ],
+    "java-reflective-subscriber": [
+      {
+        "role": "storage",
+        "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+        "start": 27,
+        "end": 30,
+        "sha256": "1534f1bc9e9aad63fe92832476bf1c2b89c0105d77c7704b1a49fa8a504803b0",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/Subscription.java#L27-L30"
+      },
+      {
+        "role": "invocation",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 515,
+        "end": 518,
+        "sha256": "a51fa833d1743b8a28db84473e647e9dee1d52e5fbd992418ea249fe1e105fba",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L515-L518"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 149,
+        "end": 186,
+        "sha256": "46fc2b39dfb6d4ab3a7200290f4f5af384a81cd4f312d2fd08fb74c195404506",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L149-L186"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 386,
+        "end": 421,
+        "sha256": "1c2bbf23fc55db0403c98a05211cf5e329cc9d8654ae4904e751a31f75380a4b",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L386-L421"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 437,
+        "end": 466,
+        "sha256": "ff412f070bea090d5fb050a30219f84f909ff1984e1fe52401ac96b7617599d6",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L437-L466"
+      }
+    ],
+    "java-method-string-not-method": [
+      {
+        "role": "storage",
+        "path": "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+        "start": 53,
+        "end": 60,
+        "sha256": "5007f0561f52d9098b0e67a38c90149cbda1f31c5c3d4016279a4e4827faf342",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java#L53-L60"
+      },
+      {
+        "role": "invocation",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 515,
+        "end": 518,
+        "sha256": "a51fa833d1743b8a28db84473e647e9dee1d52e5fbd992418ea249fe1e105fba",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L515-L518"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+        "start": 22,
+        "end": 28,
+        "sha256": "a5b3d4fe38df82e4c3036e8c346e3146e957b965352010e91a059dc03fc66484",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java#L22-L28"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+        "start": 38,
+        "end": 47,
+        "sha256": "9fe639af0dc3b5ee0765ac2c9bebf7e2b9b77f52b4811685a32239dee5631a06",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java#L38-L47"
+      }
+    ],
+    "java-bus-instance-isolation": [
+      {
+        "role": "storage",
+        "path": "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        "start": 177,
+        "end": 178,
+        "sha256": "2766c4f0cba4179c9c93a30b7ca93b44291ed55597a211d6159ec549c6cbe495",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java#L177-L178"
+      },
+      {
+        "role": "invocation",
+        "path": "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        "start": 179,
+        "end": 180,
+        "sha256": "d488a2d394d9bf580b12b73d907df6e303bc596070f00c71b726688f58f1f893",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java#L179-L180"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 105,
+        "end": 117,
+        "sha256": "a11a438d5332b1a9743d90ae9207d975f7fc869d37cd839533e3b6391b50da5e",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L105-L117"
+      },
+      {
+        "role": "evidence",
+        "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        "start": 410,
+        "end": 415,
+        "sha256": "2781a63a984728853ec9432ccf08dec095ab1778272ae55fd3c16db45c37045e",
+        "url": "https://github.com/greenrobot/EventBus/blob/0194926b3bcf70cc0d7bfd3c5da16708dd5ab876/EventBus/src/org/greenrobot/eventbus/EventBus.java#L410-L415"
+      }
+    ],
+    "kotlin-observer-publish": [
+      {
+        "role": "storage",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 83,
+        "end": 86,
+        "sha256": "b96a89adb1afbf3a388dd58949900d4dcde7b4fd43b1facf2f0166bf10c7037e",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L83-L86"
+      },
+      {
+        "role": "invocation",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 99,
+        "end": 103,
+        "sha256": "d46725484581d270c2e8a30167949f2af283451a704af8c1e27379741eaff9be",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L99-L103"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 35,
+        "end": 36,
+        "sha256": "c727f9b9ddee5432f167c5223bffa9d249159feb62375dd3a0972ea5f911e616",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L35-L36"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 58,
+        "end": 70,
+        "sha256": "ba0c4ae2642bbb76010eabe05e0037e4c799818248ad366ccb732e168bdda025",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L58-L70"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+        "start": 92,
+        "end": 115,
+        "sha256": "9c9c56760c0b6e1f7013254a8f70c9f42b858ddfe5a61865974e7cb86f69d6e4",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt#L92-L115"
+      }
+    ],
+    "kotlin-before-subscribe": [
+      {
+        "role": "storage",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 83,
+        "end": 86,
+        "sha256": "b96a89adb1afbf3a388dd58949900d4dcde7b4fd43b1facf2f0166bf10c7037e",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L83-L86"
+      },
+      {
+        "role": "invocation",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 99,
+        "end": 103,
+        "sha256": "d46725484581d270c2e8a30167949f2af283451a704af8c1e27379741eaff9be",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L99-L103"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/PublishSubjectTest.kt",
+        "start": 11,
+        "end": 17,
+        "sha256": "84d9666821befd542b3f28836d56f7c4c23ae699d54cc597be900f1464755869",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/PublishSubjectTest.kt#L11-L17"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 23,
+        "end": 25,
+        "sha256": "519d0aa256aaf184c3d0744a577459543d61f7775b3b2867c2ef754fad82288e",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L23-L25"
+      }
+    ],
+    "kotlin-disposed": [
+      {
+        "role": "storage",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 83,
+        "end": 86,
+        "sha256": "b96a89adb1afbf3a388dd58949900d4dcde7b4fd43b1facf2f0166bf10c7037e",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L83-L86"
+      },
+      {
+        "role": "invocation",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 99,
+        "end": 103,
+        "sha256": "d46725484581d270c2e8a30167949f2af283451a704af8c1e27379741eaff9be",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L99-L103"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+        "start": 205,
+        "end": 209,
+        "sha256": "348cb1e4d3557e5d65d4e078902f4cf8f52e8afee8b40a30e9a632ff8fdad970",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt#L205-L209"
+      },
+      {
+        "role": "evidence",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "start": 76,
+        "end": 102,
+        "sha256": "2006f1eb9b61d20ca467836d0904f2ca707def14ca39e268b462e180bb159706",
+        "url": "https://github.com/badoo/Reaktive/blob/9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b/reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt#L76-L102"
+      }
+    ],
+    "lua-function-key": [
+      {
+        "role": "storage",
+        "path": "signal.lua",
+        "start": 37,
+        "end": 37,
+        "sha256": "a83dd26bcd1c62007c69a387e529c25c69bdd0a6b3296996ee151b2ed0486d37",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L37-L37"
+      },
+      {
+        "role": "invocation",
+        "path": "signal.lua",
+        "start": 43,
+        "end": 43,
+        "sha256": "f1cce6cf3e7c1d9462d14fafec1bbb214fd3c89271a097df64e82d754ce009fe",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L43-L43"
+      },
+      {
+        "role": "evidence",
+        "path": "signal.lua",
+        "start": 28,
+        "end": 44,
+        "sha256": "6a81b4884cd7a72141b1ff9beb92cfacb6047d0ec2b8b91826a08331ed801a25",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L28-L44"
+      }
+    ],
+    "lua-key-value-roles": [
+      {
+        "role": "storage",
+        "path": "signal.lua",
+        "start": 37,
+        "end": 37,
+        "sha256": "a83dd26bcd1c62007c69a387e529c25c69bdd0a6b3296996ee151b2ed0486d37",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L37-L37"
+      },
+      {
+        "role": "invocation",
+        "path": "signal.lua",
+        "start": 43,
+        "end": 43,
+        "sha256": "f1cce6cf3e7c1d9462d14fafec1bbb214fd3c89271a097df64e82d754ce009fe",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L43-L43"
+      },
+      {
+        "role": "evidence",
+        "path": "signal.lua",
+        "start": 37,
+        "end": 43,
+        "sha256": "4fc4d044e681e2668be7730a3af8408311868e6113b59d330bdbfdd8517c7d36",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L37-L43"
+      }
+    ],
+    "lua-remove": [
+      {
+        "role": "storage",
+        "path": "signal.lua",
+        "start": 37,
+        "end": 37,
+        "sha256": "a83dd26bcd1c62007c69a387e529c25c69bdd0a6b3296996ee151b2ed0486d37",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L37-L37"
+      },
+      {
+        "role": "invocation",
+        "path": "signal.lua",
+        "start": 43,
+        "end": 43,
+        "sha256": "f1cce6cf3e7c1d9462d14fafec1bbb214fd3c89271a097df64e82d754ce009fe",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L43-L43"
+      },
+      {
+        "role": "evidence",
+        "path": "signal.lua",
+        "start": 47,
+        "end": 51,
+        "sha256": "764f04fba86325f10c2cd6f3ce907c04251b1f16e306b23682a714d622c27ed5",
+        "url": "https://github.com/vrld/hump/blob/08937cc0ecf72d1a964a8de6cd552c5e136bf0d4/signal.lua#L47-L51"
+      }
+    ],
+    "php-priority-listener": [
+      {
+        "role": "storage",
+        "path": "EventDispatcher.php",
+        "start": 141,
+        "end": 145,
+        "sha256": "ff44fe05f60b0a81f11d66ed9357f8ca78f5e08b380b5f6556daecfbc711db4a",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L141-L145"
+      },
+      {
+        "role": "invocation",
+        "path": "EventDispatcher.php",
+        "start": 235,
+        "end": 235,
+        "sha256": "947102ee2861cdb34496ae4a87e649e3d6b8952bca44a226cd687c1a95a06b06",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L235-L235"
+      },
+      {
+        "role": "evidence",
+        "path": "EventDispatcher.php",
+        "start": 47,
+        "end": 58,
+        "sha256": "970f584bb369d4c0e3b33a18d83a67ad2f8309ca8712d6a49e9540171ec1553a",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L47-L58"
+      },
+      {
+        "role": "evidence",
+        "path": "EventDispatcher.php",
+        "start": 287,
+        "end": 307,
+        "sha256": "a290d8bc69607ca3e7758170e527c035beff67b131f250955292cc6f3fcf67a8",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L287-L307"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/EventDispatcherTest.php",
+        "start": 163,
+        "end": 179,
+        "sha256": "48a9244a868e33b055b4002b506ffe224605332132be19441e8b5bc000ecbe49",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/Tests/EventDispatcherTest.php#L163-L179"
+      }
+    ],
+    "php-same-closure-different-key": [
+      {
+        "role": "storage",
+        "path": "Tests/EventDispatcherTest.php",
+        "start": 144,
+        "end": 144,
+        "sha256": "f90916ed5dc41cc032f58486c27ac6330eaef0a78de4b77cf2aa1d24d1a588a7",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/Tests/EventDispatcherTest.php#L144-L144"
+      },
+      {
+        "role": "invocation",
+        "path": "EventDispatcher.php",
+        "start": 235,
+        "end": 235,
+        "sha256": "947102ee2861cdb34496ae4a87e649e3d6b8952bca44a226cd687c1a95a06b06",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L235-L235"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/EventDispatcherTest.php",
+        "start": 137,
+        "end": 146,
+        "sha256": "b133547bef1a01ad7198b966d289660c6be82afdca167c5a7ebad70acc14b151",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/Tests/EventDispatcherTest.php#L137-L146"
+      },
+      {
+        "role": "evidence",
+        "path": "EventDispatcher.php",
+        "start": 49,
+        "end": 58,
+        "sha256": "c77084a02b7cd1d93d42a5d8bdd4c96d0f2e9569bdb39c3238b6015435cc3c3d",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L49-L58"
+      }
+    ],
+    "php-lazy-factory": [
+      {
+        "role": "storage",
+        "path": "Tests/EventDispatcherTest.php",
+        "start": 365,
+        "end": 365,
+        "sha256": "17b31da025770f9fde48b06f38517ba978eeb9e322ebf165cd87060f15e05176",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/Tests/EventDispatcherTest.php#L365-L365"
+      },
+      {
+        "role": "invocation",
+        "path": "EventDispatcher.php",
+        "start": 299,
+        "end": 299,
+        "sha256": "e26eee2d2b7850700786428f124c478453a2d8e3bcec37ac59db0e2eb1f0a90a",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L299-L299"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/EventDispatcherTest.php",
+        "start": 356,
+        "end": 370,
+        "sha256": "ea2ea1c2143332ffaf63dd234a3a7d2acaa8007e844997206b97d7421b487a18",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/Tests/EventDispatcherTest.php#L356-L370"
+      },
+      {
+        "role": "evidence",
+        "path": "EventDispatcher.php",
+        "start": 290,
+        "end": 307,
+        "sha256": "878634eee1f9a38ab4523d1c8138110893fffe88fef883f2edc23099d8e6d17a",
+        "url": "https://github.com/symfony/event-dispatcher/blob/945f0a388a7b5d370f23e9faa1d5d48bff70a909/EventDispatcher.php#L290-L307"
+      }
+    ],
+    "python-receiver-send": [
+      {
+        "role": "storage",
+        "path": "src/blinker/base.py",
+        "start": 107,
+        "end": 118,
+        "sha256": "c6c9425bcbc5af9c8669bcf763bbd005385c77fceaed09a645cdce60be380c11",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L107-L118"
+      },
+      {
+        "role": "invocation",
+        "path": "src/blinker/base.py",
+        "start": 242,
+        "end": 249,
+        "sha256": "c88bd41856b8785524ca0db8227e6a1e89b166d7087b1c9a1010aede8af9e818",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L242-L249"
+      },
+      {
+        "role": "evidence",
+        "path": "src/blinker/base.py",
+        "start": 340,
+        "end": 360,
+        "sha256": "ea3dca81820d1f36232ab50bdd669c787b0946f866942fcb7e56c6c38ef14edc",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L340-L360"
+      },
+      {
+        "role": "evidence",
+        "path": "tests/test_signals.py",
+        "start": 248,
+        "end": 257,
+        "sha256": "12b5504a05c2fec10236a7284b5e97da0ec22a79ca0263e398ba07980f38bb67",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L248-L257"
+      }
+    ],
+    "python-specific-sender": [
+      {
+        "role": "storage",
+        "path": "tests/test_signals.py",
+        "start": 319,
+        "end": 319,
+        "sha256": "c92613f01ca442fe041764856f79644283b4f82b7430bb47fdce2440750d6147",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L319-L319"
+      },
+      {
+        "role": "invocation",
+        "path": "tests/test_signals.py",
+        "start": 322,
+        "end": 323,
+        "sha256": "37194faa8bc02b8b9832f8cb4923ab203887fd7102152fe9b42688b3e4a0a738",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L322-L323"
+      },
+      {
+        "role": "evidence",
+        "path": "src/blinker/base.py",
+        "start": 340,
+        "end": 345,
+        "sha256": "4981b698ecd2f859ac6075c74537762b326f7bbd9f28ba14f3424ec82914c5b1",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L340-L345"
+      },
+      {
+        "role": "evidence",
+        "path": "tests/test_signals.py",
+        "start": 324,
+        "end": 325,
+        "sha256": "51dbdd6d0047a96ce0b35716645eba6dd4ef123aecadd4972fba57f3b66b4b9d",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L324-L325"
+      }
+    ],
+    "python-weakref-gc": [
+      {
+        "role": "storage",
+        "path": "tests/test_signals.py",
+        "start": 227,
+        "end": 227,
+        "sha256": "a29ea9973e41a993d6cc9bb8d443682cd5ea2a0fd721c2e92bad617fdddbb358",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L227-L227"
+      },
+      {
+        "role": "invocation",
+        "path": "tests/test_signals.py",
+        "start": 233,
+        "end": 235,
+        "sha256": "18f360887309106859368541b47594b75e527c8d1343c833fbd6f20e75c20e50",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L233-L235"
+      },
+      {
+        "role": "evidence",
+        "path": "tests/test_signals.py",
+        "start": 229,
+        "end": 230,
+        "sha256": "8a3c09698752ddd45bdd8a8b1bd7975aa8f06fd6cc80439ace269b4a6a4ecc33",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/tests/test_signals.py#L229-L230"
+      },
+      {
+        "role": "evidence",
+        "path": "src/blinker/base.py",
+        "start": 406,
+        "end": 410,
+        "sha256": "c5c41df9fc396c518a2405eece71b803562af5d74f3503858dc520ff730dd2a7",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L406-L410"
+      },
+      {
+        "role": "evidence",
+        "path": "src/blinker/base.py",
+        "start": 353,
+        "end": 358,
+        "sha256": "f05c68ec519912e663c88cb8a2116135728baf8691b3086dd6131149fe5a74c3",
+        "url": "https://github.com/pallets-eco/blinker/blob/c3364059663df1ddce32799d6b1922af89a345f6/src/blinker/base.py#L353-L358"
+      }
+    ],
+    "ruby-observer-send": [
+      {
+        "role": "storage",
+        "path": "lib/observer.rb",
+        "start": 153,
+        "end": 159,
+        "sha256": "afd52fbb88ec1ffcdc7c302afad8b71a7cc94adc03466dff27f9607cc9a3f08d",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/lib/observer.rb#L153-L159"
+      },
+      {
+        "role": "invocation",
+        "path": "lib/observer.rb",
+        "start": 218,
+        "end": 223,
+        "sha256": "cb9d79386ef5f196b42653b2d95146e35b15c3ea8c7a44038beda02f66e14617",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/lib/observer.rb#L218-L223"
+      },
+      {
+        "role": "evidence",
+        "path": "test/test_observer.rb",
+        "start": 15,
+        "end": 24,
+        "sha256": "07c8f250a6b8e164edce289eea626d7a58e10a34ef325de18d198f784f26262c",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L15-L24"
+      },
+      {
+        "role": "evidence",
+        "path": "test/test_observer.rb",
+        "start": 33,
+        "end": 46,
+        "sha256": "5fc1acd4630a0bf6bd75cd04e8ecd3f1502fc4d1a6387992f48c6ba229d4a6e2",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L33-L46"
+      }
+    ],
+    "ruby-deleted-observer": [
+      {
+        "role": "storage",
+        "path": "test/test_observer.rb",
+        "start": 16,
+        "end": 19,
+        "sha256": "17a41f6d887013653027ae6e1aa3d8553b9b48e5906d5ea40913359e278d5636",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L16-L19"
+      },
+      {
+        "role": "invocation",
+        "path": "test/test_observer.rb",
+        "start": 52,
+        "end": 52,
+        "sha256": "467773ae42336ec69c0418a36ecd63d36ca5f5e47b6d2e8d3b6f9c97b7e14b6e",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L52-L52"
+      },
+      {
+        "role": "evidence",
+        "path": "lib/observer.rb",
+        "start": 166,
+        "end": 168,
+        "sha256": "a57a592cd8d99d84fb15e96f0e93c7313273dd5bd8da256eaf7a345aaffab12f",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/lib/observer.rb#L166-L168"
+      },
+      {
+        "role": "evidence",
+        "path": "test/test_observer.rb",
+        "start": 48,
+        "end": 55,
+        "sha256": "fd93d5c2d142f8668340e759aa1b09f0883fe901e6c4f484d6d9a2f7dc20da3d",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L48-L55"
+      }
+    ],
+    "ruby-method-symbol-identity": [
+      {
+        "role": "storage",
+        "path": "lib/observer.rb",
+        "start": 153,
+        "end": 159,
+        "sha256": "afd52fbb88ec1ffcdc7c302afad8b71a7cc94adc03466dff27f9607cc9a3f08d",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/lib/observer.rb#L153-L159"
+      },
+      {
+        "role": "invocation",
+        "path": "lib/observer.rb",
+        "start": 221,
+        "end": 223,
+        "sha256": "e2597d61117499ed344b0badef8156e763af33a12fe2f94a33783985a838b8a3",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/lib/observer.rb#L221-L223"
+      },
+      {
+        "role": "evidence",
+        "path": "test/test_observer.rb",
+        "start": 33,
+        "end": 46,
+        "sha256": "5fc1acd4630a0bf6bd75cd04e8ecd3f1502fc4d1a6387992f48c6ba229d4a6e2",
+        "url": "https://github.com/ruby/observer/blob/5c871444fd184e1c55af38c7c3b70b769698c891/test/test_observer.rb#L33-L46"
+      }
+    ],
+    "scala-state-subscriber": [
+      {
+        "role": "storage",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 66,
+        "end": 80,
+        "sha256": "eea9cb17cd2781f9ed9258f59696c6bf226edf68de0d67cc0f00205a9bd9535d",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L66-L80"
+      },
+      {
+        "role": "invocation",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 111,
+        "end": 125,
+        "sha256": "5ddd31dd95e6860f0100c570ecc1770f6ccf1db42d2483c78e92c5eda5548910",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L111-L125"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 87,
+        "end": 103,
+        "sha256": "3894611e18fca670caaafd5790e4098d79d62ea5051dd76ed7cbec3b9ed0bdb3",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L87-L103"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 212,
+        "end": 219,
+        "sha256": "d079834ccd5b0a8fc2ea8bc9e48786fd9d2b12d916cd94b9fd22f8b1dc771e10",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L212-L219"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "start": 65,
+        "end": 89,
+        "sha256": "01d5aa08eb33c165f8acbdb587c5800b253de95300681cfc237c753e06e45694",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala#L65-L89"
+      }
+    ],
+    "scala-before-subscribe": [
+      {
+        "role": "storage",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 66,
+        "end": 80,
+        "sha256": "eea9cb17cd2781f9ed9258f59696c6bf226edf68de0d67cc0f00205a9bd9535d",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L66-L80"
+      },
+      {
+        "role": "invocation",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 111,
+        "end": 125,
+        "sha256": "5ddd31dd95e6860f0100c570ecc1770f6ccf1db42d2483c78e92c5eda5548910",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L111-L125"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "start": 65,
+        "end": 88,
+        "sha256": "9048748a0abe75c1f510d9bbf5c980cef45a96f0dd8faf90e7c3f255facb0d1f",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala#L65-L88"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 32,
+        "end": 37,
+        "sha256": "db59ebbefb47c93650894859367a98df2226db016e2547ac743271738fe7a027",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L32-L37"
+      }
+    ],
+    "scala-future-body": [
+      {
+        "role": "storage",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 66,
+        "end": 80,
+        "sha256": "eea9cb17cd2781f9ed9258f59696c6bf226edf68de0d67cc0f00205a9bd9535d",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L66-L80"
+      },
+      {
+        "role": "invocation",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 111,
+        "end": 146,
+        "sha256": "a733ae0043315716a21a702bcda0d5a19346a281280eda83a186678ccba6af7c",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L111-L146"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "start": 117,
+        "end": 139,
+        "sha256": "ed42bf47e3353d4294fcecf75ab68b3b1925dcd9518f253f43ca583c66c2ae4f",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala#L117-L139"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 150,
+        "end": 155,
+        "sha256": "cd01401cd816d6f00b89e425a5a86c11c62c58357c84d8bc117f9740ed20da71",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L150-L155"
+      },
+      {
+        "role": "evidence",
+        "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "start": 184,
+        "end": 195,
+        "sha256": "2f5fccb388e622b4b8e5c19547e982af63a2000fb298ae4b50f336560fdfcb3c",
+        "url": "https://github.com/monix/monix/blob/b88e5331d761f12c41d244fad243cdad8c82ce1d/monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala#L184-L195"
+      }
+    ],
+    "swift-bag-observer": [
+      {
+        "role": "storage",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 97,
+        "end": 109,
+        "sha256": "ae6848aa0ceb3cf62067634385dab3b5f297210d153aec1087e15e4f01d783f2",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L97-L109"
+      },
+      {
+        "role": "invocation",
+        "path": "RxSwift/Extensions/Bag+Rx.swift",
+        "start": 12,
+        "end": 27,
+        "sha256": "aebae5b022a83b80934a6e5fa30fcb4032e030dabec6c0492f5247946723b9c8",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Extensions/Bag+Rx.swift#L12-L27"
+      },
+      {
+        "role": "evidence",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 57,
+        "end": 73,
+        "sha256": "31041ce95f1999ddadb51487b8dd91b5dce975f67d0244db96db47b811aa6ac7",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L57-L73"
+      },
+      {
+        "role": "evidence",
+        "path": "RxSwift/AnyObserver.swift",
+        "start": 47,
+        "end": 50,
+        "sha256": "de204d05fbcd39af46f7a3735e95ff2c8353ec5a4a30c13ac2d26c1eb86ba0fb",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/AnyObserver.swift#L47-L50"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+        "start": 24,
+        "end": 47,
+        "sha256": "40623d5e575b009526d93491aaf8f30f68bdcea24847c19ffc0020351556b96c",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/Tests/RxSwiftTests/Observable+SubscriptionTest.swift#L24-L47"
+      }
+    ],
+    "swift-dispose-key": [
+      {
+        "role": "storage",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 108,
+        "end": 109,
+        "sha256": "012a4c021bbed7d109bc95ca19a3655d089f9eaae9033454999c1b1f557c3b81",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L108-L109"
+      },
+      {
+        "role": "invocation",
+        "path": "RxSwift/Extensions/Bag+Rx.swift",
+        "start": 12,
+        "end": 27,
+        "sha256": "aebae5b022a83b80934a6e5fa30fcb4032e030dabec6c0492f5247946723b9c8",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Extensions/Bag+Rx.swift#L12-L27"
+      },
+      {
+        "role": "evidence",
+        "path": "RxSwift/Disposables/SubscriptionDisposable.swift",
+        "start": 13,
+        "end": 20,
+        "sha256": "167f7e8c3cae3d116747489d65e6e3ec84068627b6dac1efe2ea21380afc29c3",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Disposables/SubscriptionDisposable.swift#L13-L20"
+      },
+      {
+        "role": "evidence",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 112,
+        "end": 117,
+        "sha256": "10296c1fa469deeab45870a8a221e1fad75d6dfedaf99b08b796bc1eb357780c",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L112-L117"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+        "start": 43,
+        "end": 60,
+        "sha256": "2a0712b5c832e5fbdd8776f80444eb703ee926712be3a4c11847dbdf26ec0375",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/Tests/RxSwiftTests/Observable+SubscriptionTest.swift#L43-L60"
+      }
+    ],
+    "swift-terminal-state": [
+      {
+        "role": "storage",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 108,
+        "end": 109,
+        "sha256": "012a4c021bbed7d109bc95ca19a3655d089f9eaae9033454999c1b1f557c3b81",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L108-L109"
+      },
+      {
+        "role": "invocation",
+        "path": "RxSwift/Extensions/Bag+Rx.swift",
+        "start": 12,
+        "end": 27,
+        "sha256": "aebae5b022a83b80934a6e5fa30fcb4032e030dabec6c0492f5247946723b9c8",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Extensions/Bag+Rx.swift#L12-L27"
+      },
+      {
+        "role": "evidence",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "start": 65,
+        "end": 84,
+        "sha256": "17d5311d2056911bcafc6f98270e871f2ad88ce4e3eda4edb77beb8e6ff0879d",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/RxSwift/Subjects/PublishSubject.swift#L65-L84"
+      },
+      {
+        "role": "evidence",
+        "path": "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+        "start": 125,
+        "end": 162,
+        "sha256": "1028b4a64d8256091b0240c534e8074962da72a02d8a420ec4bc8087026ae2c8",
+        "url": "https://github.com/ReactiveX/RxSwift/blob/3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84/Tests/RxSwiftTests/Observable+SubscriptionTest.swift#L125-L162"
+      }
+    ],
+    "javascript-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 3,
+        "end": 3,
+        "sha256": "9343bd73de8781c2f0a29f1cfb29da1db7ea07d00e6b8b74c42d082161ef9045"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 5,
+        "end": 5,
+        "sha256": "15777fbb329403a3ab8a6547391d021f7a3652dd18780e9de2d913ee9f3d44d0"
+      }
+    ],
+    "javascript-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 4,
+        "end": 4,
+        "sha256": "412990c991c77d43e3ce72d5df2d904f6e2b389f571b7f77c860b91f6242286a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 6,
+        "end": 6,
+        "sha256": "3a9d653cf511acadf04e6f1d8d8264b83deff3e9d8bef12ae27ebdf2810753dd"
+      }
+    ],
+    "javascript-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 3,
+        "end": 3,
+        "sha256": "9343bd73de8781c2f0a29f1cfb29da1db7ea07d00e6b8b74c42d082161ef9045"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 6,
+        "end": 6,
+        "sha256": "3a9d653cf511acadf04e6f1d8d8264b83deff3e9d8bef12ae27ebdf2810753dd"
+      }
+    ],
+    "javascript-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 4,
+        "end": 4,
+        "sha256": "412990c991c77d43e3ce72d5df2d904f6e2b389f571b7f77c860b91f6242286a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 5,
+        "end": 5,
+        "sha256": "15777fbb329403a3ab8a6547391d021f7a3652dd18780e9de2d913ee9f3d44d0"
+      }
+    ],
+    "javascript-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 3,
+        "end": 3,
+        "sha256": "9343bd73de8781c2f0a29f1cfb29da1db7ea07d00e6b8b74c42d082161ef9045"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/javascript/callbacks.js",
+        "start": 10,
+        "end": 10,
+        "sha256": "1271a4a7b9e86e1ca1ba781764935fe7d4d1b46500287dbc0e7232eeb681d159"
+      }
+    ],
+    "typescript-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 3,
+        "end": 3,
+        "sha256": "84904672d4604df7ae33abace6c575391052310af4f5351524102660fb64fc60"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 5,
+        "end": 5,
+        "sha256": "15777fbb329403a3ab8a6547391d021f7a3652dd18780e9de2d913ee9f3d44d0"
+      }
+    ],
+    "typescript-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 4,
+        "end": 4,
+        "sha256": "ae7ee8d2fca429695f653a06af28bcf262737c1b250901636a0649aca314ba6c"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 6,
+        "end": 6,
+        "sha256": "3a9d653cf511acadf04e6f1d8d8264b83deff3e9d8bef12ae27ebdf2810753dd"
+      }
+    ],
+    "typescript-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 3,
+        "end": 3,
+        "sha256": "84904672d4604df7ae33abace6c575391052310af4f5351524102660fb64fc60"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 6,
+        "end": 6,
+        "sha256": "3a9d653cf511acadf04e6f1d8d8264b83deff3e9d8bef12ae27ebdf2810753dd"
+      }
+    ],
+    "typescript-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 4,
+        "end": 4,
+        "sha256": "ae7ee8d2fca429695f653a06af28bcf262737c1b250901636a0649aca314ba6c"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 5,
+        "end": 5,
+        "sha256": "15777fbb329403a3ab8a6547391d021f7a3652dd18780e9de2d913ee9f3d44d0"
+      }
+    ],
+    "typescript-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 3,
+        "end": 3,
+        "sha256": "84904672d4604df7ae33abace6c575391052310af4f5351524102660fb64fc60"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/typescript/callbacks.ts",
+        "start": 10,
+        "end": 10,
+        "sha256": "1271a4a7b9e86e1ca1ba781764935fe7d4d1b46500287dbc0e7232eeb681d159"
+      }
+    ],
+    "go-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/go/callbacks.go",
+        "start": 4,
+        "end": 4,
+        "sha256": "cdb932d99ec1ad31fd0e4af67d114a1a57b4d8b407a14ce01b396777c0f239f5"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/go/callbacks.go",
+        "start": 6,
+        "end": 6,
+        "sha256": "b1d78f6eb1a5a958153f58ae600b8120690b62b50c9573ede3218b17043d6267"
+      }
+    ],
+    "go-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/go/callbacks.go",
+        "start": 5,
+        "end": 5,
+        "sha256": "4c6d1aef9ca6fb2b57d63bc6cd1f02d31374dbe1c4585ba7dcf60bc88ada6e95"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/go/callbacks.go",
+        "start": 7,
+        "end": 7,
+        "sha256": "331a6c717aaedc6bd7a91dbb2575c9aeb967e0405477203c12e0855d3fddf7df"
+      }
+    ],
+    "go-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/go/callbacks.go",
+        "start": 4,
+        "end": 4,
+        "sha256": "cdb932d99ec1ad31fd0e4af67d114a1a57b4d8b407a14ce01b396777c0f239f5"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/go/callbacks.go",
+        "start": 7,
+        "end": 7,
+        "sha256": "331a6c717aaedc6bd7a91dbb2575c9aeb967e0405477203c12e0855d3fddf7df"
+      }
+    ],
+    "go-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/go/callbacks.go",
+        "start": 5,
+        "end": 5,
+        "sha256": "4c6d1aef9ca6fb2b57d63bc6cd1f02d31374dbe1c4585ba7dcf60bc88ada6e95"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/go/callbacks.go",
+        "start": 6,
+        "end": 6,
+        "sha256": "b1d78f6eb1a5a958153f58ae600b8120690b62b50c9573ede3218b17043d6267"
+      }
+    ],
+    "go-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/go/callbacks.go",
+        "start": 4,
+        "end": 4,
+        "sha256": "cdb932d99ec1ad31fd0e4af67d114a1a57b4d8b407a14ce01b396777c0f239f5"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/go/callbacks.go",
+        "start": 9,
+        "end": 9,
+        "sha256": "0113fcaf606fb636b2f92a54d6218f409e5f75675fb1685cc1d7c954fb7a3b37"
+      }
+    ],
+    "rust-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 3,
+        "end": 3,
+        "sha256": "1e67082e2a99a983ef7522a7fdcc15f5101e9e35fcc6834f5c6b8e12204724cb"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 5,
+        "end": 5,
+        "sha256": "8a6e5bc235f265382346fcc3c61bc3c09aebde509a8686a9c56817eb7293b5d4"
+      }
+    ],
+    "rust-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 4,
+        "end": 4,
+        "sha256": "cbea4a4cf5d7f062b6d45fa9c43d7594c97b282c5a913710a0ddf174c983bac8"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 6,
+        "end": 6,
+        "sha256": "37e020a55d1e65d13a48c5df68f36dff4ca6fba4386b7b63f7c8ba302935c5fe"
+      }
+    ],
+    "rust-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 3,
+        "end": 3,
+        "sha256": "1e67082e2a99a983ef7522a7fdcc15f5101e9e35fcc6834f5c6b8e12204724cb"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 6,
+        "end": 6,
+        "sha256": "37e020a55d1e65d13a48c5df68f36dff4ca6fba4386b7b63f7c8ba302935c5fe"
+      }
+    ],
+    "rust-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 4,
+        "end": 4,
+        "sha256": "cbea4a4cf5d7f062b6d45fa9c43d7594c97b282c5a913710a0ddf174c983bac8"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 5,
+        "end": 5,
+        "sha256": "8a6e5bc235f265382346fcc3c61bc3c09aebde509a8686a9c56817eb7293b5d4"
+      }
+    ],
+    "rust-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 3,
+        "end": 3,
+        "sha256": "1e67082e2a99a983ef7522a7fdcc15f5101e9e35fcc6834f5c6b8e12204724cb"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/rust/callbacks.rs",
+        "start": 10,
+        "end": 10,
+        "sha256": "0be583be50136fc35bf435852b9aa03c78f3677c4fc4cc5947165d5204dc04c9"
+      }
+    ],
+    "python-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/python/callbacks.py",
+        "start": 3,
+        "end": 3,
+        "sha256": "333b3836b771bb9cc549b06b9afc7c0f4bcf2bbce7dcaabc1d88ce046e9690ad"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/python/callbacks.py",
+        "start": 7,
+        "end": 7,
+        "sha256": "c34bb17b38720234d8f6398ca77e85df00ea3c94abac3fe8dd9efa1e87d13992"
+      }
+    ],
+    "python-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/python/callbacks.py",
+        "start": 5,
+        "end": 5,
+        "sha256": "2270be34dbac4f2ad15449c29401f72e9a7c1c56a24c33dde82e5a8dd9549d39"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/python/callbacks.py",
+        "start": 9,
+        "end": 9,
+        "sha256": "83f65404afc2be174f2297a1f250d859790126b86230076d04293d2b645eae63"
+      }
+    ],
+    "python-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/python/callbacks.py",
+        "start": 3,
+        "end": 3,
+        "sha256": "333b3836b771bb9cc549b06b9afc7c0f4bcf2bbce7dcaabc1d88ce046e9690ad"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/python/callbacks.py",
+        "start": 9,
+        "end": 9,
+        "sha256": "83f65404afc2be174f2297a1f250d859790126b86230076d04293d2b645eae63"
+      }
+    ],
+    "python-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/python/callbacks.py",
+        "start": 5,
+        "end": 5,
+        "sha256": "2270be34dbac4f2ad15449c29401f72e9a7c1c56a24c33dde82e5a8dd9549d39"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/python/callbacks.py",
+        "start": 7,
+        "end": 7,
+        "sha256": "c34bb17b38720234d8f6398ca77e85df00ea3c94abac3fe8dd9efa1e87d13992"
+      }
+    ],
+    "python-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/python/callbacks.py",
+        "start": 3,
+        "end": 3,
+        "sha256": "333b3836b771bb9cc549b06b9afc7c0f4bcf2bbce7dcaabc1d88ce046e9690ad"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/python/callbacks.py",
+        "start": 12,
+        "end": 12,
+        "sha256": "f4e0ff08ae4cfa96c7a5918773d738bf2c8914bffa6bce04af1733e003634162"
+      }
+    ],
+    "c-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/c/callbacks.c",
+        "start": 3,
+        "end": 3,
+        "sha256": "fb1dacb269b479eb6787a1f728af7eb559d71aa137da7b2d824fe8a9b8917753"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/c/callbacks.c",
+        "start": 5,
+        "end": 5,
+        "sha256": "869248ce54a1fd553388c957ed0bacd7410327f97a7b12c4eba8efaaca2f6f6b"
+      }
+    ],
+    "c-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/c/callbacks.c",
+        "start": 4,
+        "end": 4,
+        "sha256": "2257423dee07273a8b99cd47c21599f9b94307aa1404db7b5b8c77d3c87326c2"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/c/callbacks.c",
+        "start": 6,
+        "end": 6,
+        "sha256": "4f00e676d1cfc6103b85e2c486cf614218e11009b012329f62490db1dfbef700"
+      }
+    ],
+    "c-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/c/callbacks.c",
+        "start": 3,
+        "end": 3,
+        "sha256": "fb1dacb269b479eb6787a1f728af7eb559d71aa137da7b2d824fe8a9b8917753"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/c/callbacks.c",
+        "start": 6,
+        "end": 6,
+        "sha256": "4f00e676d1cfc6103b85e2c486cf614218e11009b012329f62490db1dfbef700"
+      }
+    ],
+    "c-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/c/callbacks.c",
+        "start": 4,
+        "end": 4,
+        "sha256": "2257423dee07273a8b99cd47c21599f9b94307aa1404db7b5b8c77d3c87326c2"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/c/callbacks.c",
+        "start": 5,
+        "end": 5,
+        "sha256": "869248ce54a1fd553388c957ed0bacd7410327f97a7b12c4eba8efaaca2f6f6b"
+      }
+    ],
+    "c-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/c/callbacks.c",
+        "start": 3,
+        "end": 3,
+        "sha256": "fb1dacb269b479eb6787a1f728af7eb559d71aa137da7b2d824fe8a9b8917753"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/c/callbacks.c",
+        "start": 8,
+        "end": 8,
+        "sha256": "85bb49e06fd7809672a64c440bc8826f2a5ba3fca3454255ceb7965d6d9730c5"
+      }
+    ],
+    "cpp-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 4,
+        "end": 4,
+        "sha256": "a79450ab36db119c5e3a17049b0f7c37287afb5dea48ed6fddd1b3e8b61faac4"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 6,
+        "end": 6,
+        "sha256": "7fde553450152721dce01c7b5752ccac3aeb7d9b98277d6bbf2dff452aba4c50"
+      }
+    ],
+    "cpp-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 5,
+        "end": 5,
+        "sha256": "b8749ec9c5799394e4facd5231f50d2f410abae4361dd815ad46b1646198bbfd"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 7,
+        "end": 7,
+        "sha256": "39260250ca55358492730418d6a2744f66906f7f69250c9dea2ce9f66fcb06e5"
+      }
+    ],
+    "cpp-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 4,
+        "end": 4,
+        "sha256": "a79450ab36db119c5e3a17049b0f7c37287afb5dea48ed6fddd1b3e8b61faac4"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 7,
+        "end": 7,
+        "sha256": "39260250ca55358492730418d6a2744f66906f7f69250c9dea2ce9f66fcb06e5"
+      }
+    ],
+    "cpp-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 5,
+        "end": 5,
+        "sha256": "b8749ec9c5799394e4facd5231f50d2f410abae4361dd815ad46b1646198bbfd"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 6,
+        "end": 6,
+        "sha256": "7fde553450152721dce01c7b5752ccac3aeb7d9b98277d6bbf2dff452aba4c50"
+      }
+    ],
+    "cpp-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 4,
+        "end": 4,
+        "sha256": "a79450ab36db119c5e3a17049b0f7c37287afb5dea48ed6fddd1b3e8b61faac4"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/cpp/callbacks.cpp",
+        "start": 11,
+        "end": 11,
+        "sha256": "dad59bd2690becea1208d22db59794746edf07dabf8bf2d41070433957fa65ee"
+      }
+    ],
+    "csharp-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 4,
+        "end": 4,
+        "sha256": "9dcad08f88dce0efc7a2d812de60f4d0375313f5fb33553caf36ecf2de9813be"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 6,
+        "end": 6,
+        "sha256": "1a3618c7ca58821a7cf32783a51f56c22b940615e3fc4b9ba5194db0fdea7387"
+      }
+    ],
+    "csharp-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 5,
+        "end": 5,
+        "sha256": "ba57a9df3d413774fc4b26a9c26c48360edf8cda20551bb946453b5dfb688c11"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 7,
+        "end": 7,
+        "sha256": "e6184ee57c948d1e95f7dcc3f13fad144a0130971d56f2f79bc33fc85651a9e6"
+      }
+    ],
+    "csharp-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 4,
+        "end": 4,
+        "sha256": "9dcad08f88dce0efc7a2d812de60f4d0375313f5fb33553caf36ecf2de9813be"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 7,
+        "end": 7,
+        "sha256": "e6184ee57c948d1e95f7dcc3f13fad144a0130971d56f2f79bc33fc85651a9e6"
+      }
+    ],
+    "csharp-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 5,
+        "end": 5,
+        "sha256": "ba57a9df3d413774fc4b26a9c26c48360edf8cda20551bb946453b5dfb688c11"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 6,
+        "end": 6,
+        "sha256": "1a3618c7ca58821a7cf32783a51f56c22b940615e3fc4b9ba5194db0fdea7387"
+      }
+    ],
+    "csharp-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 4,
+        "end": 4,
+        "sha256": "9dcad08f88dce0efc7a2d812de60f4d0375313f5fb33553caf36ecf2de9813be"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/csharp/callbacks.cs",
+        "start": 11,
+        "end": 11,
+        "sha256": "cc903987e355acf71c264909d89503ed518df2bd30a584176c5966c705101b51"
+      }
+    ],
+    "dart-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 4,
+        "end": 4,
+        "sha256": "b7bed7488e1c95ddb4e0eacf09fb9e9f98d32708fd32de773709868f84ab6870"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 6,
+        "end": 6,
+        "sha256": "5024d57144c41749c48271117f3563b40dec84cae51bb62d3fa78ac8b8261422"
+      }
+    ],
+    "dart-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 5,
+        "end": 5,
+        "sha256": "c14d6cd7c7c015f61bf17a326e29c52010d0082740ecfbf2248d2d7eca2fdb91"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 7,
+        "end": 7,
+        "sha256": "beb0fb6c0afa7a270f6b498ff6e8c02e658aed96f4a7772d482146735f77010e"
+      }
+    ],
+    "dart-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 4,
+        "end": 4,
+        "sha256": "b7bed7488e1c95ddb4e0eacf09fb9e9f98d32708fd32de773709868f84ab6870"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 7,
+        "end": 7,
+        "sha256": "beb0fb6c0afa7a270f6b498ff6e8c02e658aed96f4a7772d482146735f77010e"
+      }
+    ],
+    "dart-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 5,
+        "end": 5,
+        "sha256": "c14d6cd7c7c015f61bf17a326e29c52010d0082740ecfbf2248d2d7eca2fdb91"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 6,
+        "end": 6,
+        "sha256": "5024d57144c41749c48271117f3563b40dec84cae51bb62d3fa78ac8b8261422"
+      }
+    ],
+    "dart-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 4,
+        "end": 4,
+        "sha256": "b7bed7488e1c95ddb4e0eacf09fb9e9f98d32708fd32de773709868f84ab6870"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/dart/callbacks.dart",
+        "start": 11,
+        "end": 11,
+        "sha256": "2e7a903c3ce5269857983da6b4b41b96f58e89ab681ddc13a0da32300e9964cb"
+      }
+    ],
+    "groovy-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 4,
+        "end": 4,
+        "sha256": "06e81fbae3712ce9d0f46a400b68df802c7987e750f940d64fa48aeffbc2911a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 6,
+        "end": 6,
+        "sha256": "597a698fd4734995461445fec4d2f6bc6d721804ee9b969ea19d4fc3e29be158"
+      }
+    ],
+    "groovy-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 5,
+        "end": 5,
+        "sha256": "bcbd88d4dbfc11d8e3d1be329a05ac8f767f32c91d26f0c75b5a48e44a31ef5f"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 7,
+        "end": 7,
+        "sha256": "103f95c637972386a06fe93ffb79e2efb15cf0295d6a2029ed3d2ea4c84a17c3"
+      }
+    ],
+    "groovy-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 4,
+        "end": 4,
+        "sha256": "06e81fbae3712ce9d0f46a400b68df802c7987e750f940d64fa48aeffbc2911a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 7,
+        "end": 7,
+        "sha256": "103f95c637972386a06fe93ffb79e2efb15cf0295d6a2029ed3d2ea4c84a17c3"
+      }
+    ],
+    "groovy-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 5,
+        "end": 5,
+        "sha256": "bcbd88d4dbfc11d8e3d1be329a05ac8f767f32c91d26f0c75b5a48e44a31ef5f"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 6,
+        "end": 6,
+        "sha256": "597a698fd4734995461445fec4d2f6bc6d721804ee9b969ea19d4fc3e29be158"
+      }
+    ],
+    "groovy-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 4,
+        "end": 4,
+        "sha256": "06e81fbae3712ce9d0f46a400b68df802c7987e750f940d64fa48aeffbc2911a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/groovy/callbacks.groovy",
+        "start": 11,
+        "end": 11,
+        "sha256": "3bd6bfc302fa2563b1c7b0ac86a6a5abf825f2dc2d3a8e1237a807a48f25eb81"
+      }
+    ],
+    "java-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/java/callbacks.java",
+        "start": 3,
+        "end": 3,
+        "sha256": "790b72940809459a2d0eccd21ecc936ac27c4e29d00689d5f98e470eed977586"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/java/callbacks.java",
+        "start": 5,
+        "end": 5,
+        "sha256": "d72dfe53ac5b3982645b1acc780e5b78c00fa303c437fe3b96d87a2b03593284"
+      }
+    ],
+    "java-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/java/callbacks.java",
+        "start": 4,
+        "end": 4,
+        "sha256": "69d86cd42948d8c4caf7e35207fe360056760a97a050172d48eb17e07f48b42a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/java/callbacks.java",
+        "start": 6,
+        "end": 6,
+        "sha256": "a174c273e9dd5b82bc5456e2f2a83b198e942fdf3bb67143738555ac4dd99f77"
+      }
+    ],
+    "java-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/java/callbacks.java",
+        "start": 3,
+        "end": 3,
+        "sha256": "790b72940809459a2d0eccd21ecc936ac27c4e29d00689d5f98e470eed977586"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/java/callbacks.java",
+        "start": 6,
+        "end": 6,
+        "sha256": "a174c273e9dd5b82bc5456e2f2a83b198e942fdf3bb67143738555ac4dd99f77"
+      }
+    ],
+    "java-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/java/callbacks.java",
+        "start": 4,
+        "end": 4,
+        "sha256": "69d86cd42948d8c4caf7e35207fe360056760a97a050172d48eb17e07f48b42a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/java/callbacks.java",
+        "start": 5,
+        "end": 5,
+        "sha256": "d72dfe53ac5b3982645b1acc780e5b78c00fa303c437fe3b96d87a2b03593284"
+      }
+    ],
+    "java-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/java/callbacks.java",
+        "start": 3,
+        "end": 3,
+        "sha256": "790b72940809459a2d0eccd21ecc936ac27c4e29d00689d5f98e470eed977586"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/java/callbacks.java",
+        "start": 10,
+        "end": 10,
+        "sha256": "c439dcc73ac5219cd26dd0c04fd637d30956cf2ca3f0640b5950cc26aab5fc38"
+      }
+    ],
+    "kotlin-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 4,
+        "end": 4,
+        "sha256": "5996fb8709d8b812d395006b52462efe29071d710eba629bd2276ad2953f178e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 6,
+        "end": 6,
+        "sha256": "946c5764872dbfe7219bcd025bfaa3cda69e376dfd54f09c4cee7fceb9ca3431"
+      }
+    ],
+    "kotlin-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 5,
+        "end": 5,
+        "sha256": "0af0266486ee76228daafcb8eec979f5bbb88c03cacf39a66326b3c3e3c7d2d1"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 7,
+        "end": 7,
+        "sha256": "527efb4002cf4ef917749f39f4c8c3bb578ded89a02d35d770e3415245488c51"
+      }
+    ],
+    "kotlin-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 4,
+        "end": 4,
+        "sha256": "5996fb8709d8b812d395006b52462efe29071d710eba629bd2276ad2953f178e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 7,
+        "end": 7,
+        "sha256": "527efb4002cf4ef917749f39f4c8c3bb578ded89a02d35d770e3415245488c51"
+      }
+    ],
+    "kotlin-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 5,
+        "end": 5,
+        "sha256": "0af0266486ee76228daafcb8eec979f5bbb88c03cacf39a66326b3c3e3c7d2d1"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 6,
+        "end": 6,
+        "sha256": "946c5764872dbfe7219bcd025bfaa3cda69e376dfd54f09c4cee7fceb9ca3431"
+      }
+    ],
+    "kotlin-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 4,
+        "end": 4,
+        "sha256": "5996fb8709d8b812d395006b52462efe29071d710eba629bd2276ad2953f178e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/kotlin/callbacks.kt",
+        "start": 11,
+        "end": 11,
+        "sha256": "4c91e02d1cf3899ce85922506ba60171ddd1b886a70b083cd08b71c80306c2a3"
+      }
+    ],
+    "lua-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 2,
+        "end": 2,
+        "sha256": "a3163b19e67c1e81e073c2da2281e0e265bee43b7e9cfae972b17a2c8df1a39d"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 4,
+        "end": 4,
+        "sha256": "965c59fc3167ced5b2363f77536234009e09252657560c722d63e0b56d03e4b7"
+      }
+    ],
+    "lua-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 3,
+        "end": 3,
+        "sha256": "ecbcd6effeff6710159962221c8a656ffade6d8b8a7b5a9e9e400d326a1ed49f"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 5,
+        "end": 5,
+        "sha256": "826e5642e1dd87f31d4acad7143d12197dacdc22f03bc6a9699190532be429e4"
+      }
+    ],
+    "lua-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 2,
+        "end": 2,
+        "sha256": "a3163b19e67c1e81e073c2da2281e0e265bee43b7e9cfae972b17a2c8df1a39d"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 5,
+        "end": 5,
+        "sha256": "826e5642e1dd87f31d4acad7143d12197dacdc22f03bc6a9699190532be429e4"
+      }
+    ],
+    "lua-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 3,
+        "end": 3,
+        "sha256": "ecbcd6effeff6710159962221c8a656ffade6d8b8a7b5a9e9e400d326a1ed49f"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 4,
+        "end": 4,
+        "sha256": "965c59fc3167ced5b2363f77536234009e09252657560c722d63e0b56d03e4b7"
+      }
+    ],
+    "lua-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 2,
+        "end": 2,
+        "sha256": "a3163b19e67c1e81e073c2da2281e0e265bee43b7e9cfae972b17a2c8df1a39d"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/lua/callbacks.lua",
+        "start": 7,
+        "end": 7,
+        "sha256": "5670152973d73309c43bc2c86b2ef829a2d17cf8b23ecad62da114114d0068ce"
+      }
+    ],
+    "php-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/php/callbacks.php",
+        "start": 5,
+        "end": 5,
+        "sha256": "5426615eb987c326036e5353a518c6d7072dede2288e1251b005051bfd92b09e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/php/callbacks.php",
+        "start": 7,
+        "end": 7,
+        "sha256": "20809b73e2e293fd33a1dbe38491c6dbd76cf5ea5bcd52cbbf9ec6b026cef429"
+      }
+    ],
+    "php-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/php/callbacks.php",
+        "start": 6,
+        "end": 6,
+        "sha256": "777fccc9246395e742eba211d4ada5adc15ed96740bc1e45a8b4e6879ab8a37e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/php/callbacks.php",
+        "start": 8,
+        "end": 8,
+        "sha256": "26c89023963c4bfb0e38dad8613144e65454c5109c033441601e0a06cde39c1a"
+      }
+    ],
+    "php-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/php/callbacks.php",
+        "start": 5,
+        "end": 5,
+        "sha256": "5426615eb987c326036e5353a518c6d7072dede2288e1251b005051bfd92b09e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/php/callbacks.php",
+        "start": 8,
+        "end": 8,
+        "sha256": "26c89023963c4bfb0e38dad8613144e65454c5109c033441601e0a06cde39c1a"
+      }
+    ],
+    "php-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/php/callbacks.php",
+        "start": 6,
+        "end": 6,
+        "sha256": "777fccc9246395e742eba211d4ada5adc15ed96740bc1e45a8b4e6879ab8a37e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/php/callbacks.php",
+        "start": 7,
+        "end": 7,
+        "sha256": "20809b73e2e293fd33a1dbe38491c6dbd76cf5ea5bcd52cbbf9ec6b026cef429"
+      }
+    ],
+    "php-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/php/callbacks.php",
+        "start": 5,
+        "end": 5,
+        "sha256": "5426615eb987c326036e5353a518c6d7072dede2288e1251b005051bfd92b09e"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/php/callbacks.php",
+        "start": 12,
+        "end": 12,
+        "sha256": "1389d66639d4389d19ab9c23c8f2d9cae5555bd6628ce31f9817239aab727c22"
+      }
+    ],
+    "ruby-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 3,
+        "end": 3,
+        "sha256": "f737fb1c445048667d8b6b2a96c00f9ea5c383b8f5ae86b8e3ceaf45f7f515f9"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 9,
+        "end": 9,
+        "sha256": "50d6307c95f558efa1ce66cf549ad02dae68ec41597a25ad45b23d2909154827"
+      }
+    ],
+    "ruby-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 6,
+        "end": 6,
+        "sha256": "239b08c41cd315a2c125faa15304b9d8fda4ff61baa948dd438e554bb8684029"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 12,
+        "end": 12,
+        "sha256": "8d14187880cc9f3b914cfb1a506512e774e04b2fd870435d3a7c2867b09fdf86"
+      }
+    ],
+    "ruby-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 3,
+        "end": 3,
+        "sha256": "f737fb1c445048667d8b6b2a96c00f9ea5c383b8f5ae86b8e3ceaf45f7f515f9"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 12,
+        "end": 12,
+        "sha256": "8d14187880cc9f3b914cfb1a506512e774e04b2fd870435d3a7c2867b09fdf86"
+      }
+    ],
+    "ruby-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 6,
+        "end": 6,
+        "sha256": "239b08c41cd315a2c125faa15304b9d8fda4ff61baa948dd438e554bb8684029"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 9,
+        "end": 9,
+        "sha256": "50d6307c95f558efa1ce66cf549ad02dae68ec41597a25ad45b23d2909154827"
+      }
+    ],
+    "ruby-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 3,
+        "end": 3,
+        "sha256": "f737fb1c445048667d8b6b2a96c00f9ea5c383b8f5ae86b8e3ceaf45f7f515f9"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/ruby/callbacks.rb",
+        "start": 17,
+        "end": 17,
+        "sha256": "d36c04e134a6d993a96841faafbe77abdc2cb96e81ec3bd97ab48efebe591a07"
+      }
+    ],
+    "scala-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 4,
+        "end": 4,
+        "sha256": "a12863ac0dc02e9e9bcd495ec2d20f54b6531aedb681b97c4437c733af751487"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 6,
+        "end": 6,
+        "sha256": "5f0facd4575028ee41de6c97a1a3f1ceef7fa29dd47266ce7db10c729812cca6"
+      }
+    ],
+    "scala-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 5,
+        "end": 5,
+        "sha256": "5462bf4cb25f633ca808bdf7cb9f86d3c4c7f9e43dd92baa75d01bc338c3b17c"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 7,
+        "end": 7,
+        "sha256": "7049ffb954077cd55352bd4c0adac7f07aceca1936801c663a794de3032c1689"
+      }
+    ],
+    "scala-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 4,
+        "end": 4,
+        "sha256": "a12863ac0dc02e9e9bcd495ec2d20f54b6531aedb681b97c4437c733af751487"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 7,
+        "end": 7,
+        "sha256": "7049ffb954077cd55352bd4c0adac7f07aceca1936801c663a794de3032c1689"
+      }
+    ],
+    "scala-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 5,
+        "end": 5,
+        "sha256": "5462bf4cb25f633ca808bdf7cb9f86d3c4c7f9e43dd92baa75d01bc338c3b17c"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 6,
+        "end": 6,
+        "sha256": "5f0facd4575028ee41de6c97a1a3f1ceef7fa29dd47266ce7db10c729812cca6"
+      }
+    ],
+    "scala-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 4,
+        "end": 4,
+        "sha256": "a12863ac0dc02e9e9bcd495ec2d20f54b6531aedb681b97c4437c733af751487"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/scala/callbacks.scala",
+        "start": 11,
+        "end": 11,
+        "sha256": "92254595cc5d18daba1d31ba76ec020faeb67a2f75712f4d4f36e14ee9c75fdb"
+      }
+    ],
+    "swift-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 4,
+        "end": 4,
+        "sha256": "eaf90de937270a1550b1aa4cd755423adf08cd836bb848620620057d7de4056a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 6,
+        "end": 6,
+        "sha256": "511c13eba8af9b4b1842dbc3ae75656f71b9e590af66bf4f4dbe6b12508a925e"
+      }
+    ],
+    "swift-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 5,
+        "end": 5,
+        "sha256": "3c6eb6fa4d8a23dcb929e6af35ae3deb18233968919485bd147f388337e7b334"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 7,
+        "end": 7,
+        "sha256": "3319f4a0a01675589f9ec01b4cc2a9550308e030b61982e25790e60fe701953f"
+      }
+    ],
+    "swift-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 4,
+        "end": 4,
+        "sha256": "eaf90de937270a1550b1aa4cd755423adf08cd836bb848620620057d7de4056a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 7,
+        "end": 7,
+        "sha256": "3319f4a0a01675589f9ec01b4cc2a9550308e030b61982e25790e60fe701953f"
+      }
+    ],
+    "swift-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 5,
+        "end": 5,
+        "sha256": "3c6eb6fa4d8a23dcb929e6af35ae3deb18233968919485bd147f388337e7b334"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 6,
+        "end": 6,
+        "sha256": "511c13eba8af9b4b1842dbc3ae75656f71b9e590af66bf4f4dbe6b12508a925e"
+      }
+    ],
+    "swift-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 4,
+        "end": 4,
+        "sha256": "eaf90de937270a1550b1aa4cd755423adf08cd836bb848620620057d7de4056a"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/swift/callbacks.swift",
+        "start": 11,
+        "end": 11,
+        "sha256": "2692e2033d8e45c8a4410b13e5c7754cb7e403e9f1caf393bdba8aa7785d0d9a"
+      }
+    ],
+    "assembly-fixture-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 2,
+        "end": 2,
+        "sha256": "23b6be7a075ab126f118a05312753be8abfc5c6bba6a3e24c928f992fa8617a7"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 12,
+        "end": 12,
+        "sha256": "09554c00ce745f04b469fd2410e1e3f57dcf303638cd5ffb25c07cc5ed69deaf"
+      }
+    ],
+    "assembly-fixture-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 4,
+        "end": 4,
+        "sha256": "1ce9f6851d08bb7f3db0841434ca6f0524b2ce609ef89a898a6a8d491be02ba9"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 18,
+        "end": 18,
+        "sha256": "043f6450a5e364655bb10db1cb6e0f39c51815cd218265a9fa1ae23c6bbe43c2"
+      }
+    ],
+    "assembly-fixture-primary-not-secondary": [
+      {
+        "role": "storage",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 2,
+        "end": 2,
+        "sha256": "23b6be7a075ab126f118a05312753be8abfc5c6bba6a3e24c928f992fa8617a7"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 18,
+        "end": 18,
+        "sha256": "043f6450a5e364655bb10db1cb6e0f39c51815cd218265a9fa1ae23c6bbe43c2"
+      }
+    ],
+    "assembly-fixture-secondary-not-primary": [
+      {
+        "role": "storage",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 4,
+        "end": 4,
+        "sha256": "1ce9f6851d08bb7f3db0841434ca6f0524b2ce609ef89a898a6a8d491be02ba9"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 12,
+        "end": 12,
+        "sha256": "09554c00ce745f04b469fd2410e1e3f57dcf303638cd5ffb25c07cc5ed69deaf"
+      }
+    ],
+    "assembly-fixture-different-owner": [
+      {
+        "role": "storage",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 2,
+        "end": 2,
+        "sha256": "23b6be7a075ab126f118a05312753be8abfc5c6bba6a3e24c928f992fa8617a7"
+      },
+      {
+        "role": "invocation",
+        "path": "fixtures/assembly/callbacks.asm",
+        "start": 24,
+        "end": 24,
+        "sha256": "75bb7d5653909c5139b4275df2b7b3147c957b575002b11ff32624025d8f7b65"
+      }
+    ]
+  },
+  "languages": {
+    "assembly": {
+      "positive": 3,
+      "negative": 4,
+      "boundary": 1
+    },
+    "c": {
+      "positive": 3,
+      "negative": 4,
+      "boundary": 1
+    },
+    "cpp": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "csharp": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "dart": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "go": {
+      "positive": 9,
+      "negative": 5
+    },
+    "groovy": {
+      "positive": 3,
+      "boundary": 1,
+      "negative": 4
+    },
+    "java": {
+      "positive": 3,
+      "negative": 4,
+      "boundary": 1
+    },
+    "javascript": {
+      "positive": 4,
+      "negative": 5
+    },
+    "kotlin": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "lua": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "php": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "python": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "ruby": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "rust": {
+      "positive": 6,
+      "boundary": 2,
+      "negative": 3
+    },
+    "scala": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "swift": {
+      "positive": 3,
+      "boundary": 2,
+      "negative": 3
+    },
+    "typescript": {
+      "positive": 12,
+      "negative": 9
+    }
+  },
+  "manifest_sha256": {
+    "languages.json": "30e0eede8bebe06994c1e4b76e4277925bd3848769202156707e2ea50ea9ded1",
+    "repositories.json": "0312da5948f44333046fab43f3e3521d503c585894a0e8e27101c1806aa73ccd",
+    "cases.json": "aed05617bd3850b460ef7aa988d245cb6aae78c6e2d24fc0501ab7b4f00fadd7",
+    "fixture-cases.json": "94c135651bf5a2dd5e697cf61273393931e18c04667ed4efb77552a2bd1e0980",
+    "requirements.txt": "1f6f2251aba2c5ae8dcce637fb0bfc6a109688a1cddecf6a966ac8252d9056a1"
+  }
+}
