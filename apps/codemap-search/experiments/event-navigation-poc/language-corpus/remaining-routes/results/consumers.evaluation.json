@@ -2,7 +2,7 @@
   "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
   "cases_lock_sha256": "ba4ed82c42e1054764c25fdc3a96c8def5e552f09a038685fafe172ea7785c93",
   "analysis_sha256": {
-    "livestore-effect": "b23df700ddb927a0b9e4622c2597f377601fec5a690b2ed9e1820d55fe695b0a"
+    "livestore-effect": "802980303a60d5d02a89a1e34203b3e4b16ccf396d80dab1b33640e9e9516101"
   },
   "target_programs_executed": false,
   "statuses": {

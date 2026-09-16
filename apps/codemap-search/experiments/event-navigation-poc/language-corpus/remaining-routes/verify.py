@@ -83,6 +83,9 @@ def main():
     checkpoint_cases = read(DIRECTORY / "history/regressions-234.json")
     assert len(checkpoint_cases) == 234
     assert all(cases_by_id[case["id"]] == case for case in checkpoint_cases)
+    source_checkpoint_cases = read(DIRECTORY / "history/regressions-247.json")
+    assert len(source_checkpoint_cases) == 247
+    assert all(cases_by_id[case["id"]] == case for case in source_checkpoint_cases)
     current = read(CORPUS / "results/evaluation.json")["cases"]
     previous = read(baseline / "language-corpus/results/evaluation.json")["cases"]
     assert {row["id"]: row["status"] for row in current} == {row["id"]: row["status"] for row in previous}
@@ -213,6 +216,8 @@ def main():
                "latest_baseline_files_unchanged": len(latest_files), "latest_baseline_regression_cases_unchanged": len(latest_cases),
                "completed_checkpoint_regression_cases_unchanged": len(checkpoint_cases),
                "completed_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-234.json"),
+               "source_checkpoint_regression_cases_unchanged": len(source_checkpoint_cases),
+               "source_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-247.json"),
                "crate_manifest_bindings_verified": len(crates["crates"]),
                "consumer_cases_sha256": digest(DIRECTORY / "consumers.json"),
                "dependency_files_verified": len(lock["source_sha256"]), "supplemental_analysis_outputs_verified": len(variants),

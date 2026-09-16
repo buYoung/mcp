@@ -13,6 +13,7 @@ import tree_sitter_typescript
 
 from model import Location, Value
 from ts_syntax import project_type_parameter_modifiers, project_type_object_bodies
+from rust_macros import expand_ident_impl_macros, expand_ident_statement_macros, expansion_identity, original_offset
 
 
 FUNCTIONS = {"function_declaration", "function_expression", "generator_function", "generator_function_declaration",
@@ -177,12 +178,13 @@ class Source:
         return lexical_bindings(self, self.tree.root_node)
 
     def text(self, node) -> str:
-        return self.data[node.start_byte:node.end_byte].decode("utf8", errors="replace") if node else ""
+        data = getattr(self, "parsed_data", self.data)
+        return data[node.start_byte:node.end_byte].decode("utf8", errors="replace") if node else ""
 
     def location(self, node) -> Location:
         # Byte offsets avoid the native Point.column accessor implicated in
         # py-tree-sitter issue #487 and preserve byte-accurate source coordinates.
-        offset = node.start_byte
+        offset = original_offset(self, node.start_byte)
         row = bisect_right(self.line_starts, offset) - 1
         return Location(self.path, row + 1, offset - self.line_starts[row] + 1)
 
@@ -222,6 +224,7 @@ class Program:
     interface_methods: dict[str, set[str]] = field(default_factory=dict)
     dereferences: dict[tuple[str, str], list[str]] = field(default_factory=dict)
     tuple_fields: dict[str, list[str]] = field(default_factory=dict)
+    generic_types: set[str] = field(default_factory=set)
     exports: dict[tuple[str, str], str] = field(default_factory=dict)
     notices: list[dict] = field(default_factory=list)
 
@@ -267,6 +270,8 @@ class Program:
         return value
 
     def resolve_type(self, source: Source, name: str, scope_owner="") -> str:
+        if source.language == "rust" and "::" in name and name in self.types.values():
+            return name
         if source.language in {"typescript", "tsx"}:
             name = non_nullish_type(name.lstrip(": "))
         if source.language == "rust":
@@ -386,12 +391,17 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                                             "detail": "byte-aligned type-object body masking; runtime bodies retained, type contracts unproven"})
         source = Source(relative, language, data, tree)
         source.has_type_projection = has_type_projection
+        if language == "rust":
+            expanded = expand_ident_impl_macros(source, parsers[language], max_file_bytes)
+            if expanded:
+                program.notices.append({"kind": "rust_declarative_impl_expansion", "path": relative, "expansions": expanded})
         program.sources.append(source)
         total_bytes += size
         if tree.root_node.has_error:
             errors = [source.location(node) for node in walk(tree.root_node) if node.type == "ERROR" or node.is_missing]
             program.notices.append({"kind": "parse_error", "path": relative, "locations": errors[:12], "count": len(errors)})
 
+    program.notices.extend(expand_ident_statement_macros(program.sources, parsers["rust"], module_bindings or {}, max_file_bytes))
     for source in program.sources:
         for node in walk(source.tree.root_node):
             if node.type == "type_alias_declaration":
@@ -403,6 +413,9 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                 owner = program.owner_key(source, name)
                 namespace = str(Path(source.path).parent) if source.language == "go" else source.path
                 program.types[(namespace, name)] = owner
+                parameters = child(node, "type_parameters")
+                if source.language == "rust" and parameters is not None and any(part.type != "lifetime_parameter" for part in parameters.named_children):
+                    program.generic_types.add(owner)
                 if node.type == "type_spec":
                     program.aliases[(namespace, name)] = source.text(child(node, "type"))
                 body = child(node, "body") or child(node, "type")
@@ -467,6 +480,9 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
 
     from rust_modules import resolve_modules
     resolve_modules(program, module_bindings or {})
+    for source in program.sources:
+        for alias, namespace in getattr(source, "generated_imports", {}).items():
+            program.imports[(source.path, alias)] = namespace
     from ts_modules import resolve_modules as resolve_ts_modules
     resolve_ts_modules(program, root, module_bindings or {})
     for source in program.sources:
@@ -491,7 +507,7 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                 if not name and node.parent and node.parent.type in {"variable_declarator", "pair", "public_field_definition"}:
                     name = source.text(child(node.parent, "name") or child(node.parent, "key"))
                 location = source.location(node)
-                identifier = f"{source.path}:{location.line}:{location.column}"
+                identifier = f"{source.path}:{location.line}:{location.column}" + expansion_identity(source, node)
                 params = child(node, "parameters") or child(node, "parameter")
                 if name == "constructor" and owner and params:
                     for parameter in params.named_children:

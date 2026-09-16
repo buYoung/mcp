@@ -1,0 +1,18 @@
+{
+  "contract": "compiler-observation-oracle-v1",
+  "purpose": "compiler_observation_only",
+  "analyzer_input": false,
+  "product_dependency": false,
+  "ast_coverage_credit": false,
+  "end_to_end_connection_proven": false,
+  "concrete_instance_proven": false,
+  "event_classification": "not_inferred",
+  "target_programs_executed": false,
+  "build_sha256": "f112c10fb793d6f1786dd2209ad8fc0f4ea0ef4cac49ff07a32f7d57b5470f90",
+  "inputs_sha256": "d9b252aca51d7bce4f043d44bb602c84b7e2fe3cf036841f6c4db2442e98a068",
+  "collector_sha256": "9fb3f20f177712fdfabc8c72856318a567453eed3a4dd4f628c20c5f0d924384",
+  "observations_sha256": "dcc8b817d82d4508629cebd9ed8756b89fc74e9d2896c3b94a91a4207b572d36",
+  "probes": 13,
+  "observed": 13,
+  "failures": []
+}

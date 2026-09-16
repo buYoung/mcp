@@ -1,0 +1,33 @@
+[
+  {
+    "id": "rust-statement-macro-right-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 31,
+    "invocation_line": 35,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven",
+      "raw_pointer_read_requires_initialized_valid_value"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "status": "conditional_candidate",
+    "call_matches": 1,
+    "argument_matches": 0,
+    "data_return_matches": 0,
+    "data_consumption_matches": 0,
+    "parse_errors": [],
+    "has_contract_error": false,
+    "passed": true
+  }
+]

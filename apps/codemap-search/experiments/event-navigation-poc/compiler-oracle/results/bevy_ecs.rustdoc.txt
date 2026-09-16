@@ -1,0 +1,109 @@
+ Documenting bevy_ecs v0.20.0-dev (/private/tmp/codemap-bevy-compiler-worktree/crates/bevy_ecs)
+warning: unresolved link to `crate::message::MessageReader::par_read`
+  --> crates/bevy_ecs/src/batching.rs:22:34
+   |
+22 | /// [`MessageReader::par_read`]: crate::message::MessageReader::par_read
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the struct `MessageReader` has no field or associated item named `par_read`
+   |
+   = note: `#[warn(rustdoc::broken_intra_doc_links)]` on by default
+
+warning: unresolved link to `bevy_reflect::ReflectFromPtr`
+    --> crates/bevy_ecs/src/change_detection/params.rs:1433:42
+     |
+1433 |     /// If you have a [`ReflectFromPtr`](bevy_reflect::ReflectFromPtr) that you know belongs to this [`MutUntyped`],
+     |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `crate::reflect::AppTypeRegistry`
+  --> crates/bevy_ecs/src/entity/clone_entities.rs:74:71
+   |
+74 | /// Provides fast access to useful resources like [`AppTypeRegistry`](crate::reflect::AppTypeRegistry)
+   |                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no item named `reflect` in module `bevy_ecs`
+
+warning: unresolved link to `Reflect`
+   --> crates/bevy_ecs/src/entity/mod.rs:510:20
+    |
+510 |     /// Deriving [`Reflect`] for a component that has an `Entity` field:
+    |                    ^^^^^^^ no item named `Reflect` in scope
+    |
+    = help: to escape `[` and `]` characters, add '\' before them like `\[` or `\]`
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2007:34
+     |
+2007 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) except those that are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2052:34
+     |
+2052 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) and are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2096:34
+     |
+2096 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect).
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2132:34
+     |
+2132 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) except those that are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2177:34
+     |
+2177 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) and are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/system/commands/mod.rs:2221:34
+     |
+2221 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect).
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2070:34
+     |
+2070 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) except those that are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2118:34
+     |
+2118 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) and are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2165:34
+     |
+2165 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect).
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2182:34
+     |
+2182 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) except those that are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2228:34
+     |
+2228 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect) and are
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2273:34
+     |
+2273 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect).
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: unresolved link to `bevy_reflect::Reflect`
+    --> crates/bevy_ecs/src/world/entity_access/world_mut.rs:2295:34
+     |
+2295 |     /// [`Clone`] or [`Reflect`](bevy_reflect::Reflect).
+     |                                  ^^^^^^^^^^^^^^^^^^^^^ no item named `bevy_reflect` in scope
+
+warning: `bevy_ecs` (lib doc) generated 17 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.85s

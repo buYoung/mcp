@@ -1,0 +1,49 @@
+{
+  "compiler_observations_verified": 13,
+  "compiler_tools_available_in_source_check": false,
+  "source_check_case": "rust-statement-macro-right-to-right",
+  "source_check_passed": true,
+  "source_check_sha256": "75812515f05e4bc32bd0a0383287b05ba5355deb70b17b9c62b5a043466b69bd",
+  "default_implementation_sha256": {
+    "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+    "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+    "ts_modules.py": "1905f64755553927ff428e6879dce336ffbd96468cc74210a70dfc879f672122",
+    "rust_types.py": "61c01f30e274503c74bf95d8e800024cd714837391c70131885b7a1f263430f1",
+    "rust_macros.py": "d595768e53ed6c698865db319b265f5622bef1eb5ece521110773df038fd4daa",
+    "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7",
+    "js_generators.py": "af06593e4a46decb4da6773d0743406ce233c7eaf896b7a013ee53d4e07bf8a5",
+    "model.py": "631170cce9d90f45fdd3a076c8615a0c856252c4525f90ce8513392d4f9c6bbf",
+    "engine.py": "22c1a0d3a24d845a4c9389558c053866209e7a8c4b83cc150b897c6b44286af6",
+    "syntax.py": "024900b4d03f3440c089174388dbb2847136fb29db49c498790691740975c14b",
+    "rust_modules.py": "e01408e71eb934f7b3dc01581160a41b4c6b81b28b53328f8ac83d190459fca9",
+    "evaluate.py": "e46528b9f952852036f13b0f704bfd63bfbbc615f30aff3552f3c79b71ac5556",
+    "rust_values.py": "558d9c80d877b245157ec2c1b1e5437c2807be15af905b18bd9d1835259958fd",
+    "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+    "analyze.py": "ec2201a81cc27160edd484f6ffe3d6a039a505d8ef7e9bd37ece005615c0dd9a",
+    "language-corpus/jvm_semantics.py": "3e461a437dc1d3ff446f81da16c441f660198d12c6d2846080b3299a4b65f546",
+    "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+    "language-corpus/polyglot.py": "7ce31d613f2fede23cea6aec9b6a753a3d0d7bdbaae003cd275060b45b7ef5ad",
+    "language-corpus/analyze_languages.py": "bfc59a70ab8952367386d22ec08af36b2b93516638f83d4d1a6f3c68b1a163de",
+    "language-corpus/scala_semantics.py": "5b0ef56765b96f90db9b28710b8bca5ff3948c578451ee00ccb9506a8b97f7ce",
+    "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+    "language-corpus/manage.py": "50b63fc5ca676255847d694e6de7d54dd1ccae8230f0bec1614d55e8eb4d91cb"
+  },
+  "compiler_oracle_sha256": {
+    "build.py": "4444319ef7fdd2b0783fdba7de1836c1132741c70dce8e7182687acedb1db688",
+    "collect.py": "9fb3f20f177712fdfabc8c72856318a567453eed3a4dd4f628c20c5f0d924384",
+    "verify.py": "732feb4ea6eaf50772bc8eb87677c58c89caed578544b190a852ef254b636b51"
+  },
+  "observations_sha256": "dcc8b817d82d4508629cebd9ed8756b89fc74e9d2896c3b94a91a4207b572d36",
+  "build_sha256": "f112c10fb793d6f1786dd2209ad8fc0f4ea0ef4cac49ff07a32f7d57b5470f90",
+  "bevy_ast_evaluation_sha256": "fefaad44ee1040d1da114c61ccde08aaa4eac8612b3fbe03f464bdd0cbb0ce39",
+  "bevy_ast_statuses_unchanged_by_oracle": {
+    "b_boxed_observer": "unresolved",
+    "b_system_id": "unresolved",
+    "b_gltf_handler": "unresolved"
+  },
+  "product_dependency": false,
+  "analyzer_input": false,
+  "ast_coverage_credit": false,
+  "end_to_end_connection_proven": false,
+  "target_programs_executed": false
+}

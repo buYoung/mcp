@@ -1,0 +1,225 @@
+{
+  "contract": "compiler-observation-oracle-v1",
+  "source_revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+  "cargo_lock_sha256": "46ae03edb624c4b8bc377734b3109944cb3efe0dda97c9187210b4a4220b590e",
+  "product_dependency": false,
+  "analyzer_input": false,
+  "crates": {
+    "bevy_ecs": {
+      "cargo_options": [
+        "--no-default-features",
+        "--features",
+        "std"
+      ],
+      "rustdoc": true
+    },
+    "bevy_gltf": {
+      "cargo_options": [],
+      "rustdoc": false
+    },
+    "bevy_ptr": {
+      "cargo_options": [],
+      "rustdoc": true
+    }
+  },
+  "probes": [
+    {
+      "id": "observer-construction",
+      "crate": "bevy_ecs",
+      "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+      "lines": [
+        224,
+        236
+      ],
+      "required_fragments": [
+        "IntoObserverSystem",
+        "PointerCoercion(Unsize",
+        "observer_system_runner",
+        "ReifyFnPointer(Unsafe)"
+      ],
+      "route": "b_boxed_observer"
+    },
+    {
+      "id": "observer-component-lookup",
+      "crate": "bevy_ecs",
+      "path": "crates/bevy_ecs/src/observer/runner.rs",
+      "lines": [
+        40,
+        80
+      ],
+      "required_fragments": [
+        "get_entity",
+        "get_mut::<distributed_storage::Observer>"
+      ],
+      "route": "b_boxed_observer"
+    },
+    {
+      "id": "observer-downcast-call",
+      "crate": "bevy_ecs",
+      "path": "crates/bevy_ecs/src/observer/runner.rs",
+      "lines": [
+        91,
+        110
+      ],
+      "required_fragments": [
+        "as_deref_mut",
+        "downcast_mut::<S>",
+        "run_unsafe"
+      ],
+      "route": "b_boxed_observer"
+    },
+    {
+      "id": "system-register-spawn-id",
+      "crate": "bevy_ecs",
+      "path": "crates/bevy_ecs/src/system/system_registry.rs",
+      "lines": [
+        471,
+        478
+      ],
+      "required_fragments": [
+        "RegisteredSystem::<I, O>::new",
+        "spawn::<system_registry::RegisteredSystem<I, O>>",
+        "EntityWorldMut",
+        "SystemId::<I, O>::from_entity"
+      ],
+      "route": "b_system_id"
+    },
+    {
+      "id": "system-lookup-call",
+      "crate": "bevy_ecs",
+      "path": "crates/bevy_ecs/src/system/system_registry.rs",
+      "lines": [
+        682,
+        734
+      ],
+      "required_fragments": [
+        "get_entity_mut::<entity::Entity>",
+        "get_mut::<system_registry::RegisteredSystem<I, O>>",
+        "DerefMut",
+        "take",
+        "run_without_applying_deferred"
+      ],
+      "route": "b_system_id"
+    },
+    {
+      "id": "gltf-shared-registry",
+      "crate": "bevy_gltf",
+      "path": "crates/bevy_gltf/src/lib.rs",
+      "lines": [
+        309,
+        309
+      ],
+      "required_fragments": [
+        "Arc<",
+        "RwLock<",
+        "Clone>::clone"
+      ],
+      "route": "b_gltf_handler"
+    },
+    {
+      "id": "gltf-load-clone",
+      "crate": "bevy_gltf",
+      "path": "crates/bevy_gltf/src/loader/mod.rs",
+      "lines": [
+        245,
+        267
+      ],
+      "required_fragments": [
+        "RwLock",
+        "::read",
+        "RwLockReadGuard",
+        "<std::vec::Vec<Box<dyn ErasedGltfExtensionHandler>> as std::clone::Clone>::clone"
+      ],
+      "route": "b_gltf_handler"
+    },
+    {
+      "id": "gltf-box-clone",
+      "crate": "bevy_gltf",
+      "path": "crates/bevy_gltf/src/loader/extensions/mod.rs",
+      "lines": [
+        569,
+        572
+      ],
+      "required_fragments": [
+        "Unique<",
+        "NonNull<",
+        "Transmute",
+        "dyn_clone"
+      ],
+      "route": "b_gltf_handler"
+    },
+    {
+      "id": "gltf-erased-hook",
+      "crate": "bevy_gltf",
+      "path": "crates/bevy_gltf/src/loader/mod.rs",
+      "lines": [
+        1753,
+        1761
+      ],
+      "required_fragments": [
+        "NonNull<",
+        "on_spawn_mesh_and_material"
+      ],
+      "route": "b_gltf_handler"
+    },
+    {
+      "id": "gltf-generic-hook",
+      "crate": "bevy_gltf",
+      "path": "crates/bevy_gltf/src/loader/extensions/mod.rs",
+      "lines": [
+        502,
+        519
+      ],
+      "required_fragments": [
+        "<H as GltfExtensionHandler>::on_spawn_mesh_and_material"
+      ],
+      "route": "b_gltf_handler"
+    },
+    {
+      "id": "pointer-source-wrapper",
+      "crate": "bevy_ptr",
+      "path": "crates/bevy_ptr/src/lib.rs",
+      "lines": [
+        461,
+        467
+      ],
+      "required_fragments": [
+        "NonNull",
+        "MaybeUninit",
+        "::from",
+        "cast::<T>"
+      ],
+      "route": "pointer_support"
+    },
+    {
+      "id": "pointer-typed-read",
+      "crate": "bevy_ptr",
+      "path": "crates/bevy_ptr/src/lib.rs",
+      "lines": [
+        1014,
+        1027
+      ],
+      "required_fragments": [
+        "as_ptr",
+        "cast::<T>",
+        "::read"
+      ],
+      "route": "pointer_support"
+    }
+  ],
+  "trait_probes": [
+    {
+      "id": "registered-component-derive",
+      "crate": "bevy_ecs",
+      "owner": "RegisteredSystem",
+      "trait": "Component",
+      "path": "crates/bevy_ecs/src/system/system_registry.rs",
+      "lines": [
+        24,
+        24
+      ],
+      "route": "b_system_id"
+    }
+  ]
+}

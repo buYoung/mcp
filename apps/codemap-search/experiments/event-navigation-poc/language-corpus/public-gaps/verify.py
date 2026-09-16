@@ -96,6 +96,7 @@ def main():
         case = next(case for case in cases if case["path"] == source_path)
         output = REGRESSIONS / "results/analysis" / (source_path.replace("/", "--") + ".json.gz")
         data = verify_analysis(output, (REGRESSIONS / "examples" / source_path).parent)
+        assert data["scope"].get("module_bindings", {}) == case.get("module_bindings", {})
         assert set(data["scope"]["source_sha256"]) == {Path(source_path).name, *case.get("additional_sources", {}), *case.get("support_sources", {})}
         for selected in (case for case in cases if case["path"] == source_path and case.get("relation_kinds")):
             assert any(relation["kind"] in selected["relation_kinds"]

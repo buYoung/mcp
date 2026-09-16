@@ -5,12 +5,15 @@ are expanded from their bodies. Unknown callees remain explicit boundaries.
 """
 
 from pathlib import Path
+from collections import defaultdict, deque
 import hashlib
 import re
 
 from model import ELEMENT, MAP_ENTRIES, MAP_KEYS, UNKNOWN, Consumer, Fact, Summary, Value, match_storage, merge_values, referenced_values, slot, split_path, substitute, tuple_value, tuple_values, value_options
-from syntax import CLASSES, FUNCTIONS, IDENTIFIERS, Function, Program, child, container_kind, element_type, lexical_bindings, scoped_type_name, walk
-from rust_values import pointer_call, pointer_cast, pointer_dereference, type_id_call
+from syntax import CLASSES, FUNCTIONS, IDENTIFIERS, Function, Program, child, container_kind, element_type, lexical_bindings, rust_pattern_bindings, scoped_type_name, walk
+from rust_values import any_downcast_call, map_constructor_call, pointer_call, pointer_cast, pointer_dereference, type_id_call
+from rust_types import call_type_bindings, map_entry as rust_map_entry, substitute_type_text
+from rust_macros import expansion_identity, expansion_location, statement_expansion_definition
 from js_generators import GENERATOR_NODES, create_generator, generator_call
 
 
@@ -41,6 +44,7 @@ class Analyzer:
         self.globals: dict[str, dict[str, Value]] = {}
         self.value_types: dict[Value, str] = {}
         self.value_owners: dict[Value, str] = {}
+        self.value_conditions: dict[Value, tuple[str, ...]] = {}
         self.heap_values: dict[Value, list[Value]] = {}
         self.heap_read_cache: dict[Value, list[Value]] = {}
         self.allocation_owners: dict[Value, str] = {}
@@ -54,6 +58,37 @@ class Analyzer:
         self.argument_type_hints = {}
         self.generator_frames = {}
         self.sources = {source.path: source for source in program.sources}
+
+    def require_value_conditions(self, value, conditions):
+        existing = self.value_conditions.get(value)
+        required = set(conditions) if existing is None else set(existing).intersection(conditions)
+        self.value_conditions[value] = tuple(sorted(required))
+
+    def cap_facts(self, facts):
+        if len(facts) <= MAX_TOTAL_FACTS:
+            return facts
+        self.notices.add(("total_fact_cap", str(len(facts) - MAX_TOTAL_FACTS)))
+        semantic_kinds = {"store", "remove", "invoke", "member_invoke", "argument", "return", "key_lookup",
+                          "parameter_binding", "copy_properties", "function_type_conversion"}
+        semantic = [fact for fact in facts if fact.kind in semantic_kinds]
+        if len(semantic) > MAX_TOTAL_FACTS:
+            buckets = defaultdict(deque)
+            for fact in semantic:
+                root, _ = split_path(fact.target)
+                buckets[(fact.location.path, fact.function, fact.kind, root.kind)].append(fact)
+            active = deque(buckets.values())
+            selected = []
+            while active and len(selected) < MAX_TOTAL_FACTS:
+                bucket = active.popleft()
+                selected.append(bucket.popleft())
+                if bucket:
+                    active.append(bucket)
+        else:
+            selected = semantic + [fact for fact in facts if fact.kind not in semantic_kinds][:MAX_TOTAL_FACTS - len(semantic)]
+        retained = set(selected)
+        # Preserve the input order for heap alternatives. Later projections get
+        # the same budget opportunity as original facts, including typed returns.
+        return [fact for fact in facts if fact in retained]
 
     def kind(self, value: Value, source) -> str:
         type_text = self.program.expand_type(source, self.type_text(value, source))
@@ -235,9 +270,7 @@ class Analyzer:
             self.notices.add(("summary_depth_bound", str(MAX_SUMMARY_PASSES)))
         facts = self.module_facts + [fact for summary in self.summaries.values() for fact in summary.facts]
         facts = list(dict.fromkeys(facts))
-        if len(facts) > MAX_TOTAL_FACTS:
-            self.notices.add(("total_fact_cap", str(len(facts) - MAX_TOTAL_FACTS)))
-            facts = facts[:MAX_TOTAL_FACTS]
+        facts = self.cap_facts(facts)
         # Project explicit object fields through stored aliases, without inventing
         # an object for an opaque external return or a dependency-injected type.
         for _ in range(2):
@@ -251,7 +284,15 @@ class Analyzer:
                 if store.kind != "store" or store.value.kind != "allocation":
                     continue
                 for field in fields.get(store.value, ()):
-                    if store.location in field.via or field.location == store.location or len(field.via) >= 6:
+                    destination = split_path(store.target)[0]
+                    source_context = self.allocation_contexts.get(store.value)
+                    destination_context = self.allocation_contexts.get(destination)
+                    # A factory's field location is reused by distinct calls.
+                    # Only explicit, distinct allocation contexts justify
+                    # crossing that repeated source span again.
+                    has_distinct_calls = bool(source_context and destination_context and source_context != destination_context
+                                              and self.allocation_origins.get(store.value) == self.allocation_origins.get(destination))
+                    if ((store.location in field.via or field.location == store.location) and not has_distinct_calls) or len(field.via) >= 6:
                         continue
                     target = substitute(field.target, {store.value: store.target})
                     projected = Fact("store", target, field.value, field.location, field.function,
@@ -260,9 +301,7 @@ class Analyzer:
                     if field.value in self.value_types:
                         self.value_types[target] = self.value_types[field.value]
             facts = list(dict.fromkeys(facts + added))
-            if len(facts) > MAX_TOTAL_FACTS:
-                self.notices.add(("total_fact_cap", str(len(facts) - MAX_TOTAL_FACTS)))
-                facts = facts[:MAX_TOTAL_FACTS]
+            facts = self.cap_facts(facts)
         self.refresh_heap(facts)
         facts += self.project_typed_receiver_stores(facts)
         self.refresh_heap(facts)
@@ -273,9 +312,7 @@ class Analyzer:
         facts += self.project_stored_bindings(facts)
         facts += self.specialize_callback_arguments(facts)
         combined = list(dict.fromkeys(facts + self.forward_callback_arguments(facts)))
-        if len(combined) > MAX_TOTAL_FACTS:
-            self.notices.add(("total_fact_cap", str(len(combined) - MAX_TOTAL_FACTS)))
-        return combined[:MAX_TOTAL_FACTS]
+        return self.cap_facts(combined)
 
     def specialize_callback_arguments(self, facts):
         """Bind explicit calls through formal callback parameters to their bodies.
@@ -329,9 +366,11 @@ class Analyzer:
                     return added
                 visited.add(signature)
                 # Locate the actual call so expansion retains its source path.
+                # Several generated macro calls may share one original location;
+                # this schema-only pass cannot choose one of those calls by span.
                 if source.path not in call_nodes:
                     call_nodes[source.path] = {source.location(node): node for node in walk(source.tree.root_node)
-                                               if node.type == "call_expression"}
+                                               if node.type == "call_expression" and not expansion_identity(source, node)}
                 call_node = call_nodes[source.path].get(location)
                 if call_node is None:
                     continue
@@ -623,15 +662,18 @@ class Analyzer:
 
 class Interpreter:
     def __init__(self, analyzer: Analyzer, source, function: Function | None = None,
-                 env=None, conditions=(), depth=0):
+                 env=None, conditions=(), depth=0, rust_type_bindings=None):
         self.analyzer = analyzer
         self.program = analyzer.program
         self.source = source
         self.function = function
+        self.rust_type_bindings = dict(rust_type_bindings or {})
         self.identifier = function.identifier if function else "module:" + source.path
         self.env = dict(env if env is not None else analyzer.globals.get(source.path, {}))
         self.env.update(analyzer.captures.get(self.identifier, {}))
         self.conditions = tuple(conditions)
+        if function and expansion_identity(source, function.node):
+            self.conditions += ("source_declarative_impl_expansion", "macro_template_typing_unproven")
         if getattr(source, "has_type_projection", False):
             self.conditions += ("generic_type_constraints_unproven",)
         if function and function.parent:
@@ -648,6 +690,8 @@ class Interpreter:
                 self.env["arguments"] = Value("arguments", function.identifier)
             parameter_node = child(function.node, "parameters") or child(function.node, "parameter")
             for name, type_text in function.parameters:
+                if source.language == "rust":
+                    type_text = substitute_type_text(type_text, self.rust_type_bindings)
                 value = Value("parameter", function.identifier + ":" + name)
                 self.parameters.append(value)
                 self.env[name] = value
@@ -678,11 +722,20 @@ class Interpreter:
 
     def allocation_name(self, node):
         location = self.source.location(node)
-        return f"{self.source.path}:{location.line}:{location.column}" + self.instance_context
+        return f"{self.source.path}:{location.line}:{location.column}" + expansion_identity(self.source, node) + self.instance_context
 
     def emit(self, kind, target, value, node, extra=(), via=(), argument_index=None):
+        macro_location = expansion_location(self.source, node)
+        if macro_location is not None:
+            via = tuple(via) + (macro_location,)
+        definition = statement_expansion_definition(self.source, node)
+        if definition is not None:
+            via = tuple(via) + (definition,)
+            extra = tuple(extra) + ("source_declarative_statement_expansion", "macro_template_typing_unproven")
+        dependencies = {condition for item in (target, value) for referenced in referenced_values(item)
+                        for condition in self.analyzer.value_conditions.get(referenced, ())}
         fact = Fact(kind, target, value, self.source.location(node), self.identifier,
-                    tuple(sorted(set(self.conditions + tuple(extra)))), tuple(via), argument_index)
+                    tuple(sorted(set(self.conditions + tuple(extra)).union(dependencies))), tuple(via), argument_index)
         self.append_fact(fact)
 
     def append_fact(self, fact):
@@ -710,6 +763,11 @@ class Interpreter:
                 return slot(receiver, method)
             if owner:
                 return slot(Value("type", owner), method)
+            namespace = self.program.imports.get((self.source.path, prefix), "")
+            if namespace and "#" not in namespace:
+                candidates = self.program.methods.get((namespace, method), ())
+                if len(candidates) == 1:
+                    return Value("function", candidates[0])
         import_path = self.program.import_paths.get((self.source.path, name))
         if import_path and name not in self.local_bindings:
             if import_path == "reflect" and self.source.language == "go":
@@ -810,6 +868,8 @@ class Interpreter:
             pattern = child(node, "name") or child(node, "pattern")
             value_node = child(node, "value")
             value = self.expression(value_node)
+            if statement_expansion_definition(self.source, node) is not None:
+                self.analyzer.require_value_conditions(value, ("source_declarative_statement_expansion", "macro_template_typing_unproven"))
             self.bind(pattern, value, self.text(child(node, "type")))
             return
         if kind in {"short_var_declaration", "assignment_statement"}:
@@ -851,6 +911,9 @@ class Interpreter:
         if kind == "match_expression" and self.source.language == "rust":
             self.expression(node)
             return
+        if kind == "if_expression" and self.source.language == "rust" and child(node, "condition") is not None and child(node, "condition").type in {"let_condition", "let_chain"}:
+            self.rust_if_let(node)
+            return
         if kind in {"if_statement", "if_expression", "switch_statement", "expression_switch_statement",
                     "type_switch_statement", "match_expression", "conditional_expression"}:
             base_env = dict(self.env)
@@ -884,6 +947,35 @@ class Interpreter:
                 value = self.expression(tail)
                 if value != UNKNOWN:
                     self.record_return(value, tail)
+
+    def rust_if_let(self, node):
+        """Pattern bindings belong to the successful branch, including shadows."""
+        base_env, old_conditions = dict(self.env), self.conditions
+        condition = child(node, "condition")
+        conditions = list(condition.named_children) if condition.type == "let_chain" else [condition]
+        bound_names = set()
+        self.conditions += (f"conditional_control:{self.source.path}:{self.source.location(node).line}", "rust_let_pattern_match_required")
+        for part in conditions:
+            if part.type == "let_condition":
+                pattern = child(part, "pattern")
+                value = self.expression(child(part, "value"))
+                names = rust_pattern_bindings(self.source, pattern)
+                bound_names.update(names)
+                # A failed/unknown destructure cannot read an outer variable
+                # with the same spelling through the new pattern binding.
+                self.env.update({name: UNKNOWN for name in names})
+                self.bind(pattern, value)
+            else:
+                self.expression(part)
+        self.statement(child(node, "consequence"))
+        success = dict(self.env)
+        self.env = dict(base_env)
+        self.conditions = old_conditions + (f"conditional_control:{self.source.path}:{self.source.location(node).line}", "rust_let_pattern_not_matched")
+        self.statement(child(node, "alternative"))
+        failure = dict(self.env)
+        self.env = {name: value if (success.get(name, value) if name not in bound_names else value) == value
+                    and failure.get(name, value) == value else UNKNOWN for name, value in base_env.items()}
+        self.conditions = old_conditions
 
     def record_return(self, value, node):
         if value == UNKNOWN:
@@ -1160,6 +1252,10 @@ class Interpreter:
             previous = len(self.returns)
             self.statement(node)
             return self.returns[-1] if len(self.returns) > previous else UNKNOWN
+        if kind == "if_expression" and self.source.language == "rust" and child(node, "condition") is not None and child(node, "condition").type in {"let_condition", "let_chain"}:
+            previous = len(self.returns)
+            self.rust_if_let(node)
+            return merge_values(self.returns[previous:])
         for part in node.named_children:
             expr(part)
         return UNKNOWN
@@ -1380,11 +1476,17 @@ class Interpreter:
             type_id = type_id_call(self, callee_text, callee_node, arguments)
             if type_id is not None:
                 return type_id
+            constructed_map = map_constructor_call(self, callee_text, arguments, node)
+            if constructed_map is not None:
+                return constructed_map
             receiver = callee.base if callee.kind == "slot" else UNKNOWN
             method = callee.key.name if callee.kind == "slot" and callee.key.kind == "key" else ""
             pointed = pointer_call(self, callee_text, receiver, method, arguments, node)
             if pointed is not None:
                 return pointed
+            downcast = any_downcast_call(self, receiver, method, arguments, callee_node)
+            if downcast is not None:
+                return downcast
             if callee.kind == "type" and callee.name in self.program.tuple_fields:
                 if len(arguments) != len(self.program.tuple_fields[callee.name]):
                     return UNKNOWN
@@ -1466,7 +1568,8 @@ class Interpreter:
             if method:
                 callee = slot(receiver, method)
         kind = self.analyzer.kind(receiver, self.source)
-        if kind:
+        has_source_method = self.source.language == "rust" and bool(self.program.methods.get((self.analyzer.owner(receiver, self.source), method)))
+        if kind and not has_source_method:
             value = self.container_call(kind, receiver, method, arguments, argument_nodes, node)
             if value is not None:
                 return value
@@ -1492,12 +1595,16 @@ class Interpreter:
                 target_ids = self.program.methods.get((receiver.name, method), [])
         if len(target_ids) == 1:
             target = self.program.functions.get(target_ids[0])
+            if self.source.language == "rust" and target:
+                type_bindings = call_type_bindings(self, target, callee_node, arguments)
+                if type_bindings or any(value.kind == "tuple" for value in arguments):
+                    return self.apply_source_callable(target_ids[0], receiver, arguments, node, rust_type_bindings=type_bindings)
             if self.source.language in {"typescript", "tsx"} and bound_receiver != UNKNOWN:
                 return self.apply_source_callable(target_ids[0], bound_receiver, arguments, node)
             if self.source.language in {"typescript", "tsx"} and (target and target.node.type in GENERATOR_NODES
                     or any(value.kind == "wrapper" and value.name == "javascript:generator" for value in arguments)):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
-            if self.source.language == "rust" and (any(value.kind == "wrapper" and value.name in {"rust:nonnull", "rust:raw_pointer"} for value in arguments)
+            if self.source.language == "rust" and (any(value.kind == "wrapper" and value.name in {"rust:nonnull", "rust:raw_pointer", "rust:maybeuninit_initialized"} for value in arguments)
                                                     or (receiver.kind == "allocation" and self.analyzer.owner(receiver, self.source) in self.program.tuple_fields)):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
             if self.source.language in {"typescript", "tsx"} and any(value.kind in {"function", "closure", "binding"}
@@ -1507,7 +1614,7 @@ class Interpreter:
             returned = self.apply_summary(target_ids[0], UNKNOWN if receiver.kind == "type" else receiver, arguments, node)
             if returned != UNKNOWN:
                 return returned
-            return Value("result", f"{self.source.path}:{self.source.location(node).line}:{self.source.location(node).column}")
+            return Value("result", f"{self.source.path}:{self.source.location(node).line}:{self.source.location(node).column}" + expansion_identity(self.source, node))
         if callee.kind in {"slot", "parameter"}:
             is_member = callee_node is not None and callee_node.type in {"member_expression", "field_expression", "selector_expression"}
             declared = self.program.expand_type(self.source, self.analyzer.type_text(callee, self.source))
@@ -1516,9 +1623,9 @@ class Interpreter:
             self.emit("member_invoke" if is_member else "invoke", callee, UNKNOWN, node)
         else:
             self.emit("external_boundary", callee, UNKNOWN, node)
-        return Value("result", f"{self.source.path}:{self.source.location(node).line}:{self.source.location(node).column}")
+        return Value("result", f"{self.source.path}:{self.source.location(node).line}:{self.source.location(node).column}" + expansion_identity(self.source, node))
 
-    def apply_source_callable(self, target_id, receiver, arguments, node, captures=None):
+    def apply_source_callable(self, target_id, receiver, arguments, node, captures=None, rust_type_bindings=None):
         """Bind actual callable arguments before interpreting a higher-order body.
 
         Captures belong to the returned value, not the last factory invocation.
@@ -1529,7 +1636,9 @@ class Interpreter:
             self.analyzer.notices.add(("callable_context_bound", target_id))
             return UNKNOWN
         nested = Interpreter(self.analyzer, function.source, function, conditions=self.conditions,
-                             depth=self.depth + 1)
+                             depth=self.depth + 1, rust_type_bindings=rust_type_bindings)
+        if rust_type_bindings:
+            nested.conditions += ("source_generic_type_argument_binding", "generic_trait_constraints_unproven")
         nested.env.update(captures or {})
         identity = (captures or {}).get("__source_callable_identity__")
         identity_parts = [identity.display()] if identity is not None else []
@@ -1629,17 +1738,18 @@ class Interpreter:
         for value in list(summary.returns) + [value for fact in selected for value in (fact.target, fact.value)]:
             values.update(referenced_values(value))
         location = self.source.location(node)
+        context_key = (location, expansion_identity(self.source, node))
         for value in sorted(values, key=lambda item: item.display()):
             if value.kind not in {"allocation", "binding"} or self.analyzer.allocation_owners.get(value) != target_id:
                 continue
             context = self.analyzer.allocation_contexts.get(value, ())
-            if location in context or len(context) >= 6:
+            if context_key in context or len(context) >= 6:
                 replacements[value] = UNKNOWN
                 self.analyzer.notices.add(("allocation_context_depth_bound", target_id))
                 continue
             origin = self.analyzer.allocation_origins.get(value, value.name)
-            context = context + (location,)
-            suffix = ">".join(f"{item.path}:{item.line}:{item.column}" for item in context)
+            context = context + (context_key,)
+            suffix = ">".join(f"{item.path}:{item.line}:{item.column}{macro}" for item, macro in context)
             allocated = Value(value.kind, origin + "@" + suffix)
             replacements[value] = allocated
             self.analyzer.allocation_owners[allocated] = self.identifier
@@ -1651,6 +1761,9 @@ class Interpreter:
                 self.analyzer.value_owners[allocated] = self.analyzer.value_owners[value]
             if value in self.analyzer.prototypes:
                 self.analyzer.prototypes[allocated] = substitute(self.analyzer.prototypes[value], replacements)
+        for value in values:
+            if value in self.analyzer.value_conditions:
+                self.analyzer.require_value_conditions(substitute(value, replacements), self.analyzer.value_conditions[value])
         for fact in selected:
             if len(fact.via) >= MAX_PROVENANCE_HOPS or location in fact.via:
                 continue
@@ -1681,7 +1794,8 @@ class Interpreter:
                 return Value("wrapper", "rust:option", Value("wrapper", "rust:slice_view", receiver, index))
             return Value("wrapper", "rust:option", slot(receiver, index))
         if kind == "map" and method in {"get", "get_mut", "remove", "delete"} and arguments:
-            target = slot(slot(receiver, MAP_ENTRIES), arguments[0])
+            target = (rust_map_entry(self, receiver, arguments[0]) if self.source.language == "rust"
+                      else slot(slot(receiver, MAP_ENTRIES), arguments[0]))
             if method in {"remove", "delete"}:
                 self.emit("remove", target, UNKNOWN, node)
                 return UNKNOWN
@@ -1691,7 +1805,9 @@ class Interpreter:
                 return Value("wrapper", "rust:option", target)
             return target
         if kind == "map" and method in {"set", "insert"} and len(arguments) >= 2:
-            self.emit("store", slot(slot(receiver, MAP_ENTRIES), arguments[0]), arguments[1], node)
+            target = (rust_map_entry(self, receiver, arguments[0]) if self.source.language == "rust"
+                      else slot(slot(receiver, MAP_ENTRIES), arguments[0]))
+            self.emit("store", target, arguments[1], node)
             self.emit("store", slot(slot(receiver, MAP_KEYS), ELEMENT), arguments[0], node)
             return receiver if method == "set" else UNKNOWN
         if kind in {"array", "set"} and method in {"push", "push_back", "add", "insert"} and arguments:

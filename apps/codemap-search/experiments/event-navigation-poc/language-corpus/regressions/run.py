@@ -54,6 +54,10 @@ def main() -> int:
                 command.extend(["--path", relative])
             for relative, support in case.get("support_sources", {}).items():
                 command.extend(["--support-path", support["language"] + ":" + relative])
+            if case.get("module_bindings"):
+                bindings = output.with_suffix(".bindings.json")
+                bindings.write_text(json.dumps(case["module_bindings"], indent=2) + "\n")
+                command.extend(["--module-bindings", str(bindings)])
             process = subprocess.run(command, capture_output=True, text=True)
             if process.returncode:
                 raise RuntimeError(f"{case['id']}: analyzer failed: {process.stderr}")
@@ -64,7 +68,10 @@ def main() -> int:
                    and relation["storage"]["location"]["line"] == case["storage_line"]
                    and relation["storage"]["value"].endswith(case.get("storage_value_suffix", ""))
                    and relation["invocation"]["location"]["path"] == case.get("invocation_file", path.name)
-                   and relation["invocation"]["location"]["line"] == case["invocation_line"]]
+                   and relation["invocation"]["location"]["line"] == case["invocation_line"]
+                   and all(any(location["path"] == expected[0] and location["line"] == expected[1]
+                               for location in relation["invocation"].get("via", ()))
+                           for expected in case.get("invocation_via", ()))]
         calls = [relation for relation in matches if relation["kind"] in CALL_RELATIONS]
         returned = [relation for relation in matches if relation["kind"] in DATA_RELATIONS]
         consumed = [relation for relation in matches if relation["kind"] in CONSUMPTION_RELATIONS]

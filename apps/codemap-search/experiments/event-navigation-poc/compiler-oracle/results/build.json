@@ -1,0 +1,120 @@
+{
+  "contract": "compiler-observation-oracle-v1",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+  "source_revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "environment_override": {
+    "RUSTC_BOOTSTRAP": "1"
+  },
+  "crates": {
+    "bevy_ecs": {
+      "commands": [
+        [
+          "cargo",
+          "rustc",
+          "--message-format=json",
+          "--locked",
+          "-p",
+          "bevy_ecs",
+          "--lib",
+          "--no-default-features",
+          "--features",
+          "std",
+          "--",
+          "--emit=mir",
+          "-Zmir-include-spans=yes"
+        ],
+        [
+          "cargo",
+          "rustdoc",
+          "--locked",
+          "-p",
+          "bevy_ecs",
+          "--lib",
+          "--no-default-features",
+          "--features",
+          "std",
+          "--",
+          "-Z",
+          "unstable-options",
+          "--output-format",
+          "json",
+          "--document-private-items"
+        ]
+      ],
+      "features": [
+        "std"
+      ],
+      "mir": "target/debug/deps/bevy_ecs-1bed9d7012ae3f83.mir",
+      "mir_sha256": "bbbb0aba9cbf602ae46f6c6f772972d3a15d68919acab7d7b4cf9e2018b4def7",
+      "rustc_log_sha256": "2ba2433a915252af0d249f79e7a558b8c8513eec5442ea1b7081821f55351e8d",
+      "rustdoc": "target/doc/bevy_ecs.json",
+      "rustdoc_sha256": "f29ffc8aac140c23e93f10838eb30146fa05d9cc05822bd0246a0e40d4fed416",
+      "rustdoc_log_sha256": "46d512d9b53679750bc57396d65797a5757ff9fe6b82ec00f22f5245d479009e"
+    },
+    "bevy_gltf": {
+      "commands": [
+        [
+          "cargo",
+          "rustc",
+          "--message-format=json",
+          "--locked",
+          "-p",
+          "bevy_gltf",
+          "--lib",
+          "--",
+          "--emit=mir",
+          "-Zmir-include-spans=yes"
+        ]
+      ],
+      "features": [],
+      "mir": "target/debug/deps/bevy_gltf-efb35d5da55f1ddb.mir",
+      "mir_sha256": "6f559dcaeeb449c5ffe7789cb196635cfe7635067834467fcaf664a91bf25387",
+      "rustc_log_sha256": "f2066ca264b9a8598ecd436c70919e1efe1acea4098ad2a13b5d82d67bc049ec"
+    },
+    "bevy_ptr": {
+      "commands": [
+        [
+          "cargo",
+          "rustc",
+          "--message-format=json",
+          "--locked",
+          "-p",
+          "bevy_ptr",
+          "--lib",
+          "--",
+          "--emit=mir",
+          "-Zmir-include-spans=yes"
+        ],
+        [
+          "cargo",
+          "rustdoc",
+          "--locked",
+          "-p",
+          "bevy_ptr",
+          "--lib",
+          "--",
+          "-Z",
+          "unstable-options",
+          "--output-format",
+          "json",
+          "--document-private-items"
+        ]
+      ],
+      "features": [],
+      "mir": "target/debug/deps/bevy_ptr-278df682faf405b0.mir",
+      "mir_sha256": "68730d124b9482da637b21f3e03c9c63646e4bf6f8e3b4cdc6ae7635b4cc1591",
+      "rustc_log_sha256": "c92508a29848820f033cd2ea015c85dde0953c88b07cc967ce34b7c08f610549",
+      "rustdoc": "target/doc/bevy_ptr.json",
+      "rustdoc_sha256": "d285c996d65d5f1cf762213d29264e84ed61da4685a495d8ad01c7448a8245d0",
+      "rustdoc_log_sha256": "9ecd468f56aeca9de5ee8d3c94d608c25dd9dd046790b0b2387fe201b7d81b42"
+    }
+  },
+  "cargo_lock_sha256": "46ae03edb624c4b8bc377734b3109944cb3efe0dda97c9187210b4a4220b590e",
+  "inputs_sha256": "d9b252aca51d7bce4f043d44bb602c84b7e2fe3cf036841f6c4db2442e98a068",
+  "build_script_sha256": "4444319ef7fdd2b0783fdba7de1836c1132741c70dce8e7182687acedb1db688",
+  "build_scripts_and_proc_macros_executed": true,
+  "target_programs_executed": false,
+  "product_dependency": false,
+  "analyzer_input": false
+}

@@ -2950,5 +2950,654 @@
     "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
     "baseline_variant": "source-call-context",
     "positive_control": "typescript-generator-callback-binding-second"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 38,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 39,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 40,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 41,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-any-standard-target",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 10,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "standard_any_downcast_type_match_required",
+      "rust_let_pattern_match_required"
+    ]
+  },
+  {
+    "id": "rust-any-wrong-concrete-type",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-any-standard-target"
+  },
+  {
+    "id": "rust-any-custom-trait",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 27,
+    "invocation_line": 29,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-any-standard-target"
+  },
+  {
+    "id": "rust-if-let-outer-else",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 38,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "rust_let_pattern_not_matched"
+    ]
+  },
+  {
+    "id": "rust-if-let-outer-after",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 40,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": []
+  },
+  {
+    "id": "rust-if-let-shadowed-value",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 36,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-if-let-outer-else"
+  },
+  {
+    "id": "rust-generic-plain-type-inference",
+    "language": "rust",
+    "path": "rust/generic-type-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "fc706ae2934d9c7a617cbe12cf841f5da3ffc70752744841f17bad7f2033c793",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_type_id_identity",
+      "standard_map_constructor"
+    ],
+    "storage_value_suffix": ":plain"
+  },
+  {
+    "id": "rust-generic-arguments-not-erased",
+    "language": "rust",
+    "path": "rust/generic-type-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "unresolved",
+    "source_sha256": "fc706ae2934d9c7a617cbe12cf841f5da3ffc70752744841f17bad7f2033c793",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-plain-type-inference",
+    "storage_value_suffix": ":generic"
+  },
+  {
+    "id": "rust-source-container-method",
+    "language": "rust",
+    "path": "rust/container-method-guards/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 24,
+    "expected": "connected",
+    "source_sha256": "26b219b07cf794dc729d2b72a58043b2ad69c0e85268ecf4b63194e9e120a8d9",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": []
+  },
+  {
+    "id": "rust-source-container-not-standard-get",
+    "language": "rust",
+    "path": "rust/container-method-guards/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "26b219b07cf794dc729d2b72a58043b2ad69c0e85268ecf4b63194e9e120a8d9",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-source-container-method"
+  },
+  {
+    "id": "rust-declarative-impl-first-to-first",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 19,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        15
+      ]
+    ],
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_declarative_impl_expansion",
+      "macro_template_typing_unproven"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-first-to-second",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 19,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        16
+      ]
+    ],
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-first-to-first"
+  },
+  {
+    "id": "rust-declarative-impl-second-to-first",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 20,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        15
+      ]
+    ],
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-second-to-second"
+  },
+  {
+    "id": "rust-declarative-impl-second-to-second",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 20,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        16
+      ]
+    ],
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_declarative_impl_expansion",
+      "macro_template_typing_unproven"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-literal-token-preserved",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 24,
+    "invocation_line": 26,
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-literal-token-not-substituted",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 25,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-literal-token-preserved"
+  },
+  {
+    "id": "rust-statement-macro-left-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 34,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven",
+      "raw_pointer_read_requires_initialized_valid_value"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-left-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 35,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-right-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 31,
+    "invocation_line": 34,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-right-to-right"
+  },
+  {
+    "id": "rust-statement-macro-right-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 31,
+    "invocation_line": 35,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven",
+      "raw_pointer_read_requires_initialized_valid_value"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-unsupported-hygiene",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 39,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-unsupported-repetition",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 42,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-uninitialized",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 44,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-nested-left-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 13,
+    "invocation_line": 17,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-nested-left-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 13,
+    "invocation_line": 18,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-nested-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-nested-right-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-nested-right-to-right"
+  },
+  {
+    "id": "rust-statement-macro-nested-right-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 18,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
   }
 ]

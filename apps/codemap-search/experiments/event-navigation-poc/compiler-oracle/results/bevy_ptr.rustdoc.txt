@@ -1,0 +1,2 @@
+ Documenting bevy_ptr v0.20.0-dev (/private/tmp/codemap-bevy-compiler-worktree/crates/bevy_ptr)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s

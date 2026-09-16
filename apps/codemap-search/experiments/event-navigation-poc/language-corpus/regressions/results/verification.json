@@ -1,19 +1,21 @@
 {
   "verified_on": "2026-09-16",
   "checkpoint": "01aac1515864f7066c368e0081d6fd23836a5474",
-  "python_implementation_files_parsed": 22,
+  "python_implementation_files_parsed": 24,
   "implementation_sha256": {
     "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
     "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
     "ts_modules.py": "1905f64755553927ff428e6879dce336ffbd96468cc74210a70dfc879f672122",
+    "rust_types.py": "61c01f30e274503c74bf95d8e800024cd714837391c70131885b7a1f263430f1",
+    "rust_macros.py": "d595768e53ed6c698865db319b265f5622bef1eb5ece521110773df038fd4daa",
     "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7",
     "js_generators.py": "af06593e4a46decb4da6773d0743406ce233c7eaf896b7a013ee53d4e07bf8a5",
     "model.py": "631170cce9d90f45fdd3a076c8615a0c856252c4525f90ce8513392d4f9c6bbf",
-    "engine.py": "1e13582253285e6d0809ac826d1e56ba7b5f4219fe3fcca976366d7578d2d962",
-    "syntax.py": "801b76f118e94632c25ae47dbb5247b8a1b3b91c0e0017beb9ee306df6c078b6",
+    "engine.py": "22c1a0d3a24d845a4c9389558c053866209e7a8c4b83cc150b897c6b44286af6",
+    "syntax.py": "024900b4d03f3440c089174388dbb2847136fb29db49c498790691740975c14b",
     "rust_modules.py": "e01408e71eb934f7b3dc01581160a41b4c6b81b28b53328f8ac83d190459fca9",
     "evaluate.py": "e46528b9f952852036f13b0f704bfd63bfbbc615f30aff3552f3c79b71ac5556",
-    "rust_values.py": "42e1cc03bcba19f7a2c422289ef1f4792ef765904b5e6aeb008250bd96ea0951",
+    "rust_values.py": "558d9c80d877b245157ec2c1b1e5437c2807be15af905b18bd9d1835259958fd",
     "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
     "analyze.py": "ec2201a81cc27160edd484f6ffe3d6a039a505d8ef7e9bd37ece005615c0dd9a",
     "language-corpus/jvm_semantics.py": "3e461a437dc1d3ff446f81da16c441f660198d12c6d2846080b3299a4b65f546",
@@ -24,14 +26,14 @@
     "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
     "language-corpus/manage.py": "50b63fc5ca676255847d694e6de7d54dd1ccae8230f0bec1614d55e8eb4d91cb"
   },
-  "runner_sha256": "185a232ba4f041aa4df3a9359aed54292192bb57eaa25fdf723a8e34366c7c88",
-  "verifier_sha256": "2097e42f2f862c7f42de1f9dc7d1ae4ea69855cda243a0907716f44c36e95c29",
-  "cases_sha256": "6706e1626bdd6a6ef48efcc5c385f2e4bfbc954b0ba97b725c391e60e738ee3a",
+  "runner_sha256": "7a9e19a97624645ebdf5cf0c65e5e68baae47357c15f51194edf61fc3541e2ae",
+  "verifier_sha256": "d5ef7c4d115de134945e228a4afe3d68106d915641f168e3718044e7852dcd30",
+  "cases_sha256": "0d00b6bd1d5b8e1c1f39ad668fca44e48513e03ed1ea28030ca8f5f3e03b3f50",
   "source_lock_sha256": "3c358fe24cd737ccd648cdd576e39934d982460a8a541daf14b49b32a6bff3e0",
   "baseline_files_unchanged": 74,
   "original_examples_unchanged": 36,
   "checkpoint_regression_cases_unchanged": 111,
-  "current_analysis_outputs_verified": 137,
+  "current_analysis_outputs_verified": 143,
   "public_and_basic_case_status_changes": [
     {
       "id": "v_method_hook",
@@ -80,12 +82,12 @@
     }
   ],
   "public_and_basic_cases": 167,
-  "regression_cases": 247,
-  "regression_passed": 247,
+  "regression_cases": 290,
+  "regression_passed": 290,
   "regression_expected": {
-    "disconnected": 105,
-    "connected": 134,
-    "unresolved": 8
+    "disconnected": 128,
+    "connected": 150,
+    "unresolved": 12
   },
   "public_statuses": {
     "conditional_candidate": 30,
@@ -94,7 +96,7 @@
     "correctly_unjoined_with_positive_control": 14,
     "source_scenario_not_executed": 26
   },
-  "current_document_local_links_verified": 123,
+  "current_document_local_links_verified": 131,
   "target_programs_executed": false,
   "analysis_outputs": [
     "results/analysis/bevy--rust.json.gz",
@@ -187,10 +189,16 @@
     "regressions/results/analysis/ruby--controls--override.rb.json.gz",
     "regressions/results/analysis/ruby--detected--example.rb.json.gz",
     "regressions/results/analysis/ruby--missed--example.rb.json.gz",
+    "regressions/results/analysis/rust--any-downcast-guards--routes.rs.json.gz",
+    "regressions/results/analysis/rust--container-method-guards--routes.rs.json.gz",
     "regressions/results/analysis/rust--controls--boundaries.rs.json.gz",
     "regressions/results/analysis/rust--controls--custom_box.rs.json.gz",
     "regressions/results/analysis/rust--data-returns--lib.rs.json.gz",
+    "regressions/results/analysis/rust--declarative-impl-macros--routes.rs.json.gz",
+    "regressions/results/analysis/rust--declarative-statement-macros--routes.rs.json.gz",
     "regressions/results/analysis/rust--detected--example.rs.json.gz",
+    "regressions/results/analysis/rust--generic-type-guards--routes.rs.json.gz",
+    "regressions/results/analysis/rust--generic-type-storage--routes.rs.json.gz",
     "regressions/results/analysis/rust--missed--example.rs.json.gz",
     "regressions/results/analysis/rust--pointer-origins--routes.rs.json.gz",
     "regressions/results/analysis/rust--pointer-shadow--routes.rs.json.gz",
