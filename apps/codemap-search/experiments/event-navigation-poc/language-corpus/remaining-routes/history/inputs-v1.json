@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "variants": {
+    "bevy-modules": {
+      "repository": "bevy",
+      "language": "rust",
+      "paths": [
+        "crates/bevy_app/src/sub_app.rs",
+        "crates/bevy_ecs/src/event/trigger.rs",
+        "crates/bevy_ecs/src/lib.rs",
+        "crates/bevy_ecs/src/message/iterators.rs",
+        "crates/bevy_ecs/src/message/message_cursor.rs",
+        "crates/bevy_ecs/src/message/message_reader.rs",
+        "crates/bevy_ecs/src/message/message_registry.rs",
+        "crates/bevy_ecs/src/message/message_writer.rs",
+        "crates/bevy_ecs/src/message/messages.rs",
+        "crates/bevy_ecs/src/message/mod.rs",
+        "crates/bevy_ecs/src/observer/centralized_storage.rs",
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "crates/bevy_ecs/src/observer/mod.rs",
+        "crates/bevy_ecs/src/observer/runner.rs",
+        "crates/bevy_ecs/src/system/mod.rs",
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        "crates/bevy_ecs/src/world/entity_access/world_mut.rs",
+        "crates/bevy_ecs/src/world/mod.rs",
+        "crates/bevy_gltf/src/lib.rs",
+        "crates/bevy_gltf/src/loader/extensions/mod.rs",
+        "crates/bevy_gltf/src/loader/mod.rs",
+        "crates/bevy_pbr/src/gltf.rs",
+        "examples/audio/pitch.rs",
+        "examples/ecs/observer_propagation.rs",
+        "examples/ecs/one_shot_systems.rs",
+        "examples/gltf/gltf_extension_mesh_2d.rs"
+      ],
+      "support_paths": [],
+      "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+      "source_sha256": {
+        "crates/bevy_app/src/sub_app.rs": "b0357b854710728cd2f0f1b56265cb3e4267e00f66858c90aa2757ea6a29dbf7",
+        "crates/bevy_ecs/src/event/trigger.rs": "477d65667da999ce6f9b111e47cef2a767b70b94a7d58145a9f5ee73317d0f84",
+        "crates/bevy_ecs/src/lib.rs": "bf37a10b3b11bb5682c43fa7624f55f344598b5557b059be31c83a92be6c4473",
+        "crates/bevy_ecs/src/message/iterators.rs": "e3df3ebb85edb584c3538561ed6a989bad9b023a9866c77cfc67f05888b1a8a9",
+        "crates/bevy_ecs/src/message/message_cursor.rs": "f05cc5c744701b21873b540596adad65f24989f2d546702a341d9830b288aca9",
+        "crates/bevy_ecs/src/message/message_reader.rs": "cd8cfbc869c037087ef812eac017b5e25baee81932d15a80c65e823f5b6fa7cf",
+        "crates/bevy_ecs/src/message/message_registry.rs": "befa1adb66914e777e1b62fa214f757a9d59e80477322385a5ca6f1917f0af79",
+        "crates/bevy_ecs/src/message/message_writer.rs": "652f528a341d1ac4d534a595f5aa170da38c7a5793c43edf8aaa83dfef96e387",
+        "crates/bevy_ecs/src/message/messages.rs": "32186c29d0c71e82420d631e779ca1309418d476bfb9a3ca0da01b78e21efc15",
+        "crates/bevy_ecs/src/message/mod.rs": "3c0cd61c290f60161e6ef3a68001d365ecffbd41911c56a5230dcf2f626c1ac9",
+        "crates/bevy_ecs/src/observer/centralized_storage.rs": "efff4ea0119ce255f1f31d71c49fb8fefd81127785e8d3efdab17c8617f081cb",
+        "crates/bevy_ecs/src/observer/distributed_storage.rs": "07c4a643ab5acbf47aaa1ac453e6863ddca657695231d5e21cb7789bfd081a31",
+        "crates/bevy_ecs/src/observer/mod.rs": "185ff5c3649de24a67e97bc8c7ec6ab9e9fe586195969d62c72bb14aaee16a3e",
+        "crates/bevy_ecs/src/observer/runner.rs": "042fdd337742d077291f8ae013133fd47b8cd4b14c44652fa27fad7e3bf95193",
+        "crates/bevy_ecs/src/system/mod.rs": "c9dca7c7eb5f7d138b31ae8b7fb6b6f518ba228eceb14dd9e91dc6afb2361a41",
+        "crates/bevy_ecs/src/system/system_registry.rs": "e3797de6d02e154a1d6ffed765c31a2f90535a07617d6f90c6c57ecfbae5a692",
+        "crates/bevy_ecs/src/world/entity_access/world_mut.rs": "f06b056edfdbed848364170722a6f3ec6c624bc89b0898daaa93351ec3f4750d",
+        "crates/bevy_ecs/src/world/mod.rs": "149f47f49dea1a4cdfa62704b100838d53fc20aab403efab4e0e4266fdf1e56e",
+        "crates/bevy_gltf/src/lib.rs": "a68e777eae13d5281380c66fead81d232bb191e9214b760f8ffb6678035c08fc",
+        "crates/bevy_gltf/src/loader/extensions/mod.rs": "07f8c5ffb77ff57f90fa3d212257ff1fdec5d7d6188903ad667e673585657a1c",
+        "crates/bevy_gltf/src/loader/mod.rs": "1a6daa2c12122a3ce904bfb6860d4fca5dffe81ea78d5d8edb4ebd5e81c998b7",
+        "crates/bevy_pbr/src/gltf.rs": "8fc874543c7068754f357cb0d40ce2a776f9a57db1937ec37392203b7eb2a872",
+        "examples/audio/pitch.rs": "16299f1c70443e845c74f4dced2343b04e1a96c5d2d34141e8fe0e9f3551ee46",
+        "examples/ecs/observer_propagation.rs": "d3e8e4c2024cb18811c8a1f76eed160b06b8a9dc0b772e3fc2fab6b94db988b7",
+        "examples/ecs/one_shot_systems.rs": "6d1d6ccc4ac07882797ee651064055efdd935a164b23e320d0b205cf9408de7a",
+        "examples/gltf/gltf_extension_mesh_2d.rs": "344ee91d13ab9b291a1d4d97a2887cb61c3fb7f028448df356c5b18e0461a9a1"
+      }
+    },
+    "monix-jvm-scala2": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/jvm/src/main/scala-2/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala"
+      ],
+      "support_paths": [
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java"
+        ]
+      ],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/jvm/src/main/scala-2/monix/execution/atomic/Atomic.scala": "12add379178e06e4bd886a196f178101147664716c138dd73181cbbe0a4ce6da",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala": "a1276f4d69b1a6298bf2c055336cbe7a4b91cd11d2ed03158bbe39cf89091b5b",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "d6f4ab1f3d59c23f565c642d8eb78c438af2c97690610e0f6432802308823c01",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala": "198529f6d5851a0e20913d05c54c6016a68c20e289ca6855d9b3c1e907649cb6",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala": "807483139c3dc3270e875ee4fd06869c212a98d52eb7c257fe1221ae1f58f1be",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala": "935d837ebfea0229029281682a7bcf40a183ef15b4457c14c011108589061656",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java": "fadd78de65d9ed232200f505a934507d89cfbcc9dd8183c9b892b3e7d0ce2416",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java": "0a407ca8a5ed905892578db95773d26cc10601da0b2da706b2a5c0f7bb87a480",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java": "1e077db4c81ef96fc6f3ff263893fef30fe078a28ad5ecd6493f204a2c59519e",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java": "7c23e13b872a5a5b8c97c062b206cbdad75ccc6a1c2938e2c9d833bab4353668",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java": "003908f0cd2af9dcf829d5368047ed121ea560d249b77339dbb6369c8a4b4257",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java": "0833c9039153bc28e41dbf72887233ee9525b6fe864e991fe60ef7adf41f8c22"
+      }
+    },
+    "monix-jvm-scala3": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/jvm/src/main/scala-3/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala"
+      ],
+      "support_paths": [
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java"
+        ]
+      ],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/jvm/src/main/scala-3/monix/execution/atomic/Atomic.scala": "851e2943aa5d194e960fb4ed207f53d22737288a3a859631b2dece5fc919ef51",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala": "a1276f4d69b1a6298bf2c055336cbe7a4b91cd11d2ed03158bbe39cf89091b5b",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "d6f4ab1f3d59c23f565c642d8eb78c438af2c97690610e0f6432802308823c01",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala": "935d837ebfea0229029281682a7bcf40a183ef15b4457c14c011108589061656",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java": "fadd78de65d9ed232200f505a934507d89cfbcc9dd8183c9b892b3e7d0ce2416",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java": "0a407ca8a5ed905892578db95773d26cc10601da0b2da706b2a5c0f7bb87a480",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java": "1e077db4c81ef96fc6f3ff263893fef30fe078a28ad5ecd6493f204a2c59519e",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java": "7c23e13b872a5a5b8c97c062b206cbdad75ccc6a1c2938e2c9d833bab4353668",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java": "003908f0cd2af9dcf829d5368047ed121ea560d249b77339dbb6369c8a4b4257",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java": "0833c9039153bc28e41dbf72887233ee9525b6fe864e991fe60ef7adf41f8c22"
+      }
+    },
+    "monix-js-scala2": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/js/src/main/scala-2/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala"
+      ],
+      "support_paths": [],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/js/src/main/scala-2/monix/execution/atomic/Atomic.scala": "61d33f17264721b19eb3da357ef4180d6dcfd95cb058a2e96e7035b4271757f6",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala": "14cff6a232c3c092bb469a2720af129189cb4ac03fa8de8ed99f782616049f39",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "16b6fb6afd5eea69a24119b4655b53e3d151c34b3d5d0a87117b890fc3f19ac2",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala": "198529f6d5851a0e20913d05c54c6016a68c20e289ca6855d9b3c1e907649cb6",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala": "807483139c3dc3270e875ee4fd06869c212a98d52eb7c257fe1221ae1f58f1be"
+      }
+    },
+    "monix-js-scala3": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/js/src/main/scala-3/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala"
+      ],
+      "support_paths": [],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/js/src/main/scala-3/monix/execution/atomic/Atomic.scala": "7433f78dd258c85254d786cedce3459f10fb0d4ab05c0415bc468265e706455c",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala": "14cff6a232c3c092bb469a2720af129189cb4ac03fa8de8ed99f782616049f39",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "16b6fb6afd5eea69a24119b4655b53e3d151c34b3d5d0a87117b890fc3f19ac2"
+      }
+    }
+  }
+}

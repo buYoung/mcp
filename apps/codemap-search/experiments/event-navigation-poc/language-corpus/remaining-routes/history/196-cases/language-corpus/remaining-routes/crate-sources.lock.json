@@ -1,0 +1,35 @@
+{
+  "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "crates": [
+    {
+      "crate": "bevy_ecs",
+      "source": "crates/bevy_ecs/src/lib.rs",
+      "manifest": "crates/bevy_ecs/Cargo.toml",
+      "manifest_sha256": "5b6d583f82a01a289fe79acd0478c18f83d11b5935bb26fd82f05998f71d20cd"
+    },
+    {
+      "crate": "bevy_gltf",
+      "source": "crates/bevy_gltf/src/lib.rs",
+      "manifest": "crates/bevy_gltf/Cargo.toml",
+      "manifest_sha256": "a2f4d5bbd93721bd8dfa46b60a4fa3b6a29ded36cc8b576c65f64e8201e392b8"
+    },
+    {
+      "crate": "bevy",
+      "source": "src/lib.rs",
+      "manifest": "Cargo.toml",
+      "manifest_sha256": "8e7aaf16ad9669f47dafdfb71eefa99ae4c33f9e13bf063a5de8adf8b90acf3e"
+    },
+    {
+      "crate": "bevy_internal",
+      "source": "crates/bevy_internal/src/lib.rs",
+      "manifest": "crates/bevy_internal/Cargo.toml",
+      "manifest_sha256": "c45869780ef56faf25e7204d9dbdf1fadbea1b94aa1d84077cd699a7ea94e459"
+    },
+    {
+      "crate": "bevy_app",
+      "source": "crates/bevy_app/src/lib.rs",
+      "manifest": "crates/bevy_app/Cargo.toml",
+      "manifest_sha256": "8ec5b5ed51771b0228b2be463b567de907bda18d652ac740e5935e4ccc0684b8"
+    }
+  ]
+}

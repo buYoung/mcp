@@ -1,0 +1,722 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "cpp": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      }
+    },
+    "csharp": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      }
+    },
+    "java": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 1,
+        "correctly_unjoined_with_positive_control": 1,
+        "source_scenario_not_executed": 1
+      }
+    },
+    "swift": {
+      "fixtures": {},
+      "public": {
+        "unresolved": 1,
+        "source_scenario_not_executed": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/entt/signal/sigh.hpp",
+        416,
+        425
+      ],
+      "invocation": [
+        "src/entt/signal/sigh.hpp",
+        173,
+        176
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/delegate.hpp",
+          137,
+          148
+        ],
+        [
+          "src/entt/signal/delegate.hpp",
+          261,
+          264
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          168,
+          173
+        ]
+      ],
+      "reason": "템플릿 함수로 delegate를 구성해 calls에 저장하고 원소의 operator()를 호출한다.",
+      "conditions": [
+        "같은 sigh 객체",
+        "disconnect 전"
+      ],
+      "syntax": [
+        "비타입 템플릿 인자",
+        "operator()"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 421,
+            "column": 9
+          },
+          "invocation": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 421,
+            "column": 9
+          },
+          "invocation": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cpp-named-default-queue",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/dispatcher.cpp",
+        164,
+        164
+      ],
+      "invocation": [
+        "test/entt/signal/dispatcher.cpp",
+        165,
+        165
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/dispatcher.hpp",
+          118,
+          126
+        ],
+        [
+          "src/entt/signal/dispatcher.hpp",
+          257,
+          280
+        ],
+        [
+          "test/entt/signal/dispatcher.cpp",
+          167,
+          171
+        ]
+      ],
+      "reason": "named id와 기본 type_hash id는 별도 pool이다. 실제 테스트는 기본 trigger 뒤 cnt==0을 기대한다.",
+      "conditions": [
+        "id 불일치",
+        "테스트는 이번에 실행하지 않음"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "cpp-raii-disconnect",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/sigh.cpp",
+        325,
+        325
+      ],
+      "invocation": [
+        "test/entt/signal/sigh.cpp",
+        333,
+        333
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/sigh.hpp",
+          290,
+          293
+        ],
+        [
+          "src/entt/signal/sigh.hpp",
+          247,
+          253
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          325,
+          336
+        ]
+      ],
+      "reason": "scoped_connection 소멸자가 release를 호출하므로 블록 뒤 publish는 해제된 callback을 실행하지 않아야 한다.",
+      "conditions": [
+        "RAII 수명과 재등록 여부"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "csharp-subject-observer",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        199,
+        210
+      ],
+      "invocation": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        136,
+        150
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          260,
+          279
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          332,
+          360
+        ]
+      ],
+      "reason": "SubjectDisposable을 observer 배열에 CAS로 추가하고 snapshot 원소의 Observer.OnNext를 호출한다.",
+      "conditions": [
+        "동일 Subject",
+        "구독 활성 상태"
+      ],
+      "syntax": [
+        "제네릭",
+        "CAS",
+        "null 조건부 호출"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 206,
+            "column": 17
+          },
+          "invocation": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "compare_exchange_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "stored_object_field_projection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "csharp-subscription-disposed",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        331,
+        331
+      ],
+      "invocation": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        343,
+        343
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          334,
+          334
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          217,
+          253
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          270,
+          279
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          351,
+          355
+        ]
+      ],
+      "reason": "이 구독은 시각 500에 해제되므로 550의 OnNext를 받을 수 없다. 구독 핸들과 순서가 필요하다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "csharp-subject-disposed",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        332,
+        333
+      ],
+      "invocation": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        344,
+        344
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          138,
+          150
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          290,
+          293
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          335,
+          347
+        ]
+      ],
+      "reason": "Subject.Dispose가 sentinel 배열로 바꾼 뒤 OnNext는 예외 경로로 가며 observer를 호출하지 않는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+        27,
+        30
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          149,
+          186
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          386,
+          421
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          437,
+          466
+        ]
+      ],
+      "reason": "저장된 SubscriberMethod의 Method를 저장된 subscriber 객체에 reflection으로 호출한다.",
+      "conditions": [
+        "같은 EventBus",
+        "이벤트 타입 일치/상속 규칙",
+        "활성 구독",
+        "thread mode 전달"
+      ],
+      "syntax": [
+        "Class 키",
+        "reflection Method.invoke"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 3,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "reflective_dispatch_compatibility_required",
+            "reflective_method_target_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "reflective_dispatch_compatibility_required",
+            "reflective_method_target_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 28,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "reflective_argument_role",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "java-method-string-not-method",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+        53,
+        60
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+          22,
+          28
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+          38,
+          47
+        ]
+      ],
+      "reason": "비교·해시용 methodString 캐시는 실제 Method 필드의 호출 대상이 아니다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "java-reflective-subscriber"
+      ]
+    },
+    {
+      "id": "java-bus-instance-isolation",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        177,
+        178
+      ],
+      "invocation": [
+        "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        179,
+        180
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          105,
+          117
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          410,
+          415
+        ]
+      ],
+      "reason": "한 EventBus에 등록하고 새 EventBus에 post하는 기존 테스트는 호출 횟수 0을 기대한다.",
+      "conditions": [
+        "서로 다른 new EventBus 객체"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "swift-bag-observer",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        97,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          57,
+          73
+        ],
+        [
+          "RxSwift/AnyObserver.swift",
+          47,
+          50
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          24,
+          47
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          32,
+          50
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          63,
+          89
+        ]
+      ],
+      "reason": "bound method observer.on을 Bag에 저장하고 dispatch가 Bag의 저장 형태별 closure를 호출한다.",
+      "conditions": [
+        "같은 Subject",
+        "활성 상태",
+        "dispose 전"
+      ],
+      "syntax": [
+        "bound method",
+        "generic Bag",
+        "값 타입 snapshot"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "swift-dispose-key",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        108,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Disposables/SubscriptionDisposable.swift",
+          13,
+          20
+        ],
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          112,
+          117
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          43,
+          60
+        ]
+      ],
+      "reason": "구독 Disposable이 보존한 owner/key로 Bag에서 제거한 뒤에는 이전 callback 실행을 확정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "swift-terminal-state",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        108,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          65,
+          84
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          125,
+          162
+        ]
+      ],
+      "reason": "terminal event는 이전 snapshot에 전달되지만 그 뒤 next에는 빈 Bag을 반환한다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    }
+  ],
+  "dependencies": {
+    "tree-sitter": "0.26.0",
+    "tree-sitter-typescript": "0.23.2",
+    "tree-sitter-rust": "0.24.2",
+    "tree-sitter-go": "0.25.0",
+    "tree-sitter-language-pack": "0.13.0",
+    "tree-sitter-c-sharp": "0.23.5",
+    "tree-sitter-embedded-template": "0.25.0",
+    "tree-sitter-yaml": "0.7.2"
+  }
+}

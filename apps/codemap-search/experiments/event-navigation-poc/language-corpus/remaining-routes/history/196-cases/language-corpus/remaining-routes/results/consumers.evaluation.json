@@ -1,0 +1,419 @@
+{
+  "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
+  "cases_lock_sha256": "274bba8902ef5d087789e63e690af3da18220cfff7ec92ab50fed9b7cafbf034",
+  "analysis_sha256": {
+    "livestore-effect": "c0622b72ddbff1bf067b6d135a6aa6a01a37781167bb71e75cbfd6970d7e52c1"
+  },
+  "target_programs_executed": false,
+  "statuses": {
+    "conditional_data_consumption": 1,
+    "unresolved": 2,
+    "conditional_candidate": 1,
+    "correctly_unjoined_with_positive_control": 2
+  },
+  "cases": [
+    {
+      "id": "ls_mesh_queue_internal_write",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        197,
+        197
+      ],
+      "relation_kinds": [
+        "stored_object_write"
+      ],
+      "reason": "Map에 저장한 queue 객체의 내부 tail 배열 쓰기. payload 읽기나 전달 완료를 뜻하지 않는다.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651"
+      },
+      "status": "conditional_data_consumption",
+      "matching_relations": 2,
+      "selected_relations": 2,
+      "evidence": [
+        {
+          "kind": "stored_object_write",
+          "certainty": "conditional_source_relation",
+          "identity_scope": "allocation_or_global_context",
+          "concrete_instance_proven": false,
+          "event_classification": "not_inferred",
+          "storage": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
+            "location": {
+              "path": "packages/@livestore/webmesh/src/node.ts",
+              "line": 609,
+              "column": 11
+            },
+            "function": "packages/@livestore/webmesh/src/node.ts:598:20",
+            "conditions": [
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "invocation": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]][key:messages][key:tail][key:array][element:*]",
+            "value": "parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet",
+            "location": {
+              "path": "__dependencies__/effect/src/MutableList.ts",
+              "line": 197,
+              "column": 3
+            },
+            "function": "__dependencies__/effect/src/MutableList.ts:190:23",
+            "conditions": [
+              "conditional_control:__dependencies__/effect/src/Queue.ts:648",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:650",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:651",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:655",
+              "enclosing_callable_execution_unproven",
+              "generic_type_constraints_unproven",
+              "prototype_method_execution_required",
+              "source_callable_argument_binding",
+              "source_constructor_prototype_binding"
+            ],
+            "via": [
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 656,
+                "column": 13
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 989,
+                "column": 12
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 988,
+                "column": 3
+              }
+            ],
+            "argument_index": null
+          },
+          "conditions": [
+            "conditional_control:__dependencies__/effect/src/Queue.ts:648",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:650",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:651",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:655",
+            "enclosing_callable_execution_unproven",
+            "generic_type_constraints_unproven",
+            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
+            "multiple_storage_writes_present",
+            "object_write_only_not_callback_execution",
+            "prototype_method_execution_required",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "source_callable_argument_binding",
+            "source_constructor_prototype_binding",
+            "stored_value_unresolved"
+          ],
+          "mutations": []
+        },
+        {
+          "kind": "stored_object_write",
+          "certainty": "conditional_source_relation",
+          "identity_scope": "allocation_or_global_context",
+          "concrete_instance_proven": false,
+          "event_classification": "not_inferred",
+          "storage": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
+            "location": {
+              "path": "packages/@livestore/webmesh/src/node.ts",
+              "line": 609,
+              "column": 11
+            },
+            "function": "packages/@livestore/webmesh/src/node.ts:598:20",
+            "conditions": [
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "invocation": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]][key:messages][key:tail][key:array][element:*]",
+            "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue[key:state][key:offers][element:*][key:message]",
+            "location": {
+              "path": "__dependencies__/effect/src/MutableList.ts",
+              "line": 197,
+              "column": 3
+            },
+            "function": "__dependencies__/effect/src/MutableList.ts:190:23",
+            "conditions": [
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2063",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2065",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2067",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2147",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2148",
+              "declared_argument_type_required",
+              "enclosing_callable_execution_unproven",
+              "explicit_stored_value_binding",
+              "generic_type_constraints_unproven",
+              "initializer_value_unresolved",
+              "iteration_may_be_empty",
+              "prototype_method_execution_required",
+              "source_callable_argument_binding",
+              "source_constructor_prototype_binding"
+            ],
+            "via": [
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 2149,
+                "column": 7
+              },
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 2069,
+                "column": 5
+              },
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 1437,
+                "column": 5
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 989,
+                "column": 12
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 988,
+                "column": 3
+              },
+              {
+                "path": "packages/@livestore/webmesh/src/node.ts",
+                "line": 609,
+                "column": 11
+              }
+            ],
+            "argument_index": null
+          },
+          "conditions": [
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2063",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2065",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2067",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2147",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2148",
+            "declared_argument_type_required",
+            "enclosing_callable_execution_unproven",
+            "explicit_stored_value_binding",
+            "generic_type_constraints_unproven",
+            "initializer_value_unresolved",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]",
+            "multiple_storage_writes_present",
+            "object_write_only_not_callback_execution",
+            "prototype_method_execution_required",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "source_callable_argument_binding",
+            "source_constructor_prototype_binding",
+            "stored_value_unresolved"
+          ],
+          "mutations": []
+        }
+      ]
+    },
+    {
+      "id": "ls_mesh_queue_internal_read",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        425,
+        452
+      ],
+      "relation_kinds": [
+        "stored_object_read"
+      ],
+      "reason": "Map에 저장한 queue 객체에서 원소 배열을 반환하는 추가 소비 지점. 아직 자동 연결 미완성.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651"
+      },
+      "status": "unresolved",
+      "matching_relations": 0,
+      "selected_relations": 0,
+      "evidence": []
+    },
+    {
+      "id": "ls_rpc_client_lookup",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        90,
+        90
+      ],
+      "relation_kinds": [
+        "stored_key_lookup"
+      ],
+      "reason": "requestClientMap에서 읽은 clientId가 clientWrites의 조회 키로 사용되는 지점. clientId는 호출 가능한 값이 아니다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
+      },
+      "status": "unresolved",
+      "matching_relations": 0,
+      "selected_relations": 0,
+      "evidence": []
+    },
+    {
+      "id": "effect_rpc_handler_control",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        101,
+        101
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        92,
+        92
+      ],
+      "relation_kinds": [
+        "storage_to_invocation"
+      ],
+      "reason": "Effect 내부 clientWrites 등록과 handler 호출만의 양성 대조. LiveStore clientId 전달 전체의 증거가 아니다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f"
+      },
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "selected_relations": 1,
+      "evidence": [
+        {
+          "kind": "storage_to_invocation",
+          "certainty": "conditional_source_relation",
+          "identity_scope": "allocation_or_global_context",
+          "concrete_instance_proven": false,
+          "event_classification": "not_inferred",
+          "storage": {
+            "kind": "store",
+            "target": "allocation:__dependencies__/effect/src/unstable/rpc/Utils.ts:77:26[container:entries][parameter:__dependencies__/effect/src/unstable/rpc/Utils.ts:98:9:clientId]",
+            "value": "parameter:__dependencies__/effect/src/unstable/rpc/Utils.ts:98:9:f",
+            "location": {
+              "path": "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+              "line": 101,
+              "column": 13
+            },
+            "function": "__dependencies__/effect/src/unstable/rpc/Utils.ts:99:29",
+            "conditions": [
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "invocation": {
+            "kind": "invoke",
+            "target": "allocation:__dependencies__/effect/src/unstable/rpc/Utils.ts:77:26[container:entries][parameter:__dependencies__/effect/src/unstable/rpc/Utils.ts:89:9:clientId]",
+            "value": "unknown:",
+            "location": {
+              "path": "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+              "line": 92,
+              "column": 18
+            },
+            "function": "__dependencies__/effect/src/unstable/rpc/Utils.ts:89:9",
+            "conditions": [
+              "conditional_control:__dependencies__/effect/src/unstable/rpc/Utils.ts:91",
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "conditions": [
+            "conditional_control:__dependencies__/effect/src/unstable/rpc/Utils.ts:91",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:__dependencies__/effect/src/unstable/rpc/Utils.ts:98:9:clientId=parameter:__dependencies__/effect/src/unstable/rpc/Utils.ts:89:9:clientId",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required"
+          ],
+          "mutations": [
+            {
+              "path": "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+              "line": 113,
+              "column": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_queue_to_rpc_lookup",
+      "input_variant": "livestore-effect",
+      "kind": "negative",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        90,
+        90
+      ],
+      "relation_kinds": [],
+      "reason": "Queue 객체를 RPC의 clientId 키와 혼합하지 않는다.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f"
+      },
+      "positive_control": "ls_mesh_queue_internal_write",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "selected_relations": 0,
+      "evidence": []
+    },
+    {
+      "id": "no_rpc_client_to_queue_write",
+      "input_variant": "livestore-effect",
+      "kind": "negative",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        197,
+        197
+      ],
+      "relation_kinds": [],
+      "reason": "clientId 저장을 Queue 내부 객체 쓰기와 혼합하지 않는다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
+      },
+      "positive_control": "ls_mesh_queue_internal_write",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "selected_relations": 0,
+      "evidence": []
+    }
+  ]
+}

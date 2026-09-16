@@ -1,0 +1,505 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "typescript": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 3,
+        "argument_transfer_only": 2,
+        "correctly_unjoined_with_positive_control": 4
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "ls_refresh",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/reactive.ts",
+        577,
+        577
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/reactive.ts",
+        520,
+        520
+      ],
+      "evidence": [],
+      "reason": "인스턴스 Set에 저장한 refresh 콜백의 순회 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/reactive.ts",
+            "line": 577,
+            "column": 5
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/reactive.ts",
+            "line": 520,
+            "column": 7
+          },
+          "conditions": [
+            "collection_membership_required",
+            "conditional_control:packages/@livestore/livestore/src/reactive.ts:531",
+            "enclosing_callable_execution_unproven",
+            "iteration_may_be_empty",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ls_graph_unsubscribe",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        135,
+        138
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        232,
+        232
+      ],
+      "evidence": [],
+      "reason": "구독 ID로 저장한 해지 함수 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 4,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 135,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 232,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ls_live_unsubscribe",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        272,
+        275
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        283,
+        283
+      ],
+      "evidence": [],
+      "reason": "독립 Map의 live-query 구독 해지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 4,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 272,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/@livestore/livestore/src/store/devtools.ts",
+            "line": 283,
+            "column": 9
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/livestore/src/store/devtools.ts:105",
+            "enclosing_callable_execution_unproven",
+            "fallback_path_unresolved:103",
+            "key_equality_required:parameter:packages/@livestore/livestore/src/store/devtools.ts:64:21:decodedMessage[key:subscriptionId]=parameter:packages/@livestore/livestore/src/store/devtools.ts:361:20:message[key:subscriptionId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        608,
+        610
+      ],
+      "invocation": [
+        "packages/@livestore/webmesh/src/node.ts",
+        229,
+        233
+      ],
+      "evidence": [],
+      "reason": "channelName별 Queue 저장과 수신 packet의 Queue 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "argument_transfer_only",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 609,
+            "column": 11
+          },
+          "invocation": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 232,
+            "column": 20
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:212",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:231",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        68,
+        77
+      ],
+      "evidence": [],
+      "reason": "requestId로 찾은 clientId를 writeResponse 인자로 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "argument_transfer_only",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 184,
+            "column": 13
+          },
+          "invocation": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 60
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]=result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:][key:requestId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_ls_graph_to_live",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        135,
+        138
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        283,
+        283
+      ],
+      "evidence": [],
+      "reason": "동일 subscriptionId여도 서로 다른 Map",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "ls_refresh",
+        "ls_graph_unsubscribe",
+        "ls_live_unsubscribe"
+      ]
+    },
+    {
+      "id": "no_ls_live_to_graph",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        272,
+        275
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        232,
+        232
+      ],
+      "evidence": [],
+      "reason": "역방향 Map 교차 연결 금지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "ls_refresh",
+        "ls_graph_unsubscribe",
+        "ls_live_unsubscribe"
+      ]
+    },
+    {
+      "id": "no_ls_debug_to_sync",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        198,
+        198
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        321,
+        321
+      ],
+      "evidence": [],
+      "reason": "서로 다른 구독 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "ls_refresh",
+        "ls_graph_unsubscribe",
+        "ls_live_unsubscribe"
+      ]
+    },
+    {
+      "id": "no_ls_sync_to_debug",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        304,
+        313
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        206,
+        206
+      ],
+      "evidence": [],
+      "reason": "서로 다른 구독 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "ls_refresh",
+        "ls_graph_unsubscribe",
+        "ls_live_unsubscribe"
+      ]
+    }
+  ],
+  "input_variant": "livestore-effect",
+  "max_file_bytes": 1048576,
+  "input_lock_sha256": "0897914bd08520a2d93d9a6ed22ef0750722be57f5034e6bdf7fc54302321905"
+}

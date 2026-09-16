@@ -1,0 +1,1123 @@
+{
+  "checkpoint": "01aac1515864f7066c368e0081d6fd23836a5474",
+  "unchanged_public_input_lock": true,
+  "changes": [
+    {
+      "id": "v_method_hook",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "cpp-delegate-publish",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "csharp-subject-observer",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "groovy-reply-not-subscriber",
+      "before": "negative_unverified_without_positive_control",
+      "after": "correctly_unjoined_with_positive_control"
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "java-method-string-not-method",
+      "before": "negative_unverified_without_positive_control",
+      "after": "correctly_unjoined_with_positive_control"
+    },
+    {
+      "id": "php-priority-listener",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    },
+    {
+      "id": "swift-bag-observer",
+      "before": "unresolved",
+      "after": "conditional_candidate"
+    }
+  ],
+  "current_target_results": [
+    {
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        224,
+        235
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        79,
+        123
+      ],
+      "evidence": [],
+      "reason": "Observer의 boxed system에서 runner의 system 실행까지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "b_message_buffer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/message/messages.rs",
+        125,
+        145
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/message/iterators.rs",
+        52,
+        99
+      ],
+      "evidence": [],
+      "reason": "World-local 메시지 버퍼 생산과 reader cursor 소비",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        608,
+        610
+      ],
+      "invocation": [
+        "packages/@livestore/webmesh/src/node.ts",
+        229,
+        233
+      ],
+      "evidence": [],
+      "reason": "channelName별 Queue 저장과 수신 packet의 Queue 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "argument_transfer_only",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 609,
+            "column": 11
+          },
+          "invocation": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 232,
+            "column": 20
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:212",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:231",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        68,
+        77
+      ],
+      "evidence": [],
+      "reason": "requestId로 찾은 clientId를 writeResponse 인자로 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "argument_transfer_only",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 184,
+            "column": 13
+          },
+          "invocation": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 60
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]=result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:][key:requestId]",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v_method_hook",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+        77,
+        82
+      ],
+      "invocation": [
+        "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+        20,
+        32
+      ],
+      "evidence": [],
+      "reason": "class/method hook 저장과 별도 서비스의 pre/post 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 25,
+            "column": 13
+          },
+          "conditions": [
+            "copied_property_not_overridden",
+            "declared_receiver_schema_only",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]",
+            "key_equality_required:result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:target]",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "nested_member_presence_required",
+            "object_copy_registration_projection",
+            "opaque_receiver_binding_required",
+            "own_enumerable_property_required",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 31,
+            "column": 33
+          },
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:30",
+            "copied_property_not_overridden",
+            "declared_receiver_schema_only",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]",
+            "key_equality_required:result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:target]",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "nested_member_presence_required",
+            "object_copy_registration_projection",
+            "opaque_receiver_binding_required",
+            "own_enumerable_property_required",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_system_id",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        456,
+        478
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        700,
+        734
+      ],
+      "evidence": [],
+      "reason": "새 entity의 RegisteredSystem을 SystemId로 조회하여 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/gltf/gltf_extension_mesh_2d.rs",
+        67,
+        85
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        1751,
+        1762
+      ],
+      "evidence": [],
+      "reason": "World의 Arc 레지스트리에서 load-local 복제를 거친 trait hook 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/entt/signal/sigh.hpp",
+        416,
+        425
+      ],
+      "invocation": [
+        "src/entt/signal/sigh.hpp",
+        173,
+        176
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/delegate.hpp",
+          137,
+          148
+        ],
+        [
+          "src/entt/signal/delegate.hpp",
+          261,
+          264
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          168,
+          173
+        ]
+      ],
+      "reason": "템플릿 함수로 delegate를 구성해 calls에 저장하고 원소의 operator()를 호출한다.",
+      "conditions": [
+        "같은 sigh 객체",
+        "disconnect 전"
+      ],
+      "syntax": [
+        "비타입 템플릿 인자",
+        "operator()"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 421,
+            "column": 9
+          },
+          "invocation": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection",
+            "stored_value_unresolved"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 421,
+            "column": 9
+          },
+          "invocation": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection",
+            "stored_value_unresolved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "csharp-subject-observer",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        199,
+        210
+      ],
+      "invocation": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        136,
+        150
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          260,
+          279
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          332,
+          360
+        ]
+      ],
+      "reason": "SubjectDisposable을 observer 배열에 CAS로 추가하고 snapshot 원소의 Observer.OnNext를 호출한다.",
+      "conditions": [
+        "동일 Subject",
+        "구독 활성 상태"
+      ],
+      "syntax": [
+        "제네릭",
+        "CAS",
+        "null 조건부 호출"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 3,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 206,
+            "column": 17
+          },
+          "invocation": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "compare_exchange_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "snapshot_read_time_unproven",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 199,
+            "column": 32
+          },
+          "invocation": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "conditions": [
+            "argument_store_through_summary",
+            "callee_summary_applied",
+            "collection_membership_required",
+            "compare_exchange_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "snapshot_read_time_unproven"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 206,
+            "column": 17
+          },
+          "invocation": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "compare_exchange_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "snapshot_read_time_unproven",
+            "stored_object_field_projection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        42,
+        45
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        64,
+        79
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+          40,
+          44
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          118,
+          124
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+          41,
+          46
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+          47,
+          50
+        ]
+      ],
+      "reason": "구독 필드의 Closure를 trigger에 전달해 subscriberClosure.call로 호출한다.",
+      "conditions": [
+        "같은 버스",
+        "같은 이벤트 키",
+        "구독 활성"
+      ],
+      "syntax": [
+        "Closure",
+        "암시적 it",
+        "동적 call"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 3,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 75,
+            "column": 30
+          },
+          "conditions": [
+            "callable_receiver_required",
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 78,
+            "column": 30
+          },
+          "conditions": [
+            "callable_receiver_required",
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+        27,
+        30
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          149,
+          186
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          386,
+          421
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          437,
+          466
+        ]
+      ],
+      "reason": "저장된 SubscriberMethod의 Method를 저장된 subscriber 객체에 reflection으로 호출한다.",
+      "conditions": [
+        "같은 EventBus",
+        "이벤트 타입 일치/상속 규칙",
+        "활성 구독",
+        "thread mode 전달"
+      ],
+      "syntax": [
+        "Class 키",
+        "reflection Method.invoke"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 3,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "reflective_dispatch_compatibility_required",
+            "reflective_method_target_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "reflective_dispatch_compatibility_required",
+            "reflective_method_target_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 28,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "reflective_argument_role",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "php-priority-listener",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventDispatcher.php",
+        141,
+        145
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "evidence": [
+        [
+          "EventDispatcher.php",
+          47,
+          58
+        ],
+        [
+          "EventDispatcher.php",
+          287,
+          307
+        ],
+        [
+          "Tests/EventDispatcherTest.php",
+          163,
+          179
+        ]
+      ],
+      "reason": "eventName/priority 배열의 listener를 정렬·최적화 cache로 옮겨 최종 callable로 호출한다.",
+      "conditions": [
+        "같은 dispatcher와 eventName",
+        "propagation 중단 전"
+      ],
+      "syntax": [
+        "연관 배열",
+        "callable",
+        "참조 캡처"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 20,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventDispatcher.php",
+            "line": 235,
+            "column": 13
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "key_equality_required:parameter:EventDispatcher.php:4310:$eventName=parameter:EventDispatcher.php:1393:$eventName",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventDispatcher.php",
+            "line": 235,
+            "column": 13
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "key_equality_required:unresolved:EventDispatcher.php:6269:$eventName=parameter:EventDispatcher.php:1393:$eventName",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "invocation": {
+            "path": "EventDispatcher.php",
+            "line": 235,
+            "column": 13
+          },
+          "conditions": [
+            "callee_summary_applied",
+            "collection_membership_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "key_equality_required:unresolved:EventDispatcher.php:6269:$eventName=parameter:EventDispatcher.php:1393:$eventName",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          87,
+          103
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          212,
+          219
+        ],
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          89
+        ]
+      ],
+      "reason": "immutable subscriber Set을 새 State로 CAS 저장하고 cache 배열에서 꺼낸 subscriber.onNext를 호출한다.",
+      "conditions": [
+        "CAS 성공",
+        "활성 state",
+        "cancel 전"
+      ],
+      "syntax": [
+        "case class",
+        "immutable Set",
+        "tailrec",
+        "Future[Ack]"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "swift-bag-observer",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        97,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          57,
+          73
+        ],
+        [
+          "RxSwift/AnyObserver.swift",
+          47,
+          50
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          24,
+          47
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          32,
+          50
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          63,
+          89
+        ]
+      ],
+      "reason": "bound method observer.on을 Bag에 저장하고 dispatch가 Bag의 저장 형태별 closure를 호출한다.",
+      "conditions": [
+        "같은 Subject",
+        "활성 상태",
+        "dispose 전"
+      ],
+      "syntax": [
+        "bound method",
+        "generic Bag",
+        "값 타입 snapshot"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 6,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "RxSwift/Subjects/PublishSubject.swift",
+            "line": 108,
+            "column": 19
+          },
+          "invocation": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 13,
+            "column": 5
+          },
+          "conditions": [
+            "argument_store_through_summary",
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required",
+            "source_module_binding_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "RxSwift/Subjects/PublishSubject.swift",
+            "line": 108,
+            "column": 19
+          },
+          "invocation": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 13,
+            "column": 5
+          },
+          "conditions": [
+            "argument_store_through_summary",
+            "callee_summary_applied",
+            "conditional_compilation_selection_unproven",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "multiple_storage_writes_present",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "source_module_binding_required"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "RxSwift/Subjects/PublishSubject.swift",
+            "line": 108,
+            "column": 19
+          },
+          "invocation": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 13,
+            "column": 5
+          },
+          "conditions": [
+            "argument_store_through_summary",
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required",
+            "source_module_binding_required"
+          ]
+        }
+      ]
+    }
+  ]
+}

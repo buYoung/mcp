@@ -1,21 +1,31 @@
 # 18개 언어 미탐지 구문 보완 결과
 
-2026-09-16에 앞서 제시한 **미탐지 예시 18개를 모두 저장 지점에서 최종 호출까지 연결했다.** 기존 탐지 예시 18개도 유지됐다. 추가 대조를 포함한 111사례가 통과했으며, 대상 프로그램을 실행한 결과가 아닌 조건부 소스 관계다. 공개 저장소 18개의 결과와 남은 12개 미확정 양성 경로는 [전체 보고서](../README.ko.md)에 별도로 기록했다.
+2026-09-16에 앞서 제시한 **미탐지 예시 18개를 모두 저장 지점에서 최종 호출까지 연결했다.** 기존 탐지 예시 18개도 유지됐다. 체크포인트 이후 사례를 단계적으로 추가해 현재 **201사례가 모두 통과**했다. 대상 프로그램을 실행한 결과가 아닌 조건부 소스 관계다. 확장 입력까지 포함한 공개 결과는 호출 후보 31·자료 반환 1·인자 전달 2·미확정 3다. [전체 보고서](../README.ko.md)와 [잔여 경로 보완 결과](../remaining-routes/README.ko.md)에 범위·실패 분석·한계를 기록했다.
 
 ## 비교 기준과 결과
 
-질문은 “앞서 언어별로 제시한 미탐지 구문을 해결하면서 다른 저장값을 잘못 연결하지 않는가”다. 독립 Python PoC를 수정했으며 제품 Rust 코드·MCP 계약은 변경하지 않았다. 파일 분석은 Sol·medium, 구현·사례 구성·측정은 메인 스레드에서 수행했고 codemap-search는 사용하지 않았다.
+질문은 “앞서 언어별로 제시한 미탐지 구문을 해결하면서 다른 저장값을 잘못 연결하지 않는가”다. 독립 Python PoC를 수정했으며 제품 Rust 코드·MCP 계약은 변경하지 않았다. 초기 구문 분석은 Sol·medium이 수행했고, 후속 공개 경로의 실패 분석에는 사용자 지시에 따라 Astra·max를 2회 사용했다. 구현·사례 구성·측정은 메인 스레드에서 수행했고 codemap-search는 사용하지 않았다.
 
 | 구분 | 사례 수 | 결과 |
 | --- | ---: | --- |
 | 기존 탐지 예시 | 18 | 18개 탐지 유지 |
 | 기존 미탐지 예시 | 18 | 18개 최종 호출까지 조건부 탐지 |
-| 추가 양성 대조 | 31 | 31개 조건부 탐지 |
-| 구조적 오연결 반례 | 40 | 40개 무연결, 지정 양성 대조도 통과 |
+| 추가 호출 양성 대조 | 67 | 67개 조건부 호출 탐지 |
+| 자료 반환 양성 대조 | 3 | 3개 조건부 반환, 호출과 별도 집계 |
+| 자료 소비 양성 대조 | 4 | 객체 쓰기·읽기·조회 키 소비, 호출과 별도 집계 |
+| 구조적 오연결 반례 | 87 | 87개 무연결, 같은 종류의 지정 양성 대조도 통과 |
 | 미확정 유지 대조 | 4 | 해석 근거가 부족한 경로를 연결하지 않음 |
-| 합계 | 111 | 111개 기대 결과 충족, 파싱 오류 0 |
+| 합계 | 201 | 201개 기대 결과 충족, 파싱 오류 0 |
 
-원문은 63파일이며, 이 중 C의 두 파일을 같은 입력으로 분석하는 사례 때문에 분석 프로세스는 62개다. 수치는 정의한 소스 쌍의 수다. 여러 관계 후보가 한 쌍에 나와도 사례 하나로 집계한다. `stored_value_argument`만 있는 경우 최종 호출 탐지로 인정하지 않는다. 반례는 연결이 없더라도 지정 양성 대조가 실패하면 통과하지 못한다.
+원문은 99파일이며 C·TypeScript·Rust의 여러 파일과 Scala/Java 혼합 소스를 함께 분석하는 사례를 포함해 분석 프로세스는 91개다. 수치는 정의한 소스 쌍의 수다. 여러 관계 후보가 한 쌍에 나와도 사례 하나로 집계한다. `stored_value_argument`나 `stored_value_return`만 있는 경우 최종 호출 탐지로 인정하지 않는다. 자료 반환은 `semantic_kind=data_return`, 객체 쓰기·조회 키 소비는 `semantic_kind=data_consumption`으로 관계 종류와 끝점을 별도로 대조한다. 반례는 연결이 없더라도 지정 양성 대조가 실패하면 통과하지 못한다.
+
+후속 29개는 C++ 생성자·포인터 별칭 4개, C# atomic·getter 2개, Java reflection 2개, PHP 참조 cache·callable 생성 2개, Swift 제네릭 Bag 2개, Rust source-backed Deref·고유 메서드 4개, TypeScript object spread·속성·import·별도 binding 13개다. 기존 111사례와 원본 예시를 유지했고 새 사례만 추가했다.
+
+165사례 단계에서 추가한 25개는 Rust 모듈·데이터 반환 6개, Scala State/copy·Array 6개, TypeScript 모듈·캡처 4개, 사실 한도 2개, 타입 구문 복구 5개, static 분리 2개다. 기존 140사례의 기대값·원문을 변경하지 않았다. [이전 단계 보존본](../remaining-routes/baseline/manifest.json)과 [현재 검증](../remaining-routes/verification.json)에서 대조할 수 있다.
+
+이번에는 TypeScript 반환 closure·call/apply·prototype와 모듈 예산·데이터 소비 18개, Scala implicit·Java VarHandle·Set 복사 값 8개, Rust Box·Some pattern·이름 가림 5개로 **31사례**를 더했다. 서로 다른 prototype 생성 환경, final 필드·잘못된 필드 타입, generic Box 가림을 검사한다. Set 복사는 같은 위치의 기존 원소와 새 원소를 구분하고 새 매개변수 값이 최종 관계에 남는지 확인한다. [직전 165사례 보존본](../remaining-routes/history/165-cases/manifest.json)을 그대로 유지했다.
+
+이어서 namespace 안의 배열 타입과 중첩 타입 해석 5사례를 추가했다. 한 파일에 이름이 같은 타입이 있어도 namespace를 구분하고, 여러 객체 타입이 섞인 union에서 하나를 임의 선택하지 않는다. 이 변경 직전의 [196사례 검증 보존본](../remaining-routes/history/196-cases/manifest.json)도 남겼다.
 
 ## 언어별로 무엇을 고쳤는가
 
@@ -40,6 +50,7 @@
 | Rust | [Box&lt;dyn Fn()&gt;.as_ref](examples/rust/missed/example.rs): 표준 Box와 호출 가능한 내부 타입을 확인해 참조 경로를 유지한다. 같은 이름의 사용자 Box에는 적용하지 않는다. |
 | Scala | [tuple 구조 분해](examples/scala/missed/example.scala): 튜플 값을 원소별 슬롯에 저장하고 같은 위치의 바인딩으로 전달한다. |
 | Swift | [tuple 다중 대입](examples/swift/missed/example.swift): 좌변을 감싼 구문을 풀고 각 원소를 정확한 대상 위치에 저장한다. |
+| TypeScript | [getter callback](examples/typescript/missed/example.ts): 생성자 parameter property에 저장한 함수를 getter 반환값과 지역 별칭을 거쳐 호출 지점으로 연결한다. |
 
 이벤트 API 목록이나 저장소 이름에 따른 규칙을 추가하지 않았다. 공통 저장·호출 연결 모델을 유지하면서 언어의 값 해석 단계를 보완했다. 튜플 위치에는 구분되는 정적 키를 사용하며, 다른 위치나 다른 정적 숫자 키를 동적 키처럼 합치지 않는다.
 
@@ -53,9 +64,9 @@
 
 - Getter는 입력에서 소유 타입과 적용할 getter를 확인하는 범위다. 상속·동적 descriptor·임의 proxy, setter 호출 전파 전체를 지원한 것은 아니다.
 - 내장 조회는 입력에서 확인한 이름 가림과 정적 키를 기준으로 한다. Python의 기본값 인자가 있는 getattr, 임의 동적 속성명, Ruby의 외부 monkey patch, Reflect 자체의 런타임 교체 등은 추가 의미 분석이 필요하다.
-- Java의 일반 메서드 참조 타입 추론·상속된 함수형 인터페이스 전체, Go의 임의 reflection 연산, Rust의 임의 AsRef/trait/Deref 및 wrapper 체인은 범위 밖이다.
+- Java의 일반 메서드 참조 타입 추론·상속된 함수형 인터페이스 전체, Go의 임의 reflection 연산, Rust의 임의 AsRef/trait 및 wrapper 체인은 범위 밖이다. Rust Deref는 명시된 표준 trait와 실제 본문의 단일 내부 컨테이너 반환만 보완했다.
 - C++는 명시적 this·단순 값 캡처를 처리한다. 참조·기본·초기화·객체 복사 캡처와 수명은 추가 작업이 필요하다. C는 파일별 static을 처리하며 외부 링크 변수의 동일성을 증명하지 않는다.
-- 이름 있는 record/tuple, 임의 패턴·가변 개수·모든 중첩 형태, C# 사용자 add/remove accessor와 static event, Assembly의 전체 명령·ABI·제어 흐름은 미지원 또는 미검증이다. 튜플은 최대 8원소, closure 확장은 최대 4단계다.
+- 이름 있는 record/tuple, 임의 패턴·가변 개수·모든 중첩 형태, C# 사용자 add/remove accessor와 static event, Assembly의 전체 명령·ABI·제어 흐름은 미지원 또는 미검증이다. 튜플은 최대 8원소다. TypeScript 실제 인자 해석 깊이는 6, Scala/혼합 Java 소스 호출 깊이는 10으로 제한하며 모든 closure·macro를 처리하지 않는다.
 - 모든 관계는 `certainty=conditional_source_relation`, `concrete_instance_proven=false`, `event_classification=not_inferred`다. 실제 인스턴스·등록 순서·수명·이벤트 전달·프레임워크 전체 정밀도는 입증하지 않았다. 대상 코드의 컴파일·테스트·실행은 하지 않았다.
 
 이번 예시와 반례는 수정하면서 확인한 회귀 표본이다. 독립 holdout 평가나 언어 전체의 완전성 증거로 사용하지 않는다.

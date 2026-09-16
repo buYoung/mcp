@@ -1,0 +1,51 @@
+{
+  "verified_on": "2026-09-16",
+  "base_verification": "../regressions/results/verification.json",
+  "implementation_sha256": {
+    "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+    "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+    "ts_modules.py": "1905f64755553927ff428e6879dce336ffbd96468cc74210a70dfc879f672122",
+    "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7",
+    "model.py": "d9462f930e6642b84d136d749cc2cfa4a7b8fc85e51ec31f876f5eebf884d5df",
+    "engine.py": "f301385047f8e9624ad3b2b223714811a22873f3dc33670df9a0157b69a8ee51",
+    "syntax.py": "a70baa899df51a233871ed0f49e67d7fdcc3e028fc2802b638722a0d30929c83",
+    "rust_modules.py": "c65ae89ef3fffbb401f1cb3b87e8bd791a2de6d4fb86a01b38410304966abee6",
+    "evaluate.py": "a7015fa990846a329292403eaae00ecc81367d5a8e21df261aab5b1b8110b6b3",
+    "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+    "analyze.py": "ec2201a81cc27160edd484f6ffe3d6a039a505d8ef7e9bd37ece005615c0dd9a",
+    "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+    "language-corpus/polyglot.py": "ee4fc8e63cfa992cebc69170cfa4ec7c5d8570de7825a0ec17459ca1231190e9",
+    "language-corpus/analyze_languages.py": "bfc59a70ab8952367386d22ec08af36b2b93516638f83d4d1a6f3c68b1a163de",
+    "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+    "language-corpus/manage.py": "3fc60bd09ce202f8fad83e842d2187427fe4381f4b1224b9c0916b1331688c98"
+  },
+  "helper_sha256": {
+    "language-corpus/remaining-routes/run.py": "1f3c7f1b04321e6a6abd9cee11025a27536e2698c566f0c3a3500a6e9a81fe0e",
+    "language-corpus/remaining-routes/verify.py": "6b50c867435251171f3ef229162c4f54ccae832c9437fa8520235407aced561f",
+    "language-corpus/remaining-routes/prepare.py": "e5883934030e225c7189f6c173e7e95db2cdf3237ec798f45f63d1f936eb1458",
+    "language-corpus/public-gaps/verify.py": "a0c475640b8ce53139190aa9c412f3274bf2c1808b235617b85205888903f8d5",
+    "language-corpus/regressions/run.py": "333754ca21bf75e5a97f93c7f8b806fc93d8c15421f490d79171dbe4073bb511"
+  },
+  "input_lock_sha256": "0897914bd08520a2d93d9a6ed22ef0750722be57f5034e6bdf7fc54302321905",
+  "dependency_lock_sha256": "de873af935241ea2dc14aca63470dea0b3acfbd673f1bf7dbcbf630281178a7c",
+  "prior_phase_files_unchanged": 136,
+  "prior_regression_cases_unchanged": 140,
+  "dependency_files_verified": 474,
+  "supplemental_analysis_outputs_verified": 6,
+  "current_analysis_outputs_verified": 121,
+  "regression_cases": 165,
+  "regression_passed": 165,
+  "regression_callback_positives": 91,
+  "regression_data_return_positives": 3,
+  "regression_disconnected": 67,
+  "regression_unresolved_guards": 4,
+  "combined_public_positive_statuses": {
+    "conditional_candidate": 30,
+    "unresolved": 4,
+    "conditional_data_return": 1,
+    "argument_transfer_only": 2
+  },
+  "effect_projected_type_sources": 9,
+  "effect_stream_bytes": 615757,
+  "target_programs_executed": false
+}

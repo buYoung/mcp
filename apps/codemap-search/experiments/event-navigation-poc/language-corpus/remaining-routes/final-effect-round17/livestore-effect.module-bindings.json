@@ -1,0 +1,7 @@
+{
+  "@livestore/utils/effect": "packages/@livestore/utils/src/effect/mod.ts",
+  "effect": "__dependencies__/effect/src/index.ts",
+  "effect/unstable/rpc/RpcClient": "__dependencies__/effect/src/unstable/rpc/RpcClient.ts",
+  "effect/Stream": "__dependencies__/effect/src/Stream.ts",
+  "effect/Effect": "__dependencies__/effect/src/Effect.ts"
+}

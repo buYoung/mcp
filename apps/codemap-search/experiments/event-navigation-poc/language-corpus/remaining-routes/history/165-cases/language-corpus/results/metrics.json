@@ -1,0 +1,1340 @@
+[
+  {
+    "repository": "bevy",
+    "language": "rust",
+    "files": 22,
+    "input_bytes": 690959,
+    "functions": 1016,
+    "facts": 6592,
+    "relations": 643,
+    "parse_seconds": 0.1289098749984987,
+    "analysis_seconds": 1.462014666001778,
+    "connect_seconds": 0.030452542006969452,
+    "elapsed_seconds": 1.6213770830072463,
+    "peak_rss_bytes_before_serialization": 78823424,
+    "wall_seconds": 1.7832683330052532,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "_"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "shorthand_field_identifier"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "slice_pattern"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "tuple_struct_pattern"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:1183:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:1631:24"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:247:5"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      },
+      {
+        "kind": "value_alternative_bound",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:247:5"
+      }
+    ]
+  },
+  {
+    "repository": "blinker",
+    "language": "python",
+    "files": 2,
+    "input_bytes": 31022,
+    "functions": 44,
+    "facts": 682,
+    "relations": 26,
+    "parse_seconds": 0.003633458982221782,
+    "analysis_seconds": 0.04271254100603983,
+    "connect_seconds": 0.00323000003118068,
+    "elapsed_seconds": 0.04957600001944229,
+    "peak_rss_bytes_before_serialization": 30851072,
+    "wall_seconds": 0.13513499998953193,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "client-go",
+    "language": "go",
+    "files": 14,
+    "input_bytes": 312057,
+    "functions": 432,
+    "facts": 6758,
+    "relations": 731,
+    "parse_seconds": 0.05473283299943432,
+    "analysis_seconds": 0.6032008330221288,
+    "connect_seconds": 0.137925416987855,
+    "elapsed_seconds": 0.7958590830094181,
+    "peak_rss_bytes_before_serialization": 57458688,
+    "wall_seconds": 1.0227544169756584,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "function_fact_cap",
+        "detail": "tools/cache/reflector.go:470:1"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "informers/factory.go:101:9"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "informers/factory.go:93:9"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "tools/cache/index.go:131:9"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "tools/cache/store.go:397:9"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "tools/cache/store.go:403:9"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "tools/cache/thread_safe_store.go:88:9"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      },
+      {
+        "kind": "value_alternative_bound",
+        "detail": "tools/leaderelection/leasecandidate.go:131:1"
+      }
+    ]
+  },
+  {
+    "repository": "entt",
+    "language": "cpp",
+    "files": 5,
+    "input_bytes": 61575,
+    "functions": 110,
+    "facts": 762,
+    "relations": 186,
+    "parse_seconds": 0.046679041988682,
+    "analysis_seconds": 0.061563583032693714,
+    "connect_seconds": 0.004706041945610195,
+    "elapsed_seconds": 0.11294866696698591,
+    "peak_rss_bytes_before_serialization": 34783232,
+    "wall_seconds": 0.20384729199577123,
+    "parse_errors": 25,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/delegate.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 56
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 69
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 47
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 75
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/dispatcher.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/dispatcher.hpp",
+            "line": 62,
+            "column": 16
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "parse_error",
+        "path": "test/entt/signal/sigh.cpp",
+        "locations": [
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 1,
+            "column": 1
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 63,
+            "column": 68
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 53
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 56
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 34
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:15166:15282"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16105:16261"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16732:16888"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:cpp:src/entt/signal/delegate.hpp::delegate<Ret(Args...)>[key:fn]"
+      }
+    ]
+  },
+  {
+    "repository": "event-dispatcher",
+    "language": "php",
+    "files": 2,
+    "input_bytes": 36769,
+    "functions": 64,
+    "facts": 1660,
+    "relations": 436,
+    "parse_seconds": 0.005225750035606325,
+    "analysis_seconds": 0.1085950419656001,
+    "connect_seconds": 0.01679787499597296,
+    "elapsed_seconds": 0.1306186669971794,
+    "peak_rss_bytes_before_serialization": 33636352,
+    "wall_seconds": 0.24241154099581763,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:EventDispatcher.php:9082[element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:10136:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:1393:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:1915:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:2544:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:3711:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:4560:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:8594:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:7109:$eventName][element:*][element:*]"
+      }
+    ]
+  },
+  {
+    "repository": "eventbus",
+    "language": "java",
+    "files": 4,
+    "input_bytes": 37433,
+    "functions": 66,
+    "facts": 2611,
+    "relations": 159,
+    "parse_seconds": 0.0065920420456677675,
+    "analysis_seconds": 0.15102254098746926,
+    "connect_seconds": 0.028369208972435445,
+    "elapsed_seconds": 0.18598379200557247,
+    "peak_rss_bytes_before_serialization": 32342016,
+    "wall_seconds": 0.31517891702242196,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "result:EventBus/src/org/greenrobot/eventbus/EventBus.java:11630[key:isMainThread]"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "java:org.greenrobot.eventbus::EventBus:EventBus"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "java:org.greenrobot.eventbus::EventBus:invokeSubscriber"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "assembly",
+    "files": 1,
+    "input_bytes": 499,
+    "functions": 0,
+    "facts": 6,
+    "relations": 3,
+    "parse_seconds": 0.0017748749814927578,
+    "analysis_seconds": 0.00043762498535215855,
+    "connect_seconds": 4.900002386420965e-05,
+    "elapsed_seconds": 0.002261499990709126,
+    "peak_rss_bytes_before_serialization": 28262400,
+    "wall_seconds": 0.09048683400033042,
+    "parse_errors": 0,
+    "notices": []
+  },
+  {
+    "repository": "fixtures",
+    "language": "c",
+    "files": 1,
+    "input_bytes": 538,
+    "functions": 5,
+    "facts": 16,
+    "relations": 4,
+    "parse_seconds": 0.0017326250090263784,
+    "analysis_seconds": 0.0011305420193821192,
+    "connect_seconds": 5.3957977797836065e-05,
+    "elapsed_seconds": 0.0029171250062063336,
+    "peak_rss_bytes_before_serialization": 28983296,
+    "wall_seconds": 0.08083845902001485,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "cpp",
+    "files": 1,
+    "input_bytes": 491,
+    "functions": 5,
+    "facts": 12,
+    "relations": 4,
+    "parse_seconds": 0.003421375004108995,
+    "analysis_seconds": 0.0021687080152332783,
+    "connect_seconds": 5.241698818281293e-05,
+    "elapsed_seconds": 0.005642500007525086,
+    "peak_rss_bytes_before_serialization": 28704768,
+    "wall_seconds": 0.07851875002961606,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "csharp",
+    "files": 1,
+    "input_bytes": 412,
+    "functions": 5,
+    "facts": 12,
+    "relations": 4,
+    "parse_seconds": 0.0022437909501604736,
+    "analysis_seconds": 0.001253416994586587,
+    "connect_seconds": 5.1042006816715e-05,
+    "elapsed_seconds": 0.0035482499515637755,
+    "peak_rss_bytes_before_serialization": 28360704,
+    "wall_seconds": 0.08070304204011336,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "dart",
+    "files": 1,
+    "input_bytes": 477,
+    "functions": 5,
+    "facts": 10,
+    "relations": 5,
+    "parse_seconds": 0.0021256249747239053,
+    "analysis_seconds": 0.002212916035205126,
+    "connect_seconds": 6.437499541789293e-05,
+    "elapsed_seconds": 0.004402916005346924,
+    "peak_rss_bytes_before_serialization": 29868032,
+    "wall_seconds": 0.09419933403842151,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "go",
+    "files": 1,
+    "input_bytes": 460,
+    "functions": 5,
+    "facts": 5,
+    "relations": 2,
+    "parse_seconds": 0.0019541659858077765,
+    "analysis_seconds": 0.0005689590470865369,
+    "connect_seconds": 3.204098902642727e-05,
+    "elapsed_seconds": 0.0025551660219207406,
+    "peak_rss_bytes_before_serialization": 28606464,
+    "wall_seconds": 0.08800458302721381,
+    "parse_errors": 0,
+    "notices": []
+  },
+  {
+    "repository": "fixtures",
+    "language": "groovy",
+    "files": 1,
+    "input_bytes": 426,
+    "functions": 5,
+    "facts": 7,
+    "relations": 2,
+    "parse_seconds": 0.0024088749778456986,
+    "analysis_seconds": 0.0012971250107511878,
+    "connect_seconds": 3.5999983083456755e-05,
+    "elapsed_seconds": 0.003741999971680343,
+    "peak_rss_bytes_before_serialization": 28983296,
+    "wall_seconds": 0.08817416697274894,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "java",
+    "files": 1,
+    "input_bytes": 418,
+    "functions": 5,
+    "facts": 12,
+    "relations": 2,
+    "parse_seconds": 0.0015888330526649952,
+    "analysis_seconds": 0.0013973329914733768,
+    "connect_seconds": 4.058395279571414e-05,
+    "elapsed_seconds": 0.003026749996934086,
+    "peak_rss_bytes_before_serialization": 28721152,
+    "wall_seconds": 0.08178454200970009,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "javascript",
+    "files": 1,
+    "input_bytes": 346,
+    "functions": 5,
+    "facts": 5,
+    "relations": 2,
+    "parse_seconds": 0.002020499960053712,
+    "analysis_seconds": 0.001019375049509108,
+    "connect_seconds": 3.316695801913738e-05,
+    "elapsed_seconds": 0.0030730419675819576,
+    "peak_rss_bytes_before_serialization": 29818880,
+    "wall_seconds": 0.09786108299158514,
+    "parse_errors": 0,
+    "notices": []
+  },
+  {
+    "repository": "fixtures",
+    "language": "kotlin",
+    "files": 1,
+    "input_bytes": 487,
+    "functions": 5,
+    "facts": 10,
+    "relations": 2,
+    "parse_seconds": 0.0018215829622931778,
+    "analysis_seconds": 0.0022166669950820506,
+    "connect_seconds": 4.175002686679363e-05,
+    "elapsed_seconds": 0.004079999984242022,
+    "peak_rss_bytes_before_serialization": 29507584,
+    "wall_seconds": 0.08917029201984406,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "lua",
+    "files": 1,
+    "input_bytes": 419,
+    "functions": 5,
+    "facts": 12,
+    "relations": 4,
+    "parse_seconds": 0.00155383296078071,
+    "analysis_seconds": 0.0008514579967595637,
+    "connect_seconds": 5.2250048611313105e-05,
+    "elapsed_seconds": 0.0024575410061515868,
+    "peak_rss_bytes_before_serialization": 27131904,
+    "wall_seconds": 0.07220341596985236,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "php",
+    "files": 1,
+    "input_bytes": 462,
+    "functions": 5,
+    "facts": 12,
+    "relations": 4,
+    "parse_seconds": 0.001771500043105334,
+    "analysis_seconds": 0.0010919999913312495,
+    "connect_seconds": 5.116598913446069e-05,
+    "elapsed_seconds": 0.002914666023571044,
+    "peak_rss_bytes_before_serialization": 28180480,
+    "wall_seconds": 0.07925395795609802,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "python",
+    "files": 1,
+    "input_bytes": 386,
+    "functions": 5,
+    "facts": 12,
+    "relations": 4,
+    "parse_seconds": 0.0016910829581320286,
+    "analysis_seconds": 0.001607125042937696,
+    "connect_seconds": 5.16669824719429e-05,
+    "elapsed_seconds": 0.0033498749835416675,
+    "peak_rss_bytes_before_serialization": 27754496,
+    "wall_seconds": 0.08063362498069182,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "ruby",
+    "files": 1,
+    "input_bytes": 341,
+    "functions": 5,
+    "facts": 7,
+    "relations": 2,
+    "parse_seconds": 0.0017067919834516943,
+    "analysis_seconds": 0.0008051659679040313,
+    "connect_seconds": 3.5375007428228855e-05,
+    "elapsed_seconds": 0.0025473329587839544,
+    "peak_rss_bytes_before_serialization": 28196864,
+    "wall_seconds": 0.07638062501791865,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "rust",
+    "files": 1,
+    "input_bytes": 476,
+    "functions": 5,
+    "facts": 5,
+    "relations": 2,
+    "parse_seconds": 0.0024364999844692647,
+    "analysis_seconds": 0.000556665996555239,
+    "connect_seconds": 3.283401019871235e-05,
+    "elapsed_seconds": 0.003025999991223216,
+    "peak_rss_bytes_before_serialization": 28835840,
+    "wall_seconds": 0.08356779196765274,
+    "parse_errors": 0,
+    "notices": []
+  },
+  {
+    "repository": "fixtures",
+    "language": "scala",
+    "files": 1,
+    "input_bytes": 490,
+    "functions": 5,
+    "facts": 15,
+    "relations": 10,
+    "parse_seconds": 0.0024893329828046262,
+    "analysis_seconds": 0.001695042010396719,
+    "connect_seconds": 9.762495756149292e-05,
+    "elapsed_seconds": 0.004281999950762838,
+    "peak_rss_bytes_before_serialization": 29835264,
+    "wall_seconds": 0.0858379999990575,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "swift",
+    "files": 1,
+    "input_bytes": 477,
+    "functions": 5,
+    "facts": 15,
+    "relations": 10,
+    "parse_seconds": 0.0018892500083893538,
+    "analysis_seconds": 0.0022328750346787274,
+    "connect_seconds": 9.958300506696105e-05,
+    "elapsed_seconds": 0.004221708048135042,
+    "peak_rss_bytes_before_serialization": 29130752,
+    "wall_seconds": 0.08610766695346683,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "fixtures",
+    "language": "typescript",
+    "files": 1,
+    "input_bytes": 409,
+    "functions": 5,
+    "facts": 5,
+    "relations": 2,
+    "parse_seconds": 0.002403832972049713,
+    "analysis_seconds": 0.0006377919926308095,
+    "connect_seconds": 3.2916024792939425e-05,
+    "elapsed_seconds": 0.003074540989473462,
+    "peak_rss_bytes_before_serialization": 29589504,
+    "wall_seconds": 0.09346866694977507,
+    "parse_errors": 0,
+    "notices": []
+  },
+  {
+    "repository": "flutter",
+    "language": "dart",
+    "files": 2,
+    "input_bytes": 18004,
+    "functions": 20,
+    "facts": 179,
+    "relations": 11,
+    "parse_seconds": 0.006761708005797118,
+    "analysis_seconds": 0.013704625016544014,
+    "connect_seconds": 0.000996749964542687,
+    "elapsed_seconds": 0.02146308298688382,
+    "peak_rss_bytes_before_serialization": 29081600,
+    "wall_seconds": 0.09735691599780694,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:dart:packages/flutter/lib/src/foundation/memory_allocations.dart::FlutterMemoryAllocations[key:_listeners]"
+      }
+    ]
+  },
+  {
+    "repository": "grails-core",
+    "language": "groovy",
+    "files": 5,
+    "input_bytes": 16348,
+    "functions": 31,
+    "facts": 213,
+    "relations": 33,
+    "parse_seconds": 0.005145417002495378,
+    "analysis_seconds": 0.017799416033085436,
+    "connect_seconds": 0.0007710839854553342,
+    "elapsed_seconds": 0.023715917021036148,
+    "peak_rss_bytes_before_serialization": 30425088,
+    "wall_seconds": 0.11028645798796788,
+    "parse_errors": 9,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 60,
+            "column": 33
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 90,
+            "column": 24
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 97,
+            "column": 23
+          }
+        ],
+        "count": 3
+      },
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 53,
+            "column": 61
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 123,
+            "column": 29
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 132,
+            "column": 97
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 133,
+            "column": 97
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 139,
+            "column": 21
+          }
+        ],
+        "count": 5
+      },
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+            "line": 45,
+            "column": 25
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy:8324[key:listener]"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "groovy:org.grails.events.bus::AbstractEventBus:notify"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "groovy:org.grails.events.bus::AbstractEventBus:sendAndReceive"
+      }
+    ]
+  },
+  {
+    "repository": "hump",
+    "language": "lua",
+    "files": 1,
+    "input_bytes": 2662,
+    "functions": 11,
+    "facts": 75,
+    "relations": 27,
+    "parse_seconds": 0.0014103329740464687,
+    "analysis_seconds": 0.0052100419998168945,
+    "connect_seconds": 0.0008065410074777901,
+    "elapsed_seconds": 0.007426915981341153,
+    "peak_rss_bytes_before_serialization": 29016064,
+    "wall_seconds": 0.09297066600993276,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "libuv",
+    "language": "c",
+    "files": 3,
+    "input_bytes": 35577,
+    "functions": 20,
+    "facts": 211,
+    "relations": 22,
+    "parse_seconds": 0.006315957987681031,
+    "analysis_seconds": 0.018936207983642817,
+    "connect_seconds": 0.0007962090312503278,
+    "elapsed_seconds": 0.026048375002574176,
+    "peak_rss_bytes_before_serialization": 30720000,
+    "wall_seconds": 0.11095283401664346,
+    "parse_errors": 2,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "include/uv/unix.h",
+        "locations": [
+          {
+            "path": "include/uv/unix.h",
+            "line": 97,
+            "column": 32
+          },
+          {
+            "path": "include/uv/unix.h",
+            "line": 248,
+            "column": 26
+          }
+        ],
+        "count": 2
+      },
+      {
+        "kind": "preprocessor_branch_projection",
+        "path": "src/unix/async.c",
+        "detail": "one conditional source view with include guards retained; macro values and other builds remain unproven"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "livestore",
+    "language": "javascript",
+    "files": 6,
+    "input_bytes": 91231,
+    "functions": 182,
+    "facts": 1686,
+    "relations": 124,
+    "parse_seconds": 0.02908695803489536,
+    "analysis_seconds": 0.15624354197643697,
+    "connect_seconds": 0.008423125022090971,
+    "elapsed_seconds": 0.1937536250334233,
+    "peak_rss_bytes_before_serialization": 39272448,
+    "wall_seconds": 0.3138940829667263,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:267:12"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "livestore",
+    "language": "typescript",
+    "files": 6,
+    "input_bytes": 91231,
+    "functions": 182,
+    "facts": 1686,
+    "relations": 124,
+    "parse_seconds": 0.02894899999955669,
+    "analysis_seconds": 0.15784820797853172,
+    "connect_seconds": 0.008488500025123358,
+    "elapsed_seconds": 0.19528570800321177,
+    "peak_rss_bytes_before_serialization": 39632896,
+    "wall_seconds": 0.3119507909868844,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:267:12"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "monix",
+    "language": "scala",
+    "files": 2,
+    "input_bytes": 13029,
+    "functions": 36,
+    "facts": 138,
+    "relations": 9,
+    "parse_seconds": 0.004029666946735233,
+    "analysis_seconds": 0.034394417016301304,
+    "connect_seconds": 0.00020845799008384347,
+    "elapsed_seconds": 0.03863254195312038,
+    "peak_rss_bytes_before_serialization": 32374784,
+    "wall_seconds": 0.11723241698928177,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "anonymous_or_unresolved_constructor",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:4250"
+      },
+      {
+        "kind": "anonymous_or_unresolved_constructor",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:5096"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "observer",
+    "language": "ruby",
+    "files": 2,
+    "input_bytes": 7951,
+    "functions": 11,
+    "facts": 115,
+    "relations": 5,
+    "parse_seconds": 0.004012000048533082,
+    "analysis_seconds": 0.008562541974242777,
+    "connect_seconds": 0.00018716597696766257,
+    "elapsed_seconds": 0.012761707999743521,
+    "peak_rss_bytes_before_serialization": 29769728,
+    "wall_seconds": 0.09811895800521597,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "pokered",
+    "language": "assembly",
+    "files": 2,
+    "input_bytes": 74605,
+    "functions": 0,
+    "facts": 107,
+    "relations": 83,
+    "parse_seconds": 0.036022040992975235,
+    "analysis_seconds": 0.010487583989743143,
+    "connect_seconds": 0.008934083045460284,
+    "elapsed_seconds": 0.05544370802817866,
+    "peak_rss_bytes_before_serialization": 34095104,
+    "wall_seconds": 0.14914929203223437,
+    "parse_errors": 250,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "engine/gfx/palettes.asm",
+        "locations": [
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 41,
+            "column": 20
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 79,
+            "column": 20
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 102,
+            "column": 20
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 158,
+            "column": 1
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 160,
+            "column": 1
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 163,
+            "column": 18
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 166,
+            "column": 20
+          },
+          {
+            "path": "engine/gfx/palettes.asm",
+            "line": 172,
+            "column": 1
+          }
+        ],
+        "count": 48
+      },
+      {
+        "kind": "parse_error",
+        "path": "engine/items/item_effects.asm",
+        "locations": [
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 1,
+            "column": 10
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 127,
+            "column": 1
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 135,
+            "column": 1
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 139,
+            "column": 1
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 166,
+            "column": 1
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 216,
+            "column": 1
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 228,
+            "column": 7
+          },
+          {
+            "path": "engine/items/item_effects.asm",
+            "line": 228,
+            "column": 9
+          }
+        ],
+        "count": 202
+      }
+    ]
+  },
+  {
+    "repository": "reactive",
+    "language": "csharp",
+    "files": 2,
+    "input_bytes": 29487,
+    "functions": 34,
+    "facts": 714,
+    "relations": 72,
+    "parse_seconds": 0.00797266699373722,
+    "analysis_seconds": 0.061647333030123264,
+    "connect_seconds": 0.002482208947185427,
+    "elapsed_seconds": 0.07210220897104591,
+    "peak_rss_bytes_before_serialization": 32669696,
+    "wall_seconds": 0.15899837500182912,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:2179"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:3294"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5378"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6810"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "reaktive",
+    "language": "kotlin",
+    "files": 3,
+    "input_bytes": 10805,
+    "functions": 33,
+    "facts": 216,
+    "relations": 14,
+    "parse_seconds": 0.011393958004191518,
+    "analysis_seconds": 0.04519520798930898,
+    "connect_seconds": 0.0005315419984981418,
+    "elapsed_seconds": 0.05712070799199864,
+    "peak_rss_bytes_before_serialization": 31129600,
+    "wall_seconds": 0.13342575001297519,
+    "parse_errors": 2,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        "locations": [
+          {
+            "path": "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+            "line": 109,
+            "column": 49
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "parse_error",
+        "path": "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+        "locations": [
+          {
+            "path": "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+            "line": 76,
+            "column": 49
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "rxswift",
+    "language": "swift",
+    "files": 6,
+    "input_bytes": 18112,
+    "functions": 31,
+    "facts": 1025,
+    "relations": 174,
+    "parse_seconds": 0.007687750039622188,
+    "analysis_seconds": 0.08657854195917025,
+    "connect_seconds": 0.01664462499320507,
+    "elapsed_seconds": 0.11091091699199751,
+    "peak_rss_bytes_before_serialization": 33161216,
+    "wall_seconds": 0.20760587498079985,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "conditional_compilation_projection",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "detail": "byte-aligned directive masking; branch selection and module binding remain unproven"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:1797[key:stoppedEvent]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:3395[key:stoppedEvent]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:4937[key:stoppedEvent]"
+      },
+      {
+        "kind": "named_tuple_projection_unsupported",
+        "detail": "Platform/DataStructures/Bag.swift:1427"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "swift:RxSwift/AnyObserver.swift::AnyObserver:init"
+      }
+    ]
+  },
+  {
+    "repository": "vendure",
+    "language": "typescript",
+    "files": 13,
+    "input_bytes": 267849,
+    "functions": 404,
+    "facts": 6670,
+    "relations": 463,
+    "parse_seconds": 0.10068679199321195,
+    "analysis_seconds": 0.6009354999987409,
+    "connect_seconds": 0.04767937498399988,
+    "elapsed_seconds": 0.7493016669759527,
+    "peak_rss_bytes_before_serialization": 58687488,
+    "wall_seconds": 0.9531738340156153,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:1457:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:1683:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:2037:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:2159:63"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:601:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:651:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:683:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:803:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:834:5"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "packages/core/src/job-queue/job-queue.service.ts:192:16"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      }
+    ]
+  }
+]

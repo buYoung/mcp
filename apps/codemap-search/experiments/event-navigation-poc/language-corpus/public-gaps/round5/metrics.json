@@ -1,0 +1,64 @@
+[
+  {
+    "repository": "vendure",
+    "language": "typescript",
+    "files": 13,
+    "input_bytes": 267849,
+    "functions": 404,
+    "facts": 6561,
+    "relations": 462,
+    "parse_seconds": 0.054274541966151446,
+    "analysis_seconds": 0.4581740410067141,
+    "connect_seconds": 0.03339312499156222,
+    "elapsed_seconds": 0.5458417079644278,
+    "peak_rss_bytes_before_serialization": 56492032,
+    "wall_seconds": 0.7091866250266321,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:1457:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:1683:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:2037:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:2159:63"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:601:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:651:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:683:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:803:5"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:834:5"
+      },
+      {
+        "kind": "returned_closure_environment_unresolved",
+        "detail": "packages/core/src/job-queue/job-queue.service.ts:192:16"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      }
+    ]
+  }
+]

@@ -5,14 +5,14 @@
     "files": 22,
     "input_bytes": 690959,
     "functions": 1016,
-    "facts": 5555,
-    "relations": 133,
-    "parse_seconds": 0.11806025000987574,
-    "analysis_seconds": 0.6435563749982975,
-    "connect_seconds": 0.007560750003904104,
-    "elapsed_seconds": 0.7691773750120774,
-    "peak_rss_bytes_before_serialization": 74498048,
-    "wall_seconds": 0.892106041952502,
+    "facts": 6607,
+    "relations": 653,
+    "parse_seconds": 0.29288262501358986,
+    "analysis_seconds": 2.876562500023283,
+    "connect_seconds": 0.039034999965224415,
+    "elapsed_seconds": 3.2084801250020973,
+    "peak_rss_bytes_before_serialization": 81182720,
+    "wall_seconds": 3.430362332961522,
     "parse_errors": 0,
     "notices": [
       {
@@ -33,6 +33,10 @@
       },
       {
         "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:1183:5"
+      },
+      {
+        "kind": "function_fact_cap",
         "detail": "crates/bevy_gltf/src/loader/mod.rs:1631:24"
       },
       {
@@ -42,6 +46,10 @@
       {
         "kind": "summary_depth_bound",
         "detail": "4"
+      },
+      {
+        "kind": "value_alternative_bound",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:247:5"
       }
     ]
   },
@@ -51,14 +59,14 @@
     "files": 2,
     "input_bytes": 31022,
     "functions": 44,
-    "facts": 601,
-    "relations": 16,
-    "parse_seconds": 0.005527709028683603,
-    "analysis_seconds": 0.031862290983553976,
-    "connect_seconds": 0.0027778749936260283,
-    "elapsed_seconds": 0.04016787500586361,
-    "peak_rss_bytes_before_serialization": 29605888,
-    "wall_seconds": 0.11108737502945587,
+    "facts": 682,
+    "relations": 32,
+    "parse_seconds": 0.005389291036408395,
+    "analysis_seconds": 0.048112583986949176,
+    "connect_seconds": 0.00359745800960809,
+    "elapsed_seconds": 0.05709933303296566,
+    "peak_rss_bytes_before_serialization": 31064064,
+    "wall_seconds": 0.15329995803767815,
     "parse_errors": 0,
     "notices": [
       {
@@ -73,14 +81,14 @@
     "files": 14,
     "input_bytes": 312057,
     "functions": 432,
-    "facts": 6762,
-    "relations": 729,
-    "parse_seconds": 0.05270733399083838,
-    "analysis_seconds": 0.5691334579605609,
-    "connect_seconds": 0.1382061670301482,
-    "elapsed_seconds": 0.7600469589815475,
-    "peak_rss_bytes_before_serialization": 54870016,
-    "wall_seconds": 0.9575914170127362,
+    "facts": 6757,
+    "relations": 1216,
+    "parse_seconds": 0.057435667025856674,
+    "analysis_seconds": 0.7525712499627843,
+    "connect_seconds": 0.2238378330366686,
+    "elapsed_seconds": 1.0338447500253096,
+    "peak_rss_bytes_before_serialization": 59015168,
+    "wall_seconds": 1.2881064169923775,
     "parse_errors": 0,
     "notices": [
       {
@@ -127,14 +135,14 @@
     "files": 5,
     "input_bytes": 61575,
     "functions": 110,
-    "facts": 387,
-    "relations": 40,
-    "parse_seconds": 0.042634583020117134,
-    "analysis_seconds": 0.033669082971755415,
-    "connect_seconds": 0.0007918750052340329,
-    "elapsed_seconds": 0.07709554099710658,
-    "peak_rss_bytes_before_serialization": 33718272,
-    "wall_seconds": 0.14695520797977224,
+    "facts": 762,
+    "relations": 186,
+    "parse_seconds": 0.056402624992188066,
+    "analysis_seconds": 0.12824358296347782,
+    "connect_seconds": 0.00491245900047943,
+    "elapsed_seconds": 0.18955866695614532,
+    "peak_rss_bytes_before_serialization": 36061184,
+    "wall_seconds": 0.3008419160032645,
     "parse_errors": 25,
     "notices": [
       {
@@ -258,6 +266,10 @@
       {
         "kind": "closure_capture_form_unsupported",
         "detail": "src/entt/signal/sigh.hpp:16732:16888"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:cpp:src/entt/signal/delegate.hpp::delegate<Ret(Args...)>[key:fn]"
       }
     ]
   },
@@ -267,19 +279,55 @@
     "files": 2,
     "input_bytes": 36769,
     "functions": 64,
-    "facts": 1374,
-    "relations": 210,
-    "parse_seconds": 0.004899874969851226,
-    "analysis_seconds": 0.06727416603825986,
-    "connect_seconds": 0.0060920839896425605,
-    "elapsed_seconds": 0.07826612499775365,
-    "peak_rss_bytes_before_serialization": 30375936,
-    "wall_seconds": 0.15272554202238098,
+    "facts": 1660,
+    "relations": 444,
+    "parse_seconds": 0.006771708955056965,
+    "analysis_seconds": 0.1412647080142051,
+    "connect_seconds": 0.020373583014588803,
+    "elapsed_seconds": 0.16840999998385087,
+    "peak_rss_bytes_before_serialization": 34308096,
+    "wall_seconds": 0.29802699998253956,
     "parse_errors": 0,
     "notices": [
       {
         "kind": "bounded_summary_passes",
         "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:EventDispatcher.php:9082[element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:10136:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:1393:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:1915:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:2544:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:3711:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:4560:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:8594:$eventName][element:*][element:*]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:7109:$eventName][element:*][element:*]"
       }
     ]
   },
@@ -289,19 +337,27 @@
     "files": 4,
     "input_bytes": 37433,
     "functions": 66,
-    "facts": 2269,
-    "relations": 73,
-    "parse_seconds": 0.004142165998928249,
-    "analysis_seconds": 0.06787566700950265,
-    "connect_seconds": 0.018747041991446167,
-    "elapsed_seconds": 0.09076487499987707,
-    "peak_rss_bytes_before_serialization": 30687232,
-    "wall_seconds": 0.18952695903135464,
+    "facts": 2247,
+    "relations": 180,
+    "parse_seconds": 0.00857254199218005,
+    "analysis_seconds": 0.19580879103159532,
+    "connect_seconds": 0.039173958997707814,
+    "elapsed_seconds": 0.24355529202148318,
+    "peak_rss_bytes_before_serialization": 33128448,
+    "wall_seconds": 0.4139233330497518,
     "parse_errors": 0,
     "notices": [
       {
         "kind": "bounded_summary_passes",
         "detail": "4"
+      },
+      {
+        "kind": "case_selection_unproven",
+        "detail": "EventBus/src/org/greenrobot/eventbus/EventBus.java:18277"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "result:EventBus/src/org/greenrobot/eventbus/EventBus.java:11630[key:isMainThread]"
       },
       {
         "kind": "overload_resolution_unproven",
@@ -321,12 +377,12 @@
     "functions": 0,
     "facts": 6,
     "relations": 3,
-    "parse_seconds": 0.001673749997280538,
-    "analysis_seconds": 0.0004319580039009452,
-    "connect_seconds": 4.850002005696297e-05,
-    "elapsed_seconds": 0.0021542080212384462,
-    "peak_rss_bytes_before_serialization": 27557888,
-    "wall_seconds": 0.06718212499981746,
+    "parse_seconds": 0.0032865829998627305,
+    "analysis_seconds": 0.000993541965726763,
+    "connect_seconds": 0.00011612504022195935,
+    "elapsed_seconds": 0.004396250005811453,
+    "peak_rss_bytes_before_serialization": 29491200,
+    "wall_seconds": 0.10000966698862612,
     "parse_errors": 0,
     "notices": []
   },
@@ -336,14 +392,14 @@
     "files": 1,
     "input_bytes": 538,
     "functions": 5,
-    "facts": 8,
+    "facts": 16,
     "relations": 4,
-    "parse_seconds": 0.0016947080148383975,
-    "analysis_seconds": 0.0009703749674372375,
-    "connect_seconds": 4.8083020374178886e-05,
-    "elapsed_seconds": 0.002713166002649814,
-    "peak_rss_bytes_before_serialization": 27344896,
-    "wall_seconds": 0.06684166600462049,
+    "parse_seconds": 0.002280667016748339,
+    "analysis_seconds": 0.0012526249629445374,
+    "connect_seconds": 6.033299723640084e-05,
+    "elapsed_seconds": 0.003593624976929277,
+    "peak_rss_bytes_before_serialization": 29720576,
+    "wall_seconds": 0.08941312500974163,
     "parse_errors": 0,
     "notices": [
       {
@@ -358,14 +414,14 @@
     "files": 1,
     "input_bytes": 491,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 4,
-    "parse_seconds": 0.001691749959718436,
-    "analysis_seconds": 0.0009196660248562694,
-    "connect_seconds": 4.541699308902025e-05,
-    "elapsed_seconds": 0.0026568329776637256,
-    "peak_rss_bytes_before_serialization": 28098560,
-    "wall_seconds": 0.06624016701243818,
+    "parse_seconds": 0.0038411670248024166,
+    "analysis_seconds": 0.0013739169808104634,
+    "connect_seconds": 6.137497257441282e-05,
+    "elapsed_seconds": 0.005276458978187293,
+    "peak_rss_bytes_before_serialization": 31293440,
+    "wall_seconds": 0.09598408301826566,
     "parse_errors": 0,
     "notices": [
       {
@@ -380,14 +436,14 @@
     "files": 1,
     "input_bytes": 412,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 4,
-    "parse_seconds": 0.0011196660343557596,
-    "analysis_seconds": 0.000955166993662715,
-    "connect_seconds": 4.7707988414913416e-05,
-    "elapsed_seconds": 0.002122541016433388,
-    "peak_rss_bytes_before_serialization": 28524544,
-    "wall_seconds": 0.06394637504126877,
+    "parse_seconds": 0.002626832982059568,
+    "analysis_seconds": 0.002678791992366314,
+    "connect_seconds": 5.629099905490875e-05,
+    "elapsed_seconds": 0.005361915973480791,
+    "peak_rss_bytes_before_serialization": 30441472,
+    "wall_seconds": 0.08830558299086988,
     "parse_errors": 0,
     "notices": [
       {
@@ -402,14 +458,14 @@
     "files": 1,
     "input_bytes": 477,
     "functions": 5,
-    "facts": 8,
+    "facts": 10,
     "relations": 5,
-    "parse_seconds": 0.0014770000125281513,
-    "analysis_seconds": 0.0011764169903472066,
-    "connect_seconds": 6.0999998822808266e-05,
-    "elapsed_seconds": 0.002714417001698166,
-    "peak_rss_bytes_before_serialization": 28327936,
-    "wall_seconds": 0.06831416703062132,
+    "parse_seconds": 0.002354750002268702,
+    "analysis_seconds": 0.0021958750439807773,
+    "connect_seconds": 6.754195783287287e-05,
+    "elapsed_seconds": 0.004618167004082352,
+    "peak_rss_bytes_before_serialization": 30375936,
+    "wall_seconds": 0.0937605409999378,
     "parse_errors": 0,
     "notices": [
       {
@@ -426,12 +482,12 @@
     "functions": 5,
     "facts": 5,
     "relations": 2,
-    "parse_seconds": 0.0013627499574795365,
-    "analysis_seconds": 0.0005479590035974979,
-    "connect_seconds": 3.2333016861230135e-05,
-    "elapsed_seconds": 0.0019430419779382646,
-    "peak_rss_bytes_before_serialization": 26607616,
-    "wall_seconds": 0.066153125022538,
+    "parse_seconds": 0.0016677079838700593,
+    "analysis_seconds": 0.0006189580308273435,
+    "connect_seconds": 3.549997927621007e-05,
+    "elapsed_seconds": 0.002322165993973613,
+    "peak_rss_bytes_before_serialization": 29917184,
+    "wall_seconds": 0.08352491701953113,
     "parse_errors": 0,
     "notices": []
   },
@@ -441,14 +497,14 @@
     "files": 1,
     "input_bytes": 426,
     "functions": 5,
-    "facts": 5,
+    "facts": 7,
     "relations": 2,
-    "parse_seconds": 0.0019001669716089964,
-    "analysis_seconds": 0.000984082987997681,
-    "connect_seconds": 3.454199759289622e-05,
-    "elapsed_seconds": 0.0029187919571995735,
-    "peak_rss_bytes_before_serialization": 28327936,
-    "wall_seconds": 0.06850124994525686,
+    "parse_seconds": 0.004629500035662204,
+    "analysis_seconds": 0.00246020796475932,
+    "connect_seconds": 4.02920413762331e-05,
+    "elapsed_seconds": 0.007130000041797757,
+    "peak_rss_bytes_before_serialization": 29278208,
+    "wall_seconds": 0.09045720897847787,
     "parse_errors": 0,
     "notices": [
       {
@@ -463,14 +519,14 @@
     "files": 1,
     "input_bytes": 418,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 2,
-    "parse_seconds": 0.0014145830064080656,
-    "analysis_seconds": 0.0009862500010058284,
-    "connect_seconds": 3.729196032509208e-05,
-    "elapsed_seconds": 0.002438124967738986,
-    "peak_rss_bytes_before_serialization": 27820032,
-    "wall_seconds": 0.06712341698585078,
+    "parse_seconds": 0.004842041991651058,
+    "analysis_seconds": 0.0019060000195167959,
+    "connect_seconds": 4.491599975153804e-05,
+    "elapsed_seconds": 0.006792958010919392,
+    "peak_rss_bytes_before_serialization": 29179904,
+    "wall_seconds": 0.09464695904171094,
     "parse_errors": 0,
     "notices": [
       {
@@ -487,12 +543,12 @@
     "functions": 5,
     "facts": 5,
     "relations": 2,
-    "parse_seconds": 0.0009480419685132802,
-    "analysis_seconds": 0.0007204579887911677,
-    "connect_seconds": 3.2584008295089006e-05,
-    "elapsed_seconds": 0.001701083965599537,
-    "peak_rss_bytes_before_serialization": 27639808,
-    "wall_seconds": 0.06678841699613258,
+    "parse_seconds": 0.0013711670180782676,
+    "analysis_seconds": 0.0006547080120071769,
+    "connect_seconds": 3.533298149704933e-05,
+    "elapsed_seconds": 0.0020612080115824938,
+    "peak_rss_bytes_before_serialization": 29818880,
+    "wall_seconds": 0.09936574997846037,
     "parse_errors": 0,
     "notices": []
   },
@@ -502,14 +558,14 @@
     "files": 1,
     "input_bytes": 487,
     "functions": 5,
-    "facts": 8,
+    "facts": 10,
     "relations": 2,
-    "parse_seconds": 0.0018012080108746886,
-    "analysis_seconds": 0.0015481250011362135,
-    "connect_seconds": 3.833399387076497e-05,
-    "elapsed_seconds": 0.003387667005881667,
-    "peak_rss_bytes_before_serialization": 28672000,
-    "wall_seconds": 0.06904254097025841,
+    "parse_seconds": 0.0030542080057784915,
+    "analysis_seconds": 0.004681833030190319,
+    "connect_seconds": 4.5666994992643595e-05,
+    "elapsed_seconds": 0.007781708030961454,
+    "peak_rss_bytes_before_serialization": 30392320,
+    "wall_seconds": 0.09395266696810722,
     "parse_errors": 0,
     "notices": [
       {
@@ -524,14 +580,14 @@
     "files": 1,
     "input_bytes": 419,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 4,
-    "parse_seconds": 0.0013586250133812428,
-    "analysis_seconds": 0.0008479580283164978,
-    "connect_seconds": 4.8166955821216106e-05,
-    "elapsed_seconds": 0.0022547499975189567,
-    "peak_rss_bytes_before_serialization": 27951104,
-    "wall_seconds": 0.06712966598570347,
+    "parse_seconds": 0.002114541013725102,
+    "analysis_seconds": 0.0008906250004656613,
+    "connect_seconds": 5.670898826792836e-05,
+    "elapsed_seconds": 0.0030618750024586916,
+    "peak_rss_bytes_before_serialization": 29589504,
+    "wall_seconds": 0.09307995799463242,
     "parse_errors": 0,
     "notices": [
       {
@@ -546,14 +602,14 @@
     "files": 1,
     "input_bytes": 462,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 4,
-    "parse_seconds": 0.0015539999585598707,
-    "analysis_seconds": 0.001037334033753723,
-    "connect_seconds": 5.166599294170737e-05,
-    "elapsed_seconds": 0.002642999985255301,
-    "peak_rss_bytes_before_serialization": 27869184,
-    "wall_seconds": 0.06712045799940825,
+    "parse_seconds": 0.0021310840384103358,
+    "analysis_seconds": 0.001175624958705157,
+    "connect_seconds": 5.758303450420499e-05,
+    "elapsed_seconds": 0.003364292031619698,
+    "peak_rss_bytes_before_serialization": 29130752,
+    "wall_seconds": 0.08958500000881031,
     "parse_errors": 0,
     "notices": [
       {
@@ -568,14 +624,14 @@
     "files": 1,
     "input_bytes": 386,
     "functions": 5,
-    "facts": 8,
+    "facts": 12,
     "relations": 4,
-    "parse_seconds": 0.0015359590179286897,
-    "analysis_seconds": 0.0009096660069189966,
-    "connect_seconds": 4.695897223427892e-05,
-    "elapsed_seconds": 0.002492583997081965,
-    "peak_rss_bytes_before_serialization": 27705344,
-    "wall_seconds": 0.06798524997429922,
+    "parse_seconds": 0.0052197909681126475,
+    "analysis_seconds": 0.0011689999955706298,
+    "connect_seconds": 5.695904837921262e-05,
+    "elapsed_seconds": 0.00644575001206249,
+    "peak_rss_bytes_before_serialization": 29376512,
+    "wall_seconds": 0.09952887502731755,
     "parse_errors": 0,
     "notices": [
       {
@@ -590,14 +646,14 @@
     "files": 1,
     "input_bytes": 341,
     "functions": 5,
-    "facts": 5,
+    "facts": 7,
     "relations": 2,
-    "parse_seconds": 0.0016973749734461308,
-    "analysis_seconds": 0.000784417032264173,
-    "connect_seconds": 3.291695611551404e-05,
-    "elapsed_seconds": 0.002514708961825818,
-    "peak_rss_bytes_before_serialization": 28033024,
-    "wall_seconds": 0.06739641696913168,
+    "parse_seconds": 0.0023790410486981273,
+    "analysis_seconds": 0.0016946669784374535,
+    "connect_seconds": 7.54580250941217e-05,
+    "elapsed_seconds": 0.0041491660522297025,
+    "peak_rss_bytes_before_serialization": 31227904,
+    "wall_seconds": 0.09799633402144536,
     "parse_errors": 0,
     "notices": [
       {
@@ -614,12 +670,12 @@
     "functions": 5,
     "facts": 5,
     "relations": 2,
-    "parse_seconds": 0.0009681659867055714,
-    "analysis_seconds": 0.0007030839915387332,
-    "connect_seconds": 3.220804501324892e-05,
-    "elapsed_seconds": 0.0017034580232575536,
-    "peak_rss_bytes_before_serialization": 28016640,
-    "wall_seconds": 0.06740254198666662,
+    "parse_seconds": 0.0018410410266369581,
+    "analysis_seconds": 0.0006816249806433916,
+    "connect_seconds": 3.549997927621007e-05,
+    "elapsed_seconds": 0.00255816598655656,
+    "peak_rss_bytes_before_serialization": 29523968,
+    "wall_seconds": 0.08866304199909791,
     "parse_errors": 0,
     "notices": []
   },
@@ -629,14 +685,14 @@
     "files": 1,
     "input_bytes": 490,
     "functions": 5,
-    "facts": 11,
+    "facts": 15,
     "relations": 10,
-    "parse_seconds": 0.001808249973692,
-    "analysis_seconds": 0.0011529590119607747,
-    "connect_seconds": 9.374995715916157e-05,
-    "elapsed_seconds": 0.003054958942811936,
-    "peak_rss_bytes_before_serialization": 28966912,
-    "wall_seconds": 0.06830158299999312,
+    "parse_seconds": 0.0040158749907277524,
+    "analysis_seconds": 0.0019709589541889727,
+    "connect_seconds": 0.00010662502609193325,
+    "elapsed_seconds": 0.006093458971008658,
+    "peak_rss_bytes_before_serialization": 31309824,
+    "wall_seconds": 0.09334804199170321,
     "parse_errors": 0,
     "notices": [
       {
@@ -651,14 +707,14 @@
     "files": 1,
     "input_bytes": 477,
     "functions": 5,
-    "facts": 11,
+    "facts": 15,
     "relations": 10,
-    "parse_seconds": 0.001753999968059361,
-    "analysis_seconds": 0.0016091670258902013,
-    "connect_seconds": 9.45829669944942e-05,
-    "elapsed_seconds": 0.0034577499609440565,
-    "peak_rss_bytes_before_serialization": 29147136,
-    "wall_seconds": 0.06925654201768339,
+    "parse_seconds": 0.004064624954480678,
+    "analysis_seconds": 0.0023982920101843774,
+    "connect_seconds": 0.00010720803402364254,
+    "elapsed_seconds": 0.006570124998688698,
+    "peak_rss_bytes_before_serialization": 29884416,
+    "wall_seconds": 0.09476241696393117,
     "parse_errors": 0,
     "notices": [
       {
@@ -675,12 +731,12 @@
     "functions": 5,
     "facts": 5,
     "relations": 2,
-    "parse_seconds": 0.000920457998290658,
-    "analysis_seconds": 0.0006825840100646019,
-    "connect_seconds": 3.158301115036011e-05,
-    "elapsed_seconds": 0.00163462501950562,
-    "peak_rss_bytes_before_serialization": 27656192,
-    "wall_seconds": 0.06431687501026317,
+    "parse_seconds": 0.0023637080448679626,
+    "analysis_seconds": 0.0007584999548271298,
+    "connect_seconds": 3.5333039704710245e-05,
+    "elapsed_seconds": 0.0031575410393998027,
+    "peak_rss_bytes_before_serialization": 30244864,
+    "wall_seconds": 0.09360441600438207,
     "parse_errors": 0,
     "notices": []
   },
@@ -690,19 +746,23 @@
     "files": 2,
     "input_bytes": 18004,
     "functions": 20,
-    "facts": 177,
-    "relations": 8,
-    "parse_seconds": 0.006252332997974008,
-    "analysis_seconds": 0.008791625034064054,
-    "connect_seconds": 0.0008706669905222952,
-    "elapsed_seconds": 0.015914625022560358,
-    "peak_rss_bytes_before_serialization": 29655040,
-    "wall_seconds": 0.08157579100225121,
+    "facts": 179,
+    "relations": 11,
+    "parse_seconds": 0.007528957969043404,
+    "analysis_seconds": 0.014555125031620264,
+    "connect_seconds": 0.0010538749629631639,
+    "elapsed_seconds": 0.023137957963626832,
+    "peak_rss_bytes_before_serialization": 31555584,
+    "wall_seconds": 0.12446508300490677,
     "parse_errors": 0,
     "notices": [
       {
         "kind": "bounded_summary_passes",
         "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "receiver:dart:packages/flutter/lib/src/foundation/memory_allocations.dart::FlutterMemoryAllocations[key:_listeners]"
       }
     ]
   },
@@ -712,14 +772,14 @@
     "files": 5,
     "input_bytes": 16348,
     "functions": 31,
-    "facts": 119,
-    "relations": 12,
-    "parse_seconds": 0.00481616600882262,
-    "analysis_seconds": 0.01005029201041907,
-    "connect_seconds": 0.00031525001395493746,
-    "elapsed_seconds": 0.015181708033196628,
-    "peak_rss_bytes_before_serialization": 28114944,
-    "wall_seconds": 0.07920529198599979,
+    "facts": 213,
+    "relations": 33,
+    "parse_seconds": 0.008114167023450136,
+    "analysis_seconds": 0.021111957961693406,
+    "connect_seconds": 0.0008205420454032719,
+    "elapsed_seconds": 0.030046667030546814,
+    "peak_rss_bytes_before_serialization": 31293440,
+    "wall_seconds": 0.12540208402788267,
     "parse_errors": 9,
     "notices": [
       {
@@ -793,6 +853,10 @@
         "detail": "4"
       },
       {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy:8324[key:listener]"
+      },
+      {
         "kind": "overload_resolution_unproven",
         "detail": "groovy:org.grails.events.bus::AbstractEventBus:notify"
       },
@@ -808,14 +872,14 @@
     "files": 1,
     "input_bytes": 2662,
     "functions": 11,
-    "facts": 56,
-    "relations": 28,
-    "parse_seconds": 0.001400750013999641,
-    "analysis_seconds": 0.0037359169800765812,
-    "connect_seconds": 0.0008244580239988863,
-    "elapsed_seconds": 0.0059611250180751085,
-    "peak_rss_bytes_before_serialization": 27656192,
-    "wall_seconds": 0.07045741600450128,
+    "facts": 75,
+    "relations": 48,
+    "parse_seconds": 0.0021604590001516044,
+    "analysis_seconds": 0.005759374995250255,
+    "connect_seconds": 0.0020991250057704747,
+    "elapsed_seconds": 0.010018959001172334,
+    "peak_rss_bytes_before_serialization": 28606464,
+    "wall_seconds": 0.09397179202642292,
     "parse_errors": 0,
     "notices": [
       {
@@ -830,14 +894,14 @@
     "files": 3,
     "input_bytes": 35577,
     "functions": 20,
-    "facts": 199,
-    "relations": 20,
-    "parse_seconds": 0.006303332978859544,
-    "analysis_seconds": 0.014332666993141174,
-    "connect_seconds": 0.0006799999973736703,
-    "elapsed_seconds": 0.02131599996937439,
-    "peak_rss_bytes_before_serialization": 29458432,
-    "wall_seconds": 0.08728658402105793,
+    "facts": 211,
+    "relations": 24,
+    "parse_seconds": 0.008075332967564464,
+    "analysis_seconds": 0.022328083054162562,
+    "connect_seconds": 0.0008749589906074107,
+    "elapsed_seconds": 0.031278375012334436,
+    "peak_rss_bytes_before_serialization": 30408704,
+    "wall_seconds": 0.12372458295430988,
     "parse_errors": 2,
     "notices": [
       {
@@ -874,20 +938,16 @@
     "files": 6,
     "input_bytes": 91231,
     "functions": 182,
-    "facts": 1560,
-    "relations": 103,
-    "parse_seconds": 0.021517375018447638,
-    "analysis_seconds": 0.1294329579686746,
-    "connect_seconds": 0.006067708018235862,
-    "elapsed_seconds": 0.1570180410053581,
-    "peak_rss_bytes_before_serialization": 37601280,
-    "wall_seconds": 0.24928066600114107,
+    "facts": 1751,
+    "relations": 213,
+    "parse_seconds": 0.02971787500428036,
+    "analysis_seconds": 0.39483104198006913,
+    "connect_seconds": 0.015091457986272871,
+    "elapsed_seconds": 0.43964037497062236,
+    "peak_rss_bytes_before_serialization": 42123264,
+    "wall_seconds": 0.5726776659721509,
     "parse_errors": 0,
     "notices": [
-      {
-        "kind": "returned_closure_environment_unresolved",
-        "detail": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:267:12"
-      },
       {
         "kind": "summary_depth_bound",
         "detail": "4"
@@ -900,20 +960,16 @@
     "files": 6,
     "input_bytes": 91231,
     "functions": 182,
-    "facts": 1560,
-    "relations": 103,
-    "parse_seconds": 0.020291666965931654,
-    "analysis_seconds": 0.13052558299386874,
-    "connect_seconds": 0.006006542011164129,
-    "elapsed_seconds": 0.15682379197096452,
-    "peak_rss_bytes_before_serialization": 37617664,
-    "wall_seconds": 0.2504121250240132,
+    "facts": 1751,
+    "relations": 213,
+    "parse_seconds": 0.029767459025606513,
+    "analysis_seconds": 0.4094620409887284,
+    "connect_seconds": 0.014525124977808446,
+    "elapsed_seconds": 0.45375462499214336,
+    "peak_rss_bytes_before_serialization": 42057728,
+    "wall_seconds": 0.5841979160322808,
     "parse_errors": 0,
     "notices": [
-      {
-        "kind": "returned_closure_environment_unresolved",
-        "detail": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js:267:12"
-      },
       {
         "kind": "summary_depth_bound",
         "detail": "4"
@@ -925,20 +981,52 @@
     "language": "scala",
     "files": 2,
     "input_bytes": 13029,
-    "functions": 36,
-    "facts": 110,
-    "relations": 9,
-    "parse_seconds": 0.009125749988015741,
-    "analysis_seconds": 0.017972708970773965,
-    "connect_seconds": 0.00018745800480246544,
-    "elapsed_seconds": 0.02728591696359217,
-    "peak_rss_bytes_before_serialization": 29392896,
-    "wall_seconds": 0.08680916600860655,
+    "functions": 57,
+    "facts": 884,
+    "relations": 36,
+    "parse_seconds": 0.0061619579792022705,
+    "analysis_seconds": 0.763817792001646,
+    "connect_seconds": 0.0016280830022878945,
+    "elapsed_seconds": 0.7716078329831362,
+    "peak_rss_bytes_before_serialization": 33751040,
+    "wall_seconds": 0.9182413329835981,
     "parse_errors": 0,
     "notices": [
       {
+        "kind": "anonymous_or_unresolved_constructor",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:4250"
+      },
+      {
+        "kind": "anonymous_or_unresolved_constructor",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:5096"
+      },
+      {
         "kind": "bounded_summary_passes",
         "detail": "4"
+      },
+      {
+        "kind": "case_selection_unproven",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:4855"
+      },
+      {
+        "kind": "case_selection_unproven",
+        "detail": "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala:5202"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072"
+      },
+      {
+        "kind": "source_call_depth_bound",
+        "detail": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:2417"
+      },
+      {
+        "kind": "source_call_depth_bound",
+        "detail": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:5258"
+      },
+      {
+        "kind": "source_call_depth_bound",
+        "detail": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:6059"
       }
     ]
   },
@@ -948,14 +1036,14 @@
     "files": 2,
     "input_bytes": 7951,
     "functions": 11,
-    "facts": 109,
-    "relations": 3,
-    "parse_seconds": 0.0034920420148409903,
-    "analysis_seconds": 0.00665266701253131,
-    "connect_seconds": 0.00015312497271224856,
-    "elapsed_seconds": 0.01029783400008455,
-    "peak_rss_bytes_before_serialization": 26951680,
-    "wall_seconds": 0.06758904200978577,
+    "facts": 115,
+    "relations": 5,
+    "parse_seconds": 0.00634629197884351,
+    "analysis_seconds": 0.00901458301814273,
+    "connect_seconds": 0.00020824995590373874,
+    "elapsed_seconds": 0.015569124952889979,
+    "peak_rss_bytes_before_serialization": 30310400,
+    "wall_seconds": 0.10768933297367766,
     "parse_errors": 0,
     "notices": [
       {
@@ -972,12 +1060,12 @@
     "functions": 0,
     "facts": 107,
     "relations": 83,
-    "parse_seconds": 0.03542429197113961,
-    "analysis_seconds": 0.010034125007223338,
-    "connect_seconds": 0.008883500006049871,
-    "elapsed_seconds": 0.05434191698441282,
-    "peak_rss_bytes_before_serialization": 30867456,
-    "wall_seconds": 0.1287289169849828,
+    "parse_seconds": 0.04212583298794925,
+    "analysis_seconds": 0.011190666991751641,
+    "connect_seconds": 0.01249204104533419,
+    "elapsed_seconds": 0.06580854102503508,
+    "peak_rss_bytes_before_serialization": 35078144,
+    "wall_seconds": 0.15922491601668298,
     "parse_errors": 250,
     "notices": [
       {
@@ -1081,20 +1169,48 @@
     "language": "csharp",
     "files": 2,
     "input_bytes": 29487,
-    "functions": 31,
-    "facts": 643,
-    "relations": 23,
-    "parse_seconds": 0.011516291997395456,
-    "analysis_seconds": 0.04435895796632394,
-    "connect_seconds": 0.0009922920144163072,
-    "elapsed_seconds": 0.056867541978135705,
-    "peak_rss_bytes_before_serialization": 30310400,
-    "wall_seconds": 0.12191675003850833,
+    "functions": 34,
+    "facts": 1570,
+    "relations": 324,
+    "parse_seconds": 0.011115333007182926,
+    "analysis_seconds": 0.09634316700976342,
+    "connect_seconds": 0.03587158297887072,
+    "elapsed_seconds": 0.14333008299581707,
+    "peak_rss_bytes_before_serialization": 34684928,
+    "wall_seconds": 0.27187925000907853,
     "parse_errors": 0,
     "notices": [
       {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:2179"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:3294"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5378"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6810"
+      },
+      {
         "kind": "bounded_summary_passes",
         "detail": "4"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6347[key:_observer]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6453[element:*][key:_observer]"
+      },
+      {
+        "kind": "receiver_allocation_alternative_cap",
+        "detail": "csharp:System.Reactive.Subjects::Subject"
       }
     ]
   },
@@ -1104,14 +1220,14 @@
     "files": 3,
     "input_bytes": 10805,
     "functions": 33,
-    "facts": 197,
-    "relations": 8,
-    "parse_seconds": 0.009514582983683795,
-    "analysis_seconds": 0.03319558303337544,
-    "connect_seconds": 0.00038466695696115494,
-    "elapsed_seconds": 0.04309483297402039,
-    "peak_rss_bytes_before_serialization": 28672000,
-    "wall_seconds": 0.10479995899368078,
+    "facts": 216,
+    "relations": 18,
+    "parse_seconds": 0.014624833012931049,
+    "analysis_seconds": 0.05106279201572761,
+    "connect_seconds": 0.0005784169770777225,
+    "elapsed_seconds": 0.06626604200573638,
+    "peak_rss_bytes_before_serialization": 31637504,
+    "wall_seconds": 0.15246374998241663,
     "parse_errors": 2,
     "notices": [
       {
@@ -1149,41 +1265,45 @@
     "language": "swift",
     "files": 6,
     "input_bytes": 18112,
-    "functions": 26,
-    "facts": 194,
-    "relations": 19,
-    "parse_seconds": 0.008258792047854513,
-    "analysis_seconds": 0.03494774998398498,
-    "connect_seconds": 0.0006120000034570694,
-    "elapsed_seconds": 0.04381854203529656,
-    "peak_rss_bytes_before_serialization": 28672000,
-    "wall_seconds": 0.10291679203510284,
-    "parse_errors": 2,
+    "functions": 31,
+    "facts": 1025,
+    "relations": 190,
+    "parse_seconds": 0.009302707971073687,
+    "analysis_seconds": 0.09888441703515127,
+    "connect_seconds": 0.018535207957029343,
+    "elapsed_seconds": 0.1267223329632543,
+    "peak_rss_bytes_before_serialization": 33144832,
+    "wall_seconds": 0.23609729099553078,
+    "parse_errors": 0,
     "notices": [
       {
-        "kind": "parse_error",
+        "kind": "conditional_compilation_projection",
         "path": "RxSwift/Subjects/PublishSubject.swift",
-        "locations": [
-          {
-            "path": "RxSwift/Subjects/PublishSubject.swift",
-            "line": 12,
-            "column": 1
-          },
-          {
-            "path": "RxSwift/Subjects/PublishSubject.swift",
-            "line": 141,
-            "column": 1
-          }
-        ],
-        "count": 2
+        "detail": "byte-aligned directive masking; branch selection and module binding remain unproven"
       },
       {
         "kind": "bounded_summary_passes",
         "detail": "4"
       },
       {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:1797[key:stoppedEvent]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:3395[key:stoppedEvent]"
+      },
+      {
+        "kind": "heap_alias_alternative_cap",
+        "detail": "allocation:Tests/RxSwiftTests/Observable+SubscriptionTest.swift:4937[key:stoppedEvent]"
+      },
+      {
         "kind": "named_tuple_projection_unsupported",
         "detail": "Platform/DataStructures/Bag.swift:1427"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "swift:RxSwift/AnyObserver.swift::AnyObserver:init"
       }
     ]
   },
@@ -1193,14 +1313,14 @@
     "files": 13,
     "input_bytes": 267849,
     "functions": 404,
-    "facts": 6050,
-    "relations": 412,
-    "parse_seconds": 0.0590587499900721,
-    "analysis_seconds": 0.4641740000224672,
-    "connect_seconds": 0.028441666974686086,
-    "elapsed_seconds": 0.5516744169872254,
-    "peak_rss_bytes_before_serialization": 57638912,
-    "wall_seconds": 0.719230749993585,
+    "facts": 6835,
+    "relations": 468,
+    "parse_seconds": 0.10747349995654076,
+    "analysis_seconds": 0.8252472080057487,
+    "connect_seconds": 0.04371762502705678,
+    "elapsed_seconds": 0.9764383329893462,
+    "peak_rss_bytes_before_serialization": 61767680,
+    "wall_seconds": 1.2254176249844022,
     "parse_errors": 0,
     "notices": [
       {
@@ -1221,6 +1341,10 @@
       },
       {
         "kind": "function_fact_cap",
+        "detail": "packages/core/src/service/services/order.service.ts:601:5"
+      },
+      {
+        "kind": "function_fact_cap",
         "detail": "packages/core/src/service/services/order.service.ts:651:5"
       },
       {
@@ -1234,10 +1358,6 @@
       {
         "kind": "function_fact_cap",
         "detail": "packages/core/src/service/services/order.service.ts:834:5"
-      },
-      {
-        "kind": "returned_closure_environment_unresolved",
-        "detail": "packages/core/src/job-queue/job-queue.service.ts:192:16"
       },
       {
         "kind": "summary_depth_bound",

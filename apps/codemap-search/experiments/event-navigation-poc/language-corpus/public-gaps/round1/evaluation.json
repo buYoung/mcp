@@ -1,0 +1,624 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "cpp": {
+      "fixtures": {},
+      "public": {
+        "unresolved": 1,
+        "source_scenario_not_executed": 2
+      }
+    },
+    "groovy": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 1,
+        "correctly_unjoined_with_positive_control": 1
+      }
+    },
+    "php": {
+      "fixtures": {},
+      "public": {
+        "unresolved": 1,
+        "source_scenario_not_executed": 2
+      }
+    },
+    "scala": {
+      "fixtures": {},
+      "public": {
+        "unresolved": 1,
+        "source_scenario_not_executed": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/entt/signal/sigh.hpp",
+        416,
+        425
+      ],
+      "invocation": [
+        "src/entt/signal/sigh.hpp",
+        173,
+        176
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/delegate.hpp",
+          137,
+          148
+        ],
+        [
+          "src/entt/signal/delegate.hpp",
+          261,
+          264
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          168,
+          173
+        ]
+      ],
+      "reason": "템플릿 함수로 delegate를 구성해 calls에 저장하고 원소의 operator()를 호출한다.",
+      "conditions": [
+        "같은 sigh 객체",
+        "disconnect 전"
+      ],
+      "syntax": [
+        "비타입 템플릿 인자",
+        "operator()"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "cpp-named-default-queue",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/dispatcher.cpp",
+        164,
+        164
+      ],
+      "invocation": [
+        "test/entt/signal/dispatcher.cpp",
+        165,
+        165
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/dispatcher.hpp",
+          118,
+          126
+        ],
+        [
+          "src/entt/signal/dispatcher.hpp",
+          257,
+          280
+        ],
+        [
+          "test/entt/signal/dispatcher.cpp",
+          167,
+          171
+        ]
+      ],
+      "reason": "named id와 기본 type_hash id는 별도 pool이다. 실제 테스트는 기본 trigger 뒤 cnt==0을 기대한다.",
+      "conditions": [
+        "id 불일치",
+        "테스트는 이번에 실행하지 않음"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "cpp-raii-disconnect",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/sigh.cpp",
+        325,
+        325
+      ],
+      "invocation": [
+        "test/entt/signal/sigh.cpp",
+        333,
+        333
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/sigh.hpp",
+          290,
+          293
+        ],
+        [
+          "src/entt/signal/sigh.hpp",
+          247,
+          253
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          325,
+          336
+        ]
+      ],
+      "reason": "scoped_connection 소멸자가 release를 호출하므로 블록 뒤 publish는 해제된 callback을 실행하지 않아야 한다.",
+      "conditions": [
+        "RAII 수명과 재등록 여부"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        42,
+        45
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        64,
+        79
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+          40,
+          44
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          118,
+          124
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+          41,
+          46
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+          47,
+          50
+        ]
+      ],
+      "reason": "구독 필드의 Closure를 trigger에 전달해 subscriberClosure.call로 호출한다.",
+      "conditions": [
+        "같은 버스",
+        "같은 이벤트 키",
+        "구독 활성"
+      ],
+      "syntax": [
+        "Closure",
+        "암시적 it",
+        "동적 call"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 3,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 75,
+            "column": 30
+          },
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 78,
+            "column": 30
+          },
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_value_argument",
+          "storage": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "invocation": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "conditions": [
+            "callee_consumption_unproven",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "groovy-keyed-subscription",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+        40,
+        44
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        113,
+        124
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          52,
+          54
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          102,
+          110
+        ]
+      ],
+      "reason": "generic eventKey와 event.id의 소스 형태만으로 동일 맵·키·살아 있는 구독을 확정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "groovy-reply-not-subscriber",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        50,
+        50
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        74,
+        79
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          40,
+          50
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          81,
+          87
+        ]
+      ],
+      "reason": "reply 필드에 쓰는 사실과 subscriberClosure 필드의 직접 호출을 구분한다. 인자로 같은 Closure를 줄 가능성은 두 필드의 저장 슬롯을 같게 만들지 않는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "groovy-closure-delivery"
+      ]
+    },
+    {
+      "id": "php-priority-listener",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventDispatcher.php",
+        141,
+        145
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "evidence": [
+        [
+          "EventDispatcher.php",
+          47,
+          58
+        ],
+        [
+          "EventDispatcher.php",
+          287,
+          307
+        ],
+        [
+          "Tests/EventDispatcherTest.php",
+          163,
+          179
+        ]
+      ],
+      "reason": "eventName/priority 배열의 listener를 정렬·최적화 cache로 옮겨 최종 callable로 호출한다.",
+      "conditions": [
+        "같은 dispatcher와 eventName",
+        "propagation 중단 전"
+      ],
+      "syntax": [
+        "연관 배열",
+        "callable",
+        "참조 캡처"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "php-same-closure-different-key",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Tests/EventDispatcherTest.php",
+        144,
+        144
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "evidence": [
+        [
+          "Tests/EventDispatcherTest.php",
+          137,
+          146
+        ],
+        [
+          "EventDispatcher.php",
+          49,
+          58
+        ]
+      ],
+      "reason": "같은 Closure를 두 이벤트 키에 넣어도 pre.foo dispatch는 post.foo 등록을 선택하지 않는다.",
+      "conditions": [
+        "해당 테스트의 pre.foo dispatch 문맥"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "php-lazy-factory",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Tests/EventDispatcherTest.php",
+        365,
+        365
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        299,
+        299
+      ],
+      "evidence": [
+        [
+          "Tests/EventDispatcherTest.php",
+          356,
+          370
+        ],
+        [
+          "EventDispatcher.php",
+          290,
+          307
+        ]
+      ],
+      "reason": "factory는 listener 객체 생성용이고 최종 호출은 반환 객체의 메서드다. 최적화 cache 이후 factory 실행 횟수도 달라진다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          87,
+          103
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          212,
+          219
+        ],
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          89
+        ]
+      ],
+      "reason": "immutable subscriber Set을 새 State로 CAS 저장하고 cache 배열에서 꺼낸 subscriber.onNext를 호출한다.",
+      "conditions": [
+        "CAS 성공",
+        "활성 state",
+        "cancel 전"
+      ],
+      "syntax": [
+        "case class",
+        "immutable Set",
+        "tailrec",
+        "Future[Ack]"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          88
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          32,
+          37
+        ]
+      ],
+      "reason": "구독 이전 onNext(1..3)는 이후 등록한 observer에 재생되지 않아야 한다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "scala-future-body",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        146
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          117,
+          139
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          150,
+          155
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          184,
+          195
+        ]
+      ],
+      "reason": "subscriber 메서드 호출과 Future 안의 상태 갱신은 별도 단계다. Scheduler/Ack/취소 조건 없이 실행 완료를 단정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    }
+  ],
+  "dependencies": {
+    "tree-sitter": "0.26.0",
+    "tree-sitter-typescript": "0.23.2",
+    "tree-sitter-rust": "0.24.2",
+    "tree-sitter-go": "0.25.0",
+    "tree-sitter-language-pack": "0.13.0",
+    "tree-sitter-c-sharp": "0.23.5",
+    "tree-sitter-embedded-template": "0.25.0",
+    "tree-sitter-yaml": "0.7.2"
+  }
+}

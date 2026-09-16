@@ -1,0 +1,1805 @@
+{
+  "method": "18개 개발 언어의 동일한 저장 슬롯 계약을 독립적인 소스 구문으로 표현한 사례. 대상 코드를 실행하지 않는 정적 판정 검증.",
+  "cases": [
+    {
+      "id": "javascript-fixture-primary",
+      "language": "javascript",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/javascript/callbacks.js",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/javascript/callbacks.js",
+        5,
+        5
+      ],
+      "positive_control": "javascript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "javascript-fixture-secondary",
+      "language": "javascript",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/javascript/callbacks.js",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/javascript/callbacks.js",
+        6,
+        6
+      ],
+      "positive_control": "javascript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "javascript-fixture-primary-not-secondary",
+      "language": "javascript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/javascript/callbacks.js",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/javascript/callbacks.js",
+        6,
+        6
+      ],
+      "positive_control": "javascript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "javascript-fixture-secondary-not-primary",
+      "language": "javascript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/javascript/callbacks.js",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/javascript/callbacks.js",
+        5,
+        5
+      ],
+      "positive_control": "javascript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "javascript-fixture-different-owner",
+      "language": "javascript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/javascript/callbacks.js",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/javascript/callbacks.js",
+        10,
+        10
+      ],
+      "positive_control": "javascript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "typescript-fixture-primary",
+      "language": "typescript",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/typescript/callbacks.ts",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/typescript/callbacks.ts",
+        5,
+        5
+      ],
+      "positive_control": "typescript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "typescript-fixture-secondary",
+      "language": "typescript",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/typescript/callbacks.ts",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/typescript/callbacks.ts",
+        6,
+        6
+      ],
+      "positive_control": "typescript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "typescript-fixture-primary-not-secondary",
+      "language": "typescript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/typescript/callbacks.ts",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/typescript/callbacks.ts",
+        6,
+        6
+      ],
+      "positive_control": "typescript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "typescript-fixture-secondary-not-primary",
+      "language": "typescript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/typescript/callbacks.ts",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/typescript/callbacks.ts",
+        5,
+        5
+      ],
+      "positive_control": "typescript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "typescript-fixture-different-owner",
+      "language": "typescript",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/typescript/callbacks.ts",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/typescript/callbacks.ts",
+        10,
+        10
+      ],
+      "positive_control": "typescript-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "go-fixture-primary",
+      "language": "go",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/go/callbacks.go",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/go/callbacks.go",
+        6,
+        6
+      ],
+      "positive_control": "go-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "go-fixture-secondary",
+      "language": "go",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/go/callbacks.go",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/go/callbacks.go",
+        7,
+        7
+      ],
+      "positive_control": "go-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "go-fixture-primary-not-secondary",
+      "language": "go",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/go/callbacks.go",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/go/callbacks.go",
+        7,
+        7
+      ],
+      "positive_control": "go-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "go-fixture-secondary-not-primary",
+      "language": "go",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/go/callbacks.go",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/go/callbacks.go",
+        6,
+        6
+      ],
+      "positive_control": "go-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "go-fixture-different-owner",
+      "language": "go",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/go/callbacks.go",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/go/callbacks.go",
+        9,
+        9
+      ],
+      "positive_control": "go-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "rust-fixture-primary",
+      "language": "rust",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/rust/callbacks.rs",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/rust/callbacks.rs",
+        5,
+        5
+      ],
+      "positive_control": "rust-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "rust-fixture-secondary",
+      "language": "rust",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/rust/callbacks.rs",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/rust/callbacks.rs",
+        6,
+        6
+      ],
+      "positive_control": "rust-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "rust-fixture-primary-not-secondary",
+      "language": "rust",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/rust/callbacks.rs",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/rust/callbacks.rs",
+        6,
+        6
+      ],
+      "positive_control": "rust-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "rust-fixture-secondary-not-primary",
+      "language": "rust",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/rust/callbacks.rs",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/rust/callbacks.rs",
+        5,
+        5
+      ],
+      "positive_control": "rust-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "rust-fixture-different-owner",
+      "language": "rust",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/rust/callbacks.rs",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/rust/callbacks.rs",
+        10,
+        10
+      ],
+      "positive_control": "rust-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "python-fixture-primary",
+      "language": "python",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/python/callbacks.py",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/python/callbacks.py",
+        7,
+        7
+      ],
+      "positive_control": "python-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "python-fixture-secondary",
+      "language": "python",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/python/callbacks.py",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/python/callbacks.py",
+        9,
+        9
+      ],
+      "positive_control": "python-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "python-fixture-primary-not-secondary",
+      "language": "python",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/python/callbacks.py",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/python/callbacks.py",
+        9,
+        9
+      ],
+      "positive_control": "python-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "python-fixture-secondary-not-primary",
+      "language": "python",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/python/callbacks.py",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/python/callbacks.py",
+        7,
+        7
+      ],
+      "positive_control": "python-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "python-fixture-different-owner",
+      "language": "python",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/python/callbacks.py",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/python/callbacks.py",
+        12,
+        12
+      ],
+      "positive_control": "python-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "c-fixture-primary",
+      "language": "c",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/c/callbacks.c",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/c/callbacks.c",
+        5,
+        5
+      ],
+      "positive_control": "c-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "c-fixture-secondary",
+      "language": "c",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/c/callbacks.c",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/c/callbacks.c",
+        6,
+        6
+      ],
+      "positive_control": "c-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "c-fixture-primary-not-secondary",
+      "language": "c",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/c/callbacks.c",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/c/callbacks.c",
+        6,
+        6
+      ],
+      "positive_control": "c-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "c-fixture-secondary-not-primary",
+      "language": "c",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/c/callbacks.c",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/c/callbacks.c",
+        5,
+        5
+      ],
+      "positive_control": "c-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "c-fixture-different-owner",
+      "language": "c",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/c/callbacks.c",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/c/callbacks.c",
+        8,
+        8
+      ],
+      "positive_control": "c-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "cpp-fixture-primary",
+      "language": "cpp",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/cpp/callbacks.cpp",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/cpp/callbacks.cpp",
+        6,
+        6
+      ],
+      "positive_control": "cpp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "cpp-fixture-secondary",
+      "language": "cpp",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/cpp/callbacks.cpp",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/cpp/callbacks.cpp",
+        7,
+        7
+      ],
+      "positive_control": "cpp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "cpp-fixture-primary-not-secondary",
+      "language": "cpp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/cpp/callbacks.cpp",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/cpp/callbacks.cpp",
+        7,
+        7
+      ],
+      "positive_control": "cpp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "cpp-fixture-secondary-not-primary",
+      "language": "cpp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/cpp/callbacks.cpp",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/cpp/callbacks.cpp",
+        6,
+        6
+      ],
+      "positive_control": "cpp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "cpp-fixture-different-owner",
+      "language": "cpp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/cpp/callbacks.cpp",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/cpp/callbacks.cpp",
+        11,
+        11
+      ],
+      "positive_control": "cpp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "csharp-fixture-primary",
+      "language": "csharp",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/csharp/callbacks.cs",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/csharp/callbacks.cs",
+        6,
+        6
+      ],
+      "positive_control": "csharp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "csharp-fixture-secondary",
+      "language": "csharp",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/csharp/callbacks.cs",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/csharp/callbacks.cs",
+        7,
+        7
+      ],
+      "positive_control": "csharp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "csharp-fixture-primary-not-secondary",
+      "language": "csharp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/csharp/callbacks.cs",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/csharp/callbacks.cs",
+        7,
+        7
+      ],
+      "positive_control": "csharp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "csharp-fixture-secondary-not-primary",
+      "language": "csharp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/csharp/callbacks.cs",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/csharp/callbacks.cs",
+        6,
+        6
+      ],
+      "positive_control": "csharp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "csharp-fixture-different-owner",
+      "language": "csharp",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/csharp/callbacks.cs",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/csharp/callbacks.cs",
+        11,
+        11
+      ],
+      "positive_control": "csharp-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "dart-fixture-primary",
+      "language": "dart",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/dart/callbacks.dart",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/dart/callbacks.dart",
+        6,
+        6
+      ],
+      "positive_control": "dart-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "dart-fixture-secondary",
+      "language": "dart",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/dart/callbacks.dart",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/dart/callbacks.dart",
+        7,
+        7
+      ],
+      "positive_control": "dart-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "dart-fixture-primary-not-secondary",
+      "language": "dart",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/dart/callbacks.dart",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/dart/callbacks.dart",
+        7,
+        7
+      ],
+      "positive_control": "dart-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "dart-fixture-secondary-not-primary",
+      "language": "dart",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/dart/callbacks.dart",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/dart/callbacks.dart",
+        6,
+        6
+      ],
+      "positive_control": "dart-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "dart-fixture-different-owner",
+      "language": "dart",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/dart/callbacks.dart",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/dart/callbacks.dart",
+        11,
+        11
+      ],
+      "positive_control": "dart-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "groovy-fixture-primary",
+      "language": "groovy",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/groovy/callbacks.groovy",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/groovy/callbacks.groovy",
+        6,
+        6
+      ],
+      "positive_control": "groovy-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "groovy-fixture-secondary",
+      "language": "groovy",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/groovy/callbacks.groovy",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/groovy/callbacks.groovy",
+        7,
+        7
+      ],
+      "positive_control": "groovy-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "groovy-fixture-primary-not-secondary",
+      "language": "groovy",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/groovy/callbacks.groovy",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/groovy/callbacks.groovy",
+        7,
+        7
+      ],
+      "positive_control": "groovy-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "groovy-fixture-secondary-not-primary",
+      "language": "groovy",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/groovy/callbacks.groovy",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/groovy/callbacks.groovy",
+        6,
+        6
+      ],
+      "positive_control": "groovy-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "groovy-fixture-different-owner",
+      "language": "groovy",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/groovy/callbacks.groovy",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/groovy/callbacks.groovy",
+        11,
+        11
+      ],
+      "positive_control": "groovy-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "java-fixture-primary",
+      "language": "java",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/java/callbacks.java",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/java/callbacks.java",
+        5,
+        5
+      ],
+      "positive_control": "java-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "java-fixture-secondary",
+      "language": "java",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/java/callbacks.java",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/java/callbacks.java",
+        6,
+        6
+      ],
+      "positive_control": "java-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "java-fixture-primary-not-secondary",
+      "language": "java",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/java/callbacks.java",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/java/callbacks.java",
+        6,
+        6
+      ],
+      "positive_control": "java-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "java-fixture-secondary-not-primary",
+      "language": "java",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/java/callbacks.java",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/java/callbacks.java",
+        5,
+        5
+      ],
+      "positive_control": "java-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "java-fixture-different-owner",
+      "language": "java",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/java/callbacks.java",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/java/callbacks.java",
+        10,
+        10
+      ],
+      "positive_control": "java-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "kotlin-fixture-primary",
+      "language": "kotlin",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/kotlin/callbacks.kt",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/kotlin/callbacks.kt",
+        6,
+        6
+      ],
+      "positive_control": "kotlin-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "kotlin-fixture-secondary",
+      "language": "kotlin",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/kotlin/callbacks.kt",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/kotlin/callbacks.kt",
+        7,
+        7
+      ],
+      "positive_control": "kotlin-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "kotlin-fixture-primary-not-secondary",
+      "language": "kotlin",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/kotlin/callbacks.kt",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/kotlin/callbacks.kt",
+        7,
+        7
+      ],
+      "positive_control": "kotlin-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "kotlin-fixture-secondary-not-primary",
+      "language": "kotlin",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/kotlin/callbacks.kt",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/kotlin/callbacks.kt",
+        6,
+        6
+      ],
+      "positive_control": "kotlin-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "kotlin-fixture-different-owner",
+      "language": "kotlin",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/kotlin/callbacks.kt",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/kotlin/callbacks.kt",
+        11,
+        11
+      ],
+      "positive_control": "kotlin-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "lua-fixture-primary",
+      "language": "lua",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/lua/callbacks.lua",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/lua/callbacks.lua",
+        4,
+        4
+      ],
+      "positive_control": "lua-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "lua-fixture-secondary",
+      "language": "lua",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/lua/callbacks.lua",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/lua/callbacks.lua",
+        5,
+        5
+      ],
+      "positive_control": "lua-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "lua-fixture-primary-not-secondary",
+      "language": "lua",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/lua/callbacks.lua",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/lua/callbacks.lua",
+        5,
+        5
+      ],
+      "positive_control": "lua-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "lua-fixture-secondary-not-primary",
+      "language": "lua",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/lua/callbacks.lua",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/lua/callbacks.lua",
+        4,
+        4
+      ],
+      "positive_control": "lua-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "lua-fixture-different-owner",
+      "language": "lua",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/lua/callbacks.lua",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/lua/callbacks.lua",
+        7,
+        7
+      ],
+      "positive_control": "lua-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "php-fixture-primary",
+      "language": "php",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/php/callbacks.php",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/php/callbacks.php",
+        7,
+        7
+      ],
+      "positive_control": "php-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "php-fixture-secondary",
+      "language": "php",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/php/callbacks.php",
+        6,
+        6
+      ],
+      "invocation": [
+        "fixtures/php/callbacks.php",
+        8,
+        8
+      ],
+      "positive_control": "php-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "php-fixture-primary-not-secondary",
+      "language": "php",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/php/callbacks.php",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/php/callbacks.php",
+        8,
+        8
+      ],
+      "positive_control": "php-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "php-fixture-secondary-not-primary",
+      "language": "php",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/php/callbacks.php",
+        6,
+        6
+      ],
+      "invocation": [
+        "fixtures/php/callbacks.php",
+        7,
+        7
+      ],
+      "positive_control": "php-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "php-fixture-different-owner",
+      "language": "php",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/php/callbacks.php",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/php/callbacks.php",
+        12,
+        12
+      ],
+      "positive_control": "php-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "ruby-fixture-primary",
+      "language": "ruby",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/ruby/callbacks.rb",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/ruby/callbacks.rb",
+        9,
+        9
+      ],
+      "positive_control": "ruby-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "ruby-fixture-secondary",
+      "language": "ruby",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/ruby/callbacks.rb",
+        6,
+        6
+      ],
+      "invocation": [
+        "fixtures/ruby/callbacks.rb",
+        12,
+        12
+      ],
+      "positive_control": "ruby-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "ruby-fixture-primary-not-secondary",
+      "language": "ruby",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/ruby/callbacks.rb",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/ruby/callbacks.rb",
+        12,
+        12
+      ],
+      "positive_control": "ruby-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "ruby-fixture-secondary-not-primary",
+      "language": "ruby",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/ruby/callbacks.rb",
+        6,
+        6
+      ],
+      "invocation": [
+        "fixtures/ruby/callbacks.rb",
+        9,
+        9
+      ],
+      "positive_control": "ruby-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "ruby-fixture-different-owner",
+      "language": "ruby",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/ruby/callbacks.rb",
+        3,
+        3
+      ],
+      "invocation": [
+        "fixtures/ruby/callbacks.rb",
+        17,
+        17
+      ],
+      "positive_control": "ruby-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "scala-fixture-primary",
+      "language": "scala",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/scala/callbacks.scala",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/scala/callbacks.scala",
+        6,
+        6
+      ],
+      "positive_control": "scala-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "scala-fixture-secondary",
+      "language": "scala",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/scala/callbacks.scala",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/scala/callbacks.scala",
+        7,
+        7
+      ],
+      "positive_control": "scala-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "scala-fixture-primary-not-secondary",
+      "language": "scala",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/scala/callbacks.scala",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/scala/callbacks.scala",
+        7,
+        7
+      ],
+      "positive_control": "scala-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "scala-fixture-secondary-not-primary",
+      "language": "scala",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/scala/callbacks.scala",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/scala/callbacks.scala",
+        6,
+        6
+      ],
+      "positive_control": "scala-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "scala-fixture-different-owner",
+      "language": "scala",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/scala/callbacks.scala",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/scala/callbacks.scala",
+        11,
+        11
+      ],
+      "positive_control": "scala-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "swift-fixture-primary",
+      "language": "swift",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/swift/callbacks.swift",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/swift/callbacks.swift",
+        6,
+        6
+      ],
+      "positive_control": "swift-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "swift-fixture-secondary",
+      "language": "swift",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/swift/callbacks.swift",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/swift/callbacks.swift",
+        7,
+        7
+      ],
+      "positive_control": "swift-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "swift-fixture-primary-not-secondary",
+      "language": "swift",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/swift/callbacks.swift",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/swift/callbacks.swift",
+        7,
+        7
+      ],
+      "positive_control": "swift-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "swift-fixture-secondary-not-primary",
+      "language": "swift",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/swift/callbacks.swift",
+        5,
+        5
+      ],
+      "invocation": [
+        "fixtures/swift/callbacks.swift",
+        6,
+        6
+      ],
+      "positive_control": "swift-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "swift-fixture-different-owner",
+      "language": "swift",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/swift/callbacks.swift",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/swift/callbacks.swift",
+        11,
+        11
+      ],
+      "positive_control": "swift-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "assembly-fixture-primary",
+      "language": "assembly",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/assembly/callbacks.asm",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/assembly/callbacks.asm",
+        12,
+        12
+      ],
+      "positive_control": "assembly-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "assembly-fixture-secondary",
+      "language": "assembly",
+      "repository": "fixtures",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/assembly/callbacks.asm",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/assembly/callbacks.asm",
+        18,
+        18
+      ],
+      "positive_control": "assembly-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "assembly-fixture-primary-not-secondary",
+      "language": "assembly",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/assembly/callbacks.asm",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/assembly/callbacks.asm",
+        18,
+        18
+      ],
+      "positive_control": "assembly-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "assembly-fixture-secondary-not-primary",
+      "language": "assembly",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/assembly/callbacks.asm",
+        4,
+        4
+      ],
+      "invocation": [
+        "fixtures/assembly/callbacks.asm",
+        12,
+        12
+      ],
+      "positive_control": "assembly-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    },
+    {
+      "id": "assembly-fixture-different-owner",
+      "language": "assembly",
+      "repository": "fixtures",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "fixtures/assembly/callbacks.asm",
+        2,
+        2
+      ],
+      "invocation": [
+        "fixtures/assembly/callbacks.asm",
+        24,
+        24
+      ],
+      "positive_control": "assembly-fixture-primary",
+      "reason": "같은 저장 슬롯의 호출만 연결하고 다른 필드/소유 타입은 분리한다.",
+      "origin": "language_contract_fixture"
+    }
+  ]
+}

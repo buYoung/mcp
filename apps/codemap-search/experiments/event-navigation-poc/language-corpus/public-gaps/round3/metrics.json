@@ -1,0 +1,245 @@
+[
+  {
+    "repository": "entt",
+    "language": "cpp",
+    "files": 5,
+    "input_bytes": 61575,
+    "functions": 110,
+    "facts": 786,
+    "relations": 177,
+    "parse_seconds": 0.038963374972809106,
+    "analysis_seconds": 0.06115362502168864,
+    "connect_seconds": 0.0046369999763555825,
+    "elapsed_seconds": 0.10475399997085333,
+    "peak_rss_bytes_before_serialization": 32030720,
+    "wall_seconds": 0.17158395901788026,
+    "parse_errors": 25,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/delegate.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 56
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 69
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 47
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 75
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/dispatcher.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/dispatcher.hpp",
+            "line": 62,
+            "column": 16
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "parse_error",
+        "path": "test/entt/signal/sigh.cpp",
+        "locations": [
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 1,
+            "column": 1
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 63,
+            "column": 68
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 53
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 56
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 34
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:15166:15282"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16105:16261"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16732:16888"
+      }
+    ]
+  },
+  {
+    "repository": "eventbus",
+    "language": "java",
+    "files": 4,
+    "input_bytes": 37433,
+    "functions": 66,
+    "facts": 2541,
+    "relations": 127,
+    "parse_seconds": 0.006352791970130056,
+    "analysis_seconds": 0.12835354200797155,
+    "connect_seconds": 0.024801916035357863,
+    "elapsed_seconds": 0.15950825001345947,
+    "peak_rss_bytes_before_serialization": 31506432,
+    "wall_seconds": 0.26985341700492427,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "java:org.greenrobot.eventbus::EventBus:EventBus"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "java:org.greenrobot.eventbus::EventBus:invokeSubscriber"
+      }
+    ]
+  },
+  {
+    "repository": "reactive",
+    "language": "csharp",
+    "files": 2,
+    "input_bytes": 29487,
+    "functions": 34,
+    "facts": 700,
+    "relations": 57,
+    "parse_seconds": 0.010798332979902625,
+    "analysis_seconds": 0.05816395801957697,
+    "connect_seconds": 0.002209666999988258,
+    "elapsed_seconds": 0.07117195799946785,
+    "peak_rss_bytes_before_serialization": 33144832,
+    "wall_seconds": 0.14745941699948162,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:2179"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:3294"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5378"
+      },
+      {
+        "kind": "atomic_previous_value_snapshot_unresolved",
+        "detail": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6810"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "rxswift",
+    "language": "swift",
+    "files": 6,
+    "input_bytes": 18112,
+    "functions": 31,
+    "facts": 439,
+    "relations": 98,
+    "parse_seconds": 0.015682792000006884,
+    "analysis_seconds": 0.05617154197534546,
+    "connect_seconds": 0.006383458035998046,
+    "elapsed_seconds": 0.0782377920113504,
+    "peak_rss_bytes_before_serialization": 31375360,
+    "wall_seconds": 0.15065974998287857,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "conditional_compilation_projection",
+        "path": "RxSwift/Subjects/PublishSubject.swift",
+        "detail": "byte-aligned directive masking; branch selection and module binding remain unproven"
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "named_tuple_projection_unsupported",
+        "detail": "Platform/DataStructures/Bag.swift:1427"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "swift:RxSwift/AnyObserver.swift::AnyObserver:init"
+      }
+    ]
+  }
+]

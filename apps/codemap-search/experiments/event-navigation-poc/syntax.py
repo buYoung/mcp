@@ -12,6 +12,7 @@ import tree_sitter_rust
 import tree_sitter_typescript
 
 from model import Location, Value
+from ts_syntax import project_type_parameter_modifiers, project_type_object_bodies
 
 
 FUNCTIONS = {"function_declaration", "function_expression", "generator_function", "generator_function_declaration",
@@ -34,6 +35,38 @@ def child(node, name, fallback=None):
     return node.child_by_field_name(name) if node is not None else fallback
 
 
+def rust_use_paths(source, node, prefix=""):
+    if node is None:
+        return []
+    if node.type == "scoped_use_list":
+        path = source.text(child(node, "path"))
+        nested_prefix = "::".join(part for part in (prefix, path) if part)
+        return rust_use_paths(source, child(node, "list"), nested_prefix)
+    if node.type == "use_list":
+        return [item for part in node.named_children for item in rust_use_paths(source, part, prefix)]
+    if node.type == "use_as_clause":
+        path = source.text(child(node, "path"))
+        return [(source.text(child(node, "alias")), "::".join(part for part in (prefix, path) if part))]
+    if node.type in {"identifier", "scoped_identifier", "self", "super", "crate", "use_wildcard"}:
+        path = "::".join(part for part in (prefix, source.text(node)) if part).lstrip(":")
+        return [(path.rsplit("::", 1)[-1], path)]
+    return []
+
+
+def rust_pattern_bindings(source, node):
+    """Collect pattern variables without treating constructor paths as names."""
+    if node is None:
+        return set()
+    if node.type in {"identifier", "shorthand_field_identifier"}:
+        return {source.text(node)}
+    if node.type in {"type_identifier", "scoped_identifier", "scoped_type_identifier"}:
+        return set()
+    if node.type == "field_pattern":
+        return rust_pattern_bindings(source, child(node, "pattern") or child(node, "name"))
+    excluded = child(node, "type") if node.type in {"tuple_struct_pattern", "struct_pattern"} else None
+    return set().union(*(rust_pattern_bindings(source, part) for part in node.named_children if part != excluded))
+
+
 def lexical_bindings(source, node):
     """Over-approximate declarations to disable unsafe intrinsic guesses."""
     names = set()
@@ -48,13 +81,17 @@ def lexical_bindings(source, node):
                          "short_var_declaration", "assignment_expression", "assignment_statement"}:
             target = child(part, "name") or child(part, "pattern") or child(part, "left")
             if target is not None and target.type not in {"member_expression", "field_expression", "selector_expression"}:
-                names.update(source.text(item) for item in walk(target) if item.type in IDENTIFIERS)
+                if source.language == "rust":
+                    names.update(rust_pattern_bindings(source, target))
+                else:
+                    names.update(source.text(item) for item in walk(target) if item.type in IDENTIFIERS)
         names.update(lexical_bindings(source, part))
     return names
 
 
 def container_kind(type_text: str) -> str:
     value = re.sub(r"\s+", "", type_text).lstrip(":")
+    value = re.sub(r"^&(?:'[A-Za-z_]\w*)?(?:mut)?", "", value)
     if re.match(r"(?:Map|ReadonlyMap|HashMap|BTreeMap)<", value) or value.startswith("map["):
         return "map"
     if re.match(r"(?:Set|HashSet|BTreeSet)<", value):
@@ -94,6 +131,34 @@ def element_type(type_text: str) -> str:
         if container_kind(value) in {"array", "set"}:
             return parts[0]
     return ""
+
+
+def non_nullish_type(type_text):
+    """Select one non-nullish top-level union member without choosing an object union."""
+    depth, start, parts = 0, 0, []
+    for index, char in enumerate(type_text):
+        if char in "<([{":
+            depth += 1
+        elif char in ">)]}" and depth:
+            depth -= 1
+        elif char == "|" and not depth:
+            parts.append(type_text[start:index].strip())
+            start = index + 1
+    parts.append(type_text[start:].strip())
+    named = [part for part in parts if part not in {"undefined", "null", "never"}]
+    return named[0] if len(named) == 1 else ""
+
+
+def scoped_type_name(source, node):
+    name = source.text(child(node, "name"))
+    if source.language not in {"typescript", "tsx"}:
+        return name
+    prefixes, ancestor = [], node.parent
+    while ancestor is not None:
+        if ancestor.type == "internal_module":
+            prefixes.append(source.text(child(ancestor, "name")))
+        ancestor = ancestor.parent
+    return ".".join([*reversed(prefixes), name])
 
 
 @dataclass
@@ -136,6 +201,8 @@ class Function:
 
     @property
     def receiver(self) -> Value:
+        if self.owner and self.source.language in {"typescript", "tsx"} and any(part.type == "static" for part in self.node.children):
+            return Value("global", self.owner + "::static")
         return Value("receiver", self.owner) if self.owner else Value("unknown")
 
 
@@ -153,10 +220,14 @@ class Program:
     import_paths: dict[tuple[str, str], str] = field(default_factory=dict)
     embedded_fields: dict[str, list[str]] = field(default_factory=dict)
     interface_methods: dict[str, set[str]] = field(default_factory=dict)
+    dereferences: dict[tuple[str, str], list[str]] = field(default_factory=dict)
+    exports: dict[tuple[str, str], str] = field(default_factory=dict)
     notices: list[dict] = field(default_factory=list)
 
     def owner_key(self, source: Source, name: str) -> str:
         namespace = str(Path(source.path).parent) if source.language == "go" else source.path
+        if source.language == "rust":
+            name = name.split("<", 1)[0].strip()
         return namespace + "::" + name
 
     def type_name(self, source: Source, name: str) -> tuple[str, str]:
@@ -164,6 +235,16 @@ class Program:
         if source.language == "go" and "." in name:
             prefix, name = name.split(".", 1)
             return self.imports.get((source.path, prefix), ""), name
+        if source.language in {"typescript", "tsx"} and "." in name:
+            prefix, member = name.split(".", 1)
+            imported = self.imports.get((source.path, prefix), "")
+            if imported and "#" not in imported:
+                return imported, member
+        if source.language == "rust" and "::" in name:
+            prefix, member = name.split("::", 1)
+            imported = self.imports.get((source.path, prefix), "")
+            if imported and "#" not in imported:
+                return imported, member
         imported = self.imports.get((source.path, name), "")
         if imported and "#" in imported:
             return tuple(imported.rsplit("#", 1))
@@ -184,8 +265,12 @@ class Program:
             name = value
         return value
 
-    def resolve_type(self, source: Source, name: str) -> str:
-        clean = re.sub(r"[&*]|\bmut\b|\bconst\b|\s", "", name).split("<")[0]
+    def resolve_type(self, source: Source, name: str, scope_owner="") -> str:
+        if source.language in {"typescript", "tsx"}:
+            name = non_nullish_type(name.lstrip(": "))
+        if source.language == "rust":
+            name = re.sub(r"'[A-Za-z_]\w*", "", name)
+        clean = re.sub(r"[&*]|\bmut\b|\bconst\b|\s", "", name.lstrip(": ")).split("<")[0]
         namespace, clean = self.type_name(source, clean)
         seen = set()
         while (namespace, clean) in self.aliases and (namespace, clean) not in seen:
@@ -196,6 +281,16 @@ class Program:
             if not re.fullmatch(r"[A-Za-z_$][\w$]*", target):
                 break
             clean = target
+        if source.language in {"typescript", "tsx"}:
+            owner_name = scope_owner.rsplit("::", 1)[-1]
+            prefix = owner_name.rsplit(".", 1)[0] if "." in owner_name else ""
+            while prefix:
+                scoped = self.types.get((namespace, prefix + "." + clean))
+                if scoped:
+                    return scoped
+                prefix = prefix.rsplit(".", 1)[0] if "." in prefix else ""
+            if re.fullmatch(r"[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*", clean):
+                return self.types.get((namespace, clean), "")
         if not re.fullmatch(r"[A-Za-z_$][\w$]*", clean):
             return ""
         return self.types.get((namespace, clean), "")
@@ -216,15 +311,20 @@ def parameter_names(source: Source, params) -> list[tuple[str, str]]:
             pattern = item
         if pattern is None:
             pattern = next((part for part in item.named_children if part.type == "identifier"), None)
+        if pattern is not None and source.language in {"typescript", "tsx"} and source.text(pattern) == "this":
+            continue
         if pattern is not None and pattern.type == "identifier":
             result.append((source.text(pattern), source.text(type_node)))
+        elif pattern is not None and pattern.type == "rest_pattern" and pattern.named_children:
+            result.append((source.text(pattern.named_children[-1]), source.text(type_node)))
         elif pattern is not None:
             # Destructuring is explicit in the body interpreter; do not invent aliases here.
             result.append((source.text(pattern), source.text(type_node)))
     return result
 
 
-def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 1024 * 1024) -> Program:
+def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 1024 * 1024,
+                 module_bindings=None, max_file_bytes=512 * 1024) -> Program:
     root = root.resolve()
     program = Program()
     parsers = {
@@ -258,13 +358,33 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
             continue
         size = path.stat().st_size
         relative = path.relative_to(root).as_posix()
-        if size > 512 * 1024 or total_bytes + size > max_bytes or len(program.sources) >= max_files:
+        if size > max_file_bytes or total_bytes + size > max_bytes or len(program.sources) >= max_files:
             program.notices.append({"kind": "input_cap", "path": relative, "bytes": size})
             continue
         data = path.read_bytes()
         language = extensions[path.suffix]
         tree = parsers[language].parse(data)
+        has_type_projection = False
+        if language in {"typescript", "tsx"} and tree.root_node.has_error:
+            projected = project_type_parameter_modifiers(data)
+            if projected != data:
+                alternative = parsers[language].parse(projected)
+                if not alternative.root_node.has_error and alternative.root_node.named_children:
+                    tree = alternative
+                    has_type_projection = True
+                    program.notices.append({"kind": "typescript_type_modifier_projection", "path": relative,
+                                            "detail": "byte-aligned type-parameter modifier masking; generic constraints are unproven"})
+        if language == "typescript" and tree.root_node.has_error:
+            projected = project_type_object_bodies(data)
+            if projected != data:
+                alternative = parsers[language].parse(projected)
+                if not alternative.root_node.has_error and alternative.root_node.named_children:
+                    tree = alternative
+                    has_type_projection = True
+                    program.notices.append({"kind": "typescript_type_declaration_projection", "path": relative,
+                                            "detail": "byte-aligned type-object body masking; runtime bodies retained, type contracts unproven"})
         source = Source(relative, language, data, tree)
+        source.has_type_projection = has_type_projection
         program.sources.append(source)
         total_bytes += size
         if tree.root_node.has_error:
@@ -278,7 +398,7 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
             elif node.type == "type_item":
                 program.aliases[(source.path, source.text(child(node, "name")))] = source.text(child(node, "type"))
             if node.type in {"class_declaration", "interface_declaration", "struct_item", "type_spec"}:
-                name = source.text(child(node, "name"))
+                name = scoped_type_name(source, node)
                 owner = program.owner_key(source, name)
                 namespace = str(Path(source.path).parent) if source.language == "go" else source.path
                 program.types[(namespace, name)] = owner
@@ -304,6 +424,13 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
     source_paths = {source.path for source in program.sources}
     namespaces = {namespace for namespace, _ in program.types}
     for source in program.sources:
+        if source.language == "rust":
+            for declaration in source.tree.root_node.named_children:
+                if declaration.type == "use_declaration":
+                    for alias, path in rust_use_paths(source, child(declaration, "argument")):
+                        key = (source.path, alias)
+                        previous = program.import_paths.get(key, path)
+                        program.import_paths[key] = path if previous == path else "<ambiguous>"
         for node in walk(source.tree.root_node, stop_functions=True):
             if source.language == "go" and node.type == "import_spec":
                 import_path = source.text(child(node, "path")).strip('"`')
@@ -318,7 +445,9 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                 if not specifier.startswith("."):
                     continue
                 target = (root / Path(source.path).parent / specifier).resolve()
-                candidates = [target, target.with_suffix(".ts"), target.with_suffix(".tsx"), target / "index.ts"]
+                candidates = [target, Path(str(target) + ".ts"), Path(str(target) + ".tsx"), target / "index.ts"]
+                if target.suffix in {".js", ".jsx"}:
+                    candidates.extend([target.with_suffix(".ts"), target.with_suffix(".tsx")])
                 available = [path.relative_to(root).as_posix() for path in candidates
                              if path.is_relative_to(root) and path.relative_to(root).as_posix() in source_paths]
                 available = list(dict.fromkeys(available))
@@ -330,12 +459,18 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                         alias = source.text(child(part, "alias")) or exported
                         program.imports[(source.path, alias)] = available[0] + "#" + exported
 
+    from rust_modules import resolve_modules
+    resolve_modules(program, module_bindings or {})
+    from ts_modules import resolve_modules as resolve_ts_modules
+    resolve_ts_modules(program, root, module_bindings or {})
     for source in program.sources:
         def collect(node, owner="", parent=None):
             if node.type in CLASSES:
                 name = source.text(child(node, "name") or child(node, "type"))
+                if source.language in {"typescript", "tsx"}:
+                    name = scoped_type_name(source, node)
                 if name:
-                    owner = program.owner_key(source, name)
+                    owner = (program.resolve_type(source, name) if source.language == "rust" else "") or program.owner_key(source, name)
             if node.type in FUNCTIONS:
                 if parent and source.language in {"typescript", "tsx"} and node.type not in {"arrow_function", "method_definition"}:
                     owner = ""
@@ -361,6 +496,18 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                                     node, child(node, "body"), parameter_names(source, params), receiver_name, parent)
                 program.functions[identifier] = function
                 program.nodes[(source.path, node.start_byte)] = function
+                if source.language == "rust" and node.parent is not None and node.parent.parent is not None:
+                    implementation = node.parent.parent
+                    if implementation.type == "impl_item" and implementation.parent == source.tree.root_node:
+                        trait = source.text(child(implementation, "trait"))
+                        resolved = program.import_paths.get((source.path, trait), trait).lstrip(":")
+                        local_names = {source.text(child(part, "name")) for part in source.tree.root_node.named_children
+                                       if part.type in {"trait_item", "struct_item", "type_item", "mod_item"}}
+                        if trait not in local_names and resolved.split("::")[0] not in local_names:
+                            if resolved in {"core::ops::Deref", "std::ops::Deref"} and function.name == "deref":
+                                program.dereferences.setdefault((owner, "shared"), []).append(identifier)
+                            if resolved in {"core::ops::DerefMut", "std::ops::DerefMut"} and function.name == "deref_mut":
+                                program.dereferences.setdefault((owner, "mutable"), []).append(identifier)
                 namespace = str(Path(source.path).parent) if source.language == "go" else source.path
                 is_getter = node.type == "method_definition" and any(part.type == "get" for part in node.children)
                 is_setter = node.type == "method_definition" and any(part.type == "set" for part in node.children)

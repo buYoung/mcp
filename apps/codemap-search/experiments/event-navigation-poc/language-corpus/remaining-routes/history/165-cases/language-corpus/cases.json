@@ -1,0 +1,2491 @@
+{
+  "method": "소스 검토 기반 쌍과 조건부 실행 시나리오. labels는 분석기 입력이 아니다. 기존 테스트는 근거를 읽었으며 실행하지 않았다.",
+  "cases": [
+    {
+      "id": "ls_refresh",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/reactive.ts",
+        577,
+        577
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/reactive.ts",
+        520,
+        520
+      ],
+      "evidence": [],
+      "reason": "인스턴스 Set에 저장한 refresh 콜백의 순회 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "ls_graph_unsubscribe",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        135,
+        138
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        232,
+        232
+      ],
+      "evidence": [],
+      "reason": "구독 ID로 저장한 해지 함수 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "ls_live_unsubscribe",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        272,
+        275
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        283,
+        283
+      ],
+      "evidence": [],
+      "reason": "독립 Map의 live-query 구독 해지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "ls_reply_resolve",
+      "language": "javascript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        254,
+        254
+      ],
+      "invocation": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        219,
+        219
+      ],
+      "evidence": [],
+      "reason": "nonce로 조회한 callback 객체의 resolve 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "ls_reply_reject",
+      "language": "javascript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        254,
+        254
+      ],
+      "invocation": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        221,
+        221
+      ],
+      "evidence": [],
+      "reason": "같은 callback 객체의 조건부 reject 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "v_blocking",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/event-bus/event-bus.ts",
+        200,
+        206
+      ],
+      "invocation": [
+        "packages/core/src/event-bus/event-bus.ts",
+        219,
+        219
+      ],
+      "evidence": [],
+      "reason": "생성자 키 Map의 blocking handler 옵션 저장·호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "v_progress",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/job-queue/job.ts",
+        212,
+        212
+      ],
+      "invocation": [
+        "packages/core/src/job-queue/job.ts",
+        224,
+        224
+      ],
+      "evidence": [],
+      "reason": "Job별 progress listener 배열 저장·호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "v_queue_process",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        316,
+        316
+      ],
+      "invocation": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        142,
+        142
+      ],
+      "evidence": [],
+      "reason": "queueName별 process 함수 저장·호출. Bull worker의 실행은 별도 경계",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_add_adapter",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/workqueue/main.go",
+        188,
+        188
+      ],
+      "invocation": [
+        "tools/cache/controller.go",
+        423,
+        423
+      ],
+      "evidence": [],
+      "reason": "함수 필드 AddFunc 저장과 adapter 내부 호출. 전체 informer 경로가 아님",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_update_adapter",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/workqueue/main.go",
+        194,
+        194
+      ],
+      "invocation": [
+        "tools/cache/controller.go",
+        430,
+        430
+      ],
+      "evidence": [],
+      "reason": "함수 필드 UpdateFunc 저장과 adapter 내부 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_delete_adapter",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/workqueue/main.go",
+        200,
+        200
+      ],
+      "invocation": [
+        "tools/cache/controller.go",
+        437,
+        437
+      ],
+      "evidence": [],
+      "reason": "함수 필드 DeleteFunc 저장과 adapter 내부 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_listener_handler",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "tools/cache/shared_informer.go",
+        1424,
+        1424
+      ],
+      "invocation": [
+        "tools/cache/shared_informer.go",
+        1507,
+        1507
+      ],
+      "evidence": [],
+      "reason": "리스너에 저장한 handler 객체의 OnUpdate. 채널 전달 전체는 별도",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_index_function",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "tools/cache/thread_safe_store.go",
+        164,
+        164
+      ],
+      "invocation": [
+        "tools/cache/thread_safe_store.go",
+        184,
+        194
+      ],
+      "evidence": [],
+      "reason": "IndexFunc의 저장·호출이며 이벤트 버스가 아닌 대조 사례",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "non_event_callback"
+    },
+    {
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        224,
+        235
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        79,
+        123
+      ],
+      "evidence": [],
+      "reason": "Observer의 boxed system에서 runner의 system 실행까지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "b_message_buffer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/message/messages.rs",
+        125,
+        145
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/message/iterators.rs",
+        52,
+        99
+      ],
+      "evidence": [],
+      "reason": "World-local 메시지 버퍼 생산과 reader cursor 소비",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route"
+    },
+    {
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        608,
+        610
+      ],
+      "invocation": [
+        "packages/@livestore/webmesh/src/node.ts",
+        229,
+        233
+      ],
+      "evidence": [],
+      "reason": "channelName별 Queue 저장과 수신 packet의 Queue 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route"
+    },
+    {
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        68,
+        77
+      ],
+      "evidence": [],
+      "reason": "requestId로 찾은 clientId를 writeResponse 인자로 전달",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route"
+    },
+    {
+      "id": "v_method_hook",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+        77,
+        82
+      ],
+      "invocation": [
+        "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+        20,
+        32
+      ],
+      "evidence": [],
+      "reason": "class/method hook 저장과 별도 서비스의 pre/post 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "v_dashboard_callback",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        98,
+        100
+      ],
+      "invocation": [
+        "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        27,
+        33
+      ],
+      "evidence": [],
+      "reason": "전역 registry가 보관한 Set의 extension callback 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_list_callback",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "tools/cache/listwatch.go",
+        265,
+        271
+      ],
+      "invocation": [
+        "tools/cache/listwatch.go",
+        277,
+        289
+      ],
+      "evidence": [],
+      "reason": "ListWatch 객체에 보관한 list 함수 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "go_fifo_process",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "tools/cache/controller.go",
+        1042,
+        1048
+      ],
+      "invocation": [
+        "tools/cache/delta_fifo.go",
+        603,
+        603
+      ],
+      "evidence": [],
+      "reason": "Config.Process closure가 controller와 Pop 인자를 거쳐 호출됨",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "b_system_id",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        456,
+        478
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        700,
+        734
+      ],
+      "evidence": [],
+      "reason": "새 entity의 RegisteredSystem을 SystemId로 조회하여 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/gltf/gltf_extension_mesh_2d.rs",
+        67,
+        85
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        1751,
+        1762
+      ],
+      "evidence": [],
+      "reason": "World의 Arc 레지스트리에서 load-local 복제를 거친 trait hook 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback"
+    },
+    {
+      "id": "no_ls_graph_to_live",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        135,
+        138
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        283,
+        283
+      ],
+      "evidence": [],
+      "reason": "동일 subscriptionId여도 서로 다른 Map",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_ls_live_to_graph",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        272,
+        275
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        232,
+        232
+      ],
+      "evidence": [],
+      "reason": "역방향 Map 교차 연결 금지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_ls_debug_to_sync",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        198,
+        198
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        321,
+        321
+      ],
+      "evidence": [],
+      "reason": "서로 다른 구독 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_ls_sync_to_debug",
+      "language": "typescript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        304,
+        313
+      ],
+      "invocation": [
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        206,
+        206
+      ],
+      "evidence": [],
+      "reason": "서로 다른 구독 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_go_add_to_delete",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/workqueue/main.go",
+        188,
+        188
+      ],
+      "invocation": [
+        "tools/cache/controller.go",
+        437,
+        437
+      ],
+      "evidence": [],
+      "reason": "같은 adapter 안의 다른 callback 필드",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_go_delete_to_add",
+      "language": "go",
+      "repository": "client-go",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/workqueue/main.go",
+        200,
+        200
+      ],
+      "invocation": [
+        "tools/cache/controller.go",
+        423,
+        423
+      ],
+      "evidence": [],
+      "reason": "AddFunc와 DeleteFunc 구분",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_v_progress_to_queue",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/job-queue/job.ts",
+        212,
+        212
+      ],
+      "invocation": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        142,
+        142
+      ],
+      "evidence": [],
+      "reason": "독립 Job과 queue 전략 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "no_v_blocking_to_rx",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/event-bus/event-bus.ts",
+        200,
+        206
+      ],
+      "invocation": [
+        "packages/core/src/event-bus/event-bus.ts",
+        117,
+        117
+      ],
+      "evidence": [],
+      "reason": "blocking Map과 외부 RxJS stream 구분",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative"
+    },
+    {
+      "id": "js-provider-map-not-cleanup",
+      "language": "javascript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        254,
+        254
+      ],
+      "invocation": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        211,
+        211
+      ],
+      "evidence": [
+        [
+          "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+          22,
+          24
+        ],
+        [
+          "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+          210,
+          213
+        ]
+      ],
+      "reason": "providerCallbacks Map과 private cleanup 배열은 별도 필드다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "js-cleanup-not-provider-map",
+      "language": "javascript",
+      "repository": "livestore",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        195,
+        195
+      ],
+      "invocation": [
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        219,
+        221
+      ],
+      "evidence": [
+        [
+          "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+          183,
+          196
+        ],
+        [
+          "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+          216,
+          223
+        ]
+      ],
+      "reason": "cleanup 배열에 저장한 abort closure가 nonce Map의 resolve/reject 호출 대상은 아니다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "rust-custom-runner-proof-boundary",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        238,
+        273
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        90,
+        110
+      ],
+      "evidence": [
+        [
+          "crates/bevy_ecs/src/observer/mod.rs",
+          171,
+          182
+        ]
+      ],
+      "reason": "호출자 제공 runner와 별도 dummy system을 저장한다. runner 저장만으로 기본 runner 내부의 system 호출을 확정할 수 없다.",
+      "conditions": [
+        "제공된 runner 본문과 실제 receiver 해석 필요"
+      ],
+      "syntax": [
+        "unsafe 함수 포인터",
+        "Any downcast"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "rust-gltf-clone-identity-boundary",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "crates/bevy_pbr/src/gltf.rs",
+        13,
+        29
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        259,
+        267
+      ],
+      "evidence": [
+        [
+          "crates/bevy_gltf/src/loader/extensions/mod.rs",
+          569,
+          572
+        ],
+        [
+          "crates/bevy_gltf/src/lib.rs",
+          302,
+          310
+        ]
+      ],
+      "reason": "Arc는 레지스트리를 공유하지만 load별 Vec<Box> clone은 handler 객체를 복제한다. 같은 함수 source may-link를 구체 객체 동일성으로 승격할 수 없다.",
+      "conditions": [
+        "clone 방식과 load instance 구분"
+      ],
+      "syntax": [
+        "Arc",
+        "trait object",
+        "Clone"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "c-async",
+      "language": "c",
+      "repository": "libuv",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/unix/async.c",
+        80,
+        80
+      ],
+      "invocation": [
+        "src/unix/async.c",
+        155,
+        158
+      ],
+      "evidence": [
+        [
+          "src/unix/async.c",
+          72,
+          84
+        ],
+        [
+          "src/unix/async.c",
+          138,
+          158
+        ]
+      ],
+      "reason": "함수 포인터를 async_cb 필드에 저장하고 큐에서 찾은 핸들의 같은 필드를 호출한다.",
+      "conditions": [
+        "같은 uv_async_t 객체",
+        "pending 상태와 non-null callback"
+      ],
+      "syntax": [
+        "구조체 함수 포인터"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "c-async-not-timer",
+      "language": "c",
+      "repository": "libuv",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/unix/async.c",
+        80,
+        80
+      ],
+      "invocation": [
+        "src/timer.c",
+        192,
+        192
+      ],
+      "evidence": [
+        [
+          "include/uv/unix.h",
+          332,
+          338
+        ]
+      ],
+      "reason": "uv_async_t.async_cb 저장을 별도 uv_timer_t.timer_cb 호출과 연결하면 안 된다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "c-timer-instance",
+      "language": "c",
+      "repository": "libuv",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "src/timer.c",
+        82,
+        82
+      ],
+      "invocation": [
+        "src/timer.c",
+        185,
+        192
+      ],
+      "evidence": [
+        [
+          "src/timer.c",
+          67,
+          91
+        ],
+        [
+          "src/timer.c",
+          172,
+          192
+        ]
+      ],
+      "reason": "만료 힙에서 선택된 동일 타이머 객체여야 하며 중간 callback 교체도 고려해야 한다.",
+      "conditions": [
+        "같은 handle",
+        "만료 시점",
+        "재설정 순서"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "assembly-item-table",
+      "language": "assembly",
+      "repository": "pokered",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "engine/items/item_effects.asm",
+        25,
+        25
+      ],
+      "invocation": [
+        "engine/items/item_effects.asm",
+        7,
+        16
+      ],
+      "evidence": [
+        [
+          "engine/items/item_effects.asm",
+          4,
+          25
+        ]
+      ],
+      "reason": "dw의 handler 주소를 같은 테이블 base와 런타임 인덱스로 읽어 jp hl로 분기한다.",
+      "conditions": [
+        "BICYCLE 슬롯 선택",
+        "wCurItem < HM01"
+      ],
+      "syntax": [
+        "dw 주소 테이블",
+        "little-endian load",
+        "간접 점프"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "assembly-separate-tables",
+      "language": "assembly",
+      "repository": "pokered",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "engine/gfx/palettes.asm",
+        247,
+        247
+      ],
+      "invocation": [
+        "engine/items/item_effects.asm",
+        7,
+        16
+      ],
+      "evidence": [
+        [
+          "engine/gfx/palettes.asm",
+          243,
+          250
+        ],
+        [
+          "engine/items/item_effects.asm",
+          7,
+          18
+        ]
+      ],
+      "reason": "SetPalFunctions와 ItemUsePtrTable의 서로 다른 base를 섞으면 안 된다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "assembly-index-choice",
+      "language": "assembly",
+      "repository": "pokered",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "engine/items/item_effects.asm",
+        20,
+        24
+      ],
+      "invocation": [
+        "engine/items/item_effects.asm",
+        4,
+        16
+      ],
+      "evidence": [
+        [
+          "engine/items/item_effects.asm",
+          18,
+          25
+        ]
+      ],
+      "reason": "같은 점프 지점의 후보라도 한 실행에서 선택되는 것은 런타임 인덱스의 단일 슬롯이다.",
+      "conditions": [
+        "엔트리별 인덱스 조건 유지"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/entt/signal/sigh.hpp",
+        416,
+        425
+      ],
+      "invocation": [
+        "src/entt/signal/sigh.hpp",
+        173,
+        176
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/delegate.hpp",
+          137,
+          148
+        ],
+        [
+          "src/entt/signal/delegate.hpp",
+          261,
+          264
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          168,
+          173
+        ]
+      ],
+      "reason": "템플릿 함수로 delegate를 구성해 calls에 저장하고 원소의 operator()를 호출한다.",
+      "conditions": [
+        "같은 sigh 객체",
+        "disconnect 전"
+      ],
+      "syntax": [
+        "비타입 템플릿 인자",
+        "operator()"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "cpp-named-default-queue",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/dispatcher.cpp",
+        164,
+        164
+      ],
+      "invocation": [
+        "test/entt/signal/dispatcher.cpp",
+        165,
+        165
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/dispatcher.hpp",
+          118,
+          126
+        ],
+        [
+          "src/entt/signal/dispatcher.hpp",
+          257,
+          280
+        ],
+        [
+          "test/entt/signal/dispatcher.cpp",
+          167,
+          171
+        ]
+      ],
+      "reason": "named id와 기본 type_hash id는 별도 pool이다. 실제 테스트는 기본 trigger 뒤 cnt==0을 기대한다.",
+      "conditions": [
+        "id 불일치",
+        "테스트는 이번에 실행하지 않음"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "cpp-raii-disconnect",
+      "language": "cpp",
+      "repository": "entt",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/entt/signal/sigh.cpp",
+        325,
+        325
+      ],
+      "invocation": [
+        "test/entt/signal/sigh.cpp",
+        333,
+        333
+      ],
+      "evidence": [
+        [
+          "src/entt/signal/sigh.hpp",
+          290,
+          293
+        ],
+        [
+          "src/entt/signal/sigh.hpp",
+          247,
+          253
+        ],
+        [
+          "test/entt/signal/sigh.cpp",
+          325,
+          336
+        ]
+      ],
+      "reason": "scoped_connection 소멸자가 release를 호출하므로 블록 뒤 publish는 해제된 callback을 실행하지 않아야 한다.",
+      "conditions": [
+        "RAII 수명과 재등록 여부"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "csharp-subject-observer",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        199,
+        210
+      ],
+      "invocation": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        136,
+        150
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          260,
+          279
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          332,
+          360
+        ]
+      ],
+      "reason": "SubjectDisposable을 observer 배열에 CAS로 추가하고 snapshot 원소의 Observer.OnNext를 호출한다.",
+      "conditions": [
+        "동일 Subject",
+        "구독 활성 상태"
+      ],
+      "syntax": [
+        "제네릭",
+        "CAS",
+        "null 조건부 호출"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "csharp-subscription-disposed",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        331,
+        331
+      ],
+      "invocation": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        343,
+        343
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          334,
+          334
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          217,
+          253
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          270,
+          279
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          351,
+          355
+        ]
+      ],
+      "reason": "이 구독은 시각 500에 해제되므로 550의 OnNext를 받을 수 없다. 구독 핸들과 순서가 필요하다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "csharp-subject-disposed",
+      "language": "csharp",
+      "repository": "reactive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        332,
+        333
+      ],
+      "invocation": [
+        "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+        344,
+        344
+      ],
+      "evidence": [
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          138,
+          150
+        ],
+        [
+          "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+          290,
+          293
+        ],
+        [
+          "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs",
+          335,
+          347
+        ]
+      ],
+      "reason": "Subject.Dispose가 sentinel 배열로 바꾼 뒤 OnNext는 예외 경로로 가며 observer를 호출하지 않는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "dart-memory-listener",
+      "language": "dart",
+      "repository": "flutter",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        151,
+        155
+      ],
+      "invocation": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        252,
+        254
+      ],
+      "evidence": [
+        [
+          "packages/flutter/lib/src/foundation/memory_allocations.dart",
+          245,
+          254
+        ],
+        [
+          "packages/flutter/test/foundation/memory_allocations_test.dart",
+          43,
+          51
+        ]
+      ],
+      "reason": "nullable 함수 목록에 저장한 listener를 같은 목록의 인덱스에서 조회해 call한다.",
+      "conditions": [
+        "같은 FlutterMemoryAllocations",
+        "기능 활성",
+        "구독 제거 전"
+      ],
+      "syntax": [
+        "nullable 함수",
+        "List",
+        "null-aware call"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "dart-add-during-dispatch",
+      "language": "dart",
+      "repository": "flutter",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        151,
+        155
+      ],
+      "invocation": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        250,
+        254
+      ],
+      "evidence": [
+        [
+          "packages/flutter/test/foundation/memory_allocations_test.dart",
+          101,
+          120
+        ]
+      ],
+      "reason": "순회 상한 end를 미리 고정하므로 dispatch 도중 추가한 listener는 현재 이벤트를 받지 않는다.",
+      "conditions": [
+        "현재 dispatch와 다음 dispatch 구분"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "dart-remove-during-dispatch",
+      "language": "dart",
+      "repository": "flutter",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        151,
+        155
+      ],
+      "invocation": [
+        "packages/flutter/lib/src/foundation/memory_allocations.dart",
+        252,
+        254
+      ],
+      "evidence": [
+        [
+          "packages/flutter/lib/src/foundation/memory_allocations.dart",
+          182,
+          191
+        ],
+        [
+          "packages/flutter/test/foundation/memory_allocations_test.dart",
+          131,
+          146
+        ]
+      ],
+      "reason": "활성 순회 중 제거한 listener 슬롯은 null이 되어 뒤의 null-aware call에서 건너뛴다.",
+      "conditions": [
+        "같은 함수 identity",
+        "순회 차례 전 제거"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        42,
+        45
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        64,
+        79
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+          40,
+          44
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          118,
+          124
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+          41,
+          46
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+          47,
+          50
+        ]
+      ],
+      "reason": "구독 필드의 Closure를 trigger에 전달해 subscriberClosure.call로 호출한다.",
+      "conditions": [
+        "같은 버스",
+        "같은 이벤트 키",
+        "구독 활성"
+      ],
+      "syntax": [
+        "Closure",
+        "암시적 it",
+        "동적 call"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "groovy-keyed-subscription",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+        40,
+        44
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        113,
+        124
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          52,
+          54
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+          102,
+          110
+        ]
+      ],
+      "reason": "generic eventKey와 event.id의 소스 형태만으로 동일 맵·키·살아 있는 구독을 확정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "groovy-reply-not-subscriber",
+      "language": "groovy",
+      "repository": "grails-core",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        50,
+        50
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        74,
+        79
+      ],
+      "evidence": [
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          40,
+          50
+        ],
+        [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          81,
+          87
+        ]
+      ],
+      "reason": "reply 필드에 쓰는 사실과 subscriberClosure 필드의 직접 호출을 구분한다. 인자로 같은 Closure를 줄 가능성은 두 필드의 저장 슬롯을 같게 만들지 않는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+        27,
+        30
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          149,
+          186
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          386,
+          421
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          437,
+          466
+        ]
+      ],
+      "reason": "저장된 SubscriberMethod의 Method를 저장된 subscriber 객체에 reflection으로 호출한다.",
+      "conditions": [
+        "같은 EventBus",
+        "이벤트 타입 일치/상속 규칙",
+        "활성 구독",
+        "thread mode 전달"
+      ],
+      "syntax": [
+        "Class 키",
+        "reflection Method.invoke"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "java-method-string-not-method",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+        53,
+        60
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+          22,
+          28
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+          38,
+          47
+        ]
+      ],
+      "reason": "비교·해시용 methodString 캐시는 실제 Method 필드의 호출 대상이 아니다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "java-bus-instance-isolation",
+      "language": "java",
+      "repository": "eventbus",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        177,
+        178
+      ],
+      "invocation": [
+        "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java",
+        179,
+        180
+      ],
+      "evidence": [
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          105,
+          117
+        ],
+        [
+          "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+          410,
+          415
+        ]
+      ],
+      "reason": "한 EventBus에 등록하고 새 EventBus에 post하는 기존 테스트는 호출 횟수 0을 기대한다.",
+      "conditions": [
+        "서로 다른 new EventBus 객체"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "kotlin-observer-publish",
+      "language": "kotlin",
+      "repository": "reaktive",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        83,
+        86
+      ],
+      "invocation": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        99,
+        103
+      ],
+      "evidence": [
+        [
+          "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+          35,
+          36
+        ],
+        [
+          "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+          58,
+          70
+        ],
+        [
+          "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+          92,
+          115
+        ]
+      ],
+      "reason": "활성 subject의 observers에 저장한 observer를 forEach 람다에서 onNext로 호출한다.",
+      "conditions": [
+        "subject 활성",
+        "dispose 전"
+      ],
+      "syntax": [
+        "object expression",
+        "람다 순회",
+        "plusAssign"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "kotlin-before-subscribe",
+      "language": "kotlin",
+      "repository": "reaktive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        83,
+        86
+      ],
+      "invocation": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        99,
+        103
+      ],
+      "evidence": [
+        [
+          "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/PublishSubjectTest.kt",
+          11,
+          17
+        ],
+        [
+          "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+          23,
+          25
+        ]
+      ],
+      "reason": "저장과 generic 호출은 연결 가능하지만 onNext가 구독보다 앞선 테스트는 값 재생이 없어야 한다.",
+      "conditions": [
+        "구독 이전 값은 재생하지 않음"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "kotlin-disposed",
+      "language": "kotlin",
+      "repository": "reaktive",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        83,
+        86
+      ],
+      "invocation": [
+        "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+        99,
+        103
+      ],
+      "evidence": [
+        [
+          "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+          205,
+          209
+        ],
+        [
+          "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+          76,
+          102
+        ]
+      ],
+      "reason": "dispose가 OnUnsubscribe와 목록 제거를 거치므로 뒤의 onNext가 이전 구독을 호출한다고 단정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "lua-function-key",
+      "language": "lua",
+      "repository": "hump",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "signal.lua",
+        37,
+        37
+      ],
+      "invocation": [
+        "signal.lua",
+        43,
+        43
+      ],
+      "evidence": [
+        [
+          "signal.lua",
+          28,
+          44
+        ]
+      ],
+      "reason": "함수를 table key로 저장하고 pairs의 첫 반환값 key를 호출한다.",
+      "conditions": [
+        "같은 Registry와 signal 키",
+        "remove/clear 전"
+      ],
+      "syntax": [
+        "함수-valued table key",
+        "pairs",
+        "vararg"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "lua-key-value-roles",
+      "language": "lua",
+      "repository": "hump",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "signal.lua",
+        37,
+        37
+      ],
+      "invocation": [
+        "signal.lua",
+        43,
+        43
+      ],
+      "evidence": [
+        [
+          "signal.lua",
+          37,
+          43
+        ]
+      ],
+      "reason": "self[s][f]=f에서 좌변 key와 우변 value는 별도 역할이다. pairs의 단일 루프 변수는 key이며 줄 번호만으로 두 occurrence를 구분할 수 없다.",
+      "conditions": [
+        "열·AST 역할 근거 필요"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "lua-remove",
+      "language": "lua",
+      "repository": "hump",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "signal.lua",
+        37,
+        37
+      ],
+      "invocation": [
+        "signal.lua",
+        43,
+        43
+      ],
+      "evidence": [
+        [
+          "signal.lua",
+          47,
+          51
+        ]
+      ],
+      "reason": "같은 table의 함수 key에 nil을 쓰는 remove가 먼저 실행되면 해당 등록은 emit에서 제외된다.",
+      "conditions": [
+        "self/s/f 동일성",
+        "실행 순서"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "php-priority-listener",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "EventDispatcher.php",
+        141,
+        145
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "evidence": [
+        [
+          "EventDispatcher.php",
+          47,
+          58
+        ],
+        [
+          "EventDispatcher.php",
+          287,
+          307
+        ],
+        [
+          "Tests/EventDispatcherTest.php",
+          163,
+          179
+        ]
+      ],
+      "reason": "eventName/priority 배열의 listener를 정렬·최적화 cache로 옮겨 최종 callable로 호출한다.",
+      "conditions": [
+        "같은 dispatcher와 eventName",
+        "propagation 중단 전"
+      ],
+      "syntax": [
+        "연관 배열",
+        "callable",
+        "참조 캡처"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "php-same-closure-different-key",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Tests/EventDispatcherTest.php",
+        144,
+        144
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "evidence": [
+        [
+          "Tests/EventDispatcherTest.php",
+          137,
+          146
+        ],
+        [
+          "EventDispatcher.php",
+          49,
+          58
+        ]
+      ],
+      "reason": "같은 Closure를 두 이벤트 키에 넣어도 pre.foo dispatch는 post.foo 등록을 선택하지 않는다.",
+      "conditions": [
+        "해당 테스트의 pre.foo dispatch 문맥"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "php-lazy-factory",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "Tests/EventDispatcherTest.php",
+        365,
+        365
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        299,
+        299
+      ],
+      "evidence": [
+        [
+          "Tests/EventDispatcherTest.php",
+          356,
+          370
+        ],
+        [
+          "EventDispatcher.php",
+          290,
+          307
+        ]
+      ],
+      "reason": "factory는 listener 객체 생성용이고 최종 호출은 반환 객체의 메서드다. 최적화 cache 이후 factory 실행 횟수도 달라진다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "python-receiver-send",
+      "language": "python",
+      "repository": "blinker",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "src/blinker/base.py",
+        107,
+        118
+      ],
+      "invocation": [
+        "src/blinker/base.py",
+        242,
+        249
+      ],
+      "evidence": [
+        [
+          "src/blinker/base.py",
+          340,
+          360
+        ],
+        [
+          "tests/test_signals.py",
+          248,
+          257
+        ]
+      ],
+      "reason": "receivers에 저장한 callable을 sender 필터와 generator를 거쳐 직접 호출한다.",
+      "conditions": [
+        "같은 Signal",
+        "sender 필터",
+        "receiver 생존",
+        "muted 아님"
+      ],
+      "syntax": [
+        "weakref",
+        "yield",
+        "callable"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "python-specific-sender",
+      "language": "python",
+      "repository": "blinker",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "tests/test_signals.py",
+        319,
+        319
+      ],
+      "invocation": [
+        "tests/test_signals.py",
+        322,
+        323
+      ],
+      "evidence": [
+        [
+          "src/blinker/base.py",
+          340,
+          345
+        ],
+        [
+          "tests/test_signals.py",
+          324,
+          325
+        ]
+      ],
+      "reason": "sender 123에만 연결한 receiver는 기본 sender None의 send에서 선택되지 않아야 한다.",
+      "conditions": [
+        "ANY 연결 없음",
+        "sender identity 불일치"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "python-weakref-gc",
+      "language": "python",
+      "repository": "blinker",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "tests/test_signals.py",
+        227,
+        227
+      ],
+      "invocation": [
+        "tests/test_signals.py",
+        233,
+        235
+      ],
+      "evidence": [
+        [
+          "tests/test_signals.py",
+          229,
+          230
+        ],
+        [
+          "src/blinker/base.py",
+          406,
+          410
+        ],
+        [
+          "src/blinker/base.py",
+          353,
+          358
+        ]
+      ],
+      "reason": "weak 등록의 강한 참조가 사라져 수거되면 cleanup 또는 조회 시 dead weakref 처리가 호출을 막는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "ruby-observer-send",
+      "language": "ruby",
+      "repository": "observer",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "lib/observer.rb",
+        153,
+        159
+      ],
+      "invocation": [
+        "lib/observer.rb",
+        218,
+        223
+      ],
+      "evidence": [
+        [
+          "test/test_observer.rb",
+          15,
+          24
+        ],
+        [
+          "test/test_observer.rb",
+          33,
+          46
+        ]
+      ],
+      "reason": "Hash key인 observer 객체와 value인 메서드 Symbol을 순회하여 __send__로 호출한다.",
+      "conditions": [
+        "같은 Observable",
+        "changed 상태",
+        "observer 생존"
+      ],
+      "syntax": [
+        "객체 Hash key",
+        "Symbol",
+        "동적 send"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "ruby-deleted-observer",
+      "language": "ruby",
+      "repository": "observer",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "test/test_observer.rb",
+        16,
+        19
+      ],
+      "invocation": [
+        "test/test_observer.rb",
+        52,
+        52
+      ],
+      "evidence": [
+        [
+          "lib/observer.rb",
+          166,
+          168
+        ],
+        [
+          "test/test_observer.rb",
+          48,
+          55
+        ]
+      ],
+      "reason": "watcher1을 Hash에서 삭제한 뒤 notify는 watcher2만 갱신해야 한다.",
+      "conditions": [
+        "삭제 순서",
+        "재등록 없음"
+      ],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "ruby-method-symbol-identity",
+      "language": "ruby",
+      "repository": "observer",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "lib/observer.rb",
+        153,
+        159
+      ],
+      "invocation": [
+        "lib/observer.rb",
+        221,
+        223
+      ],
+      "evidence": [
+        [
+          "test/test_observer.rb",
+          33,
+          46
+        ]
+      ],
+      "reason": "두 observer가 같은 :update Symbol을 써도 서로 다른 Hash key 객체다. 메서드 이름이 인스턴스 동일성을 입증하지 않는다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          87,
+          103
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          212,
+          219
+        ],
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          89
+        ]
+      ],
+      "reason": "immutable subscriber Set을 새 State로 CAS 저장하고 cache 배열에서 꺼낸 subscriber.onNext를 호출한다.",
+      "conditions": [
+        "CAS 성공",
+        "활성 state",
+        "cancel 전"
+      ],
+      "syntax": [
+        "case class",
+        "immutable Set",
+        "tailrec",
+        "Future[Ack]"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          88
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          32,
+          37
+        ]
+      ],
+      "reason": "구독 이전 onNext(1..3)는 이후 등록한 observer에 재생되지 않아야 한다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "scala-future-body",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        146
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          117,
+          139
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          150,
+          155
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          184,
+          195
+        ]
+      ],
+      "reason": "subscriber 메서드 호출과 Future 안의 상태 갱신은 별도 단계다. Scheduler/Ack/취소 조건 없이 실행 완료를 단정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "swift-bag-observer",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        97,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          57,
+          73
+        ],
+        [
+          "RxSwift/AnyObserver.swift",
+          47,
+          50
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          24,
+          47
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          32,
+          50
+        ],
+        [
+          "Platform/DataStructures/Bag.swift",
+          63,
+          89
+        ]
+      ],
+      "reason": "bound method observer.on을 Bag에 저장하고 dispatch가 Bag의 저장 형태별 closure를 호출한다.",
+      "conditions": [
+        "같은 Subject",
+        "활성 상태",
+        "dispose 전"
+      ],
+      "syntax": [
+        "bound method",
+        "generic Bag",
+        "값 타입 snapshot"
+      ],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "swift-dispose-key",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        108,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Disposables/SubscriptionDisposable.swift",
+          13,
+          20
+        ],
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          112,
+          117
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          43,
+          60
+        ]
+      ],
+      "reason": "구독 Disposable이 보존한 owner/key로 Bag에서 제거한 뒤에는 이전 callback 실행을 확정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    },
+    {
+      "id": "swift-terminal-state",
+      "language": "swift",
+      "repository": "rxswift",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        108,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "evidence": [
+        [
+          "RxSwift/Subjects/PublishSubject.swift",
+          65,
+          84
+        ],
+        [
+          "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+          125,
+          162
+        ]
+      ],
+      "reason": "terminal event는 이전 snapshot에 전달되지만 그 뒤 next에는 빈 Bag을 반환한다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review"
+    }
+  ]
+}

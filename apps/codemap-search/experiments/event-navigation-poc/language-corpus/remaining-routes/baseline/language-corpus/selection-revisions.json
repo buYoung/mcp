@@ -1,0 +1,41 @@
+[
+  {
+    "version": 2,
+    "changes": [
+      {
+        "case": "groovy-reply-not-subscriber",
+        "before": [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          49,
+          49
+        ],
+        "after": [
+          "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+          50,
+          50
+        ],
+        "reason": "원문 49행은 subscriberClosure, 50행이 reply 대입이다. 결과에 맞춘 기대 변경 없이 잘못 옮긴 endpoint 위치를 교정."
+      },
+      {
+        "case": "swift-bag-observer",
+        "added_source": "Platform/DataStructures/Bag.swift",
+        "reason": "Bag 저장 구현의 canonical 소스 추가. RxSwift/Platform 경로의 symlink 대신 실제 파일을 사용."
+      }
+    ],
+    "previous_lock": "history/source-selection-v1.json"
+  },
+  {
+    "version": 3,
+    "changes": [
+      {
+        "fixture": "fixtures/groovy/callbacks.groovy",
+        "reason": "문장 끝 세미콜론을 명시한 동등한 Groovy 구문으로 변경. 공통 사례는 parser 복구 없이 해석되도록 하고, 생략 구문의 grammar 한계는 공개 소스 진단에 남김."
+      },
+      {
+        "measurement": "anonymous missing tokens",
+        "reason": "named_children에 나타나지 않는 누락 구두점도 parser 오류로 집계하고 fixture 통과 조건에 포함."
+      }
+    ],
+    "previous_lock": "history/source-selection-v2.json"
+  }
+]

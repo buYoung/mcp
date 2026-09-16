@@ -1,0 +1,7 @@
+{
+  "bevy_ecs": "crates/bevy_ecs/src/lib.rs",
+  "bevy_gltf": "crates/bevy_gltf/src/lib.rs",
+  "bevy": "src/lib.rs",
+  "bevy_internal": "crates/bevy_internal/src/lib.rs",
+  "bevy_app": "crates/bevy_app/src/lib.rs"
+}

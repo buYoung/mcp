@@ -1,0 +1,282 @@
+[
+  {
+    "repository": "entt",
+    "language": "cpp",
+    "files": 5,
+    "input_bytes": 61575,
+    "functions": 110,
+    "facts": 429,
+    "relations": 104,
+    "parse_seconds": 0.04068241699133068,
+    "analysis_seconds": 0.043219792016316205,
+    "connect_seconds": 0.0015515830018557608,
+    "elapsed_seconds": 0.08545379200950265,
+    "peak_rss_bytes_before_serialization": 31637504,
+    "wall_seconds": 0.1460274169803597,
+    "parse_errors": 25,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/delegate.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 56
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 25,
+            "column": 69
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 6
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 36
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 47
+          },
+          {
+            "path": "src/entt/signal/delegate.hpp",
+            "line": 28,
+            "column": 75
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "parse_error",
+        "path": "src/entt/signal/dispatcher.hpp",
+        "locations": [
+          {
+            "path": "src/entt/signal/dispatcher.hpp",
+            "line": 62,
+            "column": 16
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "parse_error",
+        "path": "test/entt/signal/sigh.cpp",
+        "locations": [
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 1,
+            "column": 1
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 63,
+            "column": 68
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 64,
+            "column": 53
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 65,
+            "column": 56
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 22
+          },
+          {
+            "path": "test/entt/signal/sigh.cpp",
+            "line": 66,
+            "column": 34
+          }
+        ],
+        "count": 12
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:15166:15282"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16105:16261"
+      },
+      {
+        "kind": "closure_capture_form_unsupported",
+        "detail": "src/entt/signal/sigh.hpp:16732:16888"
+      }
+    ]
+  },
+  {
+    "repository": "event-dispatcher",
+    "language": "php",
+    "files": 2,
+    "input_bytes": 36769,
+    "functions": 64,
+    "facts": 1404,
+    "relations": 379,
+    "parse_seconds": 0.008912083983886987,
+    "analysis_seconds": 0.07543395803077146,
+    "connect_seconds": 0.015185041993390769,
+    "elapsed_seconds": 0.09953108400804922,
+    "peak_rss_bytes_before_serialization": 31965184,
+    "wall_seconds": 0.194048167031724,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  },
+  {
+    "repository": "grails-core",
+    "language": "groovy",
+    "files": 5,
+    "input_bytes": 16348,
+    "functions": 31,
+    "facts": 152,
+    "relations": 24,
+    "parse_seconds": 0.005019250034820288,
+    "analysis_seconds": 0.01269970799330622,
+    "connect_seconds": 0.0005095829837955534,
+    "elapsed_seconds": 0.01822854101192206,
+    "peak_rss_bytes_before_serialization": 28819456,
+    "wall_seconds": 0.08767224999610335,
+    "parse_errors": 9,
+    "notices": [
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 60,
+            "column": 33
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 90,
+            "column": 24
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 97,
+            "column": 23
+          }
+        ],
+        "count": 3
+      },
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 53,
+            "column": 61
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 123,
+            "column": 29
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 132,
+            "column": 97
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 133,
+            "column": 97
+          },
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+            "line": 139,
+            "column": 21
+          }
+        ],
+        "count": 5
+      },
+      {
+        "kind": "parse_error",
+        "path": "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+        "locations": [
+          {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy",
+            "line": 45,
+            "column": 25
+          }
+        ],
+        "count": 1
+      },
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "groovy:org.grails.events.bus::AbstractEventBus:notify"
+      },
+      {
+        "kind": "overload_resolution_unproven",
+        "detail": "groovy:org.grails.events.bus::AbstractEventBus:sendAndReceive"
+      }
+    ]
+  },
+  {
+    "repository": "monix",
+    "language": "scala",
+    "files": 2,
+    "input_bytes": 13029,
+    "functions": 36,
+    "facts": 108,
+    "relations": 9,
+    "parse_seconds": 0.016756333003286272,
+    "analysis_seconds": 0.019862749963067472,
+    "connect_seconds": 0.000191875034943223,
+    "elapsed_seconds": 0.03681095800129697,
+    "peak_rss_bytes_before_serialization": 30867456,
+    "wall_seconds": 0.10490220796782523,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "bounded_summary_passes",
+        "detail": "4"
+      }
+    ]
+  }
+]

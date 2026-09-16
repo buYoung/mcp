@@ -1,0 +1,389 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "scala": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          87,
+          103
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          212,
+          219
+        ],
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          89
+        ]
+      ],
+      "reason": "immutable subscriber Set을 새 State로 CAS 저장하고 cache 배열에서 꺼낸 subscriber.onNext를 호출한다.",
+      "conditions": [
+        "CAS 성공",
+        "활성 state",
+        "cancel 전"
+      ],
+      "syntax": [
+        "case class",
+        "immutable Set",
+        "tailrec",
+        "Future[Ack]"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          65,
+          88
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          32,
+          37
+        ]
+      ],
+      "reason": "구독 이전 onNext(1..3)는 이후 등록한 observer에 재생되지 않아야 한다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scala-future-body",
+      "language": "scala",
+      "repository": "monix",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        146
+      ],
+      "evidence": [
+        [
+          "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+          117,
+          139
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          150,
+          155
+        ],
+        [
+          "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+          184,
+          195
+        ]
+      ],
+      "reason": "subscriber 메서드 호출과 Future 안의 상태 갱신은 별도 단계다. Scheduler/Ack/취소 조건 없이 실행 완료를 단정할 수 없다.",
+      "conditions": [],
+      "syntax": [],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 76,
+            "column": 26
+          },
+          "invocation": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 124,
+            "column": 13
+          },
+          "conditions": [
+            "case_class_copy",
+            "collection_membership_required",
+            "collection_snapshot_time_unproven",
+            "compare_and_set_success_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "field_initializer_schema",
+            "immutable_collection_copy",
+            "method_dispatch_unproven",
+            "qualified_jdk_varhandle_access",
+            "receiver_dispatch_instance_unproven",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "scala_cast_compatibility_required",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:128",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:130",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:165",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:189",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:70",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:91",
+            "source_branch_condition_required:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:93",
+            "source_callable_argument_binding",
+            "source_companion_implicit_selection_required",
+            "source_constructor_parameter",
+            "stored_object_field_projection"
+          ]
+        }
+      ]
+    }
+  ],
+  "input_variant": "monix-jvm-scala3",
+  "max_file_bytes": 524288,
+  "input_lock_sha256": "3a964fafef0298e103331ccdf82d1eb5128f8dfbce418a60be6924ffed1da714"
+}

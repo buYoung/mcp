@@ -1,0 +1,48 @@
+[
+  {
+    "repository": "bevy",
+    "language": "rust",
+    "files": 22,
+    "input_bytes": 690959,
+    "functions": 1016,
+    "facts": 5581,
+    "relations": 366,
+    "parse_seconds": 0.1259428749908693,
+    "analysis_seconds": 0.6744157500215806,
+    "connect_seconds": 0.012188167020212859,
+    "elapsed_seconds": 0.8125467920326628,
+    "peak_rss_bytes_before_serialization": 76955648,
+    "wall_seconds": 0.946138291968964,
+    "parse_errors": 0,
+    "notices": [
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "_"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "shorthand_field_identifier"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "slice_pattern"
+      },
+      {
+        "kind": "binding_pattern_unsupported",
+        "detail": "tuple_struct_pattern"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:1631:24"
+      },
+      {
+        "kind": "function_fact_cap",
+        "detail": "crates/bevy_gltf/src/loader/mod.rs:247:5"
+      },
+      {
+        "kind": "summary_depth_bound",
+        "detail": "4"
+      }
+    ]
+  }
+]

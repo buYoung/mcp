@@ -1,0 +1,318 @@
+{
+  "pokered": {
+    "url": "https://github.com/pret/pokered.git",
+    "revision": "a1a22aaf84d1675bcdbaeb194592379d586d838e",
+    "languages": [
+      "assembly"
+    ],
+    "checkout_paths": [
+      "engine",
+      "home",
+      "data",
+      "scripts",
+      "macros"
+    ],
+    "source_paths": [
+      "engine/items/item_effects.asm",
+      "engine/gfx/palettes.asm"
+    ]
+  },
+  "libuv": {
+    "url": "https://github.com/libuv/libuv.git",
+    "revision": "a1ccce950cd470b131522dda40253e0c4f677900",
+    "languages": [
+      "c"
+    ],
+    "checkout_paths": [
+      "src",
+      "include",
+      "test"
+    ],
+    "source_paths": [
+      "src/unix/async.c",
+      "src/timer.c",
+      "include/uv/unix.h"
+    ]
+  },
+  "entt": {
+    "url": "https://github.com/skypjack/entt.git",
+    "revision": "85c6bba014049b5de8fad49d25424df2f1f6a8c1",
+    "languages": [
+      "cpp"
+    ],
+    "checkout_paths": [
+      "src",
+      "test"
+    ],
+    "source_paths": [
+      "src/entt/signal/sigh.hpp",
+      "src/entt/signal/delegate.hpp",
+      "test/entt/signal/sigh.cpp",
+      "test/entt/signal/dispatcher.cpp",
+      "src/entt/signal/dispatcher.hpp"
+    ]
+  },
+  "reactive": {
+    "url": "https://github.com/dotnet/reactive.git",
+    "revision": "94b5d5ab912789f5abe9a72138a25bbd716fe59c",
+    "languages": [
+      "csharp"
+    ],
+    "checkout_paths": [
+      "Rx.NET/Source"
+    ],
+    "source_paths": [
+      "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+      "Rx.NET/Source/tests/Tests.System.Reactive/Tests/Linq/Subjects/SubjectTest.cs"
+    ]
+  },
+  "flutter": {
+    "url": "https://github.com/flutter/flutter.git",
+    "revision": "27fec0e365a374f1d9c1ffb24b57b4fc69966c9a",
+    "languages": [
+      "dart"
+    ],
+    "checkout_paths": [
+      "packages/flutter/lib/src/foundation",
+      "packages/flutter/test/foundation"
+    ],
+    "source_paths": [
+      "packages/flutter/lib/src/foundation/memory_allocations.dart",
+      "packages/flutter/test/foundation/memory_allocations_test.dart"
+    ]
+  },
+  "grails-core": {
+    "url": "https://github.com/apache/grails-core.git",
+    "revision": "b449d532af9ee613da956e828405b1afc07393d4",
+    "languages": [
+      "groovy"
+    ],
+    "checkout_paths": [
+      "grails-events"
+    ],
+    "source_paths": [
+      "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+      "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+      "grails-events/core/src/main/groovy/org/grails/events/registry/AbstractSubscription.groovy",
+      "grails-events/core/src/main/groovy/org/grails/events/bus/AbstractEventBus.groovy",
+      "grails-events/core/src/main/groovy/org/grails/events/bus/SynchronousEventBus.groovy"
+    ]
+  },
+  "eventbus": {
+    "url": "https://github.com/greenrobot/EventBus.git",
+    "revision": "0194926b3bcf70cc0d7bfd3c5da16708dd5ab876",
+    "languages": [
+      "java"
+    ],
+    "checkout_paths": [
+      "EventBus/src",
+      "EventBusTestJava/src"
+    ],
+    "source_paths": [
+      "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+      "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+      "EventBus/src/org/greenrobot/eventbus/SubscriberMethod.java",
+      "EventBusTestJava/src/main/java/org/greenrobot/eventbus/EventBusBasicTest.java"
+    ]
+  },
+  "reaktive": {
+    "url": "https://github.com/badoo/Reaktive.git",
+    "revision": "9d6cb63084bdd5d1fa3261e597b5ccc3d8e9bb3b",
+    "languages": [
+      "kotlin"
+    ],
+    "checkout_paths": [
+      "reaktive/src",
+      "utils/src"
+    ],
+    "source_paths": [
+      "reaktive/src/commonMain/kotlin/com/badoo/reaktive/subject/AbstractSubject.kt",
+      "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/SubjectGenericTests.kt",
+      "reaktive/src/commonTest/kotlin/com/badoo/reaktive/subject/PublishSubjectTest.kt"
+    ]
+  },
+  "hump": {
+    "url": "https://github.com/vrld/hump.git",
+    "revision": "08937cc0ecf72d1a964a8de6cd552c5e136bf0d4",
+    "languages": [
+      "lua"
+    ],
+    "checkout_paths": [],
+    "source_paths": [
+      "signal.lua"
+    ]
+  },
+  "event-dispatcher": {
+    "url": "https://github.com/symfony/event-dispatcher.git",
+    "revision": "945f0a388a7b5d370f23e9faa1d5d48bff70a909",
+    "languages": [
+      "php"
+    ],
+    "checkout_paths": [
+      "Tests"
+    ],
+    "source_paths": [
+      "EventDispatcher.php",
+      "Tests/EventDispatcherTest.php"
+    ]
+  },
+  "blinker": {
+    "url": "https://github.com/pallets-eco/blinker.git",
+    "revision": "c3364059663df1ddce32799d6b1922af89a345f6",
+    "languages": [
+      "python"
+    ],
+    "checkout_paths": [
+      "src",
+      "tests"
+    ],
+    "source_paths": [
+      "src/blinker/base.py",
+      "tests/test_signals.py"
+    ]
+  },
+  "observer": {
+    "url": "https://github.com/ruby/observer.git",
+    "revision": "5c871444fd184e1c55af38c7c3b70b769698c891",
+    "languages": [
+      "ruby"
+    ],
+    "checkout_paths": [
+      "lib",
+      "test"
+    ],
+    "source_paths": [
+      "lib/observer.rb",
+      "test/test_observer.rb"
+    ]
+  },
+  "monix": {
+    "url": "https://github.com/monix/monix.git",
+    "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+    "languages": [
+      "scala"
+    ],
+    "checkout_paths": [
+      "monix-reactive/shared/src"
+    ],
+    "source_paths": [
+      "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+      "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala"
+    ]
+  },
+  "rxswift": {
+    "url": "https://github.com/ReactiveX/RxSwift.git",
+    "revision": "3e33f90c1bcd3cdea25bdb49bd4a594a50c3ab84",
+    "languages": [
+      "swift"
+    ],
+    "checkout_paths": [
+      "RxSwift",
+      "Tests/RxSwiftTests"
+    ],
+    "source_paths": [
+      "RxSwift/Subjects/PublishSubject.swift",
+      "RxSwift/Extensions/Bag+Rx.swift",
+      "RxSwift/AnyObserver.swift",
+      "Tests/RxSwiftTests/Observable+SubscriptionTest.swift",
+      "RxSwift/Disposables/SubscriptionDisposable.swift",
+      "Platform/DataStructures/Bag.swift"
+    ]
+  },
+  "livestore": {
+    "url": "https://github.com/livestorejs/livestore.git",
+    "revision": "287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "checkout_paths": [],
+    "source_paths": [
+      "packages/@livestore/livestore/src/reactive.ts",
+      "packages/@livestore/livestore/src/store/devtools.ts",
+      "packages/@livestore/common/src/make-client-session.ts",
+      "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+      "packages/@livestore/webmesh/src/node.ts",
+      "packages/@livestore/utils/src/effect/RpcClient.ts"
+    ]
+  },
+  "vendure": {
+    "url": "https://github.com/vendurehq/vendure.git",
+    "revision": "f78f402f1f706e42ab8e3b47698245846e958081",
+    "languages": [
+      "typescript"
+    ],
+    "checkout_paths": [],
+    "source_paths": [
+      "packages/core/src/event-bus/event-bus.ts",
+      "packages/core/src/job-queue/job.ts",
+      "packages/core/src/job-queue/polling-job-queue-strategy.ts",
+      "packages/core/src/job-queue/job-queue.service.ts",
+      "packages/core/src/job-queue/job-queue.ts",
+      "packages/core/src/service/services/order.service.ts",
+      "packages/core/src/service/services/channel.service.ts",
+      "packages/core/src/service/services/collection.service.ts",
+      "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+      "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+      "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+      "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+      "packages/dashboard/src/lib/framework/registry/global-registry.ts"
+    ]
+  },
+  "client-go": {
+    "url": "https://github.com/kubernetes/client-go.git",
+    "revision": "30803019f93fc7d7fccd93d115927705bf712be7",
+    "languages": [
+      "go"
+    ],
+    "checkout_paths": [],
+    "source_paths": [
+      "tools/cache/controller.go",
+      "tools/cache/fifo.go",
+      "tools/cache/the_real_fifo.go",
+      "tools/cache/shared_informer.go",
+      "tools/cache/thread_safe_store.go",
+      "tools/cache/store.go",
+      "tools/cache/index.go",
+      "tools/leaderelection/leasecandidate.go",
+      "informers/coordination/v1beta1/leasecandidate.go",
+      "informers/factory.go",
+      "examples/workqueue/main.go",
+      "tools/cache/listwatch.go",
+      "tools/cache/reflector.go",
+      "tools/cache/delta_fifo.go"
+    ]
+  },
+  "bevy": {
+    "url": "https://github.com/bevyengine/bevy.git",
+    "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+    "languages": [
+      "rust"
+    ],
+    "checkout_paths": [],
+    "source_paths": [
+      "crates/bevy_ecs/src/observer/distributed_storage.rs",
+      "crates/bevy_ecs/src/observer/centralized_storage.rs",
+      "crates/bevy_ecs/src/observer/mod.rs",
+      "crates/bevy_ecs/src/observer/runner.rs",
+      "crates/bevy_ecs/src/event/trigger.rs",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs",
+      "crates/bevy_ecs/src/world/mod.rs",
+      "crates/bevy_app/src/sub_app.rs",
+      "crates/bevy_ecs/src/message/messages.rs",
+      "crates/bevy_ecs/src/message/message_registry.rs",
+      "crates/bevy_ecs/src/message/iterators.rs",
+      "crates/bevy_ecs/src/message/message_reader.rs",
+      "crates/bevy_ecs/src/message/message_writer.rs",
+      "examples/ecs/observer_propagation.rs",
+      "examples/audio/pitch.rs",
+      "crates/bevy_ecs/src/system/system_registry.rs",
+      "crates/bevy_gltf/src/loader/extensions/mod.rs",
+      "crates/bevy_gltf/src/loader/mod.rs",
+      "crates/bevy_gltf/src/lib.rs",
+      "examples/ecs/one_shot_systems.rs",
+      "examples/gltf/gltf_extension_mesh_2d.rs",
+      "crates/bevy_pbr/src/gltf.rs"
+    ]
+  }
+}

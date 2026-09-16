@@ -1,0 +1,392 @@
+{
+  "verified_on": "2026-09-16",
+  "aggregation": "best_observed_status_per_public_positive_case_across_selected_inputs",
+  "base_case_statuses_unchanged": true,
+  "previous_base_public": {
+    "conditional_candidate": 30,
+    "unresolved": 5,
+    "argument_transfer_only": 2,
+    "correctly_unjoined_with_positive_control": 14,
+    "source_scenario_not_executed": 26
+  },
+  "current_base_public": {
+    "conditional_candidate": 30,
+    "unresolved": 5,
+    "argument_transfer_only": 2,
+    "correctly_unjoined_with_positive_control": 14,
+    "source_scenario_not_executed": 26
+  },
+  "supplemental_variants": {
+    "bevy-modules": {
+      "files": 42,
+      "input_bytes": 1265441,
+      "max_file_bytes": 524288,
+      "statuses": {
+        "unresolved": 3,
+        "conditional_data_return": 1,
+        "source_scenario_not_executed": 2
+      },
+      "cases": [
+        {
+          "id": "b_boxed_observer",
+          "status": "unresolved"
+        },
+        {
+          "id": "b_message_buffer",
+          "status": "conditional_data_return"
+        },
+        {
+          "id": "b_system_id",
+          "status": "unresolved"
+        },
+        {
+          "id": "b_gltf_handler",
+          "status": "unresolved"
+        },
+        {
+          "id": "rust-custom-runner-proof-boundary",
+          "status": "source_scenario_not_executed"
+        },
+        {
+          "id": "rust-gltf-clone-identity-boundary",
+          "status": "source_scenario_not_executed"
+        }
+      ],
+      "analysis_sha256": "43ae4562387565c8435d5f38a71a36d9b394a21d729172ac80cacba407d42400"
+    },
+    "monix-jvm-scala2": {
+      "files": 15,
+      "input_bytes": 58048,
+      "max_file_bytes": 524288,
+      "statuses": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      },
+      "cases": [
+        {
+          "id": "scala-state-subscriber",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "scala-before-subscribe",
+          "status": "source_scenario_not_executed"
+        },
+        {
+          "id": "scala-future-body",
+          "status": "source_scenario_not_executed"
+        }
+      ],
+      "analysis_sha256": "eea347990019a72f5c065e64e283b14374bbf0f202026bbc59391e5bb689fc16"
+    },
+    "monix-jvm-scala3": {
+      "files": 13,
+      "input_bytes": 47076,
+      "max_file_bytes": 524288,
+      "statuses": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      },
+      "cases": [
+        {
+          "id": "scala-state-subscriber",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "scala-before-subscribe",
+          "status": "source_scenario_not_executed"
+        },
+        {
+          "id": "scala-future-body",
+          "status": "source_scenario_not_executed"
+        }
+      ],
+      "analysis_sha256": "8b0fb89e7bf30c27c99bd6aa8cbeab7a273d716ebc7586ffb86944d0cb10f673"
+    },
+    "monix-js-scala2": {
+      "files": 8,
+      "input_bytes": 43047,
+      "max_file_bytes": 524288,
+      "statuses": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      },
+      "cases": [
+        {
+          "id": "scala-state-subscriber",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "scala-before-subscribe",
+          "status": "source_scenario_not_executed"
+        },
+        {
+          "id": "scala-future-body",
+          "status": "source_scenario_not_executed"
+        }
+      ],
+      "analysis_sha256": "5371350d506af318e520f986000d99975be926e1d2616777286f1dd674f01f69"
+    },
+    "monix-js-scala3": {
+      "files": 6,
+      "input_bytes": 32813,
+      "max_file_bytes": 524288,
+      "statuses": {
+        "conditional_candidate": 1,
+        "source_scenario_not_executed": 2
+      },
+      "cases": [
+        {
+          "id": "scala-state-subscriber",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "scala-before-subscribe",
+          "status": "source_scenario_not_executed"
+        },
+        {
+          "id": "scala-future-body",
+          "status": "source_scenario_not_executed"
+        }
+      ],
+      "analysis_sha256": "128131ab693cde3a33de1a6feecada8a62ecfc40033b67d590f9de713b75a536"
+    },
+    "livestore-effect": {
+      "files": 21,
+      "input_bytes": 2409558,
+      "max_file_bytes": 1048576,
+      "statuses": {
+        "conditional_candidate": 3,
+        "argument_transfer_only": 2,
+        "correctly_unjoined_with_positive_control": 4
+      },
+      "cases": [
+        {
+          "id": "ls_refresh",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "ls_graph_unsubscribe",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "ls_live_unsubscribe",
+          "status": "conditional_candidate"
+        },
+        {
+          "id": "ls_mesh_queue",
+          "status": "argument_transfer_only"
+        },
+        {
+          "id": "ls_rpc_client",
+          "status": "argument_transfer_only"
+        },
+        {
+          "id": "no_ls_graph_to_live",
+          "status": "correctly_unjoined_with_positive_control"
+        },
+        {
+          "id": "no_ls_live_to_graph",
+          "status": "correctly_unjoined_with_positive_control"
+        },
+        {
+          "id": "no_ls_debug_to_sync",
+          "status": "correctly_unjoined_with_positive_control"
+        },
+        {
+          "id": "no_ls_sync_to_debug",
+          "status": "correctly_unjoined_with_positive_control"
+        }
+      ],
+      "analysis_sha256": "c0622b72ddbff1bf067b6d135a6aa6a01a37781167bb71e75cbfd6970d7e52c1"
+    }
+  },
+  "combined_public_positive_statuses": {
+    "conditional_candidate": 31,
+    "unresolved": 3,
+    "conditional_data_return": 1,
+    "argument_transfer_only": 2
+  },
+  "combined_public_positive_cases": [
+    {
+      "id": "ls_refresh",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "ls_graph_unsubscribe",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "ls_live_unsubscribe",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "ls_reply_resolve",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "ls_reply_reject",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "v_blocking",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "v_progress",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "v_queue_process",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_add_adapter",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_update_adapter",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_delete_adapter",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_listener_handler",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_index_function",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "b_boxed_observer",
+      "status": "unresolved"
+    },
+    {
+      "id": "b_message_buffer",
+      "status": "conditional_data_return"
+    },
+    {
+      "id": "ls_mesh_queue",
+      "status": "argument_transfer_only"
+    },
+    {
+      "id": "ls_rpc_client",
+      "status": "argument_transfer_only"
+    },
+    {
+      "id": "v_method_hook",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "v_dashboard_callback",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_list_callback",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "go_fifo_process",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "b_system_id",
+      "status": "unresolved"
+    },
+    {
+      "id": "b_gltf_handler",
+      "status": "unresolved"
+    },
+    {
+      "id": "c-async",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "assembly-item-table",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "cpp-delegate-publish",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "csharp-subject-observer",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "dart-memory-listener",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "kotlin-observer-publish",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "lua-function-key",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "php-priority-listener",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "python-receiver-send",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "ruby-observer-send",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "scala-state-subscriber",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "swift-bag-observer",
+      "status": "conditional_candidate"
+    }
+  ],
+  "supplemental_consumer_statuses": {
+    "conditional_data_consumption": 1,
+    "unresolved": 2,
+    "conditional_candidate": 1,
+    "correctly_unjoined_with_positive_control": 2
+  },
+  "supplemental_consumer_cases": [
+    {
+      "id": "ls_mesh_queue_internal_write",
+      "status": "conditional_data_consumption"
+    },
+    {
+      "id": "ls_mesh_queue_internal_read",
+      "status": "unresolved"
+    },
+    {
+      "id": "ls_rpc_client_lookup",
+      "status": "unresolved"
+    },
+    {
+      "id": "effect_rpc_handler_control",
+      "status": "conditional_candidate"
+    },
+    {
+      "id": "no_queue_to_rpc_lookup",
+      "status": "correctly_unjoined_with_positive_control"
+    },
+    {
+      "id": "no_rpc_client_to_queue_write",
+      "status": "correctly_unjoined_with_positive_control"
+    }
+  ],
+  "target_programs_executed": false
+}

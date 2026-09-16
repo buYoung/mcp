@@ -1,0 +1,454 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "typescript": {
+      "fixtures": {},
+      "public": {
+        "conditional_candidate": 5,
+        "correctly_unjoined_with_positive_control": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "v_blocking",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/event-bus/event-bus.ts",
+        200,
+        206
+      ],
+      "invocation": [
+        "packages/core/src/event-bus/event-bus.ts",
+        219,
+        219
+      ],
+      "evidence": [],
+      "reason": "생성자 키 Map의 blocking handler 옵션 저장·호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 20,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 201,
+            "column": 17
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "collection_membership_required",
+            "conditional_control:packages/core/src/event-bus/event-bus.ts:200",
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unresolved:packages/core/src/event-bus/event-bus.ts:188:5:binding:events[element:*]=parameter:packages/core/src/event-bus/event-bus.ts:116:5:event[key:constructor]",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 201,
+            "column": 17
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "collection_membership_required",
+            "conditional_control:packages/core/src/event-bus/event-bus.ts:200",
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unresolved:packages/core/src/event-bus/event-bus.ts:188:5:binding:events[element:*]=parameter:packages/core/src/event-bus/event-bus.ts:215:5:event[key:constructor]",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 201,
+            "column": 17
+          },
+          "invocation": {
+            "path": "packages/core/src/event-bus/event-bus.ts",
+            "line": 219,
+            "column": 19
+          },
+          "conditions": [
+            "collection_membership_required",
+            "conditional_control:packages/core/src/event-bus/event-bus.ts:200",
+            "fallback_path_unresolved:217",
+            "iteration_may_be_empty",
+            "key_equality_required:unresolved:packages/core/src/event-bus/event-bus.ts:188:5:binding:events[element:*]=allocation:packages/core/src/service/services/order.service.ts:494:37[key:constructor]",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v_progress",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/job-queue/job.ts",
+        212,
+        212
+      ],
+      "invocation": [
+        "packages/core/src/job-queue/job.ts",
+        224,
+        224
+      ],
+      "evidence": [],
+      "reason": "Job별 progress listener 배열 저장·호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 212,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 224,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "fallback_path_unresolved:145",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/core/src/job-queue/job.ts:211:5:eventType=key:progress",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 212,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/core/src/job-queue/job.ts",
+            "line": 224,
+            "column": 13
+          },
+          "conditions": [
+            "collection_membership_required",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/core/src/job-queue/job.ts:211:5:eventType=parameter:packages/core/src/job-queue/job.ts:222:5:eventType",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v_queue_process",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        316,
+        316
+      ],
+      "invocation": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        142,
+        142
+      ],
+      "evidence": [],
+      "reason": "queueName별 process 함수 저장·호출. Bull worker의 실행은 별도 경계",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+            "line": 316,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+            "line": 142,
+            "column": 42
+          },
+          "conditions": [
+            "conditional_control:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:126",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:312:5:queueName=parameter:packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts:118:32:bullJob[key:name]",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v_method_hook",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+        77,
+        82
+      ],
+      "invocation": [
+        "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+        20,
+        32
+      ],
+      "evidence": [],
+      "reason": "class/method hook 저장과 별도 서비스의 pre/post 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 2,
+      "evidence_matches": [
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 25,
+            "column": 13
+          },
+          "conditions": [
+            "copied_property_not_overridden",
+            "declared_receiver_schema_only",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]",
+            "key_equality_required:result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:target]",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "nested_member_presence_required",
+            "object_copy_registration_projection",
+            "opaque_receiver_binding_required",
+            "own_enumerable_property_required",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        },
+        {
+          "kind": "stored_object_method_candidate",
+          "storage": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "invocation": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 31,
+            "column": 33
+          },
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:30",
+            "copied_property_not_overridden",
+            "declared_receiver_schema_only",
+            "enclosing_callable_execution_unproven",
+            "key_equality_required:parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]",
+            "key_equality_required:result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41=parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:target]",
+            "method_dispatch_unproven",
+            "multiple_storage_writes_present",
+            "nested_member_presence_required",
+            "object_copy_registration_projection",
+            "opaque_receiver_binding_required",
+            "own_enumerable_property_required",
+            "registration_and_call_order_unproven",
+            "same_receiver_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "v_dashboard_callback",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        98,
+        100
+      ],
+      "invocation": [
+        "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+        27,
+        33
+      ],
+      "evidence": [],
+      "reason": "전역 registry가 보관한 Set의 extension callback 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "conditional_candidate",
+      "matching_relations": 1,
+      "evidence_matches": [
+        {
+          "kind": "storage_to_invocation",
+          "storage": {
+            "path": "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+            "line": 99,
+            "column": 5
+          },
+          "invocation": {
+            "path": "packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts",
+            "line": 32,
+            "column": 9
+          },
+          "conditions": [
+            "collection_membership_required",
+            "fallback_path_unresolved:31",
+            "iteration_may_be_empty",
+            "multiple_storage_writes_present",
+            "registration_and_call_order_unproven",
+            "same_runtime_context_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_v_progress_to_queue",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/job-queue/job.ts",
+        212,
+        212
+      ],
+      "invocation": [
+        "packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts",
+        142,
+        142
+      ],
+      "evidence": [],
+      "reason": "독립 Job과 queue 전략 레지스트리",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "v_blocking",
+        "v_progress",
+        "v_queue_process",
+        "v_method_hook",
+        "v_dashboard_callback"
+      ]
+    },
+    {
+      "id": "no_v_blocking_to_rx",
+      "language": "typescript",
+      "repository": "vendure",
+      "kind": "negative",
+      "mode": "endpoint_pair",
+      "storage": [
+        "packages/core/src/event-bus/event-bus.ts",
+        200,
+        206
+      ],
+      "invocation": [
+        "packages/core/src/event-bus/event-bus.ts",
+        117,
+        117
+      ],
+      "evidence": [],
+      "reason": "blocking Map과 외부 RxJS stream 구분",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "negative",
+      "status": "correctly_unjoined_with_positive_control",
+      "matching_relations": 0,
+      "evidence_matches": [],
+      "observed_positive_controls": [
+        "v_blocking",
+        "v_progress",
+        "v_queue_process",
+        "v_method_hook",
+        "v_dashboard_callback"
+      ]
+    }
+  ],
+  "dependencies": {
+    "tree-sitter": "0.26.0",
+    "tree-sitter-typescript": "0.23.2",
+    "tree-sitter-rust": "0.24.2",
+    "tree-sitter-go": "0.25.0",
+    "tree-sitter-language-pack": "0.13.0",
+    "tree-sitter-c-sharp": "0.23.5",
+    "tree-sitter-embedded-template": "0.25.0",
+    "tree-sitter-yaml": "0.7.2"
+  }
+}

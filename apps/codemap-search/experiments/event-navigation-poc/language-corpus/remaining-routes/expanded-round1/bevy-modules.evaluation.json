@@ -1,0 +1,300 @@
+{
+  "unit": "source endpoint pair or explicitly unexecuted source scenario",
+  "target_program_executed": false,
+  "scope": "selected examples; not repository-wide precision or recall",
+  "languages": {
+    "rust": {
+      "fixtures": {},
+      "public": {
+        "unresolved": 3,
+        "conditional_data_return": 1,
+        "source_scenario_not_executed": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        224,
+        235
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        79,
+        123
+      ],
+      "evidence": [],
+      "reason": "Observer의 boxed system에서 runner의 system 실행까지",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "b_message_buffer",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/message/messages.rs",
+        125,
+        145
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/message/iterators.rs",
+        52,
+        99
+      ],
+      "evidence": [],
+      "reason": "World-local 메시지 버퍼 생산과 reader cursor 소비",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "data_route",
+      "status": "conditional_data_return",
+      "matching_relations": 4,
+      "evidence_matches": [
+        {
+          "kind": "stored_value_return",
+          "storage": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 140,
+            "column": 13
+          },
+          "invocation": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 92,
+            "column": 27
+          },
+          "conditions": [
+            "collection_membership_required",
+            "declared_receiver_schema_only",
+            "dereference_execution_unproven",
+            "iterator_may_be_empty",
+            "match_arm_selection_required",
+            "multiple_storage_writes_present",
+            "option_some_required",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "returned_value_only_not_callback_execution",
+            "same_receiver_required",
+            "slice_range_membership_required",
+            "source_deref_body_applied",
+            "stored_iterator_binding_required",
+            "typed_parameter_receiver_binding_required"
+          ]
+        },
+        {
+          "kind": "stored_value_return",
+          "storage": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 139,
+            "column": 13
+          },
+          "invocation": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 92,
+            "column": 27
+          },
+          "conditions": [
+            "collection_membership_required",
+            "declared_receiver_schema_only",
+            "dereference_execution_unproven",
+            "iterator_may_be_empty",
+            "match_arm_selection_required",
+            "multiple_storage_writes_present",
+            "option_some_required",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "returned_value_only_not_callback_execution",
+            "same_receiver_required",
+            "slice_range_membership_required",
+            "source_deref_body_applied",
+            "stored_iterator_binding_required",
+            "typed_parameter_receiver_binding_required"
+          ]
+        },
+        {
+          "kind": "stored_value_return",
+          "storage": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 140,
+            "column": 13
+          },
+          "invocation": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 97,
+            "column": 17
+          },
+          "conditions": [
+            "collection_membership_required",
+            "declared_receiver_schema_only",
+            "dereference_execution_unproven",
+            "iterator_may_be_empty",
+            "match_arm_selection_required",
+            "multiple_storage_writes_present",
+            "option_some_required",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "returned_value_only_not_callback_execution",
+            "same_receiver_required",
+            "slice_range_membership_required",
+            "source_deref_body_applied",
+            "stored_iterator_binding_required",
+            "typed_parameter_receiver_binding_required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_system_id",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        456,
+        478
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        700,
+        734
+      ],
+      "evidence": [],
+      "reason": "새 entity의 RegisteredSystem을 SystemId로 조회하여 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "positive",
+      "mode": "endpoint_pair",
+      "storage": [
+        "examples/gltf/gltf_extension_mesh_2d.rs",
+        67,
+        85
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        1751,
+        1762
+      ],
+      "evidence": [],
+      "reason": "World의 Arc 레지스트리에서 load-local 복제를 거친 trait hook 호출",
+      "conditions": [
+        "조건부 소스 관계이며 런타임 전달을 입증하지 않음"
+      ],
+      "syntax": [],
+      "origin": "existing_poc",
+      "semantic_kind": "callback",
+      "status": "unresolved",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "rust-custom-runner-proof-boundary",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        238,
+        273
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        90,
+        110
+      ],
+      "evidence": [
+        [
+          "crates/bevy_ecs/src/observer/mod.rs",
+          171,
+          182
+        ]
+      ],
+      "reason": "호출자 제공 runner와 별도 dummy system을 저장한다. runner 저장만으로 기본 runner 내부의 system 호출을 확정할 수 없다.",
+      "conditions": [
+        "제공된 runner 본문과 실제 receiver 해석 필요"
+      ],
+      "syntax": [
+        "unsafe 함수 포인터",
+        "Any downcast"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    },
+    {
+      "id": "rust-gltf-clone-identity-boundary",
+      "language": "rust",
+      "repository": "bevy",
+      "kind": "boundary",
+      "mode": "source_scenario",
+      "storage": [
+        "crates/bevy_pbr/src/gltf.rs",
+        13,
+        29
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        259,
+        267
+      ],
+      "evidence": [
+        [
+          "crates/bevy_gltf/src/loader/extensions/mod.rs",
+          569,
+          572
+        ],
+        [
+          "crates/bevy_gltf/src/lib.rs",
+          302,
+          310
+        ]
+      ],
+      "reason": "Arc는 레지스트리를 공유하지만 load별 Vec<Box> clone은 handler 객체를 복제한다. 같은 함수 source may-link를 구체 객체 동일성으로 승격할 수 없다.",
+      "conditions": [
+        "clone 방식과 load instance 구분"
+      ],
+      "syntax": [
+        "Arc",
+        "trait object",
+        "Clone"
+      ],
+      "origin": "sol_medium_source_review",
+      "status": "source_scenario_not_executed",
+      "matching_relations": 0,
+      "evidence_matches": []
+    }
+  ],
+  "input_variant": "bevy-modules",
+  "input_lock_sha256": "0713c3da79f81a4476bd02517d4ec245a8f635b831f6ef146919caeccb5d2d68"
+}

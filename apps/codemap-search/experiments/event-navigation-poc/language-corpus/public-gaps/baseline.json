@@ -1,0 +1,3577 @@
+{
+  "checkpoint": "01aac1515864f7066c368e0081d6fd23836a5474",
+  "target_programs_executed": false,
+  "cases": [
+    {
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "repository": "bevy",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        224,
+        235
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/observer/runner.rs",
+        79,
+        123
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:system]",
+          "value": "result:crates/bevy_ecs/src/observer/distributed_storage.rs:227:21",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 227,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:descriptor]",
+          "value": "result:crates/bevy_ecs/src/observer/distributed_storage.rs:228:25",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 228,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:hook_on_add]",
+          "value": "function:crates/bevy_ecs/src/observer/distributed_storage.rs:451:1",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 229,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:error_handler]",
+          "value": "unresolved:crates/bevy_ecs/src/observer/distributed_storage.rs:None",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 230,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:runner]",
+          "value": "unresolved:crates/bevy_ecs/src/observer/distributed_storage.rs:observer_system_runner",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 231,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:despawned_watched_entities]",
+          "value": "literal:0",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 232,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:last_trigger_id]",
+          "value": "literal:0",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 233,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:226:9[key:conditions]",
+          "value": "result:crates/bevy_ecs/src/observer/distributed_storage.rs:234:25",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+            "line": 234,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/observer/runner.rs:35:1:event_ptr[key:deref_mut]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 81,
+            "column": 18
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "external_boundary",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:On::new",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 79,
+            "column": 21
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:state[key:system][key:as_deref_mut]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 91,
+            "column": 36
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:91:36[key:debug_checked_unwrap]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 91,
+            "column": 36
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:91:36[key:downcast_mut]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 92,
+            "column": 22
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:92:22[key:debug_checked_unwrap]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 92,
+            "column": 22
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:42:17[key:get_resource_ref]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 103,
+            "column": 12
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:103:12[key:is_none_or]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 103,
+            "column": 12
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:refresh_hotpatch]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 107,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:run_unsafe]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 110,
+            "column": 51
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:state[key:error_handler][key:unwrap_or_else]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 111,
+            "column": 27
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:name]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 117,
+            "column": 27
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:get_last_run]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 118,
+            "column": 31
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "external_boundary",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:111:27",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 114,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:42:17[key:into_deferred]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 122,
+            "column": 34
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:queue_deferred]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 122,
+            "column": 9
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:35:1",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/observer/runner.rs:35:1:binding:system[key:get_last_run]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 105,
+            "column": 48
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:105:25",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/observer/runner.rs:105:25:r[key:is_changed_after]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 105,
+            "column": 29
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:105:25",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/observer/runner.rs:42:17[key:fallback_error_handler]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/observer/runner.rs",
+            "line": 113,
+            "column": 36
+          },
+          "function": "crates/bevy_ecs/src/observer/runner.rs:113:33",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "b_message_buffer",
+      "language": "rust",
+      "repository": "bevy",
+      "status": "unresolved",
+      "semantic_kind": "data_route",
+      "storage": [
+        "crates/bevy_ecs/src/message/messages.rs",
+        125,
+        145
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/message/iterators.rs",
+        52,
+        99
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9[key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9[key:caller]",
+          "value": "result:crates/bevy_ecs/src/message/messages.rs:126:41",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9[key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9[key:message_id]",
+          "value": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 139,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9[key:message]",
+          "value": "parameter:crates/bevy_ecs/src/message/messages.rs:125:5:message",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 140,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26[key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26[key:caller]",
+          "value": "parameter:crates/bevy_ecs/src/message/messages.rs:129:5:caller",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26[key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32[key:message_id]",
+          "value": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 139,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32[key:message]",
+          "value": "parameter:crates/bevy_ecs/src/message/messages.rs:129:5:message",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 140,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:caller]",
+          "value": "result:crates/bevy_ecs/src/message/messages.rs:126:41",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:message_id]",
+          "value": "allocation:crates/bevy_ecs/src/message/messages.rs:130:26@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 139,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:message]",
+          "value": "result:crates/bevy_ecs/src/message/messages.rs:172:20",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 140,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9[key:message_id][key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9[key:message_id][key:caller]",
+          "value": "result:crates/bevy_ecs/src/message/messages.rs:126:41",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9[key:message_id][key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32[key:message_id][key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32[key:message_id][key:caller]",
+          "value": "parameter:crates/bevy_ecs/src/message/messages.rs:129:5:caller",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32[key:message_id][key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:message_id][key:id]",
+          "value": "receiver:crates/bevy_ecs/src/message/messages.rs::Messages<M>[key:message_count]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 131,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:message_id][key:caller]",
+          "value": "result:crates/bevy_ecs/src/message/messages.rs:126:41",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 132,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:crates/bevy_ecs/src/message/messages.rs:138:32@crates/bevy_ecs/src/message/messages.rs:126:9>crates/bevy_ecs/src/message/messages.rs:172:9[key:message_id][key:_marker]",
+          "value": "unresolved:crates/bevy_ecs/src/message/messages.rs:PhantomData",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/messages.rs",
+            "line": 133,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/message/messages.rs:129:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 126,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 172,
+              "column": 9
+            },
+            {
+              "path": "crates/bevy_ecs/src/message/messages.rs",
+              "line": 139,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "argument",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:messages[key:messages_a][key:start_message_count]",
+          "value": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:reader[key:last_message_count][key:saturating_sub]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 55,
+            "column": 23
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:reader[key:last_message_count][key:saturating_sub]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 55,
+            "column": 23
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:messages[key:messages_b][key:start_message_count]",
+          "value": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:reader[key:last_message_count][key:saturating_sub]",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 58,
+            "column": 23
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:reader[key:last_message_count][key:saturating_sub]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 58,
+            "column": 23
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:messages[key:messages_a][key:get]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 61,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:61:17[key:unwrap_or_default]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 61,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/message/iterators.rs:54:5:messages[key:messages_b][key:get]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 62,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:62:17[key:unwrap_or_default]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 62,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:61:17[key:len]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 64,
+            "column": 28
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:62:17[key:len]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 64,
+            "column": 38
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "macro_boundary",
+          "target": "unknown:",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 66,
+            "column": 9
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:61:17[key:iter]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 69,
+            "column": 21
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:62:17[key:iter]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 69,
+            "column": 36
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:69:21[key:chain]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 69,
+            "column": 21
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:54:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:crates/bevy_ecs/src/message/iterators.rs::MessageIteratorWithId<'a, M>[key:chain][key:next]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 87,
+            "column": 15
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:86:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/message/iterators.rs:87:15[key:map]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 87,
+            "column": 15
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:86:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "macro_boundary",
+          "target": "unknown:",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 94,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:86:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "external_boundary",
+          "target": "unresolved:crates/bevy_ecs/src/message/iterators.rs:Some",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/message/iterators.rs",
+            "line": 97,
+            "column": 17
+          },
+          "function": "crates/bevy_ecs/src/message/iterators.rs:86:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "repository": "livestore",
+      "status": "argument_transfer_only",
+      "semantic_kind": "data_route",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        608,
+        610
+      ],
+      "invocation": [
+        "packages/@livestore/webmesh/src/node.ts",
+        229,
+        233
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+          "value": "unresolved:packages/@livestore/webmesh/src/node.ts:598:20:binding:queue",
+          "location": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 609,
+            "column": 11
+          },
+          "function": "packages/@livestore/webmesh/src/node.ts:598:20",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:keys][element:*]",
+          "value": "parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]",
+          "location": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 609,
+            "column": 11
+          },
+          "function": "packages/@livestore/webmesh/src/node.ts:598:20",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "argument",
+          "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]]",
+          "value": "unresolved:packages/@livestore/webmesh/src/node.ts:Queue[key:offer]",
+          "location": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 232,
+            "column": 20
+          },
+          "function": "packages/@livestore/webmesh/src/node.ts:197:18",
+          "conditions": [
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:212",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:231",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:packages/@livestore/webmesh/src/node.ts:Queue[key:offer]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/webmesh/src/node.ts",
+            "line": 232,
+            "column": 20
+          },
+          "function": "packages/@livestore/webmesh/src/node.ts:197:18",
+          "conditions": [
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:212",
+            "conditional_control:packages/@livestore/webmesh/src/node.ts:231",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "repository": "livestore",
+      "status": "argument_transfer_only",
+      "semantic_kind": "data_route",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        68,
+        77
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:178:14[key:send]",
+          "value": "function:packages/@livestore/utils/src/effect/RpcClient.ts:179:15",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 179,
+            "column": 9
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:33:23",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:36:32[container:entries][parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]]",
+          "value": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:clientId",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 184,
+            "column": 13
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:179:15",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:36:32[container:keys][element:*]",
+          "value": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 184,
+            "column": 13
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:179:15",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "argument",
+          "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:36:32[container:entries][result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:][key:requestId]]",
+          "value": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:33:23:writeResponse",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 60
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "argument",
+          "target": "result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:]",
+          "value": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:33:23:writeResponse",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 60
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 1
+        },
+        {
+          "kind": "invoke",
+          "target": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:33:23:writeResponse",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 60
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:packages/@livestore/utils/src/effect/RpcClient.ts:Effect[key:andThen]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 45
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/@livestore/utils/src/effect/RpcClient.ts:50:29[key:pipe]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 74,
+            "column": 26
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:]",
+          "value": "function:packages/@livestore/utils/src/effect/RpcClient.ts:51:25",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 77,
+            "column": 56
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:packages/@livestore/utils/src/effect/RpcClient.ts:Effect[key:andThen]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 77,
+            "column": 41
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/@livestore/utils/src/effect/RpcClient.ts:50:29[key:pipe]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+            "line": 77,
+            "column": 22
+          },
+          "function": "packages/@livestore/utils/src/effect/RpcClient.ts:61:19",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "v_method_hook",
+      "language": "typescript",
+      "repository": "vendure",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+        77,
+        82
+      ],
+      "invocation": [
+        "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+        20,
+        32
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "receiver:packages/telemetry-plugin/src/service/method-hooks.service.ts::MethodHooksService[key:hooksMap][container:entries][result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41]",
+          "value": "allocation:packages/telemetry-plugin/src/service/method-hooks.service.ts:78:31",
+          "location": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "function": "packages/telemetry-plugin/src/service/method-hooks.service.ts:71:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:packages/telemetry-plugin/src/service/method-hooks.service.ts::MethodHooksService[key:hooksMap][container:keys][element:*]",
+          "value": "result:packages/telemetry-plugin/src/service/method-hooks.service.ts:72:41",
+          "location": {
+            "path": "packages/telemetry-plugin/src/service/method-hooks.service.ts",
+            "line": 82,
+            "column": 9
+          },
+          "function": "packages/telemetry-plugin/src/service/method-hooks.service.ts:71:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:6:23[key:startActiveSpan]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 23,
+            "column": 16
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:target]",
+          "value": "receiver:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts::OtelInstrumentationStrategy[key:spanAttributeService][key:getHooks]",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 24,
+            "column": 27
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "argument",
+          "target": "parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:methodName]",
+          "value": "receiver:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts::OtelInstrumentationStrategy[key:spanAttributeService][key:getHooks]",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 24,
+            "column": 27
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": 1
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts::OtelInstrumentationStrategy[key:spanAttributeService][key:getHooks]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 24,
+            "column": 27
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:24:27[key:pre]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 25,
+            "column": 13
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "parameter:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:20:5:{ instance, target, methodName, args, applyOriginalFunction }[key:applyOriginalFunction]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 28,
+            "column": 21
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:26",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:28:21[key:then]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 28,
+            "column": 21
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:26",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:28:21[key:catch]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 28,
+            "column": 21
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:26",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:28:21[key:finally]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 28,
+            "column": 21
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:23:53",
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:26",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:24:27[key:post]",
+          "value": "unknown:",
+          "location": {
+            "path": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts",
+            "line": 31,
+            "column": 33
+          },
+          "function": "packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:29:31",
+          "conditions": [
+            "conditional_control:packages/telemetry-plugin/src/config/otel-instrumentation-strategy.ts:30",
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "b_system_id",
+      "language": "rust",
+      "repository": "bevy",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        456,
+        478
+      ],
+      "invocation": [
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        700,
+        734
+      ],
+      "store_facts": [],
+      "consumer_facts": [
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:registered_system[key:system][key:take]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 704,
+            "column": 26
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:ok_or]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 704,
+            "column": 26
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:initialize]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 711,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:crates/bevy_ecs/src/system/system_registry.rs::World[key:get_resource_ref]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 716,
+            "column": 12
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:716:12[key:is_none_or]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 716,
+            "column": 12
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:refresh_hotpatch]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 720,
+            "column": 13
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:run_without_applying_deferred]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 725,
+            "column": 22
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:crates/bevy_ecs/src/system/system_registry.rs::World[key:into]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 726,
+            "column": 31
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:queue_deferred]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 726,
+            "column": 9
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:682:18[key:entity]",
+          "value": "receiver:crates/bevy_ecs/src/system/system_registry.rs::World[key:get_entity_mut]",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 729,
+            "column": 33
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": 0
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:crates/bevy_ecs/src/system/system_registry.rs::World[key:get_entity_mut]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 729,
+            "column": 33
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26[key:get_mut]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 730,
+            "column": 50
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [
+            {
+              "path": "crates/bevy_ecs/src/system/system_registry.rs",
+              "line": 645,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "external_boundary",
+          "target": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:RegisteredSystemError::SystemMissing",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 707,
+            "column": 20
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "external_boundary",
+          "target": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:Some",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 732,
+            "column": 40
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+          "conditions": [],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26[key:get_last_run]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 718,
+            "column": 48
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:718:25",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:crates/bevy_ecs/src/system/system_registry.rs:718:25:r[key:is_changed_after]",
+          "value": "unknown:",
+          "location": {
+            "path": "crates/bevy_ecs/src/system/system_registry.rs",
+            "line": 718,
+            "column": 29
+          },
+          "function": "crates/bevy_ecs/src/system/system_registry.rs:718:25",
+          "conditions": [
+            "enclosing_callable_execution_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "repository": "bevy",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "examples/gltf/gltf_extension_mesh_2d.rs",
+        67,
+        85
+      ],
+      "invocation": [
+        "crates/bevy_gltf/src/loader/mod.rs",
+        1751,
+        1762
+      ],
+      "store_facts": [],
+      "consumer_facts": [],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "repository": "entt",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "src/entt/signal/sigh.hpp",
+        416,
+        425
+      ],
+      "invocation": [
+        "src/entt/signal/sigh.hpp",
+        173,
+        176
+      ],
+      "store_facts": [],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "receiver:cpp:src/entt/signal/sigh.hpp::sigh<Ret(Args...), Allocator>[key:calls][key:size]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 174,
+            "column": 24
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:cpp:src/entt/signal/sigh.hpp::sigh<Ret(Args...), Allocator>[key:calls][key:size]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 174,
+            "column": 24
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:cpp:src/entt/signal/sigh.hpp::sigh<Ret(Args...), Allocator>[key:calls][dynamic_key:src/entt/signal/sigh.hpp:5050:5148]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:cpp:src/entt/signal/sigh.hpp::sigh<Ret(Args...), Allocator>[key:calls][dynamic_key:src/entt/signal/sigh.hpp:5050:5148]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:src/entt/signal/sigh.hpp:3570:other[key:calls][key:size]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 174,
+            "column": 24
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:src/entt/signal/sigh.hpp:3570:other[key:calls][key:size]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 174,
+            "column": 24
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:src/entt/signal/sigh.hpp:3570:other[key:calls][dynamic_key:src/entt/signal/sigh.hpp:5050:5148]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:src/entt/signal/sigh.hpp:3570:other[key:calls][dynamic_key:src/entt/signal/sigh.hpp:5050:5148]",
+          "value": "unknown:",
+          "location": {
+            "path": "src/entt/signal/sigh.hpp",
+            "line": 175,
+            "column": 13
+          },
+          "function": "src/entt/signal/sigh.hpp:5050",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "csharp-subject-observer",
+      "language": "csharp",
+      "repository": "reactive",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        199,
+        210
+      ],
+      "invocation": [
+        "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+        136,
+        150
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6453[element:*]",
+          "value": "unknown:",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 202,
+            "column": 29
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5378",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6453[result:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5705[key:Length]]",
+          "value": "allocation:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:6347",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 206,
+            "column": 17
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:5378",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "unresolved:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509:Volatile[key:Read]",
+          "value": "unknown:",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 138,
+            "column": 29
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509:Volatile[key:Read]",
+          "value": "unknown:",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 138,
+            "column": 29
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "receiver:csharp:System.Reactive.Subjects::Subject[key:_observers]",
+          "value": "unresolved:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509:Volatile[key:Read]",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 138,
+            "column": 29
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "invoke",
+          "target": "result:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4584[element:*][key:Observer][key:OnNext]",
+          "value": "unknown:",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4584[element:*][key:Observer][key:OnNext]",
+          "value": "unknown:",
+          "location": {
+            "path": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs",
+            "line": 149,
+            "column": 17
+          },
+          "function": "Rx.NET/Source/src/System.Reactive/Subjects/Subject.cs:4509",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "groovy-closure-delivery",
+      "language": "groovy",
+      "repository": "grails-core",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+        42,
+        45
+      ],
+      "invocation": [
+        "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+        64,
+        79
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "receiver:groovy:org.grails.events.registry::ClosureSubscription[key:listener]",
+          "value": "parameter:grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy:1291:listener",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy",
+            "line": 44,
+            "column": 9
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/registry/ClosureSubscription.groovy:1291",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:data][key:getClass]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:data][key:getClass]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:2024[key:isArray]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:2024[key:isArray]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:callSpread]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:callSpread]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:subscriberClosure]",
+          "value": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:callSpread]",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": 0
+        },
+        {
+          "kind": "argument",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:data]",
+          "value": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:callSpread]",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": 1
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:subscriberClosure]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 75,
+            "column": 30
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:subscriberClosure]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 78,
+            "column": 30
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "parameter:grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1413:event[key:data][key:getClass]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1413:event[key:data][key:getClass]",
+          "value": "unknown:",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 65,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "method_dispatch_unproven",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "argument",
+          "target": "parameter:grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1413:event[key:data]",
+          "value": "receiver:groovy:org.grails.events::ClosureEventTrigger[key:callSpread]",
+          "location": {
+            "path": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy",
+            "line": 71,
+            "column": 26
+          },
+          "function": "grails-events/core/src/main/groovy/org/grails/events/ClosureEventTrigger.groovy:1966",
+          "conditions": [
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": 1
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "java-reflective-subscriber",
+      "language": "java",
+      "repository": "eventbus",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+        27,
+        30
+      ],
+      "invocation": [
+        "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+        515,
+        518
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:subscriber]",
+          "value": "parameter:EventBus/src/org/greenrobot/eventbus/EventBus.java:5837:subscriber",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 28,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:5837",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            },
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 153,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:subscriberMethod]",
+          "value": "result:EventBus/src/org/greenrobot/eventbus/EventBus.java:6416[element:*]",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:5837",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            },
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 153,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:active]",
+          "value": "literal:true",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 30,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:5837",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            },
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 153,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:subscriber]",
+          "value": "parameter:EventBus/src/org/greenrobot/eventbus/EventBus.java:6719:subscriber",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 28,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:6719",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:subscriberMethod]",
+          "value": "parameter:EventBus/src/org/greenrobot/eventbus/EventBus.java:6719:subscriberMethod",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:6719",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "allocation:EventBus/src/org/greenrobot/eventbus/EventBus.java:6894[key:active]",
+          "value": "literal:true",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 30,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:6719",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+              "line": 161,
+              "column": 40
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:java:org.greenrobot.eventbus::Subscription[key:subscriber]",
+          "value": "parameter:EventBus/src/org/greenrobot/eventbus/Subscription.java:1034:subscriber",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 28,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/Subscription.java:1034",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:java:org.greenrobot.eventbus::Subscription[key:subscriberMethod]",
+          "value": "parameter:EventBus/src/org/greenrobot/eventbus/Subscription.java:1034:subscriberMethod",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 29,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/Subscription.java:1034",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:java:org.greenrobot.eventbus::Subscription[key:active]",
+          "value": "literal:true",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/Subscription.java",
+            "line": 30,
+            "column": 9
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/Subscription.java:1034",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "parameter:EventBus/src/org/greenrobot/eventbus/EventBus.java:21570:subscription[key:subscriberMethod][key:method]",
+          "value": "unknown:",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:21570",
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "receiver:java:org.greenrobot.eventbus::Subscription[key:subscriberMethod][key:method]",
+          "value": "unknown:",
+          "location": {
+            "path": "EventBus/src/org/greenrobot/eventbus/EventBus.java",
+            "line": 517,
+            "column": 13
+          },
+          "function": "EventBus/src/org/greenrobot/eventbus/EventBus.java:21570",
+          "conditions": [
+            "callable_receiver_required",
+            "control_flow_unproven",
+            "explicit_store_projection",
+            "receiver_dispatch_instance_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "php-priority-listener",
+      "language": "php",
+      "repository": "event-dispatcher",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "EventDispatcher.php",
+        141,
+        145
+      ],
+      "invocation": [
+        "EventDispatcher.php",
+        235,
+        235
+      ],
+      "store_facts": [
+        {
+          "kind": "store",
+          "target": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][parameter:EventDispatcher.php:4310:$eventName][parameter:EventDispatcher.php:4310:$priority][dynamic_key:EventDispatcher.php:4310:4422]",
+          "value": "parameter:EventDispatcher.php:4310:$listener",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "function": "EventDispatcher.php:4310",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:6269:$eventName][parameter:EventDispatcher.php:4310:$priority][dynamic_key:EventDispatcher.php:4310:4422]",
+          "value": "allocation:EventDispatcher.php:6515",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "function": "EventDispatcher.php:6269",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventDispatcher.php",
+              "line": 191,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:6269:$eventName][unresolved:EventDispatcher.php:6269:$params[key:priority]][dynamic_key:EventDispatcher.php:4310:4422]",
+          "value": "allocation:EventDispatcher.php:6637",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "function": "EventDispatcher.php:6269",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventDispatcher.php",
+              "line": 193,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:6269:$eventName][unresolved:EventDispatcher.php:6269:$params[literal:1]][dynamic_key:EventDispatcher.php:4310:4422]",
+          "value": "allocation:EventDispatcher.php:6793",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "function": "EventDispatcher.php:6269",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventDispatcher.php",
+              "line": 195,
+              "column": 17
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "store",
+          "target": "receiver:php:Symfony\\Component\\EventDispatcher::EventDispatcher[key:listeners][unresolved:EventDispatcher.php:6269:$eventName][choice(unresolved:EventDispatcher.php:6269:$listener[key:priority]|unresolved:EventDispatcher.php:6269:$listener[literal:1])][dynamic_key:EventDispatcher.php:4310:4422]",
+          "value": "allocation:EventDispatcher.php:6959",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 143,
+            "column": 9
+          },
+          "function": "EventDispatcher.php:6269",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventDispatcher.php",
+              "line": 198,
+              "column": 21
+            }
+          ],
+          "argument_index": null
+        }
+      ],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "unresolved:EventDispatcher.php:8120:$listener",
+          "value": "unknown:",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 235,
+            "column": 13
+          },
+          "function": "EventDispatcher.php:1393",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "EventDispatcher.php",
+              "line": 58,
+              "column": 13
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:EventDispatcher.php:8120:$listener",
+          "value": "unknown:",
+          "location": {
+            "path": "EventDispatcher.php",
+            "line": 235,
+            "column": 13
+          },
+          "function": "EventDispatcher.php:8120",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "repository": "monix",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        66,
+        80
+      ],
+      "invocation": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        111,
+        125
+      ],
+      "store_facts": [],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "result:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3125[key:refresh][key:cache]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 117,
+            "column": 24
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+              "line": 99,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:NonFatal",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 28
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+              "line": 99,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:Future[key:failed]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 44
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+              "line": 99,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:Future[key:failed]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 44
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [
+            {
+              "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+              "line": 99,
+              "column": 9
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3125[key:cache]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 117,
+            "column": 24
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3072",
+          "conditions": [
+            "callee_summary_applied",
+            "control_flow_unproven"
+          ],
+          "via": [
+            {
+              "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+              "line": 102,
+              "column": 7
+            }
+          ],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "parameter:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:subscribers",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 117,
+            "column": 24
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:NonFatal",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 28
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:Future[key:failed]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 44
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "unresolved:monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745:Future[key:failed]",
+          "value": "unknown:",
+          "location": {
+            "path": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+            "line": 125,
+            "column": 44
+          },
+          "function": "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala:3745",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    },
+    {
+      "id": "swift-bag-observer",
+      "language": "swift",
+      "repository": "rxswift",
+      "status": "unresolved",
+      "semantic_kind": "callback",
+      "storage": [
+        "RxSwift/Subjects/PublishSubject.swift",
+        97,
+        109
+      ],
+      "invocation": [
+        "RxSwift/Extensions/Bag+Rx.swift",
+        12,
+        27
+      ],
+      "store_facts": [],
+      "consumer_facts": [
+        {
+          "kind": "invoke",
+          "target": "parameter:RxSwift/Extensions/Bag+Rx.swift:161:bag[key:_value0]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 13,
+            "column": 5
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:RxSwift/Extensions/Bag+Rx.swift:161:bag[key:_value0]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 13,
+            "column": 5
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "parameter:RxSwift/Extensions/Bag+Rx.swift:161:bag[key:_pairs]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 21,
+            "column": 9
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "parameter:RxSwift/Extensions/Bag+Rx.swift:161:bag[key:_pairs]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 21,
+            "column": 9
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "result:RxSwift/Extensions/Bag+Rx.swift:409[key:value]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 21,
+            "column": 9
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "member_invoke",
+          "target": "result:RxSwift/Extensions/Bag+Rx.swift:409[key:value]",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 21,
+            "column": 9
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven",
+            "method_dispatch_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        },
+        {
+          "kind": "invoke",
+          "target": "unresolved:RxSwift/Extensions/Bag+Rx.swift:161:element",
+          "value": "unknown:",
+          "location": {
+            "path": "RxSwift/Extensions/Bag+Rx.swift",
+            "line": 26,
+            "column": 13
+          },
+          "function": "RxSwift/Extensions/Bag+Rx.swift:161",
+          "conditions": [
+            "control_flow_unproven"
+          ],
+          "via": [],
+          "argument_index": null
+        }
+      ],
+      "implementation_sha256": {
+        "analyze.py": "18171cd49a05be800f1a7f1210c234f8d7d153daffff475c96ad5af07899c421",
+        "engine.py": "149fe7c3bd6b40a3ba3b860b7e8c7c490da9bc97ba85af58e6d8c224f0c3c269",
+        "evaluate.py": "9b6a3c647350cd6f6ab40cc642d54bfda3f5b0323ac5dcd1464dce5446caf699",
+        "language-corpus/analyze_languages.py": "d5a24d811a435d4eabbb67e69dbbb0d75fde0c7bb8095849ad91d9ad47cee46f",
+        "language-corpus/assembly.py": "b1eaaadb4a7e496ddedac77c4cad76f9d02797d09e4aab8fcc700bd3dfa42d2c",
+        "language-corpus/grammars.py": "bd74dc2a1c0e88595377a87f14c2ec8535443ea6706f83051d57f5a7fb7498ef",
+        "language-corpus/manage.py": "aae8ce2a4e668bbee7a75a684b7d59b54bc076b7cec25b86097efab880dec36e",
+        "language-corpus/polyglot.py": "4cb190d1e84e990ad0dd333a50e09c89ae6de6a47da5d0fc961d46eb3ada8a3a",
+        "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+        "model.py": "4f4a2a6a57565c8143852a7d24ac1439df1dab6f28a9fed112ccafc671abeca9",
+        "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+        "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+        "syntax.py": "35588b18ade5fd6926813b3a5ba4774b790d1aabb6bdac9ec2cf4c8aae1be332"
+      }
+    }
+  ]
+}

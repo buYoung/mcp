@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
+  "cases": [
+    {
+      "id": "ls_mesh_queue_internal_write",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        197,
+        197
+      ],
+      "relation_kinds": [
+        "stored_object_write"
+      ],
+      "reason": "Map에 저장한 queue 객체의 내부 tail 배열 쓰기. payload 읽기나 전달 완료를 뜻하지 않는다.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651"
+      }
+    },
+    {
+      "id": "ls_mesh_queue_internal_read",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        425,
+        452
+      ],
+      "relation_kinds": [
+        "stored_object_read"
+      ],
+      "reason": "Map에 저장한 queue 객체에서 원소 배열을 반환하는 추가 소비 지점. 아직 자동 연결 미완성.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651"
+      }
+    },
+    {
+      "id": "ls_rpc_client_lookup",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        90,
+        90
+      ],
+      "relation_kinds": [
+        "stored_key_lookup"
+      ],
+      "reason": "requestClientMap에서 읽은 clientId가 clientWrites의 조회 키로 사용되는 지점. clientId는 호출 가능한 값이 아니다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
+      }
+    },
+    {
+      "id": "effect_rpc_handler_control",
+      "input_variant": "livestore-effect",
+      "kind": "positive",
+      "storage": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        101,
+        101
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        92,
+        92
+      ],
+      "relation_kinds": [
+        "storage_to_invocation"
+      ],
+      "reason": "Effect 내부 clientWrites 등록과 handler 호출만의 양성 대조. LiveStore clientId 전달 전체의 증거가 아니다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f"
+      }
+    },
+    {
+      "id": "no_queue_to_rpc_lookup",
+      "input_variant": "livestore-effect",
+      "kind": "negative",
+      "storage": [
+        "packages/@livestore/webmesh/src/node.ts",
+        609,
+        609
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        90,
+        90
+      ],
+      "relation_kinds": [],
+      "reason": "Queue 객체를 RPC의 clientId 키와 혼합하지 않는다.",
+      "source_sha256": {
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f"
+      },
+      "positive_control": "ls_mesh_queue_internal_write"
+    },
+    {
+      "id": "no_rpc_client_to_queue_write",
+      "input_variant": "livestore-effect",
+      "kind": "negative",
+      "storage": [
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        179,
+        187
+      ],
+      "invocation": [
+        "__dependencies__/effect/src/MutableList.ts",
+        197,
+        197
+      ],
+      "relation_kinds": [],
+      "reason": "clientId 저장을 Queue 내부 객체 쓰기와 혼합하지 않는다.",
+      "source_sha256": {
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
+      },
+      "positive_control": "ls_mesh_queue_internal_write"
+    }
+  ]
+}
