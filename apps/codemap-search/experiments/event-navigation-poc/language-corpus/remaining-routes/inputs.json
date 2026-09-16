@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "variants": {
     "bevy-modules": {
       "repository": "bevy",
@@ -46,7 +46,26 @@
         "crates/bevy_app/src/app.rs",
         "crates/bevy_ecs/src/change_detection/mod.rs",
         "crates/bevy_ecs/src/change_detection/params.rs",
-        "crates/bevy_ecs/src/change_detection/traits.rs"
+        "crates/bevy_ecs/src/change_detection/traits.rs",
+        "crates/bevy_ptr/src/lib.rs",
+        "crates/bevy_ecs/src/bundle/mod.rs",
+        "crates/bevy_ecs/src/bundle/impls.rs",
+        "crates/bevy_ecs/src/bundle/info.rs",
+        "crates/bevy_ecs/src/bundle/spawner.rs",
+        "crates/bevy_ecs/src/component/mod.rs",
+        "crates/bevy_ecs/src/component/info.rs",
+        "crates/bevy_ecs/src/component/register.rs",
+        "crates/bevy_ecs/src/resource.rs",
+        "crates/bevy_ecs/src/storage/mod.rs",
+        "crates/bevy_ecs/src/storage/sparse_set.rs",
+        "crates/bevy_ecs/src/storage/table/mod.rs",
+        "crates/bevy_ecs/src/storage/table/column.rs",
+        "crates/bevy_ecs/src/storage/blob_array.rs",
+        "crates/bevy_ecs/src/storage/thin_array_ptr.rs",
+        "crates/bevy_ecs/macro_logic/src/lib.rs",
+        "crates/bevy_ecs/macro_logic/src/component.rs",
+        "crates/bevy_ecs/macros/src/lib.rs",
+        "crates/bevy_ecs/macros/src/resource.rs"
       ],
       "support_paths": [],
       "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
@@ -92,14 +111,36 @@
         "crates/bevy_app/src/app.rs": "a78beb379b6c2a10f0cac9ef5efb2e14cf49f61d6321ee2f385070078b8d8f7f",
         "crates/bevy_ecs/src/change_detection/mod.rs": "ba50b6bb5b084ab5e3d3b7c5ea6984c4543e4ee7ddfc5bf21e07ec77dd9d4d65",
         "crates/bevy_ecs/src/change_detection/params.rs": "a2c0a8042b2787d4420d5173405415b2597ffd59efd10d6d21b7955bbc65e013",
-        "crates/bevy_ecs/src/change_detection/traits.rs": "b7a681b75374ac82372d73e50ddd966e3f7f1f917085dde0a944757431d28a3b"
+        "crates/bevy_ecs/src/change_detection/traits.rs": "b7a681b75374ac82372d73e50ddd966e3f7f1f917085dde0a944757431d28a3b",
+        "crates/bevy_ptr/src/lib.rs": "f622b6ed7f90ee5c995bd73431d33a922c3db16ac7bd7717530851a5c5654e80",
+        "crates/bevy_ecs/src/bundle/mod.rs": "3aff7960426ee10803c9eae0f9723cce29c60acc90eb11f1f17d7247166cf3eb",
+        "crates/bevy_ecs/src/bundle/impls.rs": "d2f11c4113139490cd6c57d85c54f16dee87366e7b4cea81127d21621f9eb8d3",
+        "crates/bevy_ecs/src/bundle/info.rs": "5f7cdc5924c514434b2198bb7d79de01e59b65c9b41e319a6fc553ae806cca2c",
+        "crates/bevy_ecs/src/bundle/spawner.rs": "55d2d14dadb12daf3bd9ade2592efc639cb5a74a97fef3a1010642c006a55375",
+        "crates/bevy_ecs/src/component/mod.rs": "126e555fe3f90e6684b9b1ce6d174abbd1b86f18e4a227f63146a5d7516f3f91",
+        "crates/bevy_ecs/src/component/info.rs": "c08808911223a84058c3c2f8635078d5b072a8ace1e8de7c2c9252ab0550eed6",
+        "crates/bevy_ecs/src/component/register.rs": "bc582ad38950887d20bb22ad197b2d909abe95aa048bfb7ba79438d4b424b2f6",
+        "crates/bevy_ecs/src/resource.rs": "c189d355b7aa30ad8a257f44d1abff8ed142739cbe6ebb7ed0f658dbb99297b6",
+        "crates/bevy_ecs/src/storage/mod.rs": "481acd790e767b56057d088b9e9d0b3957f292f80b1f364bf745470db1016f46",
+        "crates/bevy_ecs/src/storage/sparse_set.rs": "71c19ab6d34ab94d7e750feb9986f8c433bdc103d55997bed06e98ea80ef8426",
+        "crates/bevy_ecs/src/storage/table/mod.rs": "72f0ea728c07d3a536584ec620da149dc87e2b0fb66a97044d346b347041eee1",
+        "crates/bevy_ecs/src/storage/table/column.rs": "83fe41abd9566b3326ae5e0c3c3bf1c4c17f17d7a5a76a3e98d454b59f5d77a9",
+        "crates/bevy_ecs/src/storage/blob_array.rs": "e682a27381036422d2e2e29dbcb4441a98ddb9e40429b7fab9e6c2763155b455",
+        "crates/bevy_ecs/src/storage/thin_array_ptr.rs": "278b34671b80e6927b8471f46748705f853a95a41b5b3b62aa42f3fb170f0e9d",
+        "crates/bevy_ecs/macro_logic/src/lib.rs": "3fe5871e0977d812852286572916de283f32d99a93d2f52c74a3d9b7858701fc",
+        "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
+        "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
+        "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0"
       },
       "module_bindings": {
         "bevy_ecs": "crates/bevy_ecs/src/lib.rs",
         "bevy_gltf": "crates/bevy_gltf/src/lib.rs",
         "bevy": "src/lib.rs",
         "bevy_internal": "crates/bevy_internal/src/lib.rs",
-        "bevy_app": "crates/bevy_app/src/lib.rs"
+        "bevy_app": "crates/bevy_app/src/lib.rs",
+        "bevy_ptr": "crates/bevy_ptr/src/lib.rs",
+        "bevy_ecs_macros": "crates/bevy_ecs/macros/src/lib.rs",
+        "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs"
       }
     },
     "monix-jvm-scala2": {
@@ -291,7 +332,9 @@
         "packages/@livestore/webmesh/src/node.ts",
         "packages/@livestore/utils/src/effect/Effect.ts",
         "packages/@livestore/utils/src/effect/Stream.ts",
-        "__dependencies__/effect/src/internal/core.ts"
+        "__dependencies__/effect/src/internal/core.ts",
+        "__dependencies__/effect/src/Utils.ts",
+        "__dependencies__/effect/src/Effectable.ts"
       ],
       "support_paths": [],
       "source_sha256": {
@@ -315,7 +358,9 @@
         "__dependencies__/effect/src/Context.ts": "462c2a6123486d1c31f3b6096c0bc456e999e03722dd0d8f5df5065c69210a4b",
         "packages/@livestore/utils/src/effect/Effect.ts": "d97a02abf413d72af34ec137adf79086415e5a83f6bc7bdc0ed2a15d3b12cb59",
         "packages/@livestore/utils/src/effect/Stream.ts": "b9df00d2517c8bbbd0659e9204b7c3a75a678f71f4ef831599f41cdd260bf0cd",
-        "__dependencies__/effect/src/internal/core.ts": "d0460d029f035623e8c8080889a2b42106c8d955f62a1b14a7d63a2c93365c27"
+        "__dependencies__/effect/src/internal/core.ts": "d0460d029f035623e8c8080889a2b42106c8d955f62a1b14a7d63a2c93365c27",
+        "__dependencies__/effect/src/Utils.ts": "ad096dfaf56fa6d8a4a2839a9482fc58c2e05cc5ebc2c5d8a898ec880f571d42",
+        "__dependencies__/effect/src/Effectable.ts": "70bbe79fcebd4e1b7d7a80c371d8e34a7bb8c9ecd06249145a3423528bcd7d1c"
       },
       "origins": {
         "packages/@livestore/livestore/src/reactive.ts": {
@@ -401,6 +446,14 @@
         "__dependencies__/effect/src/internal/core.ts": {
           "dependency": "effect-4.0.0-rc.113",
           "path": "src/internal/core.ts"
+        },
+        "__dependencies__/effect/src/Utils.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Utils.ts"
+        },
+        "__dependencies__/effect/src/Effectable.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Effectable.ts"
         }
       },
       "module_bindings": {
@@ -413,5 +466,5 @@
       "dependency_lock": "effect-source.lock.json"
     }
   },
-  "previous_lock": "history/inputs-v4.json"
+  "previous_lock": "history/inputs-v5.json"
 }

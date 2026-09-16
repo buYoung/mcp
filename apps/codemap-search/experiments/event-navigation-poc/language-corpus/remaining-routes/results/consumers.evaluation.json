@@ -2,7 +2,7 @@
   "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
   "cases_lock_sha256": "b5a54b8334a5c01bc1a13b609021aa5c23abe198a41cce0c893f877263d6ac50",
   "analysis_sha256": {
-    "livestore-effect": "9c737ed371153344133992528fc62c3d3c32ea522238f7c75bf2e0da484f6a8d"
+    "livestore-effect": "d4b5e4087369a47a3d6fcbb2635fa60bf9eb711b1f706e97dbb35b022df6b030"
   },
   "target_programs_executed": false,
   "statuses": {
@@ -35,8 +35,8 @@
         "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651"
       },
       "status": "conditional_data_consumption",
-      "matching_relations": 1,
-      "selected_relations": 1,
+      "matching_relations": 2,
+      "selected_relations": 2,
       "evidence": [
         {
           "kind": "stored_object_write",
@@ -118,6 +118,112 @@
             "stored_value_unresolved"
           ],
           "mutations": []
+        },
+        {
+          "kind": "stored_object_write",
+          "certainty": "conditional_source_relation",
+          "identity_scope": "allocation_or_global_context",
+          "concrete_instance_proven": false,
+          "event_classification": "not_inferred",
+          "storage": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
+            "location": {
+              "path": "packages/@livestore/webmesh/src/node.ts",
+              "line": 609,
+              "column": 11
+            },
+            "function": "packages/@livestore/webmesh/src/node.ts:598:20",
+            "conditions": [
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "invocation": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]][key:messages][key:tail][key:array][element:*]",
+            "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue[key:state][key:offers][element:*][key:message]",
+            "location": {
+              "path": "__dependencies__/effect/src/MutableList.ts",
+              "line": 197,
+              "column": 3
+            },
+            "function": "__dependencies__/effect/src/MutableList.ts:190:23",
+            "conditions": [
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2063",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2065",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2067",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2147",
+              "conditional_control:__dependencies__/effect/src/Queue.ts:2148",
+              "declared_argument_type_required",
+              "enclosing_callable_execution_unproven",
+              "explicit_stored_value_binding",
+              "generic_type_constraints_unproven",
+              "initializer_value_unresolved",
+              "iteration_may_be_empty",
+              "prototype_method_execution_required",
+              "source_callable_argument_binding",
+              "source_constructor_prototype_binding"
+            ],
+            "via": [
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 2149,
+                "column": 7
+              },
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 2069,
+                "column": 5
+              },
+              {
+                "path": "__dependencies__/effect/src/Queue.ts",
+                "line": 1437,
+                "column": 5
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 989,
+                "column": 12
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 988,
+                "column": 3
+              },
+              {
+                "path": "packages/@livestore/webmesh/src/node.ts",
+                "line": 609,
+                "column": 11
+              }
+            ],
+            "argument_index": null
+          },
+          "conditions": [
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2063",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2065",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2067",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2147",
+            "conditional_control:__dependencies__/effect/src/Queue.ts:2148",
+            "declared_argument_type_required",
+            "enclosing_callable_execution_unproven",
+            "explicit_stored_value_binding",
+            "generic_type_constraints_unproven",
+            "initializer_value_unresolved",
+            "iteration_may_be_empty",
+            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]",
+            "multiple_storage_writes_present",
+            "object_write_only_not_callback_execution",
+            "prototype_method_execution_required",
+            "registration_and_call_order_unproven",
+            "same_allocation_instance_required",
+            "source_callable_argument_binding",
+            "source_constructor_prototype_binding",
+            "stored_value_unresolved"
+          ],
+          "mutations": []
         }
       ]
     },
@@ -148,7 +254,7 @@
         "returned_value_only_not_callback_execution"
       ],
       "status": "conditional_data_consumption",
-      "matching_relations": 1,
+      "matching_relations": 4,
       "selected_relations": 1,
       "evidence": [
         {

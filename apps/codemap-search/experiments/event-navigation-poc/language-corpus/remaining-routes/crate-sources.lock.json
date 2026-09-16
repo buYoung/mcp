@@ -30,6 +30,24 @@
       "source": "crates/bevy_app/src/lib.rs",
       "manifest": "crates/bevy_app/Cargo.toml",
       "manifest_sha256": "8ec5b5ed51771b0228b2be463b567de907bda18d652ac740e5935e4ccc0684b8"
+    },
+    {
+      "crate": "bevy_ptr",
+      "source": "crates/bevy_ptr/src/lib.rs",
+      "manifest": "crates/bevy_ptr/Cargo.toml",
+      "manifest_sha256": "152decc4d9c4624fae6e7b851fa31063d7108f75a2fc8eaa4881a1e5b0733073"
+    },
+    {
+      "crate": "bevy_ecs_macros",
+      "source": "crates/bevy_ecs/macros/src/lib.rs",
+      "manifest": "crates/bevy_ecs/macros/Cargo.toml",
+      "manifest_sha256": "d332e05bce637f0887e21aa64c86d88ca6bda310286c151f487f1b716866c1d4"
+    },
+    {
+      "crate": "bevy_ecs_macro_logic",
+      "source": "crates/bevy_ecs/macro_logic/src/lib.rs",
+      "manifest": "crates/bevy_ecs/macro_logic/Cargo.toml",
+      "manifest_sha256": "5253b58fdc8be948625360f389e4f83dacb25cfebf646bbfd9a49de2db030415"
     }
   ]
 }

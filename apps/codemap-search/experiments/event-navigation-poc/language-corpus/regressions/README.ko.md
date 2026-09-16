@@ -1,6 +1,6 @@
 # 18개 언어 미탐지 구문 보완 결과
 
-2026-09-16에 앞서 제시한 **미탐지 예시 18개를 모두 저장 지점에서 최종 호출까지 연결했다.** 기존 탐지 예시 18개도 유지됐다. 체크포인트 이후 사례를 단계적으로 추가해 현재 **201사례가 모두 통과**했다. 대상 프로그램을 실행한 결과가 아닌 조건부 소스 관계다. 확장 입력까지 포함한 공개 결과는 호출 후보 31·자료 반환 1·인자 전달 2·미확정 3다. [전체 보고서](../README.ko.md)와 [잔여 경로 보완 결과](../remaining-routes/README.ko.md)에 범위·실패 분석·한계를 기록했다.
+2026-09-16에 앞서 제시한 **미탐지 예시 18개를 모두 저장 지점에서 최종 호출까지 연결했다.** 기존 탐지 예시 18개도 유지됐다. 체크포인트 이후 사례를 단계적으로 추가해 현재 **234사례가 모두 통과**했다. 대상 프로그램을 실행한 결과가 아닌 조건부 소스 관계다. 확장 입력까지 포함한 공개 결과는 호출 후보 31·자료 반환 1·인자 전달 2·미확정 3다. [전체 보고서](../README.ko.md)와 [잔여 경로 보완 결과](../remaining-routes/README.ko.md)에 범위·실패 분석·한계를 기록했다.
 
 ## 비교 기준과 결과
 
@@ -10,22 +10,24 @@
 | --- | ---: | --- |
 | 기존 탐지 예시 | 18 | 18개 탐지 유지 |
 | 기존 미탐지 예시 | 18 | 18개 최종 호출까지 조건부 탐지 |
-| 추가 호출 양성 대조 | 67 | 67개 조건부 호출 탐지 |
+| 추가 호출 양성 대조 | 85 | 85개 조건부 호출 탐지 |
 | 자료 반환 양성 대조 | 3 | 3개 조건부 반환, 호출과 별도 집계 |
 | 자료 소비 양성 대조 | 4 | 객체 쓰기·읽기·조회 키 소비, 호출과 별도 집계 |
-| 구조적 오연결 반례 | 87 | 87개 무연결, 같은 종류의 지정 양성 대조도 통과 |
-| 미확정 유지 대조 | 4 | 해석 근거가 부족한 경로를 연결하지 않음 |
-| 합계 | 201 | 201개 기대 결과 충족, 파싱 오류 0 |
+| 구조적 오연결 반례 | 98 | 98개 무연결, 같은 종류의 지정 양성 대조도 통과 |
+| 미확정 유지 대조 | 8 | 해석 근거가 부족한 경로를 연결하지 않음 |
+| 합계 | 234 | 234개 기대 결과 충족, 파싱 오류 0 |
 
-원문은 99파일이며 C·TypeScript·Rust의 여러 파일과 Scala/Java 혼합 소스를 함께 분석하는 사례를 포함해 분석 프로세스는 91개다. 수치는 정의한 소스 쌍의 수다. 여러 관계 후보가 한 쌍에 나와도 사례 하나로 집계한다. `stored_value_argument`나 `stored_value_return`만 있는 경우 최종 호출 탐지로 인정하지 않는다. 자료 반환은 `semantic_kind=data_return`, 객체 쓰기·조회 키 소비는 `semantic_kind=data_consumption`으로 관계 종류와 끝점을 별도로 대조한다. 반례는 연결이 없더라도 지정 양성 대조가 실패하면 통과하지 못한다.
+원문은 105파일이며 C·TypeScript·Rust의 여러 파일과 Scala/Java 혼합 소스를 함께 분석하는 사례를 포함해 분석 프로세스는 97개다. 수치는 정의한 소스 쌍의 수다. 여러 관계 후보가 한 쌍에 나와도 사례 하나로 집계한다. `stored_value_argument`나 `stored_value_return`만 있는 경우 최종 호출 탐지로 인정하지 않는다. 자료 반환은 `semantic_kind=data_return`, 객체 쓰기·조회 키 소비는 `semantic_kind=data_consumption`으로 관계 종류와 끝점을 별도로 대조한다. 반례는 연결이 없더라도 지정 양성 대조가 실패하면 통과하지 못한다.
 
 후속 29개는 C++ 생성자·포인터 별칭 4개, C# atomic·getter 2개, Java reflection 2개, PHP 참조 cache·callable 생성 2개, Swift 제네릭 Bag 2개, Rust source-backed Deref·고유 메서드 4개, TypeScript object spread·속성·import·별도 binding 13개다. 기존 111사례와 원본 예시를 유지했고 새 사례만 추가했다.
 
 165사례 단계에서 추가한 25개는 Rust 모듈·데이터 반환 6개, Scala State/copy·Array 6개, TypeScript 모듈·캡처 4개, 사실 한도 2개, 타입 구문 복구 5개, static 분리 2개다. 기존 140사례의 기대값·원문을 변경하지 않았다. [이전 단계 보존본](../remaining-routes/baseline/manifest.json)과 [현재 검증](../remaining-routes/verification.json)에서 대조할 수 있다.
 
-이번에는 TypeScript 반환 closure·call/apply·prototype와 모듈 예산·데이터 소비 18개, Scala implicit·Java VarHandle·Set 복사 값 8개, Rust Box·Some pattern·이름 가림 5개로 **31사례**를 더했다. 서로 다른 prototype 생성 환경, final 필드·잘못된 필드 타입, generic Box 가림을 검사한다. Set 복사는 같은 위치의 기존 원소와 새 원소를 구분하고 새 매개변수 값이 최종 관계에 남는지 확인한다. [직전 165사례 보존본](../remaining-routes/history/165-cases/manifest.json)을 그대로 유지했다.
+196사례 단계에서는 TypeScript 반환 closure·call/apply·prototype와 모듈 예산·데이터 소비 18개, Scala implicit·Java VarHandle·Set 복사 값 8개, Rust Box·Some pattern·이름 가림 5개로 **31사례**를 더했다. 서로 다른 prototype 생성 환경, final 필드·잘못된 필드 타입, generic Box 가림을 검사한다. Set 복사는 같은 위치의 기존 원소와 새 원소를 구분하고 새 매개변수 값이 최종 관계에 남는지 확인한다. [직전 165사례 보존본](../remaining-routes/history/165-cases/manifest.json)을 그대로 유지했다.
 
 이어서 namespace 안의 배열 타입과 중첩 타입 해석 5사례를 추가했다. 한 파일에 이름이 같은 타입이 있어도 namespace를 구분하고, 여러 객체 타입이 섞인 union에서 하나를 임의 선택하지 않는다. 이 변경 직전의 [196사례 검증 보존본](../remaining-routes/history/196-cases/manifest.json)도 남겼다.
+
+201사례 상태를 `33efda1f7`에 먼저 커밋한 후 33개를 추가했다. Rust 포인터 기원·tuple struct·TypeId 키와 이름 가림 20개, TypeScript generator 재개·완료·native yield 위임 11개와 배열 pop 2개다. 새 양성 18개는 `storage_to_invocation`과 필수 조건을 원시 결과에서 대조한다. 다른 객체·Map·타입·generator·배열과 정수 주소, 미해석 타입 인자와 iterator 위임을 구분한다. generator는 직선형 본문과 확인된 native generator 위임을 지원하며, 일반 Effect iterator 실행기나 Bevy component 저장소 전체를 해석하지 않는다.
 
 ## 언어별로 무엇을 고쳤는가
 
@@ -58,7 +60,7 @@
 
 다른 필드·event·전역·테이블·튜플 위치·캡처 receiver를 구분했다. Java는 `toString()`을 함수형 인터페이스 호출로 간주하지 않으며, C++는 호출되지 않은 lambda 본문을 연결하지 않는다. Ruby의 사용자 조회 함수가 다른 필드를 반환할 때는 그 반환 경로만 연결했다. JavaScript·Python은 지역/모듈 이름 가림, Go는 import 가림, Rust는 사용자 Box를 대조했다.
 
-미확정 유지 4개는 C의 매개변수가 전역 이름을 가리는 경우, PHP의 런타임 property 이름, Python·JavaScript에서 조회 이후 선언된 지역 이름의 범위다. 이 사례들은 무연결이 증명됐다는 통계로 합치지 않는다. C# 제거는 `removal_may_prevent_call` 조건의 보존을 검사하며 실제 구독 해제 이후 호출 여부를 실행 검증한 것으로 주장하지 않는다.
+미확정 유지 8개는 기존 C 매개변수의 전역 이름 가림, PHP 런타임 property 이름, Python·JavaScript의 뒤늦은 지역 선언 4개와 Rust의 미해석 TypeId 인자, generator의 미확인 iterator 위임·분기 안의 조기 return·throw 4개다. 이 사례들은 무연결이 증명됐다는 통계로 합치지 않는다. C# 제거는 `removal_may_prevent_call` 조건의 보존을 검사하며 실제 구독 해제 이후 호출 여부를 실행 검증한 것으로 주장하지 않는다.
 
 ## 여전히 제한되는 범위
 

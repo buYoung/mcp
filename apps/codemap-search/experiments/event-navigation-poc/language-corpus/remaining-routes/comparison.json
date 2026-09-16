@@ -18,8 +18,8 @@
   },
   "supplemental_variants": {
     "bevy-modules": {
-      "files": 42,
-      "input_bytes": 1265441,
+      "files": 61,
+      "input_bytes": 1689535,
       "max_file_bytes": 524288,
       "statuses": {
         "unresolved": 3,
@@ -52,7 +52,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "ed2b107c96412caad917c97ef8e9feec01d685141293ccdf6fe95a0596ec0411"
+      "analysis_sha256": "f8647085e4fae867bd178093da606c38474bc56ba3a4d12ac64d31080ca5731b"
     },
     "monix-jvm-scala2": {
       "files": 15,
@@ -76,7 +76,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "6e57710cdf23063bf7a0c39470b523eed5925f7205293e5dc3508bd78b66ccc0"
+      "analysis_sha256": "84cd5647283c5e91a78fd53df9f1757c4cddaf5683154d099e5a0c73a0ea31cc"
     },
     "monix-jvm-scala3": {
       "files": 13,
@@ -100,7 +100,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "1fd14d35d0f5f744b3ba4ffc005211891884c8f300157ffebfdc7e6df1e1c8a7"
+      "analysis_sha256": "1635645813661b31ee47d73d54e29995252f0139860f5c7f5dafbe985aa327a8"
     },
     "monix-js-scala2": {
       "files": 8,
@@ -124,7 +124,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "3fabfa03b70f6591db74db72d4d0834babce7bd6f2e7b34db19dbccf41abb413"
+      "analysis_sha256": "56e5900b38e52301492650e673c1f131d8906c1ea6d1029a4d7b5169797967b4"
     },
     "monix-js-scala3": {
       "files": 6,
@@ -148,11 +148,11 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "0e6890044d92cbaceefa02c04e4d0c3e72f24e0480697f4dbfade9613c4aece8"
+      "analysis_sha256": "f6a76432d6c00af6e904d6cbedd6e8dc3e6563e2e16725ee4e2159d2d40f5d80"
     },
     "livestore-effect": {
-      "files": 21,
-      "input_bytes": 2409558,
+      "files": 23,
+      "input_bytes": 2420495,
       "max_file_bytes": 1048576,
       "statuses": {
         "conditional_candidate": 3,
@@ -197,7 +197,7 @@
           "status": "correctly_unjoined_with_positive_control"
         }
       ],
-      "analysis_sha256": "9c737ed371153344133992528fc62c3d3c32ea522238f7c75bf2e0da484f6a8d"
+      "analysis_sha256": "d4b5e4087369a47a3d6fcbb2635fa60bf9eb711b1f706e97dbb35b022df6b030"
     }
   },
   "combined_public_positive_statuses": {

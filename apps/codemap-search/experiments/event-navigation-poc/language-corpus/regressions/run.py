@@ -76,6 +76,8 @@ def main() -> int:
                                  for relation in result["relations"])
         positives = (consumed if case.get("semantic_kind") == "data_consumption" else
                      returned if case.get("semantic_kind") == "data_return" else calls)
+        if case.get("relation_kinds"):
+            positives = [relation for relation in positives if relation["kind"] in case["relation_kinds"]]
         is_expected = bool(positives) if case["expected"] == "connected" else not matches
         if case.get("required_conditions"):
             is_expected = is_expected and any(set(case["required_conditions"]).issubset(relation["conditions"]) for relation in positives)

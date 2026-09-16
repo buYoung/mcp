@@ -173,6 +173,8 @@ def match_storage(stored: Value, called: Value) -> tuple[str, ...] | None:
     if left_root.kind == "binding":
         conditions.extend(("same_lexical_value_binding_required", "initializer_value_unresolved"))
     for index, (left, right) in enumerate(zip(left_keys, right_keys)):
+        if left.kind == "opaque_key" or right.kind == "opaque_key":
+            return None
         if left == right:
             if left.kind == "element":
                 conditions.append("collection_membership_required")

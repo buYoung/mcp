@@ -10,6 +10,8 @@ import re
 
 from model import ELEMENT, MAP_ENTRIES, MAP_KEYS, UNKNOWN, Consumer, Fact, Summary, Value, match_storage, merge_values, referenced_values, slot, split_path, substitute, tuple_value, tuple_values, value_options
 from syntax import CLASSES, FUNCTIONS, IDENTIFIERS, Function, Program, child, container_kind, element_type, lexical_bindings, scoped_type_name, walk
+from rust_values import pointer_call, pointer_cast, pointer_dereference, type_id_call
+from js_generators import GENERATOR_NODES, create_generator, generator_call
 
 
 MAX_FACTS_PER_FUNCTION = 192
@@ -50,6 +52,7 @@ class Analyzer:
         self.literal_fields = {}
         self.prototypes = {}
         self.argument_type_hints = {}
+        self.generator_frames = {}
         self.sources = {source.path: source for source in program.sources}
 
     def kind(self, value: Value, source) -> str:
@@ -193,6 +196,7 @@ class Analyzer:
     def run(self) -> list[Fact]:
         stable = False
         for iteration in range(MAX_SUMMARY_PASSES):
+            self.generator_frames = {}
             previous = self.summaries
             previous_module_facts = self.module_facts
             self.module_facts = []
@@ -897,6 +901,11 @@ class Interpreter:
             if field_node is None and len(node.named_children) > 1:
                 field_node = node.named_children[-1]
             base = expr(base_node)
+            if base.kind == "wrapper" and base.name == "javascript:iterator_result":
+                if self.text(field_node) == "value":
+                    return base.base
+                if self.text(field_node) == "done":
+                    return base.key
             if base.kind == "tuple" or base.kind == "tuple_end":
                 if self.text(field_node) == "length":
                     return Value("literal", str(len(tuple_values(base))))
@@ -946,7 +955,31 @@ class Interpreter:
             part = child(node, "argument") or child(node, "value") or child(node, "expression") or child(node, "function")
             if part is None and node.named_children:
                 part = node.named_children[0]
+            if self.source.language == "rust" and kind == "try_expression":
+                value = expr(part)
+                if value.kind == "wrapper" and value.name == "rust:option":
+                    self.conditions += ("option_some_required",)
+                    return value.base
+                return value
+            if self.source.language == "rust" and kind == "unary_expression" and self.text(node).startswith("*"):
+                value = expr(part)
+                pointed = pointer_dereference(self, value)
+                # References remain ordinary aliases; an unknown raw pointer
+                # must not become the object denoted by its address expression.
+                if pointed is not None:
+                    return pointed
+                if self.analyzer.type_text(value, self.source).strip().startswith("*"):
+                    self.analyzer.notices.add(("pointer_origin_unresolved", self.identifier))
+                    return UNKNOWN
+                return value
             return expr(part)
+        if self.source.language == "rust" and kind == "type_cast_expression":
+            value = expr(child(node, "value"))
+            pointed = pointer_cast(self, node, value)
+            return pointed if pointed is not None else UNKNOWN
+        if self.source.language == "rust" and kind == "unsafe_block":
+            block = next((part for part in node.named_children if part.type == "block"), None)
+            return expr(block)
         if kind in {"assignment_expression", "augmented_assignment_expression"}:
             left, right = child(node, "left"), child(node, "right")
             value = expr(right)
@@ -1212,6 +1245,8 @@ class Interpreter:
         argument_nodes = list(arguments_node.named_children) if arguments_node else []
         arguments = [self.expression(part, level + 1) for part in argument_nodes]
         callee_text = self.text(callee_node)
+        if self.source.language == "rust" and callee_node is not None and callee_node.type == "generic_function":
+            callee_text = self.text(child(callee_node, "function"))
         if self.source.language in {"typescript", "tsx"}:
             actuals = [callee] if callee.kind in {"function", "closure"} else self.analyzer.read_values(callee)
             known = list(dict.fromkeys(value for value in actuals if value.kind in {"function", "closure"}))
@@ -1227,6 +1262,23 @@ class Interpreter:
                     self.emit("invoke", callee, UNKNOWN, node)
                 callee = known[0]
         if self.source.language == "rust":
+            type_id = type_id_call(self, callee_text, callee_node, arguments)
+            if type_id is not None:
+                return type_id
+            receiver = callee.base if callee.kind == "slot" else UNKNOWN
+            method = callee.key.name if callee.kind == "slot" and callee.key.kind == "key" else ""
+            pointed = pointer_call(self, callee_text, receiver, method, arguments, node)
+            if pointed is not None:
+                return pointed
+            if callee.kind == "type" and callee.name in self.program.tuple_fields:
+                if len(arguments) != len(self.program.tuple_fields[callee.name]):
+                    return UNKNOWN
+                value = Value("allocation", self.allocation_name(node) + ":tuple_struct")
+                self.analyzer.allocation_owners[value] = self.identifier
+                self.analyzer.value_owners[value] = callee.name
+                for index, argument in enumerate(arguments):
+                    self.emit("store", slot(value, str(index)), argument, node)
+                return value
             if len(arguments) == 1 and self.rust_standard_path(callee_text, {"std::option::Option::Some", "core::option::Option::Some"}, "Some"):
                 return Value("wrapper", "rust:option", arguments[0])
             if len(arguments) == 1 and self.rust_standard_path(callee_text, {"std::boxed::Box::new", "alloc::boxed::Box::new"}):
@@ -1254,6 +1306,9 @@ class Interpreter:
         receiver = callee.base if callee.kind == "slot" else UNKNOWN
         method = callee.key.name if callee.kind == "slot" and callee.key.kind == "key" else ""
         if self.source.language in {"typescript", "tsx"}:
+            resumed = generator_call(self, receiver, method, arguments, node)
+            if resumed is not None:
+                return resumed
             if method in {"call", "apply"} and receiver.kind in {"function", "closure"} and arguments and not self.analyzer.heap_values.get(callee):
                 supplied = arguments[1:] if method == "call" else (tuple_values(arguments[1]) if len(arguments) == 2 and arguments[1].kind in {"tuple", "tuple_end"} else None)
                 if supplied is not None:
@@ -1321,6 +1376,13 @@ class Interpreter:
             elif receiver.kind == "namespace":
                 target_ids = self.program.methods.get((receiver.name, method), [])
         if len(target_ids) == 1:
+            target = self.program.functions.get(target_ids[0])
+            if self.source.language in {"typescript", "tsx"} and (target and target.node.type in GENERATOR_NODES
+                    or any(value.kind == "wrapper" and value.name == "javascript:generator" for value in arguments)):
+                return self.apply_source_callable(target_ids[0], receiver, arguments, node)
+            if self.source.language == "rust" and (any(value.kind == "wrapper" and value.name in {"rust:nonnull", "rust:raw_pointer"} for value in arguments)
+                                                    or (receiver.kind == "allocation" and self.analyzer.owner(receiver, self.source) in self.program.tuple_fields)):
+                return self.apply_source_callable(target_ids[0], receiver, arguments, node)
             if self.source.language in {"typescript", "tsx"} and any(value.kind in {"function", "closure", "binding"} for value in arguments):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
             returned = self.apply_summary(target_ids[0], UNKNOWN if receiver.kind == "type" else receiver, arguments, node)
@@ -1384,8 +1446,8 @@ class Interpreter:
             nested.env["arguments"] = tuple_value(arguments)
         if receiver != UNKNOWN and function.node.type != "arrow_function":
             nested.env[function.receiver_name] = receiver
-        if function.node.type in {"generator_function", "generator_function_declaration"}:
-            nested.conditions += ("generator_execution_required",)
+        if function.node.type in GENERATOR_NODES:
+            return create_generator(self, nested, function, node)
         if function.body is not None and function.node.type == "arrow_function" and function.body.type != "statement_block":
             nested.record_return(nested.expression(function.body), function.body)
         else:
@@ -1502,6 +1564,8 @@ class Interpreter:
                 return UNKNOWN
             if arguments[0].kind in {"slot", "parameter"}:
                 self.emit("key_lookup", arguments[0], receiver, node, ("map_entry_presence_required",))
+            if self.source.language == "rust":
+                return Value("wrapper", "rust:option", target)
             return target
         if kind == "map" and method in {"set", "insert"} and len(arguments) >= 2:
             self.emit("store", slot(slot(receiver, MAP_ENTRIES), arguments[0]), arguments[1], node)
@@ -1511,6 +1575,10 @@ class Interpreter:
             for value in arguments:
                 self.emit("store", slot(receiver, ELEMENT), value, node)
             return receiver if method == "add" and self.source.language in {"typescript", "tsx"} else UNKNOWN
+        if kind == "array" and self.source.language in {"typescript", "tsx"} and method == "pop" and not arguments:
+            self.conditions += ("array_nonempty_required", "stack_selection_and_order_required")
+            self.emit("remove", slot(receiver, ELEMENT), UNKNOWN, node)
+            return slot(receiver, ELEMENT)
         if method in {"clear", "delete", "remove", "splice", "retain", "pop", "pop_front"}:
             target = slot(receiver, MAP_ENTRIES) if kind == "map" else slot(receiver, ELEMENT)
             self.emit("remove", target, UNKNOWN, node)

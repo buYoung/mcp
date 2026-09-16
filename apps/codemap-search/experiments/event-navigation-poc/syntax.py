@@ -221,6 +221,7 @@ class Program:
     embedded_fields: dict[str, list[str]] = field(default_factory=dict)
     interface_methods: dict[str, set[str]] = field(default_factory=dict)
     dereferences: dict[tuple[str, str], list[str]] = field(default_factory=dict)
+    tuple_fields: dict[str, list[str]] = field(default_factory=dict)
     exports: dict[tuple[str, str], str] = field(default_factory=dict)
     notices: list[dict] = field(default_factory=list)
 
@@ -406,6 +407,11 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                     program.aliases[(namespace, name)] = source.text(child(node, "type"))
                 body = child(node, "body") or child(node, "type")
                 if body:
+                    if source.language == "rust" and body.type == "ordered_field_declaration_list":
+                        fields = [part for index, part in enumerate(body.children) if body.field_name_for_child(index) == "type"]
+                        program.tuple_fields[owner] = [source.text(part) for part in fields]
+                        for index, part in enumerate(fields):
+                            program.field_types[(owner, str(index))] = source.text(part)
                     for field_node in walk(body, stop_functions=True):
                         if field_node.type in {"public_field_definition", "field_declaration", "property_signature"}:
                             field_name = source.text(child(field_node, "name"))

@@ -97,6 +97,14 @@ def main():
         output = REGRESSIONS / "results/analysis" / (source_path.replace("/", "--") + ".json.gz")
         data = verify_analysis(output, (REGRESSIONS / "examples" / source_path).parent)
         assert set(data["scope"]["source_sha256"]) == {Path(source_path).name, *case.get("additional_sources", {}), *case.get("support_sources", {})}
+        for selected in (case for case in cases if case["path"] == source_path and case.get("relation_kinds")):
+            assert any(relation["kind"] in selected["relation_kinds"]
+                       and relation["storage"]["location"]["path"] == selected.get("storage_file", Path(source_path).name)
+                       and relation["storage"]["location"]["line"] == selected["storage_line"]
+                       and relation["invocation"]["location"]["path"] == selected.get("invocation_file", Path(source_path).name)
+                       and relation["invocation"]["location"]["line"] == selected["invocation_line"]
+                       and set(selected.get("required_conditions", ())).issubset(relation["conditions"])
+                       for relation in data["relations"]), selected["id"]
     before = json.loads(checkpoint("language-corpus/results/evaluation.json"))["cases"]
     after = read(CORPUS / "results/evaluation.json")["cases"]
     before_by_id = {case["id"]: case for case in before}

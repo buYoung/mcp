@@ -3,5 +3,8 @@
   "bevy_gltf": "crates/bevy_gltf/src/lib.rs",
   "bevy": "src/lib.rs",
   "bevy_internal": "crates/bevy_internal/src/lib.rs",
-  "bevy_app": "crates/bevy_app/src/lib.rs"
+  "bevy_app": "crates/bevy_app/src/lib.rs",
+  "bevy_ptr": "crates/bevy_ptr/src/lib.rs",
+  "bevy_ecs_macros": "crates/bevy_ecs/macros/src/lib.rs",
+  "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs"
 }

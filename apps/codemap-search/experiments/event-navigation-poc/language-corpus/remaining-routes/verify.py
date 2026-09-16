@@ -177,7 +177,7 @@ def main():
     stream = args.composites / "livestore-effect/__dependencies__/effect/src/Stream.ts"
     assert 524288 < stream.stat().st_size <= effect["scope"]["max_file_bytes"] == 1048576
     projections = [notice for notice in effect["notices"] if notice["kind"].startswith("typescript_type_")]
-    assert len(projections) == 12
+    assert len(projections) == 13
     for notice in projections:
         facts = [fact for fact in effect["facts"] if fact["location"]["path"] == notice["path"]]
         assert all("generic_type_constraints_unproven" in fact["conditions"] for fact in facts)
