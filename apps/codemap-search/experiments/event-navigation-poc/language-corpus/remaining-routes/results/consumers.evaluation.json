@@ -1,13 +1,12 @@
 {
   "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
-  "cases_lock_sha256": "b5a54b8334a5c01bc1a13b609021aa5c23abe198a41cce0c893f877263d6ac50",
+  "cases_lock_sha256": "ba4ed82c42e1054764c25fdc3a96c8def5e552f09a038685fafe172ea7785c93",
   "analysis_sha256": {
-    "livestore-effect": "d4b5e4087369a47a3d6fcbb2635fa60bf9eb711b1f706e97dbb35b022df6b030"
+    "livestore-effect": "b23df700ddb927a0b9e4622c2597f377601fec5a690b2ed9e1820d55fe695b0a"
   },
   "target_programs_executed": false,
   "statuses": {
-    "conditional_data_consumption": 2,
-    "unresolved": 1,
+    "conditional_data_consumption": 3,
     "conditional_candidate": 1,
     "correctly_unjoined_with_positive_control": 2
   },
@@ -46,7 +45,7 @@
           "event_classification": "not_inferred",
           "storage": {
             "kind": "store",
-            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][unresolved:packages/@livestore/webmesh/src/node.ts:channelName]",
             "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
             "location": {
               "path": "packages/@livestore/webmesh/src/node.ts",
@@ -107,7 +106,7 @@
             "conditional_control:__dependencies__/effect/src/Queue.ts:655",
             "enclosing_callable_execution_unproven",
             "generic_type_constraints_unproven",
-            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
+            "key_equality_required:unresolved:packages/@livestore/webmesh/src/node.ts:channelName=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
             "multiple_storage_writes_present",
             "object_write_only_not_callback_execution",
             "prototype_method_execution_required",
@@ -127,7 +126,7 @@
           "event_classification": "not_inferred",
           "storage": {
             "kind": "store",
-            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][unresolved:packages/@livestore/webmesh/src/node.ts:channelName]",
             "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
             "location": {
               "path": "packages/@livestore/webmesh/src/node.ts",
@@ -143,7 +142,7 @@
           },
           "invocation": {
             "kind": "store",
-            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]][key:messages][key:tail][key:array][element:*]",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][unresolved:packages/@livestore/webmesh/src/node.ts:channelName][key:messages][key:tail][key:array][element:*]",
             "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue[key:state][key:offers][element:*][key:message]",
             "location": {
               "path": "__dependencies__/effect/src/MutableList.ts",
@@ -213,7 +212,7 @@
             "generic_type_constraints_unproven",
             "initializer_value_unresolved",
             "iteration_may_be_empty",
-            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]",
+            "key_equality_required:unresolved:packages/@livestore/webmesh/src/node.ts:channelName=unresolved:packages/@livestore/webmesh/src/node.ts:channelName",
             "multiple_storage_writes_present",
             "object_write_only_not_callback_execution",
             "prototype_method_execution_required",
@@ -265,7 +264,7 @@
           "event_classification": "not_inferred",
           "storage": {
             "kind": "store",
-            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]]",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][unresolved:packages/@livestore/webmesh/src/node.ts:channelName]",
             "value": "binding:packages/@livestore/webmesh/src/node.ts:598:20:23822:queue",
             "location": {
               "path": "packages/@livestore/webmesh/src/node.ts",
@@ -281,7 +280,7 @@
           },
           "invocation": {
             "kind": "return",
-            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]][key:messages][key:head][key:array]",
+            "target": "allocation:packages/@livestore/webmesh/src/node.ts:172:44[container:entries][unresolved:packages/@livestore/webmesh/src/node.ts:channelName][key:messages][key:head][key:array]",
             "value": "unknown:",
             "location": {
               "path": "__dependencies__/effect/src/MutableList.ts",
@@ -340,7 +339,7 @@
             "fallback_path_unresolved:2072",
             "generic_type_constraints_unproven",
             "initializer_value_unresolved",
-            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]",
+            "key_equality_required:unresolved:packages/@livestore/webmesh/src/node.ts:channelName=unresolved:packages/@livestore/webmesh/src/node.ts:channelName",
             "multiple_storage_writes_present",
             "object_read_only_not_callback_execution",
             "prototype_method_execution_required",
@@ -377,10 +376,104 @@
         "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f",
         "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
       },
-      "status": "unresolved",
-      "matching_relations": 0,
-      "selected_relations": 0,
-      "evidence": []
+      "required_conditions": [
+        "source_callable_parameter_binding",
+        "generator_execution_required",
+        "enclosing_function_schema_only",
+        "enclosing_callable_execution_unproven"
+      ],
+      "status": "conditional_data_consumption",
+      "matching_relations": 1,
+      "selected_relations": 1,
+      "evidence": [
+        {
+          "kind": "stored_key_lookup",
+          "certainty": "conditional_source_relation",
+          "identity_scope": "allocation_or_global_context",
+          "concrete_instance_proven": false,
+          "event_classification": "not_inferred",
+          "storage": {
+            "kind": "store",
+            "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:36:32[container:entries][parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]]",
+            "value": "parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:clientId",
+            "location": {
+              "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+              "line": 184,
+              "column": 13
+            },
+            "function": "packages/@livestore/utils/src/effect/RpcClient.ts:179:15",
+            "conditions": [
+              "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+              "enclosing_callable_execution_unproven"
+            ],
+            "via": [],
+            "argument_index": null
+          },
+          "invocation": {
+            "kind": "key_lookup",
+            "target": "allocation:packages/@livestore/utils/src/effect/RpcClient.ts:36:32[container:entries][result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:][key:requestId]]",
+            "value": "allocation:__dependencies__/effect/src/unstable/rpc/Utils.ts:77:26~closure:07eb2f004de52df7@__dependencies__/effect/src/internal/effect.ts:989:12>__dependencies__/effect/src/internal/effect.ts:988:3",
+            "location": {
+              "path": "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+              "line": 90,
+              "column": 29
+            },
+            "function": "__dependencies__/effect/src/unstable/rpc/Utils.ts:89:9",
+            "conditions": [
+              "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+              "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+              "enclosing_callable_execution_unproven",
+              "enclosing_function_schema_only",
+              "generator_execution_required",
+              "generic_type_constraints_unproven",
+              "map_entry_presence_required",
+              "prototype_method_execution_required",
+              "source_callable_argument_binding",
+              "source_callable_parameter_binding",
+              "source_constructor_prototype_binding"
+            ],
+            "via": [
+              {
+                "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+                "line": 74,
+                "column": 60
+              },
+              {
+                "path": "__dependencies__/effect/src/internal/effect.ts",
+                "line": 1261,
+                "column": 47
+              }
+            ],
+            "argument_index": null
+          },
+          "conditions": [
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:183",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:68",
+            "conditional_control:packages/@livestore/utils/src/effect/RpcClient.ts:70",
+            "enclosing_callable_execution_unproven",
+            "enclosing_function_schema_only",
+            "generator_execution_required",
+            "generic_type_constraints_unproven",
+            "key_equality_required:parameter:packages/@livestore/utils/src/effect/RpcClient.ts:179:15:request[key:id]=result:packages/@livestore/utils/src/effect/RpcClient.ts:56:29[unknown:][key:requestId]",
+            "lookup_key_only_not_callback_execution",
+            "map_entry_presence_required",
+            "prototype_method_execution_required",
+            "registration_and_call_order_unproven",
+            "removal_may_prevent_call",
+            "same_allocation_instance_required",
+            "source_callable_argument_binding",
+            "source_callable_parameter_binding",
+            "source_constructor_prototype_binding"
+          ],
+          "mutations": [
+            {
+              "path": "packages/@livestore/utils/src/effect/RpcClient.ts",
+              "line": 72,
+              "column": 21
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "effect_rpc_handler_control",

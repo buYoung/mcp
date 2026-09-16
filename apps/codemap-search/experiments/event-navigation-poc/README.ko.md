@@ -2,7 +2,7 @@
 
 ## 18개 개발 언어 확장 결과
 
-2026-09-16 후속 작업에서 독립 PoC를 18개 개발 언어로 확장하고 언어별 미탐지 구문 18개를 보완했다. 현재 회귀 234개와 공통 사례 90개가 통과했다. 공개 양성 37개는 기본 입력에서 호출 후보 30·인자 전달 2·미확정 5이며, 확장 입력까지 반영하면 호출 후보 31·자료 반환 1·인자 전달 2·미확정 3이다. Monix 네 구현이 모두 조건부 연결됐고, 별도 소비 대조에서 Effect Queue 내부 쓰기와 한 bucket의 배열 반환도 확인했다. Bevy 세 경로와 RPC의 최종 client 조회는 남아 있다. 최신 범위·검증·한계는 [잔여 경로 보완 결과](language-corpus/remaining-routes/README.ko.md), [언어별 PoC 결과](language-corpus/README.ko.md), [회귀 검증 결과](language-corpus/regressions/README.ko.md)에 있다. 아래 본문과 이 디렉터리의 results는 이전 네 언어 단계의 기록이다. 당시 구현·결과의 해시는 [보완 전 보존본](language-corpus/history/before-language-gap-fixes/manifest.json)에 있으며, 현재 Python 코드의 검증 결과와 구분한다.
+2026-09-16 후속 작업에서 독립 PoC를 18개 개발 언어로 확장하고 언어별 미탐지 구문 18개를 보완했다. 현재 회귀 247개와 공통 사례 90개가 통과했다. 공개 양성 37개는 기본 입력에서 호출 후보 30·인자 전달 2·미확정 5이며, 확장 입력까지 반영하면 호출 후보 31·자료 반환 1·인자 전달 2·미확정 3이다. Monix 네 구현이 모두 조건부 연결됐고, 별도 소비 대조에서 Effect Queue 내부 쓰기와 한 bucket의 배열 반환도 확인했다. RPC의 clientId 조회 키 전달도 조건부 연결했다. Bevy 세 경로는 남아 있다. 최신 범위·검증·한계는 [잔여 경로 보완 결과](language-corpus/remaining-routes/README.ko.md), [언어별 PoC 결과](language-corpus/README.ko.md), [회귀 검증 결과](language-corpus/regressions/README.ko.md)에 있다. 아래 본문과 이 디렉터리의 results는 이전 네 언어 단계의 기록이다. 당시 구현·결과의 해시는 [보완 전 보존본](language-corpus/history/before-language-gap-fixes/manifest.json)에 있으며, 현재 Python 코드의 검증 결과와 구분한다.
 
 검증일: 2026-09-15. **후속 보완으로 조건부 호출 후보가 14개에서 16개로 늘었고, 별도로 조회값의 호출 인자 전달 2개를 확인했다. 참고 쌍 23개 중 5개는 여전히 미확정이다.** 제품에 통합할 수준의 범용성·정밀도는 아직 입증하지 못했다.
 

@@ -9,7 +9,7 @@
     "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7",
     "js_generators.py": "af06593e4a46decb4da6773d0743406ce233c7eaf896b7a013ee53d4e07bf8a5",
     "model.py": "631170cce9d90f45fdd3a076c8615a0c856252c4525f90ce8513392d4f9c6bbf",
-    "engine.py": "142b88837c53198f97208ffb9cfb24369b46828f906c768b14d4dc3283c85633",
+    "engine.py": "1e13582253285e6d0809ac826d1e56ba7b5f4219fe3fcca976366d7578d2d962",
     "syntax.py": "801b76f118e94632c25ae47dbb5247b8a1b3b91c0e0017beb9ee306df6c078b6",
     "rust_modules.py": "e01408e71eb934f7b3dc01581160a41b4c6b81b28b53328f8ac83d190459fca9",
     "evaluate.py": "e46528b9f952852036f13b0f704bfd63bfbbc615f30aff3552f3c79b71ac5556",
@@ -26,12 +26,12 @@
   },
   "runner_sha256": "185a232ba4f041aa4df3a9359aed54292192bb57eaa25fdf723a8e34366c7c88",
   "verifier_sha256": "2097e42f2f862c7f42de1f9dc7d1ae4ea69855cda243a0907716f44c36e95c29",
-  "cases_sha256": "c40725fa210be7f1f2b3b30aede0b431d847c15b1f00615afbeb668ac6aec8e3",
+  "cases_sha256": "6706e1626bdd6a6ef48efcc5c385f2e4bfbc954b0ba97b725c391e60e738ee3a",
   "source_lock_sha256": "3c358fe24cd737ccd648cdd576e39934d982460a8a541daf14b49b32a6bff3e0",
   "baseline_files_unchanged": 74,
   "original_examples_unchanged": 36,
   "checkpoint_regression_cases_unchanged": 111,
-  "current_analysis_outputs_verified": 134,
+  "current_analysis_outputs_verified": 137,
   "public_and_basic_case_status_changes": [
     {
       "id": "v_method_hook",
@@ -80,11 +80,11 @@
     }
   ],
   "public_and_basic_cases": 167,
-  "regression_cases": 234,
-  "regression_passed": 234,
+  "regression_cases": 247,
+  "regression_passed": 247,
   "regression_expected": {
-    "disconnected": 98,
-    "connected": 128,
+    "disconnected": 105,
+    "connected": 134,
     "unresolved": 8
   },
   "public_statuses": {
@@ -215,10 +215,12 @@
     "regressions/results/analysis/typescript--data-consumption--routes.ts.json.gz",
     "regressions/results/analysis/typescript--detected--example.ts.json.gz",
     "regressions/results/analysis/typescript--fact-budget--routes.ts.json.gz",
+    "regressions/results/analysis/typescript--generator-callback-binding--routes.ts.json.gz",
     "regressions/results/analysis/typescript--generator-resume--routes.ts.json.gz",
     "regressions/results/analysis/typescript--missed--example.ts.json.gz",
     "regressions/results/analysis/typescript--module-budget--routes.ts.json.gz",
     "regressions/results/analysis/typescript--module-captures--routes.ts.json.gz",
+    "regressions/results/analysis/typescript--module-live-bindings--routes.ts.json.gz",
     "regressions/results/analysis/typescript--namespace-arrays--routes.ts.json.gz",
     "regressions/results/analysis/typescript--prototype-forwarding--routes.ts.json.gz",
     "regressions/results/analysis/typescript--prototype-identity--routes.ts.json.gz",
@@ -228,6 +230,7 @@
     "regressions/results/analysis/typescript--returned-closures--routes.ts.json.gz",
     "regressions/results/analysis/typescript--stack-values--routes.ts.json.gz",
     "regressions/results/analysis/typescript--static-storage--routes.ts.json.gz",
+    "regressions/results/analysis/typescript--stored-function-context--routes.ts.json.gz",
     "regressions/results/analysis/typescript--ternary-wrapper--routes.ts.json.gz",
     "regressions/results/analysis/typescript--type-objects--routes.ts.json.gz",
     "regressions/results/analysis/typescript--type-variance--routes.ts.json.gz"

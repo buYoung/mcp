@@ -60,7 +60,8 @@
             "multiple_storage_writes_present",
             "registration_and_call_order_unproven",
             "removal_may_prevent_call",
-            "same_receiver_required"
+            "same_receiver_required",
+            "source_callable_argument_binding"
           ]
         }
       ]
@@ -309,7 +310,7 @@
             "conditional_control:packages/@livestore/webmesh/src/node.ts:212",
             "conditional_control:packages/@livestore/webmesh/src/node.ts:231",
             "enclosing_callable_execution_unproven",
-            "key_equality_required:parameter:packages/@livestore/webmesh/src/node.ts:596:68:{ channelName, schema }[key:channelName]=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
+            "key_equality_required:unresolved:packages/@livestore/webmesh/src/node.ts:channelName=parameter:packages/@livestore/webmesh/src/node.ts:196:24:packet[key:channelName]",
             "registration_and_call_order_unproven",
             "same_allocation_instance_required",
             "stored_value_unresolved"
@@ -505,5 +506,5 @@
   ],
   "input_variant": "livestore-effect",
   "max_file_bytes": 1048576,
-  "input_lock_sha256": "1f60fb42c006a4702227b301eec5f845d0c4ee60cffc1c837407d44ea949bf98"
+  "input_lock_sha256": "264391a2e31fac26ce591e9ea0e30d528a97b562b7a419556dc308f066a7cf8f"
 }

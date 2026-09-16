@@ -2780,5 +2780,175 @@
     "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
     "baseline_variant": "source-provenance",
     "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-stored-function-context-stored-function",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-stored-function-context-other-function",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-stored-function-context-stored-function"
+  },
+  {
+    "id": "typescript-stored-function-context-bound-receiver",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 15,
+    "expected": "connected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-stored-function-context-other-receiver",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 16,
+    "expected": "disconnected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-stored-function-context-bound-receiver"
+  },
+  {
+    "id": "typescript-module-live-bindings-before",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 9,
+    "expected": "connected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-module-live-bindings-after",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-module-live-bindings-not-later",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-module-live-bindings-before"
+  },
+  {
+    "id": "typescript-module-live-bindings-not-snapshot",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-module-live-bindings-after"
+  },
+  {
+    "id": "typescript-generator-callback-binding-selected",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 15,
+    "invocation_line": 3,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "stored_key_lookup"
+    ],
+    "required_conditions": [
+      "source_callable_parameter_binding",
+      "generator_execution_required",
+      "enclosing_function_schema_only"
+    ]
+  },
+  {
+    "id": "typescript-generator-callback-binding-other",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 15,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-selected"
+  },
+  {
+    "id": "typescript-generator-callback-binding-unused",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 22,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-selected"
+  },
+  {
+    "id": "typescript-generator-callback-binding-second",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 35,
+    "invocation_line": 28,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "stored_key_lookup"
+    ],
+    "required_conditions": [
+      "source_callable_parameter_binding",
+      "generator_execution_required",
+      "enclosing_function_schema_only"
+    ]
+  },
+  {
+    "id": "typescript-generator-callback-binding-not-first",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 34,
+    "invocation_line": 28,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-second"
   }
 ]

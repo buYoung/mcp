@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "unit": "supplemental consumer endpoint pairs; excluded from the original 37 public positives",
   "cases": [
     {
@@ -73,7 +73,13 @@
       "source_sha256": {
         "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f",
         "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914"
-      }
+      },
+      "required_conditions": [
+        "source_callable_parameter_binding",
+        "generator_execution_required",
+        "enclosing_function_schema_only",
+        "enclosing_callable_execution_unproven"
+      ]
     },
     {
       "id": "effect_rpc_handler_control",
@@ -142,5 +148,5 @@
       "positive_control": "ls_mesh_queue_internal_write"
     }
   ],
-  "previous_lock": "history/196-cases/language-corpus/remaining-routes/consumers.json"
+  "previous_lock": "history/consumers-v2.json"
 }

@@ -1,0 +1,470 @@
+{
+  "version": 6,
+  "variants": {
+    "bevy-modules": {
+      "repository": "bevy",
+      "language": "rust",
+      "paths": [
+        "crates/bevy_app/src/sub_app.rs",
+        "crates/bevy_ecs/src/event/trigger.rs",
+        "crates/bevy_ecs/src/lib.rs",
+        "crates/bevy_ecs/src/message/iterators.rs",
+        "crates/bevy_ecs/src/message/message_cursor.rs",
+        "crates/bevy_ecs/src/message/message_reader.rs",
+        "crates/bevy_ecs/src/message/message_registry.rs",
+        "crates/bevy_ecs/src/message/message_writer.rs",
+        "crates/bevy_ecs/src/message/messages.rs",
+        "crates/bevy_ecs/src/message/mod.rs",
+        "crates/bevy_ecs/src/observer/centralized_storage.rs",
+        "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "crates/bevy_ecs/src/observer/mod.rs",
+        "crates/bevy_ecs/src/observer/runner.rs",
+        "crates/bevy_ecs/src/system/mod.rs",
+        "crates/bevy_ecs/src/system/system_registry.rs",
+        "crates/bevy_ecs/src/world/entity_access/world_mut.rs",
+        "crates/bevy_ecs/src/world/mod.rs",
+        "crates/bevy_gltf/src/lib.rs",
+        "crates/bevy_gltf/src/loader/extensions/mod.rs",
+        "crates/bevy_gltf/src/loader/mod.rs",
+        "crates/bevy_pbr/src/gltf.rs",
+        "examples/audio/pitch.rs",
+        "examples/ecs/observer_propagation.rs",
+        "examples/ecs/one_shot_systems.rs",
+        "examples/gltf/gltf_extension_mesh_2d.rs",
+        "crates/bevy_ecs/src/system/observer_system.rs",
+        "crates/bevy_ecs/src/system/function_system.rs",
+        "crates/bevy_ecs/src/system/system.rs",
+        "crates/bevy_ecs/src/world/deferred_world.rs",
+        "crates/bevy_ecs/src/world/entity_fetch.rs",
+        "crates/bevy_ecs/src/world/entity_access/mod.rs",
+        "crates/bevy_ecs/src/world/entity_access/entity_mut.rs",
+        "crates/bevy_ecs/src/world/unsafe_world_cell.rs",
+        "src/lib.rs",
+        "crates/bevy_internal/src/lib.rs",
+        "crates/bevy_internal/src/prelude.rs",
+        "crates/bevy_app/src/lib.rs",
+        "crates/bevy_app/src/app.rs",
+        "crates/bevy_ecs/src/change_detection/mod.rs",
+        "crates/bevy_ecs/src/change_detection/params.rs",
+        "crates/bevy_ecs/src/change_detection/traits.rs",
+        "crates/bevy_ptr/src/lib.rs",
+        "crates/bevy_ecs/src/bundle/mod.rs",
+        "crates/bevy_ecs/src/bundle/impls.rs",
+        "crates/bevy_ecs/src/bundle/info.rs",
+        "crates/bevy_ecs/src/bundle/spawner.rs",
+        "crates/bevy_ecs/src/component/mod.rs",
+        "crates/bevy_ecs/src/component/info.rs",
+        "crates/bevy_ecs/src/component/register.rs",
+        "crates/bevy_ecs/src/resource.rs",
+        "crates/bevy_ecs/src/storage/mod.rs",
+        "crates/bevy_ecs/src/storage/sparse_set.rs",
+        "crates/bevy_ecs/src/storage/table/mod.rs",
+        "crates/bevy_ecs/src/storage/table/column.rs",
+        "crates/bevy_ecs/src/storage/blob_array.rs",
+        "crates/bevy_ecs/src/storage/thin_array_ptr.rs",
+        "crates/bevy_ecs/macro_logic/src/lib.rs",
+        "crates/bevy_ecs/macro_logic/src/component.rs",
+        "crates/bevy_ecs/macros/src/lib.rs",
+        "crates/bevy_ecs/macros/src/resource.rs"
+      ],
+      "support_paths": [],
+      "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+      "source_sha256": {
+        "crates/bevy_app/src/sub_app.rs": "b0357b854710728cd2f0f1b56265cb3e4267e00f66858c90aa2757ea6a29dbf7",
+        "crates/bevy_ecs/src/event/trigger.rs": "477d65667da999ce6f9b111e47cef2a767b70b94a7d58145a9f5ee73317d0f84",
+        "crates/bevy_ecs/src/lib.rs": "bf37a10b3b11bb5682c43fa7624f55f344598b5557b059be31c83a92be6c4473",
+        "crates/bevy_ecs/src/message/iterators.rs": "e3df3ebb85edb584c3538561ed6a989bad9b023a9866c77cfc67f05888b1a8a9",
+        "crates/bevy_ecs/src/message/message_cursor.rs": "f05cc5c744701b21873b540596adad65f24989f2d546702a341d9830b288aca9",
+        "crates/bevy_ecs/src/message/message_reader.rs": "cd8cfbc869c037087ef812eac017b5e25baee81932d15a80c65e823f5b6fa7cf",
+        "crates/bevy_ecs/src/message/message_registry.rs": "befa1adb66914e777e1b62fa214f757a9d59e80477322385a5ca6f1917f0af79",
+        "crates/bevy_ecs/src/message/message_writer.rs": "652f528a341d1ac4d534a595f5aa170da38c7a5793c43edf8aaa83dfef96e387",
+        "crates/bevy_ecs/src/message/messages.rs": "32186c29d0c71e82420d631e779ca1309418d476bfb9a3ca0da01b78e21efc15",
+        "crates/bevy_ecs/src/message/mod.rs": "3c0cd61c290f60161e6ef3a68001d365ecffbd41911c56a5230dcf2f626c1ac9",
+        "crates/bevy_ecs/src/observer/centralized_storage.rs": "efff4ea0119ce255f1f31d71c49fb8fefd81127785e8d3efdab17c8617f081cb",
+        "crates/bevy_ecs/src/observer/distributed_storage.rs": "07c4a643ab5acbf47aaa1ac453e6863ddca657695231d5e21cb7789bfd081a31",
+        "crates/bevy_ecs/src/observer/mod.rs": "185ff5c3649de24a67e97bc8c7ec6ab9e9fe586195969d62c72bb14aaee16a3e",
+        "crates/bevy_ecs/src/observer/runner.rs": "042fdd337742d077291f8ae013133fd47b8cd4b14c44652fa27fad7e3bf95193",
+        "crates/bevy_ecs/src/system/mod.rs": "c9dca7c7eb5f7d138b31ae8b7fb6b6f518ba228eceb14dd9e91dc6afb2361a41",
+        "crates/bevy_ecs/src/system/system_registry.rs": "e3797de6d02e154a1d6ffed765c31a2f90535a07617d6f90c6c57ecfbae5a692",
+        "crates/bevy_ecs/src/world/entity_access/world_mut.rs": "f06b056edfdbed848364170722a6f3ec6c624bc89b0898daaa93351ec3f4750d",
+        "crates/bevy_ecs/src/world/mod.rs": "149f47f49dea1a4cdfa62704b100838d53fc20aab403efab4e0e4266fdf1e56e",
+        "crates/bevy_gltf/src/lib.rs": "a68e777eae13d5281380c66fead81d232bb191e9214b760f8ffb6678035c08fc",
+        "crates/bevy_gltf/src/loader/extensions/mod.rs": "07f8c5ffb77ff57f90fa3d212257ff1fdec5d7d6188903ad667e673585657a1c",
+        "crates/bevy_gltf/src/loader/mod.rs": "1a6daa2c12122a3ce904bfb6860d4fca5dffe81ea78d5d8edb4ebd5e81c998b7",
+        "crates/bevy_pbr/src/gltf.rs": "8fc874543c7068754f357cb0d40ce2a776f9a57db1937ec37392203b7eb2a872",
+        "examples/audio/pitch.rs": "16299f1c70443e845c74f4dced2343b04e1a96c5d2d34141e8fe0e9f3551ee46",
+        "examples/ecs/observer_propagation.rs": "d3e8e4c2024cb18811c8a1f76eed160b06b8a9dc0b772e3fc2fab6b94db988b7",
+        "examples/ecs/one_shot_systems.rs": "6d1d6ccc4ac07882797ee651064055efdd935a164b23e320d0b205cf9408de7a",
+        "examples/gltf/gltf_extension_mesh_2d.rs": "344ee91d13ab9b291a1d4d97a2887cb61c3fb7f028448df356c5b18e0461a9a1",
+        "crates/bevy_ecs/src/system/observer_system.rs": "3c50f428a802776ffdb75460e24aafa8b2d366ed01f2b42cf7fd218c487d5181",
+        "crates/bevy_ecs/src/system/function_system.rs": "b239ce1a517eb8d3e2e98bc01d1bf922361fe5f607c936607753f2b11d4f5dd9",
+        "crates/bevy_ecs/src/system/system.rs": "8eea70bc4a069fa12b7ba96371be166833f64e5a83b90e14a36cc5ee2b59695d",
+        "crates/bevy_ecs/src/world/deferred_world.rs": "a76e423b1bb50a74a5e0c139851f2803c92bc38ebacec5127b63eb1e8b58c24e",
+        "crates/bevy_ecs/src/world/entity_fetch.rs": "75b4d50fbf2c5a95a8cd30343c098bf05cbcbc72659722e03cd9c1cee1f71d5b",
+        "crates/bevy_ecs/src/world/entity_access/mod.rs": "73000cf24795c69283c67261c63a96a93cd35f2ffd8a75cff26fd5528605f9d5",
+        "crates/bevy_ecs/src/world/entity_access/entity_mut.rs": "a3c67073aab853f099b0e1aeb558116eb118d278bb675ac11520be958c17294a",
+        "crates/bevy_ecs/src/world/unsafe_world_cell.rs": "957d373db6ece42d48210680dcda4c1ace51978d9989f474212bc7481fdd1e67",
+        "src/lib.rs": "10075d3357dd35ffcb0b0c85a276ded49573b59d692e075ba6e8ad8b2738aa48",
+        "crates/bevy_internal/src/lib.rs": "ac47f301262936b745ad97414d720f100aa1975b2ff9dbde91e372e621d9f077",
+        "crates/bevy_internal/src/prelude.rs": "0323bcbd2aaddd2fce46312b258172e367068cade67b59cc13b90fb6ad7c9051",
+        "crates/bevy_app/src/lib.rs": "b401ecfffbe7b00f850d07e4cdf0c6447048af19d81f264f6d0aa92422c6af55",
+        "crates/bevy_app/src/app.rs": "a78beb379b6c2a10f0cac9ef5efb2e14cf49f61d6321ee2f385070078b8d8f7f",
+        "crates/bevy_ecs/src/change_detection/mod.rs": "ba50b6bb5b084ab5e3d3b7c5ea6984c4543e4ee7ddfc5bf21e07ec77dd9d4d65",
+        "crates/bevy_ecs/src/change_detection/params.rs": "a2c0a8042b2787d4420d5173405415b2597ffd59efd10d6d21b7955bbc65e013",
+        "crates/bevy_ecs/src/change_detection/traits.rs": "b7a681b75374ac82372d73e50ddd966e3f7f1f917085dde0a944757431d28a3b",
+        "crates/bevy_ptr/src/lib.rs": "f622b6ed7f90ee5c995bd73431d33a922c3db16ac7bd7717530851a5c5654e80",
+        "crates/bevy_ecs/src/bundle/mod.rs": "3aff7960426ee10803c9eae0f9723cce29c60acc90eb11f1f17d7247166cf3eb",
+        "crates/bevy_ecs/src/bundle/impls.rs": "d2f11c4113139490cd6c57d85c54f16dee87366e7b4cea81127d21621f9eb8d3",
+        "crates/bevy_ecs/src/bundle/info.rs": "5f7cdc5924c514434b2198bb7d79de01e59b65c9b41e319a6fc553ae806cca2c",
+        "crates/bevy_ecs/src/bundle/spawner.rs": "55d2d14dadb12daf3bd9ade2592efc639cb5a74a97fef3a1010642c006a55375",
+        "crates/bevy_ecs/src/component/mod.rs": "126e555fe3f90e6684b9b1ce6d174abbd1b86f18e4a227f63146a5d7516f3f91",
+        "crates/bevy_ecs/src/component/info.rs": "c08808911223a84058c3c2f8635078d5b072a8ace1e8de7c2c9252ab0550eed6",
+        "crates/bevy_ecs/src/component/register.rs": "bc582ad38950887d20bb22ad197b2d909abe95aa048bfb7ba79438d4b424b2f6",
+        "crates/bevy_ecs/src/resource.rs": "c189d355b7aa30ad8a257f44d1abff8ed142739cbe6ebb7ed0f658dbb99297b6",
+        "crates/bevy_ecs/src/storage/mod.rs": "481acd790e767b56057d088b9e9d0b3957f292f80b1f364bf745470db1016f46",
+        "crates/bevy_ecs/src/storage/sparse_set.rs": "71c19ab6d34ab94d7e750feb9986f8c433bdc103d55997bed06e98ea80ef8426",
+        "crates/bevy_ecs/src/storage/table/mod.rs": "72f0ea728c07d3a536584ec620da149dc87e2b0fb66a97044d346b347041eee1",
+        "crates/bevy_ecs/src/storage/table/column.rs": "83fe41abd9566b3326ae5e0c3c3bf1c4c17f17d7a5a76a3e98d454b59f5d77a9",
+        "crates/bevy_ecs/src/storage/blob_array.rs": "e682a27381036422d2e2e29dbcb4441a98ddb9e40429b7fab9e6c2763155b455",
+        "crates/bevy_ecs/src/storage/thin_array_ptr.rs": "278b34671b80e6927b8471f46748705f853a95a41b5b3b62aa42f3fb170f0e9d",
+        "crates/bevy_ecs/macro_logic/src/lib.rs": "3fe5871e0977d812852286572916de283f32d99a93d2f52c74a3d9b7858701fc",
+        "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
+        "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
+        "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0"
+      },
+      "module_bindings": {
+        "bevy_ecs": "crates/bevy_ecs/src/lib.rs",
+        "bevy_gltf": "crates/bevy_gltf/src/lib.rs",
+        "bevy": "src/lib.rs",
+        "bevy_internal": "crates/bevy_internal/src/lib.rs",
+        "bevy_app": "crates/bevy_app/src/lib.rs",
+        "bevy_ptr": "crates/bevy_ptr/src/lib.rs",
+        "bevy_ecs_macros": "crates/bevy_ecs/macros/src/lib.rs",
+        "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs"
+      }
+    },
+    "monix-jvm-scala2": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/jvm/src/main/scala-2/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala"
+      ],
+      "support_paths": [
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java"
+        ]
+      ],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/jvm/src/main/scala-2/monix/execution/atomic/Atomic.scala": "12add379178e06e4bd886a196f178101147664716c138dd73181cbbe0a4ce6da",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala": "a1276f4d69b1a6298bf2c055336cbe7a4b91cd11d2ed03158bbe39cf89091b5b",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "d6f4ab1f3d59c23f565c642d8eb78c438af2c97690610e0f6432802308823c01",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala": "198529f6d5851a0e20913d05c54c6016a68c20e289ca6855d9b3c1e907649cb6",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala": "807483139c3dc3270e875ee4fd06869c212a98d52eb7c257fe1221ae1f58f1be",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala": "935d837ebfea0229029281682a7bcf40a183ef15b4457c14c011108589061656",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java": "fadd78de65d9ed232200f505a934507d89cfbcc9dd8183c9b892b3e7d0ce2416",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java": "0a407ca8a5ed905892578db95773d26cc10601da0b2da706b2a5c0f7bb87a480",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java": "1e077db4c81ef96fc6f3ff263893fef30fe078a28ad5ecd6493f204a2c59519e",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java": "7c23e13b872a5a5b8c97c062b206cbdad75ccc6a1c2938e2c9d833bab4353668",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java": "003908f0cd2af9dcf829d5368047ed121ea560d249b77339dbb6369c8a4b4257",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java": "0833c9039153bc28e41dbf72887233ee9525b6fe864e991fe60ef7adf41f8c22"
+      }
+    },
+    "monix-jvm-scala3": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/jvm/src/main/scala-3/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala"
+      ],
+      "support_paths": [
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java"
+        ],
+        [
+          "java",
+          "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java"
+        ]
+      ],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/jvm/src/main/scala-3/monix/execution/atomic/Atomic.scala": "851e2943aa5d194e960fb4ed207f53d22737288a3a859631b2dece5fc919ef51",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicAny.scala": "a1276f4d69b1a6298bf2c055336cbe7a4b91cd11d2ed03158bbe39cf89091b5b",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "d6f4ab1f3d59c23f565c642d8eb78c438af2c97690610e0f6432802308823c01",
+        "monix-execution/atomic/jvm/src/main/scala/monix/execution/atomic/package.scala": "935d837ebfea0229029281682a7bcf40a183ef15b4457c14c011108589061656",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxPaddingStrategy.java": "fadd78de65d9ed232200f505a934507d89cfbcc9dd8183c9b892b3e7d0ce2416",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/BoxedObject.java": "0a407ca8a5ed905892578db95773d26cc10601da0b2da706b2a5c0f7bb87a480",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/Factory.java": "1e077db4c81ef96fc6f3ff263893fef30fe078a28ad5ecd6493f204a2c59519e",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/VarHandleBoxedObject.java": "7c23e13b872a5a5b8c97c062b206cbdad75ccc6a1c2938e2c9d833bab4353668",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftRight128JavaXBoxedObject.java": "003908f0cd2af9dcf829d5368047ed121ea560d249b77339dbb6369c8a4b4257",
+        "monix-execution/atomic/jvm/src/main/java/monix/execution/atomic/internal/LeftPadding56.java": "0833c9039153bc28e41dbf72887233ee9525b6fe864e991fe60ef7adf41f8c22"
+      }
+    },
+    "monix-js-scala2": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/js/src/main/scala-2/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala"
+      ],
+      "support_paths": [],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/js/src/main/scala-2/monix/execution/atomic/Atomic.scala": "61d33f17264721b19eb3da357ef4180d6dcfd95cb058a2e96e7035b4271757f6",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala": "14cff6a232c3c092bb469a2720af129189cb4ac03fa8de8ed99f782616049f39",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "16b6fb6afd5eea69a24119b4655b53e3d151c34b3d5d0a87117b890fc3f19ac2",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/HygieneUtilMacros.scala": "198529f6d5851a0e20913d05c54c6016a68c20e289ca6855d9b3c1e907649cb6",
+        "monix-execution/atomic/shared/src/main/scala-2/monix/execution/internal/InlineMacros.scala": "807483139c3dc3270e875ee4fd06869c212a98d52eb7c257fe1221ae1f58f1be"
+      }
+    },
+    "monix-js-scala3": {
+      "repository": "monix",
+      "language": "scala",
+      "paths": [
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala",
+        "monix-execution/atomic/js/src/main/scala-3/monix/execution/atomic/Atomic.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala"
+      ],
+      "support_paths": [],
+      "revision": "b88e5331d761f12c41d244fad243cdad8c82ce1d",
+      "source_sha256": {
+        "monix-reactive/shared/src/main/scala/monix/reactive/subjects/PublishSubject.scala": "26ea9a7b38f37afecb3138d6326dc7476d571c3d4c278869e48a3d0d6b1f8297",
+        "monix-reactive/shared/src/test/scala/monix/reactive/subjects/PublishSubjectSuite.scala": "122316efc03815b5f549a584832306547c4f30c1c30d5330197abca728631b00",
+        "monix-execution/atomic/shared/src/main/scala/monix/execution/atomic/PaddingStrategy.scala": "f957ef93c423c41d7e637a6c0411f5bfd185868916bd41896e935f1e24691a5c",
+        "monix-execution/atomic/js/src/main/scala-3/monix/execution/atomic/Atomic.scala": "7433f78dd258c85254d786cedce3459f10fb0d4ab05c0415bc468265e706455c",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicAny.scala": "14cff6a232c3c092bb469a2720af129189cb4ac03fa8de8ed99f782616049f39",
+        "monix-execution/atomic/js/src/main/scala/monix/execution/atomic/AtomicBuilder.scala": "16b6fb6afd5eea69a24119b4655b53e3d151c34b3d5d0a87117b890fc3f19ac2"
+      }
+    },
+    "livestore-effect": {
+      "repository": "livestore",
+      "language": "typescript",
+      "revision": "287936d11d3e6c7afbaacaf1ece14bf162120219",
+      "composite": "livestore-effect",
+      "max_file_bytes": 1048576,
+      "paths": [
+        "__dependencies__/effect/src/Channel.ts",
+        "__dependencies__/effect/src/Context.ts",
+        "__dependencies__/effect/src/Effect.ts",
+        "__dependencies__/effect/src/Function.ts",
+        "__dependencies__/effect/src/MutableList.ts",
+        "__dependencies__/effect/src/Queue.ts",
+        "__dependencies__/effect/src/Stream.ts",
+        "__dependencies__/effect/src/index.ts",
+        "__dependencies__/effect/src/internal/effect.ts",
+        "__dependencies__/effect/src/unstable/rpc/RpcClient.ts",
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts",
+        "packages/@livestore/common/src/make-client-session.ts",
+        "packages/@livestore/livestore/src/reactive.ts",
+        "packages/@livestore/livestore/src/store/devtools.ts",
+        "packages/@livestore/utils/src/effect/RpcClient.ts",
+        "packages/@livestore/utils/src/effect/mod.ts",
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js",
+        "packages/@livestore/webmesh/src/node.ts",
+        "packages/@livestore/utils/src/effect/Effect.ts",
+        "packages/@livestore/utils/src/effect/Stream.ts",
+        "__dependencies__/effect/src/internal/core.ts",
+        "__dependencies__/effect/src/Utils.ts",
+        "__dependencies__/effect/src/Effectable.ts"
+      ],
+      "support_paths": [],
+      "source_sha256": {
+        "packages/@livestore/livestore/src/reactive.ts": "b86ded89488744ddd5d49f14a6d5a9fa03cc34771d64b0d6e7236d45f8d10a95",
+        "packages/@livestore/livestore/src/store/devtools.ts": "0ca218b59ea70ecb231fb46cb32f3c18f38e24e7f27ce7244f8435cdf793ff73",
+        "packages/@livestore/common/src/make-client-session.ts": "f77c6d8b78ba98213a02099b673de461855a9a7ae643a8f645157d47d86b76cc",
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js": "a054938c943b2c146599880d9e2ea1912086f2275dcdf564bd0204f2c54b46c8",
+        "packages/@livestore/webmesh/src/node.ts": "41122cdae08ba8ee4452d5588d7e72da84a1b47e11f7fd683cbe53af5d201ab6",
+        "packages/@livestore/utils/src/effect/RpcClient.ts": "8560bb9ba9b16e2cab47fa08b607368711e49969fdcf91207fb8e33b2f119914",
+        "packages/@livestore/utils/src/effect/mod.ts": "13b931358efb79f3366a818490bb1badf5cf337bfe7ac1cee8a9f7e2aaf2fc56",
+        "__dependencies__/effect/src/index.ts": "1df477abab01bd186837ad42246aa4761e3110415163d36f048668c41f193c54",
+        "__dependencies__/effect/src/Queue.ts": "bb95bd88b5674987f84e6ec13b47e1a67d237dfdab2c0b36a0368f4234d4a2d7",
+        "__dependencies__/effect/src/MutableList.ts": "e8fdf6005d3eb5d751a2078e09d1b940dac791467b607e256fdb8cb1a78d9651",
+        "__dependencies__/effect/src/Stream.ts": "98722f96a3c0ce07ef093fdb97808f66562e1a8502e89c0f595ab754926be9ac",
+        "__dependencies__/effect/src/Channel.ts": "25632e21984b6fdead7d242f2be038ef3106d67698b07ca7761c5dda90e5b915",
+        "__dependencies__/effect/src/unstable/rpc/RpcClient.ts": "2a38c2cb49283c0386c5c0081b97ee4c90335fefb3f326c195e3c1d0ed46f557",
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": "370c1be5da3a45243966aa63b0b4e7d33dcf448ea83709f0243804127295d38f",
+        "__dependencies__/effect/src/Effect.ts": "91917cc635c70e4b6a952a1c99daebb3033e0c5ff0b2255d333906693418df95",
+        "__dependencies__/effect/src/internal/effect.ts": "51e8f9a1066c7ec098db1851ed498d53b818aee24b08badcbedd4d75ffdac1ff",
+        "__dependencies__/effect/src/Function.ts": "ef258069601896467410fb84643666f10c1e593fad1efb9b33462bc7568a7bf5",
+        "__dependencies__/effect/src/Context.ts": "462c2a6123486d1c31f3b6096c0bc456e999e03722dd0d8f5df5065c69210a4b",
+        "packages/@livestore/utils/src/effect/Effect.ts": "d97a02abf413d72af34ec137adf79086415e5a83f6bc7bdc0ed2a15d3b12cb59",
+        "packages/@livestore/utils/src/effect/Stream.ts": "b9df00d2517c8bbbd0659e9204b7c3a75a678f71f4ef831599f41cdd260bf0cd",
+        "__dependencies__/effect/src/internal/core.ts": "d0460d029f035623e8c8080889a2b42106c8d955f62a1b14a7d63a2c93365c27",
+        "__dependencies__/effect/src/Utils.ts": "ad096dfaf56fa6d8a4a2839a9482fc58c2e05cc5ebc2c5d8a898ec880f571d42",
+        "__dependencies__/effect/src/Effectable.ts": "70bbe79fcebd4e1b7d7a80c371d8e34a7bb8c9ecd06249145a3423528bcd7d1c"
+      },
+      "origins": {
+        "packages/@livestore/livestore/src/reactive.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/livestore/src/reactive.ts"
+        },
+        "packages/@livestore/livestore/src/store/devtools.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/livestore/src/store/devtools.ts"
+        },
+        "packages/@livestore/common/src/make-client-session.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/common/src/make-client-session.ts"
+        },
+        "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js": {
+          "repository": "livestore",
+          "path": "packages/@livestore/wa-sqlite/demo/SharedService/SharedService.js"
+        },
+        "packages/@livestore/webmesh/src/node.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/webmesh/src/node.ts"
+        },
+        "packages/@livestore/utils/src/effect/RpcClient.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/utils/src/effect/RpcClient.ts"
+        },
+        "packages/@livestore/utils/src/effect/mod.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/utils/src/effect/mod.ts"
+        },
+        "__dependencies__/effect/src/index.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/index.ts"
+        },
+        "__dependencies__/effect/src/Queue.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Queue.ts"
+        },
+        "__dependencies__/effect/src/MutableList.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/MutableList.ts"
+        },
+        "__dependencies__/effect/src/Stream.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Stream.ts"
+        },
+        "__dependencies__/effect/src/Channel.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Channel.ts"
+        },
+        "__dependencies__/effect/src/unstable/rpc/RpcClient.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/unstable/rpc/RpcClient.ts"
+        },
+        "__dependencies__/effect/src/unstable/rpc/Utils.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/unstable/rpc/Utils.ts"
+        },
+        "__dependencies__/effect/src/Effect.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Effect.ts"
+        },
+        "__dependencies__/effect/src/internal/effect.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/internal/effect.ts"
+        },
+        "__dependencies__/effect/src/Function.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Function.ts"
+        },
+        "__dependencies__/effect/src/Context.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Context.ts"
+        },
+        "packages/@livestore/utils/src/effect/Effect.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/utils/src/effect/Effect.ts"
+        },
+        "packages/@livestore/utils/src/effect/Stream.ts": {
+          "repository": "livestore",
+          "path": "packages/@livestore/utils/src/effect/Stream.ts"
+        },
+        "__dependencies__/effect/src/internal/core.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/internal/core.ts"
+        },
+        "__dependencies__/effect/src/Utils.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Utils.ts"
+        },
+        "__dependencies__/effect/src/Effectable.ts": {
+          "dependency": "effect-4.0.0-rc.113",
+          "path": "src/Effectable.ts"
+        }
+      },
+      "module_bindings": {
+        "@livestore/utils/effect": "packages/@livestore/utils/src/effect/mod.ts",
+        "effect": "__dependencies__/effect/src/index.ts",
+        "effect/unstable/rpc/RpcClient": "__dependencies__/effect/src/unstable/rpc/RpcClient.ts",
+        "effect/Stream": "__dependencies__/effect/src/Stream.ts",
+        "effect/Effect": "__dependencies__/effect/src/Effect.ts"
+      },
+      "dependency_lock": "effect-source.lock.json"
+    }
+  },
+  "previous_lock": "history/inputs-v5.json"
+}

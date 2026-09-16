@@ -209,6 +209,9 @@ class Analyzer:
                 # earlier declaration cannot evict a later constructor binding.
                 for declaration in source.tree.root_node.named_children:
                     interpreter.facts = []
+                    # Module bindings are live while initializers execute.
+                    # Local factory captures still belong to each closure value.
+                    self.globals[source.path] = interpreter.env
                     interpreter.statement(declaration)
                     self.module_facts.extend(interpreter.facts)
                 self.globals[source.path] = dict(interpreter.env)
@@ -268,10 +271,83 @@ class Analyzer:
         facts += self.project_prototype_bodies(facts)
         facts += self.project_return_schemas(facts)
         facts += self.project_stored_bindings(facts)
+        facts += self.specialize_callback_arguments(facts)
         combined = list(dict.fromkeys(facts + self.forward_callback_arguments(facts)))
         if len(combined) > MAX_TOTAL_FACTS:
             self.notices.add(("total_fact_cap", str(len(combined) - MAX_TOTAL_FACTS)))
         return combined[:MAX_TOTAL_FACTS]
+
+    def specialize_callback_arguments(self, facts):
+        """Bind explicit calls through formal callback parameters to their bodies.
+
+        This specializes source schemas, not factory allocations or execution
+        order. A generator's arguments are bound at creation; its body still
+        requires a later resume, which remains an explicit condition.
+        """
+        bindings, calls = {}, {}
+        for fact in facts:
+            if fact.kind == "parameter_binding":
+                bindings.setdefault(fact.target, []).append(fact)
+            elif fact.kind == "argument" and fact.value.kind == "parameter" and fact.argument_index is not None:
+                calls.setdefault((fact.value, fact.location, fact.function), []).append(fact)
+        def targets(formal, seen=()):
+            if formal in seen or len(seen) >= 6:
+                return []
+            result = []
+            for binding in bindings.get(formal, ()):
+                actuals = value_options(binding.value) + self.read_values(binding.value)
+                for actual in actuals:
+                    if actual.kind in {"function", "closure"}:
+                        result.append((actual, (binding,)))
+                    elif actual.kind == "parameter":
+                        result.extend((value, (binding,) + trail) for value, trail in targets(actual, seen + (formal,)))
+            return result[:16]
+        added, visited, call_nodes = [], set(), {}
+        for (formal, location, owner), arguments in calls.items():
+            formal_owner = formal.name.rsplit(":", 1)[0]
+            enclosing = set()
+            function = self.program.functions.get(owner)
+            while function is not None:
+                enclosing.add(function.identifier)
+                function = function.parent
+            if formal_owner not in enclosing:
+                continue
+            roots = {split_path(fact.target)[0] for fact in arguments}
+            if any(root.kind in {"allocation", "binding"} and
+                   (self.allocation_contexts.get(root) or "~" in root.name
+                    or self.allocation_owners.get(root) not in enclosing) for root in roots):
+                continue
+            arity = max(fact.argument_index for fact in arguments) + 1
+            supplied = [merge_values([fact.target for fact in arguments if fact.argument_index == index]) for index in range(arity)]
+            source = self.sources[location.path]
+            for callback, trail in targets(formal):
+                signature = (callback, tuple(supplied), location, owner)
+                if signature in visited:
+                    continue
+                if len(visited) >= 256:
+                    self.notices.add(("callback_binding_summary_bound", "256"))
+                    return added
+                visited.add(signature)
+                # Locate the actual call so expansion retains its source path.
+                if source.path not in call_nodes:
+                    call_nodes[source.path] = {source.location(node): node for node in walk(source.tree.root_node)
+                                               if node.type == "call_expression"}
+                call_node = call_nodes[source.path].get(location)
+                if call_node is None:
+                    continue
+                conditions = {"source_callable_parameter_binding", "enclosing_callable_execution_unproven", "enclosing_function_schema_only"}
+                for fact in arguments + list(trail):
+                    conditions.update(fact.conditions)
+                interpreter = Interpreter(self, source, conditions=tuple(sorted(conditions)))
+                interpreter.apply_source_callable(callback.name, UNKNOWN, supplied, call_node,
+                                                  closure_captures(callback) if callback.kind == "closure" else None)
+                for fact in interpreter.facts:
+                    if fact.kind == "key_lookup" or (fact.kind in {"invoke", "member_invoke", "argument", "return"}
+                                                     and any(split_path(fact.target)[0] == split_path(value)[0] for value in supplied)):
+                        added.append(Fact(fact.kind, fact.target, fact.value, fact.location, fact.function,
+                                          fact.conditions, tuple(dict.fromkeys(fact.via + tuple(item.location for item in trail))),
+                                          fact.argument_index, fact.consumer))
+        return list(dict.fromkeys(added))
 
     def project_stored_bindings(self, facts):
         """Keep identity of a lexical value even when its initializer is opaque."""
@@ -305,6 +381,33 @@ class Analyzer:
         constructing a carrier never proves that the method actually ran.
         """
         added, visited = [], set()
+        origin_cache = {}
+        def callable_origin(value, depth=0):
+            if value in origin_cache:
+                return origin_cache[value]
+            function = self.program.functions.get(value.name)
+            if function is None:
+                return ""
+            path = function.source.path
+            if value.kind != "closure" or depth >= 6:
+                return path
+            captures = closure_captures(value)
+            targets = []
+            for part in walk(function.body):
+                if part.type != "call_expression":
+                    continue
+                callee = child(part, "function")
+                if callee is not None and callee.type == "member_expression" and function.source.text(child(callee, "property")) in {"call", "apply"}:
+                    callee = child(callee, "object")
+                if callee is None or callee.type != "identifier":
+                    continue
+                actual = captures.get(function.source.text(callee))
+                if actual is not None and actual.kind in {"function", "closure"} and actual != value:
+                    targets.append(callable_origin(actual, depth + 1))
+            paths = set(targets)
+            result = next(iter(paths)) if len(paths) == 1 else path
+            origin_cache[value] = result
+            return result
         for generation in range(MAX_PROTOTYPE_GENERATIONS):
             initial_count = len(added)
             stores = [fact for fact in facts + added if fact.kind == "store"]
@@ -326,9 +429,11 @@ class Analyzer:
                 return concrete, len(refs), len(self.allocation_contexts.get(instance, ()))
             groups = {}
             for pair in sorted(list(self.prototypes.items()), key=binding_priority, reverse=True):
+                # Preserve file fairness through wrappers that call a captured
+                # function. Captured data callables are not execution targets.
                 callbacks = [value for fact in by_parent.get(pair[0], ()) for value in value_options(fact.value)
                              if value.kind in {"closure", "function"} and value.name in self.program.functions]
-                path = self.program.functions[callbacks[0].name].source.path if callbacks else ""
+                path = callable_origin(callbacks[0]) if callbacks else ""
                 groups.setdefault(path, []).append(pair)
             ordered = []
             while any(groups.values()):
@@ -890,7 +995,7 @@ class Interpreter:
             if function:
                 if self.source.language in {"typescript", "tsx"} and function.parent:
                     return self.capture_callable(function)
-                self.analyzer.captures[function.identifier] = dict(self.env)
+                self.analyzer.captures[function.identifier] = ({} if self.source.language in {"typescript", "tsx"} else dict(self.env))
                 return Value("function", function.identifier)
             return UNKNOWN
         if kind in {"member_expression", "field_expression", "selector_expression"}:
@@ -1062,7 +1167,15 @@ class Interpreter:
     def capture_callable(self, function):
         free_names = {self.text(part) for part in walk(function.body) if part.type in {"identifier", "this"}}
         bound_names = lexical_bindings(self.source, function.body) | {name for name, _ in function.parameters}
-        captures = {name: self.env[name] for name in sorted(free_names - bound_names) if name in self.env}
+        enclosing_names = {"this"}
+        parent = function.parent
+        while parent is not None:
+            enclosing_names.update(name for name, _ in parent.parameters)
+            enclosing_names.update(lexical_bindings(parent.source, parent.body))
+            if parent.node.type != "arrow_function":
+                enclosing_names.add("arguments")
+            parent = parent.parent
+        captures = {name: self.env[name] for name in sorted((free_names - bound_names) & enclosing_names) if name in self.env}
         self.analyzer.captures[function.identifier] = captures
         if len(captures) > 32:
             self.analyzer.notices.add(("closure_capture_cap", function.identifier))
@@ -1245,6 +1358,7 @@ class Interpreter:
         argument_nodes = list(arguments_node.named_children) if arguments_node else []
         arguments = [self.expression(part, level + 1) for part in argument_nodes]
         callee_text = self.text(callee_node)
+        bound_receiver = UNKNOWN
         if self.source.language == "rust" and callee_node is not None and callee_node.type == "generic_function":
             callee_text = self.text(child(callee_node, "function"))
         if self.source.language in {"typescript", "tsx"}:
@@ -1260,6 +1374,7 @@ class Interpreter:
             if len(known) == 1 and callee.kind != "function":
                 if callee.kind == "slot":
                     self.emit("invoke", callee, UNKNOWN, node)
+                    bound_receiver = callee.base
                 callee = known[0]
         if self.source.language == "rust":
             type_id = type_id_call(self, callee_text, callee_node, arguments)
@@ -1303,7 +1418,7 @@ class Interpreter:
         if self.source.language == "go" and callee_text == "delete" and len(arguments) == 2:
             self.emit("remove", slot(slot(arguments[0], MAP_ENTRIES), arguments[1]), UNKNOWN, node)
             return UNKNOWN
-        receiver = callee.base if callee.kind == "slot" else UNKNOWN
+        receiver = callee.base if callee.kind == "slot" else bound_receiver
         method = callee.key.name if callee.kind == "slot" and callee.key.kind == "key" else ""
         if self.source.language in {"typescript", "tsx"}:
             resumed = generator_call(self, receiver, method, arguments, node)
@@ -1377,13 +1492,17 @@ class Interpreter:
                 target_ids = self.program.methods.get((receiver.name, method), [])
         if len(target_ids) == 1:
             target = self.program.functions.get(target_ids[0])
+            if self.source.language in {"typescript", "tsx"} and bound_receiver != UNKNOWN:
+                return self.apply_source_callable(target_ids[0], bound_receiver, arguments, node)
             if self.source.language in {"typescript", "tsx"} and (target and target.node.type in GENERATOR_NODES
                     or any(value.kind == "wrapper" and value.name == "javascript:generator" for value in arguments)):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
             if self.source.language == "rust" and (any(value.kind == "wrapper" and value.name in {"rust:nonnull", "rust:raw_pointer"} for value in arguments)
                                                     or (receiver.kind == "allocation" and self.analyzer.owner(receiver, self.source) in self.program.tuple_fields)):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
-            if self.source.language in {"typescript", "tsx"} and any(value.kind in {"function", "closure", "binding"} for value in arguments):
+            if self.source.language in {"typescript", "tsx"} and any(value.kind in {"function", "closure", "binding"}
+                    or any(stored.kind in {"function", "closure"} for stored in self.analyzer.read_values(value))
+                    for value in arguments):
                 return self.apply_source_callable(target_ids[0], receiver, arguments, node)
             returned = self.apply_summary(target_ids[0], UNKNOWN if receiver.kind == "type" else receiver, arguments, node)
             if returned != UNKNOWN:
@@ -1422,6 +1541,10 @@ class Interpreter:
             nested.instance_context = "~closure:" + hashlib.sha256("\n".join(identity_parts).encode()).hexdigest()[:16]
         for (name, declared), actual in zip(function.parameters, arguments):
             nested.env[name] = actual
+            if actual.kind in {"function", "closure", "parameter", "slot"}:
+                formal = Value("parameter", function.identifier + ":" + name)
+                self.emit("parameter_binding", formal, actual, node,
+                          ("generator_execution_required",) if function.node.type in GENERATOR_NODES else ())
             if actual.kind == "binding" and declared:
                 owner = self.program.resolve_type(function.source, declared.lstrip(": "))
                 if owner:
@@ -1500,7 +1623,7 @@ class Interpreter:
         replacements.update(capture_replacements or {})
         if summary.receiver != UNKNOWN and receiver != UNKNOWN:
             replacements[summary.receiver] = receiver
-        semantic_kinds = {"store", "remove", "invoke", "member_invoke", "argument", "return", "key_lookup", "function_type_conversion", "copy_properties"}
+        semantic_kinds = {"store", "remove", "invoke", "member_invoke", "argument", "return", "key_lookup", "function_type_conversion", "copy_properties", "parameter_binding"}
         selected = [fact for fact in summary.facts if fact.kind in semantic_kinds]
         values = set()
         for value in list(summary.returns) + [value for fact in selected for value in (fact.target, fact.value)]:

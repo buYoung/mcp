@@ -80,6 +80,9 @@ def main():
         assert digest(latest_baseline / relative) == expected
     latest_cases = read(latest_baseline / "language-corpus/regressions/cases.json")
     assert all(cases_by_id[case["id"]] == case for case in latest_cases)
+    checkpoint_cases = read(DIRECTORY / "history/regressions-234.json")
+    assert len(checkpoint_cases) == 234
+    assert all(cases_by_id[case["id"]] == case for case in checkpoint_cases)
     current = read(CORPUS / "results/evaluation.json")["cases"]
     previous = read(baseline / "language-corpus/results/evaluation.json")["cases"]
     assert {row["id"]: row["status"] for row in current} == {row["id"]: row["status"] for row in previous}
@@ -191,8 +194,8 @@ def main():
     assert consumer_result["target_programs_executed"] is False
     for name, expected in consumer_result["analysis_sha256"].items():
         assert digest(DIRECTORY / "results" / (name + ".json.gz")) == expected
-    assert statuses(consumer_rows) == {"conditional_data_consumption": 2, "conditional_candidate": 1,
-                                       "unresolved": 1, "correctly_unjoined_with_positive_control": 2}
+    assert statuses(consumer_rows) == {"conditional_data_consumption": 3, "conditional_candidate": 1,
+                                       "correctly_unjoined_with_positive_control": 2}
 
     comparison = {"verified_on": "2026-09-16", "aggregation": "best_observed_status_per_public_positive_case_across_selected_inputs",
                   "base_case_statuses_unchanged": True, "previous_base_public": statuses(row for row in previous if row["repository"] != "fixtures"),
@@ -208,6 +211,8 @@ def main():
                "prior_phase_files_unchanged": len(preserved), "prior_regression_cases_unchanged": len(previous_cases),
                "previous_stage_files_unchanged": len(stage_files), "previous_stage_regression_cases_unchanged": len(stage_cases),
                "latest_baseline_files_unchanged": len(latest_files), "latest_baseline_regression_cases_unchanged": len(latest_cases),
+               "completed_checkpoint_regression_cases_unchanged": len(checkpoint_cases),
+               "completed_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-234.json"),
                "crate_manifest_bindings_verified": len(crates["crates"]),
                "consumer_cases_sha256": digest(DIRECTORY / "consumers.json"),
                "dependency_files_verified": len(lock["source_sha256"]), "supplemental_analysis_outputs_verified": len(variants),

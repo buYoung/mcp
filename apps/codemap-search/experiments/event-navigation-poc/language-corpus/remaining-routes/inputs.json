@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "variants": {
     "bevy-modules": {
       "repository": "bevy",
@@ -65,7 +65,8 @@
         "crates/bevy_ecs/macro_logic/src/lib.rs",
         "crates/bevy_ecs/macro_logic/src/component.rs",
         "crates/bevy_ecs/macros/src/lib.rs",
-        "crates/bevy_ecs/macros/src/resource.rs"
+        "crates/bevy_ecs/macros/src/resource.rs",
+        "crates/bevy_ecs/src/bundle/remove.rs"
       ],
       "support_paths": [],
       "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
@@ -130,7 +131,8 @@
         "crates/bevy_ecs/macro_logic/src/lib.rs": "3fe5871e0977d812852286572916de283f32d99a93d2f52c74a3d9b7858701fc",
         "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
         "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
-        "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0"
+        "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0",
+        "crates/bevy_ecs/src/bundle/remove.rs": "3b5c4c6e8707e5fb1f0f65116b10e15193d880af66663d015548952f06140f10"
       },
       "module_bindings": {
         "bevy_ecs": "crates/bevy_ecs/src/lib.rs",
@@ -466,5 +468,5 @@
       "dependency_lock": "effect-source.lock.json"
     }
   },
-  "previous_lock": "history/inputs-v5.json"
+  "previous_lock": "history/inputs-v6.json"
 }
