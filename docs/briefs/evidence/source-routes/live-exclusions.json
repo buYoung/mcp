@@ -1,0 +1,8 @@
+{
+  "binary_blake3": "ce28c660e8b1a7529187e8f4fc84810568c8739cdbd3aa4cb293b04564bb0bf9",
+  "ordinary_source_positive_control": true,
+  "passed": true,
+  "rust_target_exclusion_and_reload": true,
+  "target_programs_executed": false,
+  "test_exclusion_and_inclusion_reload": true
+}

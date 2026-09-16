@@ -331,6 +331,7 @@ pub(super) fn append_relations(
         .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
     let root = std::env::current_dir().unwrap_or_default();
     let mut insertions = Vec::new();
+    let mut shown_routes = crate::events::ShownRoutes::default();
     for (file_number, file) in files.iter().enumerate() {
         let anchors = file
             .sections
@@ -373,7 +374,7 @@ pub(super) fn append_relations(
                     other_cap,
                     &root,
                     Some(&file.path),
-                    None,
+                    Some(&mut shown_routes),
                 )
             } else {
                 String::new()

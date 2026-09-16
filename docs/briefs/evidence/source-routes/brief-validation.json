@@ -1,0 +1,98 @@
+{
+  "round": 4,
+  "stage4_user_decision_rows": 0,
+  "stage55": "unavailable: user permits only the one cold-pickup agent and prohibits independent execution-reconstruction delegation",
+  "stage56": "PASS: final main-thread full-input self-check; all 18 languages, 468 immutable base rows, expanded variants, extra consumers, frontend guards, live output, compiler independence, caps, deferrals and agent prohibition matched to current native evidence",
+  "stage57": "one completed astra/max cold-pickup of round1 returned needs_changes; all three findings were corrected by main and checked against final implementation/results; no second cold review or clean_pass claimed",
+  "round1_hashes": {
+    "docs/briefs/2026-09-16-briefset-source-routes.md": "b8a6ba4195c0e5a08f0944ba8e4bac63a92f980096e0982f7fb66294230ad11a",
+    "docs/briefs/2026-09-16-feat-source-routes-01-proof-model.md": "abccc2b5af9f1a3066c411f5aedca17afd44841dd19cf0be2aa716a775512585",
+    "docs/briefs/2026-09-16-feat-source-routes-02-core-languages.md": "3c0b51a0e038e3475a4af611acc01866107c7ddf814a56b9624d12a41f8b6890",
+    "docs/briefs/2026-09-16-feat-source-routes-03-polyglot.md": "7aa0d99b704abce323dc0f9efdc50ee07f4c0c61dca6f518277f6c46a480f6cf",
+    "docs/briefs/2026-09-16-feat-source-routes-04-assembly.md": "5796916c50a5ad6e9ef09034481262f68a46678c5f8c8f6bb848a908d7a8c8e7",
+    "docs/briefs/2026-09-16-feat-source-routes-05-live-integration.md": "ea6f115f3fd56d3a2dcedf85280a40acaaecb08810e9e11c9f7410091f5eb133",
+    "docs/briefs/2026-09-16-test-source-routes-06-product-proof.md": "f60485f20b8c5ab41504dc49bbdc1d0ab604702d722dc79ef397d898e1fec5ae"
+  },
+  "round1_snapshot": "/Users/buyong/tmp/source-routes-briefs-round1-q1tdr0wd",
+  "snapshot": "/Users/buyong/tmp/source-routes-briefs-round4-d8iwcygi",
+  "cold_pickup": {
+    "agent": "/root/source_routes_cold_pickup",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "max",
+    "fresh_context": true,
+    "scope": "one whole-set review, parent and 6/6 children read; not seven independent reviews",
+    "verdict": "needs_changes",
+    "ask_backs": [],
+    "findings": [
+      {
+        "id": "m1",
+        "finding": "Missing concrete native corpus runner creation, invocation, roots, size option and result handoff",
+        "routing": "accepted: author-owned execution detail",
+        "patch": "01 Stage 1 creates the native test harness; all adapter/verification stages invoke it with explicit parameters and outputs"
+      },
+      {
+        "id": "m2",
+        "finding": "Separate Rust five frontend guards and actual Bevy value observations missing from coverage ownership",
+        "routing": "accepted: original research scope",
+        "patch": "02 and 06 own explicit frontend input/assertion/results alongside, not within, the 301 relation rows"
+      },
+      {
+        "id": "m3",
+        "finding": "Monix new subscriber and platform/version-specific conditions missing from final acceptance",
+        "routing": "accepted: original research scope",
+        "patch": "03 and 06 verify actual newly-added subscriber and exact per-variant obligations"
+      }
+    ]
+  },
+  "hashes": {
+    "docs/briefs/2026-09-16-briefset-source-routes.md": "42babf48e8b850b27fcc71ed80bcbf7959b3af4456daea20149a562e3864ae77",
+    "docs/briefs/2026-09-16-feat-source-routes-01-proof-model.md": "77f9c8e6d0b9ac8aa7ee0a94445566f73d4514f234cbaf22acd7af431b1fed93",
+    "docs/briefs/2026-09-16-feat-source-routes-02-core-languages.md": "77fd42cdf2bc4f9c03864f11a368707423654aa298f7ce017c9e899b26662b37",
+    "docs/briefs/2026-09-16-feat-source-routes-03-polyglot.md": "fb59c17a0bb8410edec4d7a9a944827e5a96c74ef240ef50cb610646b701f06b",
+    "docs/briefs/2026-09-16-feat-source-routes-04-assembly.md": "4eb3cb74b97c46d7c924fd7a287a603cfb0458e2f3d66aea95b2767ae1a63e80",
+    "docs/briefs/2026-09-16-feat-source-routes-05-live-integration.md": "c8913357f87000bbf00afd883a28b7dd98dab1e17310d91a60cbefa952794761",
+    "docs/briefs/2026-09-16-test-source-routes-06-product-proof.md": "51e75272fbd4e1ffd2751f3ed7583baf9297e171dcc464d2aced3b26120d2cff"
+  },
+  "structural_round2": "PASS, 0 warnings; parent and 6 children",
+  "round2_hashes": {
+    "docs/briefs/2026-09-16-briefset-source-routes.md": "7ece05f248b7cbd1054200768106e0f65ee93c054ae73657605dc7d7fea32610",
+    "docs/briefs/2026-09-16-feat-source-routes-01-proof-model.md": "a9bb03f5ee591e7fec8539c814940ba69c08ce6a0b2a41c8ea2dfabce986cb7f",
+    "docs/briefs/2026-09-16-feat-source-routes-02-core-languages.md": "6011374f17daa2916be525234fe0411ccb41b5b0f235c86048ce7b274d4f4177",
+    "docs/briefs/2026-09-16-feat-source-routes-03-polyglot.md": "d0a0adf4957fda1b3ff3da741d8d7f9f9a566c82a8f1890ee7cf3eaef9cd23bd",
+    "docs/briefs/2026-09-16-feat-source-routes-04-assembly.md": "d74cab1325a5cd77866847e78f081b0847d3b00717a8a3408a857d09cd4115dc",
+    "docs/briefs/2026-09-16-feat-source-routes-05-live-integration.md": "b0d842e894c16dd5627a820a3f6ff6b88c558aaa5129321feb60b580bbeb2b88",
+    "docs/briefs/2026-09-16-test-source-routes-06-product-proof.md": "bce681ec2d171ed10cb25310502c76f109a81244ffa6044e3373af46c39efebd"
+  },
+  "round2_snapshot": "/Users/buyong/tmp/source-routes-briefs-round2-42djdcow",
+  "structural_round3": "PASS, 0 warnings; parent and 6 children",
+  "round3_hashes": {
+    "docs/briefs/2026-09-16-briefset-source-routes.md": "42babf48e8b850b27fcc71ed80bcbf7959b3af4456daea20149a562e3864ae77",
+    "docs/briefs/2026-09-16-feat-source-routes-01-proof-model.md": "77f9c8e6d0b9ac8aa7ee0a94445566f73d4514f234cbaf22acd7af431b1fed93",
+    "docs/briefs/2026-09-16-feat-source-routes-02-core-languages.md": "77fd42cdf2bc4f9c03864f11a368707423654aa298f7ce017c9e899b26662b37",
+    "docs/briefs/2026-09-16-feat-source-routes-03-polyglot.md": "fb59c17a0bb8410edec4d7a9a944827e5a96c74ef240ef50cb610646b701f06b",
+    "docs/briefs/2026-09-16-feat-source-routes-04-assembly.md": "4eb3cb74b97c46d7c924fd7a287a603cfb0458e2f3d66aea95b2767ae1a63e80",
+    "docs/briefs/2026-09-16-feat-source-routes-05-live-integration.md": "4844209317d04e32de5abc2b101dbd0523be0ba7c6304ad2a44255a47a0d4321",
+    "docs/briefs/2026-09-16-test-source-routes-06-product-proof.md": "2c77cc4c7d6ec56325b3212abeacc25180128cfefab64fa840b91196212f5dde"
+  },
+  "round3_snapshot": "/Users/buyong/tmp/source-routes-briefs-round3-n6rk6z0c",
+  "structural_round4": "PASS, 0 warnings; final parent + 6/6 children",
+  "termination": "user_limited_single_cold_pass",
+  "remaining_cold_findings_as_assessed_by_main": [],
+  "independent_review_of_final_state": false,
+  "author_corrections_round4": [
+    "Name the actual MCP tool validation surface; preserve standalone CLI file-list search without inventing read/grep CLI commands",
+    "Define measured cold readiness and four-call timings accurately; no before/after latency improvement claim"
+  ],
+  "final_structural_command": {
+    "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+    "command": "python3 /Users/buyong/.skills/task-brief-creator/scripts/validate_briefset.py docs/briefs/2026-09-16-briefset-source-routes.md",
+    "exit": 0,
+    "log": "logs/brief-structure.log"
+  },
+  "artifact_snapshots_removed_after_final_pass": [
+    "/Users/buyong/tmp/source-routes-briefs-round1-q1tdr0wd",
+    "/Users/buyong/tmp/source-routes-briefs-round2-42djdcow",
+    "/Users/buyong/tmp/source-routes-briefs-round3-n6rk6z0c",
+    "/Users/buyong/tmp/source-routes-briefs-round4-d8iwcygi"
+  ]
+}

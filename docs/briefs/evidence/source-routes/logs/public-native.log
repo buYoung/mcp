@@ -1,0 +1,104 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-f437c90ec1dc377d)
+
+running 1 test
+ANALYZE bevy--rust: 22 files, 690959 bytes
+ANALYZE blinker--python: 2 files, 31022 bytes
+ANALYZE client-go--go: 14 files, 312057 bytes
+ANALYZE entt--cpp: 5 files, 61575 bytes
+ANALYZE event-dispatcher--php: 2 files, 36769 bytes
+ANALYZE eventbus--java: 4 files, 37433 bytes
+ANALYZE flutter--dart: 2 files, 18004 bytes
+ANALYZE grails-core--groovy: 5 files, 16348 bytes
+ANALYZE hump--lua: 1 files, 2662 bytes
+ANALYZE libuv--c: 3 files, 35577 bytes
+ANALYZE livestore--javascript: 6 files, 91231 bytes
+ANALYZE livestore--typescript: 6 files, 91231 bytes
+ANALYZE monix--scala: 2 files, 13029 bytes
+ANALYZE observer--ruby: 2 files, 7951 bytes
+ANALYZE pokered--assembly: 2 files, 74605 bytes
+ANALYZE reactive--csharp: 2 files, 29487 bytes
+ANALYZE reaktive--kotlin: 3 files, 10805 bytes
+ANALYZE rxswift--swift: 6 files, 18112 bytes
+ANALYZE vendure--typescript: 13 files, 267849 bytes
+PASS bevy--rust:b_boxed_observer unresolved
+PASS bevy--rust:b_message_buffer unresolved
+PASS bevy--rust:b_system_id unresolved
+PASS bevy--rust:b_gltf_handler unresolved
+PASS bevy--rust:rust-custom-runner-proof-boundary source_scenario_not_executed
+PASS bevy--rust:rust-gltf-clone-identity-boundary source_scenario_not_executed
+PASS blinker--python:python-receiver-send conditional_candidate
+PASS blinker--python:python-specific-sender source_scenario_not_executed
+PASS blinker--python:python-weakref-gc source_scenario_not_executed
+PASS client-go--go:go_add_adapter conditional_candidate
+PASS client-go--go:go_update_adapter conditional_candidate
+PASS client-go--go:go_delete_adapter conditional_candidate
+PASS client-go--go:go_listener_handler conditional_candidate
+PASS client-go--go:go_index_function conditional_candidate
+PASS client-go--go:go_list_callback conditional_candidate
+PASS client-go--go:go_fifo_process conditional_candidate
+PASS client-go--go:no_go_add_to_delete correctly_unjoined_with_positive_control
+PASS client-go--go:no_go_delete_to_add correctly_unjoined_with_positive_control
+PASS entt--cpp:cpp-delegate-publish conditional_candidate
+PASS entt--cpp:cpp-named-default-queue source_scenario_not_executed
+PASS entt--cpp:cpp-raii-disconnect source_scenario_not_executed
+PASS event-dispatcher--php:php-priority-listener conditional_candidate
+PASS event-dispatcher--php:php-same-closure-different-key source_scenario_not_executed
+PASS event-dispatcher--php:php-lazy-factory source_scenario_not_executed
+PASS eventbus--java:java-reflective-subscriber conditional_candidate
+PASS eventbus--java:java-method-string-not-method correctly_unjoined_with_positive_control
+PASS eventbus--java:java-bus-instance-isolation source_scenario_not_executed
+PASS flutter--dart:dart-memory-listener conditional_candidate
+PASS flutter--dart:dart-add-during-dispatch source_scenario_not_executed
+PASS flutter--dart:dart-remove-during-dispatch source_scenario_not_executed
+PASS grails-core--groovy:groovy-closure-delivery conditional_candidate
+PASS grails-core--groovy:groovy-keyed-subscription source_scenario_not_executed
+PASS grails-core--groovy:groovy-reply-not-subscriber correctly_unjoined_with_positive_control
+PASS hump--lua:lua-function-key conditional_candidate
+PASS hump--lua:lua-key-value-roles source_scenario_not_executed
+PASS hump--lua:lua-remove source_scenario_not_executed
+PASS libuv--c:c-async conditional_candidate
+PASS libuv--c:c-async-not-timer correctly_unjoined_with_positive_control
+PASS libuv--c:c-timer-instance source_scenario_not_executed
+PASS livestore--javascript:ls_reply_resolve conditional_candidate
+PASS livestore--javascript:ls_reply_reject conditional_candidate
+PASS livestore--javascript:js-provider-map-not-cleanup correctly_unjoined_with_positive_control
+PASS livestore--javascript:js-cleanup-not-provider-map correctly_unjoined_with_positive_control
+PASS livestore--typescript:ls_refresh conditional_candidate
+PASS livestore--typescript:ls_graph_unsubscribe conditional_candidate
+PASS livestore--typescript:ls_live_unsubscribe conditional_candidate
+PASS livestore--typescript:ls_mesh_queue argument_transfer_only
+PASS livestore--typescript:ls_rpc_client argument_transfer_only
+PASS livestore--typescript:no_ls_graph_to_live correctly_unjoined_with_positive_control
+PASS livestore--typescript:no_ls_live_to_graph correctly_unjoined_with_positive_control
+PASS livestore--typescript:no_ls_debug_to_sync correctly_unjoined_with_positive_control
+PASS livestore--typescript:no_ls_sync_to_debug correctly_unjoined_with_positive_control
+PASS monix--scala:scala-state-subscriber unresolved
+PASS monix--scala:scala-before-subscribe source_scenario_not_executed
+PASS monix--scala:scala-future-body source_scenario_not_executed
+PASS observer--ruby:ruby-observer-send conditional_candidate
+PASS observer--ruby:ruby-deleted-observer source_scenario_not_executed
+PASS observer--ruby:ruby-method-symbol-identity source_scenario_not_executed
+PASS pokered--assembly:assembly-item-table conditional_candidate
+PASS pokered--assembly:assembly-separate-tables correctly_unjoined_with_positive_control
+PASS pokered--assembly:assembly-index-choice source_scenario_not_executed
+PASS reactive--csharp:csharp-subject-observer conditional_candidate
+PASS reactive--csharp:csharp-subscription-disposed source_scenario_not_executed
+PASS reactive--csharp:csharp-subject-disposed source_scenario_not_executed
+PASS reaktive--kotlin:kotlin-observer-publish conditional_candidate
+PASS reaktive--kotlin:kotlin-before-subscribe source_scenario_not_executed
+PASS reaktive--kotlin:kotlin-disposed source_scenario_not_executed
+PASS rxswift--swift:swift-bag-observer conditional_candidate
+PASS rxswift--swift:swift-dispose-key source_scenario_not_executed
+PASS rxswift--swift:swift-terminal-state source_scenario_not_executed
+PASS vendure--typescript:v_blocking conditional_candidate
+PASS vendure--typescript:v_progress conditional_candidate
+PASS vendure--typescript:v_queue_process conditional_candidate
+PASS vendure--typescript:v_method_hook conditional_candidate
+PASS vendure--typescript:v_dashboard_callback conditional_candidate
+PASS vendure--typescript:no_v_progress_to_queue correctly_unjoined_with_positive_control
+PASS vendure--typescript:no_v_blocking_to_rx correctly_unjoined_with_positive_control
+test events::source_routes::tests::test_native_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 19.57s
+

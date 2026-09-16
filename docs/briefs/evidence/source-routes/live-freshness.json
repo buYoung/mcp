@@ -1,0 +1,8 @@
+{
+  "binary_blake3": "ce28c660e8b1a7529187e8f4fc84810568c8739cdbd3aa4cb293b04564bb0bf9",
+  "non_endpoint_support_changed": true,
+  "passed": true,
+  "restart_restored": true,
+  "support_deleted": true,
+  "target_programs_executed": false
+}

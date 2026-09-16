@@ -1,0 +1,42 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-f437c90ec1dc377d)
+
+running 1 test
+ANALYZE bevy-modules: 71 files, 1988754 bytes
+ANALYZE livestore-effect: 23 files, 2420495 bytes
+ANALYZE monix-js-scala2: 8 files, 43047 bytes
+test events::source_routes::tests::test_native_corpus has been running for over 60 seconds
+ANALYZE monix-js-scala3: 6 files, 32813 bytes
+ANALYZE monix-jvm-scala2: 15 files, 58048 bytes
+ANALYZE monix-jvm-scala3: 13 files, 47076 bytes
+PASS bevy-modules:b_boxed_observer unresolved
+PASS bevy-modules:b_message_buffer conditional_data_return
+PASS bevy-modules:b_system_id unresolved
+PASS bevy-modules:b_gltf_handler unresolved
+PASS bevy-modules:rust-custom-runner-proof-boundary source_scenario_not_executed
+PASS bevy-modules:rust-gltf-clone-identity-boundary source_scenario_not_executed
+PASS livestore-effect:ls_refresh conditional_candidate
+PASS livestore-effect:ls_graph_unsubscribe conditional_candidate
+PASS livestore-effect:ls_live_unsubscribe conditional_candidate
+PASS livestore-effect:ls_mesh_queue argument_transfer_only
+PASS livestore-effect:ls_rpc_client argument_transfer_only
+PASS livestore-effect:no_ls_graph_to_live correctly_unjoined_with_positive_control
+PASS livestore-effect:no_ls_live_to_graph correctly_unjoined_with_positive_control
+PASS livestore-effect:no_ls_debug_to_sync correctly_unjoined_with_positive_control
+PASS livestore-effect:no_ls_sync_to_debug correctly_unjoined_with_positive_control
+PASS monix-js-scala2:scala-state-subscriber conditional_candidate
+PASS monix-js-scala2:scala-before-subscribe source_scenario_not_executed
+PASS monix-js-scala2:scala-future-body source_scenario_not_executed
+PASS monix-js-scala3:scala-state-subscriber conditional_candidate
+PASS monix-js-scala3:scala-before-subscribe source_scenario_not_executed
+PASS monix-js-scala3:scala-future-body source_scenario_not_executed
+PASS monix-jvm-scala2:scala-state-subscriber conditional_candidate
+PASS monix-jvm-scala2:scala-before-subscribe source_scenario_not_executed
+PASS monix-jvm-scala2:scala-future-body source_scenario_not_executed
+PASS monix-jvm-scala3:scala-state-subscriber conditional_candidate
+PASS monix-jvm-scala3:scala-before-subscribe source_scenario_not_executed
+PASS monix-jvm-scala3:scala-future-body source_scenario_not_executed
+test events::source_routes::tests::test_native_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 82.56s
+

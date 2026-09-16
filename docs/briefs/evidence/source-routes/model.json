@@ -1,0 +1,5373 @@
+{
+  "status": "complete",
+  "baseline_revision": "a3fe03468",
+  "current_revision": {
+    "head": "a3fe03468c10ca0bf67a3342c6d8d1d5363000f1",
+    "changes": "working tree; not committed or released",
+    "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+  },
+  "execution_owner": "main thread",
+  "source_hashes": {
+    "artifact": "source-inputs.json",
+    "sha256": "a2670dd1c68baf5bdf6fe70f474671e3cac1a2778dfc873c25137700327e0fd6",
+    "algorithm": "sha256",
+    "population": "Pinned source files and unchanged PoC manifests, grouped by executed native report"
+  },
+  "limits": {
+    "source_bytes_per_file": 524288,
+    "source_bytes_per_snapshot": 67108864,
+    "source_files_per_snapshot": 4096,
+    "endpoints_per_file_shared": 256,
+    "endpoints_per_snapshot_shared": 8192,
+    "candidates_per_query_shared": 512,
+    "endpoints_per_query_shared": 128,
+    "source_files_per_query_shared": 128,
+    "source_bytes_per_query_shared": 4194304,
+    "syntax_nodes_per_file": 131072,
+    "syntax_nodes_per_snapshot": 1048576,
+    "syntax_depth": 256,
+    "facts_per_function": 256,
+    "total_facts": 40000,
+    "summary_passes": 4,
+    "analysis_operations": 2000000,
+    "expanded_test_input_exception_bytes": 1048576
+  },
+  "report_references": {
+    "native-corpus": {
+      "path": "native-corpus.json",
+      "sha256": "30d620558d75529d90040c899f97cfbd01ebaa97683103ccb9bcb5316dc1e346",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "public-native": {
+      "path": "public-native.json",
+      "sha256": "1b2ac76c16896d6b92bf3138207d2d69fa2223b6650fb9c564997b79250b712e",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "expanded-native": {
+      "path": "expanded-native.json",
+      "sha256": "beaf04e51836836da5c89c3d8b1b52c82b4c01ba4d855036cce223d17f0e09f0",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "consumers-native": {
+      "path": "consumers-native.json",
+      "sha256": "a8a9de8a0bc4c2fbd034f4ddd293af562faaefc8946270a0688c43f6eeb4f3fa",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "frontend-native": {
+      "path": "frontend-native.json",
+      "sha256": "a48be68de9ca99b437f77a4d14a61ca1962e518da65c435415663a0cc80b2a0e",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    }
+  },
+  "commands": [
+    {
+      "name": "native-corpus",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=regressions,fixtures CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/native-corpus.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "regressions,fixtures",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/native-corpus.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 7.605,
+      "log": "/tmp/source-routes-final-native-corpus.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.40s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 3.36s"
+      ],
+      "evidence_log": "logs/native-corpus.log",
+      "evidence_log_sha256": "545beb03545c2e4491e3b6494917617cabccd789aef971f1da1cc794d4720fef"
+    },
+    {
+      "name": "public-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=public CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/public-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "public",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/public-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 0,
+      "elapsed_seconds": 19.717,
+      "log": "/tmp/source-routes-final-public-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 19.57s"
+      ],
+      "evidence_log": "logs/public-native.log",
+      "evidence_log_sha256": "da9403dfd4d22478c96f4aa5c81bdd6e95a4f750a38cc20c16e80d93269154e4"
+    },
+    {
+      "name": "expanded-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=expanded CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/expanded-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources CODEMAP_SOURCE_ROUTES_MAX_FILE_BYTES=1048576 cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "expanded",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/expanded-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources",
+        "CODEMAP_SOURCE_ROUTES_MAX_FILE_BYTES": "1048576"
+      },
+      "exit": 0,
+      "elapsed_seconds": 82.901,
+      "log": "/tmp/source-routes-final-expanded-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 82.56s"
+      ],
+      "evidence_log": "logs/expanded-native.log",
+      "evidence_log_sha256": "1052dfacd7a56715556769fbe375837a40bcf61b65586edf7ecdca1798077100"
+    },
+    {
+      "name": "consumers-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=consumers CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/consumers-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT=docs/briefs/evidence/source-routes/expanded-native.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "consumers",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/consumers-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources",
+        "CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT": "docs/briefs/evidence/source-routes/expanded-native.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 4.489,
+      "log": "/tmp/source-routes-final-consumers-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 4.12s"
+      ],
+      "evidence_log": "logs/consumers-native.log",
+      "evidence_log_sha256": "b8724edbfbfd1ef7908c37ef29a78c34c23979a69b273c9954c4f8bc69a9066e"
+    },
+    {
+      "name": "frontend-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=frontend CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/frontend-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "frontend",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/frontend-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 0,
+      "elapsed_seconds": 29.973,
+      "log": "/tmp/source-routes-final-frontend-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 29.82s"
+      ],
+      "evidence_log": "logs/frontend-native.log",
+      "evidence_log_sha256": "f2fafb7ceae000f232e4f469278fe13120dc14666c32ca1341abdb91319e5f15"
+    },
+    {
+      "name": "test_value_relationships_stay_removed_across_live_views_and_restart",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_value_relationships_stay_removed_across_live_views_and_restart -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 8.905,
+      "log": "/tmp/source-routes-final-test_value_relationships_stay_removed_across_live_views_and_restart.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.55s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 3.73s"
+      ],
+      "evidence_log": "logs/test_value_relationships_stay_removed_across_live_views_and_restart.log",
+      "evidence_log_sha256": "7979f860fe5b0c5b92ae0d23046c0195d35a6c303265c3ced19d72b7d18489d2"
+    },
+    {
+      "name": "test_implementation_rust_target_reload_with_events_disabled",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_implementation_rust_target_reload_with_events_disabled -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 2.897,
+      "log": "/tmp/source-routes-final-test_implementation_rust_target_reload_with_events_disabled.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 2.74s"
+      ],
+      "evidence_log": "logs/test_implementation_rust_target_reload_with_events_disabled.log",
+      "evidence_log_sha256": "5bdefdfa57c9f1332e7bd82a07ca72a9e8a17bab73bb94248cd86fc788a66b19"
+    },
+    {
+      "name": "test_test_context_rules_reload_and_can_disable_builtin_detection",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_test_context_rules_reload_and_can_disable_builtin_detection -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 7.686,
+      "log": "/tmp/source-routes-final-test_test_context_rules_reload_and_can_disable_builtin_detection.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 7.54s"
+      ],
+      "evidence_log": "logs/test_test_context_rules_reload_and_can_disable_builtin_detection.log",
+      "evidence_log_sha256": "62ee0d57ef9fab4e9b5a30178635e5749f578a5837b0dd73ae44fd2269bf21db"
+    },
+    {
+      "name": "format-migration",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --lib index::engine::tests::test_format_version_mismatch_rebuilds_exactly_once -- --exact --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 0.512,
+      "log": "/tmp/source-routes-final-format-migration.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 0.36s"
+      ],
+      "evidence_log": "logs/format-migration.log",
+      "evidence_log_sha256": "c140050462125d57cbee9543fc3735483aaf9e70dfbc0e96886405e10615198b"
+    },
+    {
+      "name": "events-final",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LIVE_REPORT_DIR=/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/source-routes cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_events_ -- --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LIVE_REPORT_DIR": "/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/source-routes"
+      },
+      "exit": 0,
+      "elapsed_seconds": 31.179,
+      "log": "/tmp/source-routes-final-events-final.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 181 filtered out; finished in 30.99s"
+      ],
+      "evidence_log": "logs/events-final.log",
+      "evidence_log_sha256": "a4cdcec3fc31fdc57dd10ae9c582306f193f4bb359c69f930f4c731ade8e1cdf"
+    },
+    {
+      "name": "cargo-check",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 1.471,
+      "log": "/tmp/source-routes-final-cargo-check.log",
+      "result_lines": [
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.44s"
+      ],
+      "evidence_log": "logs/cargo-check.log",
+      "evidence_log_sha256": "dd6ff227c51f8d1772f2030e609fdfda445861af57d38c45bd86e990e5df563e"
+    },
+    {
+      "name": "commit-clippy",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo clippy --manifest-path apps/codemap-search/Cargo.toml --all-targets -- -D warnings",
+      "environment": {},
+      "exit": 0,
+      "log": "/tmp/source-routes-commit-clippy.log",
+      "result_lines": [
+        "    Checking codemap-search v0.8.1 (/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search)",
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.90s"
+      ],
+      "evidence_log": "logs/commit-clippy.log",
+      "evidence_log_sha256": "9fdcb495d2ed9b56773167420af879c2b89bddefbe80570b133b3ad962ad294d"
+    }
+  ],
+  "case_results": [
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-detected",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-missed",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-detected",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-missed",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-detected",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-missed",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-detected",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-missed",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-detected",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-missed",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-detected",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-missed",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-detected",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-missed",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-detected",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-missed",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-detected",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-missed",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-detected",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-missed",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-detected",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-missed",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-detected",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-missed",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-detected",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-missed",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-detected",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-missed",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-detected",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-missed",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-detected",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-missed",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-detected",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-missed",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-detected",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-missed",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-own_register",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-other_register",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-clobber",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-copy",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-narrow_write",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-boundaries-global",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-boundaries-other_global",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-boundaries-parameter_shadow",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-boundaries-this_capture",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-boundaries-other_field",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-boundaries-not_invoked",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-boundaries-value_capture",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-boundaries-capture_identity",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-boundaries-event",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-boundaries-other_event",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-boundaries-first",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-boundaries-other_position",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-boundaries-second",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "dart-boundaries-discarded_position",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-boundaries-import_alias",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-boundaries-other_field",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-boundaries-shadowed_import",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-boundaries-getter",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-boundaries-other_field",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-boundaries-other_getter",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "groovy-boundaries-getter_return",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-boundaries-method_reference",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-boundaries-other_field",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-boundaries-non_sam_method",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-boundaries-declared_sam",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-boundaries-bound_receiver",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-boundaries-intrinsic",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-boundaries-other_field",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-boundaries-local_shadow",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-boundaries-getter",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-boundaries-other_field",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-boundaries-other_getter",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "kotlin-boundaries-getter_return",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-boundaries-property_key",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-boundaries-other_key",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-boundaries-map_key",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 4
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "lua-boundaries-other_table",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-boundaries-constant_name",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-boundaries-other_property",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-boundaries-variable_spelling",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-boundaries-intrinsic",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-boundaries-other_field",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-boundaries-local_shadow",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-boundaries-intrinsic",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-boundaries-other_variable",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-override-override_return",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "ruby-override-override",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-boundaries-standard_box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-boundaries-other_box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-custom_box-shadowed_box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-boundaries-first",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-boundaries-other_position",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-boundaries-second",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-boundaries-discarded_position",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-boundaries-first",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-boundaries-other_position",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-boundaries-second",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-boundaries-discarded_position",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-boundaries-getter",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-boundaries-other_field",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-boundaries-other_getter",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-boundaries-getter_return",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-boundaries-write_is_not_read",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-module_shadow",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "python-later_local",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-module_shadow",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "javascript-later_local",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "go-wrapper_summary",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-linkage-local",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "c-linkage-other_translation_unit",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-public-gap-constructor_alias",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-public-gap-same_type_other_field",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-public-gap-same_field",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "cpp-public-gap-reference_rebind",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-public-gap-atomic_getter",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 12
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "csharp-public-gap-other_array",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-public-gap-reflective_field",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "java-public-gap-descriptor_text",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-public-gap-reference_cache",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "php-public-gap-callable_creation",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-gap-mapped_spread",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-gap-other_map",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-gap-known_property",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-gap-absent_property",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-public-gap-generic_bag",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 4
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "swift-public-gap-other_bag",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-public-guard-deref",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-public-guard-other_bag",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-public-guard-inherent_push",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-public-guard-inherent_not_deref",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-dynamic_copy",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-overridden_property",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-added_literal_key",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-nested_missing",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-missing_literal",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-later_spread",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-dotted_import",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-bound_field",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-public-guard-other_binding",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-imported_return",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-other_buffer",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-other_field",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-different_parameters",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-stored_iterator",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-data-return-same_parameter",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-cell",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 5
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-other_field",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-copy_kept",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-copy_other",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-copy_replaced",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-state-copy_original",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-modules-namespace",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-modules-other_map",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-modules-captured_factory",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-modules-other_factory",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-budget-local_tail",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-budget-other_field",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-variance-same_parameter",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-variance-other_parameter",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-type-objects-same",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-type-objects-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-type-objects-runtime_literal",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-static-storage-same",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-static-storage-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-returned-closures-returned",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-returned-closures-other_factory",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-returned-closures-applied",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-returned-closures-other_callback",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-call-forwarding-bound",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-call-forwarding-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-prototype-forwarding-same",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-prototype-forwarding-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-implicit-builder-same",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-implicit-builder-other",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-jvm-storage-same",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-jvm-storage-other_instance",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-jvm-storage-other_field",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-data-consumption-object",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-data-consumption-other_object",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-data-consumption-key",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-data-consumption-other_key",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-ternary-wrapper-same",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-ternary-wrapper-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-budget-late_initializer",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-budget-other_initializer",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-standard-wrappers-box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-standard-wrappers-other_box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-standard-wrappers-some_pattern",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-standard-wrappers-shadowed_some",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-jvm-storage-final_field",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-jvm-storage-wrong_field",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-prototype-identity-same",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-prototype-identity-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-standard-wrappers-generic_box",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "scala-set-copy-new_value",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-namespace-arrays-direct",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-namespace-arrays-nested_scope",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-namespace-arrays-other_key",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-namespace-arrays-same_name_other_namespace",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-namespace-arrays-object_union",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-nonnull",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-raw",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-clone",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-other",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-tuple",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-helper",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-recovered",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-integer",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-origins-cast",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-shadow-standard",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-pointer-shadow-custom",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-same",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-different",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-other-map",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-unknown",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-generic",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-keys-generic-other",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-yielded",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-resumed",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-completed",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-unstarted",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-delegated-yield",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-delegated-return",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-helper",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-opaque-delegate",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stack-values-same-stack",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stack-values-other-stack",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-shadow-same-custom",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-shadow-standard-is-distinct",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-type-id-shadow-native-matches",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-early-return",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-resume-early-throw",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stored-function-context-stored-function",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stored-function-context-other-function",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stored-function-context-bound-receiver",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-stored-function-context-other-receiver",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-live-bindings-before",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-live-bindings-after",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-live-bindings-not-later",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-module-live-bindings-not-snapshot",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-callback-binding-selected",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-callback-binding-other",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-callback-binding-unused",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-callback-binding-second",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "typescript-generator-callback-binding-not-first",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-first-to-left-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-first-to-left-other-key",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-first-to-left-other-type",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-first-to-right-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-key-to-left-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-key-to-left-other-key",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-key-to-left-other-type",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-key-to-right-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-type-to-left-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-type-to-left-other-key",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-type-to-left-other-type",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-left-other-type-to-right-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-right-first-to-left-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-right-first-to-left-other-key",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-right-first-to-left-other-type",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-storage-right-first-to-right-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-any-standard-target",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-any-wrong-concrete-type",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-any-custom-trait",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-if-let-outer-else",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-if-let-outer-after",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-if-let-shadowed-value",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-plain-type-inference",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-generic-arguments-not-erased",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-container-method",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-container-not-standard-get",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-first-to-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-first-to-second",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-second-to-first",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-second-to-second",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-literal-token-preserved",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-declarative-impl-literal-token-not-substituted",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-left-to-left",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-left-to-right",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-right-to-left",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-right-to-right",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-unsupported-hygiene",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-unsupported-repetition",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-uninitialized",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-nested-left-to-left",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-nested-left-to-right",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-nested-right-to-left",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-statement-macro-nested-right-to-right",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-prelude-take",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-taken-local-empty",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-field-take",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-taken-field-empty",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-field-replaced",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-old-payload-not-replacement",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-replacement-not-old-payload",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-glob-shadow",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-block-return",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-block-local-not-returned",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "rust-source-frontier-single-tail-evaluation",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "javascript-fixture-primary",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "javascript-fixture-secondary",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "javascript-fixture-primary-not-secondary",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "javascript-fixture-secondary-not-primary",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "javascript-fixture-different-owner",
+      "language": "javascript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "typescript-fixture-primary",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "typescript-fixture-secondary",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "typescript-fixture-primary-not-secondary",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "typescript-fixture-secondary-not-primary",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "typescript-fixture-different-owner",
+      "language": "typescript",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "go-fixture-primary",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "go-fixture-secondary",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "go-fixture-primary-not-secondary",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "go-fixture-secondary-not-primary",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "go-fixture-different-owner",
+      "language": "go",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "rust-fixture-primary",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "rust-fixture-secondary",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "rust-fixture-primary-not-secondary",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "rust-fixture-secondary-not-primary",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "rust-fixture-different-owner",
+      "language": "rust",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "python-fixture-primary",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "python-fixture-secondary",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "python-fixture-primary-not-secondary",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "python-fixture-secondary-not-primary",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "python-fixture-different-owner",
+      "language": "python",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "c-fixture-primary",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "c-fixture-secondary",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "c-fixture-primary-not-secondary",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "c-fixture-secondary-not-primary",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "c-fixture-different-owner",
+      "language": "c",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "cpp-fixture-primary",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "cpp-fixture-secondary",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "cpp-fixture-primary-not-secondary",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "cpp-fixture-secondary-not-primary",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "cpp-fixture-different-owner",
+      "language": "cpp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "csharp-fixture-primary",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "csharp-fixture-secondary",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "csharp-fixture-primary-not-secondary",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "csharp-fixture-secondary-not-primary",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "csharp-fixture-different-owner",
+      "language": "csharp",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "dart-fixture-primary",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "dart-fixture-secondary",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "dart-fixture-primary-not-secondary",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "dart-fixture-secondary-not-primary",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "dart-fixture-different-owner",
+      "language": "dart",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "groovy-fixture-primary",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "groovy-fixture-secondary",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "groovy-fixture-primary-not-secondary",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "groovy-fixture-secondary-not-primary",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "groovy-fixture-different-owner",
+      "language": "groovy",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "java-fixture-primary",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "java-fixture-secondary",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "java-fixture-primary-not-secondary",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "java-fixture-secondary-not-primary",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "java-fixture-different-owner",
+      "language": "java",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "kotlin-fixture-primary",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "kotlin-fixture-secondary",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "kotlin-fixture-primary-not-secondary",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "kotlin-fixture-secondary-not-primary",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "kotlin-fixture-different-owner",
+      "language": "kotlin",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "lua-fixture-primary",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "lua-fixture-secondary",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "lua-fixture-primary-not-secondary",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "lua-fixture-secondary-not-primary",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "lua-fixture-different-owner",
+      "language": "lua",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "php-fixture-primary",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "php-fixture-secondary",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "php-fixture-primary-not-secondary",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "php-fixture-secondary-not-primary",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "php-fixture-different-owner",
+      "language": "php",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "ruby-fixture-primary",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "ruby-fixture-secondary",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "ruby-fixture-primary-not-secondary",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "ruby-fixture-secondary-not-primary",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "ruby-fixture-different-owner",
+      "language": "ruby",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "scala-fixture-primary",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "scala-fixture-secondary",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "scala-fixture-primary-not-secondary",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "scala-fixture-secondary-not-primary",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "scala-fixture-different-owner",
+      "language": "scala",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "swift-fixture-primary",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "swift-fixture-secondary",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 2
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "swift-fixture-primary-not-secondary",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "swift-fixture-secondary-not-primary",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "swift-fixture-different-owner",
+      "language": "swift",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-primary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-secondary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-primary-not-secondary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-secondary-not-primary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-different-owner",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "b_message_buffer",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "b_system_id",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "rust-custom-runner-proof-boundary",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "rust-gltf-clone-identity-boundary",
+      "language": "rust",
+      "input_variant": "bevy--rust",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "python-receiver-send",
+      "language": "python",
+      "input_variant": "blinker--python",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 8
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "python-specific-sender",
+      "language": "python",
+      "input_variant": "blinker--python",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "python-weakref-gc",
+      "language": "python",
+      "input_variant": "blinker--python",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_add_adapter",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_update_adapter",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_delete_adapter",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_listener_handler",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_index_function",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 8
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_list_callback",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 6
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "go_fifo_process",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 7
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_go_add_to_delete",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_go_delete_to_add",
+      "language": "go",
+      "input_variant": "client-go--go",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "cpp-delegate-publish",
+      "language": "cpp",
+      "input_variant": "entt--cpp",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 3
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "cpp-named-default-queue",
+      "language": "cpp",
+      "input_variant": "entt--cpp",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "cpp-raii-disconnect",
+      "language": "cpp",
+      "input_variant": "entt--cpp",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "php-priority-listener",
+      "language": "php",
+      "input_variant": "event-dispatcher--php",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 10
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "php-same-closure-different-key",
+      "language": "php",
+      "input_variant": "event-dispatcher--php",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "php-lazy-factory",
+      "language": "php",
+      "input_variant": "event-dispatcher--php",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "java-reflective-subscriber",
+      "language": "java",
+      "input_variant": "eventbus--java",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 2
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "java-method-string-not-method",
+      "language": "java",
+      "input_variant": "eventbus--java",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "java-bus-instance-isolation",
+      "language": "java",
+      "input_variant": "eventbus--java",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "dart-memory-listener",
+      "language": "dart",
+      "input_variant": "flutter--dart",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 6
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "dart-add-during-dispatch",
+      "language": "dart",
+      "input_variant": "flutter--dart",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 6
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "dart-remove-during-dispatch",
+      "language": "dart",
+      "input_variant": "flutter--dart",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 6
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "groovy-closure-delivery",
+      "language": "groovy",
+      "input_variant": "grails-core--groovy",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 3
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "groovy-keyed-subscription",
+      "language": "groovy",
+      "input_variant": "grails-core--groovy",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "groovy-reply-not-subscriber",
+      "language": "groovy",
+      "input_variant": "grails-core--groovy",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "lua-function-key",
+      "language": "lua",
+      "input_variant": "hump--lua",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 7
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "lua-key-value-roles",
+      "language": "lua",
+      "input_variant": "hump--lua",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 7
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "lua-remove",
+      "language": "lua",
+      "input_variant": "hump--lua",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 7
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "c-async",
+      "language": "c",
+      "input_variant": "libuv--c",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 2
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "c-async-not-timer",
+      "language": "c",
+      "input_variant": "libuv--c",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "c-timer-instance",
+      "language": "c",
+      "input_variant": "libuv--c",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_reply_resolve",
+      "language": "javascript",
+      "input_variant": "livestore--javascript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 2
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_reply_reject",
+      "language": "javascript",
+      "input_variant": "livestore--javascript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 2
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "js-provider-map-not-cleanup",
+      "language": "javascript",
+      "input_variant": "livestore--javascript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "js-cleanup-not-provider-map",
+      "language": "javascript",
+      "input_variant": "livestore--javascript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_refresh",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_graph_unsubscribe",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_live_unsubscribe",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "argument_transfer_only",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "argument_transfer_only",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_ls_graph_to_live",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_ls_live_to_graph",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_ls_debug_to_sync",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_ls_sync_to_debug",
+      "language": "typescript",
+      "input_variant": "livestore--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "input_variant": "monix--scala",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "input_variant": "monix--scala",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "scala-future-body",
+      "language": "scala",
+      "input_variant": "monix--scala",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ruby-observer-send",
+      "language": "ruby",
+      "input_variant": "observer--ruby",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ruby-deleted-observer",
+      "language": "ruby",
+      "input_variant": "observer--ruby",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "ruby-method-symbol-identity",
+      "language": "ruby",
+      "input_variant": "observer--ruby",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-item-table",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-separate-tables",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-index-choice",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 5
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "csharp-subject-observer",
+      "language": "csharp",
+      "input_variant": "reactive--csharp",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 18
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "csharp-subscription-disposed",
+      "language": "csharp",
+      "input_variant": "reactive--csharp",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "csharp-subject-disposed",
+      "language": "csharp",
+      "input_variant": "reactive--csharp",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "kotlin-observer-publish",
+      "language": "kotlin",
+      "input_variant": "reaktive--kotlin",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "kotlin-before-subscribe",
+      "language": "kotlin",
+      "input_variant": "reaktive--kotlin",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "kotlin-disposed",
+      "language": "kotlin",
+      "input_variant": "reaktive--kotlin",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "swift-bag-observer",
+      "language": "swift",
+      "input_variant": "rxswift--swift",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "swift-dispose-key",
+      "language": "swift",
+      "input_variant": "rxswift--swift",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "swift-terminal-state",
+      "language": "swift",
+      "input_variant": "rxswift--swift",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "v_blocking",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 20
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "v_progress",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 2
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "v_queue_process",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "v_method_hook",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "v_dashboard_callback",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_v_progress_to_queue",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "no_v_blocking_to_rx",
+      "language": "typescript",
+      "input_variant": "vendure--typescript",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "b_boxed_observer",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "b_message_buffer",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "conditional_data_return",
+      "relation_count": 12
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "b_system_id",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "b_gltf_handler",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "unresolved",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "rust-custom-runner-proof-boundary",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "rust-gltf-clone-identity-boundary",
+      "language": "rust",
+      "input_variant": "bevy-modules",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "ls_refresh",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "ls_graph_unsubscribe",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "ls_live_unsubscribe",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 4
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "ls_mesh_queue",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "argument_transfer_only",
+      "relation_count": 1
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "ls_rpc_client",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "argument_transfer_only",
+      "relation_count": 1
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "no_ls_graph_to_live",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "no_ls_live_to_graph",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "no_ls_debug_to_sync",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "no_ls_sync_to_debug",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "input_variant": "monix-js-scala2",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "input_variant": "monix-js-scala2",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-future-body",
+      "language": "scala",
+      "input_variant": "monix-js-scala2",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "input_variant": "monix-js-scala3",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "input_variant": "monix-js-scala3",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-future-body",
+      "language": "scala",
+      "input_variant": "monix-js-scala3",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 50
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala2",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 36
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala2",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 36
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-future-body",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala2",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 36
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-state-subscriber",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala3",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 36
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-before-subscribe",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala3",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 36
+    },
+    {
+      "report": "expanded-native.json",
+      "group": "expanded",
+      "id": "scala-future-body",
+      "language": "scala",
+      "input_variant": "monix-jvm-scala3",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 36
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "ls_mesh_queue_internal_write",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_data_consumption",
+      "relation_count": 2
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "ls_mesh_queue_internal_read",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_data_consumption",
+      "relation_count": 1
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "ls_rpc_client_lookup",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_data_consumption",
+      "relation_count": 1
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "effect_rpc_handler_control",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "no_queue_to_rpc_lookup",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "consumers-native.json",
+      "group": "consumers",
+      "id": "no_rpc_client_to_queue_write",
+      "language": "typescript",
+      "input_variant": "livestore-effect",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    }
+  ],
+  "unresolved_reasons": [
+    {
+      "scope": "Bevy Observer, SystemId and glTF final callbacks",
+      "status": "deferred_unresolved",
+      "reason": "Generic ECS physical storage, proc-macro-generated trait dispatch and instance-level links are not proven from the available source model."
+    },
+    {
+      "scope": "All analyzed target programs, including the 26 public syntax scenarios",
+      "status": "not_runtime_executed",
+      "reason": "This work verifies conditional source analysis and codemap-search MCP behavior, not target delivery, order, lifetime or concurrency."
+    },
+    {
+      "scope": "Arbitrary generators, fiber continuations, full Rust type/trait solving and Queue end-to-end delivery",
+      "status": "deferred",
+      "reason": "Outside the authorized bounded source-only contract."
+    }
+  ],
+  "finalized_at": "2026-09-16T22:52:03.599095+00:00",
+  "handoff_recording": "Final consolidated records after main-thread implementation and all required native/product checks; no claim that these JSON files were finalized before implementation of successor adapters.",
+  "phase": "model",
+  "implementation_paths": [
+    "apps/codemap-search/src/events/source_routes/model.rs",
+    "apps/codemap-search/src/events/source_routes/syntax.rs",
+    "apps/codemap-search/src/events/source_routes/program.rs",
+    "apps/codemap-search/src/events/source_routes/tests.rs",
+    "apps/codemap-search/src/events/source_routes/tests_reporting.rs"
+  ],
+  "local_cases_by_language": {
+    "assembly": 12,
+    "c": 12,
+    "cpp": 16,
+    "csharp": 11,
+    "dart": 11,
+    "go": 11,
+    "groovy": 11,
+    "java": 14,
+    "javascript": 12,
+    "kotlin": 11,
+    "lua": 11,
+    "php": 12,
+    "python": 12,
+    "ruby": 11,
+    "rust": 99,
+    "scala": 25,
+    "swift": 13,
+    "typescript": 87
+  },
+  "representation": "Native tree-sitter source facts in events/source_routes; existing language grammars and snapshot source capture reused; legacy FlowFile evaluator not enabled",
+  "contract": {
+    "certainty": "conditional_source_relation",
+    "concrete_instance_proven": false,
+    "event_classification": "not_inferred",
+    "runtime_digest": "blake3",
+    "identities": [
+      "lexical owner",
+      "allocation and call context",
+      "receiver/parameter schema",
+      "field and collection slot",
+      "key and type distinctions"
+    ]
+  },
+  "migration": "v34-native-source-routes; existing format-upgrade path; migration test executed once and passed",
+  "baseline_commands": [
+    {
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml",
+      "exit": 0
+    },
+    {
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_events_",
+      "exit": 0,
+      "passed": 8
+    },
+    {
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_value_relationships_stay_removed_across_live_views_and_restart",
+      "exit": 0,
+      "passed": 1
+    }
+  ],
+  "case_inventory": {
+    "regressions": 301,
+    "fixtures": 90,
+    "public": 77,
+    "total": 468
+  }
+}

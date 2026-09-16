@@ -1,0 +1,9 @@
+{
+  "binary_blake3": "ce28c660e8b1a7529187e8f4fc84810568c8739cdbd3aa4cb293b04564bb0bf9",
+  "default_file_limit_bytes": 524288,
+  "disabled_configuration": true,
+  "oversize_file_bytes": 524437,
+  "passed": true,
+  "small_positive_control": true,
+  "target_programs_executed": false
+}

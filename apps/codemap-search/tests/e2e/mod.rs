@@ -10,5 +10,6 @@ mod mcp;
 mod parser;
 mod scenarios;
 mod search;
+mod source_routes;
 mod tools;
 mod watcher;

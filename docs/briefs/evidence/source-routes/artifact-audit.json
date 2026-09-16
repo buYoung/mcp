@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "baseline_inventory_rows_unchanged": 468,
+  "native_fingerprint": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234",
+  "raw_conditional_relations_audited": {
+    "native-corpus": 403,
+    "public-native": 9198,
+    "expanded-native": 11632,
+    "consumers-native": 2326
+  },
+  "six_handoffs_complete": true,
+  "source_and_implementation_hashes_match": true,
+  "final_brief_hashes_match": true,
+  "original_poc_unchanged": true,
+  "cargo_dependencies_unchanged": true,
+  "command_logs_verified": true,
+  "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+  "command": "python3 /tmp/source-routes-artifact-audit.py",
+  "exit": 0
+}

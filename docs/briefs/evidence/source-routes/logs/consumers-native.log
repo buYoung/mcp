@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-f437c90ec1dc377d)
+
+running 1 test
+VERIFY livestore-effect: 23 locked source hashes; reuse expanded analysis
+PASS livestore-effect:ls_mesh_queue_internal_write conditional_data_consumption
+PASS livestore-effect:ls_mesh_queue_internal_read conditional_data_consumption
+PASS livestore-effect:ls_rpc_client_lookup conditional_data_consumption
+PASS livestore-effect:effect_rpc_handler_control conditional_candidate
+PASS livestore-effect:no_queue_to_rpc_lookup correctly_unjoined_with_positive_control
+PASS livestore-effect:no_rpc_client_to_queue_write correctly_unjoined_with_positive_control
+test events::source_routes::tests::test_native_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 4.12s
+

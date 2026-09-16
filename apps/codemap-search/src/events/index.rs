@@ -17,6 +17,7 @@ pub(crate) struct EventIndex {
     omitted_endpoints: usize,
     is_enabled: bool,
     has_rust_sources: bool,
+    source_routes: Arc<source_routes::Snapshot>,
 }
 
 fn under_scope(path: &str, scope: Option<&str>) -> bool {
@@ -46,6 +47,7 @@ struct RenderContext<'a> {
 #[derive(Default)]
 pub(crate) struct ShownRoutes {
     files: BTreeMap<(String, String, String, String), String>,
+    source_routes: source_routes::QueryState,
 }
 fn overlaps(location: &EventLocation, anchors: &[(String, usize, usize)]) -> bool {
     anchors.is_empty()
@@ -157,6 +159,19 @@ impl EventIndex {
             "built event navigation snapshot"
         );
         let has_rust_sources = sources.keys().any(|path| path.ends_with(".rs"));
+        let mut configured_endpoints_per_file = BTreeMap::new();
+        for endpoint in &extraction.endpoints {
+            *configured_endpoints_per_file
+                .entry(endpoint.location.file_path.clone())
+                .or_insert(0) += 1;
+        }
+        let source_routes = Arc::new(source_routes::Snapshot::build(
+            files,
+            &sources,
+            &std::env::current_dir().unwrap_or_default(),
+            super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
+            &configured_endpoints_per_file,
+        ));
         Self {
             stamp,
             sources,
@@ -169,6 +184,7 @@ impl EventIndex {
             omitted_endpoints: extraction.omitted,
             is_enabled: cfg.event_navigation.is_enabled,
             has_rust_sources,
+            source_routes,
         }
     }
 
@@ -205,17 +221,25 @@ impl EventIndex {
         if anchors.is_empty() {
             return String::new();
         }
+        if !crate::config::get().event_navigation.is_enabled
+            || !self.is_enabled
+            || self.stamp != super::config_stamp()
+        {
+            return String::new();
+        }
+        let mut local_routes = ShownRoutes::default();
+        let shown_routes = shown_routes.unwrap_or(&mut local_routes);
         let mut selected = BTreeSet::new();
         let mut routes = BTreeSet::new();
         let mut candidate_omissions = 0;
-        let mut inspected = 0;
         let paths: BTreeSet<_> = anchors.iter().map(|(path, _, _)| path).collect();
         for path in paths {
             let candidates = self.by_path.get(path).map(Vec::as_slice).unwrap_or(&[]);
-            let remaining = super::CANDIDATES_PER_QUERY.saturating_sub(inspected);
-            candidate_omissions += candidates.len().saturating_sub(remaining);
-            for &index in candidates.iter().take(remaining) {
-                inspected += 1;
+            for &index in candidates {
+                if !shown_routes.source_routes.allow_candidate(0, index) {
+                    candidate_omissions += 1;
+                    continue;
+                }
                 let endpoint = &self.endpoints[index];
                 if endpoint_overlaps(endpoint, anchors) {
                     selected.insert(index);
@@ -230,30 +254,54 @@ impl EventIndex {
                 }
             }
         }
-        if selected.is_empty() {
-            return self.input_diagnostics(anchors, scope, cap, root);
-        }
         for route in routes {
             let candidates = self.by_route.get(&route).map(Vec::as_slice).unwrap_or(&[]);
-            let remaining = super::CANDIDATES_PER_QUERY.saturating_sub(inspected);
-            candidate_omissions += candidates.len().saturating_sub(remaining);
-            for &index in candidates.iter().take(remaining) {
-                inspected += 1;
+            for &index in candidates {
+                if !shown_routes.source_routes.allow_candidate(0, index) {
+                    candidate_omissions += 1;
+                    continue;
+                }
                 selected.insert(index);
             }
         }
-        let output = self.render(
-            &selected.into_iter().collect::<Vec<_>>(),
-            candidate_omissions,
-            scope,
-            cap,
-            root,
-            RenderContext {
-                anchors: Some(anchors),
+        let event_cap = if self.source_routes.has_paths(anchors) {
+            cap / 2
+        } else {
+            cap
+        };
+        let mut output = if selected.is_empty() {
+            String::new()
+        } else {
+            self.render(
+                &selected.into_iter().collect::<Vec<_>>(),
+                candidate_omissions,
+                scope,
+                event_cap,
+                root,
+                RenderContext {
+                    anchors: Some(anchors),
+                    current_file,
+                    shown_routes: Some(&mut *shown_routes),
+                },
+            )
+        };
+        let native = self.source_routes.render(
+            anchors,
+            cap.saturating_sub(output.len() + usize::from(!output.is_empty())),
+            &mut shown_routes.source_routes,
+            source_routes::RenderContext {
+                scope,
+                root,
                 current_file,
-                shown_routes,
+                sources: &self.sources,
             },
         );
+        if !native.is_empty() {
+            if !output.is_empty() {
+                output.push('\n');
+            }
+            output.push_str(&native);
+        }
         let diagnostics =
             self.input_diagnostics(anchors, scope, cap.saturating_sub(output.len() + 1), root);
         if diagnostics.is_empty() {
@@ -337,13 +385,16 @@ impl EventIndex {
             return "## Event relationships\n\n[Event settings/target/exclusions changed; a matching indexed generation is not ready. No stale event links are shown.]\n".into();
         }
         let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
-        let mut freshness = HashMap::new();
+        let mut local_query = source_routes::QueryState::default();
+        let query = shown_routes
+            .as_deref_mut()
+            .map(|shown| &mut shown.source_routes)
+            .unwrap_or(&mut local_query);
+        let initial_source_omissions = query.proof.budget_omissions;
+        let endpoint_budget = super::ENDPOINTS_PER_QUERY.saturating_sub(query.output_endpoints);
         let mut eligible = Vec::new();
         let mut filtered = 0;
         let mut stale = 0;
-        let mut source_bytes = 0;
-        let mut source_files = 0;
-        let mut source_budget_omissions = 0;
         for &index in indices.iter().take(super::CANDIDATES_PER_QUERY) {
             let endpoint = &self.endpoints[index];
             if !under_scope(&endpoint.location.file_path, scope) {
@@ -355,24 +406,8 @@ impl EventIndex {
                 locations.push(handler);
             }
             let is_fresh = locations.iter().all(|location| {
-                *freshness
-                    .entry(location.file_path.clone())
-                    .or_insert_with(|| {
-                        let Some(expected) = self.sources.get(&location.file_path) else {
-                            return false;
-                        };
-                        if source_files >= super::SOURCE_FILES_PER_QUERY
-                            || source_bytes + expected.len() > super::SOURCE_BYTES_PER_QUERY
-                        {
-                            source_budget_omissions += 1;
-                            return false;
-                        }
-                        source_files += 1;
-                        source_bytes += expected.len();
-                        let path = root.join(&location.file_path);
-                        std::fs::metadata(&path).is_ok_and(|m| m.len() == expected.len() as u64)
-                            && std::fs::read(path).is_ok_and(|bytes| bytes == expected.as_bytes())
-                    })
+                query.proof.check(&location.file_path, &self.sources, root)
+                    == source_routes::Freshness::Current
             });
             if !is_fresh {
                 stale += 1;
@@ -391,6 +426,7 @@ impl EventIndex {
             eligible.push(endpoint);
         }
         let total = eligible.len();
+        let source_budget_omissions = query.proof.budget_omissions - initial_source_omissions;
         // Automatic context needs a current, allowed endpoint or supporting
         // definition in the requested lines, not just a surviving route peer.
         if anchors.is_some_and(|anchors| {
@@ -428,7 +464,7 @@ impl EventIndex {
         let mut groups: BTreeMap<(String, String, String, String), Vec<&EventEndpoint>> =
             BTreeMap::new();
         let mut unresolved = Vec::new();
-        for endpoint in eligible.into_iter().take(super::ENDPOINTS_PER_QUERY) {
+        for endpoint in eligible.into_iter().take(endpoint_budget) {
             if let Some((bus, key, target, channel)) = endpoint.key() {
                 groups
                     .entry((bus.into(), key.into(), target.into(), channel.into()))
@@ -592,7 +628,7 @@ impl EventIndex {
         }
         let query_omissions = candidate_omissions
             + indices.len().saturating_sub(super::CANDIDATES_PER_QUERY)
-            + total.saturating_sub(super::ENDPOINTS_PER_QUERY);
+            + total.saturating_sub(endpoint_budget);
         if self.unavailable_sources > 0
             || self.omitted_endpoints > 0
             || query_omissions > 0
@@ -603,6 +639,9 @@ impl EventIndex {
         }
         if was_capped {
             out.push_str(&format!("\n[Event output cap reached: {} eligible endpoint(s) not rendered. Narrow event_key, source path or workspace scope.]\n",total.min(super::ENDPOINTS_PER_QUERY).saturating_sub(rendered_endpoints)));
+        }
+        if let Some(shown) = shown_routes {
+            shown.source_routes.output_endpoints += rendered_endpoints;
         }
         if out.len() > cap {
             return "[Event output budget unavailable; narrow the source request.]\n"

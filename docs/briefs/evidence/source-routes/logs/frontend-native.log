@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-f437c90ec1dc377d)
+
+running 1 test
+PASS all_ten_operands_preserved
+PASS nested_calls_same_start_distinct_results
+PASS impl_and_function_type_variables_have_distinct_scopes
+PASS source_call_contexts_remain_distinct
+PASS generic_formal_types_do_not_leak_between_calls
+PASS option_preserves_system_box_allocation
+PASS spawn_id_preserves_allocation_entity_field
+PASS observer_generic_variable_remains_nonconcrete
+test events::source_routes::tests::test_native_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 29.82s
+

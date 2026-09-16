@@ -1,0 +1,1416 @@
+{
+  "bevy_elapsed_ms": 27246.462375,
+  "bevy_notices": [
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/mod.rs:348:1"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/mod.rs:960:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:456:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:471:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:492:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:508:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:641:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:673:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:760:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:779:29"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:814:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/system/system_registry.rs:825:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/deferred_world.rs:536:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/deferred_world.rs:98:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/entity_access/entity_mut.rs:412:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs:1338:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:1975:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:2199:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:2247:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:2271:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:2974:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:3822:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/mod.rs:3882:5"
+    ],
+    [
+      "allocation_context_depth_bound",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:1024:5"
+    ],
+    [
+      "any_downcast_target_unresolved",
+      "crates/bevy_ecs/src/observer/distributed_storage.rs:455:28"
+    ],
+    [
+      "any_downcast_target_unresolved",
+      "crates/bevy_ecs/src/observer/runner.rs:35:1"
+    ],
+    [
+      "any_downcast_target_unresolved",
+      "crates/bevy_ecs/src/system/system.rs:393:5"
+    ],
+    [
+      "binding_pattern_unsupported",
+      "_"
+    ],
+    [
+      "binding_pattern_unsupported",
+      "scoped_identifier"
+    ],
+    [
+      "binding_pattern_unsupported",
+      "slice_pattern"
+    ],
+    [
+      "binding_pattern_unsupported",
+      "tuple_struct_pattern"
+    ],
+    [
+      "callable_context_bound",
+      "2848"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1002:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1093:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1232:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1260:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1288:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1313:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1364:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1728:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1825:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:555:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:577:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:772:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:795:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/schedule/condition.rs:1705:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/mod.rs:1087:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/mod.rs:1501:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/mod.rs:1744:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1069:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1099:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1127:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1158:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1240:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1275:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1289:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1374:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1391:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:926:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:957:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:979:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs:1382:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs:1434:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_ecs/src/world/mod.rs:4412:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_gltf/src/loader/mod.rs:1183:5"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_gltf/src/loader/mod.rs:1631:24"
+    ],
+    [
+      "function_fact_cap",
+      "crates/bevy_gltf/src/loader/mod.rs:247:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ecs/src/observer/mod.rs:321:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ecs/src/observer/runner.rs:105:25"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ecs/src/observer/runner.rs:35:1"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs:1700:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:1208:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:1229:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:210:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:385:13:macro@18476"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:385:13:macro@18492"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:385:13:macro@18511"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:407:13:macro@18476"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:407:13:macro@18492"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:407:13:macro@18511"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:703:5"
+    ],
+    [
+      "pointer_origin_unresolved",
+      "crates/bevy_ptr/src/lib.rs:730:5"
+    ],
+    [
+      "source_return_requires_effect_context",
+      "crates/bevy_ecs/src/message/iterators.rs:54:5"
+    ],
+    [
+      "source_return_requires_effect_context",
+      "crates/bevy_ecs/src/system/function_system.rs:450:5"
+    ],
+    [
+      "source_return_requires_effect_context",
+      "crates/bevy_ecs/src/system/system_registry.rs:673:5"
+    ],
+    [
+      "source_return_requires_effect_context",
+      "crates/bevy_ecs/src/world/mod.rs:1158:5"
+    ],
+    [
+      "summary_depth_bound",
+      "4"
+    ],
+    [
+      "total_fact_cap",
+      "1184"
+    ],
+    [
+      "total_fact_cap",
+      "13372"
+    ],
+    [
+      "total_fact_cap",
+      "1409"
+    ],
+    [
+      "total_fact_cap",
+      "21"
+    ],
+    [
+      "total_fact_cap",
+      "2364"
+    ],
+    [
+      "total_fact_cap",
+      "44"
+    ],
+    [
+      "total_fact_cap",
+      "99"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/bundle/impls.rs:23:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/bundle/info.rs:458:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/bundle/info.rs:487:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/info.rs:264:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/info.rs:330:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/info.rs:619:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/info.rs:665:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/register.rs:163:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/register.rs:297:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/register.rs:509:49"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/register.rs:515:21"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/component/register.rs:574:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/system/mod.rs:311:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/system/system.rs:55:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/system/system_registry.rs:48:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/entity_access/entity_mut.rs:131:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/entity_access/world_mut.rs:243:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:1889:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2075:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2084:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2103:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2126:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2151:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:2170:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:3399:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/mod.rs:3416:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:1048:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:472:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:490:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:535:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:577:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:620:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:640:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:850:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:887:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:911:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:944:5"
+    ],
+    [
+      "type_id_type_argument_unresolved",
+      "crates/bevy_ecs/src/world/unsafe_world_cell.rs:970:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1002:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1093:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1232:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1260:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1288:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1313:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1364:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1652:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1728:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1778:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:1825:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:619:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:772:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/observer/mod.rs:795:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/schedule/condition.rs:1705:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/mod.rs:1087:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/mod.rs:1501:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1069:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1099:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1127:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1158:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1240:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1289:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:1391:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:926:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:957:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/system/system_registry.rs:979:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/world/mod.rs:4318:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_ecs/src/world/mod.rs:4412:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_gltf/src/loader/mod.rs:1183:5"
+    ],
+    [
+      "unresolved_call_record_cap",
+      "crates/bevy_gltf/src/loader/mod.rs:247:5"
+    ]
+  ],
+  "checks": [
+    {
+      "id": "all_ten_operands_preserved",
+      "passed": true
+    },
+    {
+      "id": "nested_calls_same_start_distinct_results",
+      "passed": true
+    },
+    {
+      "id": "impl_and_function_type_variables_have_distinct_scopes",
+      "passed": true
+    },
+    {
+      "id": "source_call_contexts_remain_distinct",
+      "passed": true
+    },
+    {
+      "id": "generic_formal_types_do_not_leak_between_calls",
+      "passed": true
+    },
+    {
+      "id": "option_preserves_system_box_allocation",
+      "passed": true
+    },
+    {
+      "id": "spawn_id_preserves_allocation_entity_field",
+      "passed": true
+    },
+    {
+      "id": "observer_generic_variable_remains_nonconcrete",
+      "passed": true
+    }
+  ],
+  "compiler_auxiliary_input_used": false,
+  "counted_among_301": false,
+  "fixture_calls": [
+    {
+      "arguments": [],
+      "callee": "allocation:routes.rs:7:26:ast:116-134:box[key:pointee]",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics"
+      ],
+      "function": "routes.rs:6:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 9,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "allocation:routes.rs:7:26:ast:116-134:box",
+      "result": "result:routes.rs:9:5:ast:190-206",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "unresolved:routes.rs:6:1:216:second[key:as_ref]",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics",
+        "standard_option_take"
+      ],
+      "function": "routes.rs:6:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 11,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unresolved:routes.rs:6:1:216:second",
+      "result": "result:routes.rs:11:5:ast:252-267",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "result:routes.rs:11:5:ast:252-267",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics",
+        "standard_option_take"
+      ],
+      "function": "routes.rs:6:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 11,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:11:5:ast:252-269",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "allocation:routes.rs:19:43:ast:418-436:box[key:pointee]",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics"
+      ],
+      "function": "routes.rs:18:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 21,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "allocation:routes.rs:19:43:ast:418-436:box",
+      "result": "result:routes.rs:21:5:ast:501-517",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "unknown:[key:as_ref]",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics",
+        "conditional_control:routes.rs:22",
+        "rust_let_pattern_match_required",
+        "standard_option_take"
+      ],
+      "function": "routes.rs:18:1",
+      "generic_types": [],
+      "location": {
+        "column": 9,
+        "line": 23,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:23:9:ast:574-588",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "result:routes.rs:23:9:ast:574-588",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics",
+        "conditional_control:routes.rs:22",
+        "rust_let_pattern_match_required",
+        "standard_option_take"
+      ],
+      "function": "routes.rs:18:1",
+      "generic_types": [],
+      "location": {
+        "column": 9,
+        "line": 23,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:23:9:ast:574-590",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "allocation:routes.rs:24:25:ast:618-633:box[key:pointee]",
+      "candidates": [],
+      "conditions": [
+        "standard_option_take",
+        "result_ok_required",
+        "standard_box_reference_semantics",
+        "standard_option_take",
+        "option_some_required",
+        "standard_box_reference_semantics"
+      ],
+      "function": "routes.rs:18:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 26,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "allocation:routes.rs:24:25:ast:618-633:box",
+      "result": "result:routes.rs:26:5:ast:692-714",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "type:routes.rs::Box[key:as_ref]",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:39:5",
+      "generic_types": [],
+      "location": {
+        "column": 9,
+        "line": 41,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "type:routes.rs::Box",
+      "result": "result:routes.rs:41:9:ast:1000-1014",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "result:routes.rs:41:9:ast:1000-1014",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:39:5",
+      "generic_types": [],
+      "location": {
+        "column": 9,
+        "line": 41,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:41:9:ast:1000-1016",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "receiver:rust:type_variable:routes.rs:1063:T"
+      ],
+      "callee": "unresolved:routes.rs:opaque",
+      "candidates": [],
+      "conditions": [
+        "generic_impl_receiver_unresolved",
+        "generic_trait_constraints_unproven"
+      ],
+      "function": "routes.rs:47:5",
+      "generic_types": [
+        "T@{routes.rs:1063-1132}"
+      ],
+      "location": {
+        "column": 24,
+        "line": 47,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:47:24:ast:1110-1127",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [
+        "T"
+      ],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:50:1:value"
+      ],
+      "callee": "unresolved:routes.rs:opaque",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:50:1",
+      "generic_types": [
+        "T@{routes.rs:1134-1194}"
+      ],
+      "location": {
+        "column": 40,
+        "line": 50,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:50:40:ast:1173-1191",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [
+        "T"
+      ],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "allocation:routes.rs:53:13:ast:1247-1265:box",
+        "wrapper:rust:option(parameter:routes.rs:52:1:callback)",
+        "tuple(parameter:routes.rs:52:1:callback,literal:1)",
+        "parameter:routes.rs:52:1:callback",
+        "literal:2",
+        "literal:3",
+        "literal:4",
+        "literal:5",
+        "literal:6",
+        "literal:7"
+      ],
+      "callee": "unresolved:routes.rs:factory",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:52:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 53,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:53:5:ast:1239-1337",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "result:routes.rs:53:5:ast:1239-1337[key:id]",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:52:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 53,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "result:routes.rs:53:5:ast:1239-1337",
+      "result": "result:routes.rs:53:5:ast:1239-1342",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:57:1:callback"
+      ],
+      "callee": "unresolved:routes.rs:missing",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:62:1",
+      "generic_types": [],
+      "location": {
+        "column": 27,
+        "line": 62,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:62:27:ast:1460-1477@routes.rs:58:5:ast:1395-1409:ast:1395-1409",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": [
+        {
+          "column": 5,
+          "line": 58,
+          "path": "routes.rs"
+        }
+      ]
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:57:1:callback"
+      ],
+      "callee": "function:routes.rs:62:1",
+      "candidates": [
+        "routes.rs:62:1"
+      ],
+      "conditions": [],
+      "function": "routes.rs:57:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 58,
+        "path": "routes.rs"
+      },
+      "reason": "source_return_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:58:5:ast:1395-1409",
+      "return_types": [
+        ""
+      ],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:57:1:callback"
+      ],
+      "callee": "unresolved:routes.rs:missing",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:62:1",
+      "generic_types": [],
+      "location": {
+        "column": 27,
+        "line": 62,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:62:27:ast:1460-1477@routes.rs:59:5:ast:1415-1429:ast:1415-1429",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": [
+        {
+          "column": 5,
+          "line": 59,
+          "path": "routes.rs"
+        }
+      ]
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:57:1:callback"
+      ],
+      "callee": "function:routes.rs:62:1",
+      "candidates": [
+        "routes.rs:62:1"
+      ],
+      "conditions": [],
+      "function": "routes.rs:57:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 59,
+        "path": "routes.rs"
+      },
+      "reason": "source_return_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:59:5:ast:1415-1429",
+      "return_types": [
+        ""
+      ],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [
+        "parameter:routes.rs:62:1:callback"
+      ],
+      "callee": "unresolved:routes.rs:missing",
+      "candidates": [],
+      "conditions": [],
+      "function": "routes.rs:62:1",
+      "generic_types": [],
+      "location": {
+        "column": 27,
+        "line": 62,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "unknown:",
+      "result": "result:routes.rs:62:27:ast:1460-1477",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "allocation:routes.rs:66:5:ast:1595-1611:box@routes.rs:70:20:ast:1682-1708:ast:1682-1708[key:pointee]",
+      "candidates": [],
+      "conditions": [
+        "standard_box_reference_semantics"
+      ],
+      "function": "routes.rs:69:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 71,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "allocation:routes.rs:66:5:ast:1595-1611:box@routes.rs:70:20:ast:1682-1708:ast:1682-1708",
+      "result": "result:routes.rs:71:5:ast:1714-1733",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    },
+    {
+      "arguments": [],
+      "callee": "allocation:routes.rs:75:26:ast:1815-1833:box@routes.rs:80:20:ast:1920-1939:ast:1920-1939[key:pointee]",
+      "candidates": [],
+      "conditions": [
+        "standard_box_reference_semantics"
+      ],
+      "function": "routes.rs:79:1",
+      "generic_types": [],
+      "location": {
+        "column": 5,
+        "line": 81,
+        "path": "routes.rs"
+      },
+      "reason": "target_unresolved",
+      "receiver": "allocation:routes.rs:75:26:ast:1815-1833:box@routes.rs:80:20:ast:1920-1939:ast:1920-1939",
+      "result": "result:routes.rs:81:5:ast:1945-1964",
+      "return_types": [],
+      "return_value": null,
+      "type_arguments": [],
+      "type_bindings": {},
+      "via": []
+    }
+  ],
+  "fixture_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+  "group": "frontend",
+  "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234",
+  "observed_calls": [
+    {
+      "expression": "Some(system)",
+      "location": {
+        "column": 21,
+        "line": 227,
+        "path": "crates/bevy_ecs/src/observer/distributed_storage.rs"
+      },
+      "result": "wrapper:rust:option(allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:225:22:ast:9286-9335:box)",
+      "root_kind": "wrapper"
+    },
+    {
+      "expression": "self.spawn(RegisteredSystem::new(system))",
+      "location": {
+        "column": 22,
+        "line": 476,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/world/mod.rs:1130:35:ast:45722-45772@crates/bevy_ecs/src/world/mod.rs:1257:9:ast:50904-50951>crates/bevy_ecs/src/world/mod.rs:1247:9:ast:50552-50607>crates/bevy_ecs/src/system/system_registry.rs:476:22:ast:16647-16688:ast:16647-16688",
+      "root_kind": "result"
+    },
+    {
+      "expression": "self.spawn(RegisteredSystem::new(system)).id()",
+      "location": {
+        "column": 22,
+        "line": 476,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "allocation:crates/bevy_ecs/src/world/entity_access/world_mut.rs:136:9:ast:5233-5320~closure:81f940b824fba4d6a74ff368a471e0f7699391145c7df7e62d8c3ad69853b0d0@crates/bevy_ecs/src/system/system_registry.rs:476:22:ast:16647-16691:ast:16647-16691[key:entity]",
+      "root_kind": "allocation"
+    },
+    {
+      "expression": "RegisteredSystem::new(system)",
+      "location": {
+        "column": 33,
+        "line": 476,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "allocation:crates/bevy_ecs/src/system/system_registry.rs:34:9:ast:1163-1257@crates/bevy_ecs/src/system/system_registry.rs:476:33:ast:16658-16687:ast:16658-16687",
+      "root_kind": "allocation"
+    },
+    {
+      "expression": "SystemId::from_entity(entity)",
+      "location": {
+        "column": 9,
+        "line": 477,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "allocation:crates/bevy_ecs/src/system/system_registry.rs:257:9:ast:8699-8768@crates/bevy_ecs/src/system/system_registry.rs:477:9:ast:16703-16732:ast:16703-16732",
+      "root_kind": "allocation"
+    },
+    {
+      "expression": "id.into()",
+      "location": {
+        "column": 18,
+        "line": 682,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443",
+      "root_kind": "result"
+    },
+    {
+      "expression": "self\n            .get_entity_mut(id.entity)",
+      "location": {
+        "column": 26,
+        "line": 684,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531:ast:24488-24531",
+      "root_kind": "result"
+    },
+    {
+      "expression": "self\n            .get_entity_mut(id.entity)\n            .map_err(|_| RegisteredSystemError::SystemIdNotRegistered(id))",
+      "location": {
+        "column": 26,
+        "line": 684,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24606",
+      "root_kind": "result"
+    },
+    {
+      "expression": "entity.get_mut::<RegisteredSystem<I, O>>()",
+      "location": {
+        "column": 43,
+        "line": 689,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:689:43:ast:24701-24743",
+      "root_kind": "result"
+    },
+    {
+      "expression": "registered_system\n            .system\n            .take()",
+      "location": {
+        "column": 26,
+        "line": 704,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25440",
+      "root_kind": "result"
+    },
+    {
+      "expression": "registered_system\n            .system\n            .take()\n            .ok_or(RegisteredSystemError::SystemMissing(id))",
+      "location": {
+        "column": 26,
+        "line": 704,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "root_kind": "result"
+    },
+    {
+      "expression": "system.run_without_applying_deferred(input, self)",
+      "location": {
+        "column": 22,
+        "line": 725,
+        "path": "crates/bevy_ecs/src/system/system_registry.rs"
+      },
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:725:22:ast:26084-26133",
+      "root_kind": "result"
+    }
+  ],
+  "passed": true,
+  "recorded_unix_seconds": 1789599045,
+  "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "source_sha256": {
+    "crates/bevy_app/src/app.rs": "a78beb379b6c2a10f0cac9ef5efb2e14cf49f61d6321ee2f385070078b8d8f7f",
+    "crates/bevy_app/src/lib.rs": "b401ecfffbe7b00f850d07e4cdf0c6447048af19d81f264f6d0aa92422c6af55",
+    "crates/bevy_app/src/sub_app.rs": "b0357b854710728cd2f0f1b56265cb3e4267e00f66858c90aa2757ea6a29dbf7",
+    "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
+    "crates/bevy_ecs/macro_logic/src/lib.rs": "3fe5871e0977d812852286572916de283f32d99a93d2f52c74a3d9b7858701fc",
+    "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
+    "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0",
+    "crates/bevy_ecs/src/archetype.rs": "3caddc128aaaa6c4daabac99db9de89a9b01ca63604323e03f9593f6eb37d226",
+    "crates/bevy_ecs/src/bundle/impls.rs": "d2f11c4113139490cd6c57d85c54f16dee87366e7b4cea81127d21621f9eb8d3",
+    "crates/bevy_ecs/src/bundle/info.rs": "5f7cdc5924c514434b2198bb7d79de01e59b65c9b41e319a6fc553ae806cca2c",
+    "crates/bevy_ecs/src/bundle/mod.rs": "3aff7960426ee10803c9eae0f9723cce29c60acc90eb11f1f17d7247166cf3eb",
+    "crates/bevy_ecs/src/bundle/remove.rs": "3b5c4c6e8707e5fb1f0f65116b10e15193d880af66663d015548952f06140f10",
+    "crates/bevy_ecs/src/bundle/spawner.rs": "55d2d14dadb12daf3bd9ade2592efc639cb5a74a97fef3a1010642c006a55375",
+    "crates/bevy_ecs/src/change_detection/mod.rs": "ba50b6bb5b084ab5e3d3b7c5ea6984c4543e4ee7ddfc5bf21e07ec77dd9d4d65",
+    "crates/bevy_ecs/src/change_detection/params.rs": "a2c0a8042b2787d4420d5173405415b2597ffd59efd10d6d21b7955bbc65e013",
+    "crates/bevy_ecs/src/change_detection/traits.rs": "b7a681b75374ac82372d73e50ddd966e3f7f1f917085dde0a944757431d28a3b",
+    "crates/bevy_ecs/src/component/info.rs": "c08808911223a84058c3c2f8635078d5b072a8ace1e8de7c2c9252ab0550eed6",
+    "crates/bevy_ecs/src/component/mod.rs": "126e555fe3f90e6684b9b1ce6d174abbd1b86f18e4a227f63146a5d7516f3f91",
+    "crates/bevy_ecs/src/component/register.rs": "bc582ad38950887d20bb22ad197b2d909abe95aa048bfb7ba79438d4b424b2f6",
+    "crates/bevy_ecs/src/entity/hash_map.rs": "d3f225ba98c554b587546e5cd279bd53e416bb515a7c3b6efff407c4d5c0f6ba",
+    "crates/bevy_ecs/src/entity/mod.rs": "71c97c17e819fd1cc768532316835f88b0b9ea8c3045bdf7657b1eaebb0a97b7",
+    "crates/bevy_ecs/src/event/trigger.rs": "477d65667da999ce6f9b111e47cef2a767b70b94a7d58145a9f5ee73317d0f84",
+    "crates/bevy_ecs/src/lib.rs": "bf37a10b3b11bb5682c43fa7624f55f344598b5557b059be31c83a92be6c4473",
+    "crates/bevy_ecs/src/message/iterators.rs": "e3df3ebb85edb584c3538561ed6a989bad9b023a9866c77cfc67f05888b1a8a9",
+    "crates/bevy_ecs/src/message/message_cursor.rs": "f05cc5c744701b21873b540596adad65f24989f2d546702a341d9830b288aca9",
+    "crates/bevy_ecs/src/message/message_reader.rs": "cd8cfbc869c037087ef812eac017b5e25baee81932d15a80c65e823f5b6fa7cf",
+    "crates/bevy_ecs/src/message/message_registry.rs": "befa1adb66914e777e1b62fa214f757a9d59e80477322385a5ca6f1917f0af79",
+    "crates/bevy_ecs/src/message/message_writer.rs": "652f528a341d1ac4d534a595f5aa170da38c7a5793c43edf8aaa83dfef96e387",
+    "crates/bevy_ecs/src/message/messages.rs": "32186c29d0c71e82420d631e779ca1309418d476bfb9a3ca0da01b78e21efc15",
+    "crates/bevy_ecs/src/message/mod.rs": "3c0cd61c290f60161e6ef3a68001d365ecffbd41911c56a5230dcf2f626c1ac9",
+    "crates/bevy_ecs/src/observer/centralized_storage.rs": "efff4ea0119ce255f1f31d71c49fb8fefd81127785e8d3efdab17c8617f081cb",
+    "crates/bevy_ecs/src/observer/distributed_storage.rs": "07c4a643ab5acbf47aaa1ac453e6863ddca657695231d5e21cb7789bfd081a31",
+    "crates/bevy_ecs/src/observer/mod.rs": "185ff5c3649de24a67e97bc8c7ec6ab9e9fe586195969d62c72bb14aaee16a3e",
+    "crates/bevy_ecs/src/observer/runner.rs": "042fdd337742d077291f8ae013133fd47b8cd4b14c44652fa27fad7e3bf95193",
+    "crates/bevy_ecs/src/resource.rs": "c189d355b7aa30ad8a257f44d1abff8ed142739cbe6ebb7ed0f658dbb99297b6",
+    "crates/bevy_ecs/src/schedule/condition.rs": "137d0c21640c53639299898722aaac63239889774f401bbfd46b363d961b93af",
+    "crates/bevy_ecs/src/schedule/mod.rs": "e938c4e612755e3e0f65ba54c3f17c9fb2cc5a191eb1c429fdec54de677ad79d",
+    "crates/bevy_ecs/src/storage/blob_array.rs": "e682a27381036422d2e2e29dbcb4441a98ddb9e40429b7fab9e6c2763155b455",
+    "crates/bevy_ecs/src/storage/mod.rs": "481acd790e767b56057d088b9e9d0b3957f292f80b1f364bf745470db1016f46",
+    "crates/bevy_ecs/src/storage/sparse_set.rs": "71c19ab6d34ab94d7e750feb9986f8c433bdc103d55997bed06e98ea80ef8426",
+    "crates/bevy_ecs/src/storage/table/column.rs": "83fe41abd9566b3326ae5e0c3c3bf1c4c17f17d7a5a76a3e98d454b59f5d77a9",
+    "crates/bevy_ecs/src/storage/table/mod.rs": "72f0ea728c07d3a536584ec620da149dc87e2b0fb66a97044d346b347041eee1",
+    "crates/bevy_ecs/src/storage/thin_array_ptr.rs": "278b34671b80e6927b8471f46748705f853a95a41b5b3b62aa42f3fb170f0e9d",
+    "crates/bevy_ecs/src/system/function_system.rs": "b239ce1a517eb8d3e2e98bc01d1bf922361fe5f607c936607753f2b11d4f5dd9",
+    "crates/bevy_ecs/src/system/mod.rs": "c9dca7c7eb5f7d138b31ae8b7fb6b6f518ba228eceb14dd9e91dc6afb2361a41",
+    "crates/bevy_ecs/src/system/observer_system.rs": "3c50f428a802776ffdb75460e24aafa8b2d366ed01f2b42cf7fd218c487d5181",
+    "crates/bevy_ecs/src/system/system.rs": "8eea70bc4a069fa12b7ba96371be166833f64e5a83b90e14a36cc5ee2b59695d",
+    "crates/bevy_ecs/src/system/system_registry.rs": "e3797de6d02e154a1d6ffed765c31a2f90535a07617d6f90c6c57ecfbae5a692",
+    "crates/bevy_ecs/src/world/deferred_world.rs": "a76e423b1bb50a74a5e0c139851f2803c92bc38ebacec5127b63eb1e8b58c24e",
+    "crates/bevy_ecs/src/world/entity_access/entity_mut.rs": "a3c67073aab853f099b0e1aeb558116eb118d278bb675ac11520be958c17294a",
+    "crates/bevy_ecs/src/world/entity_access/mod.rs": "73000cf24795c69283c67261c63a96a93cd35f2ffd8a75cff26fd5528605f9d5",
+    "crates/bevy_ecs/src/world/entity_access/world_mut.rs": "f06b056edfdbed848364170722a6f3ec6c624bc89b0898daaa93351ec3f4750d",
+    "crates/bevy_ecs/src/world/entity_fetch.rs": "75b4d50fbf2c5a95a8cd30343c098bf05cbcbc72659722e03cd9c1cee1f71d5b",
+    "crates/bevy_ecs/src/world/mod.rs": "149f47f49dea1a4cdfa62704b100838d53fc20aab403efab4e0e4266fdf1e56e",
+    "crates/bevy_ecs/src/world/unsafe_world_cell.rs": "957d373db6ece42d48210680dcda4c1ace51978d9989f474212bc7481fdd1e67",
+    "crates/bevy_gltf/src/lib.rs": "a68e777eae13d5281380c66fead81d232bb191e9214b760f8ffb6678035c08fc",
+    "crates/bevy_gltf/src/loader/extensions/mod.rs": "07f8c5ffb77ff57f90fa3d212257ff1fdec5d7d6188903ad667e673585657a1c",
+    "crates/bevy_gltf/src/loader/mod.rs": "1a6daa2c12122a3ce904bfb6860d4fca5dffe81ea78d5d8edb4ebd5e81c998b7",
+    "crates/bevy_internal/src/lib.rs": "ac47f301262936b745ad97414d720f100aa1975b2ff9dbde91e372e621d9f077",
+    "crates/bevy_internal/src/prelude.rs": "0323bcbd2aaddd2fce46312b258172e367068cade67b59cc13b90fb6ad7c9051",
+    "crates/bevy_pbr/src/gltf.rs": "8fc874543c7068754f357cb0d40ce2a776f9a57db1937ec37392203b7eb2a872",
+    "crates/bevy_platform/src/cfg.rs": "d9fdb5506fbbcaa363726c00b12e34381e37d60b45a04fb272e4aca02e4b010a",
+    "crates/bevy_platform/src/collections/hash_map.rs": "2526fa129a942fce81e8b88e041c24d0adc2a758710bc34f0d254df23ca983ad",
+    "crates/bevy_platform/src/collections/mod.rs": "850576cf000b6ce4b7ddf2c31abba8bab9617afabd71afb6981f6f34f68e0140",
+    "crates/bevy_platform/src/lib.rs": "a019a75fec065a4568166f08f360481636392c37f392797a67dd4ead6cd2c569",
+    "crates/bevy_ptr/src/lib.rs": "f622b6ed7f90ee5c995bd73431d33a922c3db16ac7bd7717530851a5c5654e80",
+    "examples/audio/pitch.rs": "16299f1c70443e845c74f4dced2343b04e1a96c5d2d34141e8fe0e9f3551ee46",
+    "examples/ecs/observer_propagation.rs": "d3e8e4c2024cb18811c8a1f76eed160b06b8a9dc0b772e3fc2fab6b94db988b7",
+    "examples/ecs/one_shot_systems.rs": "6d1d6ccc4ac07882797ee651064055efdd935a164b23e320d0b205cf9408de7a",
+    "examples/gltf/gltf_extension_mesh_2d.rs": "344ee91d13ab9b291a1d4d97a2887cb61c3fb7f028448df356c5b18e0461a9a1",
+    "src/lib.rs": "10075d3357dd35ffcb0b0c85a276ded49573b59d692e075ba6e8ad8b2738aa48"
+  },
+  "target_programs_executed": false
+}

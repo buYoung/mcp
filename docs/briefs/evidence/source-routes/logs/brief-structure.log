@@ -1,0 +1,29 @@
+Validating briefset: docs/briefs/2026-09-16-briefset-source-routes.md
+
+Validating 6 child brief(s)...
+
+  ✓ Parent filename format OK (set-slug='source-routes').
+  ✓ Title line OK (title='소스 기반 경로 탐색의 제품 통합').
+  ✓ Section `## Purpose` present.
+  ✓ Section `## Child Briefs` present.
+  ✓ Section `## Execution Order` present.
+  ✓ Section `## Dependencies` present.
+  ✓ Section `## Parallelization` present.
+  ✓ Section `## Conflict Hotspots` present.
+  ✓ Section `## Shared Constraints` present.
+  ✓ Section `## Global Acceptance Criteria` present.
+  ✓ Section `## Open Questions` present.
+  ✓ Parent section order matches the canonical template.
+  ✓ `## Child Briefs` uses `- [ ]` checklist format.
+  ✓ `## Global Acceptance Criteria` uses `- [ ]` checklist format.
+  ✓ `## Execution Order` references every child exactly once with a concrete deliverable location.
+  ✓ `## Dependencies` defines 5 addressable handoff edge(s) with format and verification signals.
+  ✓ child `2026-09-16-feat-source-routes-01-proof-model.md`: structural checks OK.
+  ✓ child `2026-09-16-feat-source-routes-02-core-languages.md`: structural checks OK.
+  ✓ child `2026-09-16-feat-source-routes-03-polyglot.md`: structural checks OK.
+  ✓ child `2026-09-16-feat-source-routes-04-assembly.md`: structural checks OK.
+  ✓ child `2026-09-16-feat-source-routes-05-live-integration.md`: structural checks OK.
+  ✓ child `2026-09-16-test-source-routes-06-product-proof.md`: structural checks OK.
+  ✓ Every dependency deliverable path is repeated in its producer and successor child execution plan.
+
+PASS - structural checks OK (0 warning(s)).

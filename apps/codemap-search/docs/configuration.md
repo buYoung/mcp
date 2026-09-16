@@ -457,6 +457,8 @@ use_builtin_rules = true
 rules = []
 ```
 
+Source-derived storage/consumer relations for 18 programming languages appear separately as `Source routes`. They work without built-in or custom event rules and distinguish callback candidates, argument transfer and data consumers. `include_events=false` and `is_enabled=false` suppress both maps; `use_builtin_rules=false` and `rules=[]` do not disable Source routes. `event_key` queries only the configured event map. See the [source-route contract (Korean)](source-routes.ko.md) for language coverage, conditions and limits.
+
 `is_enabled` and `use_builtin_rules` both default to `true`. Explicit `is_enabled=false` disables event collection and automatic output; existing values are preserved. Repo keys override global keys. The entire `rules` list replaces the lower layer; `[]` removes inherited custom rules. Set `use_builtin_rules=false` to disable the built-in catalog. Invalid lists warn and use the lower layer. Rule, analysis-target and exclusion changes trigger a generation refresh. Until it is ready, queries hide stale event links. Changes to imported keys, bus bindings and handlers rebuild their dependent routes. Original application files are never rewritten.
 
 | Request | Meaning |
@@ -511,6 +513,6 @@ For an inspected Rust wrapper `dispatch_event_json(key, payload)` defined in `sr
 
 ### Bounds and freshness
 
-Inputs are UTF-8 only and follow index/Git/directory exclusions. Current test-context rules apply when rendering both endpoints and their proof/handler locations. A changed proof file suppresses the old endpoint until a successful refresh.
+Inputs are UTF-8 only and follow index/Git/directory exclusions. Current test-context rules apply when rendering both endpoints and their proof/handler locations. Source-route analysis also masks excluded test regions before indexing; test-inclusion setting changes request a new generation. A changed proof file suppresses the old endpoint until a successful refresh.
 
-Limits are 512 KiB per source file, 64 MiB and 4,096 source files per snapshot, 256 endpoints per file and 8,192 per snapshot. Binding resolution has a 32-step JS/TS budget (Rust value recursion: 16); each serialized endpoint is capped at 8 KiB. Each query inspects at most 512 indexed candidates, renders at most 128 endpoints, and verifies at most 128 source files / 4 MiB. Output stays within existing read/search byte budgets. Unavailable inputs, extraction/query omissions, stale evidence and output truncation are reported; the result is not an exhaustive runtime map. No request performs a full-workspace event relation scan.
+Limits are 512 KiB per source file, 64 MiB and 4,096 source files per snapshot, 256 endpoints per file and 8,192 per snapshot, shared by configured events and Source routes. Binding resolution has a 32-step JS/TS budget (Rust value recursion: 16); each serialized configured-event endpoint is capped at 8 KiB. Each query inspects at most 512 indexed candidates, renders at most 128 endpoints, and verifies at most 128 source files / 4 MiB. Output stays within existing read/search byte budgets. Unavailable inputs, extraction/query omissions, stale evidence and output truncation are reported; the result is not an exhaustive runtime map. No request performs a full-workspace event relation scan.

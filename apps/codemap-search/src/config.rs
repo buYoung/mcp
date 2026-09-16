@@ -1139,6 +1139,8 @@ fn request_refresh_if_index_scope_changed(
         && previous.macro_expansion == current.macro_expansion
         && previous.event_navigation == current.event_navigation
         && previous.analysis_target_os == current.analysis_target_os
+        && previous.should_include_test_code == current.should_include_test_code
+        && previous.test_code_rules == current.test_code_rules
     {
         return;
     }

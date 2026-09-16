@@ -1,0 +1,284 @@
+{
+  "binary_blake3": "ce28c660e8b1a7529187e8f4fc84810568c8739cdbd3aa4cb293b04564bb0bf9",
+  "case_count": 18,
+  "cases": [
+    {
+      "case": "javascript-fixture-primary",
+      "elapsed_ms": 1455.4105829999999,
+      "grep": true,
+      "language": "javascript",
+      "output_bytes": [
+        1027,
+        1127,
+        1120,
+        1266
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "typescript-fixture-primary",
+      "elapsed_ms": 1343.731583,
+      "grep": true,
+      "language": "typescript",
+      "output_bytes": [
+        1038,
+        1126,
+        1119,
+        1265
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "go-fixture-primary",
+      "elapsed_ms": 1301.905167,
+      "grep": true,
+      "language": "go",
+      "output_bytes": [
+        1202,
+        1295,
+        1288,
+        1271
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "rust-fixture-primary",
+      "elapsed_ms": 1279.800833,
+      "grep": true,
+      "language": "rust",
+      "output_bytes": [
+        1011,
+        1101,
+        1094,
+        1280
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "python-fixture-primary",
+      "elapsed_ms": 1277.786292,
+      "grep": true,
+      "language": "python",
+      "output_bytes": [
+        1185,
+        1286,
+        1309,
+        1504
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "c-fixture-primary",
+      "elapsed_ms": 1187.601458,
+      "grep": true,
+      "language": "c",
+      "output_bytes": [
+        1047,
+        1134,
+        1127,
+        1052
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "cpp-fixture-primary",
+      "elapsed_ms": 1376.8616670000001,
+      "grep": true,
+      "language": "cpp",
+      "output_bytes": [
+        1230,
+        1302,
+        1295,
+        1461
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "csharp-fixture-primary",
+      "elapsed_ms": 1312.4707090000002,
+      "grep": true,
+      "language": "csharp",
+      "output_bytes": [
+        1317,
+        1405,
+        1398,
+        1454
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "dart-fixture-primary",
+      "elapsed_ms": 1299.182458,
+      "grep": true,
+      "language": "dart",
+      "output_bytes": [
+        1375,
+        1686,
+        1679,
+        2180
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "groovy-fixture-primary",
+      "elapsed_ms": 1290.3416670000001,
+      "grep": true,
+      "language": "groovy",
+      "output_bytes": [
+        1168,
+        1257,
+        1250,
+        1324
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "java-fixture-primary",
+      "elapsed_ms": 1274.38625,
+      "grep": true,
+      "language": "java",
+      "output_bytes": [
+        1194,
+        1280,
+        1273,
+        1311
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "kotlin-fixture-primary",
+      "elapsed_ms": 1301.094542,
+      "grep": true,
+      "language": "kotlin",
+      "output_bytes": [
+        1189,
+        1534,
+        1672,
+        1972
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "lua-fixture-primary",
+      "elapsed_ms": 1280.9406669999998,
+      "grep": true,
+      "language": "lua",
+      "output_bytes": [
+        1032,
+        1130,
+        1266,
+        1394
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "php-fixture-primary",
+      "elapsed_ms": 1295.146833,
+      "grep": true,
+      "language": "php",
+      "output_bytes": [
+        1302,
+        1402,
+        1395,
+        1477
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "ruby-fixture-primary",
+      "elapsed_ms": 1357.199042,
+      "grep": true,
+      "language": "ruby",
+      "output_bytes": [
+        1036,
+        1137,
+        1160,
+        1354
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "scala-fixture-primary",
+      "elapsed_ms": 1342.340875,
+      "grep": true,
+      "language": "scala",
+      "output_bytes": [
+        1394,
+        1908,
+        1901,
+        2470
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "swift-fixture-primary",
+      "elapsed_ms": 1348.405083,
+      "grep": true,
+      "language": "swift",
+      "output_bytes": [
+        1471,
+        2037,
+        2030,
+        2652
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    },
+    {
+      "case": "assembly-fixture-primary",
+      "elapsed_ms": 925.703584,
+      "grep": true,
+      "language": "assembly",
+      "output_bytes": [
+        828,
+        821,
+        964,
+        901
+      ],
+      "read_consumer": true,
+      "read_storage": true,
+      "search": true
+    }
+  ],
+  "cold_ready_ms": 2456.629167,
+  "external_tools_unavailable": true,
+  "fixture_manifest_blake3": "eb8b11b31d088cb83833e02d49357abef97518045cc8e6de01ad8a3cdb083afa",
+  "input_bytes": 8014,
+  "opt_out_checks": 5,
+  "passed": true,
+  "restart_passed": true,
+  "target_programs_executed": false
+}

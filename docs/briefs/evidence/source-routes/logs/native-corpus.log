@@ -1,0 +1,525 @@
+   Compiling codemap-search v0.8.1 (/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.40s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-f437c90ec1dc377d)
+
+running 1 test
+ANALYZE assembly-detected
+ANALYZE assembly-missed
+ANALYZE c-detected
+ANALYZE c-missed
+ANALYZE cpp-detected
+ANALYZE cpp-missed
+ANALYZE csharp-detected
+ANALYZE csharp-missed
+ANALYZE dart-detected
+ANALYZE dart-missed
+ANALYZE go-detected
+ANALYZE go-missed
+ANALYZE groovy-detected
+ANALYZE groovy-missed
+ANALYZE java-detected
+ANALYZE java-missed
+ANALYZE javascript-detected
+ANALYZE javascript-missed
+ANALYZE kotlin-detected
+ANALYZE kotlin-missed
+ANALYZE lua-detected
+ANALYZE lua-missed
+ANALYZE php-detected
+ANALYZE php-missed
+ANALYZE python-detected
+ANALYZE python-missed
+ANALYZE ruby-detected
+ANALYZE ruby-missed
+ANALYZE rust-detected
+ANALYZE rust-missed
+ANALYZE scala-detected
+ANALYZE scala-missed
+ANALYZE swift-detected
+ANALYZE swift-missed
+ANALYZE typescript-detected
+ANALYZE typescript-missed
+ANALYZE assembly-boundaries-own_register
+ANALYZE c-boundaries-global
+ANALYZE cpp-boundaries-this_capture
+ANALYZE csharp-boundaries-event
+ANALYZE dart-boundaries-first
+ANALYZE go-boundaries-import_alias
+ANALYZE groovy-boundaries-getter
+ANALYZE java-boundaries-method_reference
+ANALYZE javascript-boundaries-intrinsic
+ANALYZE kotlin-boundaries-getter
+ANALYZE lua-boundaries-property_key
+ANALYZE php-boundaries-constant_name
+ANALYZE python-boundaries-intrinsic
+ANALYZE ruby-boundaries-intrinsic
+ANALYZE ruby-override-override_return
+ANALYZE rust-boundaries-standard_box
+ANALYZE rust-custom_box-shadowed_box
+ANALYZE scala-boundaries-first
+ANALYZE swift-boundaries-first
+ANALYZE typescript-boundaries-getter
+ANALYZE python-module_shadow
+ANALYZE python-later_local
+ANALYZE javascript-module_shadow
+ANALYZE javascript-later_local
+ANALYZE go-wrapper_summary
+ANALYZE c-linkage-local
+ANALYZE cpp-public-gap-constructor_alias
+ANALYZE csharp-public-gap-atomic_getter
+ANALYZE java-public-gap-reflective_field
+ANALYZE php-public-gap-reference_cache
+ANALYZE typescript-public-gap-mapped_spread
+ANALYZE swift-public-gap-generic_bag
+ANALYZE rust-public-guard-deref
+ANALYZE typescript-public-guard-dynamic_copy
+ANALYZE typescript-public-guard-dotted_import
+ANALYZE rust-data-return-imported_return
+ANALYZE scala-state-cell
+ANALYZE typescript-modules-namespace
+ANALYZE typescript-budget-local_tail
+ANALYZE typescript-variance-same_parameter
+ANALYZE typescript-type-objects-same
+ANALYZE typescript-static-storage-same
+ANALYZE typescript-returned-closures-returned
+ANALYZE typescript-call-forwarding-bound
+ANALYZE typescript-prototype-forwarding-same
+ANALYZE scala-implicit-builder-same
+ANALYZE scala-jvm-storage-same
+ANALYZE typescript-data-consumption-object
+ANALYZE typescript-ternary-wrapper-same
+ANALYZE typescript-module-budget-late_initializer
+ANALYZE rust-standard-wrappers-box
+ANALYZE typescript-prototype-identity-same
+ANALYZE rust-standard-wrappers-generic_box
+ANALYZE scala-set-copy-new_value
+ANALYZE typescript-namespace-arrays-direct
+ANALYZE rust-pointer-origins-nonnull
+ANALYZE rust-pointer-shadow-standard
+ANALYZE rust-type-id-keys-same
+ANALYZE typescript-generator-resume-yielded
+ANALYZE typescript-stack-values-same-stack
+ANALYZE rust-type-id-shadow-same-custom
+ANALYZE typescript-stored-function-context-stored-function
+ANALYZE typescript-module-live-bindings-before
+ANALYZE typescript-generator-callback-binding-selected
+ANALYZE rust-generic-storage-left-first-to-left-first
+ANALYZE rust-any-standard-target
+ANALYZE rust-generic-plain-type-inference
+ANALYZE rust-source-container-method
+ANALYZE rust-declarative-impl-first-to-first
+ANALYZE rust-statement-macro-left-to-left
+ANALYZE rust-source-frontier-prelude-take
+ANALYZE javascript-fixture-primary
+ANALYZE typescript-fixture-primary
+ANALYZE go-fixture-primary
+ANALYZE rust-fixture-primary
+ANALYZE python-fixture-primary
+ANALYZE c-fixture-primary
+ANALYZE cpp-fixture-primary
+ANALYZE csharp-fixture-primary
+ANALYZE dart-fixture-primary
+ANALYZE groovy-fixture-primary
+ANALYZE java-fixture-primary
+ANALYZE kotlin-fixture-primary
+ANALYZE lua-fixture-primary
+ANALYZE php-fixture-primary
+ANALYZE ruby-fixture-primary
+ANALYZE scala-fixture-primary
+ANALYZE swift-fixture-primary
+ANALYZE assembly-fixture-primary
+PASS assembly-detected: 1 matches
+PASS assembly-missed: 1 matches
+PASS c-detected: 2 matches
+PASS c-missed: 2 matches
+PASS cpp-detected: 2 matches
+PASS cpp-missed: 2 matches
+PASS csharp-detected: 2 matches
+PASS csharp-missed: 2 matches
+PASS dart-detected: 2 matches
+PASS dart-missed: 2 matches
+PASS go-detected: 1 matches
+PASS go-missed: 1 matches
+PASS groovy-detected: 1 matches
+PASS groovy-missed: 1 matches
+PASS java-detected: 1 matches
+PASS java-missed: 1 matches
+PASS javascript-detected: 1 matches
+PASS javascript-missed: 1 matches
+PASS kotlin-detected: 1 matches
+PASS kotlin-missed: 2 matches
+PASS lua-detected: 2 matches
+PASS lua-missed: 2 matches
+PASS php-detected: 2 matches
+PASS php-missed: 2 matches
+PASS python-detected: 2 matches
+PASS python-missed: 2 matches
+PASS ruby-detected: 1 matches
+PASS ruby-missed: 1 matches
+PASS rust-detected: 1 matches
+PASS rust-missed: 1 matches
+PASS scala-detected: 2 matches
+PASS scala-missed: 1 matches
+PASS swift-detected: 2 matches
+PASS swift-missed: 1 matches
+PASS typescript-detected: 1 matches
+PASS typescript-missed: 1 matches
+PASS assembly-boundaries-own_register: 1 matches
+PASS assembly-boundaries-other_register: 0 matches
+PASS assembly-boundaries-clobber: 0 matches
+PASS assembly-boundaries-copy: 1 matches
+PASS assembly-boundaries-narrow_write: 0 matches
+PASS c-boundaries-global: 2 matches
+PASS c-boundaries-other_global: 0 matches
+PASS c-boundaries-parameter_shadow: 0 matches
+PASS cpp-boundaries-this_capture: 2 matches
+PASS cpp-boundaries-other_field: 0 matches
+PASS cpp-boundaries-not_invoked: 0 matches
+PASS cpp-boundaries-value_capture: 2 matches
+PASS cpp-boundaries-capture_identity: 0 matches
+PASS csharp-boundaries-event: 2 matches
+PASS csharp-boundaries-other_event: 0 matches
+PASS dart-boundaries-first: 2 matches
+PASS dart-boundaries-other_position: 0 matches
+PASS dart-boundaries-second: 2 matches
+PASS dart-boundaries-discarded_position: 0 matches
+PASS go-boundaries-import_alias: 1 matches
+PASS go-boundaries-other_field: 0 matches
+PASS go-boundaries-shadowed_import: 0 matches
+PASS groovy-boundaries-getter: 1 matches
+PASS groovy-boundaries-other_field: 0 matches
+PASS groovy-boundaries-other_getter: 1 matches
+PASS groovy-boundaries-getter_return: 0 matches
+PASS java-boundaries-method_reference: 1 matches
+PASS java-boundaries-other_field: 0 matches
+PASS java-boundaries-non_sam_method: 0 matches
+PASS java-boundaries-declared_sam: 1 matches
+PASS java-boundaries-bound_receiver: 0 matches
+PASS javascript-boundaries-intrinsic: 1 matches
+PASS javascript-boundaries-other_field: 0 matches
+PASS javascript-boundaries-local_shadow: 0 matches
+PASS kotlin-boundaries-getter: 2 matches
+PASS kotlin-boundaries-other_field: 0 matches
+PASS kotlin-boundaries-other_getter: 2 matches
+PASS kotlin-boundaries-getter_return: 0 matches
+PASS lua-boundaries-property_key: 2 matches
+PASS lua-boundaries-other_key: 0 matches
+PASS lua-boundaries-map_key: 4 matches
+PASS lua-boundaries-other_table: 0 matches
+PASS php-boundaries-constant_name: 2 matches
+PASS php-boundaries-other_property: 0 matches
+PASS php-boundaries-variable_spelling: 0 matches
+PASS python-boundaries-intrinsic: 2 matches
+PASS python-boundaries-other_field: 0 matches
+PASS python-boundaries-local_shadow: 0 matches
+PASS ruby-boundaries-intrinsic: 1 matches
+PASS ruby-boundaries-other_variable: 0 matches
+PASS ruby-override-override_return: 1 matches
+PASS ruby-override-override: 0 matches
+PASS rust-boundaries-standard_box: 1 matches
+PASS rust-boundaries-other_box: 0 matches
+PASS rust-custom_box-shadowed_box: 0 matches
+PASS scala-boundaries-first: 1 matches
+PASS scala-boundaries-other_position: 0 matches
+PASS scala-boundaries-second: 1 matches
+PASS scala-boundaries-discarded_position: 0 matches
+PASS swift-boundaries-first: 1 matches
+PASS swift-boundaries-other_position: 0 matches
+PASS swift-boundaries-second: 1 matches
+PASS swift-boundaries-discarded_position: 0 matches
+PASS typescript-boundaries-getter: 1 matches
+PASS typescript-boundaries-other_field: 0 matches
+PASS typescript-boundaries-other_getter: 1 matches
+PASS typescript-boundaries-getter_return: 0 matches
+PASS typescript-boundaries-write_is_not_read: 0 matches
+PASS python-module_shadow: 0 matches
+PASS python-later_local: 0 matches
+PASS javascript-module_shadow: 0 matches
+PASS javascript-later_local: 0 matches
+PASS go-wrapper_summary: 1 matches
+PASS c-linkage-local: 2 matches
+PASS c-linkage-other_translation_unit: 0 matches
+PASS cpp-public-gap-constructor_alias: 1 matches
+PASS cpp-public-gap-same_type_other_field: 0 matches
+PASS cpp-public-gap-same_field: 1 matches
+PASS cpp-public-gap-reference_rebind: 0 matches
+PASS csharp-public-gap-atomic_getter: 12 matches
+PASS csharp-public-gap-other_array: 0 matches
+PASS java-public-gap-reflective_field: 1 matches
+PASS java-public-gap-descriptor_text: 0 matches
+PASS php-public-gap-reference_cache: 1 matches
+PASS php-public-gap-callable_creation: 0 matches
+PASS typescript-public-gap-mapped_spread: 1 matches
+PASS typescript-public-gap-other_map: 0 matches
+PASS typescript-public-gap-known_property: 1 matches
+PASS typescript-public-gap-absent_property: 0 matches
+PASS swift-public-gap-generic_bag: 4 matches
+PASS swift-public-gap-other_bag: 0 matches
+PASS rust-public-guard-deref: 1 matches
+PASS rust-public-guard-other_bag: 0 matches
+PASS rust-public-guard-inherent_push: 2 matches
+PASS rust-public-guard-inherent_not_deref: 0 matches
+PASS typescript-public-guard-dynamic_copy: 1 matches
+PASS typescript-public-guard-overridden_property: 0 matches
+PASS typescript-public-guard-added_literal_key: 1 matches
+PASS typescript-public-guard-nested_missing: 0 matches
+PASS typescript-public-guard-missing_literal: 0 matches
+PASS typescript-public-guard-later_spread: 0 matches
+PASS typescript-public-guard-dotted_import: 1 matches
+PASS typescript-public-guard-bound_field: 1 matches
+PASS typescript-public-guard-other_binding: 0 matches
+PASS rust-data-return-imported_return: 2 matches
+PASS rust-data-return-other_buffer: 0 matches
+PASS rust-data-return-other_field: 0 matches
+PASS rust-data-return-different_parameters: 0 matches
+PASS rust-data-return-stored_iterator: 1 matches
+PASS rust-data-return-same_parameter: 2 matches
+PASS scala-state-cell: 5 matches
+PASS scala-state-other_field: 0 matches
+PASS scala-state-copy_kept: 2 matches
+PASS scala-state-copy_other: 0 matches
+PASS scala-state-copy_replaced: 0 matches
+PASS scala-state-copy_original: 2 matches
+PASS typescript-modules-namespace: 1 matches
+PASS typescript-modules-other_map: 0 matches
+PASS typescript-modules-captured_factory: 1 matches
+PASS typescript-modules-other_factory: 0 matches
+PASS typescript-budget-local_tail: 1 matches
+PASS typescript-budget-other_field: 0 matches
+PASS typescript-variance-same_parameter: 1 matches
+PASS typescript-variance-other_parameter: 0 matches
+PASS typescript-type-objects-same: 1 matches
+PASS typescript-type-objects-other: 0 matches
+PASS typescript-type-objects-runtime_literal: 1 matches
+PASS typescript-static-storage-same: 1 matches
+PASS typescript-static-storage-other: 0 matches
+PASS typescript-returned-closures-returned: 1 matches
+PASS typescript-returned-closures-other_factory: 0 matches
+PASS typescript-returned-closures-applied: 2 matches
+PASS typescript-returned-closures-other_callback: 0 matches
+PASS typescript-call-forwarding-bound: 2 matches
+PASS typescript-call-forwarding-other: 0 matches
+PASS typescript-prototype-forwarding-same: 1 matches
+PASS typescript-prototype-forwarding-other: 0 matches
+PASS scala-implicit-builder-same: 1 matches
+PASS scala-implicit-builder-other: 0 matches
+PASS scala-jvm-storage-same: 2 matches
+PASS scala-jvm-storage-other_instance: 0 matches
+PASS scala-jvm-storage-other_field: 0 matches
+PASS typescript-data-consumption-object: 1 matches
+PASS typescript-data-consumption-other_object: 0 matches
+PASS typescript-data-consumption-key: 1 matches
+PASS typescript-data-consumption-other_key: 0 matches
+PASS typescript-ternary-wrapper-same: 2 matches
+PASS typescript-ternary-wrapper-other: 0 matches
+PASS typescript-module-budget-late_initializer: 1 matches
+PASS typescript-module-budget-other_initializer: 0 matches
+PASS rust-standard-wrappers-box: 1 matches
+PASS rust-standard-wrappers-other_box: 0 matches
+PASS rust-standard-wrappers-some_pattern: 1 matches
+PASS rust-standard-wrappers-shadowed_some: 0 matches
+PASS scala-jvm-storage-final_field: 0 matches
+PASS scala-jvm-storage-wrong_field: 0 matches
+PASS typescript-prototype-identity-same: 1 matches
+PASS typescript-prototype-identity-other: 0 matches
+PASS rust-standard-wrappers-generic_box: 0 matches
+PASS scala-set-copy-new_value: 1 matches
+PASS typescript-namespace-arrays-direct: 1 matches
+PASS typescript-namespace-arrays-nested_scope: 1 matches
+PASS typescript-namespace-arrays-other_key: 0 matches
+PASS typescript-namespace-arrays-same_name_other_namespace: 0 matches
+PASS typescript-namespace-arrays-object_union: 0 matches
+PASS rust-pointer-origins-nonnull: 1 matches
+PASS rust-pointer-origins-raw: 1 matches
+PASS rust-pointer-origins-clone: 1 matches
+PASS rust-pointer-origins-other: 0 matches
+PASS rust-pointer-origins-tuple: 1 matches
+PASS rust-pointer-origins-helper: 1 matches
+PASS rust-pointer-origins-recovered: 1 matches
+PASS rust-pointer-origins-integer: 0 matches
+PASS rust-pointer-origins-cast: 1 matches
+PASS rust-pointer-shadow-standard: 1 matches
+PASS rust-pointer-shadow-custom: 0 matches
+PASS rust-type-id-keys-same: 1 matches
+PASS rust-type-id-keys-different: 0 matches
+PASS rust-type-id-keys-other-map: 0 matches
+PASS rust-type-id-keys-unknown: 0 matches
+PASS rust-type-id-keys-generic: 1 matches
+PASS rust-type-id-keys-generic-other: 0 matches
+PASS typescript-generator-resume-yielded: 1 matches
+PASS typescript-generator-resume-resumed: 1 matches
+PASS typescript-generator-resume-completed: 0 matches
+PASS typescript-generator-resume-unstarted: 0 matches
+PASS typescript-generator-resume-other: 0 matches
+PASS typescript-generator-resume-delegated-yield: 1 matches
+PASS typescript-generator-resume-delegated-return: 1 matches
+PASS typescript-generator-resume-helper: 1 matches
+PASS typescript-generator-resume-opaque-delegate: 0 matches
+PASS typescript-stack-values-same-stack: 1 matches
+PASS typescript-stack-values-other-stack: 0 matches
+PASS rust-type-id-shadow-same-custom: 1 matches
+PASS rust-type-id-shadow-standard-is-distinct: 0 matches
+PASS rust-type-id-shadow-native-matches: 1 matches
+PASS typescript-generator-resume-early-return: 0 matches
+PASS typescript-generator-resume-early-throw: 0 matches
+PASS typescript-stored-function-context-stored-function: 1 matches
+PASS typescript-stored-function-context-other-function: 0 matches
+PASS typescript-stored-function-context-bound-receiver: 1 matches
+PASS typescript-stored-function-context-other-receiver: 0 matches
+PASS typescript-module-live-bindings-before: 1 matches
+PASS typescript-module-live-bindings-after: 1 matches
+PASS typescript-module-live-bindings-not-later: 0 matches
+PASS typescript-module-live-bindings-not-snapshot: 0 matches
+PASS typescript-generator-callback-binding-selected: 1 matches
+PASS typescript-generator-callback-binding-other: 0 matches
+PASS typescript-generator-callback-binding-unused: 0 matches
+PASS typescript-generator-callback-binding-second: 1 matches
+PASS typescript-generator-callback-binding-not-first: 0 matches
+PASS rust-generic-storage-left-first-to-left-first: 1 matches
+PASS rust-generic-storage-left-first-to-left-other-key: 0 matches
+PASS rust-generic-storage-left-first-to-left-other-type: 0 matches
+PASS rust-generic-storage-left-first-to-right-first: 0 matches
+PASS rust-generic-storage-left-other-key-to-left-first: 0 matches
+PASS rust-generic-storage-left-other-key-to-left-other-key: 1 matches
+PASS rust-generic-storage-left-other-key-to-left-other-type: 0 matches
+PASS rust-generic-storage-left-other-key-to-right-first: 0 matches
+PASS rust-generic-storage-left-other-type-to-left-first: 0 matches
+PASS rust-generic-storage-left-other-type-to-left-other-key: 0 matches
+PASS rust-generic-storage-left-other-type-to-left-other-type: 1 matches
+PASS rust-generic-storage-left-other-type-to-right-first: 0 matches
+PASS rust-generic-storage-right-first-to-left-first: 0 matches
+PASS rust-generic-storage-right-first-to-left-other-key: 0 matches
+PASS rust-generic-storage-right-first-to-left-other-type: 0 matches
+PASS rust-generic-storage-right-first-to-right-first: 1 matches
+PASS rust-any-standard-target: 1 matches
+PASS rust-any-wrong-concrete-type: 0 matches
+PASS rust-any-custom-trait: 0 matches
+PASS rust-if-let-outer-else: 1 matches
+PASS rust-if-let-outer-after: 1 matches
+PASS rust-if-let-shadowed-value: 0 matches
+PASS rust-generic-plain-type-inference: 1 matches
+PASS rust-generic-arguments-not-erased: 0 matches
+PASS rust-source-container-method: 1 matches
+PASS rust-source-container-not-standard-get: 0 matches
+PASS rust-declarative-impl-first-to-first: 2 matches
+PASS rust-declarative-impl-first-to-second: 0 matches
+PASS rust-declarative-impl-second-to-first: 0 matches
+PASS rust-declarative-impl-second-to-second: 2 matches
+PASS rust-declarative-impl-literal-token-preserved: 1 matches
+PASS rust-declarative-impl-literal-token-not-substituted: 0 matches
+PASS rust-statement-macro-left-to-left: 1 matches
+PASS rust-statement-macro-left-to-right: 0 matches
+PASS rust-statement-macro-right-to-left: 0 matches
+PASS rust-statement-macro-right-to-right: 1 matches
+PASS rust-statement-macro-unsupported-hygiene: 0 matches
+PASS rust-statement-macro-unsupported-repetition: 0 matches
+PASS rust-statement-macro-uninitialized: 0 matches
+PASS rust-statement-macro-nested-left-to-left: 1 matches
+PASS rust-statement-macro-nested-left-to-right: 0 matches
+PASS rust-statement-macro-nested-right-to-left: 0 matches
+PASS rust-statement-macro-nested-right-to-right: 1 matches
+PASS rust-source-frontier-prelude-take: 1 matches
+PASS rust-source-frontier-taken-local-empty: 0 matches
+PASS rust-source-frontier-field-take: 1 matches
+PASS rust-source-frontier-taken-field-empty: 0 matches
+PASS rust-source-frontier-field-replaced: 1 matches
+PASS rust-source-frontier-old-payload-not-replacement: 0 matches
+PASS rust-source-frontier-replacement-not-old-payload: 0 matches
+PASS rust-source-frontier-glob-shadow: 0 matches
+PASS rust-source-frontier-block-return: 1 matches
+PASS rust-source-frontier-block-local-not-returned: 0 matches
+PASS rust-source-frontier-single-tail-evaluation: 1 matches
+PASS javascript-fixture-primary: 1 matches
+PASS javascript-fixture-secondary: 1 matches
+PASS javascript-fixture-primary-not-secondary: 0 matches
+PASS javascript-fixture-secondary-not-primary: 0 matches
+PASS javascript-fixture-different-owner: 0 matches
+PASS typescript-fixture-primary: 1 matches
+PASS typescript-fixture-secondary: 1 matches
+PASS typescript-fixture-primary-not-secondary: 0 matches
+PASS typescript-fixture-secondary-not-primary: 0 matches
+PASS typescript-fixture-different-owner: 0 matches
+PASS go-fixture-primary: 1 matches
+PASS go-fixture-secondary: 1 matches
+PASS go-fixture-primary-not-secondary: 0 matches
+PASS go-fixture-secondary-not-primary: 0 matches
+PASS go-fixture-different-owner: 0 matches
+PASS rust-fixture-primary: 1 matches
+PASS rust-fixture-secondary: 1 matches
+PASS rust-fixture-primary-not-secondary: 0 matches
+PASS rust-fixture-secondary-not-primary: 0 matches
+PASS rust-fixture-different-owner: 0 matches
+PASS python-fixture-primary: 2 matches
+PASS python-fixture-secondary: 2 matches
+PASS python-fixture-primary-not-secondary: 0 matches
+PASS python-fixture-secondary-not-primary: 0 matches
+PASS python-fixture-different-owner: 0 matches
+PASS c-fixture-primary: 2 matches
+PASS c-fixture-secondary: 2 matches
+PASS c-fixture-primary-not-secondary: 0 matches
+PASS c-fixture-secondary-not-primary: 0 matches
+PASS c-fixture-different-owner: 0 matches
+PASS cpp-fixture-primary: 2 matches
+PASS cpp-fixture-secondary: 2 matches
+PASS cpp-fixture-primary-not-secondary: 0 matches
+PASS cpp-fixture-secondary-not-primary: 0 matches
+PASS cpp-fixture-different-owner: 0 matches
+PASS csharp-fixture-primary: 2 matches
+PASS csharp-fixture-secondary: 2 matches
+PASS csharp-fixture-primary-not-secondary: 0 matches
+PASS csharp-fixture-secondary-not-primary: 0 matches
+PASS csharp-fixture-different-owner: 0 matches
+PASS dart-fixture-primary: 2 matches
+PASS dart-fixture-secondary: 2 matches
+PASS dart-fixture-primary-not-secondary: 0 matches
+PASS dart-fixture-secondary-not-primary: 0 matches
+PASS dart-fixture-different-owner: 0 matches
+PASS groovy-fixture-primary: 1 matches
+PASS groovy-fixture-secondary: 1 matches
+PASS groovy-fixture-primary-not-secondary: 0 matches
+PASS groovy-fixture-secondary-not-primary: 0 matches
+PASS groovy-fixture-different-owner: 0 matches
+PASS java-fixture-primary: 1 matches
+PASS java-fixture-secondary: 1 matches
+PASS java-fixture-primary-not-secondary: 0 matches
+PASS java-fixture-secondary-not-primary: 0 matches
+PASS java-fixture-different-owner: 0 matches
+PASS kotlin-fixture-primary: 1 matches
+PASS kotlin-fixture-secondary: 1 matches
+PASS kotlin-fixture-primary-not-secondary: 0 matches
+PASS kotlin-fixture-secondary-not-primary: 0 matches
+PASS kotlin-fixture-different-owner: 0 matches
+PASS lua-fixture-primary: 2 matches
+PASS lua-fixture-secondary: 2 matches
+PASS lua-fixture-primary-not-secondary: 0 matches
+PASS lua-fixture-secondary-not-primary: 0 matches
+PASS lua-fixture-different-owner: 0 matches
+PASS php-fixture-primary: 2 matches
+PASS php-fixture-secondary: 2 matches
+PASS php-fixture-primary-not-secondary: 0 matches
+PASS php-fixture-secondary-not-primary: 0 matches
+PASS php-fixture-different-owner: 0 matches
+PASS ruby-fixture-primary: 1 matches
+PASS ruby-fixture-secondary: 1 matches
+PASS ruby-fixture-primary-not-secondary: 0 matches
+PASS ruby-fixture-secondary-not-primary: 0 matches
+PASS ruby-fixture-different-owner: 0 matches
+PASS scala-fixture-primary: 2 matches
+PASS scala-fixture-secondary: 2 matches
+PASS scala-fixture-primary-not-secondary: 0 matches
+PASS scala-fixture-secondary-not-primary: 0 matches
+PASS scala-fixture-different-owner: 0 matches
+PASS swift-fixture-primary: 2 matches
+PASS swift-fixture-secondary: 2 matches
+PASS swift-fixture-primary-not-secondary: 0 matches
+PASS swift-fixture-secondary-not-primary: 0 matches
+PASS swift-fixture-different-owner: 0 matches
+PASS assembly-fixture-primary: 1 matches
+PASS assembly-fixture-secondary: 1 matches
+PASS assembly-fixture-primary-not-secondary: 0 matches
+PASS assembly-fixture-secondary-not-primary: 0 matches
+PASS assembly-fixture-different-owner: 0 matches
+test events::source_routes::tests::test_native_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 3.36s
+

@@ -1,0 +1,452 @@
+{
+  "status": "complete",
+  "baseline_revision": "a3fe03468",
+  "current_revision": {
+    "head": "a3fe03468c10ca0bf67a3342c6d8d1d5363000f1",
+    "changes": "working tree; not committed or released",
+    "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+  },
+  "execution_owner": "main thread",
+  "source_hashes": {
+    "artifact": "source-inputs.json",
+    "sha256": "a2670dd1c68baf5bdf6fe70f474671e3cac1a2778dfc873c25137700327e0fd6",
+    "algorithm": "sha256",
+    "population": "Pinned source files and unchanged PoC manifests, grouped by executed native report"
+  },
+  "limits": {
+    "source_bytes_per_file": 524288,
+    "source_bytes_per_snapshot": 67108864,
+    "source_files_per_snapshot": 4096,
+    "endpoints_per_file_shared": 256,
+    "endpoints_per_snapshot_shared": 8192,
+    "candidates_per_query_shared": 512,
+    "endpoints_per_query_shared": 128,
+    "source_files_per_query_shared": 128,
+    "source_bytes_per_query_shared": 4194304,
+    "syntax_nodes_per_file": 131072,
+    "syntax_nodes_per_snapshot": 1048576,
+    "syntax_depth": 256,
+    "facts_per_function": 256,
+    "total_facts": 40000,
+    "summary_passes": 4,
+    "analysis_operations": 2000000,
+    "expanded_test_input_exception_bytes": 1048576
+  },
+  "report_references": {
+    "native-corpus": {
+      "path": "native-corpus.json",
+      "sha256": "30d620558d75529d90040c899f97cfbd01ebaa97683103ccb9bcb5316dc1e346",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "public-native": {
+      "path": "public-native.json",
+      "sha256": "1b2ac76c16896d6b92bf3138207d2d69fa2223b6650fb9c564997b79250b712e",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "expanded-native": {
+      "path": "expanded-native.json",
+      "sha256": "beaf04e51836836da5c89c3d8b1b52c82b4c01ba4d855036cce223d17f0e09f0",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "consumers-native": {
+      "path": "consumers-native.json",
+      "sha256": "a8a9de8a0bc4c2fbd034f4ddd293af562faaefc8946270a0688c43f6eeb4f3fa",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    },
+    "frontend-native": {
+      "path": "frontend-native.json",
+      "sha256": "a48be68de9ca99b437f77a4d14a61ca1962e518da65c435415663a0cc80b2a0e",
+      "native_implementation_blake3": "0a745540e85f54e401ff3c483fdac21678759eb4c9fbc0238870660dc09f3234"
+    }
+  },
+  "commands": [
+    {
+      "name": "native-corpus",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=regressions,fixtures CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/native-corpus.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "regressions,fixtures",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/native-corpus.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 7.605,
+      "log": "/tmp/source-routes-final-native-corpus.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.40s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 3.36s"
+      ],
+      "evidence_log": "logs/native-corpus.log",
+      "evidence_log_sha256": "545beb03545c2e4491e3b6494917617cabccd789aef971f1da1cc794d4720fef"
+    },
+    {
+      "name": "public-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=public CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/public-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "public",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/public-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 0,
+      "elapsed_seconds": 19.717,
+      "log": "/tmp/source-routes-final-public-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 19.57s"
+      ],
+      "evidence_log": "logs/public-native.log",
+      "evidence_log_sha256": "da9403dfd4d22478c96f4aa5c81bdd6e95a4f750a38cc20c16e80d93269154e4"
+    },
+    {
+      "name": "expanded-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=expanded CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/expanded-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources CODEMAP_SOURCE_ROUTES_MAX_FILE_BYTES=1048576 cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "expanded",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/expanded-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources",
+        "CODEMAP_SOURCE_ROUTES_MAX_FILE_BYTES": "1048576"
+      },
+      "exit": 0,
+      "elapsed_seconds": 82.901,
+      "log": "/tmp/source-routes-final-expanded-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 82.56s"
+      ],
+      "evidence_log": "logs/expanded-native.log",
+      "evidence_log_sha256": "1052dfacd7a56715556769fbe375837a40bcf61b65586edf7ecdca1798077100"
+    },
+    {
+      "name": "consumers-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=consumers CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/consumers-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT=docs/briefs/evidence/source-routes/expanded-native.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "consumers",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/consumers-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources",
+        "CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT": "docs/briefs/evidence/source-routes/expanded-native.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 4.489,
+      "log": "/tmp/source-routes-final-consumers-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 4.12s"
+      ],
+      "evidence_log": "logs/consumers-native.log",
+      "evidence_log_sha256": "b8724edbfbfd1ef7908c37ef29a78c34c23979a69b273c9954c4f8bc69a9066e"
+    },
+    {
+      "name": "frontend-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=frontend CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/frontend-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "frontend",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/frontend-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 0,
+      "elapsed_seconds": 29.973,
+      "log": "/tmp/source-routes-final-frontend-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 29.82s"
+      ],
+      "evidence_log": "logs/frontend-native.log",
+      "evidence_log_sha256": "f2fafb7ceae000f232e4f469278fe13120dc14666c32ca1341abdb91319e5f15"
+    },
+    {
+      "name": "test_value_relationships_stay_removed_across_live_views_and_restart",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_value_relationships_stay_removed_across_live_views_and_restart -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 8.905,
+      "log": "/tmp/source-routes-final-test_value_relationships_stay_removed_across_live_views_and_restart.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.55s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 3.73s"
+      ],
+      "evidence_log": "logs/test_value_relationships_stay_removed_across_live_views_and_restart.log",
+      "evidence_log_sha256": "7979f860fe5b0c5b92ae0d23046c0195d35a6c303265c3ced19d72b7d18489d2"
+    },
+    {
+      "name": "test_implementation_rust_target_reload_with_events_disabled",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_implementation_rust_target_reload_with_events_disabled -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 2.897,
+      "log": "/tmp/source-routes-final-test_implementation_rust_target_reload_with_events_disabled.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 2.74s"
+      ],
+      "evidence_log": "logs/test_implementation_rust_target_reload_with_events_disabled.log",
+      "evidence_log_sha256": "5bdefdfa57c9f1332e7bd82a07ca72a9e8a17bab73bb94248cd86fc788a66b19"
+    },
+    {
+      "name": "test_test_context_rules_reload_and_can_disable_builtin_detection",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_test_context_rules_reload_and_can_disable_builtin_detection -- --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 7.686,
+      "log": "/tmp/source-routes-final-test_test_context_rules_reload_and_can_disable_builtin_detection.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 7.54s"
+      ],
+      "evidence_log": "logs/test_test_context_rules_reload_and_can_disable_builtin_detection.log",
+      "evidence_log_sha256": "62ee0d57ef9fab4e9b5a30178635e5749f578a5837b0dd73ae44fd2269bf21db"
+    },
+    {
+      "name": "format-migration",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --lib index::engine::tests::test_format_version_mismatch_rebuilds_exactly_once -- --exact --nocapture",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 0.512,
+      "log": "/tmp/source-routes-final-format-migration.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 0.36s"
+      ],
+      "evidence_log": "logs/format-migration.log",
+      "evidence_log_sha256": "c140050462125d57cbee9543fc3735483aaf9e70dfbc0e96886405e10615198b"
+    },
+    {
+      "name": "events-final",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LIVE_REPORT_DIR=/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/source-routes cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests test_events_ -- --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LIVE_REPORT_DIR": "/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/source-routes"
+      },
+      "exit": 0,
+      "elapsed_seconds": 31.179,
+      "log": "/tmp/source-routes-final-events-final.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 181 filtered out; finished in 30.99s"
+      ],
+      "evidence_log": "logs/events-final.log",
+      "evidence_log_sha256": "a4cdcec3fc31fdc57dd10ae9c582306f193f4bb359c69f930f4c731ade8e1cdf"
+    },
+    {
+      "name": "cargo-check",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml",
+      "environment": {},
+      "exit": 0,
+      "elapsed_seconds": 1.471,
+      "log": "/tmp/source-routes-final-cargo-check.log",
+      "result_lines": [
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.44s"
+      ],
+      "evidence_log": "logs/cargo-check.log",
+      "evidence_log_sha256": "dd6ff227c51f8d1772f2030e609fdfda445861af57d38c45bd86e990e5df563e"
+    },
+    {
+      "name": "commit-clippy",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "cargo clippy --manifest-path apps/codemap-search/Cargo.toml --all-targets -- -D warnings",
+      "environment": {},
+      "exit": 0,
+      "log": "/tmp/source-routes-commit-clippy.log",
+      "result_lines": [
+        "    Checking codemap-search v0.8.1 (/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search)",
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.90s"
+      ],
+      "evidence_log": "logs/commit-clippy.log",
+      "evidence_log_sha256": "9fdcb495d2ed9b56773167420af879c2b89bddefbe80570b133b3ad962ad294d"
+    }
+  ],
+  "case_results": [
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-detected",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-missed",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-own_register",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-other_register",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-clobber",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-copy",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "regressions",
+      "id": "assembly-boundaries-narrow_write",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-primary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-secondary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 1
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-primary-not-secondary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-secondary-not-primary",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "native-corpus.json",
+      "group": "fixtures",
+      "id": "assembly-fixture-different-owner",
+      "language": "assembly",
+      "input_variant": null,
+      "passed": true,
+      "status": "expectation_matched",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-item-table",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "conditional_candidate",
+      "relation_count": 1
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-separate-tables",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "correctly_unjoined_with_positive_control",
+      "relation_count": 0
+    },
+    {
+      "report": "public-native.json",
+      "group": "public",
+      "id": "assembly-index-choice",
+      "language": "assembly",
+      "input_variant": "pokered--assembly",
+      "passed": true,
+      "status": "source_scenario_not_executed",
+      "relation_count": 5
+    }
+  ],
+  "unresolved_reasons": [
+    {
+      "scope": "Bevy Observer, SystemId and glTF final callbacks",
+      "status": "deferred_unresolved",
+      "reason": "Generic ECS physical storage, proc-macro-generated trait dispatch and instance-level links are not proven from the available source model."
+    },
+    {
+      "scope": "All analyzed target programs, including the 26 public syntax scenarios",
+      "status": "not_runtime_executed",
+      "reason": "This work verifies conditional source analysis and codemap-search MCP behavior, not target delivery, order, lifetime or concurrency."
+    },
+    {
+      "scope": "Arbitrary generators, fiber continuations, full Rust type/trait solving and Queue end-to-end delivery",
+      "status": "deferred",
+      "reason": "Outside the authorized bounded source-only contract."
+    }
+  ],
+  "finalized_at": "2026-09-16T22:52:03.599095+00:00",
+  "handoff_recording": "Final consolidated records after main-thread implementation and all required native/product checks; no claim that these JSON files were finalized before implementation of successor adapters.",
+  "phase": "assembly",
+  "implementation_paths": [
+    "apps/codemap-search/src/events/source_routes/assembly.rs"
+  ],
+  "local_cases_by_language": {
+    "assembly": 12
+  }
+}

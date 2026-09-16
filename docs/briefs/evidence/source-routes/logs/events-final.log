@@ -1,0 +1,38 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running tests/e2e_tests.rs (apps/codemap-search/target/debug/deps/e2e_tests-f9877e70ba072f17)
+
+running 12 tests
+test e2e::search::test_events_scope_and_argument_fixed_key_channel_rules ... ok
+LIVE "javascript"
+test e2e::tools::test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice ... ok
+test e2e::search::test_events_exact_key_negative_controls_and_ranked_search ... ok
+test e2e::search::test_events_query_caps_keep_explicit_omissions ... ok
+test e2e::search::test_events_builtin_api_catalog_and_disable_reach_output ... ok
+LIVE "typescript"
+test e2e::source_routes::test_events_source_routes_input_limit_and_disabled ... ok
+LIVE "go"
+test e2e::source_routes::test_events_source_routes_support_freshness_and_delete ... ok
+test e2e::tools::test_events_live_modes_forward_reverse_and_schema ... ok
+LIVE "rust"
+test e2e::source_routes::test_events_source_routes_exclusions_and_target_reload ... ok
+[codemap-search] invalid event_navigation.rules in /Users/buyong/tmp/.tmpMvuvbJ/.codemap/config.toml: require unique exact API selectors, valid roles/argument positions and explicit bus rules; using lower layer
+LIVE "python"
+LIVE "c"
+LIVE "cpp"
+test e2e::watcher::test_events_target_global_rules_and_git_exclusions_reload ... ok
+LIVE "csharp"
+LIVE "dart"
+LIVE "groovy"
+LIVE "java"
+LIVE "kotlin"
+LIVE "lua"
+LIVE "php"
+LIVE "ruby"
+LIVE "scala"
+LIVE "swift"
+LIVE "assembly"
+test e2e::source_routes::test_events_source_routes_all_languages_live_and_restart ... ok
+test e2e::watcher::test_events_watcher_dependencies_rules_filters_and_restart ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 181 filtered out; finished in 30.99s
+

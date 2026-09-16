@@ -188,7 +188,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v23 also retains external Dart function declarations found during the replay.
 // v24 drops fake Groovy constructors produced when quoted method parsing recovers.
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
-const EXTRACTION_FORMAT_VERSION: &str = "v33-conditional-outcomes";
+const EXTRACTION_FORMAT_VERSION: &str = "v34-native-source-routes";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1537,7 +1537,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v33-conditional-outcomes");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v34-native-source-routes");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

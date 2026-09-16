@@ -1,0 +1,113 @@
+{
+  "attempt_commands": [
+    {
+      "name": "native-corpus",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=regressions,fixtures CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/native-corpus.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "regressions,fixtures",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/native-corpus.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 7.15,
+      "log": "/tmp/source-routes-final-native-corpus.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.18s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 3.15s"
+      ]
+    },
+    {
+      "name": "public-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=public CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/public-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "public",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/public-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 101,
+      "elapsed_seconds": 18.791,
+      "log": "/tmp/source-routes-final-public-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s",
+        "test events::source_routes::tests::test_native_corpus ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 244 filtered out; finished in 18.64s"
+      ]
+    }
+  ],
+  "resolved_findings": [
+    {
+      "issue": "direct object method declaration rendered as callback registration",
+      "resolution": "Retain declaration bindings for method resolution; exclude those bindings from registration joins",
+      "verification": "12 event e2e tests passed with unchanged pre-existing assertions"
+    },
+    {
+      "issue": "whole-file parser diagnostic invalidated an intact Groovy endpoint-pair check",
+      "resolution": "Verify errors against every declared endpoint/evidence range, record exact errors; overlapping errors still fail",
+      "verification": "Groovy 3/3; errors at 60,90,97 do not overlap the declared ranges; positive callback control passed"
+    },
+    {
+      "issue": "intermediate reexport freshness dependency was flattened away",
+      "resolution": "Retain direct AST import and reexport dependency edges",
+      "verification": "non-endpoint barrel change and deletion hide old routes; restart restores after matching source"
+    },
+    {
+      "issue": "Assembly label-only search missed indirect-call body anchor",
+      "resolution": "Retain source label as storage/invocation support location",
+      "verification": "actual read/grep/search pass across all 18 languages"
+    },
+    {
+      "issue": "final runner omitted SOURCE_ROOT for frontend group",
+      "resolution": "supplied the locked checkout root and resumed only outstanding checks",
+      "verification": "8 frontend checks passed; no production change needed"
+    },
+    {
+      "issue": "pre-commit clippy --all-targets -D warnings rejected five mechanical issues",
+      "resolution": "Removed redundant Option dereference and unused alias argument; grouped rendering context; moved regex construction outside loops",
+      "verification": "clippy passed; all native and live validation reports regenerated against the final implementation; commit hooks remain enabled"
+    }
+  ],
+  "additional_attempt_commands": [
+    {
+      "name": "native-corpus",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=regressions,fixtures CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/native-corpus.json cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "regressions,fixtures",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/native-corpus.json"
+      },
+      "exit": 0,
+      "elapsed_seconds": 3.398,
+      "log": "/tmp/source-routes-final-native-corpus.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 3.15s"
+      ]
+    },
+    {
+      "name": "public-native",
+      "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+      "command": "CODEMAP_SOURCE_ROUTES_LANGUAGES=all CODEMAP_SOURCE_ROUTES_GROUPS=public CODEMAP_SOURCE_ROUTES_REPORT=docs/briefs/evidence/source-routes/public-native.json CODEMAP_SOURCE_ROUTES_SOURCE_ROOT=/tmp/codemap-language-repro-sources CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT=/tmp/codemap-language-composite-sources cargo test --manifest-path apps/codemap-search/Cargo.toml --lib events::source_routes::tests::test_native_corpus -- --exact --nocapture",
+      "environment": {
+        "CODEMAP_SOURCE_ROUTES_LANGUAGES": "all",
+        "CODEMAP_SOURCE_ROUTES_GROUPS": "public",
+        "CODEMAP_SOURCE_ROUTES_REPORT": "docs/briefs/evidence/source-routes/public-native.json",
+        "CODEMAP_SOURCE_ROUTES_SOURCE_ROOT": "/tmp/codemap-language-repro-sources",
+        "CODEMAP_SOURCE_ROUTES_COMPOSITE_ROOT": "/tmp/codemap-language-composite-sources"
+      },
+      "exit": 101,
+      "elapsed_seconds": 18.605,
+      "log": "/tmp/source-routes-final-public-native.log",
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s",
+        "test events::source_routes::tests::test_native_corpus ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 244 filtered out; finished in 18.47s"
+      ]
+    }
+  ],
+  "negative_verification_scope": "locked endpoint pair plus native fact support locations, with full file parser errors recorded separately; not whole-program parser/runtime completeness"
+}
