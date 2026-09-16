@@ -1,6 +1,6 @@
 # 18개 개발 언어 이벤트 연결 PoC
 
-검증일: 2026-09-16. **회귀 290개와 공통 사례 90개가 통과했다.** 공개 양성 37개는 기본 입력에서 호출 후보 30·인자 전달 2·미확정 5다. 확장 입력까지 반영하면 Monix와 Bevy 메시지가 연결되어 **호출 후보 31·데이터 반환 1·인자 전달 2·미확정 3**이다. 별도 소비 대조에서는 Effect Queue 내부 쓰기와 한 bucket의 배열 반환도 확인했다. 데이터 반환을 콜백 호출로 집계하지 않는다. Monix 네 구현 조합과 Effect 소비 구현의 분석 결과는 [잔여 경로 보완 보고서](remaining-routes/README.ko.md), 앞 단계의 공개 호출 후보 7개 복구 기록은 [1차 보완 보고서](public-gaps/README.ko.md)에 있다.
+검증일: 2026-09-16. **회귀 301개와 공통 사례 90개가 통과했다.** 공개 양성 37개는 기본 입력에서 호출 후보 30·인자 전달 2·미확정 5다. 확장 입력까지 반영하면 Monix와 Bevy 메시지가 연결되어 **호출 후보 31·데이터 반환 1·인자 전달 2·미확정 3**이다. 별도 소비 대조에서는 Effect Queue 내부 쓰기와 한 bucket의 배열 반환도 확인했다. 데이터 반환을 콜백 호출로 집계하지 않는다. Monix 네 구현 조합과 Effect 소비 구현의 분석 결과는 [잔여 경로 보완 보고서](remaining-routes/README.ko.md), 앞 단계의 공개 호출 후보 7개 복구 기록은 [1차 보완 보고서](public-gaps/README.ko.md)에 있다.
 
 ## 범위
 
@@ -10,7 +10,7 @@
 
 공개 저장소 **18개, 서로 다른 소스 파일 96개, 공개 사례 77개**를 고정했다. 별도로 언어별 소스 예제 18개에 공통 계약 사례 90개를 구성했다. 테스트 코드가 공개 사례의 근거에 포함되는 경우에도 읽기와 정적 분석만 수행했다.
 
-별도 회귀는 소스 115파일·290사례다. 체크포인트의 63파일·111사례, 140사례·165사례 단계의 원문과 기대값을 유지했다. 165사례 단계에 Scala/혼합 Java·Rust·TypeScript 재현과 반례 14파일·36사례를 더했다. 201사례 상태를 `33efda1f7`에 커밋한 뒤, Rust 포인터·타입 키와 TypeScript generator·배열 pop의 6파일·33사례를 추가했다. 234사례 검증 상태를 `777e8330f`에 커밋한 뒤, 저장된 함수의 receiver·모듈의 live binding·generator callback 인자 구분을 검증하는 3파일·13사례를 추가했다. 이전에 제시한 탐지/미탐지 예시 36파일은 원문을 변경하지 않았다. 그중 미탐지 18개는 `conditional_candidate`를 유지했고 기존 탐지 18개도 유지됐다. [구문별 변경·검증·한계](regressions/README.ko.md)에 언어별 근거와 재현 방법이 있다.
+별도 회귀는 소스 116파일·301사례다. 체크포인트의 63파일·111사례, 140사례·165사례 단계의 원문과 기대값을 유지했다. 165사례 단계에 Scala/혼합 Java·Rust·TypeScript 재현과 반례 14파일·36사례를 더했다. 201사례 상태를 `33efda1f7`에 커밋한 뒤, Rust 포인터·타입 키와 TypeScript generator·배열 pop의 6파일·33사례를 추가했다. 234사례 검증 상태를 `777e8330f`에 커밋한 뒤, 저장된 함수의 receiver·모듈의 live binding·generator callback 인자 구분을 검증하는 3파일·13사례를 추가했다. 이전에 제시한 탐지/미탐지 예시 36파일은 원문을 변경하지 않았다. 그중 미탐지 18개는 `conditional_candidate`를 유지했고 기존 탐지 18개도 유지됐다. [구문별 변경·검증·한계](regressions/README.ko.md)에 언어별 근거와 재현 방법이 있다.
 
 `c001a6a23`의 247사례 이후 Rust 7소스 파일·43사례를 추가했다. 명시적 제네릭 인자, tuple 타입 키, Any 다운캐스트, `if let`의 이름 가림, 단순 선언·문장 매크로와 포인터 출처를 대조한다. 호출 양성 16·구조적 반례 23·미확정 유지 4개다. 컴파일러 보조 입력은 [독립 대조 자료](../compiler-oracle/README.ko.md)로만 사용하며 이 문서의 AST 연결 수에 합산하지 않는다. 기본 PoC와 제품 적용 후보에 컴파일러 입력 의존성을 추가하지 않았다.
 
@@ -116,6 +116,6 @@ python3.14 -m venv .venv
 
 검증 결과와 관계 근거는 [evaluation.json](results/evaluation.json), 실행별 비용과 진단은 [metrics.json](results/metrics.json), 원시 사실·코드 해시·소스 해시·커밋은 [analysis](results/analysis/)에 있다. 각 프로세스는 원문 읽기와 정적 분석만 수행한다. LiveStore는 JS와 TS 실행에 같은 여섯 파일을 제공하므로 실행별 파일 수를 합하면 중복 입력이 포함된다.
 
-최종 수정 후 기본 167개 대조와 회귀 290개를 실행했다. 기본·공통 37개, 회귀 106개, 추가 입력 6개로 총 149개 분석 결과를 저장했다. 기본 사례의 판정은 직전 단계와 같으며, 확장 입력에서 Bevy 자료 반환 1개와 Monix 호출 후보 1개를 확인했다. 원래 공개 37쌍과 분리한 [추가 소비 평가](remaining-routes/results/consumers.evaluation.json)는 Queue 쓰기·단일 bucket 배열 반환·Effect 내부 handler 호출·RPC 조회 키 전달·두 무연결 쌍을 확인한다. 구현·입력·결과 해시는 `remaining-routes/verify.py --sources /tmp/codemap-language-repro-sources`로 대조한다. 이 명령은 기존 `public-gaps/verify.py`도 실행한다. [확장 입력 준비·재현 절차](remaining-routes/README.ko.md)와 [통합 무결성 결과](remaining-routes/verification.json)에 세부 범위가 있다. 모든 출력 후보의 정밀도·재현율, 임의의 이름 변형에 대한 강건성, 실제 이벤트 전달·순서·성능 개선은 측정하지 않았다.
+최종 수정 후 기본 167개 대조와 회귀 301개를 실행했다. 기본·공통 37개, 회귀 106개, 추가 입력 6개로 총 149개 분석 결과를 저장했다. 기본 사례의 판정은 직전 단계와 같으며, 확장 입력에서 Bevy 자료 반환 1개와 Monix 호출 후보 1개를 확인했다. 원래 공개 37쌍과 분리한 [추가 소비 평가](remaining-routes/results/consumers.evaluation.json)는 Queue 쓰기·단일 bucket 배열 반환·Effect 내부 handler 호출·RPC 조회 키 전달·두 무연결 쌍을 확인한다. 구현·입력·결과 해시는 `remaining-routes/verify.py --sources /tmp/codemap-language-repro-sources`로 대조한다. 이 명령은 기존 `public-gaps/verify.py`도 실행한다. [확장 입력 준비·재현 절차](remaining-routes/README.ko.md)와 [통합 무결성 결과](remaining-routes/verification.json)에 세부 범위가 있다. 모든 출력 후보의 정밀도·재현율, 임의의 이름 변형에 대한 강건성, 실제 이벤트 전달·순서·성능 개선은 측정하지 않았다.
 
 이번 변경은 experiments/event-navigation-poc 안에 한정했다. Rust 제품 코드·기존 테스트·설정·인계 문서를 수정하지 않았고 기존 MCP/CLI 계약이나 제거했던 Value relationships 출력도 바꾸지 않았다. 기존 네 언어의 비교 결과는 [이전 결과 문서](../README.ko.md)에 보존했다.

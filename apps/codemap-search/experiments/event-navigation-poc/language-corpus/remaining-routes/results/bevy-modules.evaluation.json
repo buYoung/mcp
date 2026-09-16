@@ -66,7 +66,7 @@
       "origin": "existing_poc",
       "semantic_kind": "data_route",
       "status": "conditional_data_return",
-      "matching_relations": 12,
+      "matching_relations": 6,
       "evidence_matches": [
         {
           "kind": "stored_value_return",
@@ -77,8 +77,8 @@
           },
           "invocation": {
             "path": "crates/bevy_ecs/src/message/iterators.rs",
-            "line": 92,
-            "column": 27
+            "line": 97,
+            "column": 17
           },
           "conditions": [
             "collection_membership_required",
@@ -107,8 +107,8 @@
           },
           "invocation": {
             "path": "crates/bevy_ecs/src/message/iterators.rs",
-            "line": 92,
-            "column": 27
+            "line": 97,
+            "column": 17
           },
           "conditions": [
             "collection_membership_required",
@@ -137,8 +137,8 @@
           },
           "invocation": {
             "path": "crates/bevy_ecs/src/message/iterators.rs",
-            "line": 92,
-            "column": 27
+            "line": 97,
+            "column": 17
           },
           "conditions": [
             "collection_membership_required",
@@ -298,5 +298,5 @@
   ],
   "input_variant": "bevy-modules",
   "max_file_bytes": 524288,
-  "input_lock_sha256": "264391a2e31fac26ce591e9ea0e30d528a97b562b7a419556dc308f066a7cf8f"
+  "input_lock_sha256": "1ab38cdc147f572bbee1b7a9b411e4e8fd741161f577f13611421049682a1617"
 }

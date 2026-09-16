@@ -13,7 +13,7 @@ import subprocess
 import time
 
 from engine import Analyzer
-from model import Fact, Value, connect
+from model import Fact, UnresolvedCall, Value, connect
 from syntax import load_program
 
 
@@ -29,6 +29,12 @@ def encode(value):
             result["consumer"] = {"location": asdict(value.consumer.location), "target": value.consumer.target.display(),
                                   "kind": value.consumer.kind, "argument_index": value.consumer.argument_index}
         return result
+    if isinstance(value, UnresolvedCall):
+        return {**{name: getattr(value, name) for name in ("type_arguments", "generic_types", "candidates", "return_types", "type_bindings", "reason", "function", "conditions")},
+                "result": value.result.display(), "callee": value.callee.display(), "receiver": value.receiver.display(),
+                "arguments": [argument.display() for argument in value.arguments], "location": asdict(value.location),
+                "return_value": value.return_value.display() if value.return_value is not None else None,
+                "via": [asdict(location) for location in value.via]}
     if is_dataclass(value):
         return asdict(value)
     raise TypeError(type(value).__name__)
@@ -71,6 +77,7 @@ def analyze(root: Path, paths: list[str], passes=None, module_bindings=None, max
         "notices": notices,
         "relations": relations,
         "facts": facts,
+        "unresolved_calls": analyzer.unresolved_calls,
     }
 
 

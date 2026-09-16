@@ -9,36 +9,63 @@ POINTERS = {"rust:nonnull", "rust:raw_pointer"}
 POINTER_CONDITIONS = ("pointer_provenance_required", "pointer_lifetime_alignment_and_aliasing_unproven")
 
 
+def option_result_call(interpreter, receiver, method, arguments, node, actuals):
+    """Operate only on proven standard variants, preserving take's old payload."""
+    variants = [item for item in actuals if item.kind == "wrapper" and item.name in
+                {"rust:option", "rust:option_none", "rust:result_ok", "rust:result_err"}]
+    if not variants:
+        return None
+    options = [item for item in variants if item.name in {"rust:option", "rust:option_none"}]
+    if options and method == "take" and not arguments:
+        empty = Value("wrapper", "rust:option_none", UNKNOWN)
+        # Return the captured values, never an alias of the newly empty slot.
+        returned = merge_values(options)
+        interpreter.emit("remove", receiver, UNKNOWN, node, ("standard_option_take",))
+        if receiver.kind == "slot":
+            interpreter.emit("store", receiver, empty, node, ("standard_option_take",))
+        else:
+            function = child(node, "function")
+            base = child(function, "value")
+            while base is not None and base.type in {"parenthesized_expression", "reference_expression"}:
+                base = child(base, "value") or (base.named_children[-1] if base.named_children else None)
+            if base is not None and base.type == "identifier":
+                interpreter.env[interpreter.text(base)] = empty
+        interpreter.conditions += ("standard_option_take",)
+        return returned
+    payloads = [item.base for item in options if item.name == "rust:option"]
+    if options and method in {"as_ref", "as_mut", "as_deref", "as_deref_mut"} and not arguments:
+        if not payloads:
+            return Value("wrapper", "rust:option_none", UNKNOWN)
+        if method in {"as_deref", "as_deref_mut"}:
+            pointed = []
+            for value in payloads:
+                stored = [value] + interpreter.analyzer.read_values(value)
+                if not any(interpreter.analyzer.value_types.get(part) == "std::boxed::Box<_>" for part in stored):
+                    return None
+                pointed.append(slot(value, "pointee"))
+            payloads = pointed
+            interpreter.conditions += ("standard_box_deref_semantics",)
+        return Value("wrapper", "rust:option", merge_values(payloads))
+    if options and method == "ok_or" and len(arguments) == 1:
+        return merge_values([Value("wrapper", "rust:result_ok", item.base) if item.name == "rust:option"
+                             else Value("wrapper", "rust:result_err", arguments[0]) for item in options])
+    results = [item for item in variants if item.name in {"rust:result_ok", "rust:result_err"}]
+    if results and method == "map_err" and len(arguments) == 1:
+        return merge_values([item if item.name == "rust:result_ok" else Value("wrapper", "rust:result_err", UNKNOWN) for item in results])
+    if method in {"unwrap", "expect"} and len(arguments) == int(method == "expect"):
+        values = [item.base for item in variants if item.name in {"rust:option", "rust:result_ok"}]
+        if not values:
+            return UNKNOWN
+        interpreter.conditions += ("option_some_required" if options else "result_ok_required",)
+        return merge_values(values)
+    return None
+
+
 def concrete_type_identity(interpreter, node):
     """TypeId keys require fully resolved types, including every generic argument."""
-    if node is None:
-        return None
-    if node.type == "generic_type":
-        base = concrete_type_identity(interpreter, child(node, "type"))
-        arguments = child(node, "type_arguments")
-        parts = [concrete_type_identity(interpreter, part) for part in arguments.named_children] if arguments else []
-        return base + "<" + ",".join(parts) + ">" if base and parts and all(parts) else None
-    text = interpreter.text(node)
-    if node.type not in {"primitive_type", "type_identifier", "scoped_type_identifier"}:
-        return None
-    if text in interpreter.rust_type_bindings:
-        return interpreter.rust_type_bindings[text]
-    ancestor = interpreter.function.node if interpreter.function else None
-    while ancestor is not None:
-        params = child(ancestor, "type_parameters")
-        if params is not None and any(interpreter.text(child(part, "name")) == text for part in params.named_children):
-            return None
-        ancestor = ancestor.parent
-    owner = interpreter.program.resolve_type(interpreter.source, text)
-    if owner:
-        return owner
-    primitive = text.rsplit("::", 1)[-1]
-    if re.fullmatch(r"(?:[ui](?:8|16|32|64|128|size)|f(?:32|64)|bool|char|str)", primitive):
-        if text == primitive and text not in interpreter.source.module_bindings:
-            return "core::primitive::" + primitive
-        if interpreter.rust_standard_path(text, {f"{root}::primitive::{primitive}" for root in ("std", "core")}):
-            return "core::primitive::" + primitive
-    return None
+    from rust_types import type_expression
+    result = type_expression(interpreter, node)
+    return result.display() if result.is_concrete else None
 
 
 def type_id_call(interpreter, callee_text, callee_node, arguments):

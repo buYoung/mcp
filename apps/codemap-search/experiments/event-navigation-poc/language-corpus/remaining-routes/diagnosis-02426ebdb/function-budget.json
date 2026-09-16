@@ -1,0 +1,160 @@
+{
+  "baseline_commit": "02426ebdbd66e6f90833dbd9b50b42d51ea1fe47",
+  "variant": "function-budget",
+  "fact_limit": 160000,
+  "function_fact_limit": 768,
+  "summary_passes": 4,
+  "source_callable_depth_limit": 6,
+  "input_files": 62,
+  "input_manifest_sha256": "264391a2e31fac26ce591e9ea0e30d528a97b562b7a419556dc308f066a7cf8f",
+  "diagnostic_script_sha256": "f91df0d3c93bcaaa6265284b16060e8ae63123346f81841e1c5c72471d84e3de",
+  "implementation_sha256": {
+    "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+    "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+    "ts_modules.py": "1905f64755553927ff428e6879dce336ffbd96468cc74210a70dfc879f672122",
+    "rust_types.py": "61c01f30e274503c74bf95d8e800024cd714837391c70131885b7a1f263430f1",
+    "rust_macros.py": "d595768e53ed6c698865db319b265f5622bef1eb5ece521110773df038fd4daa",
+    "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7",
+    "js_generators.py": "af06593e4a46decb4da6773d0743406ce233c7eaf896b7a013ee53d4e07bf8a5",
+    "model.py": "631170cce9d90f45fdd3a076c8615a0c856252c4525f90ce8513392d4f9c6bbf",
+    "engine.py": "22c1a0d3a24d845a4c9389558c053866209e7a8c4b83cc150b897c6b44286af6",
+    "syntax.py": "024900b4d03f3440c089174388dbb2847136fb29db49c498790691740975c14b",
+    "rust_modules.py": "e01408e71eb934f7b3dc01581160a41b4c6b81b28b53328f8ac83d190459fca9",
+    "evaluate.py": "e46528b9f952852036f13b0f704bfd63bfbbc615f30aff3552f3c79b71ac5556",
+    "rust_values.py": "558d9c80d877b245157ec2c1b1e5437c2807be15af905b18bd9d1835259958fd",
+    "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+    "analyze.py": "ec2201a81cc27160edd484f6ffe3d6a039a505d8ef7e9bd37ece005615c0dd9a"
+  },
+  "metrics": {
+    "files": 62,
+    "input_bytes": 1711338,
+    "functions": 2695,
+    "facts": 42879,
+    "relations": 2048,
+    "parse_seconds": 0.7101138750440441,
+    "analysis_seconds": 11.92908383399481,
+    "connect_seconds": 0.9206821249681525,
+    "elapsed_seconds": 13.559879834007006,
+    "peak_rss_bytes_before_serialization": 214761472
+  },
+  "cap_stages": [
+    {
+      "received": 36731,
+      "retained": 36731,
+      "removed": 0
+    },
+    {
+      "received": 42712,
+      "retained": 42712,
+      "removed": 0
+    },
+    {
+      "received": 42791,
+      "retained": 42791,
+      "removed": 0
+    },
+    {
+      "received": 42879,
+      "retained": 42879,
+      "removed": 0
+    }
+  ],
+  "default_relation_omitted": 3702,
+  "endpoint_counts": {
+    "b_boxed_observer": {
+      "storage_fact_kinds": {
+        "external_boundary": 4,
+        "store": 151
+      },
+      "invocation_fact_kinds": {
+        "external_boundary": 2,
+        "member_invoke": 12,
+        "argument": 1,
+        "store": 2,
+        "return": 1
+      }
+    },
+    "b_system_id": {
+      "storage_fact_kinds": {
+        "store": 33,
+        "member_invoke": 1,
+        "external_boundary": 2
+      },
+      "invocation_fact_kinds": {
+        "member_invoke": 36,
+        "argument": 20,
+        "invoke": 2,
+        "store": 4,
+        "external_boundary": 1
+      }
+    },
+    "b_gltf_handler": {
+      "storage_fact_kinds": {
+        "member_invoke": 4,
+        "external_boundary": 3
+      },
+      "invocation_fact_kinds": {
+        "member_invoke": 3
+      }
+    }
+  },
+  "full_statuses": [
+    {
+      "id": "b_boxed_observer",
+      "status": "unresolved",
+      "matching_relations": 0
+    },
+    {
+      "id": "b_system_id",
+      "status": "unresolved",
+      "matching_relations": 0
+    },
+    {
+      "id": "b_gltf_handler",
+      "status": "unresolved",
+      "matching_relations": 0
+    }
+  ],
+  "focused_matching": {
+    "b_boxed_observer": {
+      "status": "unresolved",
+      "matching_relations": 0,
+      "facts": 173,
+      "relations": 0,
+      "omitted": 0
+    },
+    "b_system_id": {
+      "status": "unresolved",
+      "matching_relations": 0,
+      "facts": 99,
+      "relations": 0,
+      "omitted": 0
+    },
+    "b_gltf_handler": {
+      "status": "unresolved",
+      "matching_relations": 0,
+      "facts": 10,
+      "relations": 0,
+      "omitted": 0
+    }
+  },
+  "notice_counts": {
+    "rust_declarative_impl_expansion": 2,
+    "rust_declarative_statement_expansion": 2,
+    "ambiguous_rust_import": 5,
+    "allocation_context_depth_bound": 4,
+    "any_downcast_target_unresolved": 3,
+    "binding_pattern_unsupported": 5,
+    "heap_read_bound": 2,
+    "pointer_origin_unresolved": 16,
+    "summary_depth_bound": 1,
+    "type_id_type_argument_unresolved": 40,
+    "value_alternative_bound": 5,
+    "relation_output_cap": 1
+  },
+  "target_program_executed": false,
+  "production_defaults_changed": false,
+  "case_labels_used_only_after_fact_extraction": true,
+  "focused_matching_is_diagnostic_not_canonical_evaluation": true,
+  "elapsed_seconds_including_observation": 13.917099040991161
+}

@@ -1,0 +1,764 @@
+{
+  "frontend_checks_passed": true,
+  "public_pairs": [
+    {
+      "id": "b_boxed_observer",
+      "status": "unresolved",
+      "matching_relations": 0
+    },
+    {
+      "id": "b_message_buffer",
+      "status": "conditional_data_return",
+      "matching_relations": 6
+    },
+    {
+      "id": "b_system_id",
+      "status": "unresolved",
+      "matching_relations": 0
+    },
+    {
+      "id": "b_gltf_handler",
+      "status": "unresolved",
+      "matching_relations": 0
+    }
+  ],
+  "observed_calls": [
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/observer/distributed_storage.rs",
+        "line": 227,
+        "column": 21
+      },
+      "expression": "Some(system)",
+      "result": "wrapper:rust:option(allocation:crates/bevy_ecs/src/observer/distributed_storage.rs:225:22:ast:9286-9335:box)",
+      "function": "crates/bevy_ecs/src/observer/distributed_storage.rs:224:5",
+      "root_kind": "wrapper"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 476,
+        "column": 33
+      },
+      "expression": "RegisteredSystem::new(system)",
+      "result": "allocation:crates/bevy_ecs/src/system/system_registry.rs:34:9:ast:1163-1257@crates/bevy_ecs/src/system/system_registry.rs:476:33:ast:16658-16687",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:471:5",
+      "root_kind": "allocation"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 476,
+        "column": 22
+      },
+      "expression": "self.spawn(RegisteredSystem::new(system))",
+      "result": "result:crates/bevy_ecs/src/world/mod.rs:1130:35:ast:45719-45769@crates/bevy_ecs/src/world/mod.rs:1257:9:ast:50898-50945>crates/bevy_ecs/src/world/mod.rs:1247:9:ast:50546-50601>crates/bevy_ecs/src/system/system_registry.rs:476:22:ast:16647-16688",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:471:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 476,
+        "column": 22
+      },
+      "expression": "self.spawn(RegisteredSystem::new(system)).id()",
+      "result": "allocation:crates/bevy_ecs/src/world/entity_access/world_mut.rs:136:9:ast:5233-5320~closure:9c41923f31863e19@crates/bevy_ecs/src/system/system_registry.rs:476:22:ast:16647-16691[key:entity]",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:471:5",
+      "root_kind": "allocation"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 477,
+        "column": 9
+      },
+      "expression": "SystemId::from_entity(entity)",
+      "result": "allocation:crates/bevy_ecs/src/system/system_registry.rs:257:9:ast:8699-8768@crates/bevy_ecs/src/system/system_registry.rs:477:9:ast:16703-16732",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:471:5",
+      "root_kind": "allocation"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 682,
+        "column": 18
+      },
+      "expression": "id.into()",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 684,
+        "column": 26
+      },
+      "expression": "self\n            .get_entity_mut(id.entity)",
+      "result": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 684,
+        "column": 26
+      },
+      "expression": "self\n            .get_entity_mut(id.entity)\n            .map_err(|_| RegisteredSystemError::SystemIdNotRegistered(id))",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24606",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 689,
+        "column": 43
+      },
+      "expression": "entity.get_mut::<RegisteredSystem<I, O>>()",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:689:43:ast:24701-24743",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 704,
+        "column": 26
+      },
+      "expression": "registered_system\n            .system\n            .take()",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25440",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 704,
+        "column": 26
+      },
+      "expression": "registered_system\n            .system\n            .take()\n            .ok_or(RegisteredSystemError::SystemMissing(id))",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    },
+    {
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 725,
+        "column": 22
+      },
+      "expression": "system.run_without_applying_deferred(input, self)",
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:725:22:ast:26084-26133",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "root_kind": "result"
+    }
+  ],
+  "remaining_registry_calls": [
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443",
+      "callee": "parameter:crates/bevy_ecs/src/system/system_registry.rs:673:5:id[key:into]",
+      "receiver": "parameter:crates/bevy_ecs/src/system/system_registry.rs:673:5:id",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 682,
+        "column": 18
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [
+        "crates/bevy_ecs/src/world/mod.rs:975:5"
+      ],
+      "return_types": [
+        "Result<F::Mut<'_>, EntityMutableFetchError>"
+      ],
+      "type_bindings": [],
+      "reason": "partial_source_return",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531",
+      "callee": "receiver:crates/bevy_ecs/src/world/mod.rs::World[key:get_entity_mut]",
+      "receiver": "receiver:crates/bevy_ecs/src/world/mod.rs::World",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443[key:entity]"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 684,
+        "column": 26
+      },
+      "return_value": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531",
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24606",
+      "callee": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531[key:map_err]",
+      "receiver": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24531",
+      "arguments": [
+        "function:crates/bevy_ecs/src/system/system_registry.rs:686:22"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 684,
+        "column": 26
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [
+        "RegisteredSystem<I, O>"
+      ],
+      "generic_types": [
+        {
+          "kind": "application",
+          "name": "crates/bevy_ecs/src/system/system_registry.rs::RegisteredSystem",
+          "arguments": [
+            {
+              "kind": "variable",
+              "name": "I",
+              "arguments": [],
+              "scope": "crates/bevy_ecs/src/system/system_registry.rs:24182-26633"
+            },
+            {
+              "kind": "variable",
+              "name": "O",
+              "arguments": [],
+              "scope": "crates/bevy_ecs/src/system/system_registry.rs:24182-26633"
+            }
+          ],
+          "scope": ""
+        }
+      ],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:689:43:ast:24701-24743",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24606[key:get_mut]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:684:26:ast:24488-24606",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 689,
+        "column": 43
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25440",
+      "callee": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:registered_system[key:system][key:take]",
+      "receiver": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:registered_system[key:system]",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 704,
+        "column": 26
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:707:20:ast:25460-25500",
+      "callee": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:RegisteredSystemError::SystemMissing",
+      "receiver": "unknown:",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 707,
+        "column": 20
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25440[key:ok_or]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25440",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:707:20:ast:25460-25500"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 704,
+        "column": 26
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [
+        "conditional_control:crates/bevy_ecs/src/system/system_registry.rs:710"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:711:13:ast:25594-25617",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501[key:initialize]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "arguments": [
+        "receiver:crates/bevy_ecs/src/world/mod.rs::World"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 711,
+        "column": 13
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [
+        "conditional_control:crates/bevy_ecs/src/system/system_registry.rs:716"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:716:12:ast:25730-25856",
+      "callee": "wrapper:rust:option(allocation:crates/bevy_ecs/src/world/unsafe_world_cell.rs:505:14:ast:21827-21847@crates/bevy_ecs/src/world/mod.rs:2275:18:ast:92137-92192>crates/bevy_ecs/src/system/system_registry.rs:716:12:ast:25730-25785)[key:is_none_or]",
+      "receiver": "wrapper:rust:option(allocation:crates/bevy_ecs/src/world/unsafe_world_cell.rs:505:14:ast:21827-21847@crates/bevy_ecs/src/world/mod.rs:2275:18:ast:92137-92192>crates/bevy_ecs/src/system/system_registry.rs:716:12:ast:25730-25785)",
+      "arguments": [
+        "function:crates/bevy_ecs/src/system/system_registry.rs:718:25"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 716,
+        "column": 12
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [
+        "conditional_control:crates/bevy_ecs/src/system/system_registry.rs:716"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:720:13:ast:25879-25904",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501[key:refresh_hotpatch]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 720,
+        "column": 13
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:725:22:ast:26084-26133",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501[key:run_without_applying_deferred]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "arguments": [
+        "parameter:crates/bevy_ecs/src/system/system_registry.rs:673:5:input",
+        "receiver:crates/bevy_ecs/src/world/mod.rs::World"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 725,
+        "column": 22
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:726:31:ast:26165-26176",
+      "callee": "receiver:crates/bevy_ecs/src/world/mod.rs::World[key:into]",
+      "receiver": "receiver:crates/bevy_ecs/src/world/mod.rs::World",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 726,
+        "column": 31
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:726:9:ast:26143-26177",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501[key:queue_deferred]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:726:31:ast:26165-26176"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 726,
+        "column": 9
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [
+        "crates/bevy_ecs/src/world/mod.rs:975:5"
+      ],
+      "return_types": [
+        "Result<F::Mut<'_>, EntityMutableFetchError>"
+      ],
+      "type_bindings": [],
+      "reason": "partial_source_return",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [
+        "conditional_control:crates/bevy_ecs/src/system/system_registry.rs:729",
+        "rust_let_pattern_match_required"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:729:33:ast:26288-26318",
+      "callee": "receiver:crates/bevy_ecs/src/world/mod.rs::World[key:get_entity_mut]",
+      "receiver": "receiver:crates/bevy_ecs/src/world/mod.rs::World",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443[key:entity]"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 729,
+        "column": 33
+      },
+      "return_value": "result:crates/bevy_ecs/src/world/mod.rs:982:18:ast:38873-38897@crates/bevy_ecs/src/system/system_registry.rs:729:33:ast:26288-26318",
+      "via": []
+    },
+    {
+      "type_arguments": [
+        "RegisteredSystem<I, O>"
+      ],
+      "generic_types": [
+        {
+          "kind": "application",
+          "name": "crates/bevy_ecs/src/system/system_registry.rs::RegisteredSystem",
+          "arguments": [
+            {
+              "kind": "variable",
+              "name": "I",
+              "arguments": [],
+              "scope": "crates/bevy_ecs/src/system/system_registry.rs:24182-26633"
+            },
+            {
+              "kind": "variable",
+              "name": "O",
+              "arguments": [],
+              "scope": "crates/bevy_ecs/src/system/system_registry.rs:24182-26633"
+            }
+          ],
+          "scope": ""
+        }
+      ],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [
+        "conditional_control:crates/bevy_ecs/src/system/system_registry.rs:729",
+        "rust_let_pattern_match_required"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:730:50:ast:26368-26410",
+      "callee": "unknown:[key:get_mut]",
+      "receiver": "unknown:",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 730,
+        "column": 50
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [
+        "crates/bevy_ecs/src/world/mod.rs:3134:5"
+      ],
+      "return_types": [
+        ""
+      ],
+      "type_bindings": [],
+      "reason": "source_return_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:673:5",
+      "conditions": [],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:737:9:ast:26594-26606",
+      "callee": "receiver:crates/bevy_ecs/src/world/mod.rs::World[key:flush]",
+      "receiver": "receiver:crates/bevy_ecs/src/world/mod.rs::World",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 737,
+        "column": 9
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:686:22",
+      "conditions": [
+        "enclosing_callable_execution_unproven"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:686:26:ast:24557-24605",
+      "callee": "unresolved:crates/bevy_ecs/src/system/system_registry.rs:RegisteredSystemError::SystemIdNotRegistered",
+      "receiver": "unknown:",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:682:18:ast:24434-24443"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 686,
+        "column": 26
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:718:25",
+      "conditions": [
+        "enclosing_callable_execution_unproven"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:718:48:ast:25833-25854",
+      "callee": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501[key:get_last_run]",
+      "receiver": "result:crates/bevy_ecs/src/system/system_registry.rs:704:26:ast:25383-25501",
+      "arguments": [],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 718,
+        "column": 48
+      },
+      "return_value": null,
+      "via": []
+    },
+    {
+      "type_arguments": [],
+      "generic_types": [],
+      "candidates": [],
+      "return_types": [],
+      "type_bindings": [],
+      "reason": "target_unresolved",
+      "function": "crates/bevy_ecs/src/system/system_registry.rs:718:25",
+      "conditions": [
+        "enclosing_callable_execution_unproven"
+      ],
+      "result": "result:crates/bevy_ecs/src/system/system_registry.rs:718:29:ast:25814-25855",
+      "callee": "parameter:crates/bevy_ecs/src/system/system_registry.rs:718:25:r[key:is_changed_after]",
+      "receiver": "parameter:crates/bevy_ecs/src/system/system_registry.rs:718:25:r",
+      "arguments": [
+        "result:crates/bevy_ecs/src/system/system_registry.rs:718:48:ast:25833-25854"
+      ],
+      "location": {
+        "path": "crates/bevy_ecs/src/system/system_registry.rs",
+        "line": 718,
+        "column": 29
+      },
+      "return_value": null,
+      "via": []
+    }
+  ],
+  "generic_impl_variable_is_concrete": false,
+  "metrics": {
+    "files": 71,
+    "input_bytes": 1988754,
+    "functions": 3201,
+    "facts": 40000,
+    "relations": 2048,
+    "parse_seconds": 1.2285214170115069,
+    "analysis_seconds": 24.179330874991138,
+    "connect_seconds": 1.6034377500182018,
+    "elapsed_seconds": 27.011290042020846,
+    "peak_rss_bytes_before_serialization": 456916992
+  },
+  "source_sha256": {
+    "crates/bevy_app/src/sub_app.rs": "b0357b854710728cd2f0f1b56265cb3e4267e00f66858c90aa2757ea6a29dbf7",
+    "crates/bevy_ecs/src/event/trigger.rs": "477d65667da999ce6f9b111e47cef2a767b70b94a7d58145a9f5ee73317d0f84",
+    "crates/bevy_ecs/src/lib.rs": "bf37a10b3b11bb5682c43fa7624f55f344598b5557b059be31c83a92be6c4473",
+    "crates/bevy_ecs/src/message/iterators.rs": "e3df3ebb85edb584c3538561ed6a989bad9b023a9866c77cfc67f05888b1a8a9",
+    "crates/bevy_ecs/src/message/message_cursor.rs": "f05cc5c744701b21873b540596adad65f24989f2d546702a341d9830b288aca9",
+    "crates/bevy_ecs/src/message/message_reader.rs": "cd8cfbc869c037087ef812eac017b5e25baee81932d15a80c65e823f5b6fa7cf",
+    "crates/bevy_ecs/src/message/message_registry.rs": "befa1adb66914e777e1b62fa214f757a9d59e80477322385a5ca6f1917f0af79",
+    "crates/bevy_ecs/src/message/message_writer.rs": "652f528a341d1ac4d534a595f5aa170da38c7a5793c43edf8aaa83dfef96e387",
+    "crates/bevy_ecs/src/message/messages.rs": "32186c29d0c71e82420d631e779ca1309418d476bfb9a3ca0da01b78e21efc15",
+    "crates/bevy_ecs/src/message/mod.rs": "3c0cd61c290f60161e6ef3a68001d365ecffbd41911c56a5230dcf2f626c1ac9",
+    "crates/bevy_ecs/src/observer/centralized_storage.rs": "efff4ea0119ce255f1f31d71c49fb8fefd81127785e8d3efdab17c8617f081cb",
+    "crates/bevy_ecs/src/observer/distributed_storage.rs": "07c4a643ab5acbf47aaa1ac453e6863ddca657695231d5e21cb7789bfd081a31",
+    "crates/bevy_ecs/src/observer/mod.rs": "185ff5c3649de24a67e97bc8c7ec6ab9e9fe586195969d62c72bb14aaee16a3e",
+    "crates/bevy_ecs/src/observer/runner.rs": "042fdd337742d077291f8ae013133fd47b8cd4b14c44652fa27fad7e3bf95193",
+    "crates/bevy_ecs/src/system/mod.rs": "c9dca7c7eb5f7d138b31ae8b7fb6b6f518ba228eceb14dd9e91dc6afb2361a41",
+    "crates/bevy_ecs/src/system/system_registry.rs": "e3797de6d02e154a1d6ffed765c31a2f90535a07617d6f90c6c57ecfbae5a692",
+    "crates/bevy_ecs/src/world/entity_access/world_mut.rs": "f06b056edfdbed848364170722a6f3ec6c624bc89b0898daaa93351ec3f4750d",
+    "crates/bevy_ecs/src/world/mod.rs": "149f47f49dea1a4cdfa62704b100838d53fc20aab403efab4e0e4266fdf1e56e",
+    "crates/bevy_gltf/src/lib.rs": "a68e777eae13d5281380c66fead81d232bb191e9214b760f8ffb6678035c08fc",
+    "crates/bevy_gltf/src/loader/extensions/mod.rs": "07f8c5ffb77ff57f90fa3d212257ff1fdec5d7d6188903ad667e673585657a1c",
+    "crates/bevy_gltf/src/loader/mod.rs": "1a6daa2c12122a3ce904bfb6860d4fca5dffe81ea78d5d8edb4ebd5e81c998b7",
+    "crates/bevy_pbr/src/gltf.rs": "8fc874543c7068754f357cb0d40ce2a776f9a57db1937ec37392203b7eb2a872",
+    "examples/audio/pitch.rs": "16299f1c70443e845c74f4dced2343b04e1a96c5d2d34141e8fe0e9f3551ee46",
+    "examples/ecs/observer_propagation.rs": "d3e8e4c2024cb18811c8a1f76eed160b06b8a9dc0b772e3fc2fab6b94db988b7",
+    "examples/ecs/one_shot_systems.rs": "6d1d6ccc4ac07882797ee651064055efdd935a164b23e320d0b205cf9408de7a",
+    "examples/gltf/gltf_extension_mesh_2d.rs": "344ee91d13ab9b291a1d4d97a2887cb61c3fb7f028448df356c5b18e0461a9a1",
+    "crates/bevy_ecs/src/system/observer_system.rs": "3c50f428a802776ffdb75460e24aafa8b2d366ed01f2b42cf7fd218c487d5181",
+    "crates/bevy_ecs/src/system/function_system.rs": "b239ce1a517eb8d3e2e98bc01d1bf922361fe5f607c936607753f2b11d4f5dd9",
+    "crates/bevy_ecs/src/system/system.rs": "8eea70bc4a069fa12b7ba96371be166833f64e5a83b90e14a36cc5ee2b59695d",
+    "crates/bevy_ecs/src/world/deferred_world.rs": "a76e423b1bb50a74a5e0c139851f2803c92bc38ebacec5127b63eb1e8b58c24e",
+    "crates/bevy_ecs/src/world/entity_fetch.rs": "75b4d50fbf2c5a95a8cd30343c098bf05cbcbc72659722e03cd9c1cee1f71d5b",
+    "crates/bevy_ecs/src/world/entity_access/mod.rs": "73000cf24795c69283c67261c63a96a93cd35f2ffd8a75cff26fd5528605f9d5",
+    "crates/bevy_ecs/src/world/entity_access/entity_mut.rs": "a3c67073aab853f099b0e1aeb558116eb118d278bb675ac11520be958c17294a",
+    "crates/bevy_ecs/src/world/unsafe_world_cell.rs": "957d373db6ece42d48210680dcda4c1ace51978d9989f474212bc7481fdd1e67",
+    "src/lib.rs": "10075d3357dd35ffcb0b0c85a276ded49573b59d692e075ba6e8ad8b2738aa48",
+    "crates/bevy_internal/src/lib.rs": "ac47f301262936b745ad97414d720f100aa1975b2ff9dbde91e372e621d9f077",
+    "crates/bevy_internal/src/prelude.rs": "0323bcbd2aaddd2fce46312b258172e367068cade67b59cc13b90fb6ad7c9051",
+    "crates/bevy_app/src/lib.rs": "b401ecfffbe7b00f850d07e4cdf0c6447048af19d81f264f6d0aa92422c6af55",
+    "crates/bevy_app/src/app.rs": "a78beb379b6c2a10f0cac9ef5efb2e14cf49f61d6321ee2f385070078b8d8f7f",
+    "crates/bevy_ecs/src/change_detection/mod.rs": "ba50b6bb5b084ab5e3d3b7c5ea6984c4543e4ee7ddfc5bf21e07ec77dd9d4d65",
+    "crates/bevy_ecs/src/change_detection/params.rs": "a2c0a8042b2787d4420d5173405415b2597ffd59efd10d6d21b7955bbc65e013",
+    "crates/bevy_ecs/src/change_detection/traits.rs": "b7a681b75374ac82372d73e50ddd966e3f7f1f917085dde0a944757431d28a3b",
+    "crates/bevy_ptr/src/lib.rs": "f622b6ed7f90ee5c995bd73431d33a922c3db16ac7bd7717530851a5c5654e80",
+    "crates/bevy_ecs/src/bundle/mod.rs": "3aff7960426ee10803c9eae0f9723cce29c60acc90eb11f1f17d7247166cf3eb",
+    "crates/bevy_ecs/src/bundle/impls.rs": "d2f11c4113139490cd6c57d85c54f16dee87366e7b4cea81127d21621f9eb8d3",
+    "crates/bevy_ecs/src/bundle/info.rs": "5f7cdc5924c514434b2198bb7d79de01e59b65c9b41e319a6fc553ae806cca2c",
+    "crates/bevy_ecs/src/bundle/spawner.rs": "55d2d14dadb12daf3bd9ade2592efc639cb5a74a97fef3a1010642c006a55375",
+    "crates/bevy_ecs/src/component/mod.rs": "126e555fe3f90e6684b9b1ce6d174abbd1b86f18e4a227f63146a5d7516f3f91",
+    "crates/bevy_ecs/src/component/info.rs": "c08808911223a84058c3c2f8635078d5b072a8ace1e8de7c2c9252ab0550eed6",
+    "crates/bevy_ecs/src/component/register.rs": "bc582ad38950887d20bb22ad197b2d909abe95aa048bfb7ba79438d4b424b2f6",
+    "crates/bevy_ecs/src/resource.rs": "c189d355b7aa30ad8a257f44d1abff8ed142739cbe6ebb7ed0f658dbb99297b6",
+    "crates/bevy_ecs/src/storage/mod.rs": "481acd790e767b56057d088b9e9d0b3957f292f80b1f364bf745470db1016f46",
+    "crates/bevy_ecs/src/storage/sparse_set.rs": "71c19ab6d34ab94d7e750feb9986f8c433bdc103d55997bed06e98ea80ef8426",
+    "crates/bevy_ecs/src/storage/table/mod.rs": "72f0ea728c07d3a536584ec620da149dc87e2b0fb66a97044d346b347041eee1",
+    "crates/bevy_ecs/src/storage/table/column.rs": "83fe41abd9566b3326ae5e0c3c3bf1c4c17f17d7a5a76a3e98d454b59f5d77a9",
+    "crates/bevy_ecs/src/storage/blob_array.rs": "e682a27381036422d2e2e29dbcb4441a98ddb9e40429b7fab9e6c2763155b455",
+    "crates/bevy_ecs/src/storage/thin_array_ptr.rs": "278b34671b80e6927b8471f46748705f853a95a41b5b3b62aa42f3fb170f0e9d",
+    "crates/bevy_ecs/macro_logic/src/lib.rs": "3fe5871e0977d812852286572916de283f32d99a93d2f52c74a3d9b7858701fc",
+    "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
+    "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
+    "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0",
+    "crates/bevy_ecs/src/bundle/remove.rs": "3b5c4c6e8707e5fb1f0f65116b10e15193d880af66663d015548952f06140f10",
+    "crates/bevy_ecs/src/entity/mod.rs": "71c97c17e819fd1cc768532316835f88b0b9ea8c3045bdf7657b1eaebb0a97b7",
+    "crates/bevy_ecs/src/entity/hash_map.rs": "d3f225ba98c554b587546e5cd279bd53e416bb515a7c3b6efff407c4d5c0f6ba",
+    "crates/bevy_ecs/src/archetype.rs": "3caddc128aaaa6c4daabac99db9de89a9b01ca63604323e03f9593f6eb37d226",
+    "crates/bevy_platform/src/lib.rs": "a019a75fec065a4568166f08f360481636392c37f392797a67dd4ead6cd2c569",
+    "crates/bevy_platform/src/collections/mod.rs": "850576cf000b6ce4b7ddf2c31abba8bab9617afabd71afb6981f6f34f68e0140",
+    "crates/bevy_platform/src/collections/hash_map.rs": "2526fa129a942fce81e8b88e041c24d0adc2a758710bc34f0d254df23ca983ad",
+    "crates/bevy_platform/src/cfg.rs": "d9fdb5506fbbcaa363726c00b12e34381e37d60b45a04fb272e4aca02e4b010a",
+    "crates/bevy_ecs/src/schedule/mod.rs": "e938c4e612755e3e0f65ba54c3f17c9fb2cc5a191eb1c429fdec54de677ad79d",
+    "crates/bevy_ecs/src/schedule/condition.rs": "137d0c21640c53639299898722aaac63239889774f401bbfd46b363d961b93af"
+  },
+  "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "implementation_sha256": {
+    "analyze.py": "6ac086ffdf750966ddc2aaf2f17e2bd60114fe02e65e0ca015d57109c701d3be",
+    "engine.py": "e35ab1986f1f4909dd0e18cbc056d22f2c23da6120aebf9204cf6fe941330020",
+    "evaluate.py": "e46528b9f952852036f13b0f704bfd63bfbbc615f30aff3552f3c79b71ac5556",
+    "js_generators.py": "af06593e4a46decb4da6773d0743406ce233c7eaf896b7a013ee53d4e07bf8a5",
+    "measure.py": "9106909f5db57eb6f6234af978d5b5509a02bd487ae8001df3dfaa4ef9a53807",
+    "model.py": "d93cbafeb0bd5907018fcadbcd9996bc26cf834e0474154c339b492152642d23",
+    "prepare.py": "f206cff1bda11e691954a17f2b396902848155d9d85630d43747b195e62f7ed5",
+    "run.py": "76f727260f09dbd0a496d716ddc7da8db660091c9133f0d36394f2231ea835fd",
+    "rust_macros.py": "d595768e53ed6c698865db319b265f5622bef1eb5ece521110773df038fd4daa",
+    "rust_modules.py": "64a10290cdfd99db755329ce8743d372a9fdabb2be0887bb4cb50b405f5c43a3",
+    "rust_types.py": "a9b29a4937d82bd75f13b16b6e10c3a2185d48de25a0c377a34f44b065de91a1",
+    "rust_values.py": "6751c7187d54ff9b9c444f2127029da48be5ef3b6f1a0e89f6515129faff98d4",
+    "syntax.py": "78d8a2f2dee6db6a84f832e2d413348b0878b310fc0a4c46a84872da712c21ca",
+    "ts_modules.py": "1905f64755553927ff428e6879dce336ffbd96468cc74210a70dfc879f672122",
+    "ts_syntax.py": "6c8d200f9eb9a05f1d43f876c54d7263a7bb3f6a2eca1e73da698d18eabc35d7"
+  },
+  "script_sha256": "a44a36fccbb2441d89dfc1e86a36928e250b3a093a19c08b6c7cd4df773ef81c",
+  "target_program_executed": false,
+  "compiler_auxiliary_input_used": false
+}

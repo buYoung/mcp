@@ -1,0 +1,3603 @@
+[
+  {
+    "language": "assembly",
+    "path": "assembly/detected/example.asm",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "id": "assembly-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "e457316128e4cd176b7d106e207ead8fa8460bf728d9677f7e542da2699710d0"
+  },
+  {
+    "language": "assembly",
+    "path": "assembly/missed/example.asm",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "id": "assembly-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "fbb4ab4e9640e15d9f2229cf4a09157e78925b2185fbc738d91dc8e7c81b3bb2"
+  },
+  {
+    "language": "c",
+    "path": "c/detected/example.c",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "c-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "af3a8c471862378aec0cf94f7205f3b62cc15473639168e1d4a4435ad3e3f3d7"
+  },
+  {
+    "language": "c",
+    "path": "c/missed/example.c",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "c-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "890463841fc44e41199e8b5a862d7e777250dbf4c21a2f29dff4b7f382798603"
+  },
+  {
+    "language": "cpp",
+    "path": "cpp/detected/example.cpp",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "id": "cpp-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "a163fed1816e4996df00168331b2b9ab4e8926a89b83d5b455a6f6bd8732cfb1"
+  },
+  {
+    "language": "cpp",
+    "path": "cpp/missed/example.cpp",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "id": "cpp-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "338f8ea0e6e99bd89c0f0996e56a5479eaf5563a7585ac6bc12ea3b9d214c2b1"
+  },
+  {
+    "language": "csharp",
+    "path": "csharp/detected/example.cs",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "id": "csharp-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "11192aef14fec0eb8b8bfcb914aa7c7ee21c4d97cc5156796935451ef05521dc"
+  },
+  {
+    "language": "csharp",
+    "path": "csharp/missed/example.cs",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "id": "csharp-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "fa0c69f248814e30b11f528dad8f09744a35bb5b7b67ad907ebf321e80d872fd"
+  },
+  {
+    "language": "dart",
+    "path": "dart/detected/example.dart",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "dart-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "de3e795ab6f1739b75f69145dbdca4d97649d46c8a4e50cb897816eb12d73849"
+  },
+  {
+    "language": "dart",
+    "path": "dart/missed/example.dart",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "id": "dart-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "e2ec53c37a96e5854ebbfb98ae839a5deb40f1f7b1737555115529524cd94a4b"
+  },
+  {
+    "language": "go",
+    "path": "go/detected/example.go",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "go-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "55d11349ceb40d0baaada77a497ab560e7cb4a5ff22fe3185e3eb32b3750cb19"
+  },
+  {
+    "language": "go",
+    "path": "go/missed/example.go",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "id": "go-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "98f937bbdbede8f99f691fa6eb08d0b71ee58500cd4d26098568d4b52928c8ef"
+  },
+  {
+    "language": "groovy",
+    "path": "groovy/detected/example.groovy",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "groovy-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "d9cebedd61cf6018767aa6b0e84a0f0da3f4c89ee2cffa0637dfa1cbe65e5f3f"
+  },
+  {
+    "language": "groovy",
+    "path": "groovy/missed/example.groovy",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "id": "groovy-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "ed9f53a0a63ac4af3d0efb95b955cab85e767cbcb913f368390ccbcaf839733f"
+  },
+  {
+    "language": "java",
+    "path": "java/detected/example.java",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "java-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "bf0a0fa2034df893b01abfeb23478b930d56e54430c479b448458ee24472e959"
+  },
+  {
+    "language": "java",
+    "path": "java/missed/example.java",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "id": "java-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "1eff0103d2589bef05f09ce0245f27457d4e92023baf092c0f86788909f6bdd7"
+  },
+  {
+    "language": "javascript",
+    "path": "javascript/detected/example.js",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "id": "javascript-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "c7bea2a9879594ae059d8e90e3d16614038f625c5f894f6689581119ffff308e"
+  },
+  {
+    "language": "javascript",
+    "path": "javascript/missed/example.js",
+    "storage_line": 2,
+    "invocation_line": 5,
+    "id": "javascript-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "2e5508509ab9df4f0b573adee8304115d02d06e1515b10850dfce13dc3849a1d"
+  },
+  {
+    "language": "kotlin",
+    "path": "kotlin/detected/example.kt",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "kotlin-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "3a646c7a0dfb613b64772a447974bcd36d7dfb1e4e0e16988014d578e04bbf18"
+  },
+  {
+    "language": "kotlin",
+    "path": "kotlin/missed/example.kt",
+    "storage_line": 5,
+    "invocation_line": 6,
+    "id": "kotlin-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "2849170c732bbdf3a33fdf2a2d351dc05540ff4146880434190dba63a1cb3a2e"
+  },
+  {
+    "language": "lua",
+    "path": "lua/detected/example.lua",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "id": "lua-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "c82b6ce527d3f730598b17a79aea34b0e5a474acd90ee03c813f984440da303c"
+  },
+  {
+    "language": "lua",
+    "path": "lua/missed/example.lua",
+    "storage_line": 2,
+    "invocation_line": 3,
+    "id": "lua-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "2fa0f07d0c61fb5cf3d434af08ffa6fa826e8f85d8e2824466a6a384e766ebb6"
+  },
+  {
+    "language": "php",
+    "path": "php/detected/example.php",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "id": "php-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "60fcf7546bc2586a2734ccfca4c7043d9b37ebff76831af6d665c869e0fd843e"
+  },
+  {
+    "language": "php",
+    "path": "php/missed/example.php",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "id": "php-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "d31fa68e77e9b29e5239b4dfa315acba2973608b73b740130e4418995436a56c"
+  },
+  {
+    "language": "python",
+    "path": "python/detected/example.py",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "id": "python-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "6eefdd32b0869d0ff98c4ab57d300da4b83a32323d603b85986f01bc8024eb5c"
+  },
+  {
+    "language": "python",
+    "path": "python/missed/example.py",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "id": "python-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "a8e8d19f9d9361dd92d4b8a09c03d0877fbaddac55e2ed35734b2457c1153b37"
+  },
+  {
+    "language": "ruby",
+    "path": "ruby/detected/example.rb",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "id": "ruby-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "60d329e093ccecb937d016182fbff26a87e7d8107a2f31cda68b5bc2c3d9bc2c"
+  },
+  {
+    "language": "ruby",
+    "path": "ruby/missed/example.rb",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "id": "ruby-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "6ac3b416da462a8e4541fcf71563a2f7bbde737a54861bfc800ce6da896be3b9"
+  },
+  {
+    "language": "rust",
+    "path": "rust/detected/example.rs",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "rust-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "3114c1078f1231b4cbe599760c7452b786c79ebc3e042fe30ce617c93f2f76cf"
+  },
+  {
+    "language": "rust",
+    "path": "rust/missed/example.rs",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "id": "rust-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "a3a2f2be6e1a3be4da0fc7f040adddbc2655276ce5c5e2d140fb225e7c335bce"
+  },
+  {
+    "language": "scala",
+    "path": "scala/detected/example.scala",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "scala-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "961386c73800d0dd05853422cd427682f56826fc36a15fbf5f73b6714132831d"
+  },
+  {
+    "language": "scala",
+    "path": "scala/missed/example.scala",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "id": "scala-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "209ade1d07bd0c6969c75f8ecbb73808f1f19eea10ce5373ae6531b2d6caa981"
+  },
+  {
+    "language": "swift",
+    "path": "swift/detected/example.swift",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "swift-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "41fde500a0766971b52b564a1ca6125851ea33c2ebe40a8ae9760107fcd58d92"
+  },
+  {
+    "language": "swift",
+    "path": "swift/missed/example.swift",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "id": "swift-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "a5329de53dcdd0a49968bdacd22a9e1e281a1eeff5154fd5b59a9c50005336f0"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/detected/example.ts",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "id": "typescript-detected",
+    "baseline_variant": "detected",
+    "expected": "connected",
+    "source_sha256": "b84320eea6548cf00e5342c1f25b17892133df1354fc9e7770387b88307c292c"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/missed/example.ts",
+    "storage_line": 2,
+    "invocation_line": 6,
+    "id": "typescript-missed",
+    "baseline_variant": "missed",
+    "expected": "connected",
+    "source_sha256": "2e657062783404bca55ad1860e8a4a45cdd4a0aa4364b3287da4820741e13f94"
+  },
+  {
+    "id": "assembly-boundaries-own_register",
+    "language": "assembly",
+    "baseline_variant": "supplemental",
+    "path": "assembly/controls/boundaries.asm",
+    "storage_line": 4,
+    "invocation_line": 11,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "964ed2f80f16ba8ba084dc5380d93377f1be47eb14aa1fb374c59b69f26dac1c"
+  },
+  {
+    "id": "assembly-boundaries-other_register",
+    "language": "assembly",
+    "baseline_variant": "supplemental",
+    "path": "assembly/controls/boundaries.asm",
+    "storage_line": 6,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "964ed2f80f16ba8ba084dc5380d93377f1be47eb14aa1fb374c59b69f26dac1c",
+    "positive_control": "assembly-boundaries-own_register"
+  },
+  {
+    "id": "assembly-boundaries-clobber",
+    "language": "assembly",
+    "baseline_variant": "supplemental",
+    "path": "assembly/controls/boundaries.asm",
+    "storage_line": 4,
+    "invocation_line": 15,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "964ed2f80f16ba8ba084dc5380d93377f1be47eb14aa1fb374c59b69f26dac1c",
+    "positive_control": "assembly-boundaries-own_register"
+  },
+  {
+    "id": "assembly-boundaries-copy",
+    "language": "assembly",
+    "baseline_variant": "supplemental",
+    "path": "assembly/controls/boundaries.asm",
+    "storage_line": 4,
+    "invocation_line": 19,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "964ed2f80f16ba8ba084dc5380d93377f1be47eb14aa1fb374c59b69f26dac1c"
+  },
+  {
+    "id": "assembly-boundaries-narrow_write",
+    "language": "assembly",
+    "baseline_variant": "supplemental",
+    "path": "assembly/controls/boundaries.asm",
+    "storage_line": 4,
+    "invocation_line": 23,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "964ed2f80f16ba8ba084dc5380d93377f1be47eb14aa1fb374c59b69f26dac1c",
+    "positive_control": "assembly-boundaries-own_register"
+  },
+  {
+    "id": "c-boundaries-global",
+    "language": "c",
+    "baseline_variant": "supplemental",
+    "path": "c/controls/boundaries.c",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "b368aa5a76b57c4792bb3f543f02ec1f3582aa50042ee037f25f776c5601b212"
+  },
+  {
+    "id": "c-boundaries-other_global",
+    "language": "c",
+    "baseline_variant": "supplemental",
+    "path": "c/controls/boundaries.c",
+    "storage_line": 5,
+    "invocation_line": 7,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "b368aa5a76b57c4792bb3f543f02ec1f3582aa50042ee037f25f776c5601b212",
+    "positive_control": "c-boundaries-global"
+  },
+  {
+    "id": "c-boundaries-parameter_shadow",
+    "language": "c",
+    "baseline_variant": "supplemental",
+    "path": "c/controls/boundaries.c",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "unresolved",
+    "category": "unresolved_guard",
+    "source_sha256": "b368aa5a76b57c4792bb3f543f02ec1f3582aa50042ee037f25f776c5601b212",
+    "positive_control": "c-boundaries-global"
+  },
+  {
+    "id": "cpp-boundaries-this_capture",
+    "language": "cpp",
+    "baseline_variant": "supplemental",
+    "path": "cpp/controls/boundaries.cpp",
+    "storage_line": 5,
+    "invocation_line": 9,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "15e283fda07c0eecb2543057b44a8a783ccf12abe5f31ccee8133368588d4ec1"
+  },
+  {
+    "id": "cpp-boundaries-other_field",
+    "language": "cpp",
+    "baseline_variant": "supplemental",
+    "path": "cpp/controls/boundaries.cpp",
+    "storage_line": 6,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "15e283fda07c0eecb2543057b44a8a783ccf12abe5f31ccee8133368588d4ec1",
+    "positive_control": "cpp-boundaries-this_capture"
+  },
+  {
+    "id": "cpp-boundaries-not_invoked",
+    "language": "cpp",
+    "baseline_variant": "supplemental",
+    "path": "cpp/controls/boundaries.cpp",
+    "storage_line": 5,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "15e283fda07c0eecb2543057b44a8a783ccf12abe5f31ccee8133368588d4ec1",
+    "positive_control": "cpp-boundaries-this_capture"
+  },
+  {
+    "id": "cpp-boundaries-value_capture",
+    "language": "cpp",
+    "baseline_variant": "supplemental",
+    "path": "cpp/controls/boundaries.cpp",
+    "storage_line": 6,
+    "invocation_line": 17,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "15e283fda07c0eecb2543057b44a8a783ccf12abe5f31ccee8133368588d4ec1"
+  },
+  {
+    "id": "cpp-boundaries-capture_identity",
+    "language": "cpp",
+    "baseline_variant": "supplemental",
+    "path": "cpp/controls/boundaries.cpp",
+    "storage_line": 5,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "15e283fda07c0eecb2543057b44a8a783ccf12abe5f31ccee8133368588d4ec1",
+    "positive_control": "cpp-boundaries-this_capture"
+  },
+  {
+    "id": "csharp-boundaries-event",
+    "language": "csharp",
+    "baseline_variant": "supplemental",
+    "path": "csharp/controls/boundaries.cs",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "1cabc1c224e760a0c69066c705d4167ed54af49c844e8153e1f9fc158377730b",
+    "required_conditions": [
+      "removal_may_prevent_call",
+      "multicast_event_membership_required"
+    ]
+  },
+  {
+    "id": "csharp-boundaries-other_event",
+    "language": "csharp",
+    "baseline_variant": "supplemental",
+    "path": "csharp/controls/boundaries.cs",
+    "storage_line": 7,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "1cabc1c224e760a0c69066c705d4167ed54af49c844e8153e1f9fc158377730b",
+    "positive_control": "csharp-boundaries-event"
+  },
+  {
+    "id": "dart-boundaries-first",
+    "language": "dart",
+    "baseline_variant": "supplemental",
+    "path": "dart/controls/boundaries.dart",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "a5f9ea2e62f6b86ca4e9438627df3036d706e7ad373c3bd6540e71eb3243de88",
+    "storage_value_suffix": ":f"
+  },
+  {
+    "id": "dart-boundaries-other_position",
+    "language": "dart",
+    "baseline_variant": "supplemental",
+    "path": "dart/controls/boundaries.dart",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "a5f9ea2e62f6b86ca4e9438627df3036d706e7ad373c3bd6540e71eb3243de88",
+    "storage_value_suffix": ":g",
+    "positive_control": "dart-boundaries-first"
+  },
+  {
+    "id": "dart-boundaries-second",
+    "language": "dart",
+    "baseline_variant": "supplemental",
+    "path": "dart/controls/boundaries.dart",
+    "storage_line": 4,
+    "invocation_line": 12,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "a5f9ea2e62f6b86ca4e9438627df3036d706e7ad373c3bd6540e71eb3243de88",
+    "storage_value_suffix": ":g"
+  },
+  {
+    "id": "dart-boundaries-discarded_position",
+    "language": "dart",
+    "baseline_variant": "supplemental",
+    "path": "dart/controls/boundaries.dart",
+    "storage_line": 4,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "a5f9ea2e62f6b86ca4e9438627df3036d706e7ad373c3bd6540e71eb3243de88",
+    "storage_value_suffix": ":f",
+    "positive_control": "dart-boundaries-first"
+  },
+  {
+    "id": "go-boundaries-import_alias",
+    "language": "go",
+    "baseline_variant": "supplemental",
+    "path": "go/controls/boundaries.go",
+    "storage_line": 5,
+    "invocation_line": 10,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "50a63fa96e90808af76a1617e782132c84a3fdf8a0424cb87ceb066c44fa7b31"
+  },
+  {
+    "id": "go-boundaries-other_field",
+    "language": "go",
+    "baseline_variant": "supplemental",
+    "path": "go/controls/boundaries.go",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "50a63fa96e90808af76a1617e782132c84a3fdf8a0424cb87ceb066c44fa7b31",
+    "positive_control": "go-boundaries-import_alias"
+  },
+  {
+    "id": "go-boundaries-shadowed_import",
+    "language": "go",
+    "baseline_variant": "supplemental",
+    "path": "go/controls/boundaries.go",
+    "storage_line": 5,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "50a63fa96e90808af76a1617e782132c84a3fdf8a0424cb87ceb066c44fa7b31",
+    "positive_control": "go-boundaries-import_alias"
+  },
+  {
+    "id": "groovy-boundaries-getter",
+    "language": "groovy",
+    "baseline_variant": "supplemental",
+    "path": "groovy/controls/boundaries.groovy",
+    "storage_line": 5,
+    "invocation_line": 10,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "4d71c9ff37c88976e5a16c4a5618e9c55144d87919d2d7e2577c31e480839779"
+  },
+  {
+    "id": "groovy-boundaries-other_field",
+    "language": "groovy",
+    "baseline_variant": "supplemental",
+    "path": "groovy/controls/boundaries.groovy",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "4d71c9ff37c88976e5a16c4a5618e9c55144d87919d2d7e2577c31e480839779",
+    "positive_control": "groovy-boundaries-getter"
+  },
+  {
+    "id": "groovy-boundaries-other_getter",
+    "language": "groovy",
+    "baseline_variant": "supplemental",
+    "path": "groovy/controls/boundaries.groovy",
+    "storage_line": 6,
+    "invocation_line": 11,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "4d71c9ff37c88976e5a16c4a5618e9c55144d87919d2d7e2577c31e480839779"
+  },
+  {
+    "id": "groovy-boundaries-getter_return",
+    "language": "groovy",
+    "baseline_variant": "supplemental",
+    "path": "groovy/controls/boundaries.groovy",
+    "storage_line": 5,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "4d71c9ff37c88976e5a16c4a5618e9c55144d87919d2d7e2577c31e480839779",
+    "positive_control": "groovy-boundaries-getter"
+  },
+  {
+    "id": "java-boundaries-method_reference",
+    "language": "java",
+    "baseline_variant": "supplemental",
+    "path": "java/controls/boundaries.java",
+    "storage_line": 5,
+    "invocation_line": 10,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "2d0d6ab44baeb1a2668fa0ccba580dfa27f132e15cfd676f0bfaaa48ae0a82d7"
+  },
+  {
+    "id": "java-boundaries-other_field",
+    "language": "java",
+    "baseline_variant": "supplemental",
+    "path": "java/controls/boundaries.java",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "2d0d6ab44baeb1a2668fa0ccba580dfa27f132e15cfd676f0bfaaa48ae0a82d7",
+    "positive_control": "java-boundaries-method_reference"
+  },
+  {
+    "id": "java-boundaries-non_sam_method",
+    "language": "java",
+    "baseline_variant": "supplemental",
+    "path": "java/controls/boundaries.java",
+    "storage_line": 5,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "2d0d6ab44baeb1a2668fa0ccba580dfa27f132e15cfd676f0bfaaa48ae0a82d7",
+    "positive_control": "java-boundaries-method_reference"
+  },
+  {
+    "id": "java-boundaries-declared_sam",
+    "language": "java",
+    "baseline_variant": "supplemental",
+    "path": "java/controls/boundaries.java",
+    "storage_line": 6,
+    "invocation_line": 15,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "2d0d6ab44baeb1a2668fa0ccba580dfa27f132e15cfd676f0bfaaa48ae0a82d7"
+  },
+  {
+    "id": "java-boundaries-bound_receiver",
+    "language": "java",
+    "baseline_variant": "supplemental",
+    "path": "java/controls/boundaries.java",
+    "storage_line": 5,
+    "invocation_line": 15,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "2d0d6ab44baeb1a2668fa0ccba580dfa27f132e15cfd676f0bfaaa48ae0a82d7",
+    "positive_control": "java-boundaries-method_reference"
+  },
+  {
+    "id": "javascript-boundaries-intrinsic",
+    "language": "javascript",
+    "baseline_variant": "supplemental",
+    "path": "javascript/controls/boundaries.js",
+    "storage_line": 3,
+    "invocation_line": 8,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "05308153d71beb4403ab8b1510eed8ffdb761452d4ed24adb816bb9fd9494bec"
+  },
+  {
+    "id": "javascript-boundaries-other_field",
+    "language": "javascript",
+    "baseline_variant": "supplemental",
+    "path": "javascript/controls/boundaries.js",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "05308153d71beb4403ab8b1510eed8ffdb761452d4ed24adb816bb9fd9494bec",
+    "positive_control": "javascript-boundaries-intrinsic"
+  },
+  {
+    "id": "javascript-boundaries-local_shadow",
+    "language": "javascript",
+    "baseline_variant": "supplemental",
+    "path": "javascript/controls/boundaries.js",
+    "storage_line": 3,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "05308153d71beb4403ab8b1510eed8ffdb761452d4ed24adb816bb9fd9494bec",
+    "positive_control": "javascript-boundaries-intrinsic"
+  },
+  {
+    "id": "kotlin-boundaries-getter",
+    "language": "kotlin",
+    "baseline_variant": "supplemental",
+    "path": "kotlin/controls/boundaries.kt",
+    "storage_line": 9,
+    "invocation_line": 12,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "0d37f829ca4e0890de010dee1d1ac06605d80a16332184522c4bdeb6193c7e99"
+  },
+  {
+    "id": "kotlin-boundaries-other_field",
+    "language": "kotlin",
+    "baseline_variant": "supplemental",
+    "path": "kotlin/controls/boundaries.kt",
+    "storage_line": 10,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "0d37f829ca4e0890de010dee1d1ac06605d80a16332184522c4bdeb6193c7e99",
+    "positive_control": "kotlin-boundaries-getter"
+  },
+  {
+    "id": "kotlin-boundaries-other_getter",
+    "language": "kotlin",
+    "baseline_variant": "supplemental",
+    "path": "kotlin/controls/boundaries.kt",
+    "storage_line": 10,
+    "invocation_line": 13,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "0d37f829ca4e0890de010dee1d1ac06605d80a16332184522c4bdeb6193c7e99"
+  },
+  {
+    "id": "kotlin-boundaries-getter_return",
+    "language": "kotlin",
+    "baseline_variant": "supplemental",
+    "path": "kotlin/controls/boundaries.kt",
+    "storage_line": 9,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "0d37f829ca4e0890de010dee1d1ac06605d80a16332184522c4bdeb6193c7e99",
+    "positive_control": "kotlin-boundaries-getter"
+  },
+  {
+    "id": "lua-boundaries-property_key",
+    "language": "lua",
+    "baseline_variant": "supplemental",
+    "path": "lua/controls/boundaries.lua",
+    "storage_line": 3,
+    "invocation_line": 8,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "ea125753f6a23201bf58cb853a4521014b88a67ca9bea79479f18cc4313f2192"
+  },
+  {
+    "id": "lua-boundaries-other_key",
+    "language": "lua",
+    "baseline_variant": "supplemental",
+    "path": "lua/controls/boundaries.lua",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "ea125753f6a23201bf58cb853a4521014b88a67ca9bea79479f18cc4313f2192",
+    "positive_control": "lua-boundaries-property_key"
+  },
+  {
+    "id": "lua-boundaries-map_key",
+    "language": "lua",
+    "baseline_variant": "supplemental",
+    "path": "lua/controls/boundaries.lua",
+    "storage_line": 6,
+    "invocation_line": 9,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "ea125753f6a23201bf58cb853a4521014b88a67ca9bea79479f18cc4313f2192"
+  },
+  {
+    "id": "lua-boundaries-other_table",
+    "language": "lua",
+    "baseline_variant": "supplemental",
+    "path": "lua/controls/boundaries.lua",
+    "storage_line": 3,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "ea125753f6a23201bf58cb853a4521014b88a67ca9bea79479f18cc4313f2192",
+    "positive_control": "lua-boundaries-property_key"
+  },
+  {
+    "id": "php-boundaries-constant_name",
+    "language": "php",
+    "baseline_variant": "supplemental",
+    "path": "php/controls/boundaries.php",
+    "storage_line": 7,
+    "invocation_line": 13,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "a44aa7ce9149dd4e49f5de069268ba29a39a635c7b70f13743c1dd6fbecc93a3"
+  },
+  {
+    "id": "php-boundaries-other_property",
+    "language": "php",
+    "baseline_variant": "supplemental",
+    "path": "php/controls/boundaries.php",
+    "storage_line": 8,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "a44aa7ce9149dd4e49f5de069268ba29a39a635c7b70f13743c1dd6fbecc93a3",
+    "positive_control": "php-boundaries-constant_name"
+  },
+  {
+    "id": "php-boundaries-variable_spelling",
+    "language": "php",
+    "baseline_variant": "supplemental",
+    "path": "php/controls/boundaries.php",
+    "storage_line": 9,
+    "invocation_line": 16,
+    "expected": "unresolved",
+    "category": "unresolved_guard",
+    "source_sha256": "a44aa7ce9149dd4e49f5de069268ba29a39a635c7b70f13743c1dd6fbecc93a3",
+    "positive_control": "php-boundaries-constant_name"
+  },
+  {
+    "id": "python-boundaries-intrinsic",
+    "language": "python",
+    "baseline_variant": "supplemental",
+    "path": "python/controls/boundaries.py",
+    "storage_line": 3,
+    "invocation_line": 7,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "237e8bd1eebe5602c8e2971b72400ab746581942fbee7f6d29beedb0df3ae333"
+  },
+  {
+    "id": "python-boundaries-other_field",
+    "language": "python",
+    "baseline_variant": "supplemental",
+    "path": "python/controls/boundaries.py",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "237e8bd1eebe5602c8e2971b72400ab746581942fbee7f6d29beedb0df3ae333",
+    "positive_control": "python-boundaries-intrinsic"
+  },
+  {
+    "id": "python-boundaries-local_shadow",
+    "language": "python",
+    "baseline_variant": "supplemental",
+    "path": "python/controls/boundaries.py",
+    "storage_line": 3,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "237e8bd1eebe5602c8e2971b72400ab746581942fbee7f6d29beedb0df3ae333",
+    "positive_control": "python-boundaries-intrinsic"
+  },
+  {
+    "id": "ruby-boundaries-intrinsic",
+    "language": "ruby",
+    "baseline_variant": "supplemental",
+    "path": "ruby/controls/boundaries.rb",
+    "storage_line": 3,
+    "invocation_line": 7,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "c8b94e7b4a5a1eb5a9a2a416f95537b4418d62f06f15498a12ecf434751c9b51"
+  },
+  {
+    "id": "ruby-boundaries-other_variable",
+    "language": "ruby",
+    "baseline_variant": "supplemental",
+    "path": "ruby/controls/boundaries.rb",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "c8b94e7b4a5a1eb5a9a2a416f95537b4418d62f06f15498a12ecf434751c9b51",
+    "positive_control": "ruby-boundaries-intrinsic"
+  },
+  {
+    "id": "ruby-override-override_return",
+    "language": "ruby",
+    "baseline_variant": "supplemental",
+    "path": "ruby/controls/override.rb",
+    "storage_line": 4,
+    "invocation_line": 10,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "3b0128e1ee9536053d9f94a6249f2acbe8f46fb877afe5010b1b255298ea2eed"
+  },
+  {
+    "id": "ruby-override-override",
+    "language": "ruby",
+    "baseline_variant": "supplemental",
+    "path": "ruby/controls/override.rb",
+    "storage_line": 3,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "3b0128e1ee9536053d9f94a6249f2acbe8f46fb877afe5010b1b255298ea2eed",
+    "positive_control": "ruby-override-override_return"
+  },
+  {
+    "id": "rust-boundaries-standard_box",
+    "language": "rust",
+    "baseline_variant": "supplemental",
+    "path": "rust/controls/boundaries.rs",
+    "storage_line": 4,
+    "invocation_line": 9,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "3903c3a7caba3d5dd0e4c1ca901430869d0ead3c2932cffda7ee2e6f0863c212"
+  },
+  {
+    "id": "rust-boundaries-other_box",
+    "language": "rust",
+    "baseline_variant": "supplemental",
+    "path": "rust/controls/boundaries.rs",
+    "storage_line": 5,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "3903c3a7caba3d5dd0e4c1ca901430869d0ead3c2932cffda7ee2e6f0863c212",
+    "positive_control": "rust-boundaries-standard_box"
+  },
+  {
+    "id": "rust-custom_box-shadowed_box",
+    "language": "rust",
+    "baseline_variant": "supplemental",
+    "path": "rust/controls/custom_box.rs",
+    "storage_line": 8,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "aff89829700ea934cd3d01c107dedc12f72d1b5129c1d5caf388a7d4d0f33d2e",
+    "positive_control": "rust-missed"
+  },
+  {
+    "id": "scala-boundaries-first",
+    "language": "scala",
+    "baseline_variant": "supplemental",
+    "path": "scala/controls/boundaries.scala",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "928b678109e8e67a34c804a4b7ea4f5b7ee836a07907e9a4e322c04b51409d59",
+    "storage_value_suffix": ":f"
+  },
+  {
+    "id": "scala-boundaries-other_position",
+    "language": "scala",
+    "baseline_variant": "supplemental",
+    "path": "scala/controls/boundaries.scala",
+    "storage_line": 4,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "928b678109e8e67a34c804a4b7ea4f5b7ee836a07907e9a4e322c04b51409d59",
+    "storage_value_suffix": ":g",
+    "positive_control": "scala-boundaries-first"
+  },
+  {
+    "id": "scala-boundaries-second",
+    "language": "scala",
+    "baseline_variant": "supplemental",
+    "path": "scala/controls/boundaries.scala",
+    "storage_line": 4,
+    "invocation_line": 12,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "928b678109e8e67a34c804a4b7ea4f5b7ee836a07907e9a4e322c04b51409d59",
+    "storage_value_suffix": ":g"
+  },
+  {
+    "id": "scala-boundaries-discarded_position",
+    "language": "scala",
+    "baseline_variant": "supplemental",
+    "path": "scala/controls/boundaries.scala",
+    "storage_line": 4,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "928b678109e8e67a34c804a4b7ea4f5b7ee836a07907e9a4e322c04b51409d59",
+    "storage_value_suffix": ":f",
+    "positive_control": "scala-boundaries-first"
+  },
+  {
+    "id": "swift-boundaries-first",
+    "language": "swift",
+    "baseline_variant": "supplemental",
+    "path": "swift/controls/boundaries.swift",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "dc8b565fbcad2c49860a7914bcdd8bcda574c0245918339505f74fb558b1481f",
+    "storage_value_suffix": ":f"
+  },
+  {
+    "id": "swift-boundaries-other_position",
+    "language": "swift",
+    "baseline_variant": "supplemental",
+    "path": "swift/controls/boundaries.swift",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "dc8b565fbcad2c49860a7914bcdd8bcda574c0245918339505f74fb558b1481f",
+    "storage_value_suffix": ":g",
+    "positive_control": "swift-boundaries-first"
+  },
+  {
+    "id": "swift-boundaries-second",
+    "language": "swift",
+    "baseline_variant": "supplemental",
+    "path": "swift/controls/boundaries.swift",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "dc8b565fbcad2c49860a7914bcdd8bcda574c0245918339505f74fb558b1481f",
+    "storage_value_suffix": ":g"
+  },
+  {
+    "id": "swift-boundaries-discarded_position",
+    "language": "swift",
+    "baseline_variant": "supplemental",
+    "path": "swift/controls/boundaries.swift",
+    "storage_line": 4,
+    "invocation_line": 7,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "dc8b565fbcad2c49860a7914bcdd8bcda574c0245918339505f74fb558b1481f",
+    "storage_value_suffix": ":f",
+    "positive_control": "swift-boundaries-first"
+  },
+  {
+    "id": "typescript-boundaries-getter",
+    "language": "typescript",
+    "baseline_variant": "supplemental",
+    "path": "typescript/controls/boundaries.ts",
+    "storage_line": 3,
+    "invocation_line": 11,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "9652f7887b601a740de2e83f71d4afcdffdcff35f51f6bfcbaddb001e841a4f1"
+  },
+  {
+    "id": "typescript-boundaries-other_field",
+    "language": "typescript",
+    "baseline_variant": "supplemental",
+    "path": "typescript/controls/boundaries.ts",
+    "storage_line": 4,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "9652f7887b601a740de2e83f71d4afcdffdcff35f51f6bfcbaddb001e841a4f1",
+    "positive_control": "typescript-boundaries-getter"
+  },
+  {
+    "id": "typescript-boundaries-other_getter",
+    "language": "typescript",
+    "baseline_variant": "supplemental",
+    "path": "typescript/controls/boundaries.ts",
+    "storage_line": 4,
+    "invocation_line": 15,
+    "expected": "connected",
+    "category": "positive_control",
+    "source_sha256": "9652f7887b601a740de2e83f71d4afcdffdcff35f51f6bfcbaddb001e841a4f1"
+  },
+  {
+    "id": "typescript-boundaries-getter_return",
+    "language": "typescript",
+    "baseline_variant": "supplemental",
+    "path": "typescript/controls/boundaries.ts",
+    "storage_line": 3,
+    "invocation_line": 15,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "9652f7887b601a740de2e83f71d4afcdffdcff35f51f6bfcbaddb001e841a4f1",
+    "positive_control": "typescript-boundaries-getter"
+  },
+  {
+    "id": "typescript-boundaries-write_is_not_read",
+    "language": "typescript",
+    "baseline_variant": "supplemental",
+    "path": "typescript/controls/boundaries.ts",
+    "storage_line": 17,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "category": "negative",
+    "source_sha256": "9652f7887b601a740de2e83f71d4afcdffdcff35f51f6bfcbaddb001e841a4f1",
+    "positive_control": "typescript-boundaries-getter"
+  },
+  {
+    "id": "python-module_shadow",
+    "language": "python",
+    "baseline_variant": "supplemental",
+    "category": "negative",
+    "path": "python/controls/module_shadow.py",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "source_sha256": "e0567e30009da824c2d084f0e86cffc4caa8d66c78cf3483b5455404e665ed4a",
+    "positive_control": "python-missed"
+  },
+  {
+    "id": "python-later_local",
+    "language": "python",
+    "baseline_variant": "supplemental",
+    "category": "unresolved_guard",
+    "path": "python/controls/later_local.py",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "expected": "unresolved",
+    "source_sha256": "f664d32f3267b08f063f32915b6f3a48bfd5f5b65dd912823e18849a31220265",
+    "positive_control": "python-missed"
+  },
+  {
+    "id": "javascript-module_shadow",
+    "language": "javascript",
+    "baseline_variant": "supplemental",
+    "category": "negative",
+    "path": "javascript/controls/module_shadow.js",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "source_sha256": "2684ec289ed9970511eef1f6d4309bb2fce189f5ce004d58ae1ff5fd453ba921",
+    "positive_control": "javascript-missed"
+  },
+  {
+    "id": "javascript-later_local",
+    "language": "javascript",
+    "baseline_variant": "supplemental",
+    "category": "unresolved_guard",
+    "path": "javascript/controls/later_local.js",
+    "storage_line": 2,
+    "invocation_line": 5,
+    "expected": "unresolved",
+    "source_sha256": "f57dbdfe2c0294bf0525c29b4320091cd76455b1c3c614348d3aa78e33cfed9e",
+    "positive_control": "javascript-missed"
+  },
+  {
+    "id": "go-wrapper_summary",
+    "language": "go",
+    "baseline_variant": "supplemental",
+    "category": "positive_control",
+    "path": "go/controls/wrapper_summary.go",
+    "storage_line": 5,
+    "invocation_line": 8,
+    "expected": "connected",
+    "source_sha256": "083bd803372e2d6c273c7676e4387eb741d6375b280d770de69a73ad3c27d89d"
+  },
+  {
+    "id": "c-linkage-local",
+    "language": "c",
+    "baseline_variant": "supplemental",
+    "category": "positive_control",
+    "path": "c/controls/linkage/main.c",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "expected": "connected",
+    "source_sha256": "d7642424b37cd49de35dea648aed1c38e9b49f6684bd936968cbf871ff11cd41",
+    "additional_sources": {
+      "other.c": "09d95cc0c286c6696e788bd7febab4028832f82978c4878dc4dc4a31187cf014"
+    }
+  },
+  {
+    "id": "c-linkage-other_translation_unit",
+    "language": "c",
+    "baseline_variant": "supplemental",
+    "category": "negative",
+    "path": "c/controls/linkage/main.c",
+    "storage_line": 3,
+    "invocation_line": 3,
+    "expected": "disconnected",
+    "source_sha256": "d7642424b37cd49de35dea648aed1c38e9b49f6684bd936968cbf871ff11cd41",
+    "additional_sources": {
+      "other.c": "09d95cc0c286c6696e788bd7febab4028832f82978c4878dc4dc4a31187cf014"
+    },
+    "invocation_file": "other.c",
+    "positive_control": "c-linkage-local"
+  },
+  {
+    "id": "cpp-public-gap-constructor_alias",
+    "language": "cpp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "cpp/public-gaps/routes.cpp",
+    "storage_line": 11,
+    "invocation_line": 6,
+    "expected": "connected",
+    "source_sha256": "05396b245871618cd2bc4820965d382c7fbcfca707ca5ffbc97a34a221984a97"
+  },
+  {
+    "id": "cpp-public-gap-same_type_other_field",
+    "language": "cpp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "cpp/public-gaps/routes.cpp",
+    "storage_line": 15,
+    "invocation_line": 16,
+    "expected": "disconnected",
+    "source_sha256": "05396b245871618cd2bc4820965d382c7fbcfca707ca5ffbc97a34a221984a97",
+    "positive_control": "cpp-public-gap-constructor_alias"
+  },
+  {
+    "id": "cpp-public-gap-same_field",
+    "language": "cpp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "cpp/public-gaps/routes.cpp",
+    "storage_line": 15,
+    "invocation_line": 17,
+    "expected": "connected",
+    "source_sha256": "05396b245871618cd2bc4820965d382c7fbcfca707ca5ffbc97a34a221984a97"
+  },
+  {
+    "id": "cpp-public-gap-reference_rebind",
+    "language": "cpp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "cpp/public-gaps/routes.cpp",
+    "storage_line": 22,
+    "invocation_line": 23,
+    "expected": "disconnected",
+    "source_sha256": "05396b245871618cd2bc4820965d382c7fbcfca707ca5ffbc97a34a221984a97",
+    "positive_control": "cpp-public-gap-constructor_alias"
+  },
+  {
+    "id": "csharp-public-gap-atomic_getter",
+    "language": "csharp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "csharp/public-gaps/routes.cs",
+    "storage_line": 13,
+    "invocation_line": 18,
+    "expected": "connected",
+    "source_sha256": "9e82fb5e0b8f6c1d82f0bbd7e09b01d93aad1169fbb0fffdb88986a135693256",
+    "required_conditions": [
+      "compare_exchange_success_required",
+      "snapshot_read_time_unproven"
+    ]
+  },
+  {
+    "id": "csharp-public-gap-other_array",
+    "language": "csharp",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "csharp/public-gaps/routes.cs",
+    "storage_line": 13,
+    "invocation_line": 22,
+    "expected": "disconnected",
+    "source_sha256": "9e82fb5e0b8f6c1d82f0bbd7e09b01d93aad1169fbb0fffdb88986a135693256",
+    "positive_control": "csharp-public-gap-atomic_getter"
+  },
+  {
+    "id": "java-public-gap-reflective_field",
+    "language": "java",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "java/public-gaps/routes.java",
+    "storage_line": 11,
+    "invocation_line": 15,
+    "expected": "connected",
+    "source_sha256": "9dcd33b47a73fc4101ac3db88995810357e14498eaf3099db0996dd9133737f6",
+    "required_conditions": [
+      "reflective_dispatch_compatibility_required"
+    ]
+  },
+  {
+    "id": "java-public-gap-descriptor_text",
+    "language": "java",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "java/public-gaps/routes.java",
+    "storage_line": 12,
+    "invocation_line": 15,
+    "expected": "disconnected",
+    "source_sha256": "9dcd33b47a73fc4101ac3db88995810357e14498eaf3099db0996dd9133737f6",
+    "positive_control": "java-public-gap-reflective_field"
+  },
+  {
+    "id": "php-public-gap-reference_cache",
+    "language": "php",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "php/public-gaps/routes.php",
+    "storage_line": 5,
+    "invocation_line": 14,
+    "expected": "connected",
+    "source_sha256": "5005ebbbe18af3b9e79a2c050137a396f046070c08d53a5f64c4ef97c6021be1"
+  },
+  {
+    "id": "php-public-gap-callable_creation",
+    "language": "php",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "php/public-gaps/routes.php",
+    "storage_line": 5,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "5005ebbbe18af3b9e79a2c050137a396f046070c08d53a5f64c4ef97c6021be1",
+    "positive_control": "php-public-gap-reference_cache"
+  },
+  {
+    "id": "typescript-public-gap-mapped_spread",
+    "language": "typescript",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "typescript/public-gaps/routes.ts",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "connected",
+    "source_sha256": "f7645bf302dbbc97a63a44a56dba07b634f09fc03c6de4d0db1e0eb1216e59c0",
+    "required_conditions": [
+      "object_copy_registration_projection"
+    ]
+  },
+  {
+    "id": "typescript-public-gap-other_map",
+    "language": "typescript",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "typescript/public-gaps/routes.ts",
+    "storage_line": 7,
+    "invocation_line": 10,
+    "expected": "disconnected",
+    "source_sha256": "f7645bf302dbbc97a63a44a56dba07b634f09fc03c6de4d0db1e0eb1216e59c0",
+    "positive_control": "typescript-public-gap-mapped_spread"
+  },
+  {
+    "id": "typescript-public-gap-known_property",
+    "language": "typescript",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "typescript/public-gaps/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 16,
+    "expected": "connected",
+    "source_sha256": "f7645bf302dbbc97a63a44a56dba07b634f09fc03c6de4d0db1e0eb1216e59c0"
+  },
+  {
+    "id": "typescript-public-gap-absent_property",
+    "language": "typescript",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "typescript/public-gaps/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "source_sha256": "f7645bf302dbbc97a63a44a56dba07b634f09fc03c6de4d0db1e0eb1216e59c0",
+    "positive_control": "typescript-public-gap-mapped_spread"
+  },
+  {
+    "id": "swift-public-gap-generic_bag",
+    "language": "swift",
+    "baseline_variant": "public_gap_supplement",
+    "category": "positive_control",
+    "path": "swift/public-gaps/routes.swift",
+    "storage_line": 12,
+    "invocation_line": 14,
+    "expected": "connected",
+    "source_sha256": "8e379a2b6041317325d5b66c4cefacc6d22edbdbf72467bc6aad7f30638e73d4"
+  },
+  {
+    "id": "swift-public-gap-other_bag",
+    "language": "swift",
+    "baseline_variant": "public_gap_supplement",
+    "category": "negative",
+    "path": "swift/public-gaps/routes.swift",
+    "storage_line": 12,
+    "invocation_line": 15,
+    "expected": "disconnected",
+    "source_sha256": "8e379a2b6041317325d5b66c4cefacc6d22edbdbf72467bc6aad7f30638e73d4",
+    "positive_control": "swift-public-gap-generic_bag"
+  },
+  {
+    "language": "rust",
+    "path": "rust/public-gaps/routes.rs",
+    "storage_line": 12,
+    "invocation_line": 13,
+    "id": "rust-public-guard-deref",
+    "expected": "connected",
+    "source_sha256": "168af4e3d54906784c988e181e1a38148771cffedca2d088be31d9086c6a2641",
+    "required_conditions": [
+      "source_deref_body_applied"
+    ]
+  },
+  {
+    "language": "rust",
+    "path": "rust/public-gaps/routes.rs",
+    "storage_line": 12,
+    "invocation_line": 14,
+    "id": "rust-public-guard-other_bag",
+    "expected": "disconnected",
+    "source_sha256": "168af4e3d54906784c988e181e1a38148771cffedca2d088be31d9086c6a2641",
+    "positive_control": "rust-public-guard-deref"
+  },
+  {
+    "language": "rust",
+    "path": "rust/public-gaps/routes.rs",
+    "storage_line": 22,
+    "invocation_line": 24,
+    "id": "rust-public-guard-inherent_push",
+    "expected": "connected",
+    "source_sha256": "168af4e3d54906784c988e181e1a38148771cffedca2d088be31d9086c6a2641"
+  },
+  {
+    "language": "rust",
+    "path": "rust/public-gaps/routes.rs",
+    "storage_line": 22,
+    "invocation_line": 25,
+    "id": "rust-public-guard-inherent_not_deref",
+    "expected": "disconnected",
+    "source_sha256": "168af4e3d54906784c988e181e1a38148771cffedca2d088be31d9086c6a2641",
+    "positive_control": "rust-public-guard-inherent_push"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 9,
+    "id": "typescript-public-guard-dynamic_copy",
+    "expected": "connected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 10,
+    "id": "typescript-public-guard-overridden_property",
+    "expected": "disconnected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5",
+    "positive_control": "typescript-public-guard-dynamic_copy"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 16,
+    "id": "typescript-public-guard-added_literal_key",
+    "expected": "connected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 17,
+    "id": "typescript-public-guard-nested_missing",
+    "expected": "disconnected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5",
+    "positive_control": "typescript-public-guard-added_literal_key"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 18,
+    "id": "typescript-public-guard-missing_literal",
+    "expected": "disconnected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5",
+    "positive_control": "typescript-public-guard-added_literal_key"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-copy-guards/routes.ts",
+    "storage_line": 22,
+    "invocation_line": 24,
+    "id": "typescript-public-guard-later_spread",
+    "expected": "disconnected",
+    "source_sha256": "fd0ebbd39a119eefb8f20b2fee64040995ead8c72ec97884dbc136a73c7facf5",
+    "positive_control": "typescript-public-guard-added_literal_key"
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-import-guards/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 13,
+    "id": "typescript-public-guard-dotted_import",
+    "expected": "connected",
+    "source_sha256": "6e5d4c3c3d1e7760646b5253a3fb0cd3a97c5e098ac043f9f963f857618a1b29",
+    "required_conditions": [
+      "opaque_receiver_binding_required"
+    ],
+    "storage_file": "registry.service.ts",
+    "additional_sources": {
+      "registry.service.ts": "7a38f6f7e5c1e5e8c5fa5ec174355c202bbebc7b540275cb2be095d05ed9e87a"
+    }
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-import-guards/routes.ts",
+    "storage_line": 11,
+    "invocation_line": 13,
+    "id": "typescript-public-guard-bound_field",
+    "expected": "connected",
+    "source_sha256": "6e5d4c3c3d1e7760646b5253a3fb0cd3a97c5e098ac043f9f963f857618a1b29",
+    "additional_sources": {
+      "registry.service.ts": "7a38f6f7e5c1e5e8c5fa5ec174355c202bbebc7b540275cb2be095d05ed9e87a"
+    }
+  },
+  {
+    "language": "typescript",
+    "path": "typescript/public-import-guards/routes.ts",
+    "storage_line": 11,
+    "invocation_line": 14,
+    "id": "typescript-public-guard-other_binding",
+    "expected": "disconnected",
+    "source_sha256": "6e5d4c3c3d1e7760646b5253a3fb0cd3a97c5e098ac043f9f963f857618a1b29",
+    "positive_control": "typescript-public-guard-bound_field",
+    "additional_sources": {
+      "registry.service.ts": "7a38f6f7e5c1e5e8c5fa5ec174355c202bbebc7b540275cb2be095d05ed9e87a"
+    }
+  },
+  {
+    "id": "rust-data-return-imported_return",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "connected",
+    "storage_file": "buffer/storage.rs",
+    "invocation_file": "lib.rs",
+    "storage_line": 6,
+    "invocation_line": 4,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    }
+  },
+  {
+    "id": "rust-data-return-other_buffer",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "disconnected",
+    "storage_file": "buffer/storage.rs",
+    "invocation_file": "lib.rs",
+    "storage_line": 6,
+    "invocation_line": 7,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    },
+    "positive_control": "rust-data-return-imported_return"
+  },
+  {
+    "id": "rust-data-return-other_field",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "disconnected",
+    "storage_file": "buffer/storage.rs",
+    "invocation_file": "lib.rs",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    },
+    "positive_control": "rust-data-return-imported_return"
+  },
+  {
+    "id": "rust-data-return-different_parameters",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "disconnected",
+    "storage_file": "lib.rs",
+    "invocation_file": "lib.rs",
+    "storage_line": 13,
+    "invocation_line": 14,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    },
+    "positive_control": "rust-data-return-same_parameter"
+  },
+  {
+    "id": "rust-data-return-stored_iterator",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "connected",
+    "storage_file": "buffer/storage.rs",
+    "invocation_file": "buffer/reader.rs",
+    "storage_line": 6,
+    "invocation_line": 13,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    }
+  },
+  {
+    "id": "rust-data-return-same_parameter",
+    "language": "rust",
+    "path": "rust/data-returns/lib.rs",
+    "semantic_kind": "data_return",
+    "expected": "connected",
+    "storage_file": "lib.rs",
+    "invocation_file": "lib.rs",
+    "storage_line": 17,
+    "invocation_line": 18,
+    "source_sha256": "720431124ede4f6f1ff602ddd4294548aa1fd9ce366d08ee9ef7df5751f2e937",
+    "additional_sources": {
+      "buffer/mod.rs": "498be5f0b68ce6d0d1ac61b4c8a11e43c02de23461cd879133eeb99c63d77da6",
+      "buffer/storage.rs": "82ef8ffccb7ba0952642bb225e05c8f68f5f06e43e0a3de6c612b47fb87ac1f9",
+      "buffer/reader.rs": "5d8b0197d2d621bb1d2aecee52a2dbc2e4da5ff653d6274adecf63c0432d4868"
+    }
+  },
+  {
+    "id": "scala-state-cell",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 13,
+    "invocation_line": 16,
+    "expected": "connected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3"
+  },
+  {
+    "id": "scala-state-other_field",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 13,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3",
+    "positive_control": "scala-state-cell"
+  },
+  {
+    "id": "scala-state-copy_kept",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 19,
+    "invocation_line": 21,
+    "expected": "connected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3"
+  },
+  {
+    "id": "scala-state-copy_other",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 19,
+    "invocation_line": 22,
+    "expected": "disconnected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3",
+    "positive_control": "scala-state-copy_kept"
+  },
+  {
+    "id": "scala-state-copy_replaced",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 25,
+    "invocation_line": 27,
+    "expected": "disconnected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3",
+    "positive_control": "scala-state-copy_original"
+  },
+  {
+    "id": "scala-state-copy_original",
+    "language": "scala",
+    "path": "scala/state-copy/routes.scala",
+    "storage_line": 25,
+    "invocation_line": 28,
+    "expected": "connected",
+    "source_sha256": "19202459edb6b7b151e13e6c8e6e4df01a425b634ca40fdda1f0dfe83608eea3"
+  },
+  {
+    "id": "typescript-modules-namespace",
+    "language": "typescript",
+    "path": "typescript/module-captures/routes.ts",
+    "storage_file": "routes.ts",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "expected": "connected",
+    "source_sha256": "c349d6c9d95f29178f0255af70cb3fe282b01debdfe9898110bac25df02391dd",
+    "additional_sources": {
+      "stores.ts": "d9963d84f6cd70464e1623d27abe10378ff7d951f93ce0fa416c68563ef9fe69",
+      "barrel.ts": "20efa6f140c51cc02148a5728d8273553d38a781291dc3db5a866bef736a3988"
+    }
+  },
+  {
+    "id": "typescript-modules-other_map",
+    "language": "typescript",
+    "path": "typescript/module-captures/routes.ts",
+    "storage_file": "routes.ts",
+    "storage_line": 3,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "source_sha256": "c349d6c9d95f29178f0255af70cb3fe282b01debdfe9898110bac25df02391dd",
+    "additional_sources": {
+      "stores.ts": "d9963d84f6cd70464e1623d27abe10378ff7d951f93ce0fa416c68563ef9fe69",
+      "barrel.ts": "20efa6f140c51cc02148a5728d8273553d38a781291dc3db5a866bef736a3988"
+    },
+    "positive_control": "typescript-modules-namespace"
+  },
+  {
+    "id": "typescript-modules-captured_factory",
+    "language": "typescript",
+    "path": "typescript/module-captures/routes.ts",
+    "storage_file": "stores.ts",
+    "storage_line": 7,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "c349d6c9d95f29178f0255af70cb3fe282b01debdfe9898110bac25df02391dd",
+    "additional_sources": {
+      "stores.ts": "d9963d84f6cd70464e1623d27abe10378ff7d951f93ce0fa416c68563ef9fe69",
+      "barrel.ts": "20efa6f140c51cc02148a5728d8273553d38a781291dc3db5a866bef736a3988"
+    }
+  },
+  {
+    "id": "typescript-modules-other_factory",
+    "language": "typescript",
+    "path": "typescript/module-captures/routes.ts",
+    "storage_file": "stores.ts",
+    "storage_line": 7,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "source_sha256": "c349d6c9d95f29178f0255af70cb3fe282b01debdfe9898110bac25df02391dd",
+    "additional_sources": {
+      "stores.ts": "d9963d84f6cd70464e1623d27abe10378ff7d951f93ce0fa416c68563ef9fe69",
+      "barrel.ts": "20efa6f140c51cc02148a5728d8273553d38a781291dc3db5a866bef736a3988"
+    },
+    "positive_control": "typescript-modules-captured_factory"
+  },
+  {
+    "id": "typescript-budget-local_tail",
+    "language": "typescript",
+    "path": "typescript/fact-budget/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 217,
+    "expected": "connected",
+    "source_sha256": "731667a079c1bcc0023ac2239b1e1afb22dcdd518bc7e53d74f78eed1ea4508e"
+  },
+  {
+    "id": "typescript-budget-other_field",
+    "language": "typescript",
+    "path": "typescript/fact-budget/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 218,
+    "expected": "disconnected",
+    "source_sha256": "731667a079c1bcc0023ac2239b1e1afb22dcdd518bc7e53d74f78eed1ea4508e",
+    "positive_control": "typescript-budget-local_tail"
+  },
+  {
+    "id": "typescript-variance-same_parameter",
+    "language": "typescript",
+    "path": "typescript/type-variance/routes.ts",
+    "storage_line": 3,
+    "invocation_line": 4,
+    "expected": "connected",
+    "source_sha256": "bcd4884a54e91ed7f31e9f9af7b69b6e5ce7c866a0d0a93f05dc77bf0e499527",
+    "required_conditions": [
+      "generic_type_constraints_unproven",
+      "same_parameter_binding_required"
+    ]
+  },
+  {
+    "id": "typescript-variance-other_parameter",
+    "language": "typescript",
+    "path": "typescript/type-variance/routes.ts",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "expected": "disconnected",
+    "source_sha256": "bcd4884a54e91ed7f31e9f9af7b69b6e5ce7c866a0d0a93f05dc77bf0e499527",
+    "positive_control": "typescript-variance-same_parameter"
+  },
+  {
+    "id": "typescript-type-objects-same",
+    "language": "typescript",
+    "path": "typescript/type-objects/routes.ts",
+    "storage_line": 10,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "435f152d6f23caf27c3bfa371bdcabc0a6cc07686f20d039e81c07ce0e5c5bd2",
+    "required_conditions": [
+      "generic_type_constraints_unproven"
+    ]
+  },
+  {
+    "id": "typescript-type-objects-other",
+    "language": "typescript",
+    "path": "typescript/type-objects/routes.ts",
+    "storage_line": 10,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "source_sha256": "435f152d6f23caf27c3bfa371bdcabc0a6cc07686f20d039e81c07ce0e5c5bd2",
+    "positive_control": "typescript-type-objects-same"
+  },
+  {
+    "id": "typescript-type-objects-runtime_literal",
+    "language": "typescript",
+    "path": "typescript/type-objects/routes.ts",
+    "storage_line": 15,
+    "invocation_line": 16,
+    "expected": "connected",
+    "source_sha256": "435f152d6f23caf27c3bfa371bdcabc0a6cc07686f20d039e81c07ce0e5c5bd2",
+    "required_conditions": [
+      "generic_type_constraints_unproven"
+    ]
+  },
+  {
+    "id": "typescript-static-storage-same",
+    "language": "typescript",
+    "path": "typescript/static-storage/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "expected": "connected",
+    "source_sha256": "7b6eca44b426f991430d04194676ad90a79af5c6b846de9f4b112265eb5780ab"
+  },
+  {
+    "id": "typescript-static-storage-other",
+    "language": "typescript",
+    "path": "typescript/static-storage/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "source_sha256": "7b6eca44b426f991430d04194676ad90a79af5c6b846de9f4b112265eb5780ab",
+    "positive_control": "typescript-static-storage-same"
+  },
+  {
+    "id": "typescript-returned-closures-returned",
+    "language": "typescript",
+    "path": "typescript/returned-closures/routes.ts",
+    "storage_line": 12,
+    "invocation_line": 4,
+    "expected": "connected",
+    "source_sha256": "42612a7b825de47b2e34a3703651950e019c5ce61c6a9739e5233f58556ab21d"
+  },
+  {
+    "id": "typescript-returned-closures-other_factory",
+    "language": "typescript",
+    "path": "typescript/returned-closures/routes.ts",
+    "storage_line": 13,
+    "invocation_line": 4,
+    "expected": "disconnected",
+    "source_sha256": "42612a7b825de47b2e34a3703651950e019c5ce61c6a9739e5233f58556ab21d",
+    "positive_control": "typescript-returned-closures-returned"
+  },
+  {
+    "id": "typescript-returned-closures-applied",
+    "language": "typescript",
+    "path": "typescript/returned-closures/routes.ts",
+    "storage_line": 12,
+    "invocation_line": 18,
+    "expected": "connected",
+    "source_sha256": "42612a7b825de47b2e34a3703651950e019c5ce61c6a9739e5233f58556ab21d"
+  },
+  {
+    "id": "typescript-returned-closures-other_callback",
+    "language": "typescript",
+    "path": "typescript/returned-closures/routes.ts",
+    "storage_line": 13,
+    "invocation_line": 18,
+    "expected": "disconnected",
+    "source_sha256": "42612a7b825de47b2e34a3703651950e019c5ce61c6a9739e5233f58556ab21d",
+    "positive_control": "typescript-returned-closures-applied"
+  },
+  {
+    "id": "typescript-call-forwarding-bound",
+    "language": "typescript",
+    "path": "typescript/call-forwarding/routes.ts",
+    "storage_line": 7,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "df060a3461ef05b10280e57868f8a15f75b4242b56ac3d703ce37d34f3611e39"
+  },
+  {
+    "id": "typescript-call-forwarding-other",
+    "language": "typescript",
+    "path": "typescript/call-forwarding/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "source_sha256": "df060a3461ef05b10280e57868f8a15f75b4242b56ac3d703ce37d34f3611e39",
+    "positive_control": "typescript-call-forwarding-bound"
+  },
+  {
+    "id": "typescript-prototype-forwarding-same",
+    "language": "typescript",
+    "path": "typescript/prototype-forwarding/routes.ts",
+    "storage_line": 7,
+    "invocation_line": 5,
+    "expected": "connected",
+    "source_sha256": "f5903e9053be98de31440a9a79de9cff6f25e5025aba99e0adb41b6065169786",
+    "storage_value_suffix": ":left"
+  },
+  {
+    "id": "typescript-prototype-forwarding-other",
+    "language": "typescript",
+    "path": "typescript/prototype-forwarding/routes.ts",
+    "storage_line": 7,
+    "invocation_line": 5,
+    "expected": "disconnected",
+    "source_sha256": "f5903e9053be98de31440a9a79de9cff6f25e5025aba99e0adb41b6065169786",
+    "positive_control": "typescript-prototype-forwarding-same",
+    "storage_value_suffix": ":right"
+  },
+  {
+    "id": "scala-implicit-builder-same",
+    "language": "scala",
+    "path": "scala/implicit-builder/routes.scala",
+    "storage_line": 7,
+    "invocation_line": 17,
+    "expected": "connected",
+    "source_sha256": "b8f717e78edc6cf32de4bf5a9e47fa878d7d79a1b799f03629ed1d81d5ddef77",
+    "storage_value_suffix": ":listener",
+    "required_conditions": [
+      "source_companion_implicit_selection_required"
+    ]
+  },
+  {
+    "id": "scala-implicit-builder-other",
+    "language": "scala",
+    "path": "scala/implicit-builder/routes.scala",
+    "storage_line": 7,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "source_sha256": "b8f717e78edc6cf32de4bf5a9e47fa878d7d79a1b799f03629ed1d81d5ddef77",
+    "positive_control": "scala-implicit-builder-same",
+    "storage_value_suffix": ":other"
+  },
+  {
+    "id": "scala-jvm-storage-same",
+    "language": "scala",
+    "path": "scala/jvm-storage/routes.scala",
+    "storage_line": 15,
+    "invocation_line": 8,
+    "expected": "connected",
+    "source_sha256": "2359e594c474488d55e9cbb218196c1165bdee133813af4a75769df652f47ac0",
+    "storage_value_suffix": ":callback",
+    "required_conditions": [
+      "compare_and_set_success_required"
+    ],
+    "support_sources": {
+      "Cell.java": {
+        "language": "java",
+        "sha256": "361216702f7b389c413825c515f4875af1ae19f1e17eea41d662c5ea1dc5a6b1"
+      }
+    },
+    "storage_file": "Cell.java"
+  },
+  {
+    "id": "scala-jvm-storage-other_instance",
+    "language": "scala",
+    "path": "scala/jvm-storage/routes.scala",
+    "storage_line": 15,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "source_sha256": "2359e594c474488d55e9cbb218196c1165bdee133813af4a75769df652f47ac0",
+    "positive_control": "scala-jvm-storage-same",
+    "storage_value_suffix": ":decoy",
+    "support_sources": {
+      "Cell.java": {
+        "language": "java",
+        "sha256": "361216702f7b389c413825c515f4875af1ae19f1e17eea41d662c5ea1dc5a6b1"
+      }
+    },
+    "storage_file": "Cell.java"
+  },
+  {
+    "id": "scala-jvm-storage-other_field",
+    "language": "scala",
+    "path": "scala/jvm-storage/routes.scala",
+    "storage_line": 15,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "2359e594c474488d55e9cbb218196c1165bdee133813af4a75769df652f47ac0",
+    "positive_control": "scala-jvm-storage-same",
+    "storage_value_suffix": ":callback",
+    "support_sources": {
+      "Cell.java": {
+        "language": "java",
+        "sha256": "361216702f7b389c413825c515f4875af1ae19f1e17eea41d662c5ea1dc5a6b1"
+      }
+    },
+    "storage_file": "Cell.java"
+  },
+  {
+    "id": "typescript-data-consumption-object",
+    "language": "typescript",
+    "path": "typescript/data-consumption/routes.ts",
+    "storage_line": 6,
+    "invocation_line": 8,
+    "semantic_kind": "data_consumption",
+    "expected": "connected",
+    "source_sha256": "645e7437365dd1cd6b832c74921bf65ad98f969b7e0c599625d702877129671d"
+  },
+  {
+    "id": "typescript-data-consumption-other_object",
+    "language": "typescript",
+    "path": "typescript/data-consumption/routes.ts",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "semantic_kind": "data_consumption",
+    "expected": "disconnected",
+    "source_sha256": "645e7437365dd1cd6b832c74921bf65ad98f969b7e0c599625d702877129671d",
+    "positive_control": "typescript-data-consumption-object"
+  },
+  {
+    "id": "typescript-data-consumption-key",
+    "language": "typescript",
+    "path": "typescript/data-consumption/routes.ts",
+    "storage_line": 11,
+    "invocation_line": 13,
+    "semantic_kind": "data_consumption",
+    "expected": "connected",
+    "source_sha256": "645e7437365dd1cd6b832c74921bf65ad98f969b7e0c599625d702877129671d"
+  },
+  {
+    "id": "typescript-data-consumption-other_key",
+    "language": "typescript",
+    "path": "typescript/data-consumption/routes.ts",
+    "storage_line": 11,
+    "invocation_line": 14,
+    "semantic_kind": "data_consumption",
+    "expected": "disconnected",
+    "source_sha256": "645e7437365dd1cd6b832c74921bf65ad98f969b7e0c599625d702877129671d",
+    "positive_control": "typescript-data-consumption-key"
+  },
+  {
+    "id": "typescript-ternary-wrapper-same",
+    "language": "typescript",
+    "path": "typescript/ternary-wrapper/routes.ts",
+    "storage_line": 10,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "7265bf94aebde6b997620aa39698440aabe87af7f9002b83093135d0b2098d27"
+  },
+  {
+    "id": "typescript-ternary-wrapper-other",
+    "language": "typescript",
+    "path": "typescript/ternary-wrapper/routes.ts",
+    "storage_line": 11,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "source_sha256": "7265bf94aebde6b997620aa39698440aabe87af7f9002b83093135d0b2098d27",
+    "positive_control": "typescript-ternary-wrapper-same"
+  },
+  {
+    "id": "typescript-module-budget-late_initializer",
+    "language": "typescript",
+    "path": "typescript/module-budget/routes.ts",
+    "storage_line": 211,
+    "invocation_line": 209,
+    "expected": "connected",
+    "source_sha256": "431ae1b985ba1bb79c559cbc6621eef7852c3ec8a22862e37b17fd4a93d28b62",
+    "storage_value_suffix": ":left"
+  },
+  {
+    "id": "typescript-module-budget-other_initializer",
+    "language": "typescript",
+    "path": "typescript/module-budget/routes.ts",
+    "storage_line": 211,
+    "invocation_line": 209,
+    "expected": "disconnected",
+    "source_sha256": "431ae1b985ba1bb79c559cbc6621eef7852c3ec8a22862e37b17fd4a93d28b62",
+    "storage_value_suffix": ":right",
+    "positive_control": "typescript-module-budget-late_initializer"
+  },
+  {
+    "id": "rust-standard-wrappers-box",
+    "language": "rust",
+    "path": "rust/standard-wrappers/routes.rs",
+    "storage_line": 3,
+    "invocation_line": 5,
+    "expected": "connected",
+    "source_sha256": "55587ad688b7fdf21a6b8404fa9621ee669f4387ed791eb83d3b089f5ff0502d",
+    "required_conditions": [
+      "standard_box_constructor",
+      "standard_box_reference_semantics"
+    ]
+  },
+  {
+    "id": "rust-standard-wrappers-other_box",
+    "language": "rust",
+    "path": "rust/standard-wrappers/routes.rs",
+    "storage_line": 4,
+    "invocation_line": 5,
+    "expected": "disconnected",
+    "source_sha256": "55587ad688b7fdf21a6b8404fa9621ee669f4387ed791eb83d3b089f5ff0502d",
+    "positive_control": "rust-standard-wrappers-box"
+  },
+  {
+    "id": "rust-standard-wrappers-some_pattern",
+    "language": "rust",
+    "path": "rust/standard-wrappers/routes.rs",
+    "storage_line": 10,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "55587ad688b7fdf21a6b8404fa9621ee669f4387ed791eb83d3b089f5ff0502d",
+    "storage_value_suffix": ":callback",
+    "required_conditions": [
+      "option_some_required"
+    ]
+  },
+  {
+    "id": "rust-standard-wrappers-shadowed_some",
+    "language": "rust",
+    "path": "rust/standard-wrappers/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 16,
+    "expected": "disconnected",
+    "source_sha256": "55587ad688b7fdf21a6b8404fa9621ee669f4387ed791eb83d3b089f5ff0502d",
+    "positive_control": "rust-standard-wrappers-some_pattern"
+  },
+  {
+    "id": "scala-jvm-storage-final_field",
+    "language": "scala",
+    "path": "scala/jvm-storage/routes.scala",
+    "storage_line": 29,
+    "invocation_line": 16,
+    "expected": "disconnected",
+    "source_sha256": "2359e594c474488d55e9cbb218196c1165bdee133813af4a75769df652f47ac0",
+    "support_sources": {
+      "Cell.java": {
+        "language": "java",
+        "sha256": "361216702f7b389c413825c515f4875af1ae19f1e17eea41d662c5ea1dc5a6b1"
+      }
+    },
+    "storage_file": "Cell.java",
+    "positive_control": "scala-jvm-storage-same"
+  },
+  {
+    "id": "scala-jvm-storage-wrong_field",
+    "language": "scala",
+    "path": "scala/jvm-storage/routes.scala",
+    "storage_line": 31,
+    "invocation_line": 18,
+    "expected": "disconnected",
+    "source_sha256": "2359e594c474488d55e9cbb218196c1165bdee133813af4a75769df652f47ac0",
+    "support_sources": {
+      "Cell.java": {
+        "language": "java",
+        "sha256": "361216702f7b389c413825c515f4875af1ae19f1e17eea41d662c5ea1dc5a6b1"
+      }
+    },
+    "storage_file": "Cell.java",
+    "positive_control": "scala-jvm-storage-same"
+  },
+  {
+    "id": "typescript-prototype-identity-same",
+    "language": "typescript",
+    "path": "typescript/prototype-identity/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 2,
+    "storage_value_suffix": ":left",
+    "expected": "connected",
+    "source_sha256": "459765011ea5a82c01390d8e56e6f7324064cfb6d8d14dcdf5608c2daafe5fec"
+  },
+  {
+    "id": "typescript-prototype-identity-other",
+    "language": "typescript",
+    "path": "typescript/prototype-identity/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 2,
+    "storage_value_suffix": ":right",
+    "expected": "disconnected",
+    "source_sha256": "459765011ea5a82c01390d8e56e6f7324064cfb6d8d14dcdf5608c2daafe5fec",
+    "positive_control": "typescript-prototype-identity-same"
+  },
+  {
+    "id": "rust-standard-wrappers-generic_box",
+    "language": "rust",
+    "path": "rust/standard-wrappers/generic.rs",
+    "storage_line": 7,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "positive_control": "rust-standard-wrappers-box",
+    "source_sha256": "0bc0c64c547541f818038f55b0effd786ceeac33a2928b15052a10ca02c828bf"
+  },
+  {
+    "id": "scala-set-copy-new_value",
+    "language": "scala",
+    "path": "scala/set-copy-values/routes.scala",
+    "storage_line": 4,
+    "invocation_line": 6,
+    "storage_value_suffix": ":fresh",
+    "expected": "connected",
+    "source_sha256": "0c981b9ec8dc4217deb45104f9ccfa1b687c802c839dc8e8f53d3f08fb238e8b"
+  },
+  {
+    "id": "typescript-namespace-arrays-direct",
+    "language": "typescript",
+    "path": "typescript/namespace-arrays/routes.ts",
+    "storage_line": 12,
+    "invocation_line": 15,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "60603430985f4e415d5fa90f0e38bf75123687180b16024b83cc5d503406dfa2"
+  },
+  {
+    "id": "typescript-namespace-arrays-nested_scope",
+    "language": "typescript",
+    "path": "typescript/namespace-arrays/routes.ts",
+    "storage_line": 12,
+    "invocation_line": 16,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "60603430985f4e415d5fa90f0e38bf75123687180b16024b83cc5d503406dfa2"
+  },
+  {
+    "id": "typescript-namespace-arrays-other_key",
+    "language": "typescript",
+    "path": "typescript/namespace-arrays/routes.ts",
+    "storage_line": 12,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "60603430985f4e415d5fa90f0e38bf75123687180b16024b83cc5d503406dfa2",
+    "positive_control": "typescript-namespace-arrays-direct"
+  },
+  {
+    "id": "typescript-namespace-arrays-same_name_other_namespace",
+    "language": "typescript",
+    "path": "typescript/namespace-arrays/routes.ts",
+    "storage_line": 13,
+    "invocation_line": 18,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "60603430985f4e415d5fa90f0e38bf75123687180b16024b83cc5d503406dfa2",
+    "positive_control": "typescript-namespace-arrays-direct"
+  },
+  {
+    "id": "typescript-namespace-arrays-object_union",
+    "language": "typescript",
+    "path": "typescript/namespace-arrays/routes.ts",
+    "storage_line": 14,
+    "invocation_line": 19,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "60603430985f4e415d5fa90f0e38bf75123687180b16024b83cc5d503406dfa2",
+    "positive_control": "typescript-namespace-arrays-direct"
+  },
+  {
+    "id": "rust-pointer-origins-nonnull",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 13,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-raw",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 15,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-clone",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 17,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-other",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 19,
+    "expected": "disconnected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-pointer-origins-nonnull"
+  },
+  {
+    "id": "rust-pointer-origins-tuple",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 21,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-helper",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 7,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-recovered",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 24,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-origins-integer",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-pointer-origins-nonnull"
+  },
+  {
+    "id": "rust-pointer-origins-cast",
+    "language": "rust",
+    "path": "rust/pointer-origins/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 32,
+    "expected": "connected",
+    "source_sha256": "1e6213083a445d418746dc40a2d88a179463c03443c43c5c98e600d683dd64f3",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-shadow-standard",
+    "language": "rust",
+    "path": "rust/pointer-shadow/routes.rs",
+    "storage_line": 10,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "95619191e45059b9362a913c04b9623164a7d28e1f0c4972d997839e13689bea",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "pointer_provenance_required",
+      "pointer_lifetime_alignment_and_aliasing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-pointer-shadow-custom",
+    "language": "rust",
+    "path": "rust/pointer-shadow/routes.rs",
+    "storage_line": 10,
+    "invocation_line": 14,
+    "expected": "disconnected",
+    "source_sha256": "95619191e45059b9362a913c04b9623164a7d28e1f0c4972d997839e13689bea",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-pointer-shadow-standard"
+  },
+  {
+    "id": "rust-type-id-keys-same",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 6,
+    "invocation_line": 7,
+    "expected": "connected",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "standard_type_id_identity"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-type-id-keys-different",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 6,
+    "invocation_line": 8,
+    "expected": "disconnected",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-type-id-keys-same"
+  },
+  {
+    "id": "rust-type-id-keys-other-map",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 6,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-type-id-keys-same"
+  },
+  {
+    "id": "rust-type-id-keys-unknown",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 6,
+    "invocation_line": 10,
+    "expected": "unresolved",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-type-id-keys-same"
+  },
+  {
+    "id": "rust-type-id-keys-generic",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "standard_type_id_identity"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-type-id-keys-generic-other",
+    "language": "rust",
+    "path": "rust/type-id-keys/routes.rs",
+    "storage_line": 11,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "source_sha256": "a83f6d0fa9f691d90de269d7eb80e1e23b4ff72775bccfa70e181053fee24b08",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-type-id-keys-same"
+  },
+  {
+    "id": "typescript-generator-resume-yielded",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 20,
+    "expected": "connected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "generator_execution_required",
+      "generator_resume_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-resumed",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 21,
+    "expected": "connected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "generator_execution_required",
+      "generator_resume_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-completed",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 22,
+    "expected": "disconnected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-generator-resume-unstarted",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 24,
+    "expected": "disconnected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-generator-resume-other",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-generator-resume-delegated-yield",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 28,
+    "expected": "connected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "generator_execution_required",
+      "generator_resume_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-delegated-return",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 29,
+    "expected": "connected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "generator_execution_required",
+      "generator_resume_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-helper",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 31,
+    "expected": "connected",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "generator_execution_required",
+      "generator_resume_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-opaque-delegate",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 33,
+    "expected": "unresolved",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-stack-values-same-stack",
+    "language": "typescript",
+    "path": "typescript/stack-values/routes.ts",
+    "storage_line": 2,
+    "invocation_line": 4,
+    "expected": "connected",
+    "source_sha256": "c769c848b12c86357738c96e31504e08869b3962189d78835c509c0825dd6786",
+    "baseline_variant": "source-provenance",
+    "required_conditions": [
+      "array_nonempty_required",
+      "stack_selection_and_order_required"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-stack-values-other-stack",
+    "language": "typescript",
+    "path": "typescript/stack-values/routes.ts",
+    "storage_line": 2,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "source_sha256": "c769c848b12c86357738c96e31504e08869b3962189d78835c509c0825dd6786",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-stack-values-same-stack"
+  },
+  {
+    "id": "rust-type-id-shadow-same-custom",
+    "language": "rust",
+    "path": "rust/type-id-shadow/routes.rs",
+    "storage_line": 7,
+    "invocation_line": 8,
+    "expected": "connected",
+    "source_sha256": "2f481e749df2920cd67ce6eb4a29ac7a2bad05432ddc87d87d7e0e5a4a561407",
+    "baseline_variant": "source-provenance",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-type-id-shadow-standard-is-distinct",
+    "language": "rust",
+    "path": "rust/type-id-shadow/routes.rs",
+    "storage_line": 7,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "2f481e749df2920cd67ce6eb4a29ac7a2bad05432ddc87d87d7e0e5a4a561407",
+    "baseline_variant": "source-provenance",
+    "positive_control": "rust-type-id-shadow-same-custom"
+  },
+  {
+    "id": "rust-type-id-shadow-native-matches",
+    "language": "rust",
+    "path": "rust/type-id-shadow/routes.rs",
+    "storage_line": 10,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "2f481e749df2920cd67ce6eb4a29ac7a2bad05432ddc87d87d7e0e5a4a561407",
+    "baseline_variant": "source-provenance",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "typescript-generator-resume-early-return",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 35,
+    "expected": "unresolved",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-generator-resume-early-throw",
+    "language": "typescript",
+    "path": "typescript/generator-resume/routes.ts",
+    "storage_line": 18,
+    "invocation_line": 37,
+    "expected": "unresolved",
+    "source_sha256": "ee2c6b0c32a5a6b0a053a73123299518444d24924552f0083c4210323f162374",
+    "baseline_variant": "source-provenance",
+    "positive_control": "typescript-generator-resume-yielded"
+  },
+  {
+    "id": "typescript-stored-function-context-stored-function",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-stored-function-context-other-function",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "disconnected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-stored-function-context-stored-function"
+  },
+  {
+    "id": "typescript-stored-function-context-bound-receiver",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 15,
+    "expected": "connected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-stored-function-context-other-receiver",
+    "language": "typescript",
+    "path": "typescript/stored-function-context/routes.ts",
+    "storage_line": 8,
+    "invocation_line": 16,
+    "expected": "disconnected",
+    "source_sha256": "e1eaebb4a3f46d6ac89617068cf55837b5b580014ceee2340db26cf61b1a6f78",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-stored-function-context-bound-receiver"
+  },
+  {
+    "id": "typescript-module-live-bindings-before",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 9,
+    "expected": "connected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-module-live-bindings-after",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 11,
+    "expected": "connected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "typescript-module-live-bindings-not-later",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 5,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-module-live-bindings-before"
+  },
+  {
+    "id": "typescript-module-live-bindings-not-snapshot",
+    "language": "typescript",
+    "path": "typescript/module-live-bindings/routes.ts",
+    "storage_line": 4,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "source_sha256": "b8217f66ebba8c1b0d0b0c4d9db406d50f6972cb37fe661771399300ca85f8d9",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-module-live-bindings-after"
+  },
+  {
+    "id": "typescript-generator-callback-binding-selected",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 15,
+    "invocation_line": 3,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "stored_key_lookup"
+    ],
+    "required_conditions": [
+      "source_callable_parameter_binding",
+      "generator_execution_required",
+      "enclosing_function_schema_only"
+    ]
+  },
+  {
+    "id": "typescript-generator-callback-binding-other",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 15,
+    "invocation_line": 6,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-selected"
+  },
+  {
+    "id": "typescript-generator-callback-binding-unused",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 22,
+    "invocation_line": 9,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-selected"
+  },
+  {
+    "id": "typescript-generator-callback-binding-second",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 35,
+    "invocation_line": 28,
+    "expected": "connected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "relation_kinds": [
+      "stored_key_lookup"
+    ],
+    "required_conditions": [
+      "source_callable_parameter_binding",
+      "generator_execution_required",
+      "enclosing_function_schema_only"
+    ]
+  },
+  {
+    "id": "typescript-generator-callback-binding-not-first",
+    "language": "typescript",
+    "path": "typescript/generator-callback-binding/routes.ts",
+    "storage_line": 34,
+    "invocation_line": 28,
+    "expected": "disconnected",
+    "semantic_kind": "data_consumption",
+    "source_sha256": "9bf82b78be521064adc5b6ed4caecc1734f632a87a94502aa529873e2df29979",
+    "baseline_variant": "source-call-context",
+    "positive_control": "typescript-generator-callback-binding-second"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 38,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-first-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-first-to-left-first"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 39,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-key-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 35,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-key-to-left-other-key"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 40,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-generic-storage-left-other-type-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 36,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-left-other-type-to-left-other-type"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 38,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-other-key",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 39,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-left-other-type",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 40,
+    "expected": "disconnected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-storage-right-first-to-right-first"
+  },
+  {
+    "id": "rust-generic-storage-right-first-to-right-first",
+    "language": "rust",
+    "path": "rust/generic-type-storage/routes.rs",
+    "storage_line": 37,
+    "invocation_line": 41,
+    "expected": "connected",
+    "source_sha256": "83ced2eca550bd46ae99bbb44d15ed82ba53c01733c2b8326a33baa4ef098e7f",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_any_downcast_type_match_required",
+      "standard_type_id_identity"
+    ]
+  },
+  {
+    "id": "rust-any-standard-target",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 10,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "standard_any_downcast_type_match_required",
+      "rust_let_pattern_match_required"
+    ]
+  },
+  {
+    "id": "rust-any-wrong-concrete-type",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 13,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-any-standard-target"
+  },
+  {
+    "id": "rust-any-custom-trait",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 27,
+    "invocation_line": 29,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-any-standard-target"
+  },
+  {
+    "id": "rust-if-let-outer-else",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 38,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "rust_let_pattern_not_matched"
+    ]
+  },
+  {
+    "id": "rust-if-let-outer-after",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 40,
+    "expected": "connected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": []
+  },
+  {
+    "id": "rust-if-let-shadowed-value",
+    "language": "rust",
+    "path": "rust/any-downcast-guards/routes.rs",
+    "storage_line": 34,
+    "invocation_line": 36,
+    "expected": "disconnected",
+    "source_sha256": "dc7c7b40ab7474abf0be141aa972ff81d87a2d372ade3186ca3471b5c7b96316",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-if-let-outer-else"
+  },
+  {
+    "id": "rust-generic-plain-type-inference",
+    "language": "rust",
+    "path": "rust/generic-type-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "connected",
+    "source_sha256": "fc706ae2934d9c7a617cbe12cf841f5da3ffc70752744841f17bad7f2033c793",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_generic_type_argument_binding",
+      "standard_type_id_identity",
+      "standard_map_constructor"
+    ],
+    "storage_value_suffix": ":plain"
+  },
+  {
+    "id": "rust-generic-arguments-not-erased",
+    "language": "rust",
+    "path": "rust/generic-type-guards/routes.rs",
+    "storage_line": 8,
+    "invocation_line": 12,
+    "expected": "unresolved",
+    "source_sha256": "fc706ae2934d9c7a617cbe12cf841f5da3ffc70752744841f17bad7f2033c793",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-generic-plain-type-inference",
+    "storage_value_suffix": ":generic"
+  },
+  {
+    "id": "rust-source-container-method",
+    "language": "rust",
+    "path": "rust/container-method-guards/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 24,
+    "expected": "connected",
+    "source_sha256": "26b219b07cf794dc729d2b72a58043b2ad69c0e85268ecf4b63194e9e120a8d9",
+    "baseline_variant": "source-only-generic-storage",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": []
+  },
+  {
+    "id": "rust-source-container-not-standard-get",
+    "language": "rust",
+    "path": "rust/container-method-guards/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "26b219b07cf794dc729d2b72a58043b2ad69c0e85268ecf4b63194e9e120a8d9",
+    "baseline_variant": "source-only-generic-storage",
+    "positive_control": "rust-source-container-method"
+  },
+  {
+    "id": "rust-declarative-impl-first-to-first",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 19,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        15
+      ]
+    ],
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_declarative_impl_expansion",
+      "macro_template_typing_unproven"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-first-to-second",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 19,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        16
+      ]
+    ],
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-first-to-first"
+  },
+  {
+    "id": "rust-declarative-impl-second-to-first",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 20,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        15
+      ]
+    ],
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-second-to-second"
+  },
+  {
+    "id": "rust-declarative-impl-second-to-second",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 20,
+    "invocation_line": 8,
+    "invocation_via": [
+      [
+        "routes.rs",
+        16
+      ]
+    ],
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ],
+    "required_conditions": [
+      "source_declarative_impl_expansion",
+      "macro_template_typing_unproven"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-literal-token-preserved",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 24,
+    "invocation_line": 26,
+    "expected": "connected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-declarative-impl-literal-token-not-substituted",
+    "language": "rust",
+    "path": "rust/declarative-impl-macros/routes.rs",
+    "storage_line": 25,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "source_sha256": "3dc9a10f4d2b73f24a72801d8812cfa948984efa9356192323d82fc44dd25ce4",
+    "baseline_variant": "source-only-declarative-macro",
+    "positive_control": "rust-declarative-impl-literal-token-preserved"
+  },
+  {
+    "id": "rust-statement-macro-left-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 34,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven",
+      "raw_pointer_read_requires_initialized_valid_value"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-left-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 35,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-right-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 31,
+    "invocation_line": 34,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-right-to-right"
+  },
+  {
+    "id": "rust-statement-macro-right-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 31,
+    "invocation_line": 35,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven",
+      "raw_pointer_read_requires_initialized_valid_value"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-unsupported-hygiene",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 39,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-unsupported-repetition",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 42,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-uninitialized",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 30,
+    "invocation_line": 44,
+    "expected": "unresolved",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [],
+    "positive_control": "rust-statement-macro-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-nested-left-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 13,
+    "invocation_line": 17,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-statement-macro-nested-left-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 13,
+    "invocation_line": 18,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-nested-left-to-left"
+  },
+  {
+    "id": "rust-statement-macro-nested-right-to-left",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 17,
+    "expected": "disconnected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "positive_control": "rust-statement-macro-nested-right-to-right"
+  },
+  {
+    "id": "rust-statement-macro-nested-right-to-right",
+    "language": "rust",
+    "path": "rust/declarative-statement-macros/routes.rs",
+    "storage_line": 14,
+    "invocation_line": 18,
+    "expected": "connected",
+    "source_sha256": "5c7b7f1fa11846f55dcf155ef679e8425ca81b0a7729b99567273dd97c557061",
+    "additional_sources": {
+      "bridge/src/lib.rs": "5a5a5cda6fac673ab3eb5dbd413b0eb2031afff4e7297400dcb0e941ada088f4"
+    },
+    "module_bindings": {
+      "bridge": "bridge/src/lib.rs"
+    },
+    "required_conditions": [
+      "source_declarative_statement_expansion",
+      "macro_template_typing_unproven"
+    ],
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  }
+]

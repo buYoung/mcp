@@ -18,8 +18,8 @@
   },
   "supplemental_variants": {
     "bevy-modules": {
-      "files": 62,
-      "input_bytes": 1711338,
+      "files": 71,
+      "input_bytes": 1988754,
       "max_file_bytes": 524288,
       "statuses": {
         "unresolved": 3,
@@ -52,7 +52,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "a66203f15d402913ea2f83dddb28b0efd088b46103bc5d51e9bdc7b94fcdf968"
+      "analysis_sha256": "826ae25d29f30d2b3c83dc8b17899647432144837ecc4b74365f6686fb16611a"
     },
     "monix-jvm-scala2": {
       "files": 15,
@@ -76,7 +76,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "f4d59ea768854b74f850d2f91d3699dd8f36f9389a5bc93010938b6fad892222"
+      "analysis_sha256": "fc358e272dc2db222b80d1db4c71e215dabda1036b50d1b4eb5ebdefe97c91e7"
     },
     "monix-jvm-scala3": {
       "files": 13,
@@ -100,7 +100,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "6951762a7bcc1650a273db728b9b926d5f3330692a856937f0bb5bf491665d67"
+      "analysis_sha256": "7722d02644ac7c54692e751d38f917fb91ee0b0f126582544cc808822d0afa90"
     },
     "monix-js-scala2": {
       "files": 8,
@@ -124,7 +124,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "3dd2b77d65c437c694e38a553413f157f14c096009945f46d8eeeb9200b3eb7a"
+      "analysis_sha256": "c3b1a0cb0e9d4f640c63650d32226e53b01f459de95cd2eaba177856c8e7ebbe"
     },
     "monix-js-scala3": {
       "files": 6,
@@ -148,7 +148,7 @@
           "status": "source_scenario_not_executed"
         }
       ],
-      "analysis_sha256": "4b4671abd1ce59b4072c388d7162a329ae5dd34d306e669bf0d2b9fb4836c0c5"
+      "analysis_sha256": "f98b5f1f4f325616716afbd043f5c3d9d77b9f6d24427d75ada4e4ac3d67af23"
     },
     "livestore-effect": {
       "files": 23,
@@ -197,7 +197,7 @@
           "status": "correctly_unjoined_with_positive_control"
         }
       ],
-      "analysis_sha256": "802980303a60d5d02a89a1e34203b3e4b16ccf396d80dab1b33640e9e9516101"
+      "analysis_sha256": "513fe32a1771927c0d16d2798a5332cdf0d1c28c765bf662108175ac2ec2a8dd"
     }
   },
   "combined_public_positive_statuses": {

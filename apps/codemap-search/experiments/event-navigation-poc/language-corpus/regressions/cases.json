@@ -3599,5 +3599,125 @@
     "relation_kinds": [
       "storage_to_invocation"
     ]
+  },
+  {
+    "id": "rust-source-frontier-prelude-take",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 7,
+    "invocation_line": 9,
+    "expected": "connected",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-source-frontier-taken-local-empty",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 7,
+    "invocation_line": 11,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-prelude-take"
+  },
+  {
+    "id": "rust-source-frontier-field-take",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 19,
+    "invocation_line": 21,
+    "expected": "connected",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-source-frontier-taken-field-empty",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 19,
+    "invocation_line": 23,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-field-take"
+  },
+  {
+    "id": "rust-source-frontier-field-replaced",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 24,
+    "invocation_line": 26,
+    "expected": "connected",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-source-frontier-old-payload-not-replacement",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 19,
+    "invocation_line": 26,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-field-replaced"
+  },
+  {
+    "id": "rust-source-frontier-replacement-not-old-payload",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 24,
+    "invocation_line": 21,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-field-take"
+  },
+  {
+    "id": "rust-source-frontier-glob-shadow",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 40,
+    "invocation_line": 41,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-prelude-take"
+  },
+  {
+    "id": "rust-source-frontier-block-return",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 66,
+    "invocation_line": 71,
+    "expected": "connected",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
+  },
+  {
+    "id": "rust-source-frontier-block-local-not-returned",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 65,
+    "invocation_line": 71,
+    "expected": "disconnected",
+    "positive_control": "rust-source-frontier-block-return"
+  },
+  {
+    "id": "rust-source-frontier-single-tail-evaluation",
+    "language": "rust",
+    "path": "rust/source-frontier/routes.rs",
+    "source_sha256": "2d9cde8d415db7b59299d7f39565e3741db5e4ebf8bd23ec44ef3b35bb0f6693",
+    "storage_line": 75,
+    "invocation_line": 81,
+    "expected": "connected",
+    "relation_kinds": [
+      "storage_to_invocation"
+    ]
   }
 ]

@@ -86,6 +86,9 @@ def main():
     source_checkpoint_cases = read(DIRECTORY / "history/regressions-247.json")
     assert len(source_checkpoint_cases) == 247
     assert all(cases_by_id[case["id"]] == case for case in source_checkpoint_cases)
+    frontier_checkpoint_cases = read(DIRECTORY / "history/regressions-290.json")
+    assert len(frontier_checkpoint_cases) == 290
+    assert all(cases_by_id[case["id"]] == case for case in frontier_checkpoint_cases)
     current = read(CORPUS / "results/evaluation.json")["cases"]
     previous = read(baseline / "language-corpus/results/evaluation.json")["cases"]
     assert {row["id"]: row["status"] for row in current} == {row["id"]: row["status"] for row in previous}
@@ -94,7 +97,7 @@ def main():
     for row in read(baseline / "language-corpus/regressions/results/evaluation.json"):
         assert regression_by_id[row["id"]]["status"] == row["status"]
 
-    helpers = [*DIRECTORY.glob("*.py"), CORPUS / "public-gaps/verify.py", CORPUS / "regressions/run.py"]
+    helpers = [*DIRECTORY.glob("*.py"), CORPUS / "public-gaps/verify.py", CORPUS / "regressions/run.py", CORPUS / "regressions/verify_rust_frontend.py"]
     for path in helpers:
         ast.parse(path.read_bytes(), filename=str(path))
     helper_hashes = {str(path.relative_to(POC)): digest(path) for path in helpers}
@@ -199,6 +202,17 @@ def main():
         assert digest(DIRECTORY / "results" / (name + ".json.gz")) == expected
     assert statuses(consumer_rows) == {"conditional_data_consumption": 3, "conditional_candidate": 1,
                                        "correctly_unjoined_with_positive_control": 2}
+    rust_frontier = read(DIRECTORY / "results/rust-frontier.evaluation.json")
+    assert rust_frontier["passed"] and not rust_frontier["target_program_executed"]
+    assert rust_frontier["implementation_sha256"] == base_verification["implementation_sha256"]
+    assert rust_frontier["analysis_sha256"] == digest(CORPUS / "regressions/results/analysis/rust--source-frontier--routes.rs.json.gz")
+    assert rust_frontier["script_sha256"] == digest(CORPUS / "regressions/verify_rust_frontend.py")
+    bevy_frontier = read(DIRECTORY / "results/bevy-frontier.evaluation.json")
+    assert bevy_frontier["frontend_checks_passed"] and not bevy_frontier["target_program_executed"]
+    assert not bevy_frontier["compiler_auxiliary_input_used"]
+    assert bevy_frontier["source_sha256"] == bevy["scope"]["source_sha256"]
+    assert bevy_frontier["script_sha256"] == digest(DIRECTORY / "verify_bevy_frontier.py")
+    assert all(base_verification["implementation_sha256"][name] == expected for name, expected in bevy_frontier["implementation_sha256"].items())
 
     comparison = {"verified_on": "2026-09-16", "aggregation": "best_observed_status_per_public_positive_case_across_selected_inputs",
                   "base_case_statuses_unchanged": True, "previous_base_public": statuses(row for row in previous if row["repository"] != "fixtures"),
@@ -218,6 +232,10 @@ def main():
                "completed_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-234.json"),
                "source_checkpoint_regression_cases_unchanged": len(source_checkpoint_cases),
                "source_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-247.json"),
+               "frontier_checkpoint_regression_cases_unchanged": len(frontier_checkpoint_cases),
+               "frontier_checkpoint_cases_sha256": digest(DIRECTORY / "history/regressions-290.json"),
+               "frontend_evidence_sha256": {name: digest(DIRECTORY / "results" / name) for name in
+                                           ("rust-frontier.evaluation.json", "bevy-frontier.evaluation.json")},
                "crate_manifest_bindings_verified": len(crates["crates"]),
                "consumer_cases_sha256": digest(DIRECTORY / "consumers.json"),
                "dependency_files_verified": len(lock["source_sha256"]), "supplemental_analysis_outputs_verified": len(variants),

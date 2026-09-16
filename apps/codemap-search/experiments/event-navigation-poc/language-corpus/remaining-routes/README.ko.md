@@ -1,27 +1,49 @@
 # Rust·Scala·TypeScript 잔여 경로 보완 결과
 
-검증일: 2026-09-16. **Monix의 JVM·JavaScript × Scala 2·3 네 구현에서 새 구독자 저장 → 최종 호출 후보를 연결했다.** Bevy 메시지의 자료 반환도 유지했고, LiveStore Queue는 추가 소비 지점인 Effect 내부 배열 쓰기와 한 bucket의 배열 반환까지 조건부로 연결했다. RPC의 clientId → 실제 clientWrites 조회 키 전달도 조건부 연결했다. 회귀 **290/290**, 공통 사례 **90/90**, 기존 공개 무연결 쌍 **14/14**가 통과했다.
+검증일: 2026-09-16. **Monix의 JVM·JavaScript × Scala 2·3 네 구현에서 새 구독자 저장 → 최종 호출 후보를 연결했다.** Bevy 메시지의 자료 반환도 유지했고, LiveStore Queue는 추가 소비 지점인 Effect 내부 배열 쓰기와 한 bucket의 배열 반환까지 조건부로 연결했다. RPC의 clientId → 실제 clientWrites 조회 키 전달도 조건부 연결했다. 회귀 **301/301**, 공통 사례 **90/90**, 기존 공개 무연결 쌍 **14/14**가 통과했다.
 
 **모든 잔여 경로를 해결한 것은 아니다.** Bevy observer·SystemId·glTF 세 경로가 남는다. Queue의 여러 bucket 순회와 실제 payload 전달은 검증하지 않았다. 아래 결과는 대상 프로그램 실행이 아닌 조건부 정적 분석이다.
 
 201사례 검증 상태는 `33efda1f7`, 247사례 상태는 `c001a6a23`에 커밋했다. 이후 소스 기반 Rust 제네릭·매크로·포인터 처리와 43개 대조를 추가했다. 컴파일러 보조 입력은 [독립 검증 자료](../../compiler-oracle/README.ko.md)로만 추가했으며 제품·기본 분석기의 실행 의존성이 아니다. 전체 잔여 경로 해결, AST 회귀 통과, 컴파일러 관측 근거를 구분한다.
 
+## Bevy 원인 분석 후 적용한 수정
+
+`02426ebdb` 기준의 [원인 분석](bevy-root-cause.ko.md) 이후, 이번 구현·원인 판단·실행은 모두 메인에서 수행했다. 하위 에이전트와 codemap-search는 사용하지 않았다. 실제 공개 세 쌍의 기대값과 연결 판정 규칙은 유지했다. 이번 결과는 **앞단의 정보 손실 보완**이며 SystemId의 component 저장→조회 연결 완료가 아니다.
+
+| 변경 | 직접 확인한 결과 | 아직 확인하지 못한 범위 |
+| --- | --- | --- |
+| 호출 식별자에 AST 시작·끝과 호출 문맥 보존 | 같은 시작 위치의 연쇄 호출과 서로 다른 호출 문맥을 구분 | 런타임의 매 호출 인스턴스 증명 |
+| 미해석 호출의 전체 인자·제네릭·반환 선언·후보·이유 보존 | 10개 인자와 부분 반환값을 별도 기록 | 기록만으로 trait 선택이나 저장 관계가 생성되지는 않음 |
+| 모듈별 prelude 이름 해석 | 실제 Observer의 `Some(system)`이 Box 기원을 유지 | glTF 예제는 아직 입력에 없는 wildcard 재노출이 있어 Box 해석을 보류 |
+| impl·함수 타입 변수의 선언 범위와 호출별 타입 분리 | 실제 generic `T`를 구체 타입 키로 승격하지 않고, 앞선 호출의 구체 타입이나 같은 이름의 `struct T`와 구분 | 중첩 제네릭 통합·연관 타입·trait 구현 선택 |
+| Option/Result와 `take` 상태 보완 | 꺼낸 이전 값, 빈 슬롯, 재삽입한 다른 값을 11개 새 양성·반례에 포함해 대조 | 전체 CFG·함수 간 mutation 순서·Bevy ECS 슬롯의 수명 분석 |
+| 블록 값과 함수 반환 분리, 꼬리 식 단일 평가 | 내부 `unsafe` 블록 값이 함수 반환에 섞이던 문제와 `take` 중복 평가 방지 | 모든 Rust 제어 흐름과 예외 경로 |
+| 소비 지점에서 알려진 소스 반환 재해석 | 실제 `spawn(...).id()`가 `EntityWorldMut.entity` 필드까지 연결되고 `SystemId::from_entity` 반환도 구성 | 저장값이 해당 entity의 component에 들어갔다는 관계 |
+
+소스 반환 재해석은 receiver와 실제 인자를 유지한다. 제거·외부 슬롯 쓰기 효과가 확인된 함수는 호출 당시 상태가 없으면 재실행하지 않고 `source_return_requires_effect_context` 경계로 남긴다. 원래 호출 위치·분기 조건을 보존하며 새로운 이벤트 API 규칙은 추가하지 않았다.
+
+[Rust 앞단 대조](results/rust-frontier.evaluation.json)는 전체 인자·호출 식별자·제네릭 범위·호출 문맥을 확인한다. [실제 Bevy 값 관측](results/bevy-frontier.evaluation.json)은 같은 분석기를 관측해 생성했다. 프레임워크 이름과 위치는 이 진단의 관측 대상에만 사용하며 분석기의 연결 규칙으로 전달하지 않는다.
+
+현재 조회 쪽은 `system_registry.rs:682`의 `id.into()`와 `:689`의 제네릭 component 조회에서 충분한 값·타입 근거를 확보하지 못한다. `:704`의 `take`와 `:725`의 최종 호출은 원래 등록 Box에 연결되지 않는다. **SystemId·Observer·glTF 모두 최종 관계 0개**이며, SystemId의 실제 양성 및 World·Entity·타입별 오연결 대조도 아직 완료하지 않았다. 해당 기준을 통과하기 전에는 Observer·glTF 전용 저장·호출 연결 구현으로 범위를 넓히지 않는다.
+
+이번에 추가한 9개 입력은 Entity·archetype·map wrapper와 모듈·prelude 확인용 원문이다. 기존 62파일과 동일 revision을 유지한다. 원문이 포함됐다는 사실을 해당 macro·저장 효과의 해석 완료로 간주하지 않는다. 기본 사실·출력 한도와 컴파일러 보조 입력 없는 실행도 유지했다.
+
 ## 범위와 비교 기준
 
-질문은 “추가 소스와 범용 값 추적을 통해 저장값을 실제 소비 본문까지 이어갈 수 있는가”다. 독립 PoC만 수정했다. 파일 분석은 Sol·medium 하위 에이전트, 구현·실행·종합은 메인 스레드가 맡았다. codemap-search 도구·CLI는 사용하지 않았다. 앞 단계의 Astra·max 실패 분석 2회 이후 추가 Astra 분석은 요청하지 않았다.
+질문은 “추가 소스와 범용 값 추적을 통해 저장값을 실제 소비 본문까지 이어갈 수 있는가”다. 독립 PoC만 수정했다. 초기 파일 확인에는 하위 에이전트를 사용했으나, 위 Bevy 보완 단계에서는 원인 분석을 포함한 모든 작업을 메인에서 직접 수행했다. codemap-search 도구·CLI는 사용하지 않았다.
 
 Git 체크포인트 `01aac1515864f7066c368e0081d6fd23836a5474`와 기본 공개 입력 96파일·77사례·입력 잠금 버전 3을 보존했다. [140사례 단계](baseline/manifest.json)의 136파일과 [직전 165사례 단계](history/165-cases/manifest.json)의 165파일을 해시로 대조한다. 기존 165사례의 기대값과 최초 예시 36개도 유지했다. Queue 타입 보완 전 [196사례 검증본](history/196-cases/manifest.json)의 183파일도 추가 보존했다.
 
 | 확장 입력 | 파일 수 | 바이트 | 파일당 한도 | 선정 범위 |
 | --- | ---: | ---: | ---: | --- |
-| `bevy-modules` | 62 | 1,711,338 | 512 KiB | ECS·App·World·Bundle·저장소·포인터·derive 소스와 crate 재노출 |
+| `bevy-modules` | 71 | 1,988,754 | 512 KiB | ECS·App·World·Bundle·저장소·포인터·derive 소스와 crate 재노출 |
 | `monix-jvm-scala2` | 15 | 58,048 | 512 KiB | Scala 2 생성 매크로·JVM Atomic·Java 필드 |
 | `monix-jvm-scala3` | 13 | 47,076 | 512 KiB | Scala 3 inline 생성·JVM Atomic·Java 필드 |
 | `monix-js-scala2` | 8 | 43,047 | 512 KiB | Scala 2 생성 매크로·JavaScript Atomic |
 | `monix-js-scala3` | 6 | 32,813 | 512 KiB | Scala 3 inline 생성·JavaScript Atomic |
 | `livestore-effect` | 23 | 2,420,495 | **1 MiB** | LiveStore·Effect 내부 소비·생성자·iterator·Effectable 구현 |
 
-파일 수는 실행별 수로 서로 중복된다. Monix 네 조합은 동일 공개 사례의 입력 변형이며 공개 양성 분모를 늘리지 않는다. 입력은 [inputs.json](inputs.json)의 버전 7에 고정했고, 이전 목록은 [버전 1](history/inputs-v1.json)부터 [버전 6](history/inputs-v6.json)까지 보존했다. Bevy crate 이름과 소스 연결은 실제 Cargo manifest 8개의 해시를 기록한 [crate-sources.lock.json](crate-sources.lock.json)으로 검증한다. [이전 5개 crate 목록](history/crate-sources-v1.lock.json)도 보존했다. 이 표는 소스 AST 분석용 입력이다. 별도의 분리 worktree에서 Bevy ECS·glTF·포인터 라이브러리 컴파일과 MIR 수집을 진행했으나, 그 출력을 아래 연결 수치에 반영하지 않았다.
+파일 수는 실행별 수로 서로 중복된다. Monix 네 조합은 동일 공개 사례의 입력 변형이며 공개 양성 분모를 늘리지 않는다. 입력은 [inputs.json](inputs.json)의 버전 8에 고정했고, 이전 목록은 [버전 1](history/inputs-v1.json)부터 [버전 7](history/inputs-v7.json)까지 보존했다. Bevy crate 이름과 소스 연결은 실제 Cargo manifest 9개의 해시를 기록한 [crate-sources.lock.json](crate-sources.lock.json)으로 검증한다. [이전 8개 crate 목록](history/crate-sources-v2.lock.json)도 보존했다. 이 표는 소스 AST 분석용 입력이다. 앞 단계의 분리 worktree에서 Bevy ECS·glTF·포인터 라이브러리 컴파일과 MIR 수집을 진행했으나, 그 출력을 아래 연결 수치에 반영하지 않았다.
 
 Effect는 LiveStore 잠금 파일의 **4.0.0-rc.113**을 사용했다. [공식 배포 메타데이터](https://registry.npmjs.org/effect/4.0.0-rc.113), archive의 SHA-512·SHA-256, 소스·라이선스·패키지 파일 474개의 SHA-256은 [effect-source.lock.json](effect-source.lock.json)에 있다. 설치·빌드 스크립트는 실행하지 않았다. `Stream.ts` **615,757바이트**를 포함하도록 사용자 선택에 따라 이 확장 실행에만 `--max-file-bytes 1048576`을 적용했다. 기본 입력 한도는 524,288바이트다.
 
@@ -94,7 +116,7 @@ TypeScript에서는 반환 closure의 캡처, `call/apply/arguments`·rest 인�
 
 이벤트 API나 저장소 이름별 연결 규칙을 추가하지 않았다. 같은 [공통 관계 모델](../../model.py)과 언어별 값 해석을 사용한다. 명시적인 표준 라이브러리 계약과 선정 의존성 모듈 연결은 구분해 다룬다.
 
-165→201사례 단계의 36사례를 유지하고, 포인터·타입 키 20개와 generator·배열 pop 13개를 추가했다. 현재 **115소스 파일·106분석 실행·290사례**이며, 호출 양성 141·데이터 반환 양성 3·데이터 소비 양성 6·구조적 무연결 128·미확정 유지 12개로 구분한다. 추가 33개는 호출 양성 18·구조적 무연결 11·미확정 유지 4다. 이후 `777e8330f`의 234사례를 유지하고 TypeScript 3파일·13사례를 더했다. 저장된 함수의 receiver, 모듈 live binding, 명시적인 generator callback 호출과 인자 순서를 대조한다. 추가 13개는 호출 양성 4·조회 키 소비 양성 2·구조적 무연결 7이다. 반례는 지정 양성 대조가 함께 통과해야 인정하며, 새 양성은 정확한 호출 관계와 필수 조건도 검사한다. [사례](../regressions/cases.json), [결과](../regressions/results/evaluation.json).
+165→201사례 단계의 36사례를 유지하고, 포인터·타입 키 20개와 generator·배열 pop 13개를 추가했다. 현재 **116소스 파일·107분석 실행·301사례**이며, 호출 양성 146·데이터 반환 양성 3·데이터 소비 양성 6·구조적 무연결 134·미확정 유지 12개로 구분한다. 추가 33개는 호출 양성 18·구조적 무연결 11·미확정 유지 4다. 이후 `777e8330f`의 234사례를 유지하고 TypeScript 3파일·13사례를 더했다. 저장된 함수의 receiver, 모듈 live binding, 명시적인 generator callback 호출과 인자 순서를 대조한다. 추가 13개는 호출 양성 4·조회 키 소비 양성 2·구조적 무연결 7이다. 반례는 지정 양성 대조가 함께 통과해야 인정하며, 새 양성은 정확한 호출 관계와 필수 조건도 검사한다. [사례](../regressions/cases.json), [결과](../regressions/results/evaluation.json).
 
 `c001a6a23` 이후 Rust 7소스 파일·43사례를 더했다. 호출 양성 16·구조적 무연결 23·미확정 유지 4개이며, [247사례 보존본](history/regressions-247.json)의 기대값·원문 해시를 그대로 유지했다. 전체 사실 한도는 40,000개로 유지하면서 저장·호출·반환 등 의미 사실에 우선순위를 주고 파일·함수별로 나누어 보존한다. 큰 앞단 요약 때문에 뒤의 반환 투영이 사라지는 문제를 막았으며 완전한 분석을 보장하는 것은 아니다.
 
@@ -114,7 +136,7 @@ Effect 선정 입력 중 13파일은 Tree-sitter 문법의 타입 구문 한계�
 
 이 세 경로는 단순히 테스트를 더 실행하면 완료되는 항목이 아니라 분석기 기능의 미구현 부분이다. Bevy 출력에는 generic `TypeId` 인자와 pointer 기원을 해석하지 못한 진단이 남고, Effect 출력에는 source-call 깊이·prototype 문맥 한도가 기록된다. 입력을 늘리거나 한도만 높였다는 이유로 연결 성공을 인정하지 않았다.
 
-**이 경로들이 원리적으로 연결 불가능하다는 결론은 아니다.** Tree-sitter `.scm` 쿼리를 개선하면 호출·제네릭·필드·패턴 등 원문에 있는 구조를 더 잘 추출할 수 있다. 다만 raw pointer의 가리키는 대상이나 World/Entity 동일성은 별도 값·타입 분석이 필요하고, proc-macro가 생성한 본문은 원본 AST에 존재하지 않을 수 있다. 사용자 결정에 따라 컴파일러의 확장·타입 정보는 별도 검증에만 사용한다. 제품에 적용할 분석은 소스 근거로 연결해야 하며, 확보하지 못한 경로는 미확정으로 남긴다. [Tree-sitter 쿼리](https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html), [Rust procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html).
+**이 경로들이 원리적으로 연결 불가능하다는 결론은 아니다.** Tree-sitter `.scm` 쿼리를 개선하면 호출·제네릭·필드·패턴 등 원문에 있는 구조를 더 잘 추출할 수 있다. 다만 raw pointer의 가리키는 대상이나 World/Entity 동일성은 별도 값·타입 분석이 필요하고, proc-macro가 생성한 본문은 원본 AST에 존재하지 않을 수 있다. 현재 구현은 컴파일러의 확장·타입 정보를 별도 대조에만 사용한다. 사용자의 제한은 제품의 필수 컴파일러 입력 도입을 금지한 것이며, 독립 PoC에서 보조 정보를 연결 실험에 사용하는 것은 허용된다. 제품에 적용할 분석은 소스 근거로 연결해야 하며, 확보하지 못한 경로는 미확정으로 남긴다. [Tree-sitter 쿼리](https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html), [Rust procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html).
 
 현재 PoC는 `.scm` 파일을 읽지 않고 Tree-sitter AST를 직접 해석하므로 제품의 `.scm`만 수정해도 이 PoC가 바뀌지는 않는다. 수동 Bevy 저장 효과 계약은 도입하지 않았다. 별도 [컴파일러 대조](../../compiler-oracle/README.ko.md)는 세 경로의 typed 호출·coercion과 derive로 생성된 `Component` 구현을 확인했지만 자동 연결에 사용하지 않는다. 기본 분석기에 MIR을 읽거나 컴파일을 요청하는 경로는 없으며, 컴파일러 도구가 없는 PATH에서도 소스 매크로·포인터 회귀를 확인한다. Bevy generic component 슬롯의 물리 저장 위치와 glTF 복제 기원을 끝까지 잇는 기능은 미완료다.
 
@@ -131,9 +153,9 @@ Effect 선정 입력 중 13파일은 Tree-sitter 문법의 타입 구문 한계�
 .venv/bin/python remaining-routes/verify.py --sources /tmp/codemap-language-repro-sources
 ```
 
-[prepare.py](prepare.py)는 고정 소스를 준비하고, [run.py](run.py)는 여섯 변형의 입력 해시·한도를 확인한다. [consumers.py](consumers.py)는 추가 소비 끝점만 평가한다. [verify.py](verify.py)는 원시 결과 **149개**의 구현·소스 해시, 이전 보존본, 원래 사례와 새 구독자 값·필수 조건, 표준 호출/데이터 분류, 추가 소비 대조를 검증한다. 실제 실행은 `/tmp/codemap-event-poc-venv/bin/python`으로 수행했다. [무결성 결과](verification.json), [기본 검증](../regressions/results/verification.json).
+[prepare.py](prepare.py)는 고정 소스를 준비하고, [run.py](run.py)는 여섯 변형의 입력 해시·한도를 확인한다. [consumers.py](consumers.py)는 추가 소비 끝점만 평가한다. [verify.py](verify.py)는 원시 결과 **150개**의 구현·소스 해시, 이전 보존본, 원래 사례와 새 구독자 값·필수 조건, 표준 호출/데이터 분류, 추가 소비 대조를 검증한다. 실제 실행은 `/tmp/codemap-event-poc-venv/bin/python`으로 수행했다. [무결성 결과](verification.json), [기본 검증](../regressions/results/verification.json).
 
-모든 관계는 `conditional_source_relation`, `concrete_instance_proven=false`, `event_classification=not_inferred`다. 원시 결과 수는 기본·공통 37개 + 회귀 106개 + 확장 6개다. 분석기는 사례의 정답을 입력받지 않는다.
+모든 관계는 `conditional_source_relation`, `concrete_instance_proven=false`, `event_classification=not_inferred`다. 원시 결과 수는 기본·공통 37개 + 회귀 107개 + 확장 6개다. 분석기는 사례의 정답을 입력받지 않는다.
 
 확장 입력의 구문 오류는 0이지만 기본 공개 입력의 일부 문법 복구 한계는 [전체 보고서](../README.ko.md)에 유지했다. 함수 요약 4회·전체 40,000사실, 기존 엔진 함수당 192사실·관계 2,048개, 추가 언어 엔진 함수당 256사실·관계 4,096개 등 한도가 있다. TypeScript 실제 인자 해석 깊이 6, Scala/혼합 Java 소스 호출 깊이 10, prototype 문맥 최대 256개·6회 확장도 완전성을 제한한다. Native generator는 32개 캡처·64단계·위임 깊이 6의 한도를 사용하며 일반적인 분기·반복·예외 제어 흐름은 구현하지 않았다. 관계는 종류·소비 파일별로 예산을 나누며 일부 후보가 생략되면 notices에 기록한다.
 

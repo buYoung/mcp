@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "variants": {
     "bevy-modules": {
       "repository": "bevy",
@@ -66,7 +66,16 @@
         "crates/bevy_ecs/macro_logic/src/component.rs",
         "crates/bevy_ecs/macros/src/lib.rs",
         "crates/bevy_ecs/macros/src/resource.rs",
-        "crates/bevy_ecs/src/bundle/remove.rs"
+        "crates/bevy_ecs/src/bundle/remove.rs",
+        "crates/bevy_ecs/src/entity/mod.rs",
+        "crates/bevy_ecs/src/entity/hash_map.rs",
+        "crates/bevy_ecs/src/archetype.rs",
+        "crates/bevy_platform/src/lib.rs",
+        "crates/bevy_platform/src/collections/mod.rs",
+        "crates/bevy_platform/src/collections/hash_map.rs",
+        "crates/bevy_platform/src/cfg.rs",
+        "crates/bevy_ecs/src/schedule/mod.rs",
+        "crates/bevy_ecs/src/schedule/condition.rs"
       ],
       "support_paths": [],
       "revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
@@ -132,7 +141,16 @@
         "crates/bevy_ecs/macro_logic/src/component.rs": "e2d3dadff1fc131e8eaebd4de60ddcab04438bc47d7eae7dbb27029d03a5d798",
         "crates/bevy_ecs/macros/src/lib.rs": "e89e53d90cab3264de15f39fbcdd77a142c1945d223f27c3026b9bdbdde75919",
         "crates/bevy_ecs/macros/src/resource.rs": "98b4eff7b4e76b96ef15a4da14fb7724165c1e4f39870ad35ed4bee5be1b88d0",
-        "crates/bevy_ecs/src/bundle/remove.rs": "3b5c4c6e8707e5fb1f0f65116b10e15193d880af66663d015548952f06140f10"
+        "crates/bevy_ecs/src/bundle/remove.rs": "3b5c4c6e8707e5fb1f0f65116b10e15193d880af66663d015548952f06140f10",
+        "crates/bevy_ecs/src/entity/mod.rs": "71c97c17e819fd1cc768532316835f88b0b9ea8c3045bdf7657b1eaebb0a97b7",
+        "crates/bevy_ecs/src/entity/hash_map.rs": "d3f225ba98c554b587546e5cd279bd53e416bb515a7c3b6efff407c4d5c0f6ba",
+        "crates/bevy_ecs/src/archetype.rs": "3caddc128aaaa6c4daabac99db9de89a9b01ca63604323e03f9593f6eb37d226",
+        "crates/bevy_platform/src/lib.rs": "a019a75fec065a4568166f08f360481636392c37f392797a67dd4ead6cd2c569",
+        "crates/bevy_platform/src/collections/mod.rs": "850576cf000b6ce4b7ddf2c31abba8bab9617afabd71afb6981f6f34f68e0140",
+        "crates/bevy_platform/src/collections/hash_map.rs": "2526fa129a942fce81e8b88e041c24d0adc2a758710bc34f0d254df23ca983ad",
+        "crates/bevy_platform/src/cfg.rs": "d9fdb5506fbbcaa363726c00b12e34381e37d60b45a04fb272e4aca02e4b010a",
+        "crates/bevy_ecs/src/schedule/mod.rs": "e938c4e612755e3e0f65ba54c3f17c9fb2cc5a191eb1c429fdec54de677ad79d",
+        "crates/bevy_ecs/src/schedule/condition.rs": "137d0c21640c53639299898722aaac63239889774f401bbfd46b363d961b93af"
       },
       "module_bindings": {
         "bevy_ecs": "crates/bevy_ecs/src/lib.rs",
@@ -142,7 +160,8 @@
         "bevy_app": "crates/bevy_app/src/lib.rs",
         "bevy_ptr": "crates/bevy_ptr/src/lib.rs",
         "bevy_ecs_macros": "crates/bevy_ecs/macros/src/lib.rs",
-        "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs"
+        "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs",
+        "bevy_platform": "crates/bevy_platform/src/lib.rs"
       }
     },
     "monix-jvm-scala2": {

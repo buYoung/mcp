@@ -151,6 +151,27 @@ class Summary:
     parameters: tuple[Value, ...]
     facts: list[Fact] = field(default_factory=list)
     returns: list[Value] = field(default_factory=list)
+    calls: list["UnresolvedCall"] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class UnresolvedCall:
+    """Retain operands for later source resolution; this is never an edge proof."""
+    result: Value
+    callee: Value
+    receiver: Value
+    arguments: tuple[Value, ...]
+    type_arguments: tuple[str, ...]
+    candidates: tuple[str, ...]
+    return_types: tuple[str, ...]
+    type_bindings: tuple[tuple[str, str], ...]
+    reason: str
+    location: Location
+    function: str
+    conditions: tuple[str, ...] = ()
+    via: tuple[Location, ...] = ()
+    generic_types: tuple = ()
+    return_value: Value | None = None
 
 
 def match_storage(stored: Value, called: Value) -> tuple[str, ...] | None:

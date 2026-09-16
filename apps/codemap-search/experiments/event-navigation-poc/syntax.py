@@ -493,6 +493,10 @@ def load_program(root: Path, paths: list[str], max_files=4096, max_bytes=64 * 10
                     name = scoped_type_name(source, node)
                 if name:
                     owner = (program.resolve_type(source, name) if source.language == "rust" else "") or program.owner_key(source, name)
+                    if source.language == "rust" and node.type == "impl_item":
+                        parameters = child(node, "type_parameters")
+                        if parameters is not None and any(source.text(child(part, "name")) == name for part in parameters.named_children if part.type == "type_parameter"):
+                            owner = f"rust:type_variable:{source.path}:{node.start_byte}:{name}"
             if node.type in FUNCTIONS:
                 if parent and source.language in {"typescript", "tsx"} and node.type not in {"arrow_function", "method_definition"}:
                     owner = ""

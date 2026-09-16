@@ -1,0 +1,19 @@
+{
+  "baseline_commit": "02426ebdbd66e6f90833dbd9b50b42d51ea1fe47",
+  "bevy_revision": "29fe519f32a14503c8c0fab0baacafe76842bb76",
+  "purpose": "root_cause_diagnosis_only",
+  "analyzer_implementation_changed": false,
+  "canonical_results_changed": false,
+  "target_program_executed": false,
+  "files": {
+    "baseline.details.json.gz": "d85e066a0593e1cbc8f82e4b75fcf6b2b6a13d9ee2bca595a5a5ab4668a3aaa1",
+    "baseline.json": "496aed10cc4432192dc83b743a54f82ed19ce3d1e8e3ecfdcc2ff847bb8d268a",
+    "diagnose.py": "f91df0d3c93bcaaa6265284b16060e8ae63123346f81841e1c5c72471d84e3de",
+    "frontend.json": "dc8f20213f50897d173c3c5b5aaecd9035935b0d054fd2472a5f06c5ae73ca56",
+    "function-budget.details.json.gz": "4572f99f00ef14b8e84fa3a1d87929312cca9ef0f0a0a7cb41178c5ad69fc85b",
+    "function-budget.json": "8cb19994a29e214074cd05a56e7fd0bd4db573d76801b1a57d533b7867c7cc77",
+    "global-budget.details.json.gz": "cef5c9eda2ab1ca7ef4566dea479c80854f2b9e6f4aea4f886738846edded1db",
+    "global-budget.json": "9c9f9afae48ab58ae911e658b9f57d467e7bb19f18c26068779a8b43b704b6e5",
+    "probe_frontend.py": "7dec007baf77656cc3c5de947bfa3992e05bfc6b4fe8714fc22d828d4d65ea30"
+  }
+}

@@ -6,5 +6,6 @@
   "bevy_app": "crates/bevy_app/src/lib.rs",
   "bevy_ptr": "crates/bevy_ptr/src/lib.rs",
   "bevy_ecs_macros": "crates/bevy_ecs/macros/src/lib.rs",
-  "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs"
+  "bevy_ecs_macro_logic": "crates/bevy_ecs/macro_logic/src/lib.rs",
+  "bevy_platform": "crates/bevy_platform/src/lib.rs"
 }

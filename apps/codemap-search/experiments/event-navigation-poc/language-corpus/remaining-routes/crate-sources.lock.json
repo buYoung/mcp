@@ -48,6 +48,12 @@
       "source": "crates/bevy_ecs/macro_logic/src/lib.rs",
       "manifest": "crates/bevy_ecs/macro_logic/Cargo.toml",
       "manifest_sha256": "5253b58fdc8be948625360f389e4f83dacb25cfebf646bbfd9a49de2db030415"
+    },
+    {
+      "crate": "bevy_platform",
+      "source": "crates/bevy_platform/src/lib.rs",
+      "manifest": "crates/bevy_platform/Cargo.toml",
+      "manifest_sha256": "fd9f19571f224860d55a71ce3079501541e6bae7faa58ee63275299edaeda233"
     }
   ]
 }
