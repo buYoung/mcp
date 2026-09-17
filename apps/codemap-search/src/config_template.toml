@@ -1,4 +1,4 @@
-# codemap-config-version: 13
+# codemap-config-version: 14
 # codemap-search settings for this repository.
 # Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
 # Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
@@ -166,6 +166,10 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [tool_output]
+# Mask detected API keys, tokens, passwords and private keys in MCP responses.
+# Matching and local files/indexes keep original data. false disables output masking.
+is_redact_enabled = true
+
 # Maximum columns for a grep content-mode match; 0 disables the limit.
 # Longer lines are replaced with `[Omitted long matching line]`.
 grep_max_columns = 0

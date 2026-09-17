@@ -19,10 +19,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **13**. The marker is a comment:
+The current configuration schema is **14**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 13
+# codemap-config-version: 14
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -33,6 +33,7 @@ The current configuration schema is **13**. The marker is a comment:
 - Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
 - Version 12 introduced the commented `[event_navigation].is_enabled` opt-in, with event indexing disabled by default in that version.
 - Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
+- Version 14 adds `[tool_output].is_redact_enabled`, defaulting to `true`. Its migration adds a commented setting; the built-in default applies unless explicitly overridden.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
@@ -110,7 +111,7 @@ MCP watches the repo/global config directories that exist at startup, independen
 |---|---|
 | `excluded_directories`, all `[language_support]` switches | Reload requests a full index refresh; results reflect the change when it finishes |
 | All `[macro_expansion]` settings | Reload requests a full refresh, including when expansion is disabled |
-| Search output, caller annotation options, tool output limits, filesystem permissions | Subsequent tool requests after reload |
+| Search output, caller annotation options, tool output limits, `is_redact_enabled`, filesystem permissions | Subsequent tool requests after reload |
 | `index_staleness_ms`, `indexer_auto_restart` | Subsequent refresh/recovery decisions |
 | `max_file_size`, `use_git_exclude` | Subsequent walks/refreshes; changing them alone does not request a full refresh |
 | `navigation_store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
@@ -150,6 +151,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[search].search_literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[search].search_anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
+| `[tool_output].is_redact_enabled` | bool | `true` | Mask detected credentials in MCP responses; matching and local indexes retain original data |
 | `[tool_output].read_output_byte_cap` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -215,6 +217,14 @@ Successful expansion replaces source declarations with the active expanded decla
 Missing tools/headers, timeout, output limits, unsupported expanded syntax and explicit `#line`/`%line` remapping retain original declarations with the reason `Macro expansion unresolved`. NASM requires a version supporting `-Le -Lm -Lf`; validation used 2.16.03. Its listing pass assembles into the null device without running the resulting program. Validated listing labels/globals are projected into declaration input; instruction operands are not reinterpreted by the generic ASM parser. Generated `..@` macro-local labels are omitted. A pinned FFmpeg `x86inc.asm` macro was also checked with explicit architecture/format flags; this is not a full FFmpeg build. GNU assembler `.macro` expansion, other assembler dialects, and every repository's build configuration are not established by these checks.
 
 While enabled, workspace changes reconcile native files in a full refresh. Recorded external headers/build settings are checked on tool requests at most once per second. After failed preprocessing, a newly supplied external dependency may require a refresh or restart. Enabling this feature adds native-process work per eligible file; budget settings are per process, not per repository. macOS arm64 was validated; Windows/Linux execution remains unverified.
+
+### Credential redaction
+
+`[tool_output].is_redact_enabled = true` masks detected credential values in MCP tool responses, including source views, indexed literals, declaration/constant previews and error messages. The replacement is `[REDACTED]`, or asterisks for values shorter than that marker. Replacements preserve source line breaks and never increase output size. Disable it with `false`; changes apply after config reload without rebuilding the index.
+
+Built-in rules recognize credential assignment names such as `API_KEY`, `access_token`, `client_secret` and `password`, common token prefixes, JWT-shaped tokens, Bearer/Basic credentials, URL passwords and PEM private-key blocks. Quoted multiline values and indented YAML credential blocks retain context across read windows and grep matches. Detection happens before snippet/literal truncation; grep still matches original bytes. Separately read grep lines that changed or became unavailable are withheld. Detached indexed literals are withheld when current source cannot establish their context.
+
+This is pattern-based output masking, not comprehensive secret discovery. Unrecognized names/formats, encoded or assembled values can escape detection, and ordinary examples may be masked. Files, persisted indexes, matching/ranking, CLI output and stderr logs are unchanged. Other file-reading tools are outside this feature's scope.
 
 ### Output and call relationships
 
@@ -353,6 +363,7 @@ search_literal_limit = 60
 search_anchor_snippet_limit = 20
 
 [tool_output]
+is_redact_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
 

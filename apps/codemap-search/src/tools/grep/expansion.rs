@@ -69,7 +69,17 @@ impl ExpansionPage {
                 .0
                 .insert(line);
         }
-        let lines: Vec<_> = source
+        // Parse and match original bytes; only the presentation copy is masked before slicing.
+        let masked = source.map(crate::redact::source);
+        let source_lengths = source
+            .map(|s| {
+                s.split('\n')
+                    .map(|line| line.strip_suffix('\r').unwrap_or(line).len())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let lines: Vec<_> = masked
+            .as_deref()
             .map(|s| {
                 s.split('\n')
                     .map(|l| l.strip_suffix('\r').unwrap_or(l))
@@ -105,11 +115,20 @@ impl ExpansionPage {
                     .unwrap_or("");
                 let is_match = matches.contains(&line);
                 let sep = if is_match { ':' } else { '-' };
-                has_omitted_columns |= max_columns > 0 && value.len() > max_columns;
-                if max_columns == 0 || value.len() <= max_columns {
+                let source_byte_len = source_lengths
+                    .get(line.saturating_sub(1))
+                    .copied()
+                    .or_else(|| {
+                        hits.iter()
+                            .find(|hit| hit.line_number as usize == line)
+                            .map(|hit| hit.source_byte_len)
+                    })
+                    .unwrap_or(value.len());
+                has_omitted_columns |= max_columns > 0 && source_byte_len > max_columns;
+                if max_columns == 0 || source_byte_len <= max_columns {
                     source_lines.push(line);
                 }
-                let value = cap_line(value, max_columns, is_match);
+                let value = cap_line(value, source_byte_len, max_columns, is_match);
                 let prefix_start = text.len();
                 path_prefixes
                     .push(prefix_start..prefix_start + path.len() + usize::from(show_lines));

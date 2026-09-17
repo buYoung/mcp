@@ -99,6 +99,8 @@ MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호�
 
 키별 우선순위는 `<repo>/.codemap/config.toml` → `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) → 내장 기본값입니다. 활성화된 저장소 키가 전역값보다 우선하며, 전역값을 상속하려면 해당 키를 주석 처리합니다.
 
+MCP 응답에서 탐지한 API 키·토큰·비밀번호·비밀키를 기본으로 가립니다. `[tool_output].is_redact_enabled = false`로 끌 수 있습니다. 검색 일치·순위는 원문을 기준으로 유지하며 파일과 로컬 색인은 변경하지 않습니다. 패턴 기반 탐지이므로 알려지지 않은 형식은 누락할 수 있습니다. 적용 범위와 한계는 [민감값 마스킹](./docs/configuration.ko.md#민감값-마스킹)을 참고하세요.
+
 자동 심볼·호출 관계에서는 기본적으로 테스트 영역을 제외합니다. `[exclude].should_include_test_code = true`이면 포함합니다. `test_file_patterns`와 언어별 `test_attributes`, `test_decorators`, `test_calls` 목록에서 사용자 규칙을 추가하거나 내장 항목을 지울 수 있습니다. 명시한 목록은 상속값을 대체하고 `[]`이면 해당 목록을 끕니다. 직접 `read`·`grep`한 원문은 유지합니다. 기본값과 예시는 [테스트 코드 문맥](./docs/configuration.ko.md#테스트-코드-문맥)을 참고하세요.
 
 첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 감지한 프로젝트 종류의 재귀 glob**을 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 `**/node_modules`, `**/dist`, `**/build`, 프레임워크 출력과 캐시의 glob을 추가하고, Python·Rust 등도 해당 종류의 glob을 추가합니다. 같은 패턴은 한 번만 기록하며 프로젝트를 발견한 폴더와 관계없이 작업공간 전체에 적용합니다.

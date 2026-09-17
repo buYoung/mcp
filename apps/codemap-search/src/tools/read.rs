@@ -213,13 +213,20 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
             )),
         }
     }
+    // Detect against the complete source before selecting a possibly interior secret line.
+    // Callable parsing above continues to use the original buffer.
+    let masked = crate::redact::source(content);
+    let displayed_lines: Vec<&str> = masked
+        .split('\n')
+        .map(|line| line.strip_suffix('\r').unwrap_or(line))
+        .collect();
     let window: Vec<&str> = match limit {
-        Some(n) => all_lines[start_line - 1..]
+        Some(n) => displayed_lines[start_line - 1..]
             .iter()
             .take(n)
             .copied()
             .collect(),
-        None => all_lines[start_line - 1..].to_vec(),
+        None => displayed_lines[start_line - 1..].to_vec(),
     };
 
     let rendered = add_line_numbers(&window, start_line);

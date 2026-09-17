@@ -52,10 +52,10 @@ max_output_bytes = "8mb"
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **13**이며 주석으로 표시합니다.
+현재 설정 버전은 **14**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 13
+# codemap-config-version: 14
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -66,6 +66,7 @@ max_output_bytes = "8mb"
 - 버전 9는 `[index]` 또는 최상위의 `excluded_directories`, `use_git_exclude`도 `[exclude]`로 옮깁니다. 기존 배열, 명시한 `[]`, 불리언 값과 주석을 보존하며 이 위치 전환으로 디렉터리 규칙을 추가하지 않습니다. 같은 파일에서는 유효한 `[exclude]` 값이 우선합니다.
 - 버전 12는 `[event_navigation].is_enabled` 주석을 추가했습니다. 해당 버전에서는 이벤트 색인이 기본으로 꺼져 있었습니다.
 - 버전 13부터 이벤트 색인과 관련 탐색 결과를 기본으로 제공합니다. 기존 `is_enabled=false` 값은 유지하며, 요청별로 `include_events=false`를 지정하면 이벤트 문맥을 생략합니다.
+- 버전 14는 기본값이 `true`인 `[tool_output].is_redact_enabled`를 추가합니다. 기존 설정에는 주석으로 추가되며, 값을 명시하지 않으면 내장 기본값을 적용합니다.
 - 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
 - 버전 10은 `[macro_expansion]` 주석 섹션을 추가했으며 당시에는 기본으로 꺼져 있었습니다. 현재는 외부 전처리기를 기본으로 사용하지만, 기존에 명시한 `is_enabled=false`는 유지합니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
@@ -142,7 +143,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | 설정 | 적용 시점 |
 |---|---|
 | `excluded_directories`, 모든 `[language_support]` 키 | 다시 읽은 뒤 전체 색인 갱신을 요청하고, 완료되면 결과에 반영 |
-| 검색 출력, 호출 관계 표시, 도구 출력 제한, 파일시스템 권한 | 설정을 다시 읽은 뒤 다음 도구 요청 |
+| 검색 출력, 호출 관계 표시, 도구 출력 제한, `is_redact_enabled`, 파일시스템 권한 | 설정을 다시 읽은 뒤 다음 도구 요청 |
 | `index_staleness_ms`, `indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `max_file_size`, `use_git_exclude` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
 | `navigation_store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
@@ -182,6 +183,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[search].search_literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[search].search_anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
+| `[tool_output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보를 가림. 검색 일치와 로컬 색인은 원문 유지 |
 | `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
@@ -212,6 +214,14 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 다섯 `[language_support]` 키는 색인, search, overview, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
 
 `use_git_exclude`는 `.git/info/exclude`만 제어합니다. `false`여도 `.gitignore`, 전역 Git 무시 규칙, `.codemapignore`는 적용됩니다.
+
+### 민감값 마스킹
+
+`[tool_output].is_redact_enabled = true`이면 MCP 도구 응답에서 탐지한 인증정보를 가립니다. 원문 보기, 색인의 문자열 값, 선언·상수 미리보기와 오류 메시지에도 적용합니다. 치환 표시는 `[REDACTED]`이며, 이 표시보다 짧은 값은 별표로 가립니다. 원문의 줄바꿈을 유지하고 응답 크기를 늘리지 않습니다. `false`로 끌 수 있으며, 설정을 다시 읽은 뒤 색인 재생성 없이 적용합니다.
+
+`API_KEY`, `access_token`, `client_secret`, `password` 같은 대입 이름, 알려진 토큰 접두사, JWT 형태, Bearer/Basic 인증정보, URL의 비밀번호와 PEM 비밀키 블록을 내장 규칙으로 탐지합니다. 따옴표 안의 여러 줄 값과 YAML의 들여쓴 인증정보 블록은 읽기 범위·grep 일치 줄 밖의 문맥도 확인합니다. 발췌와 문자열 값을 자르기 전에 마스킹하고, grep의 일치 판정은 원문으로 유지합니다. 별도로 다시 읽은 grep 줄이 변경되었거나 읽을 수 없으면 해당 표시값을 가립니다. 현재 원문에서 문맥을 확인할 수 없는 색인의 문자열 값도 가립니다.
+
+패턴 기반 처리이므로 알려지지 않은 이름·형식, 인코딩되거나 조합된 값은 놓칠 수 있고 일반 예제도 가릴 수 있습니다. 원본 파일, 저장된 색인, 검색 일치·순위, CLI 출력과 stderr 로그는 변경하지 않습니다. 다른 파일 읽기 도구의 응답은 이 기능의 적용 범위에 포함되지 않습니다.
 
 ### 출력과 호출 관계
 
@@ -350,6 +360,7 @@ search_literal_limit = 60
 search_anchor_snippet_limit = 20
 
 [tool_output]
+is_redact_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
 

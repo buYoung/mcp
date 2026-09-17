@@ -604,6 +604,7 @@ pub(crate) fn run_inner_with_metadata(
             "_Index is warming up (initial background indexing) — results may be empty or partial; retry shortly, or use grep/find for live results._\n\n",
         );
     } else if let Some(err) = ctx.engine.last_error() {
+        let err = crate::redact::source(&err);
         text.push_str(&format!(
             "_Last background index refresh failed: {err} — results may be stale._\n\n"
         ));
@@ -745,6 +746,7 @@ pub(crate) fn run_inner_with_metadata(
         // file's `render_anchored_symbols` call.
         let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
         for &res in detail_results {
+            let source = render::RenderSource::new(&res.file_path);
             if text.len() >= byte_cap {
                 budget_hit = true;
                 break;
@@ -856,7 +858,7 @@ pub(crate) fn run_inner_with_metadata(
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
-                        &res.file_path,
+                        &source,
                         matched_in_fallback,
                         &query_tokens,
                         &render_caps,
@@ -911,7 +913,7 @@ pub(crate) fn run_inner_with_metadata(
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
-                        &res.file_path,
+                        &source,
                         symbols,
                         &query_tokens,
                         &render_caps,
@@ -933,7 +935,7 @@ pub(crate) fn run_inner_with_metadata(
                 for lit in res.matched_literals.iter().take(literal_limit) {
                     if !text.push_source(&format!(
                         "- Literal: {:?} [L{}]\n",
-                        render::truncate_literal(&lit.text, literal_max_len),
+                        render::truncate_literal(&source.literal(lit), literal_max_len),
                         lit.line
                     )) {
                         budget_hit = true;

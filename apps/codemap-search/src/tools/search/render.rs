@@ -48,12 +48,21 @@ pub(super) fn truncate_literal(literal: &str, max_len: usize) -> String {
 }
 
 // Each file render owns this cache; nothing survives the current request.
-struct RenderSource<'a> {
+pub(super) struct RenderSource<'a> {
     file_path: &'a str,
     content: std::cell::OnceCell<Option<String>>,
+    masked: std::cell::OnceCell<Option<String>>,
 }
 
-impl RenderSource<'_> {
+impl<'a> RenderSource<'a> {
+    pub(super) fn new(file_path: &'a str) -> Self {
+        Self {
+            file_path,
+            content: std::cell::OnceCell::new(),
+            masked: std::cell::OnceCell::new(),
+        }
+    }
+
     fn content(&self) -> Option<&str> {
         tracing::trace!(target: "codemap_search::render_source", file_path = self.file_path,
             cache_hit = self.content.get().is_some(), "source access");
@@ -61,13 +70,51 @@ impl RenderSource<'_> {
             .get_or_init(|| std::fs::read_to_string(self.file_path).ok())
             .as_deref()
     }
+
+    fn displayed_content(&self) -> Option<&str> {
+        self.masked
+            .get_or_init(|| {
+                self.content()
+                    .map(|source| crate::redact::source(source).into_owned())
+            })
+            .as_deref()
+    }
+
+    pub(super) fn literal(&self, literal: &crate::parser::ExtractedLiteral) -> String {
+        if !crate::redact::is_enabled() {
+            return literal.text.clone();
+        }
+        let line = literal.line.saturating_sub(1);
+        let line_count = literal.text.bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let window = |text: &str| {
+            text.lines()
+                .skip(line)
+                .take(line_count)
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let original = self.content().map(window);
+        let displayed = self.displayed_content().map(window);
+        // Detached or stale indexed literals lack trustworthy credential context. Suppress
+        // them unless the current source line proves the value and remains unmasked.
+        if original
+            .zip(displayed)
+            .is_some_and(|(original, displayed)| {
+                original == displayed && original.contains(&literal.text.replace("\r\n", "\n"))
+            })
+        {
+            crate::redact::source(&literal.text).into_owned()
+        } else {
+            crate::redact::hidden(&literal.text)
+        }
+    }
 }
 
 /// Extract a symbol's source range with `read`-style line numbers (`␠␠␠␠␠1→content`).
 /// Numbered so the agent can cite exact lines straight from the detail view instead of
 /// re-reading the file to confirm them (the dominant post-discovery turn cost observed).
 fn get_code_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange) -> String {
-    if let Some(content) = source.content() {
+    if let Some(content) = source.displayed_content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -168,7 +215,12 @@ fn evidence_window(
         .map_or(best.2, |(i, _)| i);
     let window_start = start + best.2.max(first_hit.saturating_sub(2));
     let window_end = (window_start + max_lines).min(end);
-    let snippet = lines[window_start..window_end]
+    let displayed = source
+        .displayed_content()
+        .unwrap_or("")
+        .lines()
+        .collect::<Vec<_>>();
+    let snippet = displayed[window_start..window_end]
         .iter()
         .enumerate()
         .map(|(i, line)| format!("{:>6}→{}", window_start + i + 1, line))
@@ -480,7 +532,7 @@ pub(super) fn render_static_collection_edges(
 /// to this summary so the matched member's own full snippet is what carries the detail.
 fn get_summary_snippet(source: &RenderSource<'_>, range: &crate::parser::CodeRange) -> String {
     const SUMMARY_LINES: usize = 2;
-    if let Some(content) = source.content() {
+    if let Some(content) = source.displayed_content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -515,7 +567,7 @@ fn get_signature_snippet(
     range: &crate::parser::CodeRange,
     max_lines: usize,
 ) -> (String, usize) {
-    if let Some(content) = source.content() {
+    if let Some(content) = source.displayed_content() {
         let lines: Vec<&str> = content.lines().collect();
         if range.start_line > 0 && range.start_line <= lines.len() {
             let start = range.start_line - 1;
@@ -569,17 +621,14 @@ pub(super) struct AnchoredRenderOutcome {
 /// steals a full-snippet slot from a real member anchor (P2-loop-2 promoted/summary interaction).
 pub(super) fn render_anchored_symbols(
     text: &mut super::grouped::FileOutput,
-    file_path: &str,
+    source: &RenderSource<'_>,
     symbols: Vec<&crate::parser::ExtractedSymbol>,
     query: &crate::parser::QueryTokens,
     caps: &AnchoredRenderCaps,
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
     caller_block_dedup: &mut crate::callers::CallerBlockDedup,
 ) -> AnchoredRenderOutcome {
-    let source = RenderSource {
-        file_path,
-        content: std::cell::OnceCell::new(),
-    };
+    let file_path = source.file_path;
     let mut emitted_starts: std::collections::HashSet<usize> = std::collections::HashSet::new();
     let AnchoredRenderCaps {
         snippet_max_lines,
@@ -698,7 +747,7 @@ pub(super) fn render_anchored_symbols(
             } else {
                 1
             };
-            let (sig, more_lines) = get_signature_snippet(&source, &sym.range, sig_lines);
+            let (sig, more_lines) = get_signature_snippet(source, &sym.range, sig_lines);
             if sig.is_empty() {
                 emitted_ranges.push((start, start));
             } else {
@@ -749,7 +798,7 @@ pub(super) fn render_anchored_symbols(
                 .min()
                 .unwrap_or(end.saturating_add(1));
             (
-                get_summary_snippet(&source, &sym.range)
+                get_summary_snippet(source, &sym.range)
                     .lines()
                     .take(first_member.saturating_sub(start))
                     .collect::<Vec<_>>()
@@ -757,7 +806,7 @@ pub(super) fn render_anchored_symbols(
                 start,
             )
         } else {
-            evidence_window(&source, &sym.range, query, snippet_max_lines)
+            evidence_window(source, &sym.range, query, snippet_max_lines)
         };
         let snippet_lines = snippet.lines().count();
         let mut displayed_lines = snippet_lines.min(snippet_max_lines);

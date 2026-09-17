@@ -143,12 +143,10 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
     IdentifierRole::Reference
 }
 
-fn value_preview(value: Node<'_>, source: &str) -> Option<String> {
+fn value_preview(name: &str, value: Node<'_>, source: &str) -> Option<String> {
     // Preserve spaces inside literals; actual line breaks are escaped for a single row.
-    let value = value
-        .utf8_text(source.as_bytes())
-        .ok()?
-        .trim()
+    let raw = value.utf8_text(source.as_bytes()).ok()?.trim();
+    let value = crate::redact::named_value(name, raw)
         .replace('\r', "\\r")
         .replace('\n', "\\n");
     if value.chars().count() > 240 {
@@ -259,7 +257,7 @@ pub(super) fn collect_with_resolver(
                                     && !is_enclosed_by(node, declaration)
                                 {
                                     let value = value
-                                        .and_then(|value| value_preview(value, source))
+                                        .and_then(|value| value_preview(name, value, source))
                                         .map(|value| format!(" = {value}"))
                                         .unwrap_or_default();
                                     references.insert(

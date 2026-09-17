@@ -25,7 +25,69 @@ const DEFAULT_HEAD_LIMIT: usize = 250;
 struct LineHit {
     line_number: u64,
     text: String,
+    source_byte_len: usize,
     is_match: bool,
+}
+
+fn source_stamp(path: &std::path::Path) -> Option<(u64, SystemTime)> {
+    let metadata = std::fs::metadata(path).ok()?;
+    Some((metadata.len(), metadata.modified().ok()?))
+}
+
+/// Reuse the matching buffer when available. Otherwise scan through the last returned hit,
+/// retaining multiline credential context without loading an arbitrarily large file.
+fn redact_hits(
+    path: &std::path::Path,
+    bytes: Option<&[u8]>,
+    expected_stamp: Option<(u64, SystemTime)>,
+    hits: &mut [LineHit],
+) {
+    use std::io::{BufRead, BufReader, Cursor};
+    if !crate::redact::is_enabled() || hits.is_empty() {
+        return;
+    }
+    let reader: std::io::Result<Box<dyn BufRead + '_>> = match bytes {
+        Some(bytes) => Ok(Box::new(Cursor::new(bytes))),
+        None if expected_stamp.is_none() || expected_stamp != source_stamp(path) => Err(
+            std::io::Error::other("source changed before credential scan"),
+        ),
+        None => {
+            std::fs::File::open(path).map(|file| Box::new(BufReader::new(file)) as Box<dyn BufRead>)
+        }
+    };
+    let mut next = 0;
+    if let Ok(mut reader) = reader {
+        let mut redactor = crate::redact::LineRedactor::default();
+        let mut line = Vec::new();
+        let mut line_number = 0;
+        while next < hits.len() {
+            line.clear();
+            match reader.read_until(b'\n', &mut line) {
+                Ok(0) | Err(_) => break,
+                Ok(_) => line_number += 1,
+            }
+            let decoded = String::from_utf8_lossy(&line);
+            let original = strip_eol(&decoded);
+            let masked = redactor.line(original);
+            while next < hits.len() && hits[next].line_number == line_number {
+                let hit = &mut hits[next];
+                // A concurrent edit invalidates the context of a separately read hit.
+                hit.text = if hit.text == original {
+                    masked.clone()
+                } else {
+                    crate::redact::hidden(&hit.text)
+                };
+                next += 1;
+            }
+        }
+    }
+    if bytes.is_none() && expected_stamp != source_stamp(path) {
+        next = 0;
+    }
+    // Unavailable source context must not expose an unclassified password fragment.
+    for hit in &mut hits[next..] {
+        hit.text = crate::redact::hidden(&hit.text);
+    }
 }
 
 /// Collects matched + context lines for a single file. `occurrences` counts match
@@ -58,6 +120,7 @@ impl Sink for CollectSink {
             self.hits.push(LineHit {
                 line_number: start + i as u64,
                 text: line.to_string(),
+                source_byte_len: line.len(),
                 is_match: true,
             });
         }
@@ -75,6 +138,7 @@ impl Sink for CollectSink {
         self.hits.push(LineHit {
             line_number: ctx.line_number().unwrap_or(0),
             text: line.to_string(),
+            source_byte_len: line.len(),
             is_match: false,
         });
         Ok(true)
@@ -127,8 +191,8 @@ fn content_anchors(page: &[ContentRow]) -> Vec<LiveAnchor> {
 /// Cap a line at the column limit, replacing an over-long line with ripgrep's omission
 /// marker (`--max-columns` parity). Matched lines and context lines get distinct markers.
 /// `max_columns == 0` disables the cap. Width is measured in bytes, matching ripgrep.
-fn cap_line(text: &str, max_columns: usize, is_match: bool) -> String {
-    if max_columns > 0 && text.len() > max_columns {
+fn cap_line(text: &str, source_byte_len: usize, max_columns: usize, is_match: bool) -> String {
+    if max_columns > 0 && source_byte_len > max_columns {
         if is_match {
             "[Omitted long matching line]".to_string()
         } else {
@@ -356,6 +420,10 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         } else {
             None
         };
+        let expected_stamp =
+            (crate::redact::is_enabled() && output_mode == "content" && bytes.is_none())
+                .then(|| source_stamp(p))
+                .flatten();
         let searched = if let Some(bytes) = bytes.as_ref() {
             // Matching, syntax bounds and rendering share this immutable live buffer.
             searcher.search_slice(&matcher, bytes, &mut sink)
@@ -366,6 +434,9 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
             continue;
         }
         if sink.occurrences > 0 {
+            if output_mode == "content" {
+                redact_hits(p, bytes.as_deref(), expected_stamp, &mut sink.hits);
+            }
             let display = p
                 .strip_prefix(&cwd_canonical)
                 .unwrap_or(p)
@@ -470,7 +541,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
             for f in &files {
                 for hit in &f.hits {
                     let sep = if hit.is_match { ':' } else { '-' };
-                    let text = cap_line(&hit.text, max_columns, hit.is_match);
+                    let text = cap_line(&hit.text, hit.source_byte_len, max_columns, hit.is_match);
                     let rendered = if show_line_numbers {
                         format!("{}{sep}{}{sep}{}", f.path, hit.line_number, text)
                     } else {
@@ -481,7 +552,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                         path: f.path.clone(),
                         line_number: hit.line_number,
                         is_match: hit.is_match,
-                        is_source_complete: max_columns == 0 || hit.text.len() <= max_columns,
+                        is_source_complete: max_columns == 0 || hit.source_byte_len <= max_columns,
                     });
                 }
             }
