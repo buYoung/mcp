@@ -64,28 +64,28 @@ indexer_auto_restart = true
 
 [search]
 # 상위 파일 중 상세 내용을 표시할 수입니다. 나머지는 간략 목록으로 표시합니다.
-result_threshold = 5
+result_threshold = 24
 
 # 간략 결과 목록의 최대 파일 수입니다.
-search_overview_file_limit = 12
+search_overview_file_limit = 80
 
 # 일치한 심볼마다 표시할 최대 발췌 줄 수입니다.
-search_detail_snippet_max_lines = 80
+search_detail_snippet_max_lines = 500
 
 # 상세 결과의 파일마다 표시할 최대 심볼 수입니다.
-search_detail_symbol_limit = 20
+search_detail_symbol_limit = 100
 
 # 부분 출력 안내를 포함한 검색 응답 크기 제한입니다. 단위는 바이트입니다.
-search_detail_byte_cap = "32kb"
+search_detail_byte_cap = "1mb"
 
 # 일치한 리터럴의 최대 표시 길이입니다. 단위는 문자 수입니다.
-search_literal_max_len = 200
+search_literal_max_len = 1200
 
 # 파일마다 표시할 최대 일치 리터럴 수입니다.
-search_literal_limit = 10
+search_literal_limit = 60
 
 # 파일마다 전체 발췌를 표시할 최대 심볼 수입니다. 나머지는 짧은 선언으로 표시합니다.
-search_anchor_snippet_limit = 3
+search_anchor_snippet_limit = 20
 
 [caller_context]
 # 검색에서 호출자·호출 대상 정보를 기본 표시합니다. 호출별 `caller_context` 인자가 우선합니다.
@@ -104,7 +104,7 @@ navigation_callsite_budget = 1000
 navigation_store_references = false
 
 # 호출자 탐색의 검색 건수 제한입니다. 이름별로 나누되 이름당 최소 25건을 허용합니다.
-scan_cap = 500
+scan_cap = 16000
 
 # 심볼마다 표시할 최대 호출자 또는 함수 호출 외의 참조 수입니다.
 caller_list_cap = 1000
@@ -114,7 +114,7 @@ callee_list_cap = 1000
 
 # `search_detail_byte_cap` 안에서 호출 관계의 출력 크기 제한입니다. 단위는 바이트입니다.
 # 원문 발췌가 우선이며 생략한 정보는 안내합니다.
-annotation_sub_budget = "8kb"
+annotation_sub_budget = "128kb"
 
 # 같은 이름의 정의가 이 수 이상이면 추정 호출 관계에 모호함을 표시합니다.
 common_name_threshold = 2

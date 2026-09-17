@@ -173,14 +173,14 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[refresh].watch_debounce_ms` | 정수(ms) | `500` | 파일 변경을 모아서 처리하는 시간 |
 | `[refresh].index_staleness_ms` | 정수(ms) | `5000` | 파일 감시를 쓸 수 없을 때 요청 기반 갱신 간격 |
 | `[refresh].indexer_auto_restart` | bool | `true` | 백그라운드 색인이 중단되면 자동 복구 |
-| `[search].result_threshold` | 정수 | `5` | 상세 내용을 표시할 상위 파일 수 |
-| `[search].search_overview_file_limit` | 정수 | `12` | 나머지 간략 목록에 표시할 최대 파일 수 |
-| `[search].search_detail_snippet_max_lines` | 정수 | `80` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
-| `[search].search_detail_symbol_limit` | 정수 | `20` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내 |
-| `[search].search_detail_byte_cap` | 정수 바이트 또는 크기 문자열 | `"32kb"` (`32768`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
-| `[search].search_literal_max_len` | 정수(문자) | `200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
-| `[search].search_literal_limit` | 정수 | `10` | 파일마다 표시할 최대 리터럴 수 |
-| `[search].search_anchor_snippet_limit` | 정수 | `3` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
+| `[search].result_threshold` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
+| `[search].search_overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
+| `[search].search_detail_snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
+| `[search].search_detail_symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내 |
+| `[search].search_detail_byte_cap` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
+| `[search].search_literal_max_len` | 정수(문자) | `1200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
+| `[search].search_literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
+| `[search].search_anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
@@ -196,10 +196,10 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[caller_context].navigation_context_default` | bool | `false` | 소스 구조로 호출 대상을 확인하면 `precise`로 표시 |
 | `[caller_context].navigation_callsite_budget` | 정수 | `1000` | 이름 기반 추정으로 전환하기 전 검사할 최대 호출 위치 수 |
 | `[caller_context].navigation_store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
-| `[caller_context].scan_cap` | 정수 | `500` | 호출자 탐색에서 이름별로 나눠 쓸 검색 건수 제한. 이름당 최소 25건 |
+| `[caller_context].scan_cap` | 정수 | `16000` | 호출자 탐색에서 이름별로 나눠 쓸 검색 건수 제한. 이름당 최소 25건 |
 | `[caller_context].caller_list_cap` | 정수 | `1000` | 심볼마다 표시할 최대 호출자 또는 비호출 참조 수 |
 | `[caller_context].callee_list_cap` | 정수 | `1000` | 심볼마다 표시할 최대 호출 대상 수 |
-| `[caller_context].annotation_sub_budget` | 정수 바이트 또는 크기 문자열 | `"8kb"` (`8192`) | `search_detail_byte_cap` 안에서 호출 관계의 출력 크기 제한 |
+| `[caller_context].annotation_sub_budget` | 정수 바이트 또는 크기 문자열 | `"128kb"` (`131072`) | `search_detail_byte_cap` 안에서 호출 관계의 출력 크기 제한 |
 | `[caller_context].common_name_threshold` | 정수 | `2` | 같은 이름의 정의가 이 수 이상이면 모호함 표시 |
 | `[caller_context].caller_omit_def_threshold` | 정수 | `5` | 같은 이름의 정의가 이 수 이상이면 추정 호출자 목록을 생략하고 `grep` 안내. 호출 대상 목록에는 미적용 |
 
@@ -221,7 +221,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 `read_output_byte_cap`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
 
-읽기 한도를 늘려도 검색·관계 문맥·파싱의 별도 제한은 유지합니다. 검색 응답은 기본 32 KiB, 호출 관계는 그 안에서 8 KiB입니다. 호출자 수집도 `scan_cap = 500`을 사용하므로 caller/callee 1000은 표시 가능한 최대 개수이며 실제 1000건 출력을 보장하지 않습니다. 실시간 `read`/`grep` 문맥에는 공유 16 KiB 고정 상한도 있습니다. 함수 확장 파싱은 `min(max_file_size, 4 MiB)`이며 기본값으로는 1 MiB입니다. 한도를 높이면 허용 응답 크기와 출력 처리량이 늘지만, 이 값으로 소비 클라이언트의 응답 한도까지 확인할 수는 없습니다.
+읽기 한도를 늘려도 검색·관계 문맥·파싱의 별도 제한은 유지합니다. 검색 응답은 기본 1 MiB, 호출 관계는 그 안에서 128 KiB입니다. 호출자 수집은 `scan_cap = 16000`을 검색할 이름들이 나누어 사용하며, caller/callee 1000은 표시 가능한 최대 개수이므로 실제 1000건 출력을 보장하지 않습니다. 실시간 `read`/`grep` 문맥에는 공유 16 KiB 고정 상한도 있습니다. 함수 확장 파싱은 `min(max_file_size, 4 MiB)`이며 기본값으로는 1 MiB입니다. 한도를 높이면 허용 응답 크기와 출력 처리량이 늘지만, 이 값으로 소비 클라이언트의 응답 한도까지 확인할 수는 없습니다.
 
 내장 기본값이 바뀌어도 기존 저장소·전역 설정에 명시한 값은 유지합니다. 새 기본값을 쓰려면 이전 덮어쓰기 값을 삭제·주석 처리하거나 직접 바꿔야 하며, 재시작만으로 교체되지는 않습니다.
 
@@ -340,14 +340,14 @@ index_staleness_ms = 5000
 indexer_auto_restart = true
 
 [search]
-result_threshold = 5
-search_overview_file_limit = 12
-search_detail_snippet_max_lines = 80
-search_detail_symbol_limit = 20
-search_detail_byte_cap = "32kb"
-search_literal_max_len = 200
-search_literal_limit = 10
-search_anchor_snippet_limit = 3
+result_threshold = 24
+search_overview_file_limit = 80
+search_detail_snippet_max_lines = 500
+search_detail_symbol_limit = 100
+search_detail_byte_cap = "1mb"
+search_literal_max_len = 1200
+search_literal_limit = 60
+search_anchor_snippet_limit = 20
 
 [tool_output]
 grep_max_columns = 0
@@ -370,10 +370,10 @@ caller_context_default = true
 navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false
-scan_cap = 500
+scan_cap = 16000
 caller_list_cap = 1000
 callee_list_cap = 1000
-annotation_sub_budget = "8kb"
+annotation_sub_budget = "128kb"
 common_name_threshold = 2
 caller_omit_def_threshold = 5
 ```

@@ -141,14 +141,14 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[refresh].watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `[refresh].index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
 | `[refresh].indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
-| `[search].result_threshold` | integer | `5` | Number of top-ranked files `search` renders as details before the ranked tail |
-| `[search].search_overview_file_limit` | integer | `12` | Max file headers in `search`'s compact ranked tail |
-| `[search].search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
-| `[search].search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
-| `[search].search_detail_byte_cap` | integer bytes or size string | `"32kb"` (`32768`) | Output size limit in bytes for one `search` response, including the partial-output footer |
-| `[search].search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
-| `[search].search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
-| `[search].search_anchor_snippet_limit` | integer | `3` | Maximum full snippets per file; further matches use signatures of up to three lines |
+| `[search].result_threshold` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
+| `[search].search_overview_file_limit` | integer | `80` | Max file headers in `search`'s compact ranked tail |
+| `[search].search_detail_snippet_max_lines` | integer | `500` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
+| `[search].search_detail_symbol_limit` | integer | `100` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
+| `[search].search_detail_byte_cap` | integer bytes or size string | `"1mb"` (`1048576`) | Output size limit in bytes for one `search` response, including the partial-output footer |
+| `[search].search_literal_max_len` | integer (chars) | `1200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
+| `[search].search_literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
+| `[search].search_anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[tool_output].read_output_byte_cap` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -164,10 +164,10 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[caller_context].navigation_context_default` | bool | `false` | Check source structure and mark confirmed call targets `precise` |
 | `[caller_context].navigation_callsite_budget` | integer | `1000` | Maximum call sites checked before using approximate name-based scanning |
 | `[caller_context].navigation_store_references` | bool | `false` | Store reference locations other than function calls |
-| `[caller_context].scan_cap` | integer | `500` | Caller-scan hit limit, shared across names (minimum 25/name) |
+| `[caller_context].scan_cap` | integer | `16000` | Caller-scan hit limit, shared across names (minimum 25/name) |
 | `[caller_context].caller_list_cap` | integer | `1000` | Max callers (or non-call references) rendered per symbol |
 | `[caller_context].callee_list_cap` | integer | `1000` | Max callees rendered per symbol |
-| `[caller_context].annotation_sub_budget` | integer bytes or size string | `"8kb"` (`8192`) | Call-relationship output size within `search_detail_byte_cap` |
+| `[caller_context].annotation_sub_budget` | integer bytes or size string | `"128kb"` (`131072`) | Call-relationship output size within `search_detail_byte_cap` |
 | `[caller_context].common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
 | `[caller_context].caller_omit_def_threshold` | integer | `5` | Definition count for the same name at which the approximate caller list is replaced with a `grep` suggestion; callees unaffected |
 
@@ -224,7 +224,7 @@ While enabled, workspace changes reconcile native files in a full refresh. Recor
 
 `read_output_byte_cap` includes line numbers, context, and headings, and also bounds callable-expanded `grep`. Oversized `read` output returns an error with a narrower `offset`/`limit` suggestion. Expanded grep reports oversized bodies or pagination instead of silently splitting a callable. A separate 256 KiB whole-file limit applies to `read` when `limit` is omitted and callable expansion is off. `grep_max_columns = 0` disables the long-line limit; otherwise long matches become `[Omitted long matching line]`. Partial `grep` pages report `next_offset`.
 
-Raising the read cap does not raise the independent search, annotation, or parsing limits. Search remains capped at 32 KiB, with an 8 KiB annotation sub-budget. Caller scans still use `scan_cap = 500`, so 1000-entry caller/callee lists are upper bounds, not guaranteed output counts. Live `read`/`grep` context also has a fixed shared 16 KiB ceiling. Callable parsing accepts at most `min(max_file_size, 4 MiB)`, which is 1 MiB by default. Larger caps permit larger responses and more rendering work; they do not establish any consuming client's response limit.
+Raising the read cap does not raise the independent search, annotation, or parsing limits. Search defaults to a 1 MiB cap, with a 128 KiB annotation sub-budget. Caller scans use `scan_cap = 16000`, shared across scanned names; 1000-entry caller/callee lists remain upper bounds, not guaranteed output counts. Live `read`/`grep` context also has a fixed shared 16 KiB ceiling. Callable parsing accepts at most `min(max_file_size, 4 MiB)`, which is 1 MiB by default. Larger caps permit larger responses and more rendering work; they do not establish any consuming client's response limit.
 
 Existing explicit repo/global values are preserved when built-in defaults change. Remove, comment out, or update an old override to use the new value; restarting alone does not replace it.
 
@@ -343,14 +343,14 @@ index_staleness_ms = 5000
 indexer_auto_restart = true
 
 [search]
-result_threshold = 5
-search_overview_file_limit = 12
-search_detail_snippet_max_lines = 80
-search_detail_symbol_limit = 20
-search_detail_byte_cap = "32kb"
-search_literal_max_len = 200
-search_literal_limit = 10
-search_anchor_snippet_limit = 3
+result_threshold = 24
+search_overview_file_limit = 80
+search_detail_snippet_max_lines = 500
+search_detail_symbol_limit = 100
+search_detail_byte_cap = "1mb"
+search_literal_max_len = 1200
+search_literal_limit = 60
+search_anchor_snippet_limit = 20
 
 [tool_output]
 grep_max_columns = 0
@@ -373,10 +373,10 @@ caller_context_default = true
 navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false
-scan_cap = 500
+scan_cap = 16000
 caller_list_cap = 1000
 callee_list_cap = 1000
-annotation_sub_budget = "8kb"
+annotation_sub_budget = "128kb"
 common_name_threshold = 2
 caller_omit_def_threshold = 5
 ```

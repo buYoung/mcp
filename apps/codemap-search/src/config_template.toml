@@ -64,28 +64,28 @@ indexer_auto_restart = true
 
 [search]
 # Number of top-ranked files shown with details before the compact list.
-result_threshold = 5
+result_threshold = 24
 
 # Maximum files in the compact result list.
-search_overview_file_limit = 12
+search_overview_file_limit = 80
 
 # Maximum snippet lines per matched symbol.
-search_detail_snippet_max_lines = 80
+search_detail_snippet_max_lines = 500
 
 # Maximum symbols shown per detailed file.
-search_detail_symbol_limit = 20
+search_detail_symbol_limit = 100
 
 # Search response size limit in bytes, including the partial-output notice.
-search_detail_byte_cap = "32kb"
+search_detail_byte_cap = "1mb"
 
 # Maximum displayed length of a matched literal, in characters.
-search_literal_max_len = 200
+search_literal_max_len = 1200
 
 # Maximum matched literals shown per file.
-search_literal_limit = 10
+search_literal_limit = 60
 
 # Maximum symbols per file shown with full snippets; further matches use short signatures.
-search_anchor_snippet_limit = 3
+search_anchor_snippet_limit = 20
 
 [caller_context]
 # Show caller/callee context by default in search. The per-call `caller_context` argument wins.
@@ -104,7 +104,7 @@ navigation_callsite_budget = 1000
 navigation_store_references = false
 
 # Caller-scan hit limit, shared across scanned names with a minimum of 25 hits per name.
-scan_cap = 500
+scan_cap = 16000
 
 # Maximum callers or non-call references shown per symbol.
 caller_list_cap = 1000
@@ -114,7 +114,7 @@ callee_list_cap = 1000
 
 # Call-relationship output size limit in bytes within `search_detail_byte_cap`.
 # Source snippets take priority; omitted context is noted.
-annotation_sub_budget = "8kb"
+annotation_sub_budget = "128kb"
 
 # Definition count for the same name at which approximate relationships are labeled ambiguous.
 common_name_threshold = 2

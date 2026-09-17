@@ -136,7 +136,7 @@ pub struct ResolvedConfig {
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
     /// Number of top-ranked files `search` renders as details before remaining matches
-    /// become compact ranked-tail rows (default 5).
+    /// become compact ranked-tail rows (default 24).
     pub result_threshold: usize,
     /// Files larger than this (bytes) are skipped before read/parse (default 1 MiB).
     pub max_file_size: u64,
@@ -158,7 +158,7 @@ pub struct ResolvedConfig {
     /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
     /// is corrected by the follow-up read/grep.
     pub index_staleness_ms: u64,
-    /// Max file headers `search` emits in the compact ranked tail (default 12). Caps
+    /// Max file headers `search` emits in the compact ranked tail (default 80). Caps
     /// the context a broad query can spend after the top `result_threshold` detail files.
     /// Output-size only — safe to tune.
     pub search_overview_file_limit: usize,
@@ -201,21 +201,21 @@ pub struct ResolvedConfig {
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
-    /// `search` detail-view per-symbol snippet line cap (default 80). A symbol body longer
+    /// `search` detail-view per-symbol snippet line cap (default 500). A symbol body longer
     /// than this is truncated with an elision marker. Output-size only.
     pub search_detail_snippet_max_lines: usize,
-    /// `search` detail-view per-file symbol cap (default 20). Beyond it, a "more symbols
+    /// `search` detail-view per-file symbol cap (default 100). Beyond it, a "more symbols
     /// not shown" note replaces the remaining symbols. Output-size only.
     pub search_detail_symbol_limit: usize,
-    /// Hard byte ceiling for one `search` response (default 32768 ≈ 32 KiB), including
+    /// Hard byte ceiling for one `search` response (default 1 MiB), including
     /// detail files, ranked tail, and the partial-output footer. Output-size only.
     pub search_detail_byte_cap: usize,
-    /// `search` matched-literal truncation length in characters (default 200). A longer
+    /// `search` matched-literal truncation length in characters (default 1200). A longer
     /// literal is cut with an ellipsis. Output-size only.
     pub search_literal_max_len: usize,
-    /// `search` per-file matched-literal count cap (default 10). Output-size only.
+    /// `search` per-file matched-literal count cap (default 60). Output-size only.
     pub search_literal_limit: usize,
-    /// `search` detail-view per-file anchor full-snippet cap (default 3). At most this many
+    /// `search` detail-view per-file anchor full-snippet cap (default 20). At most this many
     /// anchor symbols in one detail file render a FULL snippet; anchors ranked beyond the cap
     /// degrade to a ≤3-line signature (the Tier-2 abbreviation), not a one-line stub. A file
     /// whose anchor count is at or below the cap is unaffected. Output-size only — it bounds
@@ -236,14 +236,14 @@ pub struct ResolvedConfig {
     pub navigation_callsite_budget: usize,
     /// Whether extraction stores reference sites in `NavigationFile` (default false).
     pub navigation_store_references: bool,
-    /// Max call sites collected across the single combined-regex caller scan (default 500).
+    /// Max call sites collected across the single combined-regex caller scan (default 16000).
     /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
     pub scan_cap: usize,
     /// Per-symbol caller-list (or non-call-reference) cap (default 1000). Output-size only.
     pub caller_list_cap: usize,
     /// Per-symbol callee-list cap (default 1000). Output-size only.
     pub callee_list_cap: usize,
-    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 8192). A
+    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 128 KiB). A
     /// sub-limit, not an allowance added on top — snippets keep priority; annotations stop
     /// when either this or the remaining overall cap is exhausted.
     pub annotation_sub_budget: usize,
@@ -280,7 +280,7 @@ impl Default for ResolvedConfig {
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
-            result_threshold: 5,
+            result_threshold: 24,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
             excluded_directories: crate::workspace::EXCLUDED_DIRS
                 .iter()
@@ -295,7 +295,7 @@ impl Default for ResolvedConfig {
             .expect("built-in directory patterns are valid"),
             use_git_exclude: true,
             index_staleness_ms: 5_000,
-            search_overview_file_limit: 12,
+            search_overview_file_limit: 80,
             watch: true,
             watch_debounce_ms: 500,
             indexer_auto_restart: true,
@@ -307,22 +307,22 @@ impl Default for ResolvedConfig {
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 0,
             read_output_byte_cap: 5 * 1024 * 1024,
-            search_detail_snippet_max_lines: 80,
-            search_detail_symbol_limit: 20,
-            search_detail_byte_cap: 32_768,
-            search_literal_max_len: 200,
-            search_literal_limit: 10,
-            search_anchor_snippet_limit: 3,
+            search_detail_snippet_max_lines: 500,
+            search_detail_symbol_limit: 100,
+            search_detail_byte_cap: 1024 * 1024,
+            search_literal_max_len: 1200,
+            search_literal_limit: 60,
+            search_anchor_snippet_limit: 20,
             caller_context_default: true,
             should_include_test_code: false,
             test_code_rules: TestCodeRules::default(),
             navigation_context_default: false,
             navigation_callsite_budget: 1000,
             navigation_store_references: false,
-            scan_cap: 500,
+            scan_cap: 16_000,
             caller_list_cap: 1000,
             callee_list_cap: 1000,
-            annotation_sub_budget: 8192,
+            annotation_sub_budget: 128 * 1024,
             common_name_threshold: 2,
             caller_omit_def_threshold: 5,
         }
@@ -1931,19 +1931,19 @@ mod tests {
         let defaults = ResolvedConfig::default();
         assert!(cfg.config_auto_update);
         assert_eq!(cfg.index_path, defaults.index_path);
-        assert_eq!(cfg.result_threshold, 5);
+        assert_eq!(cfg.result_threshold, 24);
         assert_eq!(cfg.max_file_size, crate::workspace::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
-        assert_eq!(cfg.search_anchor_snippet_limit, 3);
+        assert_eq!(cfg.search_anchor_snippet_limit, 20);
         // Caller/callee context: annotation on by default, caps at their tuned values.
         assert!(cfg.caller_context_default);
         assert!(!cfg.should_include_test_code);
         assert_eq!(cfg.test_code_rules, TestCodeRules::default());
-        assert_eq!(cfg.scan_cap, 500);
+        assert_eq!(cfg.scan_cap, 16_000);
         assert_eq!(cfg.caller_list_cap, 1000);
         assert_eq!(cfg.callee_list_cap, 1000);
-        assert_eq!(cfg.annotation_sub_budget, 8192);
+        assert_eq!(cfg.annotation_sub_budget, 128 * 1024);
         assert_eq!(cfg.common_name_threshold, 2);
         assert!(!cfg.is_document_support_enabled);
         assert!(!cfg.is_shell_support_enabled);
@@ -1969,7 +1969,7 @@ mod tests {
         assert_eq!(cfg.common_name_threshold, 3);
         // Untouched keys keep their defaults.
         assert_eq!(cfg.caller_list_cap, 1000);
-        assert_eq!(cfg.annotation_sub_budget, 8192);
+        assert_eq!(cfg.annotation_sub_budget, 128 * 1024);
     }
 
     #[test]
@@ -2215,7 +2215,7 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         write_repo_config(repo.path(), "this is = = not valid toml [[[");
         let cfg = load(repo.path(), global.path());
         assert_eq!(
-            cfg.result_threshold, 5,
+            cfg.result_threshold, 24,
             "malformed config must degrade to defaults, not crash"
         );
     }
@@ -2231,7 +2231,7 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         );
         let cfg = load(repo.path(), global.path());
         assert_eq!(
-            cfg.result_threshold, 5,
+            cfg.result_threshold, 24,
             "bad-typed key must fall back to default"
         );
     }
@@ -2500,7 +2500,7 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         );
         // Explicit scaffolded defaults still resolve to the compiled-in defaults.
         let global = tempdir().unwrap();
-        assert_eq!(load(repo.path(), global.path()).result_threshold, 5);
+        assert_eq!(load(repo.path(), global.path()).result_threshold, 24);
     }
 
     #[test]
