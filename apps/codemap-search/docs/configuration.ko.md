@@ -182,7 +182,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[search].search_literal_limit` | 정수 | `10` | 파일마다 표시할 최대 리터럴 수 |
 | `[search].search_anchor_snippet_limit` | 정수 | `3` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
-| `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"50mb"` (`52428800`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
+| `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
@@ -351,7 +351,7 @@ search_anchor_snippet_limit = 3
 
 [tool_output]
 grep_max_columns = 0
-read_output_byte_cap = "50mb"             # 52428800 bytes
+read_output_byte_cap = "5mb"              # 5242880 bytes
 
 [filesystem_permissions]
 find = "workspace"

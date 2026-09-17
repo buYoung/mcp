@@ -172,7 +172,7 @@ grep_max_columns = 0
 
 # Read and callable-expanded grep response limit, including line numbers and context.
 # Oversized reads return a narrowing error; expanded grep reports oversized bodies or pagination.
-read_output_byte_cap = "50mb"
+read_output_byte_cap = "5mb"
 
 [filesystem_permissions]
 # Policies for find/grep/read: "workspace" (workspace only), "allowed_roots" (workspace plus listed roots),

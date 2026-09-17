@@ -197,7 +197,7 @@ pub struct ResolvedConfig {
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.
     pub grep_max_columns: usize,
-    /// `read` and callable-expanded `grep` output ceiling in bytes (default 50 MiB).
+    /// `read` and callable-expanded `grep` output ceiling in bytes (default 5 MiB).
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
@@ -306,7 +306,7 @@ impl Default for ResolvedConfig {
             is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 0,
-            read_output_byte_cap: 50 * 1024 * 1024,
+            read_output_byte_cap: 5 * 1024 * 1024,
             search_detail_snippet_max_lines: 80,
             search_detail_symbol_limit: 20,
             search_detail_byte_cap: 32_768,

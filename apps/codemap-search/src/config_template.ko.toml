@@ -172,7 +172,7 @@ grep_max_columns = 0
 
 # 줄 번호와 문맥을 포함한 read 및 함수 본문으로 확장된 grep의 출력 크기 제한입니다.
 # read 초과는 더 좁은 범위를 안내하는 오류를 반환하며, 확장된 grep은 본문 초과 또는 페이지 분할을 안내합니다.
-read_output_byte_cap = "50mb"
+read_output_byte_cap = "5mb"
 
 [filesystem_permissions]
 # find/grep/read 정책: "workspace"는 작업공간만, "allowed_roots"는 작업공간과 지정 루트,

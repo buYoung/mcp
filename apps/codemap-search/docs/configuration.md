@@ -150,7 +150,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[search].search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
 | `[search].search_anchor_snippet_limit` | integer | `3` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
-| `[tool_output].read_output_byte_cap` | integer bytes or size string | `"50mb"` (`52428800`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
+| `[tool_output].read_output_byte_cap` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -354,7 +354,7 @@ search_anchor_snippet_limit = 3
 
 [tool_output]
 grep_max_columns = 0
-read_output_byte_cap = "50mb"             # 52428800 bytes
+read_output_byte_cap = "5mb"              # 5242880 bytes
 
 [filesystem_permissions]
 find = "workspace"
