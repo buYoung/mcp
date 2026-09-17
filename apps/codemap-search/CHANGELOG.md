@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+`## [0.9.0] - 2026-09-17
+
+### Added
+
+- Added free-function scope, callee locations, and same-file constant initializers to `read` and `grep` context.
+- Added automatic links between abstract declarations and their implementations.
+- Added event relationship navigation and source-path tracing across 18 languages.
+- Added conditional value-flow and error-return summaries.
+- Added output controls and size-unit support.
+
+### Improved
+
+- Organized `read` and `grep` results by file, with clearer declaration sections and hierarchies.
+- Expanded default `grep` context to include function bodies.
+- Improved call lookup efficiency by avoiding unnecessary parsing and repeated analysis.
+
+### Fixed
+
+- Fixed recursive exclusion rules and exclusions for files passed directly to `grep`.
+- Fixed false call links from strings, comments, cross-language matches, and object members.
+- Fixed parsing errors in large repositories.
+- Fixed `grep` modes `files_with_matches` and `count` returning unwanted symbol context.
+- Fixed search output losing source text or showing relationships outside the displayed range.
+- Fixed `cm find` command routing.
+- Fixed inconsistent readiness checks during initial indexing.
+
+### Changed
+
+- Enabled event analysis and related context by default.
+- Excluded test code from automatic context by default, with per-language rules that can be replaced or disabled.
+- Consolidated exclusion settings under `exclude`, preserving values, comments, and support for legacy configuration keys.
+- Raised default read output to 5MiB and search output to 1MiB, with larger caller/callee limits and relationship budgets.
+
 ## [0.8.1] - 2026-09-12
 
 ### Added
