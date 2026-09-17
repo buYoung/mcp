@@ -137,8 +137,9 @@ fn signal_symbol_label(signal: &crate::index::SearchRankingSignal) -> String {
 /// sentence. When the file ranked in on a qualified-name string literal (`encoding::base64::decode`),
 /// that literal is named verbatim — it is the discriminative reason this file matched, and surfacing
 /// it stops a legacy dispatch table from being mislabeled by a weak module symbol.
-fn match_reason(res: &crate::index::SearchResult) -> String {
+fn match_reason(res: &crate::index::SearchResult, source: &render::RenderSource<'_>) -> String {
     if let Some(literal) = &res.qualified_literal_hit {
+        let literal = source.matched_literal_value(literal, &res.matched_literals);
         return format!("matched literal: `{literal}`");
     }
     if let Some(signal) = &res.ranking_signal {
@@ -229,11 +230,16 @@ impl CrossPathPresence {
 
     /// The cross-path note for one result, if its qualified literal is handled in both a literal
     /// (dispatch) site and a symbol (implementation) site.
-    fn note_for(&self, res: &crate::index::SearchResult) -> Option<String> {
+    fn note_for(
+        &self,
+        res: &crate::index::SearchResult,
+        source: &render::RenderSource<'_>,
+    ) -> Option<String> {
         let literal = res.qualified_literal_hit.as_ref()?;
         let (literal_count, symbol_count) = self.counts.get(literal).copied()?;
         if literal_count > 0 && symbol_count > 0 {
             let paths = literal_count + symbol_count;
+            let literal = source.matched_literal_value(literal, &res.matched_literals);
             return Some(format!(
                 "`{literal}` 이름은 {paths}개 경로에 존재 (구현 심볼 {symbol_count} + dispatch 리터럴 {literal_count}) — 둘 다 확인",
             ));
@@ -245,10 +251,11 @@ impl CrossPathPresence {
 fn ambiguity_note(
     res: &crate::index::SearchResult,
     cross_path: &CrossPathPresence,
+    source: &render::RenderSource<'_>,
 ) -> Option<String> {
     // Path-aware cross-path signal first: when this file's qualified literal is also implemented
     // as a symbol elsewhere in the results, that multi-route fact beats the same-name count.
-    if let Some(note) = cross_path.note_for(res) {
+    if let Some(note) = cross_path.note_for(res, source) {
         return Some(note);
     }
     if let Some(signal) = &res.ranking_signal {
@@ -296,10 +303,11 @@ fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
 }
 
 #[derive(Debug)]
-struct AnchorMapEntry {
+struct AnchorMapEntry<'a> {
     label: String,
     line: usize,
     covered_tokens: BTreeSet<String>,
+    literal: Option<&'a crate::parser::ExtractedLiteral>,
 }
 
 fn covered_query_tokens(text: &str, query: &crate::parser::QueryTokens) -> BTreeSet<String> {
@@ -317,6 +325,7 @@ fn covered_query_tokens(text: &str, query: &crate::parser::QueryTokens) -> BTree
 fn anchor_map(
     result: &crate::index::SearchResult,
     query: &crate::parser::QueryTokens,
+    source: &render::RenderSource<'_>,
 ) -> Option<String> {
     if query.is_empty() {
         return None;
@@ -345,6 +354,7 @@ fn anchor_map(
                 label: format!("symbol `{label}`"),
                 line: symbol.range.start_line,
                 covered_tokens,
+                literal: None,
             });
         }
     }
@@ -357,6 +367,7 @@ fn anchor_map(
                 label: format!("literal `{label}`"),
                 line: literal.line,
                 covered_tokens,
+                literal: Some(literal),
             });
         }
     }
@@ -400,9 +411,18 @@ fn anchor_map(
         .into_iter()
         .map(|index| {
             let anchor = &anchors[index];
+            // Selection, ordering and coverage use original evidence; only the
+            // displayed label is masked, before escaping and truncation.
+            let label = anchor.literal.map_or_else(
+                || anchor.label.clone(),
+                |literal| {
+                    let escaped: String = source.literal(literal).escape_debug().collect();
+                    format!("literal `{}`", render::truncate_literal(&escaped, 48))
+                },
+            );
             format!(
                 "{} @ L{} coverage {}/{}",
-                anchor.label,
+                label,
                 anchor.line,
                 anchor.covered_tokens.len(),
                 total_token_count
@@ -604,6 +624,7 @@ pub(crate) fn run_inner_with_metadata(
             "_Index is warming up (initial background indexing) — results may be empty or partial; retry shortly, or use grep/find for live results._\n\n",
         );
     } else if let Some(err) = ctx.engine.last_error() {
+        let err = crate::redact::source(&err);
         text.push_str(&format!(
             "_Last background index refresh failed: {err} — results may be stale._\n\n"
         ));
@@ -614,12 +635,19 @@ pub(crate) fn run_inner_with_metadata(
         ));
     }
     if results.is_empty() {
+        // A query can be an interior secret fragment with no independently
+        // detectable prefix. Without source evidence, do not echo it into MCP output.
+        let query_label = if crate::redact::is_enabled() {
+            String::new()
+        } else {
+            format!(" for `{query}`")
+        };
         if let Some(scope) = workspace_scope {
             text.push_str(&format!(
-                "No indexed matches for `{query}` inside workspace scope `{scope}`."
+                "No indexed matches{query_label} inside workspace scope `{scope}`."
             ));
         } else {
-            text.push_str(&format!("No indexed matches for `{query}`."));
+            text.push_str(&format!("No indexed matches{query_label}."));
         }
         // Only when the index is ready: a warming/dead index already carries its own
         // retry guidance above, and an empty result there says nothing about the code.
@@ -745,6 +773,7 @@ pub(crate) fn run_inner_with_metadata(
         // file's `render_anchored_symbols` call.
         let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
         for &res in detail_results {
+            let source = render::RenderSource::new(&res.file_path);
             if text.len() >= byte_cap {
                 budget_hit = true;
                 break;
@@ -768,8 +797,8 @@ pub(crate) fn run_inner_with_metadata(
                 let text = &mut file_output;
                 // Hints, compressed (Child 05 byte-flatten): match_reason and the cross-path/ambiguity
                 // note share one line; the read suggestion is its own short line.
-                let mut hint_line = format!("- match: {}", match_reason(res));
-                if let Some(ambiguity) = ambiguity_note(res, &cross_path) {
+                let mut hint_line = format!("- match: {}", match_reason(res, &source));
+                if let Some(ambiguity) = ambiguity_note(res, &cross_path, &source) {
                     hint_line.push_str(&format!("; {ambiguity}"));
                 }
                 let mut hints = format!("{hint_line}\n");
@@ -788,7 +817,7 @@ pub(crate) fn run_inner_with_metadata(
                     text.push_str(&hints);
                 }
                 if anchor_maps_enabled {
-                    if let Some(anchor_map) = anchor_map(res, &query_tokens) {
+                    if let Some(anchor_map) = anchor_map(res, &query_tokens, &source) {
                         if text.can_fit(anchor_map.len() + 128) {
                             text.push_str(&anchor_map);
                         }
@@ -856,7 +885,7 @@ pub(crate) fn run_inner_with_metadata(
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
-                        &res.file_path,
+                        &source,
                         matched_in_fallback,
                         &query_tokens,
                         &render_caps,
@@ -911,7 +940,7 @@ pub(crate) fn run_inner_with_metadata(
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
-                        &res.file_path,
+                        &source,
                         symbols,
                         &query_tokens,
                         &render_caps,
@@ -933,7 +962,7 @@ pub(crate) fn run_inner_with_metadata(
                 for lit in res.matched_literals.iter().take(literal_limit) {
                     if !text.push_source(&format!(
                         "- Literal: {:?} [L{}]\n",
-                        render::truncate_literal(&lit.text, literal_max_len),
+                        render::truncate_literal(&source.literal(lit), literal_max_len),
                         lit.line
                     )) {
                         budget_hit = true;
@@ -990,6 +1019,8 @@ pub(crate) fn run_inner_with_metadata(
             // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
             let mut notes: Vec<String> = Vec::new();
             if let Some(literal) = &res.qualified_literal_hit {
+                let source = render::RenderSource::new(&res.file_path);
+                let literal = source.matched_literal_value(literal, &res.matched_literals);
                 notes.push(format!("matched literal: `{literal}`"));
             }
             if !res.symbol_fallback {

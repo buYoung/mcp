@@ -593,7 +593,7 @@ pub(super) fn transparent(node: Node<'_>) -> Option<Node<'_>> {
     }
 }
 pub(super) fn is_positional_argument(node: Node<'_>) -> bool {
-    !matches!(
+    !(matches!(
         node.kind(),
         "spread_element"
             | "spread_argument"
@@ -602,7 +602,7 @@ pub(super) fn is_positional_argument(node: Node<'_>) -> bool {
             | "keyword_argument"
             | "named_argument"
             | "variadic_argument"
-    ) && !(matches!(node.kind(), "argument" | "value_argument") && node.named_child_count() != 1)
+    ) || matches!(node.kind(), "argument" | "value_argument") && node.named_child_count() != 1)
 }
 
 pub(super) fn has_opaque_modifiers(node: Node<'_>, source: &[u8]) -> bool {

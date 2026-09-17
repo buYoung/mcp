@@ -38,7 +38,9 @@ mod event_navigation;
 mod exclude;
 pub use event_navigation::EventNavigationConfig;
 mod macro_expansion;
+pub(crate) mod redact;
 pub use macro_expansion::MacroExpansionConfig;
+pub use redact::RedactConfig;
 mod scaffold;
 mod test_code;
 pub use test_code::TestCodeRules;
@@ -95,7 +97,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 13;
+const CONFIG_VERSION: u32 = 15;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -127,6 +129,9 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
+    /// Mask detected credentials in MCP output; source files and indexes stay unchanged.
+    pub is_redact_enabled: bool,
+    pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
@@ -274,6 +279,8 @@ impl ResolvedConfig {
 impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
+            is_redact_enabled: true,
+            redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             analysis_target_os: None,
@@ -334,6 +341,8 @@ impl Default for ResolvedConfig {
 /// (warn + ignore) during normalization so they also delegate.
 #[derive(Default)]
 struct ConfigLayer {
+    is_redact_enabled: Option<bool>,
+    redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
     analysis_target_os: Option<Option<String>>,
@@ -443,6 +452,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             "event_navigation" => {
                 layer.event_navigation = event_navigation::normalize(&value, path)
             }
+            "redact" => layer.redact = redact::normalize(&value, path),
             "macro_expansion" => layer.macro_expansion = macro_expansion::normalize(&value, path),
             "exclude" => exclude_value = Some(value),
             "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
@@ -525,7 +535,10 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "search_literal_limit"
                 | "search_anchor_snippet_limit"
         ),
-        "tool_output" => matches!(key, "grep_max_columns" | "read_output_byte_cap"),
+        "tool_output" => matches!(
+            key,
+            "grep_max_columns" | "read_output_byte_cap" | "is_redact_enabled"
+        ),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "caller_context" => matches!(
             key,
@@ -581,6 +594,7 @@ fn assign_config_key(
                 }
             };
         }
+        "is_redact_enabled" => layer.is_redact_enabled = as_bool(value, key_display, path),
         "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
@@ -690,6 +704,11 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
     let directory_exclusions = DirectoryExclusions::new(&excluded_directories)
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
+        is_redact_enabled: repo
+            .is_redact_enabled
+            .or(global.is_redact_enabled)
+            .unwrap_or(defaults.is_redact_enabled),
+        redact: redact::merge(repo.redact, global.redact),
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
         analysis_target_os: repo
@@ -1227,6 +1246,34 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 15,
+        key: "exceptions",
+        placement: KeyPlacement::Subtable("redact"),
+        english_block: "# Exact rule_id + detected value exceptions; no path-wide bypass.\n# exceptions = []",
+        korean_block: "# 규칙 식별자와 탐지 값이 모두 정확히 일치하는 예외입니다. 경로 전체를 제외하지 않습니다.\n# exceptions = []",
+    },
+    Migration {
+        version: 15,
+        key: "rules",
+        placement: KeyPlacement::Subtable("redact"),
+        english_block: "# Additional regex rules with custom.* IDs. See docs/configuration.md.\n# rules = []",
+        korean_block: "# custom.* 식별자를 가진 추가 정규식 규칙입니다. docs/configuration.ko.md를 참고하세요.\n# rules = []",
+    },
+    Migration {
+        version: 15,
+        key: "sensitive_fields",
+        placement: KeyPlacement::Subtable("redact"),
+        english_block: "# Additional sensitive field names; normalized exact matches.\n# sensitive_fields = []",
+        korean_block: "# 추가 민감 필드명입니다. 정규화한 이름이 정확히 일치할 때 적용합니다.\n# sensitive_fields = []",
+    },
+    Migration {
+        version: 14,
+        key: "is_redact_enabled",
+        placement: KeyPlacement::Subtable("tool_output"),
+        english_block: "# Mask detected credentials in MCP output. Files, indexes and matching keep original data.\n# is_redact_enabled = true",
+        korean_block: "# MCP 응답에서 탐지된 인증정보를 가립니다. 파일·인덱스·검색 일치는 원문을 유지합니다.\n# is_redact_enabled = true",
+    },
     Migration {
         version: 13,
         key: "use_builtin_rules",

@@ -4,3 +4,5 @@ Filesystem permissions for `read`, `find`, and `grep`:
 1. `workspace`: only paths inside the current workspace.
 2. `allowed_roots`: `workspace` plus the additional paths shown in the tool description.
 3. `anywhere`: any filesystem path reachable by the process.
+
+MCP output masks detected credentials by default (`tool_output.is_redact_enabled`). `[REDACTED]` or asterisks represent hidden values; do not treat them as source text or replacement code. Matching still uses original data. Pattern-based masking does not detect every secret format.

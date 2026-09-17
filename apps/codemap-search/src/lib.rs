@@ -12,5 +12,6 @@ pub mod lang;
 pub(crate) mod locations;
 pub mod mcp;
 pub mod parser;
+pub(crate) mod redact;
 pub mod tools;
 pub mod workspace;
