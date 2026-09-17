@@ -568,6 +568,10 @@ pub(crate) fn run_inner_with_metadata(
             .map(ToString::to_string),
     };
 
+    // Capture readiness before reading the index and keep it for this response. If the
+    // initial pass finishes after we read an empty snapshot, checking again while
+    // rendering would lose the warm-up notice and incorrectly report a ready no-match.
+    let is_warming = ctx.engine.is_warming();
     let (mut results, published_snapshot) = ctx
         .engine
         .search_with_context_and_snapshot_in_scope(
@@ -595,7 +599,7 @@ pub(crate) fn run_inner_with_metadata(
         text.push_str(
             "_Background indexer stopped — search results are frozen at the last index and may be stale; restart the server to recover. read/find/grep stay live._\n\n",
         );
-    } else if ctx.engine.is_warming() {
+    } else if is_warming {
         text.push_str(
             "_Index is warming up (initial background indexing) — results may be empty or partial; retry shortly, or use grep/find for live results._\n\n",
         );
@@ -621,7 +625,7 @@ pub(crate) fn run_inner_with_metadata(
         // retry guidance above, and an empty result there says nothing about the code.
         // The `workspace_scope: "all"` widening hint is already emitted above for
         // scoped searches, so don't repeat it here.
-        if !ctx.engine.is_dead() && !ctx.engine.is_warming() {
+        if !ctx.engine.is_dead() && !is_warming {
             text.push_str(
                 " Next: confirm with a scoped `grep` for the exact text (only supported source files are indexed, so unindexed files never appear here), or reword the query with different terms.",
             );
@@ -696,7 +700,7 @@ pub(crate) fn run_inner_with_metadata(
                 navigation_store_references: cfg.navigation_store_references,
             };
             let runtime_state = crate::callers::AnnotationRuntimeState {
-                is_warming: ctx.engine.is_warming(),
+                is_warming,
                 has_refresh_error: ctx.engine.last_error().is_some(),
                 is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
             };
@@ -1041,11 +1045,7 @@ pub(crate) fn run_inner_with_metadata(
     let mut text = finish_search_output(text, byte_cap, is_partial);
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial
-        && !ctx.engine.is_warming()
-        && !ctx.engine.is_dead()
-        && ctx.engine.last_error().is_none()
-    {
+    if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
         grouped::append_relations(
             &mut text,
             &grouped_files,
