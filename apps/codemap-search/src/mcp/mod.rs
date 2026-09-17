@@ -59,12 +59,13 @@ impl McpServer {
                     let req: JsonRpcRequest = match serde_json::from_str(&line) {
                         Ok(r) => r,
                         Err(e) => {
+                            let _redact_scope = crate::redact::begin_request();
                             let err_resp = JsonRpcResponse {
                                 jsonrpc: "2.0".to_string(),
                                 result: None,
                                 error: Some(serde_json::json!({
                                     "code": -32700,
-                                    "message": format!("Parse error: {}", e)
+                                    "message": crate::redact::source(&format!("Parse error: {}", e))
                                 })),
                                 id: None,
                             };
@@ -120,6 +121,21 @@ impl McpServer {
         params: Option<&Value>,
     ) -> Result<Value, (i64, String)> {
         let _config_scope = crate::config::pin_request();
+        let _redact_scope = crate::redact::begin_request();
+        match self.handle_request_inner(method, params) {
+            Ok(mut value) => {
+                crate::redact::response(&mut value);
+                Ok(value)
+            }
+            Err((code, message)) => Err((code, crate::redact::source(&message).into_owned())),
+        }
+    }
+
+    fn handle_request_inner(
+        &mut self,
+        method: &str,
+        params: Option<&Value>,
+    ) -> Result<Value, (i64, String)> {
         match method {
             "initialize" => {
                 // Echo the client's requested protocolVersion when we support it,

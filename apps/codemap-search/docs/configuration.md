@@ -19,10 +19,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **13**. The marker is a comment:
+The current configuration schema is **15**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 13
+# codemap-config-version: 15
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -33,6 +33,8 @@ The current configuration schema is **13**. The marker is a comment:
 - Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
 - Version 12 introduced the commented `[event_navigation].is_enabled` opt-in, with event indexing disabled by default in that version.
 - Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
+- Version 14 adds `[tool_output].is_redact_enabled`, defaulting to `true`. Its migration adds a commented setting; the built-in default applies unless explicitly overridden.
+- Version 15 adds commented empty `sensitive_fields`, `rules` and `exceptions` lists under `[redact]`, preserving existing rules and exceptions.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
@@ -110,7 +112,7 @@ MCP watches the repo/global config directories that exist at startup, independen
 |---|---|
 | `excluded_directories`, all `[language_support]` switches | Reload requests a full index refresh; results reflect the change when it finishes |
 | All `[macro_expansion]` settings | Reload requests a full refresh, including when expansion is disabled |
-| Search output, caller annotation options, tool output limits, filesystem permissions | Subsequent tool requests after reload |
+| Search output, caller annotation options, tool output limits, `is_redact_enabled`, `[redact]`, filesystem permissions | Subsequent tool requests after reload |
 | `index_staleness_ms`, `indexer_auto_restart` | Subsequent refresh/recovery decisions |
 | `max_file_size`, `use_git_exclude` | Subsequent walks/refreshes; changing them alone does not request a full refresh |
 | `navigation_store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
@@ -150,6 +152,10 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[search].search_literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[search].search_anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
+| `[tool_output].is_redact_enabled` | bool | `true` | Mask detected credentials in MCP responses; matching and local indexes retain original data |
+| `[redact].sensitive_fields` | string array | `[]` | Additional sensitive field names, matched exactly after case/separator normalization |
+| `[redact].rules` | inline-table array | `[]` | Additional regex rules, each with `id` and `pattern` |
+| `[redact].exceptions` | inline-table array | `[]` | Exact pairs of `rule_id` and detected `value` to exempt |
 | `[tool_output].read_output_byte_cap` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -215,6 +221,48 @@ Successful expansion replaces source declarations with the active expanded decla
 Missing tools/headers, timeout, output limits, unsupported expanded syntax and explicit `#line`/`%line` remapping retain original declarations with the reason `Macro expansion unresolved`. NASM requires a version supporting `-Le -Lm -Lf`; validation used 2.16.03. Its listing pass assembles into the null device without running the resulting program. Validated listing labels/globals are projected into declaration input; instruction operands are not reinterpreted by the generic ASM parser. Generated `..@` macro-local labels are omitted. A pinned FFmpeg `x86inc.asm` macro was also checked with explicit architecture/format flags; this is not a full FFmpeg build. GNU assembler `.macro` expansion, other assembler dialects, and every repository's build configuration are not established by these checks.
 
 While enabled, workspace changes reconcile native files in a full refresh. Recorded external headers/build settings are checked on tool requests at most once per second. After failed preprocessing, a newly supplied external dependency may require a refresh or restart. Enabling this feature adds native-process work per eligible file; budget settings are per process, not per repository. macOS arm64 was validated; Windows/Linux execution remains unverified.
+
+### Credential redaction
+
+`[tool_output].is_redact_enabled = true` masks detected credential values in MCP tool responses, including source views, indexed literals, declaration/constant previews and error messages. The replacement is `[REDACTED]`, or asterisks for values shorter than that marker. Replacements preserve source line breaks and never increase output size. Disable it with `false`; changes apply after config reload without rebuilding the index.
+
+Tree-sitter distinguishes literal values from references and types in recognized assignments, fields and default arguments. For example, `password: string = externalValue` is preserved, while the value in `password: string = "hardcoded-value"` is masked. Static parts of concatenated and interpolated strings are inspected too. Unsupported syntax, malformed regions and plain text retain name/pattern fallback. Unquoted ENV/INI values include semicolons and spaces.
+
+Detections retain original UTF-8 byte ranges, rule IDs and kinds, without copying secret values into metadata. Masking precedes source windows, snippets and literal truncation, including multiline strings, YAML blocks and PEM interiors. Indexed literals are matched to current source string nodes and locations: only detected ranges are hidden, leaving safe literals on the same line visible. Unverifiable or changed literals are withheld. Grep matching, counts and column limits use original bytes; changed or unavailable reread source is withheld.
+
+Built-in rule IDs identify token shapes, not verified live credentials:
+
+| Rule ID | Detection |
+|---|---|
+| `field.sensitive` | Values of sensitive fields such as `API_KEY`, `access_token`, `client_secret` and `password` |
+| `token.aws-access-key`, `token.github`, `token.openai`, `token.google` | Tokens with the corresponding prefix shapes |
+| `token.slack`, `token.jwt` | Slack tokens and JWT shapes |
+| `token.stripe`, `token.gitlab`, `token.npm`, `token.sendgrid` | Stripe secret/restricted keys and GitLab/npm/SendGrid tokens |
+| `credential.authorization`, `credential.bearer`, `credential.url-password` | Authorization Bearer/Basic values, Bearer values and URL passwords |
+| `private-key.pem` | PEM private-key blocks; a missing end marker hides the remaining source |
+
+Custom rules:
+
+```toml
+[redact]
+sensitive_fields = ["internalCredential"]
+rules = [{ id = "custom.acme", pattern = 'ACME_[A-Z0-9]+' }]
+exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
+```
+
+`internalCredential` also matches `internal_credential`. Additional names use exact normalized matches; built-in names retain suffix matching. Regex IDs must be unique, start with `custom.`, and contain only ASCII letters, digits, dots, underscores or hyphens. Patterns use Rust `regex` syntax, without backreferences or look-around. A participating `(?P<secret>...)` capture selects the masked range; otherwise the entire match is masked. Specify flags such as `(?s)` for multiline matching.
+
+An exception exempts only its rule and **entire detected source value**, both matched exactly. It does not exempt `ACME_EXAMPLEPLUS`; `password = "ACME_EXAMPLE"` remains covered by the independent `field.sensitive` rule. There are no file/path-wide or substring exceptions. Quoted values are compared without their outer quotes, retaining source escapes without decoding them.
+
+Each list follows repo → global → default precedence; an explicit list replaces its inherited list. `[]` clears that user list while preserving built-ins. Invalid lists, duplicate IDs, invalid regexes and patterns matching the empty string fall back for the entire config key. Warnings omit patterns, exception values and regex parser diagnostics. Schema 15 scaffolds empty lists; comment out a repo key to inherit its global list.
+
+Literal labels in match reasons, anchor maps and ranked tails are also masked before rendering or truncation. When there are no indexed matches, the response omits the input query to avoid echoing a secret fragment whose source context cannot be verified.
+
+The final JSON-RPC text pass reapplies token, credential and custom regex rules. Contextual source decisions happen before formatting, so final formatting cannot reinterpret types or references as credential assignments. Protocol IDs, object keys, numeric/boolean values and parent object/array treatment retain their existing contracts.
+
+No additional scanning byte, candidate-count or time limits are introduced. The existing Tree-sitter parse deadline (5000ms) and tool input/output limits remain in effect; incomplete parsing falls back to text detection. Full-context inspection reads matched files into memory, with work and memory usage increasing with file size.
+
+Unrecognized names/formats, encoded values and values assembled through calls can escape detection; ordinary examples may be masked. Source files, persisted indexes, matching/ranking, ordinary CLI commands such as `parse`, and stderr logs are outside masking scope. JSON-RPC responses from the CLI `mcp` command are covered. Other file-reading tools are outside this feature's scope.
 
 ### Output and call relationships
 
@@ -353,8 +401,14 @@ search_literal_limit = 60
 search_anchor_snippet_limit = 20
 
 [tool_output]
+is_redact_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
+
+[redact]
+sensitive_fields = []
+rules = []
+exceptions = []
 
 [filesystem_permissions]
 find = "workspace"

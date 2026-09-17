@@ -8,6 +8,7 @@ mod helpers;
 mod language_support;
 mod mcp;
 mod parser;
+mod redact;
 mod scenarios;
 mod search;
 mod source_routes;

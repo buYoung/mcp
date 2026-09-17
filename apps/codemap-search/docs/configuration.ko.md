@@ -52,10 +52,10 @@ max_output_bytes = "8mb"
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **13**이며 주석으로 표시합니다.
+현재 설정 버전은 **15**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 13
+# codemap-config-version: 15
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -66,6 +66,8 @@ max_output_bytes = "8mb"
 - 버전 9는 `[index]` 또는 최상위의 `excluded_directories`, `use_git_exclude`도 `[exclude]`로 옮깁니다. 기존 배열, 명시한 `[]`, 불리언 값과 주석을 보존하며 이 위치 전환으로 디렉터리 규칙을 추가하지 않습니다. 같은 파일에서는 유효한 `[exclude]` 값이 우선합니다.
 - 버전 12는 `[event_navigation].is_enabled` 주석을 추가했습니다. 해당 버전에서는 이벤트 색인이 기본으로 꺼져 있었습니다.
 - 버전 13부터 이벤트 색인과 관련 탐색 결과를 기본으로 제공합니다. 기존 `is_enabled=false` 값은 유지하며, 요청별로 `include_events=false`를 지정하면 이벤트 문맥을 생략합니다.
+- 버전 14는 기본값이 `true`인 `[tool_output].is_redact_enabled`를 추가합니다. 기존 설정에는 주석으로 추가되며, 값을 명시하지 않으면 내장 기본값을 적용합니다.
+- 버전 15는 `[redact]`의 `sensitive_fields`, `rules`, `exceptions`를 빈 목록 주석으로 추가합니다. 기존 규칙과 예외 설정은 보존합니다.
 - 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
 - 버전 10은 `[macro_expansion]` 주석 섹션을 추가했으며 당시에는 기본으로 꺼져 있었습니다. 현재는 외부 전처리기를 기본으로 사용하지만, 기존에 명시한 `is_enabled=false`는 유지합니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
@@ -142,7 +144,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | 설정 | 적용 시점 |
 |---|---|
 | `excluded_directories`, 모든 `[language_support]` 키 | 다시 읽은 뒤 전체 색인 갱신을 요청하고, 완료되면 결과에 반영 |
-| 검색 출력, 호출 관계 표시, 도구 출력 제한, 파일시스템 권한 | 설정을 다시 읽은 뒤 다음 도구 요청 |
+| 검색 출력, 호출 관계 표시, 도구 출력 제한, `is_redact_enabled`, `[redact]`, 파일시스템 권한 | 설정을 다시 읽은 뒤 다음 도구 요청 |
 | `index_staleness_ms`, `indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `max_file_size`, `use_git_exclude` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
 | `navigation_store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
@@ -182,6 +184,10 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[search].search_literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[search].search_anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
+| `[tool_output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보를 가림. 검색 일치와 로컬 색인은 원문 유지 |
+| `[redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
+| `[redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
+| `[redact].exceptions` | 인라인 테이블 배열 | `[]` | `rule_id`와 탐지된 `value`가 모두 정확히 일치하는 예외 |
 | `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
@@ -212,6 +218,48 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 다섯 `[language_support]` 키는 색인, search, overview, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
 
 `use_git_exclude`는 `.git/info/exclude`만 제어합니다. `false`여도 `.gitignore`, 전역 Git 무시 규칙, `.codemapignore`는 적용됩니다.
+
+### 민감값 마스킹
+
+`[tool_output].is_redact_enabled = true`이면 MCP 도구 응답에서 탐지한 인증정보를 가립니다. 원문 보기, 색인의 문자열 값, 선언·상수 미리보기와 오류 메시지에도 적용합니다. 치환 표시는 `[REDACTED]`이며, 이 표시보다 짧은 값은 별표로 가립니다. 원문의 줄바꿈을 유지하고 응답 크기를 늘리지 않습니다. `false`로 끌 수 있으며, 설정을 다시 읽은 뒤 색인 재생성 없이 적용합니다.
+
+Tree-sitter로 해석할 수 있는 대입·필드·기본 인수에서는 리터럴 값과 변수 참조·타입을 구분합니다. 예를 들어 `password: string = externalValue`는 유지하고 `password: string = "hardcoded-value"`는 값을 가립니다. 문자열 연결과 보간의 정적 부분도 검사합니다. 해석하지 못한 문법·오류 구간·일반 텍스트에는 이름·패턴 검사를 적용합니다. ENV/INI의 따옴표 없는 값은 세미콜론과 공백을 포함해 검사합니다.
+
+탐지 결과는 원문 UTF-8 바이트 범위, 규칙 식별자와 종류로 관리하며 원문 비밀값을 메타데이터에 보관하지 않습니다. 읽기 범위·발췌·문자열을 자르기 전에 가리므로 여러 줄 문자열·YAML 블록·PEM 내부 줄에도 적용됩니다. 검색 리터럴은 현재 소스의 문자열 노드와 위치가 대응할 때 해당 범위만 가립니다. 같은 줄의 안전한 문자열은 유지하며, 위치를 확인할 수 없거나 변경된 값은 가립니다. grep 일치·건수·열 제한은 원문 기준입니다. 다시 읽은 원문이 변경되거나 없어지면 해당 grep 표시값을 가립니다.
+
+내장 규칙 식별자는 다음과 같습니다. 알려진 형식을 탐지하며 자격 증명의 실제 유효성을 확인하지는 않습니다.
+
+| 규칙 식별자 | 탐지 대상 |
+|---|---|
+| `field.sensitive` | `API_KEY`, `access_token`, `client_secret`, `password` 등 민감 필드의 값 |
+| `token.aws-access-key`, `token.github`, `token.openai`, `token.google` | 해당 접두사 형태의 토큰 |
+| `token.slack`, `token.jwt` | Slack 토큰과 JWT 형태 |
+| `token.stripe`, `token.gitlab`, `token.npm`, `token.sendgrid` | Stripe 비밀·제한 키, GitLab·npm·SendGrid 토큰 |
+| `credential.authorization`, `credential.bearer`, `credential.url-password` | Authorization의 Bearer/Basic 값, Bearer 값, URL 비밀번호 |
+| `private-key.pem` | PEM 비밀키 블록. 끝 표시가 없으면 남은 원문도 가림 |
+
+사용자 규칙 예시:
+
+```toml
+[redact]
+sensitive_fields = ["internalCredential"]
+rules = [{ id = "custom.acme", pattern = 'ACME_[A-Z0-9]+' }]
+exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
+```
+
+`internalCredential`은 `internal_credential`과도 일치합니다. 추가 필드명은 정확히 일치해야 하며, 내장 필드명은 기존 접미사 규칙을 유지합니다. 정규식 `id`는 고유한 `custom.` 접두사 이름이며 영숫자·점·밑줄·하이픈을 사용할 수 있습니다. Rust `regex` 문법을 사용하므로 역참조·둘러보기는 지원하지 않습니다. `(?P<secret>...)` 그룹이 해당 일치에 참여하면 그 범위만, 그렇지 않으면 전체 일치를 가립니다. 여러 줄 검사는 `(?s)` 등을 패턴에 명시합니다.
+
+예외는 규칙 식별자와 **탐지된 원문 값 전체**가 정확히 같을 때만 해당 탐지를 제외합니다. `ACME_EXAMPLEPLUS`는 제외하지 않으며, `password = "ACME_EXAMPLE"`는 별도의 `field.sensitive` 규칙이 계속 가립니다. 파일·경로 전체 제외나 부분 문자열 예외는 지원하지 않습니다. 따옴표 안의 값은 바깥 따옴표를 뺀 원문 표기와 비교하므로 이스케이프를 디코딩하지 않습니다.
+
+각 목록은 저장소 → 전역 → 기본값 순으로 결정하며, 명시한 목록은 해당 상속 목록 전체를 대체합니다. `[]`는 사용자 목록만 비우고 내장 규칙은 유지합니다. 잘못된 목록·중복 식별자·유효하지 않거나 빈 문자열과 일치하는 정규식은 해당 설정 키 전체를 무시하고 하위 설정을 적용합니다. 경고에는 패턴·예외 값·정규식 오류 원문을 출력하지 않습니다. 설정 버전 15의 생성 템플릿에는 세 목록이 비어 있으므로 전역 목록을 상속하려면 저장소의 해당 키를 주석 처리합니다.
+
+검색 이유·일치 근거 지도·하단 추가 결과의 리터럴도 마스킹 후에 출력하거나 자릅니다. 검색 결과가 없을 때에는 문맥을 확인할 수 없는 비밀값 조각이 재노출되지 않도록 입력 검색어를 안내문에 되풀이하지 않습니다.
+
+최종 JSON-RPC 텍스트에는 토큰·인증정보·사용자 정규식을 다시 적용합니다. 소스 문맥 판정은 원문을 가진 출력 단계에서 수행하여, 최종 서식 문자열을 대입문으로 오인해 타입·참조를 다시 가리지 않습니다. 프로토콜 식별자·객체 키·숫자·불리언과 부모 객체·배열의 처리 계약은 유지합니다.
+
+별도의 검사 바이트·후보 수·시간 한도는 추가하지 않습니다. 기존 Tree-sitter 파싱 제한(5000ms)과 도구 입출력 제한을 유지하며, 파싱이 끝나지 않으면 텍스트 검사로 보완합니다. 전체 문맥 검사를 위해 일치한 파일을 메모리에서 읽으므로 파일 크기에 따라 작업량과 메모리 사용량이 증가합니다.
+
+알려지지 않은 이름·형식, 인코딩 값이나 함수 호출을 통해 조립된 값은 놓칠 수 있고 일반 예제도 가릴 수 있습니다. 원본 파일, 저장된 색인, 검색 일치·순위, 일반 CLI 명령(`parse` 등)의 출력과 stderr 로그는 마스킹 대상이 아닙니다. CLI의 `mcp` 명령으로 주고받는 JSON-RPC 응답은 적용 대상입니다. 다른 파일 읽기 도구에는 적용하지 않습니다.
 
 ### 출력과 호출 관계
 
@@ -350,8 +398,14 @@ search_literal_limit = 60
 search_anchor_snippet_limit = 20
 
 [tool_output]
+is_redact_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
+
+[redact]
+sensitive_fields = []
+rules = []
+exceptions = []
 
 [filesystem_permissions]
 find = "workspace"

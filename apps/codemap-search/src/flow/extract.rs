@@ -102,9 +102,9 @@ pub(crate) fn collect(
                                     | "decorator"
                             )
                         })
-                        && !node
+                        && node
                             .parent()
-                            .is_some_and(|parent| parent.kind() == "decorated_definition"),
+                            .is_none_or(|parent| parent.kind() != "decorated_definition"),
                 });
             }
         }
