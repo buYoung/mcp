@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-17
+
+### Added
+
+- Added custom field and regex masking rules, with exact-value exceptions.
+
+### Security
+
+- Masked sensitive values in MCP output while preserving variable references and safe literals.
+- Stopped echoing search queries in empty results when masking context is unavailable.
+
 `## [0.9.0] - 2026-09-17
 
 ### Added
