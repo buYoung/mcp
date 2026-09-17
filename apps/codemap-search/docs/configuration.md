@@ -4,6 +4,8 @@
 
 Configuration is optional. Add only the keys you want to change; other keys use global settings or built-in defaults.
 
+`event_navigation`, `analysis`, and `macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Analysis runs without a target OS override; omitted targets stay unknown rather than inheriting the host OS. Explicit settings, including `is_enabled = false`, still win.
+
 ## Files and precedence
 
 Config is read from two layers and merged **per key** as `repo > global > default`. Use the repo file for project-specific behavior; use the global file only for defaults you want across repositories.
@@ -17,10 +19,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **11**. The marker is a comment:
+The current configuration schema is **13**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 12
+# codemap-config-version: 13
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -32,7 +34,7 @@ The current configuration schema is **11**. The marker is a comment:
 - Version 12 introduced the commented `[event_navigation].is_enabled` opt-in, with event indexing disabled by default in that version.
 - Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
-- Version 10 adds a commented `[macro_expansion]` section. Native preprocessing remains disabled until explicitly enabled. Migration distinguishes TOML string contents from section headers and version comments.
+- Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -121,11 +123,13 @@ Manual exclusion changes update file filters and request a full index refresh. R
 
 This table summarizes supported keys, accepted types, and defaults. Numeric keys require positive integers except `grep_max_columns`, which also accepts `0`. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `result_threshold = 5`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
 
+Byte-size keys accept either an integer byte count or a quoted positive integer with `b`, `kb`, `mb`, or `gb`. Units are case-insensitive and use powers of 1024: `"50mb"` = `52428800` bytes. Surrounding whitespace and a space before the unit are accepted (`"50 MB"`). Fractions, zero, negative values, unknown units, and values outside the destination integer range warn and inherit the lower layer. TOML requires quotes around unit-bearing values; bare `50mb` is invalid TOML. This applies to `max_file_size`, `read_output_byte_cap`, `search_detail_byte_cap`, `annotation_sub_budget`, and `macro_expansion.max_output_bytes`; counts and milliseconds still require integers.
+
 | Key | Type | Default | Summary |
 |---|---|---|---|
 | `[update].config_auto_update` | bool | `true` | Create missing repo config and append commented schema-sync blocks on `mcp` startup |
 | `[index].index_path` | string | `".codemap/index"` | Index directory; absolute or relative to the workspace root |
-| `[index].max_file_size` | integer (bytes) | `1048576` (1 MiB) | Files larger than this are skipped before parse/index |
+| `[index].max_file_size` | integer bytes or size string | `"1mb"` (`1048576`) | Files larger than this are skipped before parse/index |
 | `[exclude].excluded_directories` | string array (relative directory globs) | Common + legacy fallback names; generated files use recursive globs | Complete optional list; see [Directory exclusions](#directory-exclusions) |
 | `[exclude].use_git_exclude` | bool | `true` | Whether walkers honor `.git/info/exclude` (that source only) |
 | `[language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, overview, codemap, and watcher refreshes |
@@ -141,12 +145,12 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 | `[search].search_overview_file_limit` | integer | `12` | Max file headers in `search`'s compact ranked tail |
 | `[search].search_detail_snippet_max_lines` | integer | `80` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
 | `[search].search_detail_symbol_limit` | integer | `20` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
-| `[search].search_detail_byte_cap` | integer (bytes) | `32768` | Output size limit in bytes for one `search` response, including the partial-output footer |
+| `[search].search_detail_byte_cap` | integer bytes or size string | `"32kb"` (`32768`) | Output size limit in bytes for one `search` response, including the partial-output footer |
 | `[search].search_literal_max_len` | integer (chars) | `200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
 | `[search].search_literal_limit` | integer | `10` | Max matched literals rendered per file in `search` detail view |
 | `[search].search_anchor_snippet_limit` | integer | `3` | Maximum full snippets per file; further matches use signatures of up to three lines |
-| `[tool_output].grep_max_columns` | integer | `500` | `grep` content-mode column cap; matched lines wider than this are replaced with `[Omitted long matching line]`; `0` disables |
-| `[tool_output].read_output_byte_cap` | integer (bytes) | `102400` | `read` always-applied output ceiling; larger responses return an error with a narrower range suggestion |
+| `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
+| `[tool_output].read_output_byte_cap` | integer bytes or size string | `"50mb"` (`52428800`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -161,9 +165,9 @@ This table summarizes supported keys, accepted types, and defaults. Numeric keys
 | `[caller_context].navigation_callsite_budget` | integer | `1000` | Maximum call sites checked before using approximate name-based scanning |
 | `[caller_context].navigation_store_references` | bool | `false` | Store reference locations other than function calls |
 | `[caller_context].scan_cap` | integer | `500` | Caller-scan hit limit, shared across names (minimum 25/name) |
-| `[caller_context].caller_list_cap` | integer | `5` | Max callers (or non-call references) rendered per symbol |
-| `[caller_context].callee_list_cap` | integer | `5` | Max callees rendered per symbol |
-| `[caller_context].annotation_sub_budget` | integer (bytes) | `8192` | Call-relationship output size within `search_detail_byte_cap` |
+| `[caller_context].caller_list_cap` | integer | `1000` | Max callers (or non-call references) rendered per symbol |
+| `[caller_context].callee_list_cap` | integer | `1000` | Max callees rendered per symbol |
+| `[caller_context].annotation_sub_budget` | integer bytes or size string | `"8kb"` (`8192`) | Call-relationship output size within `search_detail_byte_cap` |
 | `[caller_context].common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
 | `[caller_context].caller_omit_def_threshold` | integer | `5` | Definition count for the same name at which the approximate caller list is replaced with a `grep` suggestion; callees unaffected |
 
@@ -179,7 +183,7 @@ The five `[language_support]` switches control indexing, search, overview, codem
 
 ### Native macro expansion
 
-This optional feature expands C/C++ preprocessor macros and CPP-based assembly macros with installed Clang. NASM `.asm` files use NASM expansion listings to map generated labels to the invocation line. It follows [clangd's compilation-context model](https://clangd.llvm.org/design/compile-commands); it does not start clangd or load `.clangd` configuration.
+Native expansion automatically attempts C/C++ preprocessor macros and CPP-based assembly macros with installed Clang. NASM `.asm` files use NASM expansion listings to map generated labels to the invocation line. No configuration section is required; use `is_enabled = false` to disable native processes. Missing tools retain original declarations with an unresolved notice. It follows [clangd's compilation-context model](https://clangd.llvm.org/design/compile-commands); it does not start clangd or load `.clangd` configuration.
 
 ```toml
 [macro_expansion]
@@ -190,17 +194,17 @@ nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
 nasm_flags = ["-Iinclude/", "-felf64"]
 timeout_ms = 5000
-max_output_bytes = 8388608
+max_output_bytes = "8mb"
 ```
 
 | Key under `[macro_expansion]` | Type / default | Behavior |
 | --- | --- | --- |
-| `is_enabled` | bool / `false` | Enables preprocessing for indexed C/C++/ASM files and direct `parse`/`codemap` |
+| `is_enabled` | bool / `true` | Automatically attempts preprocessing for indexed C/C++/ASM files and direct `parse`/`codemap`; explicit `false` disables it |
 | `compilation_database` | nonempty string / omitted | Workspace-relative or absolute JSON file/directory; a `compile_flags.txt` file is also accepted |
 | `clang_path`, `nasm_path` | nonempty string / `"clang"`, `"nasm"` | Installed executable name or path |
 | `clang_flags`, `nasm_flags` | string array / `[]` | Arguments appended to the selected build settings; repo arrays replace global arrays |
 | `timeout_ms` | positive integer / `5000` | Maximum milliseconds for each native process; NASM runs preprocessing and a listing pass |
-| `max_output_bytes` | positive integer / `8388608` | Maximum bytes for expanded output or NASM listing |
+| `max_output_bytes` | integer bytes or size string / `"8mb"` (`8388608`) | Maximum bytes for expanded output or NASM listing |
 
 Without an explicit database, source-parent directories are searched up to the workspace root for `compile_commands.json` or `compile_flags.txt`. A JSON database requires an exact canonical file entry; the first matching entry wins. Header commands are not inferred from similarly named files. If no database exists, configured flags and the installed tool's defaults are used. With a database but no matching entry, add an entry or select a `compile_flags.txt` file explicitly.
 
@@ -218,7 +222,11 @@ While enabled, workspace changes reconcile native files in a full refresh. Recor
 
 `search_detail_byte_cap` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. `search_anchor_snippet_limit` limits full snippets per file; further matches show signatures of up to three lines.
 
-`read_output_byte_cap` includes line numbers, context, and headings. An oversized response returns an error with a narrower `offset`/`limit` suggestion. A separate 256 KiB whole-file limit applies when `limit` is omitted. `grep_max_columns = 0` disables the long-line limit; otherwise long matches become `[Omitted long matching line]`. Partial `grep` pages report `next_offset`.
+`read_output_byte_cap` includes line numbers, context, and headings, and also bounds callable-expanded `grep`. Oversized `read` output returns an error with a narrower `offset`/`limit` suggestion. Expanded grep reports oversized bodies or pagination instead of silently splitting a callable. A separate 256 KiB whole-file limit applies to `read` when `limit` is omitted and callable expansion is off. `grep_max_columns = 0` disables the long-line limit; otherwise long matches become `[Omitted long matching line]`. Partial `grep` pages report `next_offset`.
+
+Raising the read cap does not raise the independent search, annotation, or parsing limits. Search remains capped at 32 KiB, with an 8 KiB annotation sub-budget. Caller scans still use `scan_cap = 500`, so 1000-entry caller/callee lists are upper bounds, not guaranteed output counts. Live `read`/`grep` context also has a fixed shared 16 KiB ceiling. Callable parsing accepts at most `min(max_file_size, 4 MiB)`, which is 1 MiB by default. Larger caps permit larger responses and more rendering work; they do not establish any consuming client's response limit.
+
+Existing explicit repo/global values are preserved when built-in defaults change. Remove, comment out, or update an old override to use the new value; restarting alone does not replace it.
 
 `caller_context_default` applies only when a `search` call omits `caller_context`. An explicit argument wins. Call relationships are approximate by default. With `navigation_context_default = true`, source structure, imports, and local bindings can confirm a single target and mark it `precise`. Calls that cannot be confirmed use approximate results. `navigation_callsite_budget` limits the number of call sites checked before using name-based scanning.
 
@@ -319,7 +327,7 @@ config_auto_update = true
 
 [index]
 index_path = ".codemap/index"
-max_file_size = 1048576   # 1 MiB
+max_file_size = "1mb"
 
 [language_support]
 is_document_support_enabled = false
@@ -339,14 +347,14 @@ result_threshold = 5
 search_overview_file_limit = 12
 search_detail_snippet_max_lines = 80
 search_detail_symbol_limit = 20
-search_detail_byte_cap = 32768            # 32 KiB
+search_detail_byte_cap = "32kb"
 search_literal_max_len = 200
 search_literal_limit = 10
 search_anchor_snippet_limit = 3
 
 [tool_output]
-grep_max_columns = 500
-read_output_byte_cap = 102400             # 100 KiB
+grep_max_columns = 0
+read_output_byte_cap = "50mb"             # 52428800 bytes
 
 [filesystem_permissions]
 find = "workspace"
@@ -366,9 +374,9 @@ navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false
 scan_cap = 500
-caller_list_cap = 5
-callee_list_cap = 5
-annotation_sub_budget = 8192
+caller_list_cap = 1000
+callee_list_cap = 1000
+annotation_sub_budget = "8kb"
 common_name_threshold = 2
 caller_omit_def_threshold = 5
 ```
@@ -428,7 +436,7 @@ In `read`, callable expansion uses the effective offset/start alias and override
 
 In content-mode `grep`, callable expansion is the default for every view, including `source`. It ignores `-A/-B/-C` while preserving pattern, path, glob, case, type and exclusion behavior. Matching, parsing and rendering use one buffer per file. Output is ordered by path/range; `offset`, `head_limit`, and `next_offset` count unique callable groups (or matched-line fallback groups), not source rows. `head_limit=0` removes the group-count limit, not the byte cap. Set `expand="none"` for matching rows, line-based pagination and `-A/-B/-C` context. `count` and `files_with_matches` do not expand when the option is omitted; explicit `expand="callable"` is rejected in those modes.
 
-Read and expanded grep retain `read_output_byte_cap`; annotations retain their existing budgets. Oversized callable bodies are never silently split: use the displayed source range with `expand=none` and line windows. Grep column omissions are marked as incomplete. Macro/encoding/test-context notices remain in applicable context views; `source` contains only live filesystem output and operational expansion notices. No event relations are added by omitted options.
+Read and expanded grep retain `read_output_byte_cap`; annotations retain their existing budgets. Oversized callable bodies are never silently split: use the displayed source range with `expand=none` and line windows. Grep column omissions are marked as incomplete. Macro/encoding/test-context notices remain in applicable context views; `source` contains only live filesystem output and operational expansion notices. Eligible event relationships appear automatically in full/relations views.
 
 ## Explicit Rust analysis target
 

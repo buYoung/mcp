@@ -4,9 +4,11 @@
 
 codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변경할 키만 설정하면 나머지는 전역 설정이나 내장 기본값을 사용합니다.
 
+`event_navigation`, `analysis`, `macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 지정하지 않아도 분석합니다. OS 미지정 상태를 호스트 OS로 바꾸지는 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다.
+
 ## 매크로 확장
 
-설치된 Clang으로 C/C++ 및 CPP를 사용하는 ASM의 매크로를 확장합니다. NASM `.asm`은 확장 목록에서 생성된 label을 원본 호출 줄에 연결합니다. [clangd의 컴파일 설정 처리](https://clangd.llvm.org/design/compile-commands)를 참고했으며, clangd 실행이나 `.clangd` 설정 읽기를 추가한 기능은 아닙니다.
+설치된 Clang으로 C/C++ 및 CPP를 사용하는 ASM의 매크로 확장을 자동으로 시도합니다. NASM `.asm`은 확장 목록에서 생성된 label을 원본 호출 줄에 연결합니다. 이 섹션은 작성할 필요가 없으며, 외부 전처리기 실행을 끄려면 `is_enabled = false`를 지정합니다. 도구가 없으면 원문 선언과 미해결 사유를 표시합니다. [clangd의 컴파일 설정 처리](https://clangd.llvm.org/design/compile-commands)를 참고했으며, clangd 실행이나 `.clangd` 설정 읽기를 추가한 기능은 아닙니다.
 
 ```toml
 [macro_expansion]
@@ -17,17 +19,17 @@ nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
 nasm_flags = ["-Iinclude/", "-felf64"]
 timeout_ms = 5000
-max_output_bytes = 8388608
+max_output_bytes = "8mb"
 ```
 
 | `[macro_expansion]`의 키 | 자료형 / 기본값 | 적용 |
 | --- | --- | --- |
-| `is_enabled` | bool / `false` | C/C++/ASM 색인과 직접 `parse`·`codemap`에 전처리 적용 |
+| `is_enabled` | bool / `true` | C/C++/ASM 색인과 직접 `parse`·`codemap`에 자동 전처리 적용. 명시적인 `false`로 끔 |
 | `compilation_database` | 비어 있지 않은 문자열 / 생략 | 저장소 기준 상대 경로 또는 절대 경로. JSON 파일·디렉터리 또는 `compile_flags.txt` 파일 |
 | `clang_path`, `nasm_path` | 비어 있지 않은 문자열 / `"clang"`, `"nasm"` | 설치된 실행 파일의 이름 또는 경로 |
 | `clang_flags`, `nasm_flags` | 문자열 배열 / `[]` | 빌드 설정 뒤에 추가하는 인자. 저장소 배열은 전역 배열을 대체 |
 | `timeout_ms` | 양의 정수 / `5000` | 외부 프로세스 한 번의 밀리초 제한. NASM은 전처리·확장 목록 생성 두 번 실행 |
-| `max_output_bytes` | 양의 정수 / `8388608` | 전처리 결과 또는 NASM 확장 목록의 바이트 제한 |
+| `max_output_bytes` | 정수 바이트 또는 크기 문자열 / `"8mb"` (`8388608`) | 전처리 결과 또는 NASM 확장 목록의 바이트 제한 |
 
 경로를 생략하면 소스의 부모 디렉터리에서 저장소 루트까지 `compile_commands.json`·`compile_flags.txt`를 찾습니다. JSON에서는 정규화한 파일 경로가 정확히 일치하는 첫 항목을 사용합니다. 이름이 비슷한 파일의 빌드 옵션으로 헤더 설정을 추정하지 않습니다. 데이터베이스가 없으면 사용자 인자와 설치된 도구의 기본값을 사용합니다. 데이터베이스에 대상 파일이 없으면 항목을 추가하거나 `compilation_database`에 `compile_flags.txt` 파일을 명시해야 합니다.
 
@@ -50,10 +52,10 @@ max_output_bytes = 8388608
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **12**이며 주석으로 표시합니다.
+현재 설정 버전은 **13**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 12
+# codemap-config-version: 13
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -65,7 +67,7 @@ max_output_bytes = 8388608
 - 버전 12는 `[event_navigation].is_enabled` 주석을 추가했습니다. 해당 버전에서는 이벤트 색인이 기본으로 꺼져 있었습니다.
 - 버전 13부터 이벤트 색인과 관련 탐색 결과를 기본으로 제공합니다. 기존 `is_enabled=false` 값은 유지하며, 요청별로 `include_events=false`를 지정하면 이벤트 문맥을 생략합니다.
 - 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
-- 버전 10은 `[macro_expansion]` 주석 섹션을 추가합니다. 사용자가 켜기 전에는 외부 전처리기를 실행하지 않습니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
+- 버전 10은 `[macro_expansion]` 주석 섹션을 추가했으며 당시에는 기본으로 꺼져 있었습니다. 현재는 외부 전처리기를 기본으로 사용하지만, 기존에 명시한 `is_enabled=false`는 유지합니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
@@ -153,11 +155,13 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 숫자 키는 양의 정수이며 `grep_max_columns`만 `0`도 허용합니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `result_threshold = 5` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
 
+바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `max_file_size`, `read_output_byte_cap`, `search_detail_byte_cap`, `annotation_sub_budget`, `macro_expansion.max_output_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
+
 | 키 | 자료형 | 기본값 | 설명 |
 |---|---|---|---|
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
 | `[index].index_path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
-| `[index].max_file_size` | 정수(바이트) | `1048576` (1 MiB) | 파싱·색인 전 건너뛸 파일 크기 기준 |
+| `[index].max_file_size` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 파싱·색인 전 건너뛸 파일 크기 기준 |
 | `[exclude].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 재귀 glob 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
 | `[exclude].use_git_exclude` | bool | `true` | `.git/info/exclude` 적용 여부 |
 | `[language_support].is_document_support_enabled` | bool | `false` | `.md`/`.mdx`를 색인 기반 탐색에 포함 |
@@ -173,12 +177,12 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[search].search_overview_file_limit` | 정수 | `12` | 나머지 간략 목록에 표시할 최대 파일 수 |
 | `[search].search_detail_snippet_max_lines` | 정수 | `80` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
 | `[search].search_detail_symbol_limit` | 정수 | `20` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내 |
-| `[search].search_detail_byte_cap` | 정수(바이트) | `32768` | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
+| `[search].search_detail_byte_cap` | 정수 바이트 또는 크기 문자열 | `"32kb"` (`32768`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
 | `[search].search_literal_max_len` | 정수(문자) | `200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
 | `[search].search_literal_limit` | 정수 | `10` | 파일마다 표시할 최대 리터럴 수 |
 | `[search].search_anchor_snippet_limit` | 정수 | `3` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
-| `[tool_output].grep_max_columns` | 정수 | `500` | `grep`의 `content` 모드 열 제한. 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
-| `[tool_output].read_output_byte_cap` | 정수(바이트) | `102400` | `read` 출력 크기 제한. 초과 시 더 좁은 범위를 안내하는 오류 |
+| `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
+| `[tool_output].read_output_byte_cap` | 정수 바이트 또는 크기 문자열 | `"50mb"` (`52428800`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
@@ -193,9 +197,9 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[caller_context].navigation_callsite_budget` | 정수 | `1000` | 이름 기반 추정으로 전환하기 전 검사할 최대 호출 위치 수 |
 | `[caller_context].navigation_store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
 | `[caller_context].scan_cap` | 정수 | `500` | 호출자 탐색에서 이름별로 나눠 쓸 검색 건수 제한. 이름당 최소 25건 |
-| `[caller_context].caller_list_cap` | 정수 | `5` | 심볼마다 표시할 최대 호출자 또는 비호출 참조 수 |
-| `[caller_context].callee_list_cap` | 정수 | `5` | 심볼마다 표시할 최대 호출 대상 수 |
-| `[caller_context].annotation_sub_budget` | 정수(바이트) | `8192` | `search_detail_byte_cap` 안에서 호출 관계의 출력 크기 제한 |
+| `[caller_context].caller_list_cap` | 정수 | `1000` | 심볼마다 표시할 최대 호출자 또는 비호출 참조 수 |
+| `[caller_context].callee_list_cap` | 정수 | `1000` | 심볼마다 표시할 최대 호출 대상 수 |
+| `[caller_context].annotation_sub_budget` | 정수 바이트 또는 크기 문자열 | `"8kb"` (`8192`) | `search_detail_byte_cap` 안에서 호출 관계의 출력 크기 제한 |
 | `[caller_context].common_name_threshold` | 정수 | `2` | 같은 이름의 정의가 이 수 이상이면 모호함 표시 |
 | `[caller_context].caller_omit_def_threshold` | 정수 | `5` | 같은 이름의 정의가 이 수 이상이면 추정 호출자 목록을 생략하고 `grep` 안내. 호출 대상 목록에는 미적용 |
 
@@ -215,7 +219,11 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 
 `search_detail_byte_cap`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `search_anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다.
 
-`read_output_byte_cap`에는 줄 번호·문맥·제목을 포함합니다. 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
+`read_output_byte_cap`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
+
+읽기 한도를 늘려도 검색·관계 문맥·파싱의 별도 제한은 유지합니다. 검색 응답은 기본 32 KiB, 호출 관계는 그 안에서 8 KiB입니다. 호출자 수집도 `scan_cap = 500`을 사용하므로 caller/callee 1000은 표시 가능한 최대 개수이며 실제 1000건 출력을 보장하지 않습니다. 실시간 `read`/`grep` 문맥에는 공유 16 KiB 고정 상한도 있습니다. 함수 확장 파싱은 `min(max_file_size, 4 MiB)`이며 기본값으로는 1 MiB입니다. 한도를 높이면 허용 응답 크기와 출력 처리량이 늘지만, 이 값으로 소비 클라이언트의 응답 한도까지 확인할 수는 없습니다.
+
+내장 기본값이 바뀌어도 기존 저장소·전역 설정에 명시한 값은 유지합니다. 새 기본값을 쓰려면 이전 덮어쓰기 값을 삭제·주석 처리하거나 직접 바꿔야 하며, 재시작만으로 교체되지는 않습니다.
 
 `caller_context_default`는 `search` 호출에서 `caller_context`를 생략했을 때만 적용하며 명시한 인자가 우선합니다. 호출 관계는 기본적으로 추정값입니다. `navigation_context_default = true`이면 소스 구조·import·지역 변수 연결로 단일 호출 대상을 확인한 경우 `precise`로 표시합니다. 확인할 수 없는 호출은 추정 결과를 사용합니다. `navigation_callsite_budget`은 이름 기반 탐색으로 전환하기 전 검사할 호출 위치 수를 제한합니다.
 
@@ -316,7 +324,7 @@ config_auto_update = true
 
 [index]
 index_path = ".codemap/index"
-max_file_size = 1048576   # 1 MiB
+max_file_size = "1mb"
 
 [language_support]
 is_document_support_enabled = false
@@ -336,14 +344,14 @@ result_threshold = 5
 search_overview_file_limit = 12
 search_detail_snippet_max_lines = 80
 search_detail_symbol_limit = 20
-search_detail_byte_cap = 32768            # 32 KiB
+search_detail_byte_cap = "32kb"
 search_literal_max_len = 200
 search_literal_limit = 10
 search_anchor_snippet_limit = 3
 
 [tool_output]
-grep_max_columns = 500
-read_output_byte_cap = 102400             # 100 KiB
+grep_max_columns = 0
+read_output_byte_cap = "50mb"             # 52428800 bytes
 
 [filesystem_permissions]
 find = "workspace"
@@ -363,9 +371,9 @@ navigation_context_default = false
 navigation_callsite_budget = 1000
 navigation_store_references = false
 scan_cap = 500
-caller_list_cap = 5
-callee_list_cap = 5
-annotation_sub_budget = 8192
+caller_list_cap = 1000
+callee_list_cap = 1000
+annotation_sub_budget = "8kb"
 common_name_threshold = 2
 caller_omit_def_threshold = 5
 ```
@@ -426,7 +434,7 @@ allowed_roots = []
 
 내용 모드 `grep`은 `source`를 포함한 모든 view에서 기본으로 함수 본문까지 확장합니다. 확장은 `-A/-B/-C`를 무시하고 검색식·경로·glob·대소문자·유형·제외 규칙을 유지합니다. 한 파일의 같은 바이트로 검색·파싱·출력을 수행합니다. 경로·줄 순서로 중복 함수를 제거하며, offset/head_limit/next_offset의 단위는 원문 줄이 아닌 함수 묶음 또는 확장 불가 일치 줄입니다. `head_limit=0`도 바이트 한도는 유지합니다. 일치 행, 행 단위 페이지 이동, `-A/-B/-C` 문맥이 필요하면 `expand="none"`을 지정합니다. count/files_with_matches는 옵션을 생략하면 확장하지 않으며, 명시적인 `expand="callable"`은 오류로 안내합니다.
 
-read와 확장된 grep은 `read_output_byte_cap`, 관계 문맥은 기존 하위 예산을 지킵니다. 큰 함수를 조용히 자르지 않으며, 표시된 범위에 `expand=none`과 작은 offset/limit을 사용하도록 안내합니다. grep 열 제한으로 생략한 본문도 불완전하다고 표시합니다. 매크로·인코딩·테스트 제외 안내는 해당 문맥 모드에 유지하고, source에는 원문과 확장 처리 안내만 표시합니다. 생략된 옵션으로 이벤트 관계가 추가되지는 않습니다.
+read와 확장된 grep은 `read_output_byte_cap`, 관계 문맥은 기존 하위 예산을 지킵니다. 큰 함수를 조용히 자르지 않으며, 표시된 범위에 `expand=none`과 작은 offset/limit을 사용하도록 안내합니다. grep 열 제한으로 생략한 본문도 불완전하다고 표시합니다. 매크로·인코딩·테스트 제외 안내는 해당 문맥 모드에 유지하고, source에는 원문과 확장 처리 안내만 표시합니다. full/relations에서는 관련 이벤트 관계를 자동으로 표시합니다.
 
 ## Rust 분석 대상 지정
 

@@ -17,7 +17,7 @@ use crate::parser::{
 use command::{CommandCache, Dialect, Invocation};
 use mapping::SourceMap;
 
-/// Native preprocessing supplements the normal source parser only when explicitly enabled.
+/// Native preprocessing supplements the source parser by default for supported dialects.
 pub struct MacroExpander {
     root: PathBuf,
     config: MacroExpansionConfig,
@@ -242,7 +242,7 @@ fn read_capped(mut stream: impl Read, cap: usize) -> std::io::Result<Vec<u8>> {
     let mut bytes = Vec::new();
     stream
         .by_ref()
-        .take(cap as u64 + 1)
+        .take((cap as u64).saturating_add(1))
         .read_to_end(&mut bytes)?;
     Ok(bytes)
 }

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-/// Optional native preprocessing; normal indexing remains self-contained.
+/// Native preprocessing is enabled by default for supported C/C++/ASM files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MacroExpansionConfig {
     pub is_enabled: bool,
@@ -16,7 +16,7 @@ pub struct MacroExpansionConfig {
 impl Default for MacroExpansionConfig {
     fn default() -> Self {
         Self {
-            is_enabled: false,
+            is_enabled: true,
             compilation_database: None,
             clang_path: "clang".into(),
             nasm_path: "nasm".into(),
@@ -62,7 +62,7 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> MacroExpansionLayer
             "nasm_flags" => layer.nasm_flags = super::as_string_array(value, &label, path),
             "timeout_ms" => layer.timeout_ms = super::as_positive_u64(value, &label, path),
             "max_output_bytes" => {
-                layer.max_output_bytes = super::as_positive_usize(value, &label, path)
+                layer.max_output_bytes = super::as_positive_byte_size(value, &label, path)
             }
             _ => super::warn(&format!(
                 "unknown config key '{label}': {} — ignored",

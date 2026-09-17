@@ -194,14 +194,12 @@ pub struct ResolvedConfig {
     /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
     /// every tool workspace-confined unless configured otherwise.
     pub filesystem_permissions: FilesystemPermissions,
-    /// `grep` content-mode column cap (default 500, matching Claude Code's `--max-columns
-    /// 500`). A matched line wider than this is replaced with `[Omitted long matching
-    /// line]`; `0` disables the cap. Output-size only.
+    /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
+    /// than a positive cap is replaced with `[Omitted long matching line]`.
     pub grep_max_columns: usize,
-    /// `read` always-applied output ceiling in bytes (default 102400 ≈ 100 KiB). Even with
-    /// `offset`/`limit` set, a `read` whose rendered output exceeds this throws instead of
-    /// emitting an unbounded blob (approximates Claude Code's ~25,000-token cap). Distinct
-    /// from the 256 KiB whole-file cap that applies only when `limit` is omitted.
+    /// `read` and callable-expanded `grep` output ceiling in bytes (default 50 MiB).
+    /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
+    /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
     /// `search` detail-view per-symbol snippet line cap (default 80). A symbol body longer
     /// than this is truncated with an elision marker. Output-size only.
@@ -241,9 +239,9 @@ pub struct ResolvedConfig {
     /// Max call sites collected across the single combined-regex caller scan (default 500).
     /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
     pub scan_cap: usize,
-    /// Per-symbol caller-list (or non-call-reference) cap (default 5). Output-size only.
+    /// Per-symbol caller-list (or non-call-reference) cap (default 1000). Output-size only.
     pub caller_list_cap: usize,
-    /// Per-symbol callee-list cap (default 5). Output-size only.
+    /// Per-symbol callee-list cap (default 1000). Output-size only.
     pub callee_list_cap: usize,
     /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 8192). A
     /// sub-limit, not an allowance added on top — snippets keep priority; annotations stop
@@ -307,8 +305,8 @@ impl Default for ResolvedConfig {
             is_interface_support_enabled: false,
             is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
-            grep_max_columns: 500,
-            read_output_byte_cap: 102_400,
+            grep_max_columns: 0,
+            read_output_byte_cap: 50 * 1024 * 1024,
             search_detail_snippet_max_lines: 80,
             search_detail_symbol_limit: 20,
             search_detail_byte_cap: 32_768,
@@ -322,8 +320,8 @@ impl Default for ResolvedConfig {
             navigation_callsite_budget: 1000,
             navigation_store_references: false,
             scan_cap: 500,
-            caller_list_cap: 5,
-            callee_list_cap: 5,
+            caller_list_cap: 1000,
+            callee_list_cap: 1000,
             annotation_sub_budget: 8192,
             common_name_threshold: 2,
             caller_omit_def_threshold: 5,
@@ -586,7 +584,7 @@ fn assign_config_key(
         "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
-        "max_file_size" => layer.max_file_size = as_positive_u64(value, key_display, path),
+        "max_file_size" => layer.max_file_size = as_positive_byte_size(value, key_display, path),
         "excluded_directories" => {
             layer.excluded_directories = as_directory_patterns(value, key_display, path)
         }
@@ -617,7 +615,7 @@ fn assign_config_key(
         }
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
-            layer.read_output_byte_cap = as_positive_usize(value, key_display, path)
+            layer.read_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
         "search_detail_snippet_max_lines" => {
             layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
@@ -626,7 +624,7 @@ fn assign_config_key(
             layer.search_detail_symbol_limit = as_positive_usize(value, key_display, path)
         }
         "search_detail_byte_cap" => {
-            layer.search_detail_byte_cap = as_positive_usize(value, key_display, path)
+            layer.search_detail_byte_cap = as_positive_byte_size(value, key_display, path)
         }
         "search_literal_max_len" => {
             layer.search_literal_max_len = as_positive_usize(value, key_display, path)
@@ -669,7 +667,7 @@ fn assign_config_key(
         "caller_list_cap" => layer.caller_list_cap = as_positive_usize(value, key_display, path),
         "callee_list_cap" => layer.callee_list_cap = as_positive_usize(value, key_display, path),
         "annotation_sub_budget" => {
-            layer.annotation_sub_budget = as_positive_usize(value, key_display, path)
+            layer.annotation_sub_budget = as_positive_byte_size(value, key_display, path)
         }
         "common_name_threshold" => {
             layer.common_name_threshold = as_positive_usize(value, key_display, path)
@@ -1254,8 +1252,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 10,
         key: "is_enabled",
         placement: KeyPlacement::Subtable("macro_expansion"),
-        english_block: "# Optional Clang/NASM preprocessing. See docs/configuration.md.\n# is_enabled = false",
-        korean_block: "# Clang/NASM 전처리를 선택적으로 사용합니다. docs/configuration.md를 참고하세요.\n# is_enabled = false",
+        english_block: "# Clang/NASM preprocessing is enabled by default for native files. See docs/configuration.md.\n# is_enabled = true",
+        korean_block: "# C/C++/ASM 파일의 Clang/NASM 전처리는 기본으로 켜집니다. docs/configuration.ko.md를 참고하세요.\n# is_enabled = true",
     },
     Migration {
         version: 2,
@@ -1709,6 +1707,46 @@ fn as_nonempty_string(value: &toml::Value, key: &str, path: &Path) -> Option<Str
     }
 }
 
+/// Byte sizes retain integer-byte compatibility; quoted units use powers of 1024.
+fn parse_byte_size(value: &toml::Value) -> Option<u64> {
+    let bytes = match value {
+        toml::Value::Integer(bytes) => u64::try_from(*bytes).ok()?,
+        toml::Value::String(size) => {
+            let size = size.trim();
+            let unit_start = size.find(|ch: char| !ch.is_ascii_digit())?;
+            let (amount, unit) = size.split_at(unit_start);
+            let amount = amount.parse::<u64>().ok()?;
+            let multiplier = match unit.trim().to_ascii_lowercase().as_str() {
+                "b" => 1,
+                "kb" => 1024,
+                "mb" => 1024 * 1024,
+                "gb" => 1024 * 1024 * 1024,
+                _ => return None,
+            };
+            amount.checked_mul(multiplier)?
+        }
+        _ => return None,
+    };
+    (bytes > 0).then_some(bytes)
+}
+
+fn as_positive_byte_size<T: TryFrom<u64>>(
+    value: &toml::Value,
+    key: &str,
+    path: &Path,
+) -> Option<T> {
+    match parse_byte_size(value).and_then(|bytes| T::try_from(bytes).ok()) {
+        Some(bytes) => Some(bytes),
+        None => {
+            warn(&format!(
+                "config '{key}' must be a positive byte count or quoted size using b/kb/mb/gb within the supported range: {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
 fn as_positive_usize(value: &toml::Value, key: &str, path: &Path) -> Option<usize> {
     match value.as_integer() {
         Some(n) if n > 0 => Some(n as usize),
@@ -1903,8 +1941,8 @@ mod tests {
         assert!(!cfg.should_include_test_code);
         assert_eq!(cfg.test_code_rules, TestCodeRules::default());
         assert_eq!(cfg.scan_cap, 500);
-        assert_eq!(cfg.caller_list_cap, 5);
-        assert_eq!(cfg.callee_list_cap, 5);
+        assert_eq!(cfg.caller_list_cap, 1000);
+        assert_eq!(cfg.callee_list_cap, 1000);
         assert_eq!(cfg.annotation_sub_budget, 8192);
         assert_eq!(cfg.common_name_threshold, 2);
         assert!(!cfg.is_document_support_enabled);
@@ -1930,7 +1968,7 @@ mod tests {
         assert_eq!(cfg.scan_cap, 100);
         assert_eq!(cfg.common_name_threshold, 3);
         // Untouched keys keep their defaults.
-        assert_eq!(cfg.caller_list_cap, 5);
+        assert_eq!(cfg.caller_list_cap, 1000);
         assert_eq!(cfg.annotation_sub_budget, 8192);
     }
 

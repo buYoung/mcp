@@ -3,6 +3,7 @@
 # Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
 # Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
 # Numeric settings require positive integers; grep_max_columns also accepts 0.
+# Byte sizes also accept quoted b/kb/mb/gb units (case-insensitive, powers of 1024), e.g. "50mb".
 # Invalid values warn on stderr and inherit a lower-priority value. Malformed TOML discards that file's layer.
 # MCP watches config directories present at startup and reloads after about 1000ms.
 # Restart if a config directory was absent or watching could not start.
@@ -20,7 +21,7 @@ index_path = ".codemap/index"
 
 # Maximum indexed file size in bytes. Larger files remain accessible to live read/find/grep.
 # Increasing this includes larger files and can increase CPU, memory, and disk use.
-max_file_size = 1048576 # 1 MiB
+max_file_size = "1mb"
 
 
 [language_support]
@@ -75,7 +76,7 @@ search_detail_snippet_max_lines = 80
 search_detail_symbol_limit = 20
 
 # Search response size limit in bytes, including the partial-output notice.
-search_detail_byte_cap = 32768 # 32 KiB
+search_detail_byte_cap = "32kb"
 
 # Maximum displayed length of a matched literal, in characters.
 search_literal_max_len = 200
@@ -106,14 +107,14 @@ navigation_store_references = false
 scan_cap = 500
 
 # Maximum callers or non-call references shown per symbol.
-caller_list_cap = 5
+caller_list_cap = 1000
 
 # Maximum callees shown per symbol.
-callee_list_cap = 5
+callee_list_cap = 1000
 
 # Call-relationship output size limit in bytes within `search_detail_byte_cap`.
 # Source snippets take priority; omitted context is noted.
-annotation_sub_budget = 8192
+annotation_sub_budget = "8kb"
 
 # Definition count for the same name at which approximate relationships are labeled ambiguous.
 common_name_threshold = 2
@@ -167,11 +168,11 @@ powershell = ["Describe", "Context", "It"]
 [tool_output]
 # Maximum columns for a grep content-mode match; 0 disables the limit.
 # Longer lines are replaced with `[Omitted long matching line]`.
-grep_max_columns = 500
+grep_max_columns = 0
 
-# Read response size limit in bytes, including line numbers and context.
-# Oversized output returns an error suggesting a narrower offset/limit.
-read_output_byte_cap = 102400
+# Read and callable-expanded grep response limit, including line numbers and context.
+# Oversized reads return a narrowing error; expanded grep reports oversized bodies or pagination.
+read_output_byte_cap = "50mb"
 
 [filesystem_permissions]
 # Policies for find/grep/read: "workspace" (workspace only), "allowed_roots" (workspace plus listed roots),
@@ -185,18 +186,19 @@ read = "workspace"
 # Existing components, including symlinks, resolve to real paths; nonexistent suffixes are retained.
 allowed_roots = []
 
-# Native macro expansion requires an installed Clang/NASM preprocessor.
-[macro_expansion]
-is_enabled = false
+# Native files automatically use installed Clang/NASM; failures retain source declarations with a notice.
+# This section is optional. Set is_enabled=false to disable native processes.
+# [macro_expansion]
+# is_enabled = true
 # compilation_database = "build/compile_commands.json"
-clang_path = "clang"
-nasm_path = "nasm"
-clang_flags = []
-nasm_flags = []
-timeout_ms = 5000
-max_output_bytes = 8388608
+# clang_path = "clang"
+# nasm_path = "nasm"
+# clang_flags = []
+# nasm_flags = []
+# timeout_ms = 5000
+# max_output_bytes = "8mb"
 
-# Explicit Rust analysis target. Omitted/empty stays unknown; never uses the host OS.
+# Analysis runs without this section. An omitted/empty Rust target stays unknown; never uses the host OS.
 # [analysis]
 # target_os = ""
 
