@@ -25,6 +25,9 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     let cwd = std::env::current_dir()
         .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
+    // Keep the readiness observed before this snapshot so a concurrent initial publish
+    // cannot make an empty pre-index snapshot lose its warm-up notice.
+    let is_warming = ctx.engine.is_warming();
     let published = ctx.engine.published_snapshot();
     let catalog = published.workspace_catalog();
     let snapshot = published.codemap();
@@ -55,7 +58,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
     // render an empty codemap.
-    if extracted_files.is_empty() && (ctx.engine.is_warming() || ctx.engine.is_dead()) {
+    if extracted_files.is_empty() && (is_warming || ctx.engine.is_dead()) {
         let text = if ctx.engine.is_dead() {
             "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
         } else {
