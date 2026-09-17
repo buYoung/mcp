@@ -34,57 +34,51 @@ fn source_stamp(path: &std::path::Path) -> Option<(u64, SystemTime)> {
     Some((metadata.len(), metadata.modified().ok()?))
 }
 
-/// Reuse the matching buffer when available. Otherwise scan through the last returned hit,
-/// retaining multiline credential context without loading an arbitrarily large file.
+/// Inspect the matching buffer, or validate a full-source reread before rendering hits.
 fn redact_hits(
     path: &std::path::Path,
     bytes: Option<&[u8]>,
     expected_stamp: Option<(u64, SystemTime)>,
     hits: &mut [LineHit],
 ) {
-    use std::io::{BufRead, BufReader, Cursor};
     if !crate::redact::is_enabled() || hits.is_empty() {
         return;
     }
-    let reader: std::io::Result<Box<dyn BufRead + '_>> = match bytes {
-        Some(bytes) => Ok(Box::new(Cursor::new(bytes))),
-        None if expected_stamp.is_none() || expected_stamp != source_stamp(path) => Err(
-            std::io::Error::other("source changed before credential scan"),
-        ),
-        None => {
-            std::fs::File::open(path).map(|file| Box::new(BufReader::new(file)) as Box<dyn BufRead>)
+    let owned;
+    let bytes = match bytes {
+        Some(bytes) => Some(bytes),
+        None if expected_stamp.is_some() && expected_stamp == source_stamp(path) => {
+            owned = std::fs::read(path).ok();
+            owned.as_deref()
         }
+        None => None,
     };
     let mut next = 0;
-    if let Ok(mut reader) = reader {
-        let mut redactor = crate::redact::LineRedactor::default();
-        let mut line = Vec::new();
-        let mut line_number = 0;
-        while next < hits.len() {
-            line.clear();
-            match reader.read_until(b'\n', &mut line) {
-                Ok(0) | Err(_) => break,
-                Ok(_) => line_number += 1,
+    if let Some(bytes) = bytes {
+        let source = String::from_utf8_lossy(bytes);
+        let scan = crate::redact::SourceScan::new(path, &source);
+        let mut offset = 0;
+        for (line, original) in source.split_inclusive('\n').enumerate() {
+            if next == hits.len() {
+                break;
             }
-            let decoded = String::from_utf8_lossy(&line);
-            let original = strip_eol(&decoded);
-            let masked = redactor.line(original);
-            while next < hits.len() && hits[next].line_number == line_number {
+            let body = strip_eol(original);
+            while next < hits.len() && hits[next].line_number == line as u64 + 1 {
                 let hit = &mut hits[next];
-                // A concurrent edit invalidates the context of a separately read hit.
-                hit.text = if hit.text == original {
-                    masked.clone()
+                hit.text = if hit.text == body {
+                    scan.render_range(&source, offset..offset + body.len())
+                        .into_owned()
                 } else {
                     crate::redact::hidden(&hit.text)
                 };
                 next += 1;
             }
+            offset += original.len();
         }
     }
-    if bytes.is_none() && expected_stamp != source_stamp(path) {
+    if expected_stamp.is_some() && expected_stamp != source_stamp(path) {
         next = 0;
     }
-    // Unavailable source context must not expose an unclassified password fragment.
     for hit in &mut hits[next..] {
         hit.text = crate::redact::hidden(&hit.text);
     }

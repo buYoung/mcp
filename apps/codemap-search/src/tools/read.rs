@@ -215,7 +215,7 @@ pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, 
     }
     // Detect against the complete source before selecting a possibly interior secret line.
     // Callable parsing above continues to use the original buffer.
-    let masked = crate::redact::source(content);
+    let masked = crate::redact::in_file(&resolved, content);
     let displayed_lines: Vec<&str> = masked
         .split('\n')
         .map(|line| line.strip_suffix('\r').unwrap_or(line))

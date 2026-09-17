@@ -70,7 +70,7 @@ impl ExpansionPage {
                 .insert(line);
         }
         // Parse and match original bytes; only the presentation copy is masked before slicing.
-        let masked = source.map(crate::redact::source);
+        let masked = source.map(|source| crate::redact::in_file(Path::new(path), source));
         let source_lengths = source
             .map(|s| {
                 s.split('\n')

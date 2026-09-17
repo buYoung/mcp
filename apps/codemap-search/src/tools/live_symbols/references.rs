@@ -143,10 +143,15 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
     IdentifierRole::Reference
 }
 
-fn value_preview(name: &str, value: Node<'_>, source: &str) -> Option<String> {
+fn value_preview(
+    value: Node<'_>,
+    source: &str,
+    scan: &crate::redact::SourceScan,
+) -> Option<String> {
     // Preserve spaces inside literals; actual line breaks are escaped for a single row.
-    let raw = value.utf8_text(source.as_bytes()).ok()?.trim();
-    let value = crate::redact::named_value(name, raw)
+    let value = scan
+        .render_range(source, value.byte_range())
+        .trim()
         .replace('\r', "\\r")
         .replace('\n', "\\n");
     if value.chars().count() > 240 {
@@ -176,6 +181,7 @@ pub(super) fn collect_with_resolver(
     source: &str,
     resolver: Option<&crate::callers::resolution::SourceResolver<'_>>,
 ) -> BTreeMap<usize, Vec<String>> {
+    let redaction = crate::redact::SourceScan::with_tree(source, tree);
     let mut definitions: HashMap<&str, Vec<_>> = HashMap::new();
     let language = crate::lang::spec_for_path(std::path::Path::new(&file.file_path))
         .map(|spec| spec.language_name())
@@ -257,7 +263,7 @@ pub(super) fn collect_with_resolver(
                                     && !is_enclosed_by(node, declaration)
                                 {
                                     let value = value
-                                        .and_then(|value| value_preview(name, value, source))
+                                        .and_then(|value| value_preview(value, source, &redaction))
                                         .map(|value| format!(" = {value}"))
                                         .unwrap_or_default();
                                     references.insert(

@@ -101,7 +101,7 @@ Tools are read-only over their configured filesystem scope. The server itself wr
 
 Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`), then built-in defaults. An active repo key overrides its global value; comment it out to inherit instead.
 
-MCP responses mask detected API keys, tokens, passwords and private keys by default. `[tool_output].is_redact_enabled = false` disables masking. Matching and ranking still use original data; files and local indexes are unchanged. Detection is pattern-based and can miss unfamiliar formats. See [credential redaction](./docs/configuration.md#credential-redaction) for coverage and limits.
+MCP responses mask detected API keys, tokens, passwords and private keys by default. `[tool_output].is_redact_enabled = false` disables masking. Matching and ranking still use original data; files and local indexes are unchanged. Detection combines Tree-sitter with pattern rules; `[redact]` adds sensitive field names, custom regexes and exact-value exceptions. Unfamiliar formats can still be missed. See [credential redaction](./docs/configuration.md#credential-redaction) for coverage and limits.
 
 Automatic symbol/call context excludes test regions by default. Set `[exclude].should_include_test_code = true` to include them. `test_file_patterns` and the per-language `test_attributes`, `test_decorators`, and `test_calls` lists let you add custom rules or remove built-ins; each explicit list replaces its inherited value and `[]` disables it. Live `read`/`grep` source is preserved. See [test-code context](./docs/configuration.md#test-code-context) for defaults and examples.
 

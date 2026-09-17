@@ -1,4 +1,4 @@
-# codemap-config-version: 14
+# codemap-config-version: 15
 # 이 저장소의 codemap-search 설정입니다.
 # 최초 제외 목록은 공통 폴더·감지한 프로젝트 종류의 재귀 glob을 사용하며 나머지는 내장 기본값입니다.
 # 키별 우선순위는 저장소 > 전역 > 내장 기본값입니다. 상속하려면 키를 삭제하거나 주석 처리하세요.
@@ -212,3 +212,9 @@ allowed_roots = []
 # is_enabled = true
 # use_builtin_rules = true
 # rules = []
+
+# MCP 출력의 추가 마스킹 규칙. 내장 규칙은 유지됩니다.
+[redact]
+sensitive_fields = []
+rules = []
+exceptions = []

@@ -52,6 +52,7 @@ pub(super) struct RenderSource<'a> {
     file_path: &'a str,
     content: std::cell::OnceCell<Option<String>>,
     masked: std::cell::OnceCell<Option<String>>,
+    scan: std::cell::OnceCell<crate::redact::SourceScan>,
 }
 
 impl<'a> RenderSource<'a> {
@@ -60,6 +61,7 @@ impl<'a> RenderSource<'a> {
             file_path,
             content: std::cell::OnceCell::new(),
             masked: std::cell::OnceCell::new(),
+            scan: std::cell::OnceCell::new(),
         }
     }
 
@@ -75,37 +77,48 @@ impl<'a> RenderSource<'a> {
         self.masked
             .get_or_init(|| {
                 self.content()
-                    .map(|source| crate::redact::source(source).into_owned())
+                    .map(|source| self.scan(source).render(source).into_owned())
             })
             .as_deref()
+    }
+
+    fn scan(&self, source: &str) -> &crate::redact::SourceScan {
+        self.scan.get_or_init(|| {
+            crate::redact::SourceScan::new(std::path::Path::new(self.file_path), source)
+        })
     }
 
     pub(super) fn literal(&self, literal: &crate::parser::ExtractedLiteral) -> String {
         if !crate::redact::is_enabled() {
             return literal.text.clone();
         }
-        let line = literal.line.saturating_sub(1);
-        let line_count = literal.text.bytes().filter(|byte| *byte == b'\n').count() + 1;
-        let window = |text: &str| {
-            text.lines()
-                .skip(line)
-                .take(line_count)
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let original = self.content().map(window);
-        let displayed = self.displayed_content().map(window);
-        // Detached or stale indexed literals lack trustworthy credential context. Suppress
-        // them unless the current source line proves the value and remains unmasked.
-        if original
-            .zip(displayed)
-            .is_some_and(|(original, displayed)| {
-                original == displayed && original.contains(&literal.text.replace("\r\n", "\n"))
-            })
-        {
-            crate::redact::source(&literal.text).into_owned()
+        self.content().map_or_else(
+            || crate::redact::hidden(&literal.text),
+            |source| self.scan(source).literal(source, literal),
+        )
+    }
+
+    /// A qualified-literal hint has no line of its own. Hide the whole label if any
+    /// matching occurrence is sensitive, rather than choosing a less-masked duplicate.
+    pub(super) fn matched_literal_value(
+        &self,
+        value: &str,
+        literals: &[crate::parser::ExtractedLiteral],
+    ) -> String {
+        if !crate::redact::is_enabled() {
+            return value.to_string();
+        }
+        let mut has_match = false;
+        for literal in literals.iter().filter(|literal| literal.text == value) {
+            has_match = true;
+            if self.literal(literal) != value {
+                return crate::redact::hidden(value);
+            }
+        }
+        if has_match {
+            value.to_string()
         } else {
-            crate::redact::hidden(&literal.text)
+            crate::redact::hidden(value)
         }
     }
 }

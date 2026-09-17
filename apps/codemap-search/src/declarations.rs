@@ -71,8 +71,9 @@ pub(crate) fn folder_signature(s: &ExtractedSymbol, tree: &Tree, source: &str) -
             if let Some(body) = node.child_by_field_name("body") {
                 // C/C++ pointer and qualifier syntax belongs to the declarator,
                 // not just the base `type` node. Preserve the complete header.
-                if let Some(header) = source.get(node.start_byte()..body.start_byte()) {
-                    return crate::redact::source(header)
+                if source.get(node.start_byte()..body.start_byte()).is_some() {
+                    return crate::redact::SourceScan::with_tree(source, tree)
+                        .render_range(source, node.start_byte()..body.start_byte())
                         .split_whitespace()
                         .collect::<Vec<_>>()
                         .join(" ");
@@ -184,7 +185,7 @@ pub(crate) fn symbol_node<'a>(
 
 fn text(node: Node<'_>, source: &str) -> Option<String> {
     Some(
-        crate::redact::source(node.utf8_text(source.as_bytes()).ok()?)
+        crate::redact::node_text(node, source)
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" "),
