@@ -1,4 +1,4 @@
-use super::{Detection, DetectionKind};
+use super::detection::{Detection, DetectionKind};
 use regex::Regex;
 use std::sync::OnceLock;
 

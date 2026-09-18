@@ -97,7 +97,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 15;
+const CONFIG_VERSION: u32 = 16;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -1246,6 +1246,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 16,
+        key: "pii_entities",
+        placement: KeyPlacement::Subtable("redact"),
+        english_block: "# Opt-in PII entity types, e.g. [\"CREDIT_CARD\", \"EMAIL_ADDRESS\"]. Empty keeps credential-only masking.\n# pii_entities = []",
+        korean_block: "# 선택 활성화할 PII 종류입니다. 예: [\"CREDIT_CARD\", \"EMAIL_ADDRESS\"]. 비어 있으면 인증정보만 가립니다.\n# pii_entities = []",
+    },
     Migration {
         version: 15,
         key: "exceptions",

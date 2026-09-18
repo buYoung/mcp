@@ -2,6 +2,8 @@ use super::helpers::{create_mock_repo, run_cli, McpClient};
 use serde_json::{json, Value};
 
 mod large_file;
+mod pii;
+mod pii_large_file;
 
 #[tokio::test]
 async fn test_redact_search_literal_hints_preserve_safe_labels() {

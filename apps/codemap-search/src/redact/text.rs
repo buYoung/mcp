@@ -1,5 +1,5 @@
 //! Conservative fallback for unsupported syntax, malformed regions and plain text.
-use super::{rules, Detection};
+use super::{detection::Detection, rules};
 use regex::Regex;
 use std::path::Path;
 use std::sync::OnceLock;

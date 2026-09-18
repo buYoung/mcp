@@ -123,6 +123,9 @@ impl McpServer {
         let _config_scope = crate::config::pin_request();
         let _redact_scope = crate::redact::begin_request();
         match self.handle_request_inner(method, params) {
+            // Negotiation and tool definitions are control metadata. PII rules must
+            // not rewrite protocol versions, tool names or schema/enum values.
+            Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
             Ok(mut value) => {
                 crate::redact::response(&mut value);
                 Ok(value)

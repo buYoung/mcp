@@ -1,5 +1,5 @@
 //! Syntax augments the textual fallback only where a binding/type is understood.
-use super::{rules, Detection};
+use super::{detection::Detection, rules};
 use std::ops::Range;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
@@ -9,6 +9,7 @@ pub(super) struct Context {
     pub decided: Vec<Range<usize>>,
     pub detections: Vec<Detection>,
     pub literals: Vec<(Range<usize>, usize)>,
+    pub protected: Vec<Range<usize>>,
 }
 
 pub(super) fn parse(path: &Path, source: &str) -> Option<Context> {
@@ -257,6 +258,7 @@ fn is_sensitive_name(mut node: Node<'_>, source: &str) -> bool {
 
 pub(super) fn inspect(root: Node<'_>, source: &str) -> Context {
     let mut context = Context::default();
+    let has_pii_rules = !crate::config::get().redact.pii_entities.is_empty();
     let mut pending = vec![root];
     while let Some(node) = pending.pop() {
         if !node.has_error() && !node.is_missing() {
@@ -267,6 +269,21 @@ pub(super) fn inspect(root: Node<'_>, source: &str) -> Context {
             }
             if is_type(node) {
                 context.decided.push(node.byte_range());
+                if has_pii_rules {
+                    context.protected.push(node.byte_range());
+                }
+            } else if has_pii_rules
+                && matches!(
+                    node.kind(),
+                    "identifier"
+                        | "property_identifier"
+                        | "field_identifier"
+                        | "shorthand_property_identifier"
+                        | "shorthand_property_identifier_pattern"
+                        | "constant"
+                )
+            {
+                context.protected.push(node.byte_range());
             }
             if let Some((name, value)) = binding(node) {
                 if is_sensitive_name(name, source) {
