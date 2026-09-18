@@ -1,4 +1,7 @@
+use super::detection::DetectionKind;
+use super::transform::{mask_ranges, MARKER};
 use super::*;
+use std::path::Path;
 
 #[test]
 fn test_credentials_are_hidden_without_changing_safe_code_or_line_breaks() {

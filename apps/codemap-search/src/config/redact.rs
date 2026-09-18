@@ -16,6 +16,7 @@ pub struct RedactException {
 
 #[derive(Debug, Clone, Default)]
 pub struct RedactConfig {
+    pub pii_entities: Vec<String>,
     pub sensitive_fields: Vec<String>,
     pub rules: Vec<RedactRule>,
     pub exceptions: Vec<RedactException>,
@@ -23,6 +24,7 @@ pub struct RedactConfig {
 
 #[derive(Default)]
 pub(super) struct RedactLayer {
+    pii_entities: Option<Vec<String>>,
     sensitive_fields: Option<Vec<String>>,
     rules: Option<Vec<RedactRule>>,
     exceptions: Option<Vec<RedactException>>,
@@ -112,6 +114,19 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> RedactLayer {
     };
     for (key, value) in table {
         let is_valid = match key.as_str() {
+            "pii_entities" => {
+                layer.pii_entities = value.as_array().and_then(|values| {
+                    values
+                        .iter()
+                        .map(|value| {
+                            let entity = value.as_str()?;
+                            crate::redact::is_supported_pii_entity(entity)
+                                .then(|| entity.to_string())
+                        })
+                        .collect()
+                });
+                layer.pii_entities.is_some()
+            }
             "sensitive_fields" => {
                 layer.sensitive_fields = value.as_array().and_then(|values| {
                     values
@@ -149,6 +164,10 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> RedactLayer {
 
 pub(super) fn merge(repo: RedactLayer, global: RedactLayer) -> RedactConfig {
     RedactConfig {
+        pii_entities: repo
+            .pii_entities
+            .or(global.pii_entities)
+            .unwrap_or_default(),
         sensitive_fields: repo
             .sensitive_fields
             .or(global.sensitive_fields)

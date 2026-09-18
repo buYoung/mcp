@@ -19,10 +19,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **15**. The marker is a comment:
+The current configuration schema is **16**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 15
+# codemap-config-version: 16
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -35,6 +35,7 @@ The current configuration schema is **15**. The marker is a comment:
 - Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
 - Version 14 adds `[tool_output].is_redact_enabled`, defaulting to `true`. Its migration adds a commented setting; the built-in default applies unless explicitly overridden.
 - Version 15 adds commented empty `sensitive_fields`, `rules` and `exceptions` lists under `[redact]`, preserving existing rules and exceptions.
+- Version 16 adds `[redact].pii_entities` as a commented empty list. PII rules remain opt-in; existing credential masking defaults are preserved.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
@@ -152,7 +153,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[search].search_literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[search].search_anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
-| `[tool_output].is_redact_enabled` | bool | `true` | Mask detected credentials in MCP responses; matching and local indexes retain original data |
+| `[tool_output].is_redact_enabled` | bool | `true` | Mask detected credentials and selected PII in MCP responses; matching and local indexes retain original data |
+| `[redact].pii_entities` | string array | `[]` | Exact PII entity types to enable; see [supported types](./pii-redaction.md) |
 | `[redact].sensitive_fields` | string array | `[]` | Additional sensitive field names, matched exactly after case/separator normalization |
 | `[redact].rules` | inline-table array | `[]` | Additional regex rules, each with `id` and `pattern` |
 | `[redact].exceptions` | inline-table array | `[]` | Exact pairs of `rule_id` and detected `value` to exempt |
@@ -224,7 +226,9 @@ While enabled, workspace changes reconcile native files in a full refresh. Recor
 
 ### Credential redaction
 
-`[tool_output].is_redact_enabled = true` masks detected credential values in MCP tool responses, including source views, indexed literals, declaration/constant previews and error messages. The replacement is `[REDACTED]`, or asterisks for values shorter than that marker. Replacements preserve source line breaks and never increase output size. Disable it with `false`; changes apply after config reload without rebuilding the index.
+`[tool_output].is_redact_enabled = true` masks detected credentials and selected PII in MCP tool responses, including source views, indexed literals, declaration/constant previews and error messages. The replacement is `[REDACTED]`, or asterisks for values shorter than that marker. Replacements preserve source line breaks and never increase output size. Disable it with `false`; changes apply after config reload without rebuilding the index.
+
+PII rules are disabled by default. Set `[redact].pii_entities = ["CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE"]` to enable those types. Names are exact and case-sensitive; an unsupported name or non-string entry rejects this entire key and falls back to the lower layer. An explicit `[]` disables inherited PII selections while preserving credential rules. See [PII redaction](./pii-redaction.md) for all supported types, exact exceptions, and detection limits.
 
 Tree-sitter distinguishes literal values from references and types in recognized assignments, fields and default arguments. For example, `password: string = externalValue` is preserved, while the value in `password: string = "hardcoded-value"` is masked. Static parts of concatenated and interpolated strings are inspected too. Unsupported syntax, malformed regions and plain text retain name/pattern fallback. Unquoted ENV/INI values include semicolons and spaces.
 
@@ -254,11 +258,11 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 An exception exempts only its rule and **entire detected source value**, both matched exactly. It does not exempt `ACME_EXAMPLEPLUS`; `password = "ACME_EXAMPLE"` remains covered by the independent `field.sensitive` rule. There are no file/path-wide or substring exceptions. Quoted values are compared without their outer quotes, retaining source escapes without decoding them.
 
-Each list follows repo → global → default precedence; an explicit list replaces its inherited list. `[]` clears that user list while preserving built-ins. Invalid lists, duplicate IDs, invalid regexes and patterns matching the empty string fall back for the entire config key. Warnings omit patterns, exception values and regex parser diagnostics. Schema 15 scaffolds empty lists; comment out a repo key to inherit its global list.
+Each list follows repo → global → default precedence; an explicit list replaces its inherited list. `[]` clears the selected list while preserving built-in credential rules; `pii_entities = []` disables the additional PII types. Invalid lists, duplicate custom-rule IDs, invalid regexes and patterns matching the empty string fall back for the entire config key. Warnings omit patterns, exception values and regex parser diagnostics. Schema 15 scaffolds the three customization lists and schema 16 adds the PII selection; comment out a repo key to inherit its global list.
 
 Literal labels in match reasons, anchor maps and ranked tails are also masked before rendering or truncation. When there are no indexed matches, the response omits the input query to avoid echoing a secret fragment whose source context cannot be verified.
 
-The final JSON-RPC text pass reapplies token, credential and custom regex rules. Contextual source decisions happen before formatting, so final formatting cannot reinterpret types or references as credential assignments. Protocol IDs, object keys, numeric/boolean values and parent object/array treatment retain their existing contracts.
+The final JSON-RPC text pass reapplies token, credential, selected PII that does not require label context, and custom regex rules. Label-dependent PII and contextual source decisions run on complete originals before formatting. Weak rules are not reapplied to line numbers or references newly placed next to labels by formatting. Protocol IDs, object keys, numeric/boolean values and parent object/array treatment retain their existing contracts.
 
 No additional scanning byte, candidate-count or time limits are introduced. The existing Tree-sitter parse deadline (5000ms) and tool input/output limits remain in effect; incomplete parsing falls back to text detection. Full-context inspection reads matched files into memory, with work and memory usage increasing with file size.
 
@@ -406,6 +410,7 @@ grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
 
 [redact]
+pii_entities = []
 sensitive_fields = []
 rules = []
 exceptions = []

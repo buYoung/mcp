@@ -1,0 +1,2830 @@
+[
+  {
+    "recognizer": "AuAbnRecognizer",
+    "entity": "AU_ABN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/australia/au_abn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "ABN (Medium)",
+        "regex": "\\b\\d{2}\\s\\d{3}\\s\\d{3}\\s\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "ABN (Low)",
+        "regex": "\\b\\d{11}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "AuAbnRecognizer",
+    "context": [
+      "AU_ABN",
+      "australian business number",
+      "abn"
+    ]
+  },
+  {
+    "recognizer": "AuAcnRecognizer",
+    "entity": "AU_ACN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/australia/au_acn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "ACN (Medium)",
+        "regex": "\\b\\d{3}\\s\\d{3}\\s\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "ACN (Low)",
+        "regex": "\\b\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "AuAcnRecognizer",
+    "context": [
+      "AU_ACN",
+      "australian company number",
+      "acn"
+    ]
+  },
+  {
+    "recognizer": "AuMedicareRecognizer",
+    "entity": "AU_MEDICARE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/australia/au_medicare_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Australian Medicare Number (Medium)",
+        "regex": "\\b[2-6]\\d{3}\\s\\d{5}\\s\\d\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Australian Medicare Number (Low)",
+        "regex": "\\b[2-6]\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "AuMedicareRecognizer",
+    "context": [
+      "AU_MEDICARE",
+      "medicare"
+    ]
+  },
+  {
+    "recognizer": "AuTfnRecognizer",
+    "entity": "AU_TFN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/australia/au_tfn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "TFN (Medium)",
+        "regex": "\\b\\d{3}\\s\\d{3}\\s\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "TFN (Low)",
+        "regex": "\\b\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "AuTfnRecognizer",
+    "context": [
+      "AU_TFN",
+      "tax file number",
+      "tfn"
+    ]
+  },
+  {
+    "recognizer": "CaPostalCodeRecognizer",
+    "entity": "CA_POSTAL_CODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/canada/ca_postal_code_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "CA Postal Code (strict, with space)",
+        "regex": "\\b[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z] \\d[ABCEGHJ-NPRSTV-Z]\\d\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "CA Postal Code (weak, no space)",
+        "regex": "\\b[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z]\\d[ABCEGHJ-NPRSTV-Z]\\d\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "CA_POSTAL_CODE",
+      "postal code",
+      "postcode",
+      "zip",
+      "code postal",
+      "zip code"
+    ]
+  },
+  {
+    "recognizer": "CaSinRecognizer",
+    "entity": "CA_SIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/canada/ca_sin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "SIN (weak)",
+        "regex": "\\b[1-79]\\d{8}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "SIN (medium)",
+        "regex": "\\b[1-79]\\d{2}([- ])\\d{3}[- ]\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "CaSinRecognizer",
+    "context": [
+      "CA_SIN",
+      "sin",
+      "sin number",
+      "social insurance",
+      "social insurance number",
+      "nas",
+      "numéro nas",
+      "numéro d'assurance sociale",
+      "assurance sociale"
+    ]
+  },
+  {
+    "recognizer": "FiPersonalIdentityCodeRecognizer",
+    "entity": "FI_PERSONAL_IDENTITY_CODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/finland/fi_personal_identity_code_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Finnish Personal Identity Code (Medium)",
+        "regex": "\\b(\\d{6})([-+ABCDEFYXWVU])(\\d{3})([0123456789ABCDEFHJKLMNPRSTUVWXY])\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Finnish Personal Identity Code (Very Weak)",
+        "regex": "(\\d{6})([-+ABCDEFYXWVU])(\\d{3})([0123456789ABCDEFHJKLMNPRSTUVWXY])",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "FiPersonalIdentityCodeRecognizer",
+    "context": [
+      "FI_PERSONAL_IDENTITY_CODE",
+      "hetu",
+      "henkilötunnus",
+      "personbeteckningen",
+      "personal identity code"
+    ]
+  },
+  {
+    "recognizer": "DeBsnrRecognizer",
+    "entity": "DE_BSNR",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_bsnr_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Betriebsstättennummer BSNR (9 digits)",
+        "regex": "\\b\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "DeBsnrRecognizer",
+    "context": [
+      "DE_BSNR",
+      "betriebsstättennummer",
+      "betriebsstätten-nummer",
+      "bsnr",
+      "betriebsstätte",
+      "praxisnummer",
+      "arztpraxis",
+      "praxis",
+      "kassenärztliche vereinigung",
+      "kv-nummer",
+      "kv nummer",
+      "praxisadresse",
+      "praxisstandort",
+      "nebenbetriebsstätte",
+      "hauptbetriebsstätte",
+      "behandlungsort",
+      "vertragsarztpraxis"
+    ]
+  },
+  {
+    "recognizer": "DeFuehrerscheinRecognizer",
+    "entity": "DE_FUEHRERSCHEIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_fuehrerschein_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Führerscheinnummer (Post-2013 EU-Format, 11 Zeichen)",
+        "regex": "\\b[A-Z]{2}\\d{8}[A-Z0-9]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DE_FUEHRERSCHEIN",
+      "führerscheinnummer",
+      "führerschein",
+      "fahrerlaubnis",
+      "fahrerlaubnisnummer",
+      "fahrerlaubnisklasse",
+      "führerscheininhaber",
+      "fev",
+      "kba",
+      "kraftfahrt-bundesamt",
+      "driving licence",
+      "driving license",
+      "driver's license",
+      "licence number",
+      "license number",
+      "dokument nr",
+      "dokument-nr",
+      "feld 5",
+      "driver license",
+      "drivers license",
+      "driver licence",
+      "fuehrerschein"
+    ]
+  },
+  {
+    "recognizer": "DeHandelsregisterRecognizer",
+    "entity": "DE_HANDELSREGISTER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_handelsregister_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Handelsregisternummer HRA/HRB",
+        "regex": "\\bHR[AB]\\s*\\d{1,6}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DE_HANDELSREGISTER",
+      "handelsregister",
+      "handelsregisternummer",
+      "amtsgericht",
+      "registergericht",
+      "hra",
+      "hrb",
+      "hr-nummer",
+      "registerauszug",
+      "handelsregistereintrag",
+      "firma",
+      "gesellschaft",
+      "gmbh",
+      "ag",
+      "ug",
+      "kg",
+      "ohg",
+      "einzelkaufmann",
+      "einzelkauffrau",
+      "handelsregisterblattnummer"
+    ]
+  },
+  {
+    "recognizer": "DeHealthInsuranceRecognizer",
+    "entity": "DE_HEALTH_INSURANCE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_health_insurance_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Krankenversicherungsnummer KVNR (letter + 9 digits)",
+        "regex": "\\b[A-Z]\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "DeHealthInsuranceRecognizer",
+    "context": [
+      "DE_HEALTH_INSURANCE",
+      "krankenversicherungsnummer",
+      "krankenversichertennummer",
+      "versichertennummer",
+      "kvnr",
+      "krankenkasse",
+      "krankenversicherung",
+      "gesundheitskarte",
+      "egk",
+      "elektronische gesundheitskarte",
+      "gkv",
+      "gesetzliche krankenversicherung",
+      "krankenversicherungsausweis",
+      "versichertenausweis",
+      "versichertenkarte",
+      "aok",
+      "tkk",
+      "barmer",
+      "dak",
+      "health insurance"
+    ]
+  },
+  {
+    "recognizer": "DeIdCardRecognizer",
+    "entity": "DE_ID_CARD",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_id_card_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Personalausweisnummer nPA (ICAO charset + check digit)",
+        "regex": "\\b[CFGHJKLMNPRTVWXYZ][CFGHJKLMNPRTVWXYZ0-9]{7}[0-9]\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Personalausweisnummer alt (T + 8 Ziffern)",
+        "regex": "\\bT\\d{8}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "DeIdCardRecognizer",
+    "context": [
+      "DE_ID_CARD",
+      "personalausweis",
+      "ausweis",
+      "personalausweisnummer",
+      "ausweisnummer",
+      "ausweisdokument",
+      "dokumentennummer",
+      "seriennummer",
+      "npa",
+      "neuer personalausweis",
+      "personalausweisgesetz",
+      "pauwsg",
+      "bundespersonalausweis",
+      "identity card",
+      "national id",
+      "id card"
+    ]
+  },
+  {
+    "recognizer": "DeKfzRecognizer",
+    "entity": "DE_KFZ",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_kfz_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "KFZ-Kennzeichen (mit Leerzeichen)",
+        "regex": "(?P<secret>[A-ZÄÖÜ]{1,3}\\s[A-Z]{1,2}\\s\\d{1,4}[EH]?)(?:\\z|[^\\w])",
+        "left_boundary": "[\\w-]",
+        "requires_context": true
+      },
+      {
+        "name": "KFZ-Kennzeichen (mit Bindestrich)",
+        "regex": "(?P<secret>[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}-\\d{1,4}[EH]?)(?:\\z|[^\\w])",
+        "left_boundary": "[\\w-]",
+        "requires_context": true
+      },
+      {
+        "name": "KFZ-Kennzeichen (Bindestrich + Leerzeichen)",
+        "regex": "(?P<secret>[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\\s\\d{1,4}[EH]?)(?:\\z|[^\\w])",
+        "left_boundary": "[\\w-]",
+        "requires_context": true
+      },
+      {
+        "name": "KFZ-Kennzeichen (ASCII only, mit Leerzeichen)",
+        "regex": "(?P<secret>[A-Z]{1,3}\\s[A-Z]{1,2}\\s\\d{1,4}[EH]?)(?:\\z|[^\\w])",
+        "left_boundary": "[\\w-]",
+        "requires_context": true
+      },
+      {
+        "name": "KFZ-Kennzeichen (ASCII only, Bindestrich + Leerzeichen)",
+        "regex": "(?P<secret>[A-Z]{1,3}-[A-Z]{1,2}\\s\\d{1,4}[EH]?)(?:\\z|[^\\w])",
+        "left_boundary": "[\\w-]",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DE_KFZ",
+      "kennzeichen",
+      "kfz-kennzeichen",
+      "kraftfahrzeugkennzeichen",
+      "nummernschild",
+      "fahrzeugkennzeichen",
+      "zulassung",
+      "kfz",
+      "fahrzeug",
+      "auto",
+      "pkw",
+      "lkw",
+      "fahrzeugschein",
+      "fahrzeugbrief",
+      "zulassungsbescheinigung",
+      "amtliches kennzeichen",
+      "vehicle registration",
+      "license plate",
+      "licence plate",
+      "plate number"
+    ]
+  },
+  {
+    "recognizer": "DeLanrRecognizer",
+    "entity": "DE_LANR",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_lanr_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Lebenslange Arztnummer LANR (9 digits)",
+        "regex": "\\b\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "DeLanrRecognizer",
+    "context": [
+      "DE_LANR",
+      "arztnummer",
+      "lanr",
+      "lebenslange arztnummer",
+      "arzt-nr",
+      "arzt nr",
+      "arzt-nummer",
+      "vertragsarzt",
+      "kassenarzt",
+      "niedergelassener arzt",
+      "kbv",
+      "kassenärztliche vereinigung",
+      "kv-nummer",
+      "rezept",
+      "verschreibung",
+      "behandelnder arzt",
+      "hausarzt",
+      "facharzt"
+    ]
+  },
+  {
+    "recognizer": "DePassportRecognizer",
+    "entity": "DE_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Reisepassnummer (Strict ICAO charset)",
+        "regex": "\\b[CFGHJKLMNPRTVWXYZ][CFGHJKLMNPRTVWXYZ0-9]{7}[0-9]\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "DePassportRecognizer",
+    "context": [
+      "DE_PASSPORT",
+      "reisepass",
+      "pass",
+      "passnummer",
+      "reisepassnummer",
+      "passport",
+      "passport number",
+      "pass-nr",
+      "dokumentennummer",
+      "bundesrepublik deutschland",
+      "ausweisdokument",
+      "mrz"
+    ]
+  },
+  {
+    "recognizer": "DePlzRecognizer",
+    "entity": "DE_PLZ",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_plz_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Postleitzahl (5 digits, very low base confidence – context required)",
+        "regex": "\\b(0[1-9]\\d{3}|[1-9]\\d{4})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DE_PLZ",
+      "plz",
+      "postleitzahl",
+      "postanschrift",
+      "adresse",
+      "wohnort",
+      "ort",
+      "wohnanschrift",
+      "lieferadresse",
+      "rechnungsadresse",
+      "straße",
+      "strasse",
+      "hausnummer",
+      "postfach",
+      "bundesland",
+      "gemeinde",
+      "stadt",
+      "dorf",
+      "postal code",
+      "postcode",
+      "zip code"
+    ]
+  },
+  {
+    "recognizer": "DeSocialSecurityRecognizer",
+    "entity": "DE_SOCIAL_SECURITY",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_social_security_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Rentenversicherungsnummer (Strict, with birth date structure)",
+        "regex": "\\b\\d{2}(0[1-9]|[12]\\d|3[01]|5[1-9]|[67]\\d|8[01])(0[1-9]|1[0-2])\\d{2}[A-Z]\\d{2}[0-9]\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Rentenversicherungsnummer (Relaxed)",
+        "regex": "\\b\\d{8}[A-Z]\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "DeSocialSecurityRecognizer",
+    "context": [
+      "DE_SOCIAL_SECURITY",
+      "rentenversicherungsnummer",
+      "sozialversicherungsnummer",
+      "versicherungsnummer",
+      "rvnr",
+      "svnr",
+      "sv-nummer",
+      "rente",
+      "rentenversicherung",
+      "deutsche rentenversicherung",
+      "drv",
+      "sozialversicherung",
+      "sozialversicherungsausweis",
+      "rentenausweis",
+      "social security"
+    ]
+  },
+  {
+    "recognizer": "DeTaxIdRecognizer",
+    "entity": "DE_TAX_ID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_tax_id_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Steueridentifikationsnummer (High)",
+        "regex": "\\b[1-9]\\d{10}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "DeTaxIdRecognizer",
+    "context": [
+      "DE_TAX_ID",
+      "steueridentifikationsnummer",
+      "steuer-id",
+      "steuerid",
+      "steuerliche identifikationsnummer",
+      "steuerliche identifikation",
+      "persönliche identifikationsnummer",
+      "steuer identifikation",
+      "idnr",
+      "steuer-idnr",
+      "steuernummer",
+      "bzst",
+      "tax id",
+      "tax number",
+      "tax identification number"
+    ]
+  },
+  {
+    "recognizer": "DeTaxNumberRecognizer",
+    "entity": "DE_TAX_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_tax_number_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Steuernummer ELSTER (bundeseinheitlich, 13-stellig)",
+        "regex": "\\b(0[1-9]|1[0-6])\\d{11}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Steuernummer mit Schrägstrich (Bayern/BW: 3/3/5)",
+        "regex": "(?P<secret>\\d{3}/\\d{3}/\\d{5})(?:\\z|[^\\w])",
+        "left_boundary": "\\w",
+        "requires_context": true
+      },
+      {
+        "name": "Steuernummer mit Schrägstrich (NW: 3/4/4 oder allgemein 2-3/3-4/4-5)",
+        "regex": "(?P<secret>\\d{2,3}/\\d{3,4}/\\d{4,5})(?:\\z|[^\\w])",
+        "left_boundary": "\\w",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DE_TAX_NUMBER",
+      "steuernummer",
+      "steuer-nr",
+      "steuer nr",
+      "st.-nr",
+      "st-nr",
+      "finanzamt",
+      "umsatzsteuer",
+      "einkommensteuer",
+      "körperschaftsteuer",
+      "gewerbesteuer",
+      "steuerveranlagung",
+      "steuerbescheid",
+      "tax id",
+      "tax number",
+      "tax identification number"
+    ]
+  },
+  {
+    "recognizer": "DeVatIdRecognizer",
+    "entity": "DE_VAT_ID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/germany/de_vat_id_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Umsatzsteuer-Identifikationsnummer USt-IdNr. (DE + 9 digits)",
+        "regex": "\\bDE\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Umsatzsteuer-Identifikationsnummer USt-IdNr. (with separators)",
+        "regex": "\\bDE[\\s.\\-]?\\d{3}[\\s.\\-]?\\d{3}[\\s.\\-]?\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "DeVatIdRecognizer",
+    "context": [
+      "DE_VAT_ID",
+      "umsatzsteuer-identifikationsnummer",
+      "umsatzsteueridentifikationsnummer",
+      "ust-idnr",
+      "ust-id",
+      "ustidnr",
+      "umsatzsteuer-id",
+      "mehrwertsteuer",
+      "vat",
+      "vat-id",
+      "vat id",
+      "steueridentifikation",
+      "bzst",
+      "bundeszentralamt für steuern",
+      "finanzamt",
+      "invoice",
+      "rechnung"
+    ]
+  },
+  {
+    "recognizer": "InAadhaarRecognizer",
+    "entity": "IN_AADHAAR",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_aadhaar_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "AADHAAR (Very Weak)",
+        "regex": "\\b[0-9]{12}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "AADHAR (Very Weak)",
+        "regex": "\\b[0-9]{4}[- :][0-9]{4}[- :][0-9]{4}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "InAadhaarRecognizer",
+    "context": [
+      "IN_AADHAAR",
+      "aadhaar",
+      "uidai"
+    ]
+  },
+  {
+    "recognizer": "InGstinRecognizer",
+    "entity": "IN_GSTIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_gstin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "GSTIN (High)",
+        "regex": "\\b((?:0[1-9]|[1-3][0-7])[A-Za-z0-9]{10}[A-Za-z0-9]{1}Z[A-Za-z0-9]{1})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "GSTIN (Medium)",
+        "regex": "\\b((?:0[1-9]|[1-3][0-7])[A-Za-z0-9]{11}Z[A-Za-z0-9]{1})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "GSTIN (Low)",
+        "regex": "\\b([0-9]{2}[A-Za-z0-9]{11}Z[A-Za-z0-9]{1})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "InGstinRecognizer",
+    "context": [
+      "IN_GSTIN",
+      "gstin",
+      "gst",
+      "goods and services tax",
+      "tax identification",
+      "gst number",
+      "gst registration"
+    ]
+  },
+  {
+    "recognizer": "InPanRecognizer",
+    "entity": "IN_PAN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_pan_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "PAN (High)",
+        "regex": "\\b([A-Za-z]{3}[AaBbCcFfGgHhJjLlPpTt]{1}[A-Za-z]{1}[0-9]{4}[A-Za-z]{1})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "PAN (Medium)",
+        "regex": "\\b([A-Za-z]{5}[0-9]{4}[A-Za-z]{1})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "PAN (Low)",
+        "regex": "\\b([\\w@#$%^?~-]{10})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IN_PAN",
+      "permanent account number",
+      "pan"
+    ]
+  },
+  {
+    "recognizer": "InPassportRecognizer",
+    "entity": "IN_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "PASSPORT",
+        "regex": "\\b[A-Z][1-9]\\d\\s?\\d{4}[1-9]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IN_PASSPORT",
+      "passport",
+      "indian passport",
+      "passport number"
+    ]
+  },
+  {
+    "recognizer": "InVehicleRegistrationRecognizer",
+    "entity": "IN_VEHICLE_REGISTRATION",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_vehicle_registration_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "India Vehicle Registration (Very Weak)",
+        "regex": "\\b[A-Z]{1}(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration (Very Weak)",
+        "regex": "\\b[A-Z]{2}(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration (Very Weak)",
+        "regex": "\\b(I)(?:\\d{0}[1-9]\\d{4}|\\d{1}[1-9]\\d{3}|\\d{2}[1-9]\\d{2}|\\d{3}[1-9]\\d{1}|\\d{4}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration (Weak)",
+        "regex": "\\b[A-Z]{3}(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration (Medium)",
+        "regex": "\\b\\d{1,3}(CD|CC|UN)[1-9]{1}[0-9]{1,3}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration",
+        "regex": "\\b[A-Z]{2}\\d{1}[A-Z]{1,3}(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration",
+        "regex": "\\b[A-Z]{2}\\d{2}[A-Z]{1,2}(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration",
+        "regex": "\\b[2-9]{1}[1-9]{1}(BH)(?:\\d{0}[1-9]\\d{3}|\\d{1}[1-9]\\d{2}|\\d{2}[1-9]\\d{1}|\\d{3}[1-9]\\d{0})[A-HJ-NP-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "India Vehicle Registration",
+        "regex": "\\b(?:\\d{0}[1-9]\\d{1}|\\d{1}[1-9]\\d{0})(A|B|C|D|E|F|H|K|P|R|X)\\d{6}[A-Z]{1}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "InVehicleRegistrationRecognizer",
+    "context": [
+      "IN_VEHICLE_REGISTRATION",
+      "RTO",
+      "vehicle",
+      "plate",
+      "registration",
+      "vehicle registration",
+      "license plate",
+      "licence plate",
+      "plate number"
+    ]
+  },
+  {
+    "recognizer": "InVoterRecognizer",
+    "entity": "IN_VOTER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/india/in_voter_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "VOTER",
+        "regex": "\\b([A-Za-z]{1}[ABCDGHJKMNPRSYabcdghjkmnprsy]{1}[A-Za-z]{1}([0-9]){7})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "VOTER",
+        "regex": "\\b([A-Za-z]){3}([0-9]){7}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IN_VOTER",
+      "voter",
+      "epic",
+      "elector photo identity card"
+    ]
+  },
+  {
+    "recognizer": "ItDriverLicenseRecognizer",
+    "entity": "IT_DRIVER_LICENSE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/italy/it_driver_license_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Driver License",
+        "regex": "\\b(?i)(([A-Z]{2}\\d{7}[A-Z])|(U1[BCDEFGHLJKMNPRSTUWYXZ0-9]{7}[A-Z]))\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IT_DRIVER_LICENSE",
+      "patente",
+      "patente di guida",
+      "licenza",
+      "licenza di guida",
+      "driver license",
+      "drivers license",
+      "driving license",
+      "driver licence",
+      "driving licence"
+    ]
+  },
+  {
+    "recognizer": "ItFiscalCodeRecognizer",
+    "entity": "IT_FISCAL_CODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/italy/it_fiscal_code_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Fiscal Code",
+        "regex": "(?i)((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\\dLMNP-V]|[0L][1-9MNP-V]))[A-Z])",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ItFiscalCodeRecognizer",
+    "context": [
+      "IT_FISCAL_CODE",
+      "codice fiscale",
+      "cf",
+      "fiscal code"
+    ]
+  },
+  {
+    "recognizer": "ItIdentityCardRecognizer",
+    "entity": "IT_IDENTITY_CARD",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/italy/it_identity_card_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Paper-based Identity Card (very weak)",
+        "regex": "(?i)\\b[A-Z]{2}\\s?\\d{7}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Electronic Identity Card (CIE) 2.0 (very weak)",
+        "regex": "(?i)\\b\\d{7}[A-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Electronic Identity Card (CIE) 3.0 (very weak)",
+        "regex": "(?i)\\b[A-Z]{2}\\d{5}[A-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IT_IDENTITY_CARD",
+      "carta",
+      "identità",
+      "elettronica",
+      "cie",
+      "documento",
+      "riconoscimento",
+      "espatrio",
+      "identity card"
+    ]
+  },
+  {
+    "recognizer": "ItPassportRecognizer",
+    "entity": "IT_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/italy/it_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Passport (very weak)",
+        "regex": "(?i)\\b[A-Z]{2}\\d{7}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "IT_PASSPORT",
+      "passaporto",
+      "elettronico",
+      "viaggio",
+      "viaggiare",
+      "documento",
+      "dogana",
+      "passport",
+      "passport number"
+    ]
+  },
+  {
+    "recognizer": "ItVatCodeRecognizer",
+    "entity": "IT_VAT_CODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/italy/it_vat_code.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "IT Vat code (piva)",
+        "regex": "\\b([0-9][ _]?){11}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "ItVatCodeRecognizer",
+    "context": [
+      "IT_VAT_CODE",
+      "piva",
+      "partita iva",
+      "pi",
+      "vat code"
+    ]
+  },
+  {
+    "recognizer": "KrBrnRecognizer",
+    "entity": "KR_BRN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/korea/kr_brn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "BRN (Weak)",
+        "regex": "(?P<secret>\\d{3}-\\d{2}-\\d{5})(?:\\z|[^\\d])",
+        "left_boundary": "\\d",
+        "requires_context": false
+      },
+      {
+        "name": "BRN (Very weak)",
+        "regex": "(?P<secret>\\d{10})(?:\\z|[^\\d])",
+        "left_boundary": "\\d",
+        "requires_context": false
+      }
+    ],
+    "validator": "KrBrnRecognizer",
+    "context": [
+      "KR_BRN",
+      "사업자등록번호",
+      "사업자번호",
+      "사업자",
+      "BRN",
+      "Business Registration Number",
+      "Korean BRN",
+      "business number",
+      "tax registration number",
+      "brn"
+    ]
+  },
+  {
+    "recognizer": "KrDriverLicenseRecognizer",
+    "entity": "KR_DRIVER_LICENSE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/korea/kr_driver_license_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Driver License (very weak)",
+        "regex": "(?P<secret>(\\d{2})[- ]?(\\d{2})[- ]?(\\d{6})[- ]?(\\d{2}))(?:\\z|[^\\d])",
+        "left_boundary": "\\d",
+        "requires_context": true
+      }
+    ],
+    "validator": "KrDriverLicenseRecognizer",
+    "context": [
+      "KR_DRIVER_LICENSE",
+      "운전면허",
+      "운전면허번호",
+      "면허번호",
+      "Korean driver license",
+      "Korean driver's license",
+      "driver license",
+      "drivers license",
+      "driving license",
+      "driver licence",
+      "driving licence"
+    ]
+  },
+  {
+    "recognizer": "KrFrnRecognizer",
+    "entity": "KR_FRN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/korea/kr_frn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "FRN (Medium)",
+        "regex": "(?P<secret>\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(-?)[5-8]\\d{6})(?:\\z|[^\\d])",
+        "left_boundary": "\\d",
+        "requires_context": true
+      }
+    ],
+    "validator": "KrFrnRecognizer",
+    "context": [
+      "KR_FRN",
+      "외국인등록번호",
+      "Korean FRN",
+      "FRN",
+      "Foreigner Registration Number",
+      "Korean Foreigner Registration Number",
+      "외국인번호",
+      "frn"
+    ]
+  },
+  {
+    "recognizer": "KrPassportRecognizer",
+    "entity": "KR_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/korea/kr_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Passport Number (Current)",
+        "regex": "(?P<secret>[MmSsRrOoDd]\\d{3}[A-Za-z]\\d{4})(?:\\z|[^0-9])",
+        "left_boundary": "[A-Z0-9a-z]",
+        "requires_context": true
+      },
+      {
+        "name": "Passport Number (Previous)",
+        "regex": "(?P<secret>[MmSsRrOoDd]\\d{8})(?:\\z|[^0-9])",
+        "left_boundary": "[A-Z0-9a-z]",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "KR_PASSPORT",
+      "Korean passport",
+      "Korean passport number",
+      "대한민국 여권",
+      "여권",
+      "passport",
+      "passport number",
+      "여권 번호"
+    ]
+  },
+  {
+    "recognizer": "KrRrnRecognizer",
+    "entity": "KR_RRN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/korea/kr_rrn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "RRN (Medium)",
+        "regex": "(?P<secret>\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(-?)[1-4]\\d{6})(?:\\z|[^\\d])",
+        "left_boundary": "\\d",
+        "requires_context": true
+      }
+    ],
+    "validator": "KrRrnRecognizer",
+    "context": [
+      "KR_RRN",
+      "Korean RRN",
+      "Korean Resident Registration Number",
+      "Resident Registration Number",
+      "RRN",
+      "rrn",
+      "rrn#"
+    ]
+  },
+  {
+    "recognizer": "NgNinRecognizer",
+    "entity": "NG_NIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/nigeria/ng_nin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NIN (Very Weak)",
+        "regex": "\\b\\d{11}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "NgNinRecognizer",
+    "context": [
+      "NG_NIN",
+      "nin",
+      "national identification number",
+      "national identity number",
+      "nimc",
+      "national identity",
+      "nigeria id",
+      "nigerian identification"
+    ]
+  },
+  {
+    "recognizer": "NgVehicleRegistrationRecognizer",
+    "entity": "NG_VEHICLE_REGISTRATION",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/nigeria/ng_vehicle_registration_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Nigeria Vehicle Registration",
+        "regex": "\\b[A-Z]{3}[- ]?\\d{3}[A-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "NG_VEHICLE_REGISTRATION",
+      "plate number",
+      "vehicle registration",
+      "license plate",
+      "number plate",
+      "plate",
+      "vehicle",
+      "registration",
+      "licence plate"
+    ]
+  },
+  {
+    "recognizer": "PhPassportRecognizer",
+    "entity": "PH_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/philippines/ph_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "PH Passport (weak: 1L7D1L or 2L7D)",
+        "regex": "\\b(?:[A-Z]\\d{7}[A-Z]|[A-Z]{2}\\d{7})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "PH_PASSPORT",
+      "passport",
+      "passport number",
+      "passport no",
+      "passport no.",
+      "passport#",
+      "passport id",
+      "travel document",
+      "philippine passport",
+      "philippines passport",
+      "pasaporte",
+      "pasaporte number",
+      "dfa"
+    ]
+  },
+  {
+    "recognizer": "PhTinRecognizer",
+    "entity": "PH_TIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/philippines/ph_tin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "TIN (Low)",
+        "regex": "\\b(\\d{3}-\\d{3}-\\d{3}(-\\d{3})?)\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "TIN (Very Low)",
+        "regex": "\\b(\\d{9}|\\d{12})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "PhTinRecognizer",
+    "context": [
+      "PH_TIN",
+      "tin",
+      "taxpayer identification number",
+      "bir",
+      "taxpayer id",
+      "tax id",
+      "rdo",
+      "revenue district office",
+      "tax number",
+      "tax identification number"
+    ]
+  },
+  {
+    "recognizer": "PhUmidRecognizer",
+    "entity": "PH_UMID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/philippines/ph_umid_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UMID (with dashes)",
+        "regex": "\\b\\d{4}-\\d{7}-\\d\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "UMID (without dashes)",
+        "regex": "\\b\\d{12}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "PH_UMID",
+      "umid",
+      "unified multi-purpose id",
+      "crn",
+      "common reference number",
+      "sss",
+      "gsis",
+      "philhealth",
+      "pag-ibig",
+      "umid number",
+      "umid card",
+      "unified multipurpose id"
+    ]
+  },
+  {
+    "recognizer": "PlPeselRecognizer",
+    "entity": "PL_PESEL",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/poland/pl_pesel_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "PESEL",
+        "regex": "[0-9]{2}([02468][1-9]|[13579][012])(0[1-9]|1[0-9]|2[0-9]|3[01])[0-9]{5}",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "PlPeselRecognizer",
+    "context": [
+      "PL_PESEL",
+      "PESEL",
+      "pesel"
+    ]
+  },
+  {
+    "recognizer": "SgFinRecognizer",
+    "entity": "SG_NRIC_FIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/singapore/sg_fin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Nric (weak)",
+        "regex": "(?i)(\\b[A-Z][0-9]{7}[A-Z]\\b)",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Nric (medium)",
+        "regex": "(?i)(\\b[STFGM][0-9]{7}[A-Z]\\b)",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "SG_NRIC_FIN",
+      "fin",
+      "fin#",
+      "nric",
+      "nric#",
+      "nric fin"
+    ]
+  },
+  {
+    "recognizer": "SgUenRecognizer",
+    "entity": "SG_UEN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/singapore/sg_uen_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UEN (low)",
+        "regex": "\\b\\d{8}[A-Z]\\b|\\b\\d{9}[A-Z]\\b|\\b[TSR]\\d{2}[A-Z]{2}\\d{4}[A-Z]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "SgUenRecognizer",
+    "context": [
+      "SG_UEN",
+      "uen",
+      "unique entity number",
+      "business registration",
+      "ACRA"
+    ]
+  },
+  {
+    "recognizer": "ZaCompanyRegistrationRecognizer",
+    "entity": "ZA_COMPANY_REGISTRATION",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_company_registration_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African Company Registration (modern)",
+        "regex": "\\b(?:19|20)\\d{2}/\\d{6}/\\d{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "South African Company Registration (legacy)",
+        "regex": "\\b(?:CK|K|T|W|B|M|N|NR)\\d{4}/\\d{6}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaCompanyRegistrationRecognizer",
+    "context": [
+      "ZA_COMPANY_REGISTRATION",
+      "cipc",
+      "company registration",
+      "registration number",
+      "close corporation",
+      "company reg",
+      "enterprise number"
+    ]
+  },
+  {
+    "recognizer": "ZaDriverLicenseRecognizer",
+    "entity": "ZA_DRIVER_LICENSE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_driver_license_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African Driver's Licence",
+        "regex": "\\b\\d{6,10}[A-Z0-9]{2,5}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaDriverLicenseRecognizer",
+    "context": [
+      "ZA_DRIVER_LICENSE",
+      "licence",
+      "license",
+      "driving licence",
+      "driving license",
+      "driver's licence",
+      "driver's license",
+      "drivers licence",
+      "drivers license",
+      "enatis",
+      "natis",
+      "licence number",
+      "license number",
+      "driver license",
+      "driver licence"
+    ]
+  },
+  {
+    "recognizer": "ZaIdNumberRecognizer",
+    "entity": "ZA_ID_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_id_number_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African ID Number",
+        "regex": "\\b\\d{10}[0-2][89]\\d\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "ZaIdNumberRecognizer",
+    "context": [
+      "ZA_ID_NUMBER",
+      "id",
+      "identity",
+      "identity number",
+      "id number",
+      "south african id",
+      "rsa id",
+      "smart id",
+      "national id"
+    ]
+  },
+  {
+    "recognizer": "ZaIncomeTaxNumberRecognizer",
+    "entity": "ZA_INCOME_TAX_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_income_tax_number_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African Income Tax Number",
+        "regex": "\\b[01239]\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaIncomeTaxNumberRecognizer",
+    "context": [
+      "ZA_INCOME_TAX_NUMBER",
+      "sars",
+      "tax reference",
+      "income tax",
+      "tax number",
+      "itr",
+      "taxpayer",
+      "tax registration",
+      "tax id",
+      "tax identification number",
+      "income tax number"
+    ]
+  },
+  {
+    "recognizer": "ZaLicensePlateRecognizer",
+    "entity": "ZA_LICENSE_PLATE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_license_plate_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "ZA Licence Plate (compact)",
+        "regex": "\\b[A-Z]{2,4}\\d{2,4}[A-Z]{0,4}(?:GP|ZN|WP|EC|NC|FS|LP|MP|NW)\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "ZA Licence Plate (spaced)",
+        "regex": "\\b[A-Z]{2}\\s?\\d{2}\\s?[A-Z]{2}\\s?(?:GP|ZN|WP|EC|NC|FS|LP|MP|NW)\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "ZA Licence Plate (prefix digits)",
+        "regex": "\\b[A-Z]{2,3}\\s?\\d{2,3}\\s?(?:GP|ZN|WP|EC|NC|FS|LP|MP|NW)\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "ZA Licence Plate (EC numeric prefix)",
+        "regex": "\\b\\d{2,3}\\s?[A-Z]{2,3}\\s?EC\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaLicensePlateRecognizer",
+    "context": [
+      "ZA_LICENSE_PLATE",
+      "licence plate",
+      "license plate",
+      "number plate",
+      "registration",
+      "vehicle registration",
+      "natis",
+      "enatis",
+      "plate number"
+    ]
+  },
+  {
+    "recognizer": "ZaPassportRecognizer",
+    "entity": "ZA_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African Passport",
+        "regex": "\\b[ADMT]\\d{8}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaPassportRecognizer",
+    "context": [
+      "ZA_PASSPORT",
+      "passport",
+      "passport number",
+      "travel document",
+      "dha",
+      "south african passport",
+      "rsa passport"
+    ]
+  },
+  {
+    "recognizer": "ZaTrafficRegisterNumberRecognizer",
+    "entity": "ZA_TRAFFIC_REGISTER_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_traffic_register_number_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African Traffic Register Number",
+        "regex": "\\b\\d{13}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaTrafficRegisterNumberRecognizer",
+    "context": [
+      "ZA_TRAFFIC_REGISTER_NUMBER",
+      "traffic register",
+      "traffic register number",
+      "trn",
+      "enatis",
+      "natis",
+      "vehicle register"
+    ]
+  },
+  {
+    "recognizer": "ZaVatNumberRecognizer",
+    "entity": "ZA_VAT_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/south_africa/za_vat_number_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "South African VAT Number",
+        "regex": "\\b4\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "ZaVatNumberRecognizer",
+    "context": [
+      "ZA_VAT_NUMBER",
+      "vat",
+      "vat number",
+      "vat registration",
+      "tax invoice",
+      "sars",
+      "value added tax"
+    ]
+  },
+  {
+    "recognizer": "EsNieRecognizer",
+    "entity": "ES_NIE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/spain/es_nie_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NIE",
+        "regex": "\\b[X-Z]?[0-9]?[0-9]{7}[-]?[A-Z]\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "EsNieRecognizer",
+    "context": [
+      "ES_NIE",
+      "número de identificación de extranjero",
+      "NIE",
+      "nie"
+    ]
+  },
+  {
+    "recognizer": "EsNifRecognizer",
+    "entity": "ES_NIF",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/spain/es_nif_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NIF",
+        "regex": "\\b[0-9]?[0-9]{7}[-]?[A-Z]\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "EsNifRecognizer",
+    "context": [
+      "ES_NIF",
+      "documento nacional de identidad",
+      "DNI",
+      "NIF",
+      "identificación",
+      "nif"
+    ]
+  },
+  {
+    "recognizer": "EsPassportRecognizer",
+    "entity": "ES_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/spain/es_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "ES_PASSPORT",
+        "regex": "\\b[A-Z]{3}[0-9]{6}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "ES_PASSPORT",
+      "pasaporte",
+      "passport",
+      "número de pasaporte",
+      "passport number"
+    ]
+  },
+  {
+    "recognizer": "SeOrganisationsnummerRecognizer",
+    "entity": "SE_ORGANISATIONSNUMMER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/sweden/se_organisationsnummer_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Swedish Organisationsnummer (Medium)",
+        "regex": "\\b\\d{6}[-]?\\d{4}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Swedish Organisationsnummer (Weak)",
+        "regex": "\\d{6}[-]?\\d{4}",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "SeOrganisationsnummerRecognizer",
+    "context": [
+      "SE_ORGANISATIONSNUMMER",
+      "organisationsnummer",
+      "orgnr",
+      "org nr",
+      "företagsnummer"
+    ]
+  },
+  {
+    "recognizer": "SePersonnummerRecognizer",
+    "entity": "SE_PERSONNUMMER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/sweden/se_personnummer_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Swedish Personnummer (Medium)",
+        "regex": "\\b(\\d{6,8})([-+]?)\\d{4}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Swedish Personnummer (Very Weak)",
+        "regex": "(\\d{6,8})([-+]?)\\d{4}",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "SePersonnummerRecognizer",
+    "context": [
+      "SE_PERSONNUMMER",
+      "personnummer",
+      "svenskt personnummer",
+      "svensk id",
+      "ssn",
+      "personal identity number",
+      "samordningsnummer"
+    ]
+  },
+  {
+    "recognizer": "ThTninRecognizer",
+    "entity": "TH_TNIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/thai/th_tnin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "TNIN (Medium)",
+        "regex": "\\b[1-9](?:[134][0-9]|2[0-7]|5[0-8]|[67][01234567]|[89][0123456])\\d{10}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "ThTninRecognizer",
+    "context": [
+      "TH_TNIN",
+      "Thai National ID",
+      "Thai ID Number",
+      "TNIN",
+      "เลขประจำตัวประชาชน",
+      "เลขบัตรประชาชน",
+      "รหัสปชช",
+      "tnin"
+    ]
+  },
+  {
+    "recognizer": "TrLicensePlateRecognizer",
+    "entity": "TR_LICENSE_PLATE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/turkey/tr_license_plate_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "TR License Plate (space)",
+        "regex": "\\b(0[1-9]|[1-7][0-9]|8[0-1])\\s?[A-PR-VY-Z]{1,3}\\s?\\d{2,4}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "TR License Plate (hyphen)",
+        "regex": "\\b(0[1-9]|[1-7][0-9]|8[0-1])-[A-PR-VY-Z]{1,3}-\\d{2,4}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "TrLicensePlateRecognizer",
+    "context": [
+      "TR_LICENSE_PLATE",
+      "plaka",
+      "araç plakası",
+      "plaka numarası",
+      "kayıt plakası",
+      "tr plaka",
+      "license plate",
+      "number plate",
+      "plate",
+      "taşıt plakası",
+      "kayıt",
+      "vehicle registration",
+      "licence plate",
+      "plate number"
+    ]
+  },
+  {
+    "recognizer": "TrNationalIdRecognizer",
+    "entity": "TR_NATIONAL_ID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/turkey/tr_national_id_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "TR_NATIONAL_ID",
+        "regex": "\\b[1-9][0-9]{10}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "TrNationalIdRecognizer",
+    "context": [
+      "TR_NATIONAL_ID",
+      "tc kimlik",
+      "kimlik no",
+      "kimlik numarası",
+      "tckn",
+      "tc no",
+      "nüfus cüzdanı",
+      "national id",
+      "turkish id",
+      "türk kimlik"
+    ]
+  },
+  {
+    "recognizer": "UkDrivingLicenceRecognizer",
+    "entity": "UK_DRIVING_LICENCE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_driving_licence_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UK Driving Licence",
+        "regex": "\\b[A-Z9]{5}[0-9](?:0[1-9]|1[0-2]|5[1-9]|6[0-2])(?:0[1-9]|[12][0-9]|3[01])[0-9][A-Z9]{2}[A-Z0-9][A-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "UkDrivingLicenceRecognizer",
+    "context": [
+      "UK_DRIVING_LICENCE",
+      "driving licence",
+      "driving license",
+      "driver's licence",
+      "driver's license",
+      "dvla",
+      "dl number",
+      "licence number",
+      "license number",
+      "driver license",
+      "drivers license",
+      "driver licence"
+    ]
+  },
+  {
+    "recognizer": "NhsRecognizer",
+    "entity": "UK_NHS",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_nhs_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NHS (medium)",
+        "regex": "\\b([0-9]{3})[- ]?([0-9]{3})[- ]?([0-9]{4})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "NhsRecognizer",
+    "context": [
+      "UK_NHS",
+      "national health service",
+      "nhs",
+      "health services authority",
+      "health authority"
+    ]
+  },
+  {
+    "recognizer": "UkNinoRecognizer",
+    "entity": "UK_NINO",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_nino_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NINO (medium)",
+        "regex": "\\b([a-ceghj-pr-tw-zA-CEGHJ-PR-TW-Z]{1}[a-ceghj-npr-tw-zA-CEGHJ-NPR-TW-Z]{1}) ?([0-9]{2}) ?([0-9]{2}) ?([0-9]{2}) ?([a-dA-D]{1})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "UK_NINO",
+      "national insurance",
+      "ni number",
+      "nino"
+    ]
+  },
+  {
+    "recognizer": "UkPassportRecognizer",
+    "entity": "UK_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UK Passport (weak)",
+        "regex": "\\b[A-Z]{2}\\d{7}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "UK_PASSPORT",
+      "passport",
+      "passport number",
+      "travel document",
+      "uk passport",
+      "british passport",
+      "hm passport",
+      "hmpo"
+    ]
+  },
+  {
+    "recognizer": "UkPostcodeRecognizer",
+    "entity": "UK_POSTCODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_postcode_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UK Postcode",
+        "regex": "\\b(GIR\\s?0AA|[A-PR-UWYZ][0-9][ABCDEFGHJKPSTUW]?\\s?[0-9][ABD-HJLNP-UW-Z]{2}|[A-PR-UWYZ][0-9]{2}\\s?[0-9][ABD-HJLNP-UW-Z]{2}|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY]?\\s?[0-9][ABD-HJLNP-UW-Z]{2}|[A-PR-UWYZ][A-HK-Y][0-9]{2}\\s?[0-9][ABD-HJLNP-UW-Z]{2})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "UK_POSTCODE",
+      "postcode",
+      "post code",
+      "postal code",
+      "zip",
+      "address",
+      "delivery",
+      "mailing",
+      "shipping",
+      "correspondence",
+      "zip code"
+    ]
+  },
+  {
+    "recognizer": "UkVehicleRegistrationRecognizer",
+    "entity": "UK_VEHICLE_REGISTRATION",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_vehicle_registration_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UK Vehicle Registration (current)",
+        "regex": "\\b[A-HJ-PR-Y][A-HJ-PR-Y](?:0[1-9]|[1-7][0-9])[- ]?[A-HJ-PR-Z]{3}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "UK Vehicle Registration (prefix)",
+        "regex": "\\b[A-HJ-NPR-TV-Y]\\d{1,3}[- ]?[A-HJ-PR-Y][A-HJ-PR-Z]{2}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "UK Vehicle Registration (suffix)",
+        "regex": "\\b[A-HJ-PR-Z]{3}[- ]?\\d{1,3}[- ]?[A-HJ-NPR-TV-Y]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "UkVehicleRegistrationRecognizer",
+    "context": [
+      "UK_VEHICLE_REGISTRATION",
+      "vehicle",
+      "registration",
+      "number plate",
+      "licence plate",
+      "license plate",
+      "reg",
+      "vrn",
+      "dvla",
+      "v5c",
+      "logbook",
+      "mot",
+      "car",
+      "insured vehicle",
+      "vehicle registration",
+      "plate number"
+    ]
+  },
+  {
+    "recognizer": "AbaRoutingRecognizer",
+    "entity": "ABA_ROUTING_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/aba_routing_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "ABA routing number (weak)",
+        "regex": "\\b[0123678]\\d{8}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "ABA routing number",
+        "regex": "\\b[0123678]\\d{3}-\\d{4}-\\d\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "AbaRoutingRecognizer",
+    "context": [
+      "ABA_ROUTING_NUMBER",
+      "aba",
+      "routing",
+      "abarouting",
+      "association",
+      "bankrouting"
+    ]
+  },
+  {
+    "recognizer": "MedicalLicenseRecognizer",
+    "entity": "MEDICAL_LICENSE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/medical_license_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "USA DEA Certificate Number (weak)",
+        "regex": "[abcdefghjklmprstuxABCDEFGHJKLMPRSTUX]{1}[a-zA-Z]{1}\\d{7}|[abcdefghjklmprstuxABCDEFGHJKLMPRSTUX]{1}9\\d{7}",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "MedicalLicenseRecognizer",
+    "context": [
+      "MEDICAL_LICENSE",
+      "medical",
+      "certificate",
+      "DEA"
+    ]
+  },
+  {
+    "recognizer": "UsBankRecognizer",
+    "entity": "US_BANK_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_bank_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Bank Account (weak)",
+        "regex": "\\b[0-9]{8,17}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_BANK_NUMBER",
+      "check",
+      "account",
+      "account#",
+      "acct",
+      "bank",
+      "save",
+      "debit",
+      "bank account",
+      "account number",
+      "bank number"
+    ]
+  },
+  {
+    "recognizer": "UsLicenseRecognizer",
+    "entity": "US_DRIVER_LICENSE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_driver_license_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Driver License - Alphanumeric (weak)",
+        "regex": "\\b([A-Z][0-9]{3,6}|[A-Z][0-9]{5,9}|[A-Z][0-9]{6,8}|[A-Z][0-9]{4,8}|[A-Z][0-9]{9,11}|[A-Z]{1,2}[0-9]{5,6}|H[0-9]{8}|V[0-9]{6}|X[0-9]{8}|A-Z]{2}[0-9]{2,5}|[A-Z]{2}[0-9]{3,7}|[0-9]{2}[A-Z]{3}[0-9]{5,6}|[A-Z][0-9]{13,14}|[A-Z][0-9]{18}|[A-Z][0-9]{6}R|[A-Z][0-9]{9}|[A-Z][0-9]{1,12}|[0-9]{9}[A-Z]|[A-Z]{2}[0-9]{6}[A-Z]|[0-9]{8}[A-Z]{2}|[0-9]{3}[A-Z]{2}[0-9]{4}|[A-Z][0-9][A-Z][0-9][A-Z]|[0-9]{7,8}[A-Z])\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Driver License - Digits (very weak)",
+        "regex": "\\b([0-9]{6,14}|[0-9]{16})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_DRIVER_LICENSE",
+      "driver",
+      "license",
+      "permit",
+      "lic",
+      "identification",
+      "dls",
+      "cdls",
+      "lic#",
+      "driving",
+      "driver license",
+      "drivers license",
+      "driving license",
+      "driver licence",
+      "driving licence"
+    ]
+  },
+  {
+    "recognizer": "UsHealthInsuranceMemberIdRecognizer",
+    "entity": "US_HEALTH_INSURANCE_MEMBER_ID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_health_insurance_member_id_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Health insurance member ID (weak)",
+        "regex": "\\b[A-Z]{1,5}-?[A-Z0-9]{5,14}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_HEALTH_INSURANCE_MEMBER_ID",
+      "member",
+      "subscriber",
+      "insurance",
+      "policy",
+      "member id",
+      "subscriber id",
+      "insurance id",
+      "policy number",
+      "health insurance member id"
+    ]
+  },
+  {
+    "recognizer": "UsPriorAuthorizationNumberRecognizer",
+    "entity": "US_PRIOR_AUTHORIZATION_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_healthcare_admin_recognizers.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Prior authorization number (labelled)",
+        "regex": "(?:\\b(?:prior\\s+authorization|prior\\s+auth|preauthorization|pre-auth|authorization)(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:PA-?)?\\d{6,12}\\b)",
+        "left_boundary": "",
+        "requires_context": false,
+        "field_regex": "\\b(?:PA-?)?\\d{6,12}\\b"
+      },
+      {
+        "name": "Prior authorization number (weak prefixed)",
+        "regex": "\\bPA-?\\d{6,12}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_PRIOR_AUTHORIZATION_NUMBER",
+      "authorization",
+      "auth",
+      "preauthorization",
+      "approval",
+      "prior authorization number",
+      "prior auth",
+      "pre auth"
+    ]
+  },
+  {
+    "recognizer": "UsClaimNumberRecognizer",
+    "entity": "US_CLAIM_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_healthcare_admin_recognizers.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Claim number (labelled)",
+        "regex": "(?:\\b(?:claim|medical\\s+claim|healthcare\\s+claim)(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:CLM-?)?\\d{6,15}\\b)",
+        "left_boundary": "",
+        "requires_context": false,
+        "field_regex": "\\b(?:CLM-?)?\\d{6,15}\\b"
+      },
+      {
+        "name": "Claim number (weak prefixed)",
+        "regex": "\\bCLM-?\\d{6,15}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_CLAIM_NUMBER",
+      "claim",
+      "billing",
+      "claim number"
+    ]
+  },
+  {
+    "recognizer": "UsPrescriptionNumberRecognizer",
+    "entity": "US_PRESCRIPTION_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_healthcare_admin_recognizers.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Prescription number (Rx labelled)",
+        "regex": "(?:\\brx(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:RX-?)?\\d{6,12}\\b)",
+        "left_boundary": "",
+        "requires_context": false,
+        "field_regex": "\\b(?:RX-?)?\\d{6,12}\\b"
+      },
+      {
+        "name": "Prescription number (labelled)",
+        "regex": "(?:\\bprescription(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:RX-?)?\\d{6,12}\\b)",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "Prescription number (weak prefixed)",
+        "regex": "\\bRX-?\\d{6,12}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_PRESCRIPTION_NUMBER",
+      "prescription",
+      "pharmacy",
+      "medication",
+      "prescription number",
+      "rx"
+    ]
+  },
+  {
+    "recognizer": "UsReferralNumberRecognizer",
+    "entity": "US_REFERRAL_NUMBER",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_healthcare_admin_recognizers.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Referral number (labelled)",
+        "regex": "(?:\\b(?:referral|infusion\\s+referral)(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:(?:REF|INF)-?)?\\d{6,12}\\b)",
+        "left_boundary": "",
+        "requires_context": false,
+        "field_regex": "\\b(?:(?:REF|INF)-?)?\\d{6,12}\\b"
+      },
+      {
+        "name": "Referral number (weak prefixed)",
+        "regex": "\\b(?:REF|INF)-?\\d{6,12}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_REFERRAL_NUMBER",
+      "referral",
+      "infusion",
+      "specialty",
+      "referring",
+      "referral number"
+    ]
+  },
+  {
+    "recognizer": "UsProviderTaxIdRecognizer",
+    "entity": "US_PROVIDER_TAX_ID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_healthcare_admin_recognizers.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Provider tax ID (labelled)",
+        "regex": "(?:\\b(?:(?:(?:billing|rendering|healthcare)\\s+provider|provider\\s+organization|provider)\\s+(?:tax\\s*(?:id|number|identification\\s+number)|tin|ein)|billing\\s+provider)(?:\\s*(?:#|no\\.?|number|id)\\s*:?\\s*|\\s*:\\s*|\\s+))(?P<secret>(?:0[1-6]|1[0-6]|2[0-7]|3[0-9]|4[0-8]|5[0-9]|6[0-8]|7[1-7]|8[0-8]|9[0-5]|9[89])-\\d{7}\\b)",
+        "left_boundary": "",
+        "requires_context": false,
+        "field_regex": "\\b(?:0[1-6]|1[0-6]|2[0-7]|3[0-9]|4[0-8]|5[0-9]|6[0-8]|7[1-7]|8[0-8]|9[0-5]|9[89])-\\d{7}\\b"
+      },
+      {
+        "name": "Provider tax ID (weak valid EIN)",
+        "regex": "\\b(?:0[1-6]|1[0-6]|2[0-7]|3[0-9]|4[0-8]|5[0-9]|6[0-8]|7[1-7]|8[0-8]|9[0-5]|9[89])-\\d{7}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_PROVIDER_TAX_ID",
+      "tax",
+      "tin",
+      "ein",
+      "billing",
+      "tax id",
+      "tax number",
+      "tax identification number",
+      "provider tax id"
+    ]
+  },
+  {
+    "recognizer": "UsItinRecognizer",
+    "entity": "US_ITIN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_itin_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Itin (very weak)",
+        "regex": "\\b9\\d{2}[- ](5\\d|6[0-5]|7\\d|8[0-8]|9([0-2]|[4-9]))\\d{4}\\b|\\b9\\d{2}(5\\d|6[0-5]|7\\d|8[0-8]|9([0-2]|[4-9]))[- ]\\d{4}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Itin (weak)",
+        "regex": "\\b9\\d{2}(5\\d|6[0-5]|7\\d|8[0-8]|9([0-2]|[4-9]))\\d{4}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Itin (medium)",
+        "regex": "\\b9\\d{2}[- ](5\\d|6[0-5]|7\\d|8[0-8]|9([0-2]|[4-9]))[- ]\\d{4}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_ITIN",
+      "individual",
+      "taxpayer",
+      "itin",
+      "tax",
+      "payer",
+      "taxid",
+      "tin",
+      "tax id",
+      "tax number",
+      "tax identification number"
+    ]
+  },
+  {
+    "recognizer": "UsMbiRecognizer",
+    "entity": "US_MBI",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_mbi_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "MBI (weak)",
+        "regex": "\\b[0-9][ACDEFGHJKMNPQRTUVWXY][0-9ACDEFGHJKMNPQRTUVWXY][0-9][ACDEFGHJKMNPQRTUVWXY][0-9ACDEFGHJKMNPQRTUVWXY][0-9][ACDEFGHJKMNPQRTUVWXY][ACDEFGHJKMNPQRTUVWXY][0-9][0-9]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "MBI (medium)",
+        "regex": "\\b[0-9][ACDEFGHJKMNPQRTUVWXY][0-9ACDEFGHJKMNPQRTUVWXY][0-9]-[ACDEFGHJKMNPQRTUVWXY][0-9ACDEFGHJKMNPQRTUVWXY][0-9]-[ACDEFGHJKMNPQRTUVWXY][ACDEFGHJKMNPQRTUVWXY][0-9][0-9]\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_MBI",
+      "medicare",
+      "mbi",
+      "beneficiary",
+      "cms",
+      "medicaid",
+      "hic",
+      "hicn"
+    ]
+  },
+  {
+    "recognizer": "UsNpiRecognizer",
+    "entity": "US_NPI",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_npi_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "NPI (weak)",
+        "regex": "\\b[12]\\d{9}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "NPI (medium)",
+        "regex": "\\b[12]\\d{3}[ -]\\d{3}[ -]\\d{3}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "UsNpiRecognizer",
+    "context": [
+      "US_NPI",
+      "npi",
+      "national provider",
+      "provider",
+      "npi number",
+      "provider id",
+      "provider identifier",
+      "taxonomy"
+    ]
+  },
+  {
+    "recognizer": "UsPassportRecognizer",
+    "entity": "US_PASSPORT",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_passport_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Passport (very weak)",
+        "regex": "(\\b[0-9]{9}\\b)",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "Passport Next Generation (very weak)",
+        "regex": "(\\b[A-Z][0-9]{8}\\b)",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "US_PASSPORT",
+      "passport",
+      "passport#",
+      "travel",
+      "document",
+      "passport number"
+    ]
+  },
+  {
+    "recognizer": "UsSsnRecognizer",
+    "entity": "US_SSN",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/us/us_ssn_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "SSN1 (very weak)",
+        "regex": "\\b([0-9]{5})-([0-9]{4})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "SSN2 (very weak)",
+        "regex": "\\b([0-9]{3})-([0-9]{6})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "SSN3 (very weak)",
+        "regex": "\\b(([0-9]{3})-([0-9]{2})-([0-9]{4}))\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "SSN4 (very weak)",
+        "regex": "\\b[0-9]{9}\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "SSN5 (medium)",
+        "regex": "\\b([0-9]{3})[- .]([0-9]{2})[- .]([0-9]{4})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "UsSsnRecognizer",
+    "context": [
+      "US_SSN",
+      "social",
+      "security",
+      "ssn",
+      "ssns",
+      "ssid",
+      "social security",
+      "social security number"
+    ]
+  },
+  {
+    "recognizer": "CreditCardRecognizer",
+    "entity": "CREDIT_CARD",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/credit_card_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "All Credit Cards (weak)",
+        "regex": "\\b((4\\d{3})|(5[0-5]\\d{2})|(6\\d{3})|(1\\d{3})|(3\\d{3}))[- ]?(\\d{3,4})[- ]?(\\d{3,4})[- ]?(\\d{3,5})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "CreditCardRecognizer",
+    "context": [
+      "CREDIT_CARD",
+      "credit",
+      "card",
+      "visa",
+      "mastercard",
+      "cc ",
+      "amex",
+      "discover",
+      "jcb",
+      "diners",
+      "maestro",
+      "instapayment"
+    ]
+  },
+  {
+    "recognizer": "CryptoRecognizer",
+    "entity": "CRYPTO",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/crypto_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Crypto (Medium)",
+        "regex": "(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,59}",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "CryptoRecognizer",
+    "context": [
+      "CRYPTO",
+      "wallet",
+      "btc",
+      "bitcoin",
+      "crypto"
+    ]
+  },
+  {
+    "recognizer": "DateRecognizer",
+    "entity": "DATE_TIME",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/date_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Datetime (yyyy-mm-ddThh:mm[:ss[.f]] with timezone)",
+        "regex": "\\b(?:(\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z)))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "mm/dd/yyyy or mm/dd/yy",
+        "regex": "\\b(([1-9]|0[1-9]|1[0-2])/([1-9]|0[1-9]|[1-2][0-9]|3[0-1])/(\\d{4}|\\d{2}))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "dd/mm/yyyy or dd/mm/yy",
+        "regex": "\\b(([1-9]|0[1-9]|[1-2][0-9]|3[0-1])/([1-9]|0[1-9]|1[0-2])/(\\d{4}|\\d{2}))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "yyyy/mm/dd",
+        "regex": "\\b(\\d{4}/([1-9]|0[1-9]|1[0-2])/([1-9]|0[1-9]|[1-2][0-9]|3[0-1]))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "mm-dd-yyyy",
+        "regex": "\\b(([1-9]|0[1-9]|1[0-2])-([1-9]|0[1-9]|[1-2][0-9]|3[0-1])-\\d{4})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "dd-mm-yyyy",
+        "regex": "\\b(([1-9]|0[1-9]|[1-2][0-9]|3[0-1])-([1-9]|0[1-9]|1[0-2])-\\d{4})\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "yyyy-mm-dd",
+        "regex": "\\b(\\d{4}-([1-9]|0[1-9]|1[0-2])-([1-9]|0[1-9]|[1-2][0-9]|3[0-1]))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "dd.mm.yyyy or dd.mm.yy",
+        "regex": "\\b(([1-9]|0[1-9]|[1-2][0-9]|3[0-1])\\.([1-9]|0[1-9]|1[0-2])\\.(\\d{4}|\\d{2}))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "dd-MMM-yyyy or dd-MMM-yy",
+        "regex": "\\b(([1-9]|0[1-9]|[1-2][0-9]|3[0-1])-(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-(\\d{4}|\\d{2}))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "MMM-yyyy or MMM-yy",
+        "regex": "\\b((JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-(\\d{4}|\\d{2}))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "dd-MMM or dd-MMM",
+        "regex": "\\b(([1-9]|0[1-9]|[1-2][0-9]|3[0-1])-(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC))\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "mm/yyyy or m/yyyy",
+        "regex": "\\b(([1-9]|0[1-9]|1[0-2])/\\d{4})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      },
+      {
+        "name": "mm/yy or m/yy",
+        "regex": "\\b(([1-9]|0[1-9]|1[0-2])/\\d{2})\\b",
+        "left_boundary": "",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "DATE_TIME",
+      "date",
+      "birthday"
+    ]
+  },
+  {
+    "recognizer": "EmailRecognizer",
+    "entity": "EMAIL_ADDRESS",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/email_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Email (Medium)",
+        "regex": "\\b((([!#$%&'*+\\-/=?^_`{|}~\\w])|([!#$%&'*+\\-/=?^_`{|}~\\w][!#$%&'*+\\-/=?^_`{|}~\\.\\w]{0,}[!#$%&'*+\\-/=?^_`{|}~\\w]))[@]\\w+(?:-+\\w+)*(?:\\.\\w+(?:-+\\w+)*)+)\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "EmailRecognizer",
+    "context": [
+      "EMAIL_ADDRESS",
+      "email"
+    ]
+  },
+  {
+    "recognizer": "IbanRecognizer",
+    "entity": "IBAN_CODE",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/iban_recognizer.py",
+    "is_case_insensitive": false,
+    "patterns": [
+      {
+        "name": "IBAN Generic",
+        "regex": "(?P<secret>(?P<iban_prefix>[A-Z]{2}[0-9]{2}(?:[ -]?[A-Z0-9]{4}){2,6})(?P<iban_middle>(?:[ -]?[A-Z0-9]{4})?)(?P<iban_tail>(?:[ -]?[A-Z0-9]{1,3})?))(?:\\z|[^A-Z0-9])",
+        "left_boundary": "[A-Z0-9]",
+        "requires_context": false
+      }
+    ],
+    "validator": "IbanRecognizer",
+    "context": [
+      "IBAN_CODE",
+      "iban",
+      "bank",
+      "transaction"
+    ]
+  },
+  {
+    "recognizer": "IpRecognizer",
+    "entity": "IP_ADDRESS",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/ip_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "IPv4_mapped",
+        "regex": "::(?:ffff(?::0{1,4})?:)?(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:/(?:12[0-8]|1[01]\\d|[1-9]?\\d))?\\b",
+        "left_boundary": "[\\w:]",
+        "requires_context": false
+      },
+      {
+        "name": "IPv4_embedded",
+        "regex": "(?:(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|(?:[0-9A-Fa-f]{1,4}:){6})(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:/(?:12[0-8]|1[01]\\d|[1-9]?\\d))?\\b",
+        "left_boundary": "[\\w:]",
+        "requires_context": false
+      },
+      {
+        "name": "IPv4",
+        "regex": "\\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:/(?:[0-2]?\\d|3[0-2]))?\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "IPv6",
+        "regex": "(?P<secret>(?:(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?::[0-9A-Fa-f]{1,4}){1,6}|:(?::[0-9A-Fa-f]{1,4}){1,6})(?:%[0-9a-zA-Z]+)?(?:/(?:12[0-8]|1[01]\\d|[1-9]?\\d))?)(?:\\z|[^\\w:.]|\\.(?:\\z|[^\\d]))",
+        "left_boundary": "[\\w:]",
+        "requires_context": false
+      },
+      {
+        "name": "IPv6_unspecified",
+        "regex": "(?P<secret>::(?:/(?:12[0-8]|1[01]\\d|[1-9]?\\d))?)(?:\\z|[^\\w:])",
+        "left_boundary": "[\\w:]",
+        "requires_context": true
+      }
+    ],
+    "validator": "IpRecognizer",
+    "context": [
+      "IP_ADDRESS",
+      "ip",
+      "ipv4",
+      "ipv6"
+    ]
+  },
+  {
+    "recognizer": "MacAddressRecognizer",
+    "entity": "MAC_ADDRESS",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/mac_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "MAC_COLON_OR_HYPHEN",
+        "regex": "\\b[0-9A-Fa-f]{2}:(?:[0-9A-Fa-f]{2}:){4}[0-9A-Fa-f]{2}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "MAC_COLON_OR_HYPHEN",
+        "regex": "\\b[0-9A-Fa-f]{2}-(?:[0-9A-Fa-f]{2}-){4}[0-9A-Fa-f]{2}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      },
+      {
+        "name": "MAC_CISCO_DOT",
+        "regex": "\\b[0-9A-Fa-f]{4}\\.[0-9A-Fa-f]{4}\\.[0-9A-Fa-f]{4}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "MacAddressRecognizer",
+    "context": [
+      "MAC_ADDRESS",
+      "mac",
+      "mac address",
+      "hardware address",
+      "physical address",
+      "ethernet"
+    ]
+  },
+  {
+    "recognizer": "UrlRecognizer",
+    "entity": "URL",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/url_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "Standard Url",
+        "regex": "(?P<secret>(?i)(?:https?://)((www\\d{0,3}[.])?[a-z0-9.\\-]{1,253}[.](?:(?:com)|(?:edu)|(?:gov)|(?:int)|(?:mil)|(?:net)|(?:onl)|(?:org)|(?:pro)|(?:red)|(?:tel)|(?:uno)|(?:xxx)|(?:academy)|(?:accountant)|(?:accountants)|(?:actor)|(?:adult)|(?:africa)|(?:agency)|(?:airforce)|(?:apartments)|(?:app)|(?:archi)|(?:army)|(?:art)|(?:asia)|(?:associates)|(?:attorney)|(?:auction)|(?:audio)|(?:auto)|(?:autos)|(?:baby)|(?:band)|(?:bar)|(?:bargains)|(?:beer)|(?:berlin)|(?:best)|(?:bet)|(?:bid)|(?:bike)|(?:bio)|(?:black)|(?:blackfriday)|(?:blog)|(?:blue)|(?:boats)|(?:bond)|(?:boo)|(?:boston)|(?:bot)|(?:boutique)|(?:build)|(?:builders)|(?:business)|(?:buzz)|(?:cab)|(?:cafe)|(?:cam)|(?:camera)|(?:camp)|(?:capital)|(?:car)|(?:cards)|(?:care)|(?:careers)|(?:cars)|(?:casa)|(?:cash)|(?:casino)|(?:catering)|(?:center)|(?:ceo)|(?:cfd)|(?:charity)|(?:chat)|(?:cheap)|(?:christmas)|(?:church)|(?:city)|(?:claims)|(?:cleaning)|(?:click)|(?:clinic)|(?:clothing)|(?:cloud)|(?:club)|(?:codes)|(?:coffee)|(?:college)|(?:com)|(?:community)|(?:company)|(?:computer)|(?:condos)|(?:construction)|(?:consulting)|(?:contact)|(?:contractors)|(?:cooking)|(?:cool)|(?:coupons)|(?:courses)|(?:credit)|(?:creditcard)|(?:cricket)|(?:cruises)|(?:cyou)|(?:dad)|(?:dance)|(?:date)|(?:dating)|(?:day)|(?:degree)|(?:delivery)|(?:democrat)|(?:dental)|(?:dentist)|(?:desi)|(?:design)|(?:dev)|(?:diamonds)|(?:diet)|(?:digital)|(?:direct)|(?:directory)|(?:discount)|(?:doctor)|(?:dog)|(?:domains)|(?:download)|(?:earth)|(?:eco)|(?:education)|(?:email)|(?:energy)|(?:engineer)|(?:engineering)|(?:enterprises)|(?:equipment)|(?:esq)|(?:estate)|(?:events)|(?:exchange)|(?:expert)|(?:exposed)|(?:express)|(?:fail)|(?:faith)|(?:family)|(?:fans)|(?:farm)|(?:fashion)|(?:feedback)|(?:film)|(?:finance)|(?:financial)|(?:fish)|(?:fishing)|(?:fit)|(?:fitness)|(?:flights)|(?:florist)|(?:flowers)|(?:football)|(?:forsale)|(?:foundation)|(?:fun)|(?:fund)|(?:furniture)|(?:futbol)|(?:fyi)|(?:gallery)|(?:game)|(?:games)|(?:garden)|(?:gay)|(?:gdn)|(?:gifts)|(?:gives)|(?:giving)|(?:glass)|(?:global)|(?:gmbh)|(?:gold)|(?:golf)|(?:graphics)|(?:gratis)|(?:green)|(?:gripe)|(?:group)|(?:guide)|(?:guitars)|(?:guru)|(?:hair)|(?:hamburg)|(?:haus)|(?:health)|(?:healthcare)|(?:help)|(?:hiphop)|(?:hockey)|(?:holdings)|(?:holiday)|(?:homes)|(?:horse)|(?:hospital)|(?:host)|(?:hosting)|(?:house)|(?:how)|(?:icu)|(?:info)|(?:ink)|(?:institute)|(?:insure)|(?:international)|(?:investments)|(?:irish)|(?:jewelry)|(?:jetzt)|(?:juegos)|(?:kaufen)|(?:kids)|(?:kitchen)|(?:kiwi)|(?:krd)|(?:kyoto)|(?:land)|(?:lat)|(?:law)|(?:lawyer)|(?:lease)|(?:legal)|(?:lgbt)|(?:life)|(?:lighting)|(?:limited)|(?:limo)|(?:link)|(?:live)|(?:loan)|(?:loans)|(?:lol)|(?:london)|(?:love)|(?:ltd)|(?:ltda)|(?:luxury)|(?:maison)|(?:management)|(?:market)|(?:marketing)|(?:markets)|(?:mba)|(?:media)|(?:melbourne)|(?:meme)|(?:memorial)|(?:men)|(?:miami)|(?:mobi)|(?:moda)|(?:moe)|(?:mom)|(?:money)|(?:monster)|(?:mortgage)|(?:motorcycles)|(?:mov)|(?:movie)|(?:nagoya)|(?:name)|(?:navy)|(?:network)|(?:new)|(?:news)|(?:ngo)|(?:ninja)|(?:now)|(?:nyc)|(?:observer)|(?:okinawa)|(?:one)|(?:ong)|(?:onl)|(?:online)|(?:organic)|(?:osaka)|(?:page)|(?:paris)|(?:partners)|(?:parts)|(?:party)|(?:pet)|(?:phd)|(?:photo)|(?:photography)|(?:photos)|(?:pics)|(?:pictures)|(?:pink)|(?:pizza)|(?:place)|(?:plumbing)|(?:plus)|(?:poker)|(?:porn)|(?:press)|(?:pro)|(?:productions)|(?:prof)|(?:promo)|(?:properties)|(?:property)|(?:protection)|(?:pub)|(?:quest)|(?:racing)|(?:recipes)|(?:red)|(?:rehab)|(?:reise)|(?:reisen)|(?:rent)|(?:rentals)|(?:repair)|(?:report)|(?:republican)|(?:rest)|(?:restaurant)|(?:review)|(?:reviews)|(?:rip)|(?:rocks)|(?:rodeo)|(?:rsvp)|(?:run)|(?:saarland)|(?:sale)|(?:salon)|(?:sarl)|(?:sbs)|(?:school)|(?:schule)|(?:science)|(?:services)|(?:sex)|(?:sexy)|(?:sh)|(?:shoes)|(?:shop)|(?:shopping)|(?:show)|(?:singles)|(?:site)|(?:skin)|(?:soccer)|(?:social)|(?:software)|(?:solar)|(?:solutions)|(?:soy)|(?:space)|(?:spiegel)|(?:study)|(?:style)|(?:sucks)|(?:supply)|(?:support)|(?:surf)|(?:surgery)|(?:systems)|(?:tax)|(?:taxi)|(?:team)|(?:tech)|(?:technology)|(?:tel)|(?:theater)|(?:tips)|(?:tires)|(?:today)|(?:tools)|(?:top)|(?:tours)|(?:town)|(?:toys)|(?:trade)|(?:training)|(?:tube)|(?:uk)|(?:university)|(?:uno)|(?:vacations)|(?:ventures)|(?:vet)|(?:video)|(?:villas)|(?:vin)|(?:vip)|(?:vision)|(?:vlaanderen)|(?:vodka)|(?:vote)|(?:voting)|(?:voyage)|(?:wales)|(?:wang)|(?:watch)|(?:webcam)|(?:website)|(?:wedding)|(?:wiki)|(?:wine)|(?:work)|(?:works)|(?:world)|(?:wtf)|(?:xyz)|(?:yoga)|(?:yokohama)|(?:you)|(?:zone)|(?:ac)|(?:ad)|(?:ae)|(?:af)|(?:ag)|(?:ai)|(?:al)|(?:am)|(?:an)|(?:ao)|(?:aq)|(?:ar)|(?:as)|(?:at)|(?:au)|(?:aw)|(?:ax)|(?:az)|(?:ba)|(?:bb)|(?:bd)|(?:be)|(?:bf)|(?:bg)|(?:bh)|(?:bi)|(?:bj)|(?:bm)|(?:bn)|(?:bo)|(?:br)|(?:bs)|(?:bt)|(?:bv)|(?:bw)|(?:by)|(?:bz)|(?:ca)|(?:cc)|(?:cd)|(?:cf)|(?:cg)|(?:ch)|(?:ci)|(?:ck)|(?:cl)|(?:cm)|(?:cn)|(?:co)|(?:cr)|(?:cu)|(?:cv)|(?:cw)|(?:cx)|(?:cy)|(?:cz)|(?:de)|(?:dj)|(?:dk)|(?:dm)|(?:do)|(?:dz)|(?:ec)|(?:ee)|(?:eg)|(?:er)|(?:es)|(?:et)|(?:eu)|(?:fi)|(?:fj)|(?:fk)|(?:fm)|(?:fo)|(?:fr)|(?:ga)|(?:gb)|(?:gd)|(?:ge)|(?:gf)|(?:gg)|(?:gh)|(?:gi)|(?:gl)|(?:gm)|(?:gn)|(?:gp)|(?:gq)|(?:gr)|(?:gs)|(?:gt)|(?:gu)|(?:gw)|(?:gy)|(?:hk)|(?:hm)|(?:hn)|(?:hr)|(?:ht)|(?:hu)|(?:id)|(?:ie)|(?:il)|(?:im)|(?:in)|(?:io)|(?:iq)|(?:ir)|(?:is)|(?:it)|(?:je)|(?:jm)|(?:jo)|(?:jp)|(?:ke)|(?:kg)|(?:kh)|(?:ki)|(?:km)|(?:kn)|(?:kp)|(?:kr)|(?:kw)|(?:ky)|(?:kz)|(?:la)|(?:lb)|(?:lc)|(?:li)|(?:lk)|(?:lr)|(?:ls)|(?:lt)|(?:lu)|(?:lv)|(?:ly)|(?:ma)|(?:mc)|(?:md)|(?:me)|(?:mg)|(?:mh)|(?:mk)|(?:ml)|(?:mm)|(?:mn)|(?:mo)|(?:mp)|(?:mq)|(?:mr)|(?:ms)|(?:mt)|(?:mu)|(?:mv)|(?:mw)|(?:mx)|(?:my)|(?:mz)|(?:na)|(?:nc)|(?:ne)|(?:nf)|(?:ng)|(?:ni)|(?:nl)|(?:no)|(?:np)|(?:nr)|(?:nu)|(?:nz)|(?:om)|(?:pa)|(?:pe)|(?:pf)|(?:pg)|(?:ph)|(?:pk)|(?:pl)|(?:pm)|(?:pn)|(?:pr)|(?:ps)|(?:pt)|(?:pw)|(?:py)|(?:qa)|(?:re)|(?:ro)|(?:rs)|(?:ru)|(?:rw)|(?:sa)|(?:sb)|(?:sc)|(?:sd)|(?:se)|(?:sg)|(?:sh)|(?:si)|(?:sj)|(?:sk)|(?:sl)|(?:sm)|(?:sn)|(?:so)|(?:sr)|(?:st)|(?:su)|(?:sv)|(?:sx)|(?:sy)|(?:sz)|(?:tc)|(?:td)|(?:tf)|(?:tg)|(?:th)|(?:tj)|(?:tk)|(?:tl)|(?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)|(?:ua)|(?:ug)|(?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)|(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))(?:/[^\\s()<>\\\"']*)?))(?:\\z|[^\\w.\\-]|[.](?:\\z|[^\\w\\-]))",
+        "left_boundary": "[\\w.\\-]",
+        "requires_context": false
+      },
+      {
+        "name": "Non schema URL",
+        "regex": "(?P<secret>(?i)((www\\d{0,3}[.])?[a-z0-9.\\-]{1,253}[.](?:(?:com)|(?:edu)|(?:gov)|(?:int)|(?:mil)|(?:net)|(?:onl)|(?:org)|(?:pro)|(?:red)|(?:tel)|(?:uno)|(?:xxx)|(?:academy)|(?:accountant)|(?:accountants)|(?:actor)|(?:adult)|(?:africa)|(?:agency)|(?:airforce)|(?:apartments)|(?:app)|(?:archi)|(?:army)|(?:art)|(?:asia)|(?:associates)|(?:attorney)|(?:auction)|(?:audio)|(?:auto)|(?:autos)|(?:baby)|(?:band)|(?:bar)|(?:bargains)|(?:beer)|(?:berlin)|(?:best)|(?:bet)|(?:bid)|(?:bike)|(?:bio)|(?:black)|(?:blackfriday)|(?:blog)|(?:blue)|(?:boats)|(?:bond)|(?:boo)|(?:boston)|(?:bot)|(?:boutique)|(?:build)|(?:builders)|(?:business)|(?:buzz)|(?:cab)|(?:cafe)|(?:cam)|(?:camera)|(?:camp)|(?:capital)|(?:car)|(?:cards)|(?:care)|(?:careers)|(?:cars)|(?:casa)|(?:cash)|(?:casino)|(?:catering)|(?:center)|(?:ceo)|(?:cfd)|(?:charity)|(?:chat)|(?:cheap)|(?:christmas)|(?:church)|(?:city)|(?:claims)|(?:cleaning)|(?:click)|(?:clinic)|(?:clothing)|(?:cloud)|(?:club)|(?:codes)|(?:coffee)|(?:college)|(?:com)|(?:community)|(?:company)|(?:computer)|(?:condos)|(?:construction)|(?:consulting)|(?:contact)|(?:contractors)|(?:cooking)|(?:cool)|(?:coupons)|(?:courses)|(?:credit)|(?:creditcard)|(?:cricket)|(?:cruises)|(?:cyou)|(?:dad)|(?:dance)|(?:date)|(?:dating)|(?:day)|(?:degree)|(?:delivery)|(?:democrat)|(?:dental)|(?:dentist)|(?:desi)|(?:design)|(?:dev)|(?:diamonds)|(?:diet)|(?:digital)|(?:direct)|(?:directory)|(?:discount)|(?:doctor)|(?:dog)|(?:domains)|(?:download)|(?:earth)|(?:eco)|(?:education)|(?:email)|(?:energy)|(?:engineer)|(?:engineering)|(?:enterprises)|(?:equipment)|(?:esq)|(?:estate)|(?:events)|(?:exchange)|(?:expert)|(?:exposed)|(?:express)|(?:fail)|(?:faith)|(?:family)|(?:fans)|(?:farm)|(?:fashion)|(?:feedback)|(?:film)|(?:finance)|(?:financial)|(?:fish)|(?:fishing)|(?:fit)|(?:fitness)|(?:flights)|(?:florist)|(?:flowers)|(?:football)|(?:forsale)|(?:foundation)|(?:fun)|(?:fund)|(?:furniture)|(?:futbol)|(?:fyi)|(?:gallery)|(?:game)|(?:games)|(?:garden)|(?:gay)|(?:gdn)|(?:gifts)|(?:gives)|(?:giving)|(?:glass)|(?:global)|(?:gmbh)|(?:gold)|(?:golf)|(?:graphics)|(?:gratis)|(?:green)|(?:gripe)|(?:group)|(?:guide)|(?:guitars)|(?:guru)|(?:hair)|(?:hamburg)|(?:haus)|(?:health)|(?:healthcare)|(?:help)|(?:hiphop)|(?:hockey)|(?:holdings)|(?:holiday)|(?:homes)|(?:horse)|(?:hospital)|(?:host)|(?:hosting)|(?:house)|(?:how)|(?:icu)|(?:info)|(?:ink)|(?:institute)|(?:insure)|(?:international)|(?:investments)|(?:irish)|(?:jewelry)|(?:jetzt)|(?:juegos)|(?:kaufen)|(?:kids)|(?:kitchen)|(?:kiwi)|(?:krd)|(?:kyoto)|(?:land)|(?:lat)|(?:law)|(?:lawyer)|(?:lease)|(?:legal)|(?:lgbt)|(?:life)|(?:lighting)|(?:limited)|(?:limo)|(?:link)|(?:live)|(?:loan)|(?:loans)|(?:lol)|(?:london)|(?:love)|(?:ltd)|(?:ltda)|(?:luxury)|(?:maison)|(?:management)|(?:market)|(?:marketing)|(?:markets)|(?:mba)|(?:media)|(?:melbourne)|(?:meme)|(?:memorial)|(?:men)|(?:miami)|(?:mobi)|(?:moda)|(?:moe)|(?:mom)|(?:money)|(?:monster)|(?:mortgage)|(?:motorcycles)|(?:mov)|(?:movie)|(?:nagoya)|(?:name)|(?:navy)|(?:network)|(?:new)|(?:news)|(?:ngo)|(?:ninja)|(?:now)|(?:nyc)|(?:observer)|(?:okinawa)|(?:one)|(?:ong)|(?:onl)|(?:online)|(?:organic)|(?:osaka)|(?:page)|(?:paris)|(?:partners)|(?:parts)|(?:party)|(?:pet)|(?:phd)|(?:photo)|(?:photography)|(?:photos)|(?:pics)|(?:pictures)|(?:pink)|(?:pizza)|(?:place)|(?:plumbing)|(?:plus)|(?:poker)|(?:porn)|(?:press)|(?:pro)|(?:productions)|(?:prof)|(?:promo)|(?:properties)|(?:property)|(?:protection)|(?:pub)|(?:quest)|(?:racing)|(?:recipes)|(?:red)|(?:rehab)|(?:reise)|(?:reisen)|(?:rent)|(?:rentals)|(?:repair)|(?:report)|(?:republican)|(?:rest)|(?:restaurant)|(?:review)|(?:reviews)|(?:rip)|(?:rocks)|(?:rodeo)|(?:rsvp)|(?:run)|(?:saarland)|(?:sale)|(?:salon)|(?:sarl)|(?:sbs)|(?:school)|(?:schule)|(?:science)|(?:services)|(?:sex)|(?:sexy)|(?:sh)|(?:shoes)|(?:shop)|(?:shopping)|(?:show)|(?:singles)|(?:site)|(?:skin)|(?:soccer)|(?:social)|(?:software)|(?:solar)|(?:solutions)|(?:soy)|(?:space)|(?:spiegel)|(?:study)|(?:style)|(?:sucks)|(?:supply)|(?:support)|(?:surf)|(?:surgery)|(?:systems)|(?:tax)|(?:taxi)|(?:team)|(?:tech)|(?:technology)|(?:tel)|(?:theater)|(?:tips)|(?:tires)|(?:today)|(?:tools)|(?:top)|(?:tours)|(?:town)|(?:toys)|(?:trade)|(?:training)|(?:tube)|(?:uk)|(?:university)|(?:uno)|(?:vacations)|(?:ventures)|(?:vet)|(?:video)|(?:villas)|(?:vin)|(?:vip)|(?:vision)|(?:vlaanderen)|(?:vodka)|(?:vote)|(?:voting)|(?:voyage)|(?:wales)|(?:wang)|(?:watch)|(?:webcam)|(?:website)|(?:wedding)|(?:wiki)|(?:wine)|(?:work)|(?:works)|(?:world)|(?:wtf)|(?:xyz)|(?:yoga)|(?:yokohama)|(?:you)|(?:zone)|(?:ac)|(?:ad)|(?:ae)|(?:af)|(?:ag)|(?:ai)|(?:al)|(?:am)|(?:an)|(?:ao)|(?:aq)|(?:ar)|(?:as)|(?:at)|(?:au)|(?:aw)|(?:ax)|(?:az)|(?:ba)|(?:bb)|(?:bd)|(?:be)|(?:bf)|(?:bg)|(?:bh)|(?:bi)|(?:bj)|(?:bm)|(?:bn)|(?:bo)|(?:br)|(?:bs)|(?:bt)|(?:bv)|(?:bw)|(?:by)|(?:bz)|(?:ca)|(?:cc)|(?:cd)|(?:cf)|(?:cg)|(?:ch)|(?:ci)|(?:ck)|(?:cl)|(?:cm)|(?:cn)|(?:co)|(?:cr)|(?:cu)|(?:cv)|(?:cw)|(?:cx)|(?:cy)|(?:cz)|(?:de)|(?:dj)|(?:dk)|(?:dm)|(?:do)|(?:dz)|(?:ec)|(?:ee)|(?:eg)|(?:er)|(?:es)|(?:et)|(?:eu)|(?:fi)|(?:fj)|(?:fk)|(?:fm)|(?:fo)|(?:fr)|(?:ga)|(?:gb)|(?:gd)|(?:ge)|(?:gf)|(?:gg)|(?:gh)|(?:gi)|(?:gl)|(?:gm)|(?:gn)|(?:gp)|(?:gq)|(?:gr)|(?:gs)|(?:gt)|(?:gu)|(?:gw)|(?:gy)|(?:hk)|(?:hm)|(?:hn)|(?:hr)|(?:ht)|(?:hu)|(?:id)|(?:ie)|(?:il)|(?:im)|(?:in)|(?:io)|(?:iq)|(?:ir)|(?:is)|(?:it)|(?:je)|(?:jm)|(?:jo)|(?:jp)|(?:ke)|(?:kg)|(?:kh)|(?:ki)|(?:km)|(?:kn)|(?:kp)|(?:kr)|(?:kw)|(?:ky)|(?:kz)|(?:la)|(?:lb)|(?:lc)|(?:li)|(?:lk)|(?:lr)|(?:ls)|(?:lt)|(?:lu)|(?:lv)|(?:ly)|(?:ma)|(?:mc)|(?:md)|(?:me)|(?:mg)|(?:mh)|(?:mk)|(?:ml)|(?:mm)|(?:mn)|(?:mo)|(?:mp)|(?:mq)|(?:mr)|(?:ms)|(?:mt)|(?:mu)|(?:mv)|(?:mw)|(?:mx)|(?:my)|(?:mz)|(?:na)|(?:nc)|(?:ne)|(?:nf)|(?:ng)|(?:ni)|(?:nl)|(?:no)|(?:np)|(?:nr)|(?:nu)|(?:nz)|(?:om)|(?:pa)|(?:pe)|(?:pf)|(?:pg)|(?:ph)|(?:pk)|(?:pl)|(?:pm)|(?:pn)|(?:pr)|(?:ps)|(?:pt)|(?:pw)|(?:py)|(?:qa)|(?:re)|(?:ro)|(?:rs)|(?:ru)|(?:rw)|(?:sa)|(?:sb)|(?:sc)|(?:sd)|(?:se)|(?:sg)|(?:sh)|(?:si)|(?:sj)|(?:sk)|(?:sl)|(?:sm)|(?:sn)|(?:so)|(?:sr)|(?:st)|(?:su)|(?:sv)|(?:sx)|(?:sy)|(?:sz)|(?:tc)|(?:td)|(?:tf)|(?:tg)|(?:th)|(?:tj)|(?:tk)|(?:tl)|(?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)|(?:ua)|(?:ug)|(?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)|(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))(?:/[^\\s()<>\\\"']*)?))(?:\\z|[^\\w.\\-]|[.](?:\\z|[^\\w\\-]))",
+        "left_boundary": "[\\w.\\-]",
+        "requires_context": true
+      },
+      {
+        "name": "Quoted URL",
+        "regex": "(?P<secret>(?i)[\"\\'](https?://((www\\d{0,3}[.])?[a-z0-9.\\-]{1,253}[.](?:(?:com)|(?:edu)|(?:gov)|(?:int)|(?:mil)|(?:net)|(?:onl)|(?:org)|(?:pro)|(?:red)|(?:tel)|(?:uno)|(?:xxx)|(?:academy)|(?:accountant)|(?:accountants)|(?:actor)|(?:adult)|(?:africa)|(?:agency)|(?:airforce)|(?:apartments)|(?:app)|(?:archi)|(?:army)|(?:art)|(?:asia)|(?:associates)|(?:attorney)|(?:auction)|(?:audio)|(?:auto)|(?:autos)|(?:baby)|(?:band)|(?:bar)|(?:bargains)|(?:beer)|(?:berlin)|(?:best)|(?:bet)|(?:bid)|(?:bike)|(?:bio)|(?:black)|(?:blackfriday)|(?:blog)|(?:blue)|(?:boats)|(?:bond)|(?:boo)|(?:boston)|(?:bot)|(?:boutique)|(?:build)|(?:builders)|(?:business)|(?:buzz)|(?:cab)|(?:cafe)|(?:cam)|(?:camera)|(?:camp)|(?:capital)|(?:car)|(?:cards)|(?:care)|(?:careers)|(?:cars)|(?:casa)|(?:cash)|(?:casino)|(?:catering)|(?:center)|(?:ceo)|(?:cfd)|(?:charity)|(?:chat)|(?:cheap)|(?:christmas)|(?:church)|(?:city)|(?:claims)|(?:cleaning)|(?:click)|(?:clinic)|(?:clothing)|(?:cloud)|(?:club)|(?:codes)|(?:coffee)|(?:college)|(?:com)|(?:community)|(?:company)|(?:computer)|(?:condos)|(?:construction)|(?:consulting)|(?:contact)|(?:contractors)|(?:cooking)|(?:cool)|(?:coupons)|(?:courses)|(?:credit)|(?:creditcard)|(?:cricket)|(?:cruises)|(?:cyou)|(?:dad)|(?:dance)|(?:date)|(?:dating)|(?:day)|(?:degree)|(?:delivery)|(?:democrat)|(?:dental)|(?:dentist)|(?:desi)|(?:design)|(?:dev)|(?:diamonds)|(?:diet)|(?:digital)|(?:direct)|(?:directory)|(?:discount)|(?:doctor)|(?:dog)|(?:domains)|(?:download)|(?:earth)|(?:eco)|(?:education)|(?:email)|(?:energy)|(?:engineer)|(?:engineering)|(?:enterprises)|(?:equipment)|(?:esq)|(?:estate)|(?:events)|(?:exchange)|(?:expert)|(?:exposed)|(?:express)|(?:fail)|(?:faith)|(?:family)|(?:fans)|(?:farm)|(?:fashion)|(?:feedback)|(?:film)|(?:finance)|(?:financial)|(?:fish)|(?:fishing)|(?:fit)|(?:fitness)|(?:flights)|(?:florist)|(?:flowers)|(?:football)|(?:forsale)|(?:foundation)|(?:fun)|(?:fund)|(?:furniture)|(?:futbol)|(?:fyi)|(?:gallery)|(?:game)|(?:games)|(?:garden)|(?:gay)|(?:gdn)|(?:gifts)|(?:gives)|(?:giving)|(?:glass)|(?:global)|(?:gmbh)|(?:gold)|(?:golf)|(?:graphics)|(?:gratis)|(?:green)|(?:gripe)|(?:group)|(?:guide)|(?:guitars)|(?:guru)|(?:hair)|(?:hamburg)|(?:haus)|(?:health)|(?:healthcare)|(?:help)|(?:hiphop)|(?:hockey)|(?:holdings)|(?:holiday)|(?:homes)|(?:horse)|(?:hospital)|(?:host)|(?:hosting)|(?:house)|(?:how)|(?:icu)|(?:info)|(?:ink)|(?:institute)|(?:insure)|(?:international)|(?:investments)|(?:irish)|(?:jewelry)|(?:jetzt)|(?:juegos)|(?:kaufen)|(?:kids)|(?:kitchen)|(?:kiwi)|(?:krd)|(?:kyoto)|(?:land)|(?:lat)|(?:law)|(?:lawyer)|(?:lease)|(?:legal)|(?:lgbt)|(?:life)|(?:lighting)|(?:limited)|(?:limo)|(?:link)|(?:live)|(?:loan)|(?:loans)|(?:lol)|(?:london)|(?:love)|(?:ltd)|(?:ltda)|(?:luxury)|(?:maison)|(?:management)|(?:market)|(?:marketing)|(?:markets)|(?:mba)|(?:media)|(?:melbourne)|(?:meme)|(?:memorial)|(?:men)|(?:miami)|(?:mobi)|(?:moda)|(?:moe)|(?:mom)|(?:money)|(?:monster)|(?:mortgage)|(?:motorcycles)|(?:mov)|(?:movie)|(?:nagoya)|(?:name)|(?:navy)|(?:network)|(?:new)|(?:news)|(?:ngo)|(?:ninja)|(?:now)|(?:nyc)|(?:observer)|(?:okinawa)|(?:one)|(?:ong)|(?:onl)|(?:online)|(?:organic)|(?:osaka)|(?:page)|(?:paris)|(?:partners)|(?:parts)|(?:party)|(?:pet)|(?:phd)|(?:photo)|(?:photography)|(?:photos)|(?:pics)|(?:pictures)|(?:pink)|(?:pizza)|(?:place)|(?:plumbing)|(?:plus)|(?:poker)|(?:porn)|(?:press)|(?:pro)|(?:productions)|(?:prof)|(?:promo)|(?:properties)|(?:property)|(?:protection)|(?:pub)|(?:quest)|(?:racing)|(?:recipes)|(?:red)|(?:rehab)|(?:reise)|(?:reisen)|(?:rent)|(?:rentals)|(?:repair)|(?:report)|(?:republican)|(?:rest)|(?:restaurant)|(?:review)|(?:reviews)|(?:rip)|(?:rocks)|(?:rodeo)|(?:rsvp)|(?:run)|(?:saarland)|(?:sale)|(?:salon)|(?:sarl)|(?:sbs)|(?:school)|(?:schule)|(?:science)|(?:services)|(?:sex)|(?:sexy)|(?:sh)|(?:shoes)|(?:shop)|(?:shopping)|(?:show)|(?:singles)|(?:site)|(?:skin)|(?:soccer)|(?:social)|(?:software)|(?:solar)|(?:solutions)|(?:soy)|(?:space)|(?:spiegel)|(?:study)|(?:style)|(?:sucks)|(?:supply)|(?:support)|(?:surf)|(?:surgery)|(?:systems)|(?:tax)|(?:taxi)|(?:team)|(?:tech)|(?:technology)|(?:tel)|(?:theater)|(?:tips)|(?:tires)|(?:today)|(?:tools)|(?:top)|(?:tours)|(?:town)|(?:toys)|(?:trade)|(?:training)|(?:tube)|(?:uk)|(?:university)|(?:uno)|(?:vacations)|(?:ventures)|(?:vet)|(?:video)|(?:villas)|(?:vin)|(?:vip)|(?:vision)|(?:vlaanderen)|(?:vodka)|(?:vote)|(?:voting)|(?:voyage)|(?:wales)|(?:wang)|(?:watch)|(?:webcam)|(?:website)|(?:wedding)|(?:wiki)|(?:wine)|(?:work)|(?:works)|(?:world)|(?:wtf)|(?:xyz)|(?:yoga)|(?:yokohama)|(?:you)|(?:zone)|(?:ac)|(?:ad)|(?:ae)|(?:af)|(?:ag)|(?:ai)|(?:al)|(?:am)|(?:an)|(?:ao)|(?:aq)|(?:ar)|(?:as)|(?:at)|(?:au)|(?:aw)|(?:ax)|(?:az)|(?:ba)|(?:bb)|(?:bd)|(?:be)|(?:bf)|(?:bg)|(?:bh)|(?:bi)|(?:bj)|(?:bm)|(?:bn)|(?:bo)|(?:br)|(?:bs)|(?:bt)|(?:bv)|(?:bw)|(?:by)|(?:bz)|(?:ca)|(?:cc)|(?:cd)|(?:cf)|(?:cg)|(?:ch)|(?:ci)|(?:ck)|(?:cl)|(?:cm)|(?:cn)|(?:co)|(?:cr)|(?:cu)|(?:cv)|(?:cw)|(?:cx)|(?:cy)|(?:cz)|(?:de)|(?:dj)|(?:dk)|(?:dm)|(?:do)|(?:dz)|(?:ec)|(?:ee)|(?:eg)|(?:er)|(?:es)|(?:et)|(?:eu)|(?:fi)|(?:fj)|(?:fk)|(?:fm)|(?:fo)|(?:fr)|(?:ga)|(?:gb)|(?:gd)|(?:ge)|(?:gf)|(?:gg)|(?:gh)|(?:gi)|(?:gl)|(?:gm)|(?:gn)|(?:gp)|(?:gq)|(?:gr)|(?:gs)|(?:gt)|(?:gu)|(?:gw)|(?:gy)|(?:hk)|(?:hm)|(?:hn)|(?:hr)|(?:ht)|(?:hu)|(?:id)|(?:ie)|(?:il)|(?:im)|(?:in)|(?:io)|(?:iq)|(?:ir)|(?:is)|(?:it)|(?:je)|(?:jm)|(?:jo)|(?:jp)|(?:ke)|(?:kg)|(?:kh)|(?:ki)|(?:km)|(?:kn)|(?:kp)|(?:kr)|(?:kw)|(?:ky)|(?:kz)|(?:la)|(?:lb)|(?:lc)|(?:li)|(?:lk)|(?:lr)|(?:ls)|(?:lt)|(?:lu)|(?:lv)|(?:ly)|(?:ma)|(?:mc)|(?:md)|(?:me)|(?:mg)|(?:mh)|(?:mk)|(?:ml)|(?:mm)|(?:mn)|(?:mo)|(?:mp)|(?:mq)|(?:mr)|(?:ms)|(?:mt)|(?:mu)|(?:mv)|(?:mw)|(?:mx)|(?:my)|(?:mz)|(?:na)|(?:nc)|(?:ne)|(?:nf)|(?:ng)|(?:ni)|(?:nl)|(?:no)|(?:np)|(?:nr)|(?:nu)|(?:nz)|(?:om)|(?:pa)|(?:pe)|(?:pf)|(?:pg)|(?:ph)|(?:pk)|(?:pl)|(?:pm)|(?:pn)|(?:pr)|(?:ps)|(?:pt)|(?:pw)|(?:py)|(?:qa)|(?:re)|(?:ro)|(?:rs)|(?:ru)|(?:rw)|(?:sa)|(?:sb)|(?:sc)|(?:sd)|(?:se)|(?:sg)|(?:sh)|(?:si)|(?:sj)|(?:sk)|(?:sl)|(?:sm)|(?:sn)|(?:so)|(?:sr)|(?:st)|(?:su)|(?:sv)|(?:sx)|(?:sy)|(?:sz)|(?:tc)|(?:td)|(?:tf)|(?:tg)|(?:th)|(?:tj)|(?:tk)|(?:tl)|(?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)|(?:ua)|(?:ug)|(?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)|(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))(?:/[^\\s()<>\\\"']*)?))[\"\\'])(?:\\z|[^\\w.\\-]|[.](?:\\z|[^\\w\\-]))",
+        "left_boundary": "[\\w.\\-]",
+        "requires_context": false
+      },
+      {
+        "name": "Quoted Non-schema URL",
+        "regex": "(?P<secret>(?i)[\"\\'](((www\\d{0,3}[.])?[a-z0-9.\\-]{1,253}[.](?:(?:com)|(?:edu)|(?:gov)|(?:int)|(?:mil)|(?:net)|(?:onl)|(?:org)|(?:pro)|(?:red)|(?:tel)|(?:uno)|(?:xxx)|(?:academy)|(?:accountant)|(?:accountants)|(?:actor)|(?:adult)|(?:africa)|(?:agency)|(?:airforce)|(?:apartments)|(?:app)|(?:archi)|(?:army)|(?:art)|(?:asia)|(?:associates)|(?:attorney)|(?:auction)|(?:audio)|(?:auto)|(?:autos)|(?:baby)|(?:band)|(?:bar)|(?:bargains)|(?:beer)|(?:berlin)|(?:best)|(?:bet)|(?:bid)|(?:bike)|(?:bio)|(?:black)|(?:blackfriday)|(?:blog)|(?:blue)|(?:boats)|(?:bond)|(?:boo)|(?:boston)|(?:bot)|(?:boutique)|(?:build)|(?:builders)|(?:business)|(?:buzz)|(?:cab)|(?:cafe)|(?:cam)|(?:camera)|(?:camp)|(?:capital)|(?:car)|(?:cards)|(?:care)|(?:careers)|(?:cars)|(?:casa)|(?:cash)|(?:casino)|(?:catering)|(?:center)|(?:ceo)|(?:cfd)|(?:charity)|(?:chat)|(?:cheap)|(?:christmas)|(?:church)|(?:city)|(?:claims)|(?:cleaning)|(?:click)|(?:clinic)|(?:clothing)|(?:cloud)|(?:club)|(?:codes)|(?:coffee)|(?:college)|(?:com)|(?:community)|(?:company)|(?:computer)|(?:condos)|(?:construction)|(?:consulting)|(?:contact)|(?:contractors)|(?:cooking)|(?:cool)|(?:coupons)|(?:courses)|(?:credit)|(?:creditcard)|(?:cricket)|(?:cruises)|(?:cyou)|(?:dad)|(?:dance)|(?:date)|(?:dating)|(?:day)|(?:degree)|(?:delivery)|(?:democrat)|(?:dental)|(?:dentist)|(?:desi)|(?:design)|(?:dev)|(?:diamonds)|(?:diet)|(?:digital)|(?:direct)|(?:directory)|(?:discount)|(?:doctor)|(?:dog)|(?:domains)|(?:download)|(?:earth)|(?:eco)|(?:education)|(?:email)|(?:energy)|(?:engineer)|(?:engineering)|(?:enterprises)|(?:equipment)|(?:esq)|(?:estate)|(?:events)|(?:exchange)|(?:expert)|(?:exposed)|(?:express)|(?:fail)|(?:faith)|(?:family)|(?:fans)|(?:farm)|(?:fashion)|(?:feedback)|(?:film)|(?:finance)|(?:financial)|(?:fish)|(?:fishing)|(?:fit)|(?:fitness)|(?:flights)|(?:florist)|(?:flowers)|(?:football)|(?:forsale)|(?:foundation)|(?:fun)|(?:fund)|(?:furniture)|(?:futbol)|(?:fyi)|(?:gallery)|(?:game)|(?:games)|(?:garden)|(?:gay)|(?:gdn)|(?:gifts)|(?:gives)|(?:giving)|(?:glass)|(?:global)|(?:gmbh)|(?:gold)|(?:golf)|(?:graphics)|(?:gratis)|(?:green)|(?:gripe)|(?:group)|(?:guide)|(?:guitars)|(?:guru)|(?:hair)|(?:hamburg)|(?:haus)|(?:health)|(?:healthcare)|(?:help)|(?:hiphop)|(?:hockey)|(?:holdings)|(?:holiday)|(?:homes)|(?:horse)|(?:hospital)|(?:host)|(?:hosting)|(?:house)|(?:how)|(?:icu)|(?:info)|(?:ink)|(?:institute)|(?:insure)|(?:international)|(?:investments)|(?:irish)|(?:jewelry)|(?:jetzt)|(?:juegos)|(?:kaufen)|(?:kids)|(?:kitchen)|(?:kiwi)|(?:krd)|(?:kyoto)|(?:land)|(?:lat)|(?:law)|(?:lawyer)|(?:lease)|(?:legal)|(?:lgbt)|(?:life)|(?:lighting)|(?:limited)|(?:limo)|(?:link)|(?:live)|(?:loan)|(?:loans)|(?:lol)|(?:london)|(?:love)|(?:ltd)|(?:ltda)|(?:luxury)|(?:maison)|(?:management)|(?:market)|(?:marketing)|(?:markets)|(?:mba)|(?:media)|(?:melbourne)|(?:meme)|(?:memorial)|(?:men)|(?:miami)|(?:mobi)|(?:moda)|(?:moe)|(?:mom)|(?:money)|(?:monster)|(?:mortgage)|(?:motorcycles)|(?:mov)|(?:movie)|(?:nagoya)|(?:name)|(?:navy)|(?:network)|(?:new)|(?:news)|(?:ngo)|(?:ninja)|(?:now)|(?:nyc)|(?:observer)|(?:okinawa)|(?:one)|(?:ong)|(?:onl)|(?:online)|(?:organic)|(?:osaka)|(?:page)|(?:paris)|(?:partners)|(?:parts)|(?:party)|(?:pet)|(?:phd)|(?:photo)|(?:photography)|(?:photos)|(?:pics)|(?:pictures)|(?:pink)|(?:pizza)|(?:place)|(?:plumbing)|(?:plus)|(?:poker)|(?:porn)|(?:press)|(?:pro)|(?:productions)|(?:prof)|(?:promo)|(?:properties)|(?:property)|(?:protection)|(?:pub)|(?:quest)|(?:racing)|(?:recipes)|(?:red)|(?:rehab)|(?:reise)|(?:reisen)|(?:rent)|(?:rentals)|(?:repair)|(?:report)|(?:republican)|(?:rest)|(?:restaurant)|(?:review)|(?:reviews)|(?:rip)|(?:rocks)|(?:rodeo)|(?:rsvp)|(?:run)|(?:saarland)|(?:sale)|(?:salon)|(?:sarl)|(?:sbs)|(?:school)|(?:schule)|(?:science)|(?:services)|(?:sex)|(?:sexy)|(?:sh)|(?:shoes)|(?:shop)|(?:shopping)|(?:show)|(?:singles)|(?:site)|(?:skin)|(?:soccer)|(?:social)|(?:software)|(?:solar)|(?:solutions)|(?:soy)|(?:space)|(?:spiegel)|(?:study)|(?:style)|(?:sucks)|(?:supply)|(?:support)|(?:surf)|(?:surgery)|(?:systems)|(?:tax)|(?:taxi)|(?:team)|(?:tech)|(?:technology)|(?:tel)|(?:theater)|(?:tips)|(?:tires)|(?:today)|(?:tools)|(?:top)|(?:tours)|(?:town)|(?:toys)|(?:trade)|(?:training)|(?:tube)|(?:uk)|(?:university)|(?:uno)|(?:vacations)|(?:ventures)|(?:vet)|(?:video)|(?:villas)|(?:vin)|(?:vip)|(?:vision)|(?:vlaanderen)|(?:vodka)|(?:vote)|(?:voting)|(?:voyage)|(?:wales)|(?:wang)|(?:watch)|(?:webcam)|(?:website)|(?:wedding)|(?:wiki)|(?:wine)|(?:work)|(?:works)|(?:world)|(?:wtf)|(?:xyz)|(?:yoga)|(?:yokohama)|(?:you)|(?:zone)|(?:ac)|(?:ad)|(?:ae)|(?:af)|(?:ag)|(?:ai)|(?:al)|(?:am)|(?:an)|(?:ao)|(?:aq)|(?:ar)|(?:as)|(?:at)|(?:au)|(?:aw)|(?:ax)|(?:az)|(?:ba)|(?:bb)|(?:bd)|(?:be)|(?:bf)|(?:bg)|(?:bh)|(?:bi)|(?:bj)|(?:bm)|(?:bn)|(?:bo)|(?:br)|(?:bs)|(?:bt)|(?:bv)|(?:bw)|(?:by)|(?:bz)|(?:ca)|(?:cc)|(?:cd)|(?:cf)|(?:cg)|(?:ch)|(?:ci)|(?:ck)|(?:cl)|(?:cm)|(?:cn)|(?:co)|(?:cr)|(?:cu)|(?:cv)|(?:cw)|(?:cx)|(?:cy)|(?:cz)|(?:de)|(?:dj)|(?:dk)|(?:dm)|(?:do)|(?:dz)|(?:ec)|(?:ee)|(?:eg)|(?:er)|(?:es)|(?:et)|(?:eu)|(?:fi)|(?:fj)|(?:fk)|(?:fm)|(?:fo)|(?:fr)|(?:ga)|(?:gb)|(?:gd)|(?:ge)|(?:gf)|(?:gg)|(?:gh)|(?:gi)|(?:gl)|(?:gm)|(?:gn)|(?:gp)|(?:gq)|(?:gr)|(?:gs)|(?:gt)|(?:gu)|(?:gw)|(?:gy)|(?:hk)|(?:hm)|(?:hn)|(?:hr)|(?:ht)|(?:hu)|(?:id)|(?:ie)|(?:il)|(?:im)|(?:in)|(?:io)|(?:iq)|(?:ir)|(?:is)|(?:it)|(?:je)|(?:jm)|(?:jo)|(?:jp)|(?:ke)|(?:kg)|(?:kh)|(?:ki)|(?:km)|(?:kn)|(?:kp)|(?:kr)|(?:kw)|(?:ky)|(?:kz)|(?:la)|(?:lb)|(?:lc)|(?:li)|(?:lk)|(?:lr)|(?:ls)|(?:lt)|(?:lu)|(?:lv)|(?:ly)|(?:ma)|(?:mc)|(?:md)|(?:me)|(?:mg)|(?:mh)|(?:mk)|(?:ml)|(?:mm)|(?:mn)|(?:mo)|(?:mp)|(?:mq)|(?:mr)|(?:ms)|(?:mt)|(?:mu)|(?:mv)|(?:mw)|(?:mx)|(?:my)|(?:mz)|(?:na)|(?:nc)|(?:ne)|(?:nf)|(?:ng)|(?:ni)|(?:nl)|(?:no)|(?:np)|(?:nr)|(?:nu)|(?:nz)|(?:om)|(?:pa)|(?:pe)|(?:pf)|(?:pg)|(?:ph)|(?:pk)|(?:pl)|(?:pm)|(?:pn)|(?:pr)|(?:ps)|(?:pt)|(?:pw)|(?:py)|(?:qa)|(?:re)|(?:ro)|(?:rs)|(?:ru)|(?:rw)|(?:sa)|(?:sb)|(?:sc)|(?:sd)|(?:se)|(?:sg)|(?:sh)|(?:si)|(?:sj)|(?:sk)|(?:sl)|(?:sm)|(?:sn)|(?:so)|(?:sr)|(?:st)|(?:su)|(?:sv)|(?:sx)|(?:sy)|(?:sz)|(?:tc)|(?:td)|(?:tf)|(?:tg)|(?:th)|(?:tj)|(?:tk)|(?:tl)|(?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)|(?:ua)|(?:ug)|(?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)|(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))(?:/[^\\s()<>\\\"']*)?))[\"\\'])(?:\\z|[^\\w.\\-]|[.](?:\\z|[^\\w\\-]))",
+        "left_boundary": "[\\w.\\-]",
+        "requires_context": true
+      }
+    ],
+    "validator": "",
+    "context": [
+      "URL",
+      "url",
+      "website",
+      "link",
+      "domain"
+    ]
+  },
+  {
+    "recognizer": "UuidRecognizer",
+    "entity": "UUID",
+    "source": "https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/generic/uuid_recognizer.py",
+    "is_case_insensitive": true,
+    "patterns": [
+      {
+        "name": "UUID (hyphenated)",
+        "regex": "\\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\b",
+        "left_boundary": "",
+        "requires_context": false
+      }
+    ],
+    "validator": "UuidRecognizer",
+    "context": [
+      "UUID",
+      "uuid",
+      "guid",
+      "unique identifier"
+    ]
+  }
+]
