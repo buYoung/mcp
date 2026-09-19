@@ -238,6 +238,17 @@ impl WorkspaceCatalog {
             .cloned()
     }
 
+    /// Whether `input` resolves to a selectable workspace root itself, rather than a
+    /// subdirectory inside one. Root statistics use this to attach the same block to
+    /// both the repository root and each monorepo project root.
+    pub(crate) fn is_workspace_root(&self, input: &str) -> bool {
+        if is_all_workspace_scope_input(input) {
+            return false;
+        }
+        self.resolve_path(input)
+            .is_some_and(|normalized| self.paths.contains(&normalized))
+    }
+
     /// Search keeps the resolved subdirectory; workspace identity remains separate.
     /// A file selects its containing directory, matching directory-scope semantics.
     pub(crate) fn search_scope_for_input(&self, input: &str) -> Option<String> {

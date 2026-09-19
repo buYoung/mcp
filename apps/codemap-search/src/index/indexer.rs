@@ -65,6 +65,7 @@ pub struct PublishedIndexSnapshot {
     implementation_index: crate::implementations::ImplementationIndex,
     flow_index: crate::flow::FlowIndex,
     workspace_catalog: crate::codemap::WorkspaceCatalog,
+    source_mtimes: HashMap<String, u64>,
     records: Vec<StaticCollectionRecord>,
     records_by_path: HashMap<String, Vec<usize>>,
     records_by_collection: HashMap<(String, String), Vec<usize>>,
@@ -201,6 +202,7 @@ impl PublishedIndexSnapshot {
             implementation_index,
             flow_index,
             workspace_catalog,
+            source_mtimes: HashMap::new(),
             records,
             records_by_path,
             records_by_collection,
@@ -226,6 +228,16 @@ impl PublishedIndexSnapshot {
 
     pub(crate) fn workspace_catalog(&self) -> &crate::codemap::WorkspaceCatalog {
         &self.workspace_catalog
+    }
+
+    pub(crate) fn with_source_mtimes(mut self, source_mtimes: HashMap<String, u64>) -> Self {
+        self.source_mtimes = source_mtimes;
+        self
+    }
+
+    /// Existing nanosecond source stamps from the same committed documents as the codemap.
+    pub(crate) fn source_mtime(&self, path: &str) -> Option<u64> {
+        self.source_mtimes.get(path).copied()
     }
 
     pub fn records_for_result_paths<'a>(

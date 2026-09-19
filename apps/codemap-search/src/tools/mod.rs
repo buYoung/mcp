@@ -87,7 +87,11 @@ pub struct GlobMatcher {
 impl GlobMatcher {
     /// Whether `rel_path` (relative to the matcher's base directory) matches the glob set.
     pub fn is_match(&self, rel_path: &Path) -> bool {
-        match self.overrides.matched(rel_path, false) {
+        self.is_match_entry(rel_path, false)
+    }
+
+    pub fn is_match_entry(&self, rel_path: &Path, is_directory: bool) -> bool {
+        match self.overrides.matched(rel_path, is_directory) {
             ignore::Match::Ignore(_) => false,
             ignore::Match::Whitelist(_) => true,
             // No glob touched this path: included only when there is no positive glob to
@@ -380,9 +384,12 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "pattern": { "type": "string", "description": "Glob pattern, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates." },
+                                "pattern": { "type": "string", "description": "Glob by default, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates. With pattern_type='regex', this is a case-sensitive basename regex and regex escapes are preserved." },
                                 "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
-                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
+                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." },
+                                "entry_type": { "type": "string", "enum": ["file", "directory", "all"], "default": "file", "description": "Select regular files, directories, or both. 'all' means files plus directories and does not add a symlink-following mode." },
+                                "max_depth": { "type": "integer", "minimum": 0, "description": "Optional non-negative depth limit. The supplied base is depth zero and is never emitted; omitted means no limit. Depth zero produces the existing empty result." },
+                                "pattern_type": { "type": "string", "enum": ["glob", "regex"], "default": "glob", "description": "Interpret pattern as a gitignore-style glob or as a case-sensitive basename regex. Regex mode uses path as the search root and does not split absolute glob prefixes." }
                             },
                             "required": ["pattern"]
                         }

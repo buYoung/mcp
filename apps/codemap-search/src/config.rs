@@ -97,7 +97,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 16;
+const CONFIG_VERSION: u32 = 17;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -202,6 +202,8 @@ pub struct ResolvedConfig {
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.
     pub grep_max_columns: usize,
+    /// Whether repository/project root overviews append indexed-file language statistics.
+    pub is_overview_stats_enabled: bool,
     /// `read` and callable-expanded `grep` output ceiling in bytes (default 5 MiB).
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
@@ -313,6 +315,7 @@ impl Default for ResolvedConfig {
             is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 0,
+            is_overview_stats_enabled: true,
             read_output_byte_cap: 5 * 1024 * 1024,
             search_detail_snippet_max_lines: 500,
             search_detail_symbol_limit: 100,
@@ -364,6 +367,7 @@ struct ConfigLayer {
     is_build_support_enabled: Option<bool>,
     filesystem_permissions: FilesystemPermissionsLayer,
     grep_max_columns: Option<usize>,
+    is_overview_stats_enabled: Option<bool>,
     read_output_byte_cap: Option<usize>,
     search_detail_snippet_max_lines: Option<usize>,
     search_detail_symbol_limit: Option<usize>,
@@ -537,7 +541,10 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
         ),
         "tool_output" => matches!(
             key,
-            "grep_max_columns" | "read_output_byte_cap" | "is_redact_enabled"
+            "grep_max_columns"
+                | "read_output_byte_cap"
+                | "is_redact_enabled"
+                | "is_overview_stats_enabled"
         ),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "caller_context" => matches!(
@@ -626,6 +633,9 @@ fn assign_config_key(
         }
         "is_build_support_enabled" => {
             layer.is_build_support_enabled = as_bool(value, key_display, path)
+        }
+        "is_overview_stats_enabled" => {
+            layer.is_overview_stats_enabled = as_bool(value, key_display, path)
         }
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
@@ -784,6 +794,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .grep_max_columns
             .or(global.grep_max_columns)
             .unwrap_or(defaults.grep_max_columns),
+        is_overview_stats_enabled: repo
+            .is_overview_stats_enabled
+            .or(global.is_overview_stats_enabled)
+            .unwrap_or(defaults.is_overview_stats_enabled),
         read_output_byte_cap: repo
             .read_output_byte_cap
             .or(global.read_output_byte_cap)
@@ -1246,6 +1260,15 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 17,
+        key: "is_overview_stats_enabled",
+        placement: KeyPlacement::Subtable("tool_output"),
+        english_block: "# Repository and monorepo project root overviews include indexed-file language statistics. Set false to omit them.
+# is_overview_stats_enabled = true",
+        korean_block: "# 저장소 및 모노레포 프로젝트 루트 overview에 색인 파일 언어 통계를 포함합니다. false이면 생략합니다.
+# is_overview_stats_enabled = true",
+    },
     Migration {
         version: 16,
         key: "pii_entities",

@@ -81,11 +81,13 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 | Tool | Use | Main arguments |
 |---|---|---|
 | `initial_instructions` | Load navigation guidance once | none |
-| `overview` | Inspect repository, folder or file structure | `path`, `format` |
+| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
-| `find` | Find paths by glob; newest files first | `pattern`, `path`, `include_ignored` |
+| `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
+
+Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[tool_output].is_overview_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
 
 Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file` and 1-based inclusive `start_line`/`end_line` aliases.
 

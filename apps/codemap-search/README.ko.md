@@ -81,11 +81,13 @@ args = ["mcp"]
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
 | `initial_instructions` | 탐색 안내를 한 번 읽기 | 없음 |
-| `overview` | 저장소·폴더·파일 구조 확인 | `path`, `format` |
+| `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
-| `find` | glob으로 경로 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored` |
+| `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
+
+저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[tool_output].is_overview_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
 
 동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 별칭도 받습니다.
 
