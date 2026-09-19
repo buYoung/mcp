@@ -303,7 +303,7 @@ impl FileOutput {
             self.anchor(line, line);
         }
     }
-    pub fn write_primary(&mut self, text: &mut String) {
+    pub fn write_primary(&mut self, text: &mut String, is_partial_file: bool) {
         text.push_str(&self.header);
         text.push_str(&self.metadata);
         for section in &mut self.sections {
@@ -313,6 +313,11 @@ impl FileOutput {
         }
         text.push_str("\n### results\n");
         text.push_str(&self.results);
+        if is_partial_file {
+            // fits()/remaining_bytes() reserved the longer global cap footer, so
+            // this local notice stays inside the file budget without hiding source.
+            text.push_str("\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n");
+        }
     }
 }
 

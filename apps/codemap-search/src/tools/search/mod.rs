@@ -17,6 +17,10 @@ use crate::tools::ToolContext;
 use std::collections::BTreeSet;
 
 const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
+// Small overall budgets retain their existing behavior. Larger multi-file searches
+// share detail space so a single long source line cannot consume all later results.
+const MIN_FILE_OUTPUT_BUDGET_BYTES: usize = 32 * 1024;
+
 fn search_cap_footer(byte_cap: usize) -> &'static str {
     if byte_cap < 512 {
         "\n[Partial search output: byte cap; narrow query/read.]\n"
@@ -765,6 +769,10 @@ pub(crate) fn run_inner_with_metadata(
             }));
 
         let detail_result_count = detail_results.len();
+        let file_output_budget_bytes = byte_cap
+            .div_ceil(detail_result_count.max(1))
+            .max(MIN_FILE_OUTPUT_BUDGET_BYTES)
+            .min(byte_cap);
         let mut rendered_detail_count = 0usize;
         let mut budget_hit = false;
         // Cross-file caller-block dedup (Child 05 / over-match repair): owned ACROSS the whole
@@ -779,6 +787,12 @@ pub(crate) fn run_inner_with_metadata(
                 break;
             }
             rendered_detail_count += 1;
+            let file_byte_cap = text
+                .len()
+                .saturating_add(file_output_budget_bytes)
+                .min(byte_cap);
+            let is_file_budget_limited = file_byte_cap < byte_cap;
+            let mut has_hit_file_budget = false;
             let snapshot_files = published_snapshot.codemap();
             let mut file_output = grouped::FileOutput::new(
                 &res.file_path,
@@ -787,7 +801,7 @@ pub(crate) fn run_inner_with_metadata(
                     .iter()
                     .find(|file| file.file_path == res.file_path),
                 text.len(),
-                byte_cap,
+                file_byte_cap,
             );
             if !file_output.can_fit(0) {
                 budget_hit = true;
@@ -881,7 +895,7 @@ pub(crate) fn run_inner_with_metadata(
                     let render_caps = render::AnchoredRenderCaps {
                         snippet_max_lines,
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
-                        byte_cap,
+                        byte_cap: file_byte_cap,
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
@@ -895,7 +909,7 @@ pub(crate) fn run_inner_with_metadata(
                     snippet_starts.extend(outcome.emitted_starts);
 
                     if outcome.budget_hit {
-                        budget_hit = true;
+                        has_hit_file_budget = true;
                     }
                     // Name list for the remaining symbols (those not already
                     // shown in detail), count-capped as before.
@@ -908,7 +922,7 @@ pub(crate) fn run_inner_with_metadata(
                             break;
                         }
                         if !text.start_symbol(sym, None) {
-                            budget_hit = true;
+                            has_hit_file_budget = true;
                             break;
                         }
                         listed += 1;
@@ -936,7 +950,7 @@ pub(crate) fn run_inner_with_metadata(
                     let render_caps = render::AnchoredRenderCaps {
                         snippet_max_lines,
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
-                        byte_cap,
+                        byte_cap: file_byte_cap,
                     };
                     let outcome = render::render_anchored_symbols(
                         text,
@@ -949,7 +963,7 @@ pub(crate) fn run_inner_with_metadata(
                     );
 
                     if outcome.budget_hit {
-                        budget_hit = true;
+                        has_hit_file_budget = true;
                     }
                     if skipped_for_cap > 0 {
                         text.push_str(&format!(
@@ -965,7 +979,7 @@ pub(crate) fn run_inner_with_metadata(
                         render::truncate_literal(&source.literal(lit), literal_max_len),
                         lit.line
                     )) {
-                        budget_hit = true;
+                        has_hit_file_budget = true;
                         break;
                     }
                     text.literal_anchor(lit.line);
@@ -977,9 +991,10 @@ pub(crate) fn run_inner_with_metadata(
                     ));
                 }
             }
-            budget_hit |= file_output.budget_hit;
-            file_output.write_primary(&mut text);
+            has_hit_file_budget |= file_output.budget_hit;
+            file_output.write_primary(&mut text, has_hit_file_budget && is_file_budget_limited);
             grouped_files.push(file_output);
+            budget_hit = has_hit_file_budget && !is_file_budget_limited;
             if budget_hit {
                 break;
             }
