@@ -130,6 +130,9 @@ pub struct TantivySearchEngine {
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    // Full-refresh inputs, retained across reopen so dependency/config refreshes never
+    // widen a caller's explicit file or directory selection to the process cwd.
+    indexed_roots: Vec<String>,
     macro_config_stamp: Option<String>,
     event_config_stamp: Option<String>,
 }
@@ -137,6 +140,7 @@ pub struct TantivySearchEngine {
 /// Filename of the sidecar that stamps the extraction-format version of the stored
 /// `extracted_json` documents. Lives alongside tantivy's own files in the index dir.
 const EXTRACTION_FORMAT_FILE: &str = "codemap.format";
+const INDEXED_ROOTS_FILE: &str = "indexed-roots.json";
 
 /// Per-literal cap on INDEXED characters (the full value stays in `extracted_json` for
 /// the detail view): a long SQL/template/fixture string would bloat the term dictionary
@@ -465,6 +469,10 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
+                .ok()
+                .and_then(|data| serde_json::from_slice(&data).ok())
+                .unwrap_or_else(|| vec![".".to_string()]),
             event_config_stamp: std::fs::read_to_string(
                 Path::new(path).join("event-navigation-config"),
             )
@@ -724,6 +732,18 @@ impl TantivySearchEngine {
             .map_err(|e| e.to_string())?;
             self.event_config_stamp = Some(event_config_stamp);
         }
+        let indexed_roots: Vec<String> = paths
+            .iter()
+            .map(|path| abs_cwd.join(path).to_string_lossy().into_owned())
+            .collect();
+        if self.indexed_roots != indexed_roots {
+            std::fs::write(
+                Path::new(&self.index_path).join(INDEXED_ROOTS_FILE),
+                serde_json::to_vec(&indexed_roots).map_err(|error| error.to_string())?,
+            )
+            .map_err(|error| error.to_string())?;
+            self.indexed_roots = indexed_roots;
+        }
         // Publish the new settings generation even when the workspace has no eligible
         // event files. Otherwise an opt-in toggle would remain permanently "not ready".
         Ok(changed || should_refresh_event_files)
@@ -940,29 +960,32 @@ impl TantivySearchEngine {
         self.refresh_paths_with_reload(paths, false)
     }
 
+    fn refresh_indexed_roots(&mut self, should_reload_reader: bool) -> Result<bool, String> {
+        let roots = self.indexed_roots.clone();
+        let paths: Vec<&str> = roots.iter().map(String::as_str).collect();
+        self.index_files_changed_with_reload(&paths, should_reload_reader)
+    }
+
     fn refresh_paths_with_reload(
         &mut self,
         paths: &[PathBuf],
         should_reload_reader: bool,
     ) -> Result<bool, String> {
         if self.event_config_stamp.as_deref() != Some(&crate::events::config_stamp()) {
-            return self.index_files_changed_with_reload(&["."], should_reload_reader);
+            return self.refresh_indexed_roots(should_reload_reader);
         }
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
         // Headers, included macro files, and compilation flags can affect any translation
-        // unit. Native preprocessing is opt-in; reconcile that dependency boundary fully.
+        // unit. When native preprocessing is enabled, reconcile the original inputs fully.
         if crate::config::get().macro_expansion.is_enabled
             && paths
                 .iter()
                 .any(|path| !is_under_index_root(path, &index_root, &abs_cwd))
         {
-            return self.index_files_changed_with_reload(
-                &[abs_cwd.to_string_lossy().as_ref()],
-                should_reload_reader,
-            );
+            return self.refresh_indexed_roots(should_reload_reader);
         }
 
         if self.indexed_mtimes_cache.is_none() {

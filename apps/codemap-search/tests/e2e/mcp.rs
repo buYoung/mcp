@@ -49,9 +49,10 @@ async fn test_mcp_list_tools() {
 
 #[tokio::test]
 async fn test_mcp_branching_hybrid_view() {
-    // 6 matches (> threshold 5) => hybrid: the top 5 files render full detail (with source
-    // snippets), the 6th lands in the ranked tail as a one-liner without source.
+    // 6 matches (> configured threshold 5) => hybrid: the top 5 files render full detail
+    // with source snippets; the 6th lands in the ranked tail as a one-liner without source.
     let temp = create_mock_repo(&[
+        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
         ("src/a.rs", "fn match_func() {}"),
         ("src/b.rs", "fn match_func() {}"),
         ("src/c.rs", "fn match_func() {}"),
@@ -102,6 +103,7 @@ async fn test_mcp_fallback_match_no_snippets_and_clean_tail() {
     // never source snippets — and the ranked-tail line must stay bare (no unrelated
     // symbols leaked, same all-terms criterion as the index symbol filter).
     let temp = create_mock_repo(&[
+        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
         ("widgets/w1.rs", "pub fn alpha() {}"),
         ("widgets/w2.rs", "pub fn beta() {}"),
         ("widgets/w3.rs", "pub fn gamma() {}"),
@@ -715,8 +717,9 @@ async fn test_caller_context_on_renders_callers_callees_qualified() {
 /// so no caller annotation appears anywhere in this all-fallback result.
 #[tokio::test]
 async fn test_caller_context_broad_match_hybrid_tail() {
-    // 6 files share the path token "widgets" (> result_threshold default 5).
+    // 6 files share the path token "widgets" (> configured result_threshold 5).
     let temp = create_mock_repo(&[
+        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
         ("widgets/w1.rs", "pub fn a1() {}"),
         ("widgets/w2.rs", "pub fn a2() {}"),
         ("widgets/w3.rs", "pub fn a3() {}"),
