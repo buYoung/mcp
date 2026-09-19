@@ -5,6 +5,7 @@
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`.
 
 mod monorepo;
+mod stats;
 
 use crate::tools::ToolContext;
 
@@ -55,6 +56,25 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         None => None,
     };
 
+    let stats_scope = if crate::config::get().is_overview_stats_enabled {
+        match resolved_path.as_deref() {
+            None => Some(stats::StatsScope::Root),
+            Some(target_path) if target_path.is_dir() => {
+                let relative_path = crate::workspace::workspace_relative_key(target_path, &cwd);
+                if relative_path.is_empty() {
+                    Some(stats::StatsScope::Root)
+                } else if catalog.is_workspace_root(&relative_path) {
+                    Some(stats::StatsScope::WorkspaceRoot(relative_path))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    } else {
+        None
+    };
+
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
     // render an empty codemap.
@@ -68,7 +88,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     }
 
     use crate::codemap::CodemapView;
-    let codemap_text = if let Some(p) = path {
+    let mut codemap_text = if let Some(p) = path {
         let target_path = resolved_path
             .as_ref()
             .ok_or_else(|| (-32603, format!("Failed to process path '{}'", p)))?;
@@ -121,6 +141,20 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
             crate::codemap::CodemapGenerator::generate_root_view(extracted_files).to_markdown()
         }
     };
+
+    if let Some(stats_scope) = stats_scope {
+        let workspace = cwd.to_string_lossy().into_owned();
+        let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
+        codemap_text.push_str("\n\n");
+        codemap_text.push_str(&stats::render(
+            &cwd,
+            &workspace,
+            snapshot_id,
+            &published,
+            extracted_files,
+            stats_scope,
+        ));
+    }
 
     Ok(codemap_text)
 }

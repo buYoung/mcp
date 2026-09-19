@@ -19,10 +19,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **16**. The marker is a comment:
+The current configuration schema is **17**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 16
+# codemap-config-version: 17
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -36,6 +36,7 @@ The current configuration schema is **16**. The marker is a comment:
 - Version 14 adds `[tool_output].is_redact_enabled`, defaulting to `true`. Its migration adds a commented setting; the built-in default applies unless explicitly overridden.
 - Version 15 adds commented empty `sensitive_fields`, `rules` and `exceptions` lists under `[redact]`, preserving existing rules and exceptions.
 - Version 16 adds `[redact].pii_entities` as a commented empty list. PII rules remain opt-in; existing credential masking defaults are preserved.
+- Version 17 adds `[tool_output].is_overview_stats_enabled`, defaulting to `true`. Repository-root and monorepo project-root `overview` output includes indexed-file language statistics; set `false` to omit them.
 - Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
 - Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
@@ -154,6 +155,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[search].search_anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[tool_output].grep_max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[tool_output].is_redact_enabled` | bool | `true` | Mask detected credentials and selected PII in MCP responses; matching and local indexes retain original data |
+| `[tool_output].is_overview_stats_enabled` | bool | `true` | Include indexed-file language statistics in repository-root and monorepo project-root `overview` output; `false` omits the section |
 | `[redact].pii_entities` | string array | `[]` | Exact PII entity types to enable; see [supported types](./pii-redaction.md) |
 | `[redact].sensitive_fields` | string array | `[]` | Additional sensitive field names, matched exactly after case/separator normalization |
 | `[redact].rules` | inline-table array | `[]` | Additional regex rules, each with `id` and `pattern` |
@@ -269,6 +271,8 @@ No additional scanning byte, candidate-count or time limits are introduced. The 
 Unrecognized names/formats, encoded values and values assembled through calls can escape detection; ordinary examples may be masked. Source files, persisted indexes, matching/ranking, ordinary CLI commands such as `parse`, and stderr logs are outside masking scope. JSON-RPC responses from the CLI `mcp` command are covered. Other file-reading tools are outside this feature's scope.
 
 ### Output and call relationships
+
+Repository-root and monorepo project-root `overview` output includes indexed-file language statistics by default; set `[tool_output].is_overview_stats_enabled = false` to omit the section. For example, `overview(path="apps/api")` counts only that selectable project's indexed physical files. Other folders and file views omit statistics. Missing or changed sources are reported as unavailable; collection beyond 256 uncached files or 64 MiB per request is reported as pending, and subsequent requests reuse completed counts.
 
 `search` shows detailed top matches followed by a compact list. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
 
@@ -406,6 +410,7 @@ search_anchor_snippet_limit = 20
 
 [tool_output]
 is_redact_enabled = true
+is_overview_stats_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
 

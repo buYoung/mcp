@@ -117,6 +117,10 @@ toml = "1.1"
 # Preserve user comments and value formatting when moving config sections.
 toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"] }
 
+# Indexed-source language line statistics. The library API is used directly from in-memory
+# source buffers; the CLI feature and its executable dependencies are intentionally disabled.
+tokei = { version = "15.0.0", default-features = false }
+
 # Embedded ripgrep engine (library crates, NOT a bundled `rg` binary) powering the
 # read/find/grep tools. `grep` re-exports grep-matcher/grep-regex/grep-searcher.
 # `ignore` gives gitignore + `.codemapignore` parity and the parallel/typed walk;

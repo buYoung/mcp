@@ -1150,6 +1150,7 @@ impl TantivySearchEngine {
             .map_err(|error| format!("published snapshot reader open failed: {error}"))?;
         let searcher = snapshot_reader.searcher();
         let mut files_and_edges = Vec::new();
+        let mut source_mtimes = HashMap::new();
         let mut event_inputs = crate::events::EventInputs::default();
         let mut flow_documents = std::collections::BTreeMap::new();
         // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
@@ -1169,6 +1170,12 @@ impl TantivySearchEngine {
                 })?;
             let stored = serde_json::from_str::<StoredExtractedFile>(json)
                 .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
+            if let Some(mtime) = doc
+                .get_first(self.mtime_field)
+                .and_then(|value| value.as_u64())
+            {
+                source_mtimes.insert(stored.extracted.file_path.clone(), mtime);
+            }
             event_inputs.insert(stored.extracted.file_path.clone(), stored.event_input);
             if let Some(digest) = stored.flow_digest {
                 flow_documents.insert(stored.extracted.file_path.clone(), (doc_address, digest));
@@ -1186,7 +1193,8 @@ impl TantivySearchEngine {
                     field: self.extracted_json_field,
                     documents: flow_documents,
                 }),
-            ),
+            )
+            .with_source_mtimes(source_mtimes),
         )
     }
 }

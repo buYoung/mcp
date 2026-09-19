@@ -52,10 +52,10 @@ max_output_bytes = "8mb"
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **16**이며 주석으로 표시합니다.
+현재 설정 버전은 **17**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 16
+# codemap-config-version: 17
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -69,6 +69,7 @@ max_output_bytes = "8mb"
 - 버전 14는 기본값이 `true`인 `[tool_output].is_redact_enabled`를 추가합니다. 기존 설정에는 주석으로 추가되며, 값을 명시하지 않으면 내장 기본값을 적용합니다.
 - 버전 15는 `[redact]`의 `sensitive_fields`, `rules`, `exceptions`를 빈 목록 주석으로 추가합니다. 기존 규칙과 예외 설정은 보존합니다.
 - 버전 16은 `[redact].pii_entities`를 빈 목록 주석으로 추가합니다. PII 규칙은 선택 활성화하며 기존 인증정보 마스킹 기본값을 유지합니다.
+- 버전 17은 기본값이 `true`인 `[tool_output].is_overview_stats_enabled`를 추가합니다. 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계를 포함하며, `false`면 해당 섹션을 생략합니다.
 - 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
 - 버전 10은 `[macro_expansion]` 주석 섹션을 추가했으며 당시에는 기본으로 꺼져 있었습니다. 현재는 외부 전처리기를 기본으로 사용하지만, 기존에 명시한 `is_enabled=false`는 유지합니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
@@ -186,6 +187,7 @@ MCP는 `[refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 
 | `[search].search_anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[tool_output].grep_max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[tool_output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보와 선택한 PII를 가림. 검색 일치와 로컬 색인은 원문 유지 |
+| `[tool_output].is_overview_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
 | `[redact].pii_entities` | 문자열 배열 | `[]` | 활성화할 PII 종류의 정확한 이름. [지원 목록](./pii-redaction.ko.md) 참고 |
 | `[redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
 | `[redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
@@ -266,6 +268,8 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 알려지지 않은 이름·형식, 인코딩 값이나 함수 호출을 통해 조립된 값은 놓칠 수 있고 일반 예제도 가릴 수 있습니다. 원본 파일, 저장된 색인, 검색 일치·순위, 일반 CLI 명령(`parse` 등)의 출력과 stderr 로그는 마스킹 대상이 아닙니다. CLI의 `mcp` 명령으로 주고받는 JSON-RPC 응답은 적용 대상입니다. 다른 파일 읽기 도구에는 적용하지 않습니다.
 
 ### 출력과 호출 관계
+
+저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. `[tool_output].is_overview_stats_enabled = false`이면 해당 섹션을 생략합니다. 예를 들어 선택 가능한 프로젝트 경로인 `overview(path="apps/api")`는 해당 프로젝트에 속한 색인 파일만 집계합니다. 그 외 폴더와 파일에는 통계를 붙이지 않습니다. 사라지거나 변경된 파일은 집계 불가로 표시합니다. 요청당 새로 집계할 수 있는 256개 파일 또는 64 MiB를 넘으면 대기 상태로 표시하며, 이후 요청은 완료된 집계를 재사용합니다.
 
 `search`는 상위 파일의 상세 내용 뒤에 나머지 파일을 간략 목록으로 표시합니다. 크기 설정은 출력을 제한하며 제외 파일을 바꾸지 않습니다. 일반 질의에서는 생성 파일과 번역 리소스의 순위를 낮추지만 정확한 경로·심볼·리소스 키·인용 원문으로 해당 파일을 지정할 수 있습니다.
 
@@ -403,6 +407,7 @@ search_anchor_snippet_limit = 20
 
 [tool_output]
 is_redact_enabled = true
+is_overview_stats_enabled = true
 grep_max_columns = 0
 read_output_byte_cap = "5mb"              # 5242880 bytes
 
