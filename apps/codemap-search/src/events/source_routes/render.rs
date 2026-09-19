@@ -1,4 +1,4 @@
-use super::model::{Location, Relation};
+use super::model::Location;
 use super::snapshot::{range, Snapshot};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -87,13 +87,6 @@ fn overlaps(location: &Location, anchors: &[(String, usize, usize)]) -> bool {
         path == &location.path && *start <= location.line && location.line <= *end
     })
 }
-fn relation_points(relation: &Relation) -> impl Iterator<Item = &Location> {
-    std::iter::once(&relation.storage.location)
-        .chain(std::iter::once(&relation.invocation.location))
-        .chain(&relation.storage.via)
-        .chain(&relation.invocation.via)
-        .chain(&relation.mutations)
-}
 fn location(location: &Location, current: Option<&str>) -> String {
     crate::locations::display(&location.path, location.line, current)
 }
@@ -158,8 +151,10 @@ impl Snapshot {
                     skipped += 1;
                     continue;
                 }
-                let relation = &self.routes[id].relation;
-                if relation_points(relation).any(|point| overlaps(point, anchors)) {
+                if self.routes[id]
+                    .locations()
+                    .any(|point| overlaps(point, anchors))
+                {
                     selected.insert(id);
                 }
             }
@@ -169,8 +164,7 @@ impl Snapshot {
         let mut rendered = 0usize;
         for id in selected {
             let route = &self.routes[id];
-            let relation = &route.relation;
-            if relation_points(relation).any(|point| {
+            if route.locations().any(|point| {
                 filter.is_excluded(&point.path, &range(point))
                     || scope.is_some_and(|scope| {
                         point.path != scope
@@ -213,24 +207,19 @@ impl Snapshot {
                 }
                 format!("- shared source route: see `{previous}` above.\n")
             } else {
-                let conditions: BTreeSet<_> = relation
+                let conditions: BTreeSet<_> = route
                     .conditions
                     .iter()
                     .map(|c| c.split(':').next().unwrap_or(c))
                     .collect();
                 let mut row = format!(
                     "- {}: {} → {}\n  - conditions: {}\n",
-                    label(&relation.kind),
-                    location(&relation.storage.location, current_file),
-                    location(&relation.invocation.location, current_file),
+                    label(&route.kind),
+                    location(&route.storage, current_file),
+                    location(&route.invocation, current_file),
                     conditions.into_iter().collect::<Vec<_>>().join(", ")
                 );
-                let via: BTreeSet<_> = relation
-                    .storage
-                    .via
-                    .iter()
-                    .chain(&relation.invocation.via)
-                    .collect();
+                let via: BTreeSet<_> = route.via.iter().collect();
                 if !via.is_empty() {
                     row.push_str(&format!(
                         "  - via: {}\n",
@@ -265,7 +254,7 @@ impl Snapshot {
             state.shown.insert(
                 id,
                 current_file
-                    .unwrap_or(&relation.storage.location.path)
+                    .unwrap_or(&route.storage.path)
                     .into(),
             );
             rendered += 1;

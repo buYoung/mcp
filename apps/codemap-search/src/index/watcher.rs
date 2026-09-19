@@ -42,7 +42,7 @@ use super::IndexCommand;
 /// Above this many distinct paths in one debounce window, a single full walk is cheaper
 /// and safer than per-path passes (and bulk events of this size usually mean a branch
 /// switch or generator ran, where full-walk delete detection is wanted anyway).
-const FULL_WALK_PATH_THRESHOLD: usize = 1024;
+pub(super) const FULL_WALK_PATH_THRESHOLD: usize = 1024;
 
 /// Git files watched as HEAD-change hints. Everything else under `.git` is dropped.
 const GIT_REF_HINT_PATHS: &[&str] = &[".git/HEAD", ".git/packed-refs", ".git/ORIG_HEAD"];

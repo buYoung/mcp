@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tantivy::collector::DocSetCollector;
+use tantivy::directory::{Directory, INDEX_WRITER_LOCK};
 use tantivy::query::AllQuery;
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
@@ -130,6 +131,7 @@ pub struct TantivySearchEngine {
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    pub(super) is_waiting_for_writer: bool,
     // Full-refresh inputs, retained across reopen so dependency/config refreshes never
     // widen a caller's explicit file or directory selection to the process cwd.
     indexed_roots: Vec<String>,
@@ -469,6 +471,7 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            is_waiting_for_writer: false,
             indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
                 .ok()
                 .and_then(|data| serde_json::from_slice(&data).ok())
@@ -533,6 +536,17 @@ impl TantivySearchEngine {
             .ok();
         }
         Ok(())
+    }
+
+    /// Probe only the writer lock while a peer is indexing. Do not walk the working tree
+    /// or reopen every stored document on each retry tick.
+    pub(super) fn is_writer_available(&self) -> bool {
+        match self.index.directory().acquire_lock(&INDEX_WRITER_LOCK) {
+            Ok(_guard) => true,
+            Err(tantivy::directory::error::LockError::LockBusy) => false,
+            // Let the regular refresh report actionable I/O errors.
+            Err(_) => true,
+        }
     }
 }
 
@@ -784,6 +798,7 @@ impl TantivySearchEngine {
         to_delete: Vec<String>,
         should_reload_reader: bool,
     ) -> Result<bool, String> {
+        self.is_waiting_for_writer = false;
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
             // A peer's commit may already satisfy the refreshed mtime cache. Direct
@@ -802,6 +817,8 @@ impl TantivySearchEngine {
             Ok(w) => w,
             Err(tantivy::TantivyError::LockFailure(e, _)) => {
                 self.indexed_mtimes_cache = None;
+                self.is_waiting_for_writer =
+                    matches!(e, tantivy::directory::error::LockError::LockBusy);
                 return Err(format!(
                     "Index writer lock unavailable; refresh deferred for retry: {e:?}"
                 ));
@@ -1244,6 +1261,7 @@ impl TantivySearchEngine {
                     field: self.extracted_json_field,
                     documents: flow_documents,
                 }),
+                Some(Path::new(&self.index_path)),
             )
             .with_source_mtimes(source_mtimes),
         )

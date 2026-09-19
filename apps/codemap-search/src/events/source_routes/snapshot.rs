@@ -3,19 +3,53 @@ use super::{
     Analysis,
 };
 use crate::parser::{CodeRange, ExtractedFile};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct Route {
-    pub relation: Relation,
+    pub kind: String,
+    pub storage: Location,
+    pub invocation: Location,
+    pub via: Vec<Location>,
+    pub mutations: Vec<Location>,
+    pub conditions: Vec<String>,
+    #[serde(with = "proof_paths")]
     pub proof_paths: Arc<Vec<String>>,
     pub has_complete_dependencies: bool,
 }
-#[derive(Clone, Debug, Default)]
+impl Route {
+    pub(super) fn locations(&self) -> impl Iterator<Item = &Location> {
+        std::iter::once(&self.storage)
+            .chain(std::iter::once(&self.invocation))
+            .chain(&self.via)
+            .chain(&self.mutations)
+    }
+}
+
+mod proof_paths {
+    use super::*;
+
+    pub fn serialize<S: serde::Serializer>(
+        paths: &Arc<Vec<String>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        paths.as_ref().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Arc<Vec<String>>, D::Error> {
+        Vec::<String>::deserialize(deserializer).map(Arc::new)
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Snapshot {
     pub routes: Vec<Route>,
+    #[serde(skip)]
     pub by_path: BTreeMap<String, Vec<usize>>,
     pub notices: BTreeMap<String, BTreeSet<String>>,
 }
@@ -47,6 +81,7 @@ impl Snapshot {
         root: &Path,
         max_endpoints: usize,
         configured_endpoints_per_file: &BTreeMap<String, usize>,
+        cache_directory: Option<&Path>,
     ) -> Self {
         if !crate::config::get().event_navigation.is_enabled {
             return Self::default();
@@ -63,16 +98,51 @@ impl Snapshot {
                 inputs.insert(path.clone(), data);
             }
         }
-        let bindings = super::manifests::bindings(sources);
-        let analysis = super::analyze_with_bindings(&inputs, &bindings);
-        Self::from_analysis(
-            analysis,
-            files,
-            sources,
-            root,
-            max_endpoints,
-            configured_endpoints_per_file,
-        )
+        let cache = cache_directory.and_then(|directory| {
+            super::cache::SnapshotCache::open(
+                directory,
+                &(
+                    root,
+                    super::super::config_stamp(),
+                    crate::config::get().max_file_size,
+                    files,
+                    sources.iter().collect::<BTreeMap<_, _>>(),
+                    &inputs,
+                    max_endpoints,
+                    configured_endpoints_per_file,
+                ),
+            )
+        });
+        super::cache::load_or_build(cache, || {
+            let bindings = super::manifests::bindings(sources);
+            let analysis = super::analyze_with_bindings(&inputs, &bindings);
+            Self::from_analysis(
+                analysis,
+                files,
+                sources,
+                root,
+                max_endpoints,
+                configured_endpoints_per_file,
+            )
+        })
+    }
+
+    pub(super) fn restore_indexes(&mut self) {
+        self.by_path.clear();
+        let mut proofs = BTreeMap::new();
+        for (index, route) in self.routes.iter_mut().enumerate() {
+            route.proof_paths = proofs
+                .entry(route.proof_paths.as_ref().clone())
+                .or_insert_with(|| Arc::clone(&route.proof_paths))
+                .clone();
+            for path in route
+                .locations()
+                .map(|point| &point.path)
+                .collect::<BTreeSet<_>>()
+            {
+                self.by_path.entry(path.clone()).or_default().push(index);
+            }
+        }
     }
     fn from_analysis(
         analysis: Analysis,
@@ -272,7 +342,17 @@ impl Snapshot {
                 result.by_path.entry(path).or_default().push(index);
             }
             result.routes.push(Route {
-                relation,
+                kind: relation.kind,
+                storage: relation.storage.location,
+                invocation: relation.invocation.location,
+                via: relation
+                    .storage
+                    .via
+                    .into_iter()
+                    .chain(relation.invocation.via)
+                    .collect(),
+                mutations: relation.mutations,
+                conditions: relation.conditions,
                 proof_paths,
                 has_complete_dependencies: complete,
             });

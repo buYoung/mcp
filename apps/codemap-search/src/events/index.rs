@@ -87,7 +87,15 @@ impl EventIndex {
         Arc::clone(&self.sources)
     }
 
-    pub fn build(files: &[ExtractedFile], mut inputs: EventInputs) -> Self {
+    pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
+        Self::build_with_cache(files, inputs, None)
+    }
+
+    pub(crate) fn build_with_cache(
+        files: &[ExtractedFile],
+        mut inputs: EventInputs,
+        cache_directory: Option<&Path>,
+    ) -> Self {
         let started = std::time::Instant::now();
         let cfg = crate::config::get();
         let stamp = super::config_stamp();
@@ -171,6 +179,7 @@ impl EventIndex {
             &std::env::current_dir().unwrap_or_default(),
             super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
             &configured_endpoints_per_file,
+            cache_directory,
         ));
         Self {
             stamp,

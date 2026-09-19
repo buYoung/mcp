@@ -37,6 +37,24 @@ pub enum IndexCommand {
     RefreshPaths(Vec<std::path::PathBuf>),
 }
 
+impl IndexCommand {
+    fn merge(self, incoming: Self) -> Self {
+        match (self, incoming) {
+            (Self::RefreshPaths(mut paths), Self::RefreshPaths(incoming)) => {
+                paths.extend(incoming);
+                paths.sort();
+                paths.dedup();
+                if paths.len() > super::watcher::FULL_WALK_PATH_THRESHOLD {
+                    Self::Refresh
+                } else {
+                    Self::RefreshPaths(paths)
+                }
+            }
+            _ => Self::Refresh,
+        }
+    }
+}
+
 /// Shared, lock-light status the server reads to annotate responses.
 #[derive(Default)]
 pub struct IndexerStatus {
@@ -98,13 +116,14 @@ impl PublishedIndexSnapshot {
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
     ) -> Self {
-        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None)
+        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None, None)
     }
 
     pub(crate) fn from_files_and_edges_with_flow(
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
         flow_store: Option<crate::flow::IndexedFlowStore>,
+        cache_directory: Option<&std::path::Path>,
     ) -> Self {
         const STATIC_COLLECTION_EDGES_PER_FILE_MAX: usize = 256;
         let mut files = Vec::with_capacity(files_and_edges.len());
@@ -182,7 +201,12 @@ impl PublishedIndexSnapshot {
             file_count = files.len(),
             "published workspace catalog"
         );
-        let event_index = crate::events::EventIndex::build(&files, event_inputs);
+        let event_index = match cache_directory {
+            Some(directory) => {
+                crate::events::EventIndex::build_with_cache(&files, event_inputs, Some(directory))
+            }
+            None => crate::events::EventIndex::build(&files, event_inputs),
+        };
         let files = Arc::new(files);
         let implementation_index = crate::implementations::ImplementationIndex::build(
             Arc::clone(&files),
@@ -441,34 +465,41 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
         .name("codemap-indexer".to_string())
         .spawn(move || {
             // Initial pass: hydrate from a warm on-disk index or build it from scratch.
-            let mut should_retry = !run_refresh_pass(
+            let is_initial_successful = run_refresh_pass(
                 &mut engine,
                 &thread_status,
                 &thread_snapshot,
                 &thread_generation_gate,
                 true,
             );
+            let mut pending = (!is_initial_successful).then_some(IndexCommand::Refresh);
             // Then serve refresh requests until the channel is closed (server shutdown —
             // the recv loop ends only once ALL senders, including the watcher's clone,
             // have dropped). Failed passes retry even while a healthy watcher suppresses
-            // request-triggered refreshes. A pending partial pass becomes a full retry so
-            // later watcher messages cannot lose the paths that failed to commit.
+            // request-triggered refreshes. Keep failed paths until they are committed;
+            // contention alone must not promote ordinary edits to a full walk.
             loop {
-                let command = if should_retry {
-                    match receiver.recv_timeout(std::time::Duration::from_millis(
+                let should_retry = pending.is_some();
+                let command = if let Some(pending_command) = pending.take() {
+                    let command = match receiver.recv_timeout(std::time::Duration::from_millis(
                         INDEXER_RETRY_DELAY_MS,
                     )) {
-                        Ok(command) => command,
-                        Err(RecvTimeoutError::Timeout) => IndexCommand::Refresh,
+                        Ok(command) => pending_command.merge(command),
+                        Err(RecvTimeoutError::Timeout) => pending_command,
                         Err(RecvTimeoutError::Disconnected) => break,
+                    };
+                    if engine.is_waiting_for_writer && !engine.is_writer_available() {
+                        pending = Some(command);
+                        continue;
                     }
+                    command
                 } else {
                     match receiver.recv() {
                         Ok(command) => command,
                         Err(_) => break,
                     }
                 };
-                let is_successful = match command {
+                let is_successful = match &command {
                     IndexCommand::Refresh => run_refresh_pass(
                         &mut engine,
                         &thread_status,
@@ -476,22 +507,18 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
                         &thread_generation_gate,
                         should_retry,
                     ),
-                    IndexCommand::RefreshPaths(_) if should_retry => run_refresh_pass(
-                        &mut engine,
-                        &thread_status,
-                        &thread_snapshot,
-                        &thread_generation_gate,
-                        true,
-                    ),
                     IndexCommand::RefreshPaths(paths) => run_paths_pass(
                         &mut engine,
                         &thread_status,
                         &thread_snapshot,
                         &thread_generation_gate,
-                        &paths,
+                        paths,
+                        should_retry,
                     ),
                 };
-                should_retry = !is_successful;
+                if !is_successful {
+                    pending = Some(command);
+                }
             }
         })
         .expect("failed to spawn codemap-indexer thread");
@@ -534,10 +561,18 @@ fn run_paths_pass(
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     paths: &[std::path::PathBuf],
+    should_force_publish: bool,
 ) -> bool {
     let _config_scope = crate::config::pin_request();
     let result = engine.refresh_paths_deferred(paths);
-    publish_pass_result(engine, status, snapshot, generation_gate, result, false)
+    publish_pass_result(
+        engine,
+        status,
+        snapshot,
+        generation_gate,
+        result,
+        should_force_publish,
+    )
 }
 
 /// Record a pass result on the shared status and republish the codemap snapshot when the
@@ -570,7 +605,11 @@ fn publish_pass_result(
         }
         Err(error) => {
             if last_error.as_ref() != Some(&error) {
-                tracing::warn!("background index refresh failed: {}", error);
+                if engine.is_waiting_for_writer {
+                    tracing::debug!("background index refresh waiting for writer: {}", error);
+                } else {
+                    tracing::warn!("background index refresh failed: {}", error);
+                }
             }
             *last_error = Some(error);
             false

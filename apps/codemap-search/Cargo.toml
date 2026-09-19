@@ -162,6 +162,7 @@ predicates = "3.1"
 filetime = "0.2"
 
 [build-dependencies]
+blake3 = "1.8.7"
 # Compile the audited grammar fixes; compressed generated C keeps source packages small.
 cc = "1.2"
 flate2 = "1.1"
