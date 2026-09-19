@@ -9,7 +9,7 @@ repository = "https://github.com/buYoung/mcp"
 readme = "README.md"
 keywords = ["mcp", "code-search", "tree-sitter", "tantivy", "ripgrep"]
 categories = ["command-line-utilities", "development-tools"]
-exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures"]
+exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures", "/experiments", "/validation"]
 
 [dependencies]
 # CLI Argument parsing

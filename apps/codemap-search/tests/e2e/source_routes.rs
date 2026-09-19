@@ -67,7 +67,7 @@ fn report(name: &str, value: Value) {
         .unwrap();
     }
 }
-const CONFIG:&str="[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\nuse_builtin_rules=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n";
+const CONFIG:&str="[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\nuse_builtin_rules=false\n[macro_expansion]\nis_enabled=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n";
 
 #[tokio::test]
 async fn test_events_source_routes_all_languages_live_and_restart() {

@@ -130,7 +130,7 @@ async fn test_cross_bm25_mcp_branching() {
         // deterministic.
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
+            "watch = false\nindex_staleness_ms = 1\n[search]\nresult_threshold = 5\n",
         ),
     ])
     .unwrap();
