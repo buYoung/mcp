@@ -58,7 +58,7 @@ Bevy의 `AssetPlugin::build`에서는 추정한 수신 타입의 `init_default_s
 | `default` | `false` | `false` |
 | `structural` | `true` | `true` |
 
-기본 실험에서는 `[exclude].should_include_test_code=false`를 사용한다. 이후 테스트 포함, 내장 목록을 사용자 목록으로 교체, 원래 설정 복원까지 검사한다. `.gitignore`, `.codemapignore`, Git 제외 규칙은 별도로 적용된다. 줄 수 선정에서 제거한 생성 파일을 색인에서도 모두 제거하는 설정은 아니다. 색인에는 설정상 허용되는 생성 파일이 포함될 수 있다.
+기본 실험에서는 `[output.context.exclude].should_include_test_code=false`를 사용한다. 이후 테스트 포함, 내장 목록을 사용자 목록으로 교체, 원래 설정 복원까지 검사한다. `.gitignore`, `.codemapignore`, Git 제외 규칙은 별도로 적용된다. 줄 수 선정에서 제거한 생성 파일을 색인에서도 모두 제거하는 설정은 아니다. 색인에는 설정상 허용되는 생성 파일이 포함될 수 있다.
 
 대조 정답을 codemap-search의 출력에서 복사하지 않는다.
 

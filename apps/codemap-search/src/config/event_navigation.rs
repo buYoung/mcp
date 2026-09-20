@@ -18,7 +18,7 @@ impl Default for EventNavigationConfig {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub(super) struct EventNavigationLayer {
     is_enabled: Option<bool>,
     use_builtin_rules: Option<bool>,

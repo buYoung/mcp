@@ -87,7 +87,7 @@ args = ["mcp"]
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
 
-저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[tool_output].is_overview_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
+저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
 
 동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 별칭도 받습니다.
 
@@ -101,14 +101,14 @@ MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호�
 
 키별 우선순위는 `<repo>/.codemap/config.toml` → `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) → 내장 기본값입니다. 활성화된 저장소 키가 전역값보다 우선하며, 전역값을 상속하려면 해당 키를 주석 처리합니다.
 
-MCP 응답에서 탐지한 API 키·토큰·비밀번호·비밀키를 기본으로 가립니다. `[tool_output].is_redact_enabled = false`로 끌 수 있습니다. 검색 일치·순위는 원문을 기준으로 유지하며 파일과 로컬 색인은 변경하지 않습니다. Tree-sitter와 패턴 검사를 함께 사용하며, `[redact]`에서 민감 필드명·정규식·정확한 값 예외를 추가할 수 있습니다. 알려지지 않은 형식은 누락할 수 있습니다. 적용 범위와 한계는 [민감값 마스킹](./docs/configuration.ko.md#민감값-마스킹)을 참고하세요.
+MCP 응답에서 탐지한 API 키·토큰·비밀번호·비밀키를 기본으로 가립니다. `[output].is_redact_enabled = false`로 끌 수 있습니다. 검색 일치·순위는 원문을 기준으로 유지하며 파일과 로컬 색인은 변경하지 않습니다. Tree-sitter와 패턴 검사를 함께 사용하며, `[output.redact]`에서 민감 필드명·정규식·정확한 값 예외를 추가할 수 있습니다. 알려지지 않은 형식은 누락할 수 있습니다. 적용 범위와 한계는 [민감값 마스킹](./docs/configuration.ko.md#민감값-마스킹)을 참고하세요.
 
-자동 심볼·호출 관계에서는 기본적으로 테스트 영역을 제외합니다. `[exclude].should_include_test_code = true`이면 포함합니다. `test_file_patterns`와 언어별 `test_attributes`, `test_decorators`, `test_calls` 목록에서 사용자 규칙을 추가하거나 내장 항목을 지울 수 있습니다. 명시한 목록은 상속값을 대체하고 `[]`이면 해당 목록을 끕니다. 직접 `read`·`grep`한 원문은 유지합니다. 기본값과 예시는 [테스트 코드 문맥](./docs/configuration.ko.md#테스트-코드-문맥)을 참고하세요.
+자동 심볼·호출 관계에서는 기본적으로 테스트 영역을 제외합니다. `[output.context.exclude].should_include_test_code = true`이면 포함합니다. `test_file_patterns`와 언어별 `test_attributes`, `test_decorators`, `test_calls` 목록에서 사용자 규칙을 추가하거나 내장 항목을 지울 수 있습니다. 명시한 목록은 상속값을 대체하고 `[]`이면 해당 목록을 끕니다. 직접 `read`·`grep`한 원문은 유지합니다. 기본값과 예시는 [테스트 코드 문맥](./docs/configuration.ko.md#테스트-코드-문맥)을 참고하세요.
 
 첫 MCP 실행에서 설정 파일이 없으면 **공통 제외 폴더와 감지한 프로젝트 종류의 재귀 glob**을 생성합니다. 공통 목록에는 `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`과 지원하는 다른 VCS 내부 폴더가 포함됩니다. JS/TS 프로젝트는 `**/node_modules`, `**/dist`, `**/build`, 프레임워크 출력과 캐시의 glob을 추가하고, Python·Rust 등도 해당 종류의 glob을 추가합니다. 같은 패턴은 한 번만 기록하며 프로젝트를 발견한 폴더와 관계없이 작업공간 전체에 적용합니다.
 
 ```toml
-[exclude]
+[index.exclude]
 # 혼합 저장소 예시입니다. 필요한 항목을 관리하세요.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
@@ -122,7 +122,7 @@ excluded_directories = [
 
 `build`는 모든 깊이의 해당 폴더, `./build`는 루트만, `apps/web/build`는 지정 프로젝트만 제외합니다. 명시한 배열은 선택적 기본 목록을 대체합니다. `[]`는 선택적 제외 해제, 키 생략은 전역/기본값 상속입니다. `.gitignore`, 전역 Git ignore, `.git/info/exclude`, `.codemapignore`는 별도로 적용합니다. VCS 내부, `.codemap`, `.codemap-index`, 실제 색인 위치는 배열과 무관하게 탐색에서 제외합니다. `find`·`grep`의 `include_ignored: true`는 선택적 제외를 우회하며, 직접 `read`는 파일시스템 권한을 따릅니다.
 
-MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index_path`, `watch`, `watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
+MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
 
 ## 지원 언어와 형식
 
@@ -151,15 +151,15 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 JSON/JSONC, TOML, YAML, HTML/XML 파생 형식, CSS/Less, Sass와 Vue·Astro·Svelte 컴포넌트를 지원합니다. 이 버전의 지원 등록부에는 JSON5와 SCSS가 없습니다. SQL은 선언과 리터럴을 추출하며 호출 관계는 만들지 않습니다.
 
-다음 선택형 그룹은 `[language_support]`에서 기본값이 모두 `false`입니다.
+다음 선택형 그룹은 `[index.language_support]`에서 기본값이 모두 `false`입니다.
 
 | 키 | 그룹 |
 |---|---|
-| `is_document_support_enabled` | Markdown `.md`, `.mdx` |
-| `is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
-| `is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
-| `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
-| `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
+| `index.language_support.is_document_support_enabled` | Markdown `.md`, `.mdx` |
+| `index.language_support.is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
+| `index.language_support.is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
+| `index.language_support.is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
+| `index.language_support.is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
 
 이 설정은 색인 기반 탐색과 감시 갱신을 제어합니다. 그룹이 비활성 상태여도 실시간 `find`, `grep`, `read`와 CLI의 직접 `parse`는 사용할 수 있습니다. 언어별 공개·테스트·폐기 표시, 정적 관계와 한계는 [추출 세부 규칙](./docs/language-support-checklist.ko.md#언어별-추출-규칙)을 참고하세요.
 
@@ -192,9 +192,9 @@ codemap-search benchmark --queries <json> [--dir D]
 
 ## 색인·진단·제한
 
-MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
+MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
 
-- `max_file_size` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
+- `index.max_file_bytes` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
 - `.txt`, 잠금 파일, source map, 압축·번들 파일에는 별도 파일 제외 규칙이 있습니다. `find`·`grep`의 `include_ignored`로 우회할 수 있고, 직접 `read`·`parse`도 가능합니다.
 - 실행 중에 결정되는 경로나 호출 대상은 정적 분석으로 확인할 수 없습니다. 추정한 호출 관계는 원문에서 확인하세요.
 - 단일 클라이언트용 순차 stdio 서버입니다. 여러 서버를 같은 색인 디렉터리로 동시에 실행하지 마세요.

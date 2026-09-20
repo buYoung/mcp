@@ -5,10 +5,10 @@
 Schema 16 adds opt-in PII masking to MCP output. Credential masking stays enabled by default; `pii_entities` defaults to `[]`. Select the exact types needed for your repository.
 
 ```toml
-[tool_output]
+[output]
 is_redact_enabled = true
 
-[redact]
+[output.redact]
 pii_entities = ["CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE", "US_SSN"]
 exceptions = [{ rule_id = "pii.email-address", value = "info@presidio.site" }]
 ```

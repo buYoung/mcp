@@ -12,6 +12,29 @@ use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
 
+/// Search/read already construct bounded output. Other tools reject an oversized
+/// response only when a new common or per-tool response budget was explicitly set.
+fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String)> {
+    let config = crate::config::get();
+    let cap = match name {
+        "overview" => config.overview_output_byte_cap,
+        "grep" => config.grep_response_byte_cap,
+        "find" | "initial_instructions" => config.output_byte_cap,
+        _ => None,
+    };
+    let Some(cap) = cap else { return Ok(()) };
+    let bytes = response
+        .get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|item| item.get("text").and_then(Value::as_str))
+        .fold(0usize, |total, text| total.saturating_add(text.len()));
+    if bytes > cap {
+        return Err((-32602, format!("{name} output ({bytes} bytes) exceeds the configured maximum of {cap} bytes. Narrow the path/query or adjust output.max_bytes or the tool's output section.")));
+    }
+    Ok(())
+}
 pub struct McpServer {
     // The live index subsystem: read-only searcher handle, background indexer, optional
     // filesystem watcher, and the supervision state (auto-restart + refresh fallback). The
@@ -128,6 +151,14 @@ impl McpServer {
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
             Ok(mut value) => {
                 crate::redact::response(&mut value);
+                if method == "tools/call" {
+                    if let Some(name) = params
+                        .and_then(|params| params.get("name"))
+                        .and_then(Value::as_str)
+                    {
+                        enforce_response_cap(name, &value)?;
+                    }
+                }
                 Ok(value)
             }
             Err((code, message)) => Err((code, crate::redact::source(&message).into_owned())),
@@ -258,7 +289,7 @@ impl McpServer {
                                 output,
                                 options
                                     .should_expand_callable
-                                    .then(|| crate::config::get().read_output_byte_cap),
+                                    .then(|| crate::config::get().grep_output_byte_cap),
                                 options,
                             )?
                         } else {

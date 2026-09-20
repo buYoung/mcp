@@ -6,7 +6,7 @@
 
 ## 조회와 설정
 
-별도 API나 설정 키를 추가하지 않는다. `[event_navigation].is_enabled`의 기본값은 `true`다.
+별도 API나 설정 키를 추가하지 않는다. `[output.event_navigation].is_enabled`의 기본값은 `true`다.
 
 | 요청·설정 | 소스 경로 동작 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | 일반 `search` | 실제 상세 결과에 포함된 근거에 맞춰 표시한다. 순위 결과와 원문을 먼저 보존하고 남은 출력 공간을 쓴다. |
 | `include_events=false` | 이번 요청의 이벤트 지도와 소스 경로를 함께 생략한다. |
 | `view=source`, `view=definitions`, grep 파일·개수 모드 | 관계 조회를 생략한다. |
-| `[event_navigation].is_enabled=false` | 이벤트와 소스 경로 분석·출력을 끈다. |
+| `[output.event_navigation].is_enabled=false` | 이벤트와 소스 경로 분석·출력을 끈다. |
 | `use_builtin_rules=false`, `rules=[]` | 규칙 기반 이벤트만 제어한다. 소스 경로는 계속 동작한다. |
 | `search`의 `event_key` | 기존 규칙 기반 이벤트 키 조회다. 범용 소스 경로를 이벤트 키로 분류하지 않는다. |
 

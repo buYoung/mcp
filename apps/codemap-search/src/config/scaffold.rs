@@ -16,17 +16,29 @@ struct DirectorySection {
 }
 
 #[derive(Deserialize)]
+struct IndexSection {
+    excluded_directories: Option<Spanned<Vec<Spanned<String>>>>,
+    exclude: Option<DirectorySection>,
+}
+
+#[derive(Deserialize)]
 struct DirectorySettings {
     excluded_directories: Option<Spanned<Vec<Spanned<String>>>>,
-    index: Option<DirectorySection>,
+    index: Option<IndexSection>,
     exclude: Option<DirectorySection>,
 }
 
 impl DirectorySettings {
     fn array(&self) -> Option<&Spanned<Vec<Spanned<String>>>> {
-        self.exclude
+        self.index
             .as_ref()
+            .and_then(|index| index.exclude.as_ref())
             .and_then(|exclude| exclude.excluded_directories.as_ref())
+            .or_else(|| {
+                self.exclude
+                    .as_ref()
+                    .and_then(|exclude| exclude.excluded_directories.as_ref())
+            })
             .or_else(|| {
                 self.index
                     .as_ref()
@@ -186,6 +198,14 @@ fn without_exclusions(mut value: toml::Value) -> toml::Value {
         for section in ["index", "exclude"] {
             if let Some(settings) = table.get_mut(section).and_then(toml::Value::as_table_mut) {
                 settings.remove("excluded_directories");
+                if section == "index" {
+                    if let Some(exclude) = settings.get_mut("exclude").and_then(toml::Value::as_table_mut) {
+                        exclude.remove("excluded_directories");
+                        if exclude.is_empty() {
+                            settings.remove("exclude");
+                        }
+                    }
+                }
                 if settings.is_empty() {
                     table.remove(section);
                 }

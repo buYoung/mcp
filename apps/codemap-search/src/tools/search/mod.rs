@@ -16,7 +16,7 @@ pub(crate) use arguments::validate as validate_arguments;
 use crate::tools::ToolContext;
 use std::collections::BTreeSet;
 
-const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached `search_detail_byte_cap`. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
+const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached the configured output byte limit. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
 // Small overall budgets retain their existing behavior. Larger multi-file searches
 // share detail space so a single long source line cannot consume all later results.
 const MIN_FILE_OUTPUT_BUDGET_BYTES: usize = 32 * 1024;

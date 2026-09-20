@@ -26,7 +26,7 @@ impl ExpansionPage {
             total: 0,
             next: offset,
             cap: crate::config::get()
-                .read_output_byte_cap
+                .grep_output_byte_cap
                 .saturating_sub(512),
             used: 0,
             has_full_page: false,

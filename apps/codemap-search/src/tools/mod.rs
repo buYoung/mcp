@@ -315,7 +315,7 @@ pub fn list_tools() -> Value {
             );
         }
     }
-    serde_json::json!({
+    let mut result = serde_json::json!({
                 "tools": [
                     {
                         "name": "initial_instructions",
@@ -416,7 +416,13 @@ pub fn list_tools() -> Value {
                         }
                     }
                 ]
-    })
+    });
+    if let Some(limit) = config.client_output.claude_max_result_chars {
+        for tool in result["tools"].as_array_mut().into_iter().flatten() {
+            tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });
+        }
+    }
+    result
 }
 
 #[cfg(test)]

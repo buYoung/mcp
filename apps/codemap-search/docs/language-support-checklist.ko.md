@@ -49,7 +49,7 @@ codemap-search가 색인에 포함할 수 있는 파일, 추출하는 구조, �
 
 ## 선택형 지원 그룹
 
-다섯 설정 모두 `[language_support]`에서 기본값이 `false`입니다.
+다섯 설정 모두 `[index.language_support]`에서 기본값이 `false`입니다.
 
 | 키 | 그룹 |
 |---|---|

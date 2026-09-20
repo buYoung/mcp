@@ -1,4 +1,4 @@
-//! Canonical exclusion settings and the v8/v9 section relocations.
+//! Shared exclusion policies and value-preserving compatibility normalization.
 
 use super::{normalize_config_section, ConfigLayer};
 use std::path::Path;
@@ -14,10 +14,20 @@ pub(super) const TEST_KEYS: &[&str] = &[
 
 pub(super) const WORKSPACE_KEYS: &[&str] = &["excluded_directories", "use_git_exclude"];
 
+pub(super) const SECTIONS: &[(&str, &[&str])] = &[
+    ("index.exclude", WORKSPACE_KEYS),
+    ("output.context.exclude", TEST_KEYS),
+];
+
 /// Apply valid canonical values after the legacy aliases, per language for rule maps.
-pub(super) fn normalize_section(layer: &mut ConfigLayer, value: &toml::Value, path: &Path) {
+pub(super) fn normalize_section(
+    layer: &mut ConfigLayer,
+    section: &str,
+    value: &toml::Value,
+    path: &Path,
+) {
     let mut canonical = ConfigLayer::default();
-    normalize_config_section(&mut canonical, "exclude", value, path);
+    normalize_config_section(&mut canonical, section, value, path);
     layer.excluded_directories = canonical
         .excluded_directories
         .or(layer.excluded_directories.take());
@@ -58,7 +68,7 @@ fn take_settings(source: &mut dyn TableLike, target: &mut Table, keys: &[&str]) 
     }
 }
 
-fn inherit_setting(target: &mut Table, key: Key, fallback: Item) {
+pub(super) fn inherit_setting(target: &mut Table, key: Key, fallback: Item) {
     let Some(existing) = target.get_mut(key.get()) else {
         target.insert_formatted(&key, fallback);
         return;
