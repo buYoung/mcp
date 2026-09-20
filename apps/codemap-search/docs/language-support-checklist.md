@@ -49,7 +49,7 @@ Data and standalone markup/style formats do not create ordinary caller/callee re
 
 ## Optional groups
 
-All five switches default to `false` under `[language_support]`:
+All five switches default to `false` under `[index.language_support]`:
 
 | Key | Group |
 |---|---|

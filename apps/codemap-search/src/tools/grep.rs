@@ -265,7 +265,10 @@ fn empty_result_hint(
     } else {
         active_filters.join(", ")
     };
-    format!("_Active filters: {active}. Do not rerun unchanged. {} If the regex is correct, check path, glob, type, -i, multiline, or include_ignored; relax a filter only when intended. If wording or location is uncertain, use scoped `search`._", super::grep_regex_guidance())
+    format!(
+        "_Active filters: {active}. {} Adjust the relevant filter or pattern before retrying._",
+        super::grep_regex_guidance()
+    )
 }
 
 pub fn grep(args: &Value) -> Result<String, (i64, String)> {

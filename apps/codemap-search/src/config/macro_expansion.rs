@@ -28,7 +28,7 @@ impl Default for MacroExpansionConfig {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub(super) struct MacroExpansionLayer {
     is_enabled: Option<bool>,
     compilation_database: Option<String>,

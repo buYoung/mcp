@@ -5,10 +5,10 @@
 설정 버전 16부터 MCP 출력에 PII 마스킹을 선택 적용할 수 있습니다. 인증정보 마스킹의 기존 기본값은 유지하며, `pii_entities`의 기본값은 `[]`입니다. 저장소에 필요한 종류만 정확한 이름으로 지정합니다.
 
 ```toml
-[tool_output]
+[output]
 is_redact_enabled = true
 
-[redact]
+[output.redact]
 pii_entities = ["CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE", "US_SSN"]
 exceptions = [{ rule_id = "pii.email-address", value = "info@presidio.site" }]
 ```

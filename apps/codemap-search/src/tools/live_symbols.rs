@@ -12,7 +12,7 @@ use crate::index::EngineSupervisor;
 
 pub(super) const PAYLOAD_BYTE_CAP: usize = 8192;
 const OUTLINED_FILE_LIMIT: usize = 8;
-const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set exclude.should_include_test_code=true to include it.]\n";
+const TEST_CONTEXT_EXCLUDED_NOTICE: &str = "[Test code excluded from automatic context; set output.context.exclude.should_include_test_code=true to include it.]\n";
 
 #[derive(Clone)]
 pub(crate) struct LiveAnchor {

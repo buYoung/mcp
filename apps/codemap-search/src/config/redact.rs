@@ -8,7 +8,13 @@ pub struct RedactRule {
     pub pattern: Regex,
 }
 
-#[derive(Debug, Clone)]
+impl PartialEq for RedactRule {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.pattern.as_str() == other.pattern.as_str()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct RedactException {
     pub rule_id: String,
     pub value: String,
@@ -22,7 +28,7 @@ pub struct RedactConfig {
     pub exceptions: Vec<RedactException>,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub(super) struct RedactLayer {
     pii_entities: Option<Vec<String>>,
     sensitive_fields: Option<Vec<String>>,

@@ -17,6 +17,13 @@ enum Commands {
     /// Start the MCP JSON-RPC Server
     Mcp,
 
+    /// Print Codex MCP tool-output settings from output.client without writing client files
+    CodexConfig {
+        /// The MCP server ID used in the Codex configuration
+        #[arg(long, default_value = "codemap-search")]
+        server_name: String,
+    },
+
     /// Parse a source file and print extracted symbols
     Parse {
         /// File path to parse
@@ -93,6 +100,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     codemap_search::config::init(&cwd);
 
     match &cli.command {
+        Commands::CodexConfig { server_name } => {
+            if server_name.trim().is_empty() {
+                return Err("server name must not be empty".into());
+            }
+            print!(
+                "{}",
+                codemap_search::config::get()
+                    .client_output
+                    .codex_config(server_name)?
+            );
+        }
         Commands::Parse { file } => {
             let path = Path::new(&file);
             if !path.exists() {

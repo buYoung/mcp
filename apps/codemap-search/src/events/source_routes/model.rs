@@ -1,11 +1,11 @@
 //! Language-independent source evidence. A relation is a conditional schema, not
 //! a proof of runtime object identity, execution, or event delivery.
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub(crate) struct Location {
     pub path: String,
     pub line: usize,

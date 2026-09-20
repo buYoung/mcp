@@ -1,1 +1,1 @@
-REQUIRED FIRST CODEMAP CALL: call this once with no arguments before search/grep/read/find/overview. Do not rely on MCP initialize instructions alone; this tool returns the live codemap-search navigation rules for clients that hide or compress server instructions.
+Return shared navigation guidance and, in monorepos, the current root scope inventory.

@@ -995,7 +995,7 @@ async fn test_live_constant_context_respects_the_read_output_budget() {
 
 #[tokio::test]
 async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
-    let base_config = "[update]\nconfig_auto_update = false\n[exclude]\nexcluded_directories = [\"**/tests/fixtures\"]\n";
+    let base_config = "[update]\nconfig_auto_update = false\n[index.exclude]\nexcluded_directories = [\"**/tests/fixtures\"]\n[output.context.exclude]\n";
     let temp = create_mock_repo(&[
         (".codemap/config.toml", base_config),
         (
@@ -1046,7 +1046,7 @@ async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
         }).await.unwrap();
         assert!(!is_error(&ready), "{ready}");
         if !should_show {
-            assert!(text(&ready).contains("exclude.should_include_test_code=true"), "{ready}");
+            assert!(text(&ready).contains("output.context.exclude.should_include_test_code=true"), "{ready}");
         }
         for (index, (path, offset, name)) in cases.iter().enumerate() {
             let response = client.send_request("tools/call", call("read", serde_json::json!({

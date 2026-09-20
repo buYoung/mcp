@@ -12,7 +12,8 @@
 //! the `mcp` command calls [`ensure_repo_config`] once at startup. When no
 //! `<repo>/.codemap/config.toml` exists it scaffolds an explicit-default file
 //! (stamped with the current schema [`CONFIG_VERSION`]) for discoverability. When one
-//! already exists it **incrementally syncs** it: for every key introduced since the file's
+//! already exists it **incrementally syncs** it: v18 relocates settings into output/index/analysis,
+//! retaining configured values and inheritance; for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
 //! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
 //! normally adds commented keys. The one-time v6 transition also materializes directory
@@ -36,6 +37,9 @@ use crate::workspace::exclusions::DirectoryExclusions;
 
 mod event_navigation;
 mod exclude;
+mod layout;
+mod output;
+pub use output::ClientOutputConfig;
 pub use event_navigation::EventNavigationConfig;
 mod macro_expansion;
 pub(crate) mod redact;
@@ -97,7 +101,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 17;
+const CONFIG_VERSION: u32 = 22;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -111,8 +115,8 @@ const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
 /// English scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
-/// and every key is
-/// live at its default except project-discovered directory exclusions; repo values override a
+/// and each commonly edited key is live at its default except optional response/client limits and
+/// advanced analysis overrides. Project-discovered exclusions are explicit; repo values override a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
 /// key, update every config template, bump [`CONFIG_VERSION`], and add localized commented
@@ -129,6 +133,12 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
+    /// Optional common response cap; explicit per-tool caps take precedence within a layer.
+    pub output_byte_cap: Option<usize>,
+    pub overview_output_byte_cap: Option<usize>,
+    pub grep_response_byte_cap: Option<usize>,
+    pub grep_output_byte_cap: usize,
+    pub client_output: ClientOutputConfig,
     /// Mask detected credentials in MCP output; source files and indexes stay unchanged.
     pub is_redact_enabled: bool,
     pub redact: RedactConfig,
@@ -281,6 +291,11 @@ impl ResolvedConfig {
 impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
+            output_byte_cap: None,
+            overview_output_byte_cap: None,
+            grep_response_byte_cap: None,
+            grep_output_byte_cap: 5 * 1024 * 1024,
+            client_output: ClientOutputConfig::default(),
             is_redact_enabled: true,
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
@@ -342,8 +357,12 @@ impl Default for ResolvedConfig {
 /// One config file's parsed-and-validated contribution. Every key is optional so a
 /// missing key delegates to the lower-precedence layer; invalid values are dropped
 /// (warn + ignore) during normalization so they also delegate.
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 struct ConfigLayer {
+    output_byte_cap: Option<usize>,
+    overview_output_byte_cap: Option<usize>,
+    grep_output_byte_cap: Option<usize>,
+    client_output: ClientOutputConfig,
     is_redact_enabled: Option<bool>,
     redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
@@ -389,7 +408,7 @@ struct ConfigLayer {
     caller_omit_def_threshold: Option<usize>,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 struct FilesystemPermissionsLayer {
     find: Option<FilesystemPermissionPolicy>,
     grep: Option<FilesystemPermissionPolicy>,
@@ -451,8 +470,10 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     };
     let mut section_values = Vec::new();
     let mut exclude_value = None;
+    let canonical = toml::Value::Table(table.clone());
     for (key, value) in table {
         match key.as_str() {
+            "output" => {}
             "event_navigation" => {
                 layer.event_navigation = event_navigation::normalize(&value, path)
             }
@@ -480,8 +501,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
         normalize_config_section(&mut layer, &section, &value, path);
     }
     if let Some(value) = exclude_value {
-        exclude::normalize_section(&mut layer, &value, path);
+        exclude::normalize_section(&mut layer, "exclude", &value, path);
     }
+    layout::normalize(&mut layer, &canonical, path);
     layer
 }
 
@@ -504,6 +526,9 @@ fn normalize_config_section(
 
     for (key, value) in table {
         let key_display = format!("{section}.{key}");
+        if layout::is_canonical_key(section, key) {
+            continue;
+        }
         if section_accepts_key(section, key)
             && assign_config_key(layer, key, value, &key_display, path)
         {
@@ -547,6 +572,8 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "is_overview_stats_enabled"
         ),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
+        "index.exclude" => exclude::WORKSPACE_KEYS.contains(&key),
+        "output.context.exclude" => exclude::TEST_KEYS.contains(&key),
         "caller_context" => matches!(
             key,
             "caller_context_default"
@@ -585,6 +612,26 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
+        "output_byte_cap" => layer.output_byte_cap = as_positive_byte_size(value, key_display, path),
+        "overview_output_byte_cap" => {
+            layer.overview_output_byte_cap = as_positive_byte_size(value, key_display, path)
+        }
+        "grep_output_byte_cap" => {
+            layer.grep_output_byte_cap = as_positive_byte_size(value, key_display, path)
+        }
+        "claude_max_result_chars" => {
+            layer.client_output.claude_max_result_chars = as_positive_usize(value, key_display, path).filter(|limit| {
+                if *limit > 500_000 {
+                    warn(&format!("config '{key_display}' must not exceed 500000 characters: {} — ignored", path.display()));
+                    false
+                } else {
+                    true
+                }
+            });
+        }
+        "codex_output_token_limit" => {
+            layer.client_output.codex_output_token_limit = as_positive_usize(value, key_display, path)
+        }
         "target_os" => {
             layer.analysis_target_os = match value.as_str() {
                 Some("") => Some(None),
@@ -714,6 +761,28 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
     let directory_exclusions = DirectoryExclusions::new(&excluded_directories)
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
+        output_byte_cap: repo.output_byte_cap.or(global.output_byte_cap),
+        overview_output_byte_cap: repo.overview_output_byte_cap
+            .or(repo.output_byte_cap)
+            .or(global.overview_output_byte_cap)
+            .or(global.output_byte_cap),
+        grep_response_byte_cap: repo.grep_output_byte_cap
+            .or(repo.output_byte_cap)
+            .or(global.grep_output_byte_cap)
+            .or(global.output_byte_cap),
+        grep_output_byte_cap: repo.grep_output_byte_cap
+            .or(repo.output_byte_cap)
+            .or(repo.read_output_byte_cap)
+            .or(global.grep_output_byte_cap)
+            .or(global.output_byte_cap)
+            .or(global.read_output_byte_cap)
+            .unwrap_or(defaults.grep_output_byte_cap),
+        client_output: ClientOutputConfig {
+            claude_max_result_chars: repo.client_output.claude_max_result_chars
+                .or(global.client_output.claude_max_result_chars),
+            codex_output_token_limit: repo.client_output.codex_output_token_limit
+                .or(global.client_output.codex_output_token_limit),
+        },
         is_redact_enabled: repo
             .is_redact_enabled
             .or(global.is_redact_enabled)
@@ -800,7 +869,9 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .unwrap_or(defaults.is_overview_stats_enabled),
         read_output_byte_cap: repo
             .read_output_byte_cap
+            .or(repo.output_byte_cap)
             .or(global.read_output_byte_cap)
+            .or(global.output_byte_cap)
             .unwrap_or(defaults.read_output_byte_cap),
         search_detail_snippet_max_lines: repo
             .search_detail_snippet_max_lines
@@ -812,7 +883,9 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .unwrap_or(defaults.search_detail_symbol_limit),
         search_detail_byte_cap: repo
             .search_detail_byte_cap
+            .or(repo.output_byte_cap)
             .or(global.search_detail_byte_cap)
+            .or(global.output_byte_cap)
             .unwrap_or(defaults.search_detail_byte_cap),
         search_literal_max_len: repo
             .search_literal_max_len
@@ -1261,6 +1334,41 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
+        version: 22,
+        key: "output_exclude_order",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Schema v22 displays output.context.exclude last in output; keys and behavior are unchanged.",
+        korean_block: "# 설정 v22는 output.context.exclude를 output 묶음의 맨 아래에 표시하며 키와 동작은 유지합니다.",
+    },
+    Migration {
+        version: 21,
+        key: "comment_relocation",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Schema v21 keeps section notes and inactive setting examples beside their relocated settings.",
+        korean_block: "# 설정 v21은 섹션 설명과 비활성 설정 예시를 이동한 설정 옆에 배치합니다.",
+    },
+    Migration {
+        version: 20,
+        key: "exclude",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Schema v20 moves shared directory rules to index.exclude and test-context rules to output.context.exclude; behavior is unchanged.",
+        korean_block: "# 설정 v20은 공통 디렉터리 규칙을 index.exclude, 테스트 문맥 규칙을 output.context.exclude로 옮기며 적용 범위를 유지합니다.",
+    },
+    Migration {
+        version: 19,
+        key: "navigation",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Schema v19 groups navigation, macro expansion and event navigation under output.",
+        korean_block: "# 설정 v19는 navigation, macro_expansion, event_navigation을 output 아래로 모읍니다.",
+    },
+    Migration {
+        version: 18,
+        key: "output",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Schema v18 groups settings under output/index/analysis without changing configured values.",
+        korean_block: "# 설정 v18은 지정한 값을 유지하며 output/index/analysis 아래로 항목을 모읍니다.",
+    },
+    Migration {
         version: 17,
         key: "is_overview_stats_enabled",
         placement: KeyPlacement::Subtable("tool_output"),
@@ -1451,6 +1559,7 @@ fn version_marker_line(version: u32) -> String {
 /// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
 /// keys are still commented; v6 materializes directory exclusions once. v8/v9 relocate
 /// test-code and workspace exclusions into `[exclude]` without changing effective values.
+/// v18 groups output/index/analysis settings and checks each configured value before writing.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1539,14 +1648,23 @@ fn migrate_existing(path: &Path, existing: &str) {
     ) else {
         return; // already current — never touch the user's file
     };
-    if file_version < 9 {
+    if file_version < 21 {
         updated = match exclude::migrate(&updated, &existing, path) {
             Ok(updated) => updated,
             Err(error) => {
                 warn(&format!(
-                    "config v9 migration skipped for {}: {error}",
+                    "config exclusion migration skipped for {}: {error}",
                     path.display()
                 ));
+                return;
+            }
+        };
+    }
+    if file_version < 22 {
+        updated = match layout::migrate(&updated, path) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!("config layout migration skipped for {}: {error}", path.display()));
                 return;
             }
         };
@@ -2638,9 +2756,12 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             assert!(migrated.contains("# keep policy"), "{migrated}");
             assert!(migrated.contains("# keep disabled"), "{migrated}");
             let parsed: toml::Value = toml::from_str(&migrated).unwrap();
-            assert!(parsed.get("exclude").and_then(toml::Value::as_table).is_some());
+            assert!(parsed.get("exclude").is_none());
+            assert!(parsed["index"]["exclude"].is_table());
+            assert!(parsed["output"]["context"]["exclude"].is_table());
             if source == commented {
-                let (_, section) = migrated.split_once("[exclude]").unwrap();
+                let (_, section) = migrated.split_once("[output.context.exclude]").unwrap();
+                let section = section.split("\n[").next().unwrap();
                 assert!(section.contains("# should_include_test_code = false"), "{migrated}");
                 assert!(section.contains("# test_attributes ="), "{migrated}");
             }

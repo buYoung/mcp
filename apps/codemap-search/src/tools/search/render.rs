@@ -778,6 +778,7 @@ pub(super) fn render_anchored_symbols(
                 }
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
+                text.budget_hit |= is_clipped;
                 if !text.push_source(&format!("```\n{capped}\n```\n")) {
                     return AnchoredRenderOutcome {
                         budget_hit: true,
@@ -855,6 +856,7 @@ pub(super) fn render_anchored_symbols(
             displayed_lines = shown_lines.len();
             displayed_end = shown_lines.last().copied().unwrap_or(snippet_start);
             is_byte_clipped = capped.ends_with("\n… (truncated)");
+            text.budget_hit |= is_byte_clipped;
             let mut source_block = String::new();
             if needs_notice && displayed_lines > 0 {
                 // Repeat a partially printed last line; never skip its hidden suffix.

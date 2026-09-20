@@ -198,28 +198,22 @@ pub(crate) fn arg_required_str<'a>(
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }
 
-/// The MCP `initialize` `instructions` string: deliberately minimal. It only points the
-/// client at the `initial_instructions` tool, which returns the full navigation guidance
-/// ([`instructions`]). This keeps the server-level string short while still reaching
-/// clients that hide or compress `initialize` instructions (e.g. Codex), since they read
-/// tool descriptions and call the tool. The prose lives in `instructions/server.md`,
-/// embedded at compile time so the binary stays self-contained; `trim_end` drops the
-/// file's trailing newline.
+/// Connection-level bootstrap and masking notice, embedded in the self-contained binary.
 pub fn server_instructions() -> &'static str {
     include_str!("instructions/server.md").trim_end()
 }
 
-/// The full navigation guidance returned by the `initial_instructions` tool. The prose
-/// lives in `instructions/navigation.md` (kept beside the per-tool description files under
-/// `instructions/`), embedded with `include_str!` so prose and tool schemas stay in sync
-/// in one directory; `trim_end` drops the file's trailing newline.
+/// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
-    let text = if crate::codemap::looks_like_monorepo_workspace() {
-        include_str!("instructions/navigation.monorepo.md")
+    let common = include_str!("instructions/navigation.md").trim_end();
+    if crate::codemap::looks_like_monorepo_workspace() {
+        format!(
+            "{common}\n\n{}",
+            include_str!("instructions/navigation.monorepo.md").trim_end()
+        )
     } else {
-        include_str!("instructions/navigation.md")
-    };
-    format!("{}\n\n{}", text.trim_end(), grep_regex_guidance())
+        common.to_string()
+    }
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -262,56 +256,53 @@ fn filesystem_tool_description(
 /// The MCP `tools/list` result: the six tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`;
-/// live filesystem tools append their currently configured permission policy. The
-/// input-schema property descriptions stay inline beside their property. Tool descriptions
-/// intentionally carry imperative usage guidance; the cross-tool flow lives in
-/// [`instructions`] and the `initial_instructions` tool result.
+/// live filesystem tools append their currently configured permission policy. Tool descriptions
+/// own selection and tool-specific output details; property descriptions own argument contracts.
+/// Shared option descriptions have one source here but remain on each independent tool schema.
+/// Cross-tool workflow and output interpretation live in [`instructions`].
 pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
-    let initial_instructions_description = if is_monorepo {
-        include_str!("instructions/tools/initial_instructions.monorepo.md").trim_end()
-    } else {
-        include_str!("instructions/tools/initial_instructions.md").trim_end()
-    };
-    let overview_description = if is_monorepo {
-        include_str!("instructions/tools/overview.monorepo.md").trim_end()
-    } else {
-        include_str!("instructions/tools/overview.md").trim_end()
-    };
-    let search_description = if is_monorepo {
-        include_str!("instructions/tools/search.monorepo.md").trim_end()
-    } else {
-        include_str!("instructions/tools/search.md").trim_end()
-    };
-    let read_description = filesystem_tool_description(
-        include_str!("instructions/tools/read.md").trim_end(),
-        permissions.read,
-        &permissions.allowed_roots,
+    let live_view_description = "full returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
+    let unresolved_description = "Unresolved call targets in full/relations: list gives bounded names plus a count; count hides the names.";
+    let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
+    let debug_description = "Legacy compatibility flag; does not change analysis or output.";
+    let search_path_description =
+        "Search path (default '.'); absolute paths follow the stated filesystem permission.";
+    let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
+    let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
+    let read_description = format!(
+        "{}\n\n{}",
+        filesystem_tool_description(
+            include_str!("instructions/tools/read.md").trim_end(),
+            permissions.read,
+            &permissions.allowed_roots,
+        ),
+        include_str!("instructions/tools/read.evidence.md").trim_end(),
     );
     let find_description = filesystem_tool_description(
         include_str!("instructions/tools/find.md").trim_end(),
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = filesystem_tool_description(
-        &format!(
-            "{}\n\n{}",
+    let grep_description = format!(
+        "{}\n\n{}",
+        filesystem_tool_description(
             include_str!("instructions/tools/grep.md").trim_end(),
-            grep_regex_guidance()
+            permissions.grep,
+            &permissions.allowed_roots,
         ),
-        permissions.grep,
-        &permissions.allowed_roots,
+        include_str!("instructions/tools/grep.evidence.md").trim_end(),
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
-        "include_events": { "type": "boolean", "default": true, "description": "Append a bounded static event map for displayed matching evidence, within the space left after ranked results; independent of caller_context. False suppresses it. An explicit event_navigation.is_enabled=false disables event analysis." },
-        "event_key": { "type": "string", "description": "Optional exact event key (1-256 bytes). Selects the dedicated indexed event map instead of ranked text search; query remains required. Bus identity and qualifiers stay separate; no runtime delivery guarantee." },
-        "debug": { "type": "boolean", "default": false, "description": "Legacy compatibility option. Value relationship analysis and output have been removed; this option has no effect." },
-        "caller_context": { "type": "boolean", "description": "Annotate each matched function's detail snippet with its depth-1 callers/callees. Attribution is approximate unless explicitly marked tree-sitter precise. Detail view only; on by default (config caller_context_default) — pass false to disable." },
-        "language_hint": { "type": "string", "description": "Optional query-language hint for cross-language ranking priors (examples: 'typescript', 'rust'). Omit to keep existing language-agnostic behavior." },
-        "extension_hint": { "type": "string", "description": "Optional query-extension hint for same-extension ranking prior (examples: 'ts', '.rs'). Omit to keep existing behavior." }
+        "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
+        "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
+        "debug": { "type": "boolean", "default": false, "description": debug_description },
+        "caller_context": { "type": "boolean", "description": "Depth-one callers/callees for detail snippets; defaults to caller_context_default. False also skips callsite implementation lookup, but retains declaration/implementation and static collection links." },
+        "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },
+        "extension_hint": { "type": "string", "description": "Query extension for same-extension ranking, e.g. 'ts' or '.rs'; omitted leaves ranking unchanged." }
     });
     if is_monorepo {
         if let Some(properties) = search_properties.as_object_mut() {
@@ -319,22 +310,22 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Optional monorepo scope named by root overview, such as conventional workspace 'apps/api' or top-level source root 'api'/'app'/'sdk'; a unique basename is accepted. Subdirectories are preserved; a file selects its parent directory. Omit to use the active scope selected by overview. Use 'all' or '전체' for repo-wide search."
+                    "description": "Override the active overview scope with a listed path or unique basename; subdirectories stay narrow and files select their parent. Omit to retain the active scope; 'all'/'전체' searches repo-wide. Never widens automatically. Alias: scope."
                 }),
             );
         }
     }
-    serde_json::json!({
+    let mut result = serde_json::json!({
                 "tools": [
                     {
                         "name": "initial_instructions",
-                        "description": initial_instructions_description,
+                        "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": { "type": "object", "properties": {} }
                     },
                     {
                         "name": "overview",
-                        "description": overview_description,
+                        "description": include_str!("instructions/tools/overview.md").trim_end(),
                         // All five tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
@@ -343,14 +334,14 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "path": { "type": "string", "description": "Empty/omitted = repo root overview; a folder path narrows; a file path shows that file's symbol details. Aliases 'file_path'/'file'/'query' are also accepted." },
-                                "format": { "type": "string", "description": "Optional output format (e.g. 'llms-txt'); root llms-txt output is bounded." }
+                                "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
+                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": search_description,
+                        "description": include_str!("instructions/tools/search.md").trim_end(),
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
@@ -365,12 +356,12 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": "Opt-in presentation: full groups symbols and source by file (pathless L locations use the file heading); source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and supported call/constant/implementation relationships. Content-mode grep only." },
-                                "debug": { "type": "boolean", "default": false, "description": "Legacy compatibility option. Value relationship analysis and output have been removed; this option has no effect." },
-                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context." },
-                                "include_events": { "type": "boolean", "default": true, "description": "Automatically show static event relationships only when returned source lines overlap eligible event endpoints or their supporting definitions. False suppresses them. Source/definitions skip event lookup; explicit true requires content grep. An explicit event_navigation.is_enabled=false disables event analysis." },
-                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "Opt-in complete live named callable. Read anchors at offset/start and ignores limit/end for expansion. Grep ignores -A/-B/-C and paginates unique callable/fallback groups with offset/head_limit. Parse/cap limits are explicit; use expand=none and line windows for oversized bodies." },
-                                "file_path": { "type": "string", "description": "Workspace-relative path by default; configured filesystem permissions may allow absolute paths. Aliases 'path'/'file'/'query' are also accepted." },
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "debug": { "type": "boolean", "default": false, "description": debug_description },
+                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
+                                "include_events": { "type": "boolean", "default": true, "description": live_events_description },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none reads a line window." },
+                                "file_path": { "type": "string", "description": "File to read, workspace-relative or absolute within the stated permission. Aliases: path/file/query." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
                                 "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
                             },
@@ -384,12 +375,12 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "pattern": { "type": "string", "description": "Glob by default, ripgrep -g style: a slash-less glob like '*.rs' matches the basename at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates. With pattern_type='regex', this is a case-sensitive basename regex and regex escapes are preserved." },
-                                "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
-                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." },
-                                "entry_type": { "type": "string", "enum": ["file", "directory", "all"], "default": "file", "description": "Select regular files, directories, or both. 'all' means files plus directories and does not add a symlink-following mode." },
-                                "max_depth": { "type": "integer", "minimum": 0, "description": "Optional non-negative depth limit. The supplied base is depth zero and is never emitted; omitted means no limit. Depth zero produces the existing empty result." },
-                                "pattern_type": { "type": "string", "enum": ["glob", "regex"], "default": "glob", "description": "Interpret pattern as a gitignore-style glob or as a case-sensitive basename regex. Regex mode uses path as the search root and does not split absolute glob prefixes." }
+                                "pattern": { "type": "string", "description": format!("Glob or regex selected by pattern_type. In glob mode, use {glob_syntax}") },
+                                "path": { "type": "string", "description": search_path_description },
+                                "include_ignored": { "type": "boolean", "description": include_ignored_description },
+                                "entry_type": { "type": "string", "enum": ["file", "directory", "all"], "default": "file", "description": "Regular files, directories, or both; all does not follow symlinks." },
+                                "max_depth": { "type": "integer", "minimum": 0, "description": "Base is depth zero and never returned; zero yields no results, omitted means unlimited depth." },
+                                "pattern_type": { "type": "string", "enum": ["glob", "regex"], "default": "glob", "description": "Select glob or case-sensitive basename regex. Regex preserves escapes and uses path as its root without splitting absolute prefixes." }
                             },
                             "required": ["pattern"]
                         }
@@ -401,31 +392,37 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": "Opt-in presentation: full groups symbols and source by file (pathless L locations use the file heading); source returns only live output and skips context work; definitions returns declarations only; relations returns target identities and supported call/constant/implementation relationships. Content-mode grep only." },
-                                "debug": { "type": "boolean", "default": false, "description": "Legacy compatibility option. Value relationship analysis and output have been removed; this option has no effect." },
-                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": "Unresolved calls: bounded names plus count, or the same count only. Applies to full/relations; does not change search.caller_context." },
-                                "include_events": { "type": "boolean", "default": true, "description": "Automatically show static event relationships only when returned source lines overlap eligible event endpoints or their supporting definitions. False suppresses them. Source/definitions skip event lookup. An explicit event_navigation.is_enabled=false disables event analysis." },
-                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "callable", "description": "Content mode defaults to the complete live named callable, deduplicated per body. Callable expansion ignores -A/-B/-C and paginates callable/fallback groups. Use none for matching rows and line context. Count/files_with_matches do not expand when omitted; explicit callable requires content mode. Parse/cap limits are explicit." },
-                                "pattern": { "type": "string", "description": "Regular expression to search for. Escape regex metacharacters to match literal code; this is not a fixed-string mode." },
-                                "path": { "type": "string", "description": "Base directory to search (default '.'); configured filesystem permissions may allow absolute paths." },
-                                "glob": { "type": "string", "description": "Filter files by glob, ripgrep -g style: a slash-less glob like '*.rs' matches at any depth; a glob with a slash is matched relative to path; multiple globs split on whitespace/comma; '!' negates and '{a,b}' expands. Aliases 'include'/'file_pattern' are also accepted." },
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "debug": { "type": "boolean", "default": false, "description": debug_description },
+                                "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
+                                "include_events": { "type": "boolean", "default": true, "description": live_events_description },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "callable", "description": "Content mode defaults to the smallest named callable per match, deduplicated per body, ignoring -A/-B/-C. none returns matching rows with line context. Omitted in file/count modes means no expansion." },
+                                "pattern": { "type": "string", "description": "Regular expression, not fixed text; escape regex metacharacters when matching code literally." },
+                                "path": { "type": "string", "description": search_path_description },
+                                "glob": { "type": "string", "description": format!("File filter using {glob_syntax} Slashed patterns are relative to path. Separate patterns with whitespace/commas outside braces. Aliases: include/file_pattern.") },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default 'content' — file headings with 'line:text' matches (via -n); view=source retains standalone 'file:line:text'. 'files_with_matches' returns only matching files. 'count' returns per-file counts without source — for sizing results, not locating code." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default content uses 42:match/43-context rows; view=source adds file prefixes. files_with_matches returns paths; count returns per-file counts. These latter modes skip context and reject non-default view/unresolved/debug, expand=callable or explicit include_events=true." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
-                                "-A": { "type": "integer", "description": "Lines of context after each match with expand=none; ignored by callable expansion." },
-                                "-B": { "type": "integer", "description": "Lines of context before each match with expand=none; ignored by callable expansion." },
-                                "-C": { "type": "integer", "description": "Lines of context before and after with expand=none (overrides -A/-B); ignored by callable expansion." },
+                                "-A": { "type": "integer", "description": "Context lines after each match." },
+                                "-B": { "type": "integer", "description": "Context lines before each match." },
+                                "-C": { "type": "integer", "description": "Context lines on both sides; overrides -A/-B." },
                                 "multiline": { "type": "boolean", "description": "Allow matches to span lines (default false)." },
-                                "head_limit": { "type": "integer", "description": "Max callable/fallback groups by default, or returned rows with expand=none/count/files_with_matches (default 250; 0 removes the count limit, not byte caps)." },
-                                "offset": { "type": "integer", "description": "0-indexed pagination offset: callable/fallback groups by default, returned rows with expand=none/count/files_with_matches (default 0)." },
-                                "include_ignored": { "type": "boolean", "description": "Bypass .gitignore/.codemapignore (default false)." }
+                                "head_limit": { "type": "integer", "description": "Page size: callable/fallback groups when expanded, returned rows otherwise. Default 250; 0 removes the count limit but keeps byte caps." },
+                                "offset": { "type": "integer", "description": "Zero-based page offset in the same units as head_limit; default 0. Continue with the returned next_offset when present." },
+                                "include_ignored": { "type": "boolean", "description": include_ignored_description }
                             },
                             "required": ["pattern"]
                         }
                     }
                 ]
-    })
+    });
+    if let Some(limit) = config.client_output.claude_max_result_chars {
+        for tool in result["tools"].as_array_mut().into_iter().flatten() {
+            tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });
+        }
+    }
+    result
 }
 
 #[cfg(test)]

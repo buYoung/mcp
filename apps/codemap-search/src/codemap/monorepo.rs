@@ -318,20 +318,6 @@ impl std::fmt::Display for WorkspaceCatalog {
                 scope.path, scope.file_count, scope.symbol_count, languages
             )?;
         }
-        writeln!(formatter)?;
-        writeln!(formatter, "## Next Step")?;
-        writeln!(
-            formatter,
-            "- For broad changes, ask which workspace scope to use before acting. For read-only location discovery with no chosen scope, use a repo-wide search first, then narrow to the implementation path. Do not infer a scope from its name alone; check its languages."
-        )?;
-        writeln!(
-            formatter,
-            "- If the user wants a repo-wide change, treat `all` / `전체` as an explicit whole-repo scope."
-        )?;
-        writeln!(
-            formatter,
-            "- `overview <scope>` sets the active scope for following `search` calls; `workspace_scope: \"all\"` searches the whole repo."
-        )?;
         Ok(())
     }
 }

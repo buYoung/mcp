@@ -87,7 +87,7 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
 
-Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[tool_output].is_overview_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
+Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[output.overview].is_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
 
 Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file` and 1-based inclusive `start_line`/`end_line` aliases.
 
@@ -103,14 +103,14 @@ Tools are read-only over their configured filesystem scope. The server itself wr
 
 Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`), then built-in defaults. An active repo key overrides its global value; comment it out to inherit instead.
 
-MCP responses mask detected API keys, tokens, passwords and private keys by default. `[tool_output].is_redact_enabled = false` disables masking. Matching and ranking still use original data; files and local indexes are unchanged. Detection combines Tree-sitter with pattern rules; `[redact]` adds sensitive field names, custom regexes and exact-value exceptions. Unfamiliar formats can still be missed. See [credential redaction](./docs/configuration.md#credential-redaction) for coverage and limits.
+MCP responses mask detected API keys, tokens, passwords and private keys by default. `[output].is_redact_enabled = false` disables masking. Matching and ranking still use original data; files and local indexes are unchanged. Detection combines Tree-sitter with pattern rules; `[output.redact]` adds sensitive field names, custom regexes and exact-value exceptions. Unfamiliar formats can still be missed. See [credential redaction](./docs/configuration.md#credential-redaction) for coverage and limits.
 
-Automatic symbol/call context excludes test regions by default. Set `[exclude].should_include_test_code = true` to include them. `test_file_patterns` and the per-language `test_attributes`, `test_decorators`, and `test_calls` lists let you add custom rules or remove built-ins; each explicit list replaces its inherited value and `[]` disables it. Live `read`/`grep` source is preserved. See [test-code context](./docs/configuration.md#test-code-context) for defaults and examples.
+Automatic symbol/call context excludes test regions by default. Set `[output.context.exclude].should_include_test_code = true` to include them. `test_file_patterns` and the per-language `test_attributes`, `test_decorators`, and `test_calls` lists let you add custom rules or remove built-ins; each explicit list replaces its inherited value and `[]` disables it. Live `read`/`grep` source is preserved. See [test-code context](./docs/configuration.md#test-code-context) for defaults and examples.
 
 On first MCP startup, a missing repo file is generated with **common exclusions plus recursive globs for detected project types**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds `**/node_modules`, `**/dist`, `**/build`, framework outputs and caches; Python, Rust and other build systems add their corresponding globs. Each pattern appears once and applies throughout the workspace, regardless of where the project was detected.
 
 ```toml
-[exclude]
+[index.exclude]
 # Example for a mixed repository; keep the entries you need.
 excluded_directories = [
     ".git", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index",
@@ -124,7 +124,7 @@ excluded_directories = [
 
 A bare `build` matches directories at any depth; `./build` means the workspace root; `apps/web/build` scopes it to that project. Explicit arrays replace optional defaults. `[]` clears optional directory rules; omitting the key inherits global/default rules. `.gitignore`, global Git ignores, `.git/info/exclude` and `.codemapignore` still apply. VCS internals, `.codemap`, `.codemap-index` and the actual index location remain excluded from walks regardless of the array. `find`/`grep` can bypass optional exclusions with `include_ignored: true`; direct `read` remains subject to filesystem permissions.
 
-MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index_path`, `watch` or `watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
+MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index.path`, `index.refresh.watch` or `index.refresh.watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
 
 ## Supported languages and formats
 
@@ -153,15 +153,15 @@ MCP watches existing config directories and reloads after about 1000ms. Manual e
 
 JSON/JSONC, TOML, YAML, HTML/XML derivatives, CSS/Less and Sass are supported, as are Vue, Astro and Svelte components. JSON5 and SCSS are not registered in this version. SQL extracts declarations and literals, without caller/callee relationships.
 
-Optional groups default to `false` under `[language_support]`:
+Optional groups default to `false` under `[index.language_support]`:
 
 | Key | Group |
 |---|---|
-| `is_document_support_enabled` | Markdown `.md`, `.mdx` |
-| `is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
-| `is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
-| `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
-| `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
+| `index.language_support.is_document_support_enabled` | Markdown `.md`, `.mdx` |
+| `index.language_support.is_shell_support_enabled` | `.sh`, `.bash`, `.zsh` |
+| `index.language_support.is_infrastructure_support_enabled` | `.hcl`, `.tf`, `.tfvars`, `Dockerfile`, `.nix` |
+| `index.language_support.is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
+| `index.language_support.is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
 
 These switches control index-backed discovery and watcher refreshes. Live `find`, `grep`, `read` and direct CLI `parse` remain available when a group is disabled. See [extraction details](./docs/language-support-checklist.md#extraction-details) for per-language visibility, test/deprecation flags, static relationships and limitations.
 
@@ -194,9 +194,9 @@ Run from `apps/codemap-search` in the source checkout. `./verify` builds the cur
 
 ## Indexing, diagnostics and limits
 
-The MCP server builds/loads its own index in `.codemap/index` by default. A healthy filesystem watcher batches edits for 500ms and refreshes affected paths. Git HEAD changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
+The MCP server builds/loads its own index in `.codemap/index` by default. A healthy filesystem watcher batches edits for 500ms and refreshes affected paths. Git HEAD changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index.refresh.index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
 
-- Files larger than `max_file_size` (default 1 MiB) are skipped by indexing/codemap.
+- Files larger than `index.max_file_bytes` (default 1 MiB) are skipped by indexing/codemap.
 - `.txt`, lockfiles, source maps, minified and bundle files have separate file exclusions. `find`/`grep` can bypass these with `include_ignored`; direct `read`/`parse` remain available.
 - Static analysis cannot confirm paths or call targets determined at runtime. Check approximate call relationships in the source.
 - This is a single-client sequential stdio server; do not run simultaneous servers against the same index directory.

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tantivy::collector::DocSetCollector;
+use tantivy::directory::{Directory, INDEX_WRITER_LOCK};
 use tantivy::query::AllQuery;
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
@@ -130,6 +131,7 @@ pub struct TantivySearchEngine {
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    pub(super) is_waiting_for_writer: bool,
     // Full-refresh inputs, retained across reopen so dependency/config refreshes never
     // widen a caller's explicit file or directory selection to the process cwd.
     indexed_roots: Vec<String>,
@@ -469,6 +471,7 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            is_waiting_for_writer: false,
             indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
                 .ok()
                 .and_then(|data| serde_json::from_slice(&data).ok())
@@ -484,28 +487,66 @@ impl TantivySearchEngine {
         })
     }
 
-    fn get_indexed_mtimes(&self) -> HashMap<String, u64> {
-        let searcher = self.reader.searcher();
+    fn get_indexed_mtimes(&self) -> Result<HashMap<String, u64>, String> {
+        // A competing writer may have committed since this process last published.
+        // Read its mtimes without advancing the request reader ahead of the codemap.
+        let reader = self
+            .index
+            .reader_builder()
+            .reload_policy(ReloadPolicy::Manual)
+            .try_into()
+            .map_err(|error| format!("indexed mtime reader open failed: {error}"))?;
+        let searcher = reader.searcher();
         let mut map = HashMap::new();
 
         // DocSetCollector enumerates every matching doc with no limit, so the mtime map is
         // never silently truncated on large repos (which would corrupt delete detection).
-        if let Ok(doc_addresses) = searcher.search(&AllQuery, &DocSetCollector) {
-            for doc_address in doc_addresses {
-                if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
-                    let path_val = doc.get_first(self.file_path_field);
-                    let mtime_val = doc.get_first(self.mtime_field);
-                    if let (Some(p_val), Some(m_val)) = (path_val, mtime_val) {
-                        let path = p_val.as_str().unwrap_or("").to_string();
-                        let mtime = m_val.as_u64().unwrap_or(0);
-                        if !path.is_empty() {
-                            map.insert(path, mtime);
-                        }
-                    }
+        let doc_addresses = searcher
+            .search(&AllQuery, &DocSetCollector)
+            .map_err(|error| format!("indexed mtime query failed: {error}"))?;
+        for doc_address in doc_addresses {
+            let doc = searcher
+                .doc::<TantivyDocument>(doc_address)
+                .map_err(|error| format!("indexed mtime document read failed: {error}"))?;
+            let path_val = doc.get_first(self.file_path_field);
+            let mtime_val = doc.get_first(self.mtime_field);
+            if let (Some(p_val), Some(m_val)) = (path_val, mtime_val) {
+                let path = p_val.as_str().unwrap_or("").to_string();
+                let mtime = m_val.as_u64().unwrap_or(0);
+                if !path.is_empty() {
+                    map.insert(path, mtime);
                 }
             }
         }
-        map
+        Ok(map)
+    }
+
+    fn ensure_indexed_state(&mut self) -> Result<(), String> {
+        if self.indexed_mtimes_cache.is_none() {
+            self.indexed_mtimes_cache = Some(self.get_indexed_mtimes()?);
+            // Import the competing writer's extraction settings along with its mtimes,
+            // so a lock retry does not unnecessarily reparse the entire repository.
+            self.event_config_stamp = std::fs::read_to_string(
+                Path::new(&self.index_path).join("event-navigation-config"),
+            )
+            .ok();
+            self.macro_config_stamp = std::fs::read_to_string(
+                Path::new(&self.index_path).join("macro-expansion-config"),
+            )
+            .ok();
+        }
+        Ok(())
+    }
+
+    /// Probe only the writer lock while a peer is indexing. Do not walk the working tree
+    /// or reopen every stored document on each retry tick.
+    pub(super) fn is_writer_available(&self) -> bool {
+        match self.index.directory().acquire_lock(&INDEX_WRITER_LOCK) {
+            Ok(_guard) => true,
+            Err(tantivy::directory::error::LockError::LockBusy) => false,
+            // Let the regular refresh report actionable I/O errors.
+            Err(_) => true,
+        }
     }
 }
 
@@ -658,10 +699,7 @@ impl TantivySearchEngine {
         // Lazily snapshot the on-disk mtime map once, then read from the maintained
         // cache — avoids an `AllQuery` over the whole index on every call, which in MCP
         // mode runs before every search (Child 04).
-        if self.indexed_mtimes_cache.is_none() {
-            let snapshot = self.get_indexed_mtimes();
-            self.indexed_mtimes_cache = Some(snapshot);
-        }
+        self.ensure_indexed_state()?;
         let event_config_stamp = crate::events::config_stamp();
         let should_refresh_event_files =
             self.event_config_stamp.as_deref() != Some(&event_config_stamp);
@@ -760,8 +798,14 @@ impl TantivySearchEngine {
         to_delete: Vec<String>,
         should_reload_reader: bool,
     ) -> Result<bool, String> {
+        self.is_waiting_for_writer = false;
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
+            // A peer's commit may already satisfy the refreshed mtime cache. Direct
+            // callers still need that generation; the indexer publishes it separately.
+            if should_reload_reader {
+                self.reader.reload().map_err(|error| error.to_string())?;
+            }
             return Ok(false);
         }
 
@@ -772,8 +816,12 @@ impl TantivySearchEngine {
         let mut writer = match self.index.writer(50_000_000) {
             Ok(w) => w,
             Err(tantivy::TantivyError::LockFailure(e, _)) => {
-                tracing::warn!("index_files LockFailure: {:?}", e);
-                return Ok(false);
+                self.indexed_mtimes_cache = None;
+                self.is_waiting_for_writer =
+                    matches!(e, tantivy::directory::error::LockError::LockBusy);
+                return Err(format!(
+                    "Index writer lock unavailable; refresh deferred for retry: {e:?}"
+                ));
             }
             Err(e) => return Err(e.to_string()),
         };
@@ -929,9 +977,9 @@ impl TantivySearchEngine {
             self.reader.reload().map_err(|error| error.to_string())?;
         }
         // Reconcile the cache only after the commit landed (Child 04): drop the deleted
-        // paths and record the freshly-indexed mtimes. On any earlier return (LockFailure,
-        // commit/reload error) the cache is left untouched, so it never claims a file is
-        // indexed when it is not.
+        // paths and record the freshly-indexed mtimes. Failed commits/reloads never add
+        // uncommitted files; writer contention discards the cache so a retry can import
+        // the other process's committed state.
         if let Some(cache) = self.indexed_mtimes_cache.as_mut() {
             for path in to_delete.iter().chain(&encoding_excluded_paths) {
                 cache.remove(path);
@@ -971,6 +1019,7 @@ impl TantivySearchEngine {
         paths: &[PathBuf],
         should_reload_reader: bool,
     ) -> Result<bool, String> {
+        self.ensure_indexed_state()?;
         if self.event_config_stamp.as_deref() != Some(&crate::events::config_stamp()) {
             return self.refresh_indexed_roots(should_reload_reader);
         }
@@ -988,10 +1037,6 @@ impl TantivySearchEngine {
             return self.refresh_indexed_roots(should_reload_reader);
         }
 
-        if self.indexed_mtimes_cache.is_none() {
-            let snapshot = self.get_indexed_mtimes();
-            self.indexed_mtimes_cache = Some(snapshot);
-        }
         let indexed_mtimes = self.indexed_mtimes_cache.as_ref().unwrap();
 
         let mut to_index: Vec<(String, PathBuf, u64)> = Vec::new();
@@ -1216,6 +1261,7 @@ impl TantivySearchEngine {
                     field: self.extracted_json_field,
                     documents: flow_documents,
                 }),
+                Some(Path::new(&self.index_path)),
             )
             .with_source_mtimes(source_mtimes),
         )

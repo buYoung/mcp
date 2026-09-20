@@ -12,7 +12,7 @@
 //! (e.g. crossbeam) earns its keep for one producer / one consumer at this message rate.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
+use std::sync::mpsc::{sync_channel, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 
@@ -23,6 +23,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 /// A result can expose at most this many producer and consumer candidates for one collection
 /// key. The stable `(path, range)` record order makes truncation deterministic.
 const STATIC_COLLECTION_RECORDS_PER_KEY_AND_KIND_MAX: usize = 64;
+const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
 
 /// Message to the indexer thread.
 pub enum IndexCommand {
@@ -36,10 +37,28 @@ pub enum IndexCommand {
     RefreshPaths(Vec<std::path::PathBuf>),
 }
 
+impl IndexCommand {
+    fn merge(self, incoming: Self) -> Self {
+        match (self, incoming) {
+            (Self::RefreshPaths(mut paths), Self::RefreshPaths(incoming)) => {
+                paths.extend(incoming);
+                paths.sort();
+                paths.dedup();
+                if paths.len() > super::watcher::FULL_WALK_PATH_THRESHOLD {
+                    Self::Refresh
+                } else {
+                    Self::RefreshPaths(paths)
+                }
+            }
+            _ => Self::Refresh,
+        }
+    }
+}
+
 /// Shared, lock-light status the server reads to annotate responses.
 #[derive(Default)]
 pub struct IndexerStatus {
-    /// Set once the initial background indexing pass finishes. Until then search/overview
+    /// Set once an initial generation is successfully published. Until then search/overview
     /// may return empty/partial results and say so.
     pub initial_index_done: AtomicBool,
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
@@ -97,13 +116,14 @@ impl PublishedIndexSnapshot {
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
     ) -> Self {
-        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None)
+        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None, None)
     }
 
     pub(crate) fn from_files_and_edges_with_flow(
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
         flow_store: Option<crate::flow::IndexedFlowStore>,
+        cache_directory: Option<&std::path::Path>,
     ) -> Self {
         const STATIC_COLLECTION_EDGES_PER_FILE_MAX: usize = 256;
         let mut files = Vec::with_capacity(files_and_edges.len());
@@ -181,7 +201,12 @@ impl PublishedIndexSnapshot {
             file_count = files.len(),
             "published workspace catalog"
         );
-        let event_index = crate::events::EventIndex::build(&files, event_inputs);
+        let event_index = match cache_directory {
+            Some(directory) => {
+                crate::events::EventIndex::build_with_cache(&files, event_inputs, Some(directory))
+            }
+            None => crate::events::EventIndex::build(&files, event_inputs),
+        };
         let files = Arc::new(files);
         let implementation_index = crate::implementations::ImplementationIndex::build(
             Arc::clone(&files),
@@ -375,7 +400,7 @@ impl IndexerHandle {
         Ok((results, self.snapshot.lock().unwrap().clone()))
     }
 
-    /// True until the initial background indexing pass completes.
+    /// True until the initial background generation is successfully published.
     pub fn is_warming(&self) -> bool {
         !self.status.initial_index_done.load(Ordering::Acquire)
     }
@@ -440,39 +465,59 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
         .name("codemap-indexer".to_string())
         .spawn(move || {
             // Initial pass: hydrate from a warm on-disk index or build it from scratch.
-            run_refresh_pass(
+            let is_initial_successful = run_refresh_pass(
                 &mut engine,
                 &thread_status,
                 &thread_snapshot,
                 &thread_generation_gate,
                 true,
             );
-            thread_status
-                .initial_index_done
-                .store(true, Ordering::Release);
+            let mut pending = (!is_initial_successful).then_some(IndexCommand::Refresh);
             // Then serve refresh requests until the channel is closed (server shutdown —
             // the recv loop ends only once ALL senders, including the watcher's clone,
-            // have dropped).
-            while let Ok(command) = receiver.recv() {
-                match command {
-                    IndexCommand::Refresh => {
-                        run_refresh_pass(
-                            &mut engine,
-                            &thread_status,
-                            &thread_snapshot,
-                            &thread_generation_gate,
-                            false,
-                        );
+            // have dropped). Failed passes retry even while a healthy watcher suppresses
+            // request-triggered refreshes. Keep failed paths until they are committed;
+            // contention alone must not promote ordinary edits to a full walk.
+            loop {
+                let should_retry = pending.is_some();
+                let command = if let Some(pending_command) = pending.take() {
+                    let command = match receiver.recv_timeout(std::time::Duration::from_millis(
+                        INDEXER_RETRY_DELAY_MS,
+                    )) {
+                        Ok(command) => pending_command.merge(command),
+                        Err(RecvTimeoutError::Timeout) => pending_command,
+                        Err(RecvTimeoutError::Disconnected) => break,
+                    };
+                    if engine.is_waiting_for_writer && !engine.is_writer_available() {
+                        pending = Some(command);
+                        continue;
                     }
-                    IndexCommand::RefreshPaths(paths) => {
-                        run_paths_pass(
-                            &mut engine,
-                            &thread_status,
-                            &thread_snapshot,
-                            &thread_generation_gate,
-                            &paths,
-                        );
+                    command
+                } else {
+                    match receiver.recv() {
+                        Ok(command) => command,
+                        Err(_) => break,
                     }
+                };
+                let is_successful = match &command {
+                    IndexCommand::Refresh => run_refresh_pass(
+                        &mut engine,
+                        &thread_status,
+                        &thread_snapshot,
+                        &thread_generation_gate,
+                        should_retry,
+                    ),
+                    IndexCommand::RefreshPaths(paths) => run_paths_pass(
+                        &mut engine,
+                        &thread_status,
+                        &thread_snapshot,
+                        &thread_generation_gate,
+                        paths,
+                        should_retry,
+                    ),
+                };
+                if !is_successful {
+                    pending = Some(command);
                 }
             }
         })
@@ -494,8 +539,8 @@ fn run_refresh_pass(
     status: &IndexerStatus,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
-    is_initial_pass: bool,
-) {
+    should_force_publish: bool,
+) -> bool {
     let _config_scope = crate::config::pin_request();
     let result = engine.index_files_changed_deferred(&["."]);
     publish_pass_result(
@@ -504,8 +549,8 @@ fn run_refresh_pass(
         snapshot,
         generation_gate,
         result,
-        is_initial_pass,
-    );
+        should_force_publish,
+    )
 }
 
 /// One path-scoped pass: incremental reindex/delete of just the watcher event paths,
@@ -516,10 +561,18 @@ fn run_paths_pass(
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     paths: &[std::path::PathBuf],
-) {
+    should_force_publish: bool,
+) -> bool {
     let _config_scope = crate::config::pin_request();
     let result = engine.refresh_paths_deferred(paths);
-    publish_pass_result(engine, status, snapshot, generation_gate, result, false);
+    publish_pass_result(
+        engine,
+        status,
+        snapshot,
+        generation_gate,
+        result,
+        should_force_publish,
+    )
 }
 
 /// Record a pass result on the shared status and republish the codemap snapshot when the
@@ -530,41 +583,36 @@ fn publish_pass_result(
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     result: Result<bool, String>,
-    force_publish: bool,
-) {
-    match result {
-        Ok(changed) => {
-            if changed || force_publish {
-                match engine.load_published_snapshot() {
-                    Ok(published_snapshot) => {
-                        // Parsing and JSON decoding happen before this short critical section,
-                        // so warm/stale search is not blocked by a full index pass. Once both
-                        // pieces are ready, publish the Tantivy reader and relation snapshot
-                        // under one gate so a request cannot observe mixed generations.
-                        let _generation_guard = generation_gate.write().unwrap();
-                        match engine.reload_reader() {
-                            Ok(()) => {
-                                *snapshot.lock().unwrap() = Arc::new(published_snapshot);
-                                *status.last_error.lock().unwrap() = None;
-                            }
-                            Err(error) => {
-                                tracing::warn!("published reader refresh failed: {}", error);
-                                *status.last_error.lock().unwrap() = Some(error);
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        tracing::warn!("published snapshot refresh failed: {}", error);
-                        *status.last_error.lock().unwrap() = Some(error);
-                    }
-                }
-            } else {
-                *status.last_error.lock().unwrap() = None;
-            }
+    should_force_publish: bool,
+) -> bool {
+    let publication = (|| -> Result<(), String> {
+        if result? || should_force_publish {
+            let published_snapshot = engine.load_published_snapshot()?;
+            // Build the derived data before taking the short generation lock. Failed
+            // reconstruction keeps both the request reader and codemap on the old view.
+            let _generation_guard = generation_gate.write().unwrap();
+            engine.reload_reader()?;
+            *snapshot.lock().unwrap() = Arc::new(published_snapshot);
         }
-        Err(e) => {
-            tracing::warn!("background index refresh failed: {}", e);
-            *status.last_error.lock().unwrap() = Some(e);
+        Ok(())
+    })();
+    let mut last_error = status.last_error.lock().unwrap();
+    match publication {
+        Ok(()) => {
+            *last_error = None;
+            status.initial_index_done.store(true, Ordering::Release);
+            true
+        }
+        Err(error) => {
+            if last_error.as_ref() != Some(&error) {
+                if engine.is_waiting_for_writer {
+                    tracing::debug!("background index refresh waiting for writer: {}", error);
+                } else {
+                    tracing::warn!("background index refresh failed: {}", error);
+                }
+            }
+            *last_error = Some(error);
+            false
         }
     }
 }
