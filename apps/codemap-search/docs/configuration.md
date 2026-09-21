@@ -4,11 +4,11 @@
 
 Configuration is optional. Add only the keys you want to change; other keys use global settings or built-in defaults.
 
-`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Analysis runs without a target OS override; omitted targets stay unknown rather than inheriting the host OS. Explicit settings, including `is_enabled = false`, still win.
+`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win.
 
 ## Section layout and output budgets
 
-Keep one configuration file and group keys by responsibility. Generated files describe each setting, its units, inheritance and application point. Optional limits and preprocessor overrides remain commented examples with their explanations.
+Keep one configuration file and group keys by responsibility. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
 
 | Section | Responsibility |
 |---|---|
@@ -55,10 +55,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **22**. The marker is a comment:
+The current configuration schema is **23**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 22
+# codemap-config-version: 23
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -80,6 +80,7 @@ The current configuration schema is **22**. The marker is a comment:
 - Version 20 moves directory rules from `[exclude]` to `[index.exclude]` and test-context rules to `[output.context.exclude]`. Scope, values and inheritance remain unchanged; no independent per-tool exclusion policies are added. Legacy locations remain readable, and migration preserves user comments and explicit `[]` values.
 - Version 21 also moves section notes and inactive setting examples beside their relocated settings, updating example key names without activating values. Arbitrary notes whose origin was lost in an earlier migration remain in place rather than being assigned a guessed destination.
 - Version 22 displays `output.context.exclude` and its test-rule subtables last in the `output` group. Key paths, values and scope remain unchanged; comments move with the section.
+- Version 23 replaces recognized generated descriptions with the current localized wording, removes generated migration history, and restores the file-level introduction. Existing assignments, inactive values, unknown notes and string contents are preserved. The additional active defaults apply only to newly generated files.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -424,46 +425,40 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 22
+# codemap-config-version: 23
 # codemap-search settings for this repository.
-# Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
-# Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
-# Numeric settings require positive integers; output.grep.max_columns also accepts 0.
-# Byte sizes also accept quoted b/kb/mb/gb units (case-insensitive, powers of 1024), e.g. "50mb".
-# Invalid values warn on stderr and inherit a lower-priority value. Malformed TOML discards that file's layer.
-# MCP watches config directories present at startup and reloads after about 1000ms.
-# Restart if a config directory was absent or watching could not start.
+# Active values override global settings. Delete or comment out a key to inherit.
+# Lists replace inherited lists; [] clears them.
+# Numeric settings must be positive; output.grep.max_columns also accepts 0.
+# Byte sizes accept b/kb/mb/gb (powers of 1024), e.g. "50mb".
+# MCP watches config directories present at startup; restart if watching is unavailable.
 
 [output]
-# Mask detected API keys, tokens, passwords and private keys in MCP responses.
-# Matching and local files/indexes keep original data. false disables output masking.
+# Mask detected credentials in MCP responses. Set false to disable all output masking.
+# Search uses original content; local files and indexes are unchanged.
 is_redact_enabled = true
 
-# Optional shared ceiling for MCP response text, in bytes.
-# Same-layer per-tool max_bytes values override it. Omit it to retain existing defaults.
-# No configured limits: search 1 MiB; read and expanded grep 5 MiB.
-# Client character/token budgets and preprocessor output limits are independent.
+# Optional shared MCP response limit, in bytes. Per-tool max_bytes in this file takes priority.
+# Limits resolve as repo tool > repo shared > global tool > global shared > built-in default.
+# The value below is an example; no shared limit is set by default.
 # max_bytes = "1mb"
 
 [output.client]
-# Optional Claude Code text-result limit, in characters: positive integer, maximum 500000.
-# Omitted sends no override. Applies to codemap-search tool metadata only.
-# Reconnect MCP after changes so Claude reloads tools/list. The value below is an inactive example.
+# Claude Code result limit, in characters (1–500000). Unset leaves the client default.
+# Reconnect MCP after changing this setting so Claude reloads the tool definitions.
 # claude_max_result_chars = 200000
 
-# Optional Codex per-tool output budget, in tokens; positive integer. Omitted leaves client defaults.
-# Run codemap-search codex-config and merge the printed fragment into Codex settings.
-# This does not change functions.exec aggregate output or the global history limit.
-# The value below is an inactive example; the server never rewrites client configuration.
+# Codex output limit per tool, in tokens. Unset leaves the client default.
+# Run codemap-search codex-config and merge the printed settings into Codex configuration.
+# The command does not write client files; client limits are separate from server byte limits.
 # codex_output_token_limit = 50000
 
 [output.overview]
-# Repository and monorepo project root overviews include indexed-file language statistics.
-# false omits the statistics section.
+# Include indexed-file language statistics in repository and monorepo project root overviews.
 is_stats_enabled = true
 
 [output.search]
-# Number of top-ranked files shown with details before the compact list.
+# Maximum number of top-ranked files shown in detail. Remaining results use a compact list.
 detail_file_limit = 24
 
 # Maximum files in the compact result list.
@@ -484,30 +479,29 @@ literal_limit = 60
 # Maximum symbols per file shown with full snippets; further matches use short signatures.
 anchor_snippet_limit = 20
 
-# Search response size limit in bytes, including the partial-output notice.
-# Optional override; omitted inherits output.max_bytes, then the 1 MiB tool default.
-# max_bytes = "1mb"
+# Search response limit, in bytes, including the partial-output notice.
+# Overrides output.max_bytes in this file; omit this key to use shared or inherited limits.
+max_bytes = "1mb"
 
 [output.read]
-# Read and callable-expanded grep response limit, including line numbers and context.
-# Oversized reads return a narrowing error; expanded grep reports oversized bodies or pagination.
-# Optional override; omitted inherits output.max_bytes, then the 5 MiB tool default.
-# max_bytes = "5mb"
+# Read response limit, in bytes, including line numbers and context.
+# Overrides output.max_bytes in this file. Expanded grep also uses this limit when neither
+# grep nor shared limits are set in the same layer. Oversized reads fail; expanded grep
+# paginates complete bodies or reports a body that exceeds the limit.
+max_bytes = "5mb"
 
 [output.grep]
 # Maximum columns for a grep content-mode match; 0 disables the limit.
 # Longer lines are replaced with `[Omitted long matching line]`.
 max_columns = 0
 
-# Optional grep response ceiling, in bytes; overrides the same-layer common output.max_bytes.
-# Expanded callable bodies are paginated; oversized unexpanded responses request narrower results.
-# When grep/common is unset in a layer, expanded bodies inherit that layer's read ceiling.
+# Optional limit for all grep responses, in bytes. Overrides the same-layer output.max_bytes.
+# Expanded bodies also fall back to that layer's read limit, then lower layers, then 5 MiB.
+# Unexpanded responses have no byte limit when neither a grep nor shared limit is configured.
 # max_bytes = "5mb"
 
 [output.context]
-# Caller/callee result display.
-
-# Show caller/callee context by default in search. The per-call `caller_context` argument wins.
+# Show caller/callee context in search. The per-call caller_context argument takes priority.
 is_enabled = true
 
 # Maximum callers or non-call references shown per symbol.
@@ -528,10 +522,8 @@ common_name_threshold = 2
 caller_omit_def_threshold = 5
 
 [output.navigation]
-# Source-based navigation and caller scanning budgets.
-
-# Check source structure, imports, and local bindings to identify call targets.
-# A uniquely confirmed target is marked precise; false uses approximate name matching.
+# Use source structure, imports and local bindings to identify call targets.
+# A confirmed single target is marked precise; false uses name-based estimates.
 is_enabled = false
 
 # Maximum call sites checked before using approximate name-based scanning.
@@ -541,70 +533,62 @@ callsite_budget = 1000
 scan_limit = 16000
 
 [output.macro_expansion]
-# Native files automatically use installed Clang/NASM; failures retain source declarations with a notice.
-# This section is optional. Set is_enabled=false to disable native processes.
+# Use installed Clang/NASM for C/C++/ASM preprocessing. Set false to disable these processes.
+# Failed expansion retains source declarations with a notice. Changes to this section
+# request a full index refresh after settings reload.
+is_enabled = true
 
-# Use installed Clang/NASM for supported C/C++/ASM files. Default true.
-# False disables native preprocessing; failed expansion retains source declarations with a notice.
-# is_enabled = true
-
-# Optional compile_commands.json file/directory or compile_flags.txt path.
-# Relative paths start at the workspace root. Omitted searches source parents up to that root.
+# Path to compile_commands.json, its directory, or compile_flags.txt. Relative paths use the workspace root.
+# If unset in both config layers, search parent directories from the source file to the workspace root.
 # compilation_database = "build/compile_commands.json"
 
-# Clang executable name or path. Omitted uses clang from PATH.
-# clang_path = "clang"
+# Clang executable name on PATH or a path to the executable.
+clang_path = "clang"
 
-# NASM executable name or path. Omitted uses nasm from PATH.
-# nasm_path = "nasm"
+# NASM executable name on PATH or a path to the executable.
+nasm_path = "nasm"
 
-# Extra Clang arguments appended after build settings. Lists replace inherited lists.
-# clang_flags = []
+# Additional Clang arguments appended after build settings.
+clang_flags = []
 
-# Extra NASM arguments appended after build settings. Lists replace inherited lists.
-# nasm_flags = []
+# Additional NASM arguments appended after build settings.
+nasm_flags = []
 
-# Timeout for each native process, in milliseconds. Default 5000.
-# NASM preprocessing and listing generation are separate process invocations.
-# timeout_ms = 5000
+# Time limit for each preprocessor process, in milliseconds.
+timeout_ms = 5000
 
-# Maximum preprocessed text or NASM listing size, in bytes. Default 8 MiB.
-# This bounds analysis intermediates, not MCP response text; output.max_bytes does not override it.
-# Changing preprocessing settings requests a full index refresh.
-# max_output_bytes = "8mb"
+# Maximum preprocessed text or NASM listing size, in bytes.
+# This limit is independent of the MCP response limit output.max_bytes.
+max_output_bytes = "8mb"
 
 [output.event_navigation]
-# Indexed event routes are enabled by default; related navigation output is automatic.
-# Set is_enabled to false to disable event analysis.
+# Index event/source routes and show related navigation results. Set false to disable analysis.
+# The request argument include_events=false hides event output for that request only.
+is_enabled = true
 
-# Enable indexed event routes and related navigation output. Default true.
-# False disables event and source-route analysis; include_events=false suppresses one request's output.
-# is_enabled = true
+# Use built-in event API rules. Custom rules still apply when false.
+use_builtin_rules = true
 
-# Apply the built-in event API rules. Default true. Custom rules remain available when false.
-# use_builtin_rules = true
-
-# Optional custom event API rules. A configured list replaces the inherited list; [] clears it.
-# Each rule needs an exact API selector and explicit event-argument/bus information; see the reference.
-# rules = []
+# Custom event API rules. Each rule specifies an API, its event argument and its bus.
+# See docs/configuration.md for the rule format and examples.
+rules = []
 
 [output.redact]
-# Additional MCP output redaction rules; built-in rules remain enabled.
+# Types of personal data to mask, e.g. ["EMAIL_ADDRESS", "CREDIT_CARD"].
+# [] disables these types; built-in credential rules and custom rules still apply.
+# Supported types: docs/pii-redaction.md.
+pii_entities = []
 
-# Opt-in PII entity types; [] keeps credential-only masking.
-# pii_entities = []
-
-# Additional sensitive field names. Names are normalized for case/separators and matched exactly.
-# A configured list replaces the inherited custom list; built-in fields remain enabled.
-# sensitive_fields = []
+# Additional sensitive field names. Ignore case and separators when comparing names.
+# Built-in sensitive fields remain enabled.
+sensitive_fields = []
 
 # Additional regular-expression rules, each with a unique custom.* id and a pattern.
-# A configured list replaces the inherited custom rules; [] clears them.
-# rules = []
+# See docs/configuration.md for examples.
+rules = []
 
-# Exact exceptions containing rule_id and value; both must match. No path-wide bypass.
-# A configured list replaces inherited exceptions; [] clears them.
-# exceptions = []
+# Masking exceptions: both rule_id and the detected value must match exactly.
+exceptions = []
 
 [output.context.exclude]
 # Include tests in search call relationships and read/grep automatic symbol/relationship context.
@@ -617,7 +601,6 @@ test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py
 [output.context.exclude.test_attributes]
 # Lists replace inherited defaults per language; [] disables that list. Omit a key/language to inherit.
 # Names are glob patterns without #[...] or @; cfg(test) also recognizes test-only all/any/not conditions.
-
 rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
 
 java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
@@ -645,8 +628,7 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# Index directory: an absolute path or a path relative to the workspace root.
-# The default stores the index under `.codemap/`. Restart after changing it.
+# Index directory: an absolute path or a path relative to the workspace root. Restart after changing it.
 path = ".codemap/index"
 
 # Maximum indexed file size in bytes. Larger files remain accessible to live read/find/grep.
@@ -659,15 +641,12 @@ max_file_bytes = "1mb"
 store_references = false
 
 [index.exclude]
-# Shared directory rules for indexing, overview, search, caller scans, and find/grep.
-# Direct read does not apply these rules; its filesystem permission policy still applies.
-# "build" and "**/build" match at any depth; "./build" matches only at the workspace root.
-# "apps/web/build" and "apps/api/**/__pycache__" are workspace-relative paths/globs.
-# Absolute paths and .. are invalid. [] clears optional rules; omitting the key inherits global/default rules.
-# Ignore files apply independently. Initial creation adds recursive globs such as "**/node_modules" once per pattern.
-# Pre-v6 configs migrate once. From version 6 onward, edit this array manually when new rules are needed.
-# Manual changes request a full index refresh after settings reload.
-# find/grep include_ignored=true bypasses optional rules. VCS internals, .codemap, .codemap-index, and the actual index directory remain excluded.
+# Directory exclusions shared by indexing, search/overview, caller scans and find/grep; not direct read.
+# "build" or "**/build" matches any depth; "./build" matches only the workspace root.
+# Paths/globs such as "apps/web/build" are workspace-relative. Absolute paths and .. are invalid.
+# Ignore files apply separately. The initial list includes detected project folders; maintain it as needed.
+# Changes request a full index refresh. find/grep include_ignored=true bypasses optional exclusions.
+# VCS internals, .codemap, .codemap-index and the actual index directory are always excluded from walks.
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
 
 # Apply `.git/info/exclude`. false reveals files hidden only by that file.
@@ -697,7 +676,6 @@ indexer_auto_restart = true
 # These switches control indexing, search, overview, codemap, and file-change refreshes.
 # Live read/find/grep and direct parse work even when a group is disabled.
 # Changes request a full index refresh after settings reload.
-
 # Include Markdown `.md`, `.mdx`.
 is_document_support_enabled = false
 
@@ -714,30 +692,28 @@ is_interface_support_enabled = false
 is_build_support_enabled = false
 
 [analysis]
-# Analysis runs without this section. An omitted/empty Rust target stays unknown; never uses the host OS.
-
+# Rust analysis target OS, e.g. "linux", "macos" or "windows". The host OS is never inferred.
+# Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
 
 [filesystem_permissions]
-# Policies for find/grep/read: "workspace" (workspace only), "allowed_roots" (workspace plus listed roots),
-# "anywhere" (any path reachable by the process). Prefer allowed_roots for specific external trees.
+# Filesystem access for find/grep/read: "workspace" limits access to the workspace,
+# "allowed_roots" adds the roots below, and "anywhere" allows any path the process can access.
 find = "workspace"
 
-# Filesystem policy for grep. The allowed policy values are described above.
+# Access policy for grep: "workspace", "allowed_roots" or "anywhere".
 grep = "workspace"
 
-# Filesystem policy for read. The allowed policy values are described above.
+# Access policy for read: "workspace", "allowed_roots" or "anywhere".
 read = "workspace"
 
-# External roots for tools set to "allowed_roots"; entries must be non-empty strings.
-# Relative paths start at the workspace root; absolute paths are allowed.
-# Existing components, including symlinks, resolve to real paths; nonexistent suffixes are retained.
+# Additional roots for tools using "allowed_roots". Relative paths use the workspace root.
+# Absolute paths are allowed; symbolic links are resolved before checking access.
 allowed_roots = []
 
 [update]
-# Create missing `.codemap/config.toml` on MCP startup and add new settings as comments.
-# Pre-v6 exclusion arrays migrate once; version 6 and later arrays remain user-managed.
-# false disables automatic writes, including migration, but settings are still read and watched.
+# Create a missing repo config and update older config files on MCP startup.
+# Existing values and inactive settings are preserved. false disables automatic writes only.
 config_auto_update = true
 ```
 

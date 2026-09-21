@@ -6,6 +6,7 @@ use toml_edit::{DocumentMut, Item, Key, Table};
 use super::{assign_config_key, ConfigLayer};
 
 mod comments;
+mod generated;
 
 pub(super) struct Setting {
     pub section: &'static str,
@@ -473,66 +474,14 @@ fn remove_legacy(document: &mut DocumentMut, section: &str, key: &str) {
     }
 }
 
-fn append_example(table: &mut Table, comment: &str, assignment: &str) {
+fn append_example(table: &mut Table, assignment: &str) {
     let suffix = table
         .decor()
         .suffix()
         .and_then(|raw| raw.as_str())
         .unwrap_or("");
-    let suffix = format!("{suffix}\n# {comment}\n# {assignment}\n");
+    let suffix = format!("{suffix}\n# {assignment}\n");
     table.decor_mut().set_suffix(suffix);
-}
-
-/// Reuse the localized template's descriptions without replacing user comments or values.
-fn restore_setting_comments(document: &mut DocumentMut) -> Result<(), String> {
-    let template = super::config_template(super::config_comment_language());
-    let mut section = "";
-    let mut comments = Vec::new();
-    for line in template.lines() {
-        let line = line.trim();
-        if let Some(header) = line
-            .strip_prefix('[')
-            .and_then(|line| line.strip_suffix(']'))
-        {
-            section = header;
-            comments.clear();
-            continue;
-        }
-        let body = line.strip_prefix('#').map(str::trim_start).unwrap_or(line);
-        let assignment = body.split_once('=').filter(|(key, _)| {
-            let key = key.trim();
-            !key.is_empty()
-                && key
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
-        });
-        if let Some((name, _)) = assignment {
-            let name = name.trim();
-            let exists = section_at(document, section)
-                .and_then(Item::as_table_like)
-                .is_some_and(|table| table.contains_key(name));
-            if exists && !comments.is_empty() {
-                let table = table_at_mut(document.as_table_mut(), section)?;
-                if let Some((mut key, value)) = table.remove_entry(name) {
-                    let prefix = key
-                        .leaf_decor()
-                        .prefix()
-                        .and_then(|raw| raw.as_str())
-                        .unwrap_or("");
-                    let description = comments.join("\n");
-                    if !prefix.contains(&description) {
-                        let prefix = format!("{prefix}\n{description}\n");
-                        key.leaf_decor_mut().set_prefix(prefix);
-                    }
-                    table.insert_formatted(&key, value);
-                }
-            }
-            comments.clear();
-        } else if line.starts_with('#') {
-            comments.push(line);
-        }
-    }
-    Ok(())
 }
 
 fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
@@ -676,41 +625,25 @@ pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {
     ] {
         table_at_mut(document.as_table_mut(), section)?.set_implicit(false);
     }
-    let language = super::config_comment_language();
-    for (section, key, assignment, english, korean) in [
-        (
-            "output",
-            "max_bytes",
-            "max_bytes = \"1mb\"",
-            "Optional common MCP response ceiling; omitted keeps existing tool defaults.",
-            "선택적인 MCP 공통 응답 한도. 생략하면 기존 도구 기본값을 유지합니다.",
-        ),
+    for (section, key, assignment) in [
+        ("output", "max_bytes", "max_bytes = \"1mb\""),
         (
             "output.client",
             "claude_max_result_chars",
             "claude_max_result_chars = 200000",
-            "Claude characters (maximum 500000); reconnect MCP after changing.",
-            "Claude 문자 한도(최대 500000). 변경 후 MCP를 재연결하세요.",
         ),
         (
             "output.client",
             "codex_output_token_limit",
             "codex_output_token_limit = 50000",
-            "Export with codemap-search codex-config; apply the fragment in Codex.",
-            "codemap-search codex-config로 출력한 설정 조각을 Codex에 적용하세요.",
         ),
     ] {
         if !super::file_mentions_key(contents, key) {
-            append_example(
-                table_at_mut(document.as_table_mut(), section)?,
-                language.select(english, korean),
-                assignment,
-            );
+            append_example(table_at_mut(document.as_table_mut(), section)?, assignment);
         }
     }
-    restore_setting_comments(&mut document)?;
     order_tables(document.as_table_mut(), "", &mut 0);
-    let updated = format!("{}{document}", marker.unwrap_or(""));
+    let updated = generated::refresh(&format!("{}{document}", marker.unwrap_or("")));
     let after: toml::Value = toml::from_str(&updated).map_err(|error| error.to_string())?;
     if super::normalize(before, path) != super::normalize(after, path) {
         return Err("section relocation would change configured values or inheritance; leaving the file untouched".into());
