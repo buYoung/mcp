@@ -167,4 +167,7 @@ filetime = "0.2"
 blake3 = "1.8.7"
 # Compile the audited grammar fixes; compressed generated C keeps source packages small.
 cc = "1.2"
+# tree-sitter-sequel requires cc 1.2.x, whose Windows tempfile code expects a u32
+# FILE_ATTRIBUTE_TEMPORARY. find-msvc-tools 0.1.13 changed it to i32.
+find-msvc-tools = "=0.1.12"
 flate2 = "1.1"
