@@ -1,0 +1,3 @@
+Inspect this server workspace's index footprint or read/search/grep usage to locate large or frequently returned files. No source reparse or index rebuild.
+
+Returns compact JSON with numeric byte counts and shared columns/row arrays. Default: totals plus 10 ranked files. Use next_offset to continue; view=full adds language/symbol or tool/daily breakdowns. Output is bounded to 8 KiB or the lower configured response cap; omissions are explicit. Reads are file-content responses, not disk operations. Byte counts do not measure model tokens; repeated files may contain different ranges or revisions. Usage retention is fixed at 30 days.

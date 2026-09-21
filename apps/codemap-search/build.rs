@@ -33,7 +33,10 @@ fn emit_analysis_build_id() {
         .filter(|(name, _)| {
             name.starts_with("CARGO_CFG_")
                 || name.starts_with("CARGO_FEATURE_")
-                || matches!(name.as_str(), "TARGET" | "PROFILE" | "CARGO_ENCODED_RUSTFLAGS")
+                || matches!(
+                    name.as_str(),
+                    "TARGET" | "PROFILE" | "CARGO_ENCODED_RUSTFLAGS"
+                )
         })
         .collect();
     settings.sort();
@@ -43,7 +46,10 @@ fn emit_analysis_build_id() {
         hasher.update(value.as_bytes());
         hasher.update(&[0]);
     }
-    println!("cargo:rustc-env=CODEMAP_ANALYSIS_BUILD_ID={}", hasher.finalize());
+    println!(
+        "cargo:rustc-env=CODEMAP_ANALYSIS_BUILD_ID={}",
+        hasher.finalize()
+    );
 }
 
 fn main() {

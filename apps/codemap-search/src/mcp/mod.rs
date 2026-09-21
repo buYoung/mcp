@@ -12,6 +12,44 @@ use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
 
+fn returned_source_files(
+    output: &crate::tools::live_symbols::LiveOutput,
+    options: crate::tools::live_options::LiveOptions,
+) -> Vec<crate::analyze::FileObservation> {
+    use crate::tools::live_options::LiveView;
+    if !matches!(options.view, LiveView::Full | LiveView::Source) {
+        return Vec::new();
+    }
+    let mut files = output
+        .source_ranges
+        .iter()
+        .map(|(path, _, _)| (path.as_str(), 0u64))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for span in &output.files {
+        if let Some(bytes) = files.get_mut(span.file_path.as_str()) {
+            let mut result_bytes = span.end_byte.saturating_sub(span.start_byte);
+            if options.view == LiveView::Full {
+                // Full view removes the producer-written path prefixes under file headings.
+                let prefix_bytes = output
+                    .path_prefixes
+                    .iter()
+                    .filter(|prefix| span.start_byte <= prefix.start && prefix.end <= span.end_byte)
+                    .map(|prefix| prefix.end - prefix.start)
+                    .sum::<usize>();
+                result_bytes = result_bytes.saturating_sub(prefix_bytes);
+            }
+            *bytes = bytes.saturating_add(result_bytes as u64);
+        }
+    }
+    files
+        .into_iter()
+        .map(|(path, result_bytes)| crate::analyze::FileObservation {
+            path: path.into(),
+            result_bytes,
+        })
+        .collect()
+}
+
 /// Search/read already construct bounded output. Other tools reject an oversized
 /// response only when a new common or per-tool response budget was explicitly set.
 fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String)> {
@@ -19,7 +57,7 @@ fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String
     let cap = match name {
         "overview" => config.overview_output_byte_cap,
         "grep" => config.grep_response_byte_cap,
-        "find" | "initial_instructions" => config.output_byte_cap,
+        "find" | "initial_instructions" | "analyze" => config.output_byte_cap,
         _ => None,
     };
     let Some(cap) = cap else { return Ok(()) };
@@ -42,6 +80,8 @@ pub struct McpServer {
     // dispatch sites and reads the committed snapshot through its accessors.
     engine: EngineSupervisor,
     active_workspace_scope: Option<String>,
+    call_recorder: crate::analyze::CallRecorder,
+    pending_source_files: Vec<crate::analyze::FileObservation>,
 }
 
 impl McpServer {
@@ -49,7 +89,13 @@ impl McpServer {
         Self {
             engine,
             active_workspace_scope: None,
+            call_recorder: crate::analyze::CallRecorder::new(),
+            pending_source_files: Vec::new(),
         }
+    }
+
+    pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
+        self.call_recorder.set_enabled(is_enabled);
     }
 
     fn overview_path_argument(arguments: &Value) -> Option<&str> {
@@ -75,9 +121,24 @@ impl McpServer {
         let stdin = tokio::io::stdin();
         let mut reader = LimitedLineReader::new(stdin, 10 * 1024 * 1024 + 100 * 1024);
         let mut stdout = tokio::io::stdout();
+        self.call_recorder.maintain();
+        let period = std::time::Duration::from_secs(60);
+        let mut retention = tokio::time::interval_at(tokio::time::Instant::now() + period, period);
+        retention.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
-            match reader.next_line().await {
+            let next = {
+                // Preserve a partially read frame while the idle retention timer runs.
+                let next_line = reader.next_line();
+                tokio::pin!(next_line);
+                loop {
+                    tokio::select! {
+                        result = &mut next_line => break result,
+                        _ = retention.tick() => self.call_recorder.maintain(),
+                    }
+                }
+            };
+            match next {
                 Ok(Some(line)) => {
                     let req: JsonRpcRequest = match serde_json::from_str(&line) {
                         Ok(r) => r,
@@ -145,24 +206,51 @@ impl McpServer {
     ) -> Result<Value, (i64, String)> {
         let _config_scope = crate::config::pin_request();
         let _redact_scope = crate::redact::begin_request();
-        match self.handle_request_inner(method, params) {
+        let started = std::time::Instant::now();
+        self.pending_source_files.clear();
+        let tool_name = (method == "tools/call")
+            .then(|| {
+                params
+                    .and_then(|params| params.get("name"))
+                    .and_then(Value::as_str)
+            })
+            .flatten();
+        let result = match self.handle_request_inner(method, params) {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
             Ok(mut value) => {
-                crate::redact::response(&mut value);
-                if method == "tools/call" {
-                    if let Some(name) = params
-                        .and_then(|params| params.get("name"))
-                        .and_then(Value::as_str)
-                    {
-                        enforce_response_cap(name, &value)?;
-                    }
+                // analyze masks its structured values before serializing compact JSON.
+                if tool_name != Some("analyze") {
+                    crate::redact::response(&mut value);
                 }
-                Ok(value)
+                tool_name
+                    .map_or(Ok(()), |name| enforce_response_cap(name, &value))
+                    .map(|()| value)
             }
             Err((code, message)) => Err((code, crate::redact::source(&message).into_owned())),
+        };
+        if let Some(name) = tool_name {
+            let response_bytes = match &result {
+                Ok(value) => value
+                    .get("content")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|item| item.get("text").and_then(Value::as_str))
+                    .map(str::len)
+                    .sum(),
+                Err((_, message)) => message.len(),
+            };
+            self.call_recorder.record(
+                name,
+                &self.pending_source_files,
+                result.is_err(),
+                response_bytes,
+                started.elapsed().as_secs_f64() * 1000.0,
+            );
         }
+        result
     }
 
     fn handle_request_inner(
@@ -205,6 +293,10 @@ impl McpServer {
                 let arguments = params.get("arguments").unwrap_or(&default_args);
 
                 match name {
+                    "analyze" => {
+                        let text = crate::tools::analyze::run(arguments, &self.engine)?;
+                        Ok(serde_json::json!({"content": [{"type": "text", "text": text}]}))
+                    }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
                         // Recover a dead indexer first (auto-restart, config-gated), then
@@ -222,6 +314,7 @@ impl McpServer {
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let output = crate::tools::search::run_with_metadata(&ctx)?;
+                        self.pending_source_files = output.source_files;
                         Ok(serde_json::json!({
                             "content": [
                                 {
@@ -259,6 +352,7 @@ impl McpServer {
                     "read" => {
                         let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
                         let output = crate::tools::read::read_file_with_metadata(arguments)?;
+                        self.pending_source_files = returned_source_files(&output, options);
                         let text = crate::tools::live_symbols::append(
                             &self.engine,
                             output,
@@ -279,6 +373,7 @@ impl McpServer {
                         let options =
                             crate::tools::live_options::LiveOptions::parse_grep(arguments)?;
                         let output = crate::tools::grep::grep_with_metadata(arguments)?;
+                        self.pending_source_files = returned_source_files(&output, options);
                         let output_mode = arguments
                             .get("output_mode")
                             .and_then(|value| value.as_str())

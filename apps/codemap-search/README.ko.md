@@ -86,6 +86,7 @@ args = ["mcp"]
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
+| `analyze` | 인덱스 용량 또는 기록된 읽기 동작을 압축 JSON으로 분석 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 
 저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
 
@@ -95,7 +96,7 @@ args = ["mcp"]
 
 MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호출 관계를 표시합니다. 호출 대상이 정해지면 정의 파일과 줄 번호를 붙입니다. 같은 파일의 상수 참조에는 정의 위치와 초기값 미리보기를 표시하고, 이름이 모호하면 생략합니다. 색인 정보는 최근 편집을 아직 반영하지 않았을 수 있습니다.
 
-도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다.
+도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인과 파일 내용 반환 기록을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다.
 
 ## 제외 목록과 출력 설정
 
@@ -166,7 +167,9 @@ JSON/JSONC, TOML, YAML, HTML/XML 파생 형식, CSS/Less, Sass와 Vue·Astro·Sv
 ## CLI
 
 ```text
-codemap-search mcp
+codemap-search mcp [--no-call-log]
+codemap-search analyze index [--path DIR] [--sort stored|size|lines|symbols|literals|path] [OPTIONS]
+codemap-search analyze reads [--path DIR] [--days 1..30] [--sort reads|bytes|size|last|path] [OPTIONS]
 codemap-search parse <file>
 codemap-search tokenize <ident>
 codemap-search codemap [--path P] [--format F]
@@ -174,6 +177,67 @@ codemap-search search <query> [-l N]
 codemap-search index [dir]
 codemap-search benchmark --queries <json> [--dir D]
 ```
+
+### 인덱스와 최근 읽기 동작 분석
+
+`codemap-search analyze index`는 저장된 인덱스를 즉시 분석하고, `codemap-search analyze reads`는 실행 시점의 최근 7일 읽기 동작을 분석합니다. 기본 출력은 사람이 읽기 쉬운 표입니다. 읽기 동작은 업데이트한 바이너리로 MCP를 다시 연결한 뒤부터 기록되며, 보고서는 명령을 실행할 때 생성됩니다.
+
+```sh
+codemap-search analyze index --sort size --limit 10
+codemap-search analyze index --path /path/to/repo --language rust --filter src/
+codemap-search analyze reads --sort bytes --limit 20
+codemap-search analyze reads --days 14 --tool search --filter src/
+codemap-search analyze reads --offset 20 --limit 20 --sort bytes
+codemap-search analyze reads --view summary --format json
+codemap-search analyze index --help
+codemap-search analyze reads --help
+```
+
+| 구분 | 출력 내용 | 집계 기준 |
+| --- | --- | --- |
+| 인덱스 용량 | 커밋된 파일·세그먼트·삭제 문서 수, 디스크 용량, 저장 JSON 크기, 정적 호출·참조 지점 수 | 기존 Tantivy 스냅샷을 읽어 메모리 SQLite에서 집계 |
+| 언어·심볼 | 언어별 파일·행·심볼·공개 심볼·리터럴·문서 문자열 수, 심볼 종류별 테스트·문서화 플래그 | 저장된 추출 결과; 전체 저장소 파일이나 최신 소스 분석 결과와 다를 수 있음 |
+| 파일·최신성 | 큰 저장 레코드의 경로·파일 크기·행·심볼·리터럴·최대 리터럴 크기, 변경·삭제·접근 불가 상태 | 크기와 변경 여부만 현재 파일 메타데이터로 확인; 소스 재파싱·인덱스 갱신 없음 |
+| 현재/직전 기간 | 호출·오류·내용 반환 응답·고유 파일·읽은 횟수·응답량과 증감률 | 기본 최근 168시간과 직전 168시간; 기준값이 없으면 `n/a` |
+| 도구·일별 | 도구별 호출·오류·내용 반환·고유 파일·읽은 횟수·응답량 비중·평균/최대 처리 시간, UTC 날짜별 추이 | `read`·`search`·`grep`의 기록만 집계; 날짜 표의 양끝은 하루 일부일 수 있음 |
+| 파일별 읽기 | 경로·최신 기록 크기·전체/도구별 읽은 횟수·결과 반환량·비중·활동일·마지막 시각, 반복 조회 요약 | 한 성공 응답에서 같은 파일은 한 번만 계산 |
+
+`--section` 대신 `index` 또는 `reads` 하위 명령을 선택합니다. 기본 정렬은 인덱스의 저장 JSON 크기, 읽기의 반환 횟수이며 파일 20개를 표시합니다. 자세한 옵션은 각 하위 명령의 `--help`에서 확인할 수 있습니다.
+
+| 옵션 | 적용 대상 | 동작 |
+| --- | --- | --- |
+| `--path DIR` | 공통 | 분석할 저장소와 해당 저장소의 인덱스 설정·기록 DB 선택 |
+| `--limit N`, `-n N` | 공통 | 파일 표시 수; 기본 20, `0`이면 전부 |
+| `--offset N` | 공통 | 필터·정렬 이후 파일 행을 N개 건너뛰기; 출력의 다음 페이지 안내 사용 |
+| `--sort KEY`, `-s KEY` | 공통 | 위 명령별 정렬 키 선택 |
+| `--order asc\|desc` | 공통 | 정렬 방향; 기본은 경로 오름차순, 나머지는 내림차순 |
+| `--filter TEXT`, `-f TEXT` | 공통 | 경로에 포함된 대소문자 구분 문자열; glob 아님 |
+| `--view summary\|files\|full` | 공통 | 요약·그룹, 요약·파일, 전체 상세 보기; CLI 기본 `full` |
+| `--format table\|json` | 공통 | 사람이 보는 표 또는 열 이름을 공유하는 압축 JSON |
+| `--language NAME`, `-l NAME` | `index` | 언어 필터 |
+| `--days N`, `-d N` | `reads` | 최근 1~30일; 기본 7일 |
+| `--tool read\|search\|grep`, `-t NAME` | `reads` | 특정 도구만 집계 |
+| `--no-compare` | `reads` | 직전 동일 길이 기간 비교 생략; 16일 이상은 30일 보존 범위를 넘으므로 비교 불가 안내 |
+
+합계는 표시 페이지가 아닌 필터에 맞는 전체 파일을 포함합니다. 읽기 경로 필터는 해당 파일을 반환한 호출을 선택합니다. 이때 `Response`는 선택된 호출의 전체 응답량이며 `Results`는 일치한 파일의 반환량입니다. 파일 관측이 없는 오류는 경로 필터 결과에 포함되지 않습니다. 인덱스의 전체 디스크 용량·세그먼트 지표는 파일 필터와 무관한 전체 인덱스 값입니다.
+
+MCP에서는 `analyze` 도구를 직접 호출합니다. CLI와 같은 집계 결과를 사용하며 현재 서버의 작업공간만 분석합니다.
+
+```json
+{"name":"analyze","arguments":{"target":"reads","sort":"bytes","limit":10}}
+```
+
+`target`은 `index|reads`이며 `limit`, `offset`, `sort`, `order`, `filter`, `view`를 지원합니다. `index`는 `language`, `reads`는 `days`, `tool`, `compare`도 받습니다. MCP 기본은 `view=files`, 파일 10개이며 인덱스는 `stored`, 읽기는 `bytes` 순입니다. 더 넓은 분석은 `view=full`로 요청합니다. `limit`은 1~100이고 `page.next_offset`으로 이어서 조회합니다.
+
+응답은 긴 구분선·정렬 공백 없이 `summary`와 표별 `columns`·`rows` 배열을 사용합니다. 바이트·시간 단위를 키에 표시하고, 숫자·`null`을 유지하며, 해석상 주의점은 짧게 한 번만 제공합니다. 최대 8 KiB 또는 더 작은 `output.max_bytes` 안에서 완전한 행 단위로 줄입니다. 잘림은 `truncated`, 생략한 표는 `omitted_tables`로 알리며 합계와 다음 페이지 위치는 유지합니다. 민감정보 마스킹은 JSON 직렬화 전에 적용합니다. `analyze` 호출 자체는 읽기 기록에 추가되지 않습니다.
+
+`Reads`는 성공 응답에 원문 행이나 검색 발췌가 포함된 파일마다 1회입니다. 경로 목록·선언/관계 전용 보기·실패 호출은 호출/응답량에는 포함되지만 읽은 횟수에는 포함되지 않습니다. `find`·`overview`·`analyze`와 내부 색인 읽기는 기록 대상이 아닙니다. 반복 조회는 동일 파일의 첫 반환 이후 횟수이며, 다른 구간이나 변경된 내용일 수 있으므로 낭비된 토큰으로 해석하면 안 됩니다.
+
+`File size`는 분석 기간 안에서 마지막으로 기록한 디스크 크기입니다. 알 수 없으면 `?`로 표시하고 크기 합계에서 제외합니다. `Results`는 마스킹 전 파일별 원문/발췌 결과 블록의 UTF-8 바이트 수로 행 번호·경로 접두사·해당 블록의 안내도 포함합니다. `Response`는 마스킹 후 최종 응답 본문 또는 오류 메시지의 UTF-8 바이트 수로 선언·관계·헤더를 포함하고 JSON 포장은 제외합니다. 처리 시간은 서버의 요청 처리 시간이며 SQLite 기록과 클라이언트/네트워크 시간은 제외합니다. 클라이언트의 추가 잘림과 모델의 실제 소비량은 관측하지 않으므로 토큰 수나 물리적 디스크 읽기 횟수가 아닙니다.
+
+호출과 파일별 관측은 `.codemap/analysis.sqlite3`에 저장합니다. 질의·소스·응답 내용은 저장하지 않습니다. **보존 기간은 30일 고정이며 연장할 수 없습니다.** MCP 시작·새 기록·분석 시, 그리고 MCP 실행 중 매분 만료 호출과 연결된 파일 기록을 함께 삭제합니다. MCP가 꺼져 있는 동안 만료된 기록은 다음 실행 또는 분석 시 삭제됩니다. `secure_delete`와 삭제형 rollback journal을 사용해 삭제된 행을 DB 여유 페이지나 상시 WAL에 남기지 않습니다. 이 정책은 관리 대상 DB에 적용되며 별도 백업까지 삭제하지는 않습니다.
+
+`codemap-search mcp --no-call-log`는 새 기록만 끄며 기존 DB의 만료 정리는 계속합니다. 저장/정리 실패는 stderr에 알리고 MCP 응답은 유지하며 다음 작업에서 재시도합니다. 분석 명령은 DB에 접근하지 못하면 오류를 보고합니다. 기록 중단 기간은 복원할 수 없고, 직전 7일 비교도 연속 수집을 보장하지 않습니다. 이전 JSONL 기록은 가져오지 않으며 `--log` 옵션은 사용하지 않습니다.
 
 ## 개발 중 검증
 

@@ -1,3 +1,4 @@
+pub mod analyze;
 pub mod benchmark;
 pub mod callers;
 pub mod codemap;

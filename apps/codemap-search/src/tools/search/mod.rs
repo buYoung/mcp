@@ -46,17 +46,18 @@ fn has_open_markdown_fence(text: &str) -> bool {
     text.lines().filter(|line| line.trim() == "```").count() % 2 == 1
 }
 
-fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> String {
+fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> (String, usize) {
     if !is_partial && text.len() <= byte_cap {
-        return text;
+        let retained_bytes = text.len();
+        return (text, retained_bytes);
     }
     if byte_cap == 0 {
-        return String::new();
+        return (String::new(), 0);
     }
     if search_cap_footer(byte_cap).len() >= byte_cap {
         let mut footer = search_cap_footer(byte_cap).to_string();
         truncate_to_char_boundary(&mut footer, byte_cap);
-        return footer;
+        return (footer, 0);
     }
 
     let mut fence_close = "";
@@ -75,12 +76,16 @@ fn finish_search_output(mut text: String, byte_cap: usize, is_partial: bool) -> 
         fence_close = next_fence_close;
     }
 
-    format!("{text}{fence_close}{}", search_cap_footer(byte_cap))
+    let retained_bytes = text.len();
+    (
+        format!("{text}{fence_close}{}", search_cap_footer(byte_cap)),
+        retained_bytes,
+    )
 }
 
-fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str) {
+fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str) -> usize {
     if byte_cap <= search_cap_footer(byte_cap).len() {
-        return;
+        return text.len();
     }
 
     let mut note = note.to_string();
@@ -89,7 +94,7 @@ fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str)
         text.clear();
         truncate_to_char_boundary(&mut note, note_room);
         text.push_str(&note);
-        return;
+        return 0;
     }
 
     let mut fence_close = "";
@@ -108,8 +113,10 @@ fn append_preserved_partial_note(text: &mut String, byte_cap: usize, note: &str)
         fence_close = next_fence_close;
     }
 
+    let retained_bytes = text.len();
     text.push_str(fence_close);
     text.push_str(&note);
+    retained_bytes
 }
 
 fn tail_omission_note(omitted_count: usize) -> String {
@@ -437,8 +444,12 @@ fn anchor_map(
     Some(format!("- anchor map: {entries}\n"))
 }
 
+#[derive(Default)]
 pub struct SearchOutput {
     pub text: String,
+    /// Files with returned source/literal excerpts, excluding the ranked path-only tail.
+    /// This metadata is not added to the MCP response envelope.
+    pub source_files: Vec<crate::analyze::FileObservation>,
 }
 
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
@@ -560,13 +571,14 @@ pub(crate) fn run_inner_with_metadata(
                 )
             })?;
         if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
-            return Ok(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into()});
+            return Ok(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()});
         }
         let root = std::env::current_dir().unwrap_or_default();
         let snapshot = ctx.engine.published_snapshot();
         let cap = crate::config::get().search_detail_byte_cap;
         return Ok(SearchOutput {
             text: snapshot.events().for_key(key, workspace_scope, cap, &root),
+            ..SearchOutput::default()
         });
     }
 
@@ -662,7 +674,10 @@ pub(crate) fn run_inner_with_metadata(
                 " Next: confirm with a scoped `grep` for the exact text (only supported source files are indexed, so unindexed files never appear here), or reword the query with different terms.",
             );
         }
-        return Ok(SearchOutput { text });
+        return Ok(SearchOutput {
+            text,
+            ..SearchOutput::default()
+        });
     }
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
     // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so
@@ -689,6 +704,7 @@ pub(crate) fn run_inner_with_metadata(
     let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
     let remaining_results = &ordered[detail_results.len()..];
     let mut output_was_capped = false;
+    let mut retained_primary_bytes = usize::MAX;
     let mut grouped_files = Vec::new();
     text.push_str("# codemap-search\n");
     {
@@ -974,21 +990,27 @@ pub(crate) fn run_inner_with_metadata(
 
                 // Literals: length-truncated and count-capped.
                 for lit in res.matched_literals.iter().take(literal_limit) {
-                    if !text.push_source(&format!(
-                        "- Literal: {:?} [L{}]\n",
-                        render::truncate_literal(&source.literal(lit), literal_max_len),
-                        lit.line
-                    )) {
+                    if !text.push_source(
+                        &format!(
+                            "- Literal: {:?} [L{}]\n",
+                            render::truncate_literal(&source.literal(lit), literal_max_len),
+                            lit.line
+                        ),
+                        Some("- Literal: ".len()),
+                    ) {
                         has_hit_file_budget = true;
                         break;
                     }
                     text.literal_anchor(lit.line);
                 }
                 if res.matched_literals.len() > literal_limit {
-                    text.push_source(&format!(
-                        "- _… {} more literals not shown._\n",
-                        res.matched_literals.len() - literal_limit
-                    ));
+                    text.push_source(
+                        &format!(
+                            "- _… {} more literals not shown._\n",
+                            res.matched_literals.len() - literal_limit
+                        ),
+                        None,
+                    );
                 }
             }
             has_hit_file_budget |= file_output.budget_hit;
@@ -1006,7 +1028,8 @@ pub(crate) fn run_inner_with_metadata(
             let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
             if omitted_detail_count > 0 || !remaining_results.is_empty() {
                 let note = tail_omission_note(omitted_detail_count + remaining_results.len());
-                append_preserved_partial_note(&mut text, byte_cap, &note);
+                retained_primary_bytes = retained_primary_bytes
+                    .min(append_preserved_partial_note(&mut text, byte_cap, &note));
             }
         }
     }
@@ -1082,13 +1105,32 @@ pub(crate) fn run_inner_with_metadata(
             text.push_str(&tail);
         } else {
             let note = tail_omission_note(remaining_results.len());
-            append_preserved_partial_note(&mut text, byte_cap, &note);
+            retained_primary_bytes = retained_primary_bytes
+                .min(append_preserved_partial_note(&mut text, byte_cap, &note));
             output_was_capped = true;
         }
     }
 
     let is_partial = output_was_capped || text.len() > byte_cap;
-    let mut text = finish_search_output(text, byte_cap, is_partial);
+    let (mut text, retained_bytes) = finish_search_output(text, byte_cap, is_partial);
+    retained_primary_bytes = retained_primary_bytes.min(retained_bytes);
+    let source_files = grouped_files
+        .iter()
+        .filter_map(|file| {
+            if file.first_source_byte? >= retained_primary_bytes {
+                return None;
+            }
+            let span = file.source_span.as_ref()?;
+            let result_bytes = span
+                .end
+                .min(retained_primary_bytes)
+                .saturating_sub(span.start);
+            (result_bytes > 0).then(|| crate::analyze::FileObservation {
+                path: file.path.clone(),
+                result_bytes: result_bytes as u64,
+            })
+        })
+        .collect();
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
     if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
@@ -1111,5 +1153,5 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(SearchOutput { text })
+    Ok(SearchOutput { text, source_files })
 }

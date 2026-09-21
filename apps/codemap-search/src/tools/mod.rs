@@ -6,6 +6,7 @@
 //! lives in [`crate::workspace`]. This module keeps only the tool-local glob matching
 //! and MCP argument-coercion helpers.
 
+pub(crate) mod analyze;
 pub mod find;
 pub mod grep;
 pub(crate) mod live_options;
@@ -253,7 +254,7 @@ fn filesystem_tool_description(
     description
 }
 
-/// The MCP `tools/list` result: the six tool schemas (name, description, read-only
+/// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`;
 /// live filesystem tools append their currently configured permission policy. Tool descriptions
@@ -326,7 +327,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "overview",
                         "description": include_str!("instructions/tools/overview.md").trim_end(),
-                        // All five tools are read-only over the local workspace. Declaring it
+                        // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
@@ -417,6 +418,10 @@ pub fn list_tools() -> Value {
                     }
                 ]
     });
+    result["tools"]
+        .as_array_mut()
+        .unwrap()
+        .push(analyze::definition());
     if let Some(limit) = config.client_output.claude_max_result_chars {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
             tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });

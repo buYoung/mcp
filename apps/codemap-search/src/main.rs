@@ -15,7 +15,17 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Start the MCP JSON-RPC Server
-    Mcp,
+    Mcp {
+        /// Disable new usage records in .codemap/analysis.sqlite3 (retention still applies)
+        #[arg(long)]
+        no_call_log: bool,
+    },
+
+    /// Inspect the index or recent MCP reading activity
+    Analyze {
+        #[command(subcommand)]
+        command: codemap_search::analyze::AnalyzeCommand,
+    },
 
     /// Print Codex MCP tool-output settings from output.client without writing client files
     CodexConfig {
@@ -97,9 +107,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Resolve config once (repo `.codemap/config.toml` + global, repo>global>default)
     // before any command runs, so the CLI and `mcp` mode read the same resolved values.
     let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-    codemap_search::config::init(&cwd);
+    let config_root = match &cli.command {
+        Commands::Analyze { command } => cwd.join(command.path()),
+        _ => cwd.clone(),
+    };
+    codemap_search::config::init(&config_root);
 
     match &cli.command {
+        Commands::Analyze { command } => {
+            command.run()?;
+        }
         Commands::CodexConfig { server_name } => {
             if server_name.trim().is_empty() {
                 return Err("server name must not be empty".into());
@@ -208,7 +225,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Commands::Mcp => {
+        Commands::Mcp { no_call_log } => {
             codemap_search::workspace::ensure_index_root_is_not_user_home(&cwd)?;
             // When `[update].config_auto_update` is true, scaffold `.codemap/config.toml`
             // when absent, else incrementally sync it to the current schema version
@@ -249,6 +266,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 watcher_status,
             );
             let mut server = mcp::McpServer::new(supervisor);
+            server.set_call_logging_enabled(!no_call_log);
             server.run().await?;
             // server drop → EngineSupervisor drop → watcher fields drop → indexer field drop.
         }

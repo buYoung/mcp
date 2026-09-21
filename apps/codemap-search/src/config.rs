@@ -39,8 +39,8 @@ mod event_navigation;
 mod exclude;
 mod layout;
 mod output;
-pub use output::ClientOutputConfig;
 pub use event_navigation::EventNavigationConfig;
+pub use output::ClientOutputConfig;
 mod macro_expansion;
 pub(crate) mod redact;
 pub use macro_expansion::MacroExpansionConfig;
@@ -612,7 +612,9 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
-        "output_byte_cap" => layer.output_byte_cap = as_positive_byte_size(value, key_display, path),
+        "output_byte_cap" => {
+            layer.output_byte_cap = as_positive_byte_size(value, key_display, path)
+        }
         "overview_output_byte_cap" => {
             layer.overview_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
@@ -620,17 +622,22 @@ fn assign_config_key(
             layer.grep_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
         "claude_max_result_chars" => {
-            layer.client_output.claude_max_result_chars = as_positive_usize(value, key_display, path).filter(|limit| {
-                if *limit > 500_000 {
-                    warn(&format!("config '{key_display}' must not exceed 500000 characters: {} — ignored", path.display()));
-                    false
-                } else {
-                    true
-                }
-            });
+            layer.client_output.claude_max_result_chars =
+                as_positive_usize(value, key_display, path).filter(|limit| {
+                    if *limit > 500_000 {
+                        warn(&format!(
+                        "config '{key_display}' must not exceed 500000 characters: {} — ignored",
+                        path.display()
+                    ));
+                        false
+                    } else {
+                        true
+                    }
+                });
         }
         "codex_output_token_limit" => {
-            layer.client_output.codex_output_token_limit = as_positive_usize(value, key_display, path)
+            layer.client_output.codex_output_token_limit =
+                as_positive_usize(value, key_display, path)
         }
         "target_os" => {
             layer.analysis_target_os = match value.as_str() {
@@ -762,15 +769,18 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
         output_byte_cap: repo.output_byte_cap.or(global.output_byte_cap),
-        overview_output_byte_cap: repo.overview_output_byte_cap
+        overview_output_byte_cap: repo
+            .overview_output_byte_cap
             .or(repo.output_byte_cap)
             .or(global.overview_output_byte_cap)
             .or(global.output_byte_cap),
-        grep_response_byte_cap: repo.grep_output_byte_cap
+        grep_response_byte_cap: repo
+            .grep_output_byte_cap
             .or(repo.output_byte_cap)
             .or(global.grep_output_byte_cap)
             .or(global.output_byte_cap),
-        grep_output_byte_cap: repo.grep_output_byte_cap
+        grep_output_byte_cap: repo
+            .grep_output_byte_cap
             .or(repo.output_byte_cap)
             .or(repo.read_output_byte_cap)
             .or(global.grep_output_byte_cap)
@@ -778,9 +788,13 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.read_output_byte_cap)
             .unwrap_or(defaults.grep_output_byte_cap),
         client_output: ClientOutputConfig {
-            claude_max_result_chars: repo.client_output.claude_max_result_chars
+            claude_max_result_chars: repo
+                .client_output
+                .claude_max_result_chars
                 .or(global.client_output.claude_max_result_chars),
-            codex_output_token_limit: repo.client_output.codex_output_token_limit
+            codex_output_token_limit: repo
+                .client_output
+                .codex_output_token_limit
                 .or(global.client_output.codex_output_token_limit),
         },
         is_redact_enabled: repo
@@ -1664,7 +1678,10 @@ fn migrate_existing(path: &Path, existing: &str) {
         updated = match layout::migrate(&updated, path) {
             Ok(updated) => updated,
             Err(error) => {
-                warn(&format!("config layout migration skipped for {}: {error}", path.display()));
+                warn(&format!(
+                    "config layout migration skipped for {}: {error}",
+                    path.display()
+                ));
                 return;
             }
         };

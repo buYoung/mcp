@@ -25,6 +25,9 @@ pub(super) struct FileOutput {
     base_bytes: usize,
     cap: usize,
     pub budget_hit: bool,
+    pub source_span: Option<std::ops::Range<usize>>,
+    first_result_source_offset: Option<usize>,
+    pub first_source_byte: Option<usize>,
 }
 
 impl FileOutput {
@@ -48,6 +51,9 @@ impl FileOutput {
             base_bytes,
             cap,
             budget_hit: false,
+            source_span: None,
+            first_result_source_offset: None,
+            first_source_byte: None,
         }
     }
     pub fn len(&self) -> usize {
@@ -87,9 +93,14 @@ impl FileOutput {
             self.metadata.push_str(text);
         }
     }
-    pub fn push_source(&mut self, text: &str) -> bool {
+    pub fn push_source(&mut self, text: &str, source_offset: Option<usize>) -> bool {
         if !self.fits(text.len()) {
             return false;
+        }
+        if self.first_result_source_offset.is_none() {
+            self.first_result_source_offset = source_offset
+                .filter(|offset| *offset < text.len())
+                .map(|offset| self.results.len() + offset);
         }
         self.results.push_str(text);
         true
@@ -312,7 +323,10 @@ impl FileOutput {
             section.insertion = text.len();
         }
         text.push_str("\n### results\n");
+        let start = text.len();
         text.push_str(&self.results);
+        self.source_span = (!self.results.is_empty()).then_some(start..text.len());
+        self.first_source_byte = self.first_result_source_offset.map(|offset| start + offset);
         if is_partial_file {
             // fits()/remaining_bytes() reserved the longer global cap footer, so
             // this local notice stays inside the file budget without hiding source.

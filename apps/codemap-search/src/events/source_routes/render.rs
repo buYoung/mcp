@@ -251,12 +251,9 @@ impl Snapshot {
             if !state.shown.contains_key(&id) {
                 state.output_endpoints += 2;
             }
-            state.shown.insert(
-                id,
-                current_file
-                    .unwrap_or(&route.storage.path)
-                    .into(),
-            );
+            state
+                .shown
+                .insert(id, current_file.unwrap_or(&route.storage.path).into());
             rendered += 1;
         }
         let mut diagnostics = BTreeSet::new();

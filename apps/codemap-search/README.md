@@ -86,6 +86,7 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
+| `analyze` | Inspect index footprint or recorded reading activity as compact JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 
 Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[output.overview].is_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
 
@@ -97,7 +98,7 @@ MCP `read`/`grep` use declaration-kind/name headings within each file, followed 
 
 Relevant source wrappers also show bounded argument, return, closure, field and callback-use relationships automatically. Default value context groups repeated paths and passing locations; `debug: true` exposes bounded detailed evidence and diagnostics. Basic conditional paths and native tuples are summarized within the existing budgets. These work independently of event API rules and distinguish source evidence, built-in models and unresolved candidates. Stale dependencies are withheld. Composite queries prioritize term coverage and bounded body evidence while exact identifier queries keep exact-name preference. See the [value-navigation reference and CLI examples](./docs/value-navigation.ko.md) for supported cases, limits and verification commands.
 
-Tools are read-only over their configured filesystem scope. The server itself writes its index and, when enabled, repo configuration. No MCP resources or prompts are registered.
+Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.
 
 ## Configure exclusions and output
 
@@ -168,7 +169,9 @@ These switches control index-backed discovery and watcher refreshes. Live `find`
 ## CLI
 
 ```text
-codemap-search mcp
+codemap-search mcp [--no-call-log]
+codemap-search analyze index [--path DIR] [--sort stored|size|lines|symbols|literals|path] [OPTIONS]
+codemap-search analyze reads [--path DIR] [--days 1..30] [--sort reads|bytes|size|last|path] [OPTIONS]
 codemap-search parse <file>
 codemap-search tokenize <ident>
 codemap-search codemap [--path P] [--format F]
@@ -176,6 +179,67 @@ codemap-search search <query> [-l N]
 codemap-search index [dir]
 codemap-search benchmark --queries <json> [--dir D]
 ```
+
+### Analyze the index and recent reading activity
+
+`codemap-search analyze index` inspects an existing committed index immediately. `codemap-search analyze reads` reports the last seven days of reading activity at execution time. Human-readable tables are the default. Activity recording starts after reconnecting MCP with the updated binary; reports are generated on demand.
+
+```sh
+codemap-search analyze index --sort size --limit 10
+codemap-search analyze index --path /path/to/repo --language rust --filter src/
+codemap-search analyze reads --sort bytes --limit 20
+codemap-search analyze reads --days 14 --tool search --filter src/
+codemap-search analyze reads --offset 20 --limit 20 --sort bytes
+codemap-search analyze reads --view summary --format json
+codemap-search analyze index --help
+codemap-search analyze reads --help
+```
+
+| Section | Output | Measurement |
+| --- | --- | --- |
+| Index footprint | Committed files, segments, deleted documents, disk size, stored JSON size, static call/reference sites | Existing Tantivy snapshot aggregated in an in-memory SQLite database |
+| Languages and symbols | Files, lines, symbols, exported symbols, literals and docstrings by language; test/documentation flags by symbol kind | Stored extraction metadata, which may differ from the full repository or current source |
+| Files and freshness | Largest stored records with path, size, lines, symbols, literals, largest literal and changed/missing/unavailable state | Current filesystem metadata for sizes and mtime comparison only; no source parsing or index refresh |
+| Current/previous window | Calls, errors, content responses, unique files, file reads, response/result volume and changes | Default: rolling 168 hours vs the preceding 168 hours; `n/a` when a baseline is absent |
+| Tool and daily activity | Calls, errors, content responses, files, reads, response share, average/maximum processing time by tool; UTC daily trends | Recorded `read`/`search`/`grep` calls; the first and last calendar dates may be partial |
+| Returned files | Path, latest recorded size, total/per-tool reads, result volume/share, active dates, last observation and repeat summary | One read per file per successful source-bearing response |
+
+Select the `index` or `reads` subcommand; there is no `--section` option. Default sorting is stored JSON size for index records and read count for activity, with 20 file rows. Each subcommand's `--help` includes examples and its valid options.
+
+| Option | Applies to | Behavior |
+| --- | --- | --- |
+| `--path DIR` | Both | Select the repository, its index configuration and usage database |
+| `--limit N`, `-n N` | Both | File rows per page; default 20, `0` for all |
+| `--offset N` | Both | Skip N file rows after filtering/sorting; follow the printed continuation |
+| `--sort KEY`, `-s KEY` | Both | Select a sort key listed for the subcommand above |
+| `--order asc\|desc` | Both | Default: ascending paths, descending other values |
+| `--filter TEXT`, `-f TEXT` | Both | Case-sensitive literal substring of paths, not a glob |
+| `--view summary\|files\|full` | Both | Totals/groups, totals/files, or all detailed tables; CLI default `full` |
+| `--format table\|json` | Both | Human tables or compact JSON with shared column names |
+| `--language NAME`, `-l NAME` | `index` | Filter by indexed language |
+| `--days N`, `-d N` | `reads` | Rolling 1–30 days; default 7 |
+| `--tool read\|search\|grep`, `-t NAME` | `reads` | Restrict to one tool |
+| `--no-compare` | `reads` | Omit the preceding equal-window comparison; windows above 15 days explicitly exceed 30-day retention |
+
+Totals cover all matching files, not just the displayed page. An activity path filter selects calls that returned a matching file: `Response` still measures the whole selected call, while `Results` includes only matching files. Errors without file observations do not match a path filter. Whole-index disk/segment metrics remain global when file filters are applied.
+
+MCP clients can call `analyze` directly, using the same aggregation for the server's current workspace:
+
+```json
+{"name":"analyze","arguments":{"target":"reads","sort":"bytes","limit":10}}
+```
+
+`target` is `index|reads`. Both accept `limit`, `offset`, `sort`, `order`, `filter` and `view`; index also accepts `language`, and reads accepts `days`, `tool` and `compare`. MCP defaults to `view=files`, 10 file rows, sorting index by `stored` and reads by `bytes`. Request `view=full` for additional breakdowns. `limit` is 1–100; continue with `page.next_offset`.
+
+Compact output uses a `summary` object and per-table `columns`/`rows` arrays, without decorative rules or alignment spaces. Keys identify byte/time units; numbers and `null` remain typed, and short interpretation notes appear once. Output stays within 8 KiB or a smaller `output.max_bytes`, trimming whole rows and marking `truncated`/`omitted_tables` while retaining totals and continuation. Sensitive strings are masked before JSON serialization. Analysis calls do not add their own usage observations.
+
+`Reads` counts files with returned source rows or search excerpts. Path-only and declaration/relation-only responses and failed calls contribute to calls/response volume but not reads. `find`, `overview`, `analyze` and internal indexing reads are not recorded. Repeat counts mean responses after a file's first appearance; different ranges or revisions may be involved, so they are not evidence of wasted tokens.
+
+`File size` is the latest disk size recorded within the window; unknown sizes are `?` and excluded from totals. `Results` measures UTF-8 bytes in each formatted source/excerpt result block before masking, including row/path prefixes and local notices. `Response` measures final masked content text or error messages, including declarations, relations and headers but excluding JSON framing. Timing measures server request processing, excluding SQLite recording and client/network time. Client truncation and actual model consumption are unobservable; these are not token counts or physical disk reads.
+
+Calls and file observations are stored in `.codemap/analysis.sqlite3`, without queries, source or response contents. **Retention is fixed at 30 days and cannot be extended.** Expired calls and their file observations are deleted together at MCP startup, recording, analysis, and every minute while MCP runs. If MCP is stopped, expired rows are removed at the next startup or analysis. `secure_delete` and a deleted rollback journal avoid retaining deleted rows in database free pages or a persistent WAL. This applies to the managed database, not separate backups.
+
+`codemap-search mcp --no-call-log` disables new recording while retaining cleanup of existing records. Recording/cleanup failures warn on stderr without failing MCP responses and retry on subsequent activity. The analysis command reports database access failures as errors. Gaps cannot be reconstructed, and week comparisons do not guarantee continuous collection. Earlier JSONL journals are not imported; the `--log` option is no longer used.
 
 ## Development validation
 

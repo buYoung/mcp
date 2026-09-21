@@ -530,10 +530,9 @@ impl TantivySearchEngine {
                 Path::new(&self.index_path).join("event-navigation-config"),
             )
             .ok();
-            self.macro_config_stamp = std::fs::read_to_string(
-                Path::new(&self.index_path).join("macro-expansion-config"),
-            )
-            .ok();
+            self.macro_config_stamp =
+                std::fs::read_to_string(Path::new(&self.index_path).join("macro-expansion-config"))
+                    .ok();
         }
         Ok(())
     }

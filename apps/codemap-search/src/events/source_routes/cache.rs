@@ -13,7 +13,9 @@ struct CacheBuffer(Vec<u8>);
 impl Write for CacheBuffer {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         if bytes.len() > CACHE_BYTE_CAP.saturating_sub(self.0.len()) {
-            return Err(std::io::Error::other("source route snapshot exceeds cache byte cap"));
+            return Err(std::io::Error::other(
+                "source route snapshot exceeds cache byte cap",
+            ));
         }
         self.0.extend_from_slice(bytes);
         Ok(bytes.len())
@@ -52,10 +54,7 @@ impl SnapshotCache {
             .read_to_end(&mut bytes)
             .ok()?;
         // Two fixed-length hashes precede the JSON: input identity, then payload checksum.
-        if bytes.len() < 64
-            || bytes.len() > CACHE_BYTE_CAP
-            || bytes[..32] != *self.key.as_bytes()
-        {
+        if bytes.len() < 64 || bytes.len() > CACHE_BYTE_CAP || bytes[..32] != *self.key.as_bytes() {
             return None;
         }
         if bytes[32..64] != *blake3::hash(&bytes[64..]).as_bytes() {

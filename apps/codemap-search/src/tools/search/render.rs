@@ -779,7 +779,7 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n")) {
+                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
                     return AnchoredRenderOutcome {
                         budget_hit: true,
                         emitted_starts,
@@ -870,8 +870,9 @@ pub(super) fn render_anchored_symbols(
                 let request = serde_json::json!({"file_path":file_path,"offset":next,"limit":end.saturating_sub(next).saturating_add(1).min(snippet_max_lines.max(1)),"view":"source"});
                 source_block.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
             }
+            let source_offset = source_block.len() + "```\n".len();
             source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block) {
+            if !text.push_source(&source_block, Some(source_offset)) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,

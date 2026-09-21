@@ -306,7 +306,10 @@ pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Pat
 }
 
 fn normalize_table(layer: &mut ConfigLayer, section: &str, value: &toml::Value, path: &Path) {
-    if super::exclude::SECTIONS.iter().any(|(name, _)| *name == section) {
+    if super::exclude::SECTIONS
+        .iter()
+        .any(|(name, _)| *name == section)
+    {
         super::exclude::normalize_section(layer, section, value, path);
         return;
     }
@@ -449,8 +452,14 @@ fn move_exclusions(document: &mut DocumentMut, original: &DocumentMut) -> Result
             }
         }
     }
-    if let Some(source) = document.get_mut("exclude").and_then(Item::as_table_like_mut) {
-        for &key in super::exclude::WORKSPACE_KEYS.iter().chain(super::exclude::TEST_KEYS) {
+    if let Some(source) = document
+        .get_mut("exclude")
+        .and_then(Item::as_table_like_mut)
+    {
+        for &key in super::exclude::WORKSPACE_KEYS
+            .iter()
+            .chain(super::exclude::TEST_KEYS)
+        {
             source.remove(key);
         }
     }
@@ -585,7 +594,8 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
     }
     // Keep the existing key path while displaying shared output exclusions last.
     if path == "output" {
-        if let Some(exclude) = table.get_mut("context")
+        if let Some(exclude) = table
+            .get_mut("context")
             .and_then(Item::as_table_mut)
             .and_then(|context| context.get_mut("exclude"))
             .and_then(Item::as_table_mut)

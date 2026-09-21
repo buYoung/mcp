@@ -481,9 +481,9 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
             loop {
                 let should_retry = pending.is_some();
                 let command = if let Some(pending_command) = pending.take() {
-                    let command = match receiver.recv_timeout(std::time::Duration::from_millis(
-                        INDEXER_RETRY_DELAY_MS,
-                    )) {
+                    let command = match receiver
+                        .recv_timeout(std::time::Duration::from_millis(INDEXER_RETRY_DELAY_MS))
+                    {
                         Ok(command) => pending_command.merge(command),
                         Err(RecvTimeoutError::Timeout) => pending_command,
                         Err(RecvTimeoutError::Disconnected) => break,

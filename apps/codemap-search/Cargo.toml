@@ -84,6 +84,8 @@ tantivy = "0.26"
 # JSON-RPC / Serialization for MCP and state persistence
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# Local usage analytics with fixed retention; bundle SQLite for standalone installs.
+rusqlite = { version = "0.39", features = ["bundled"] }
 # Verify indexed declaration evidence without retaining another copy of every source file.
 blake3 = "1.8.7"
 # PII checksum/date validation; no Presidio or Python runtime is required.

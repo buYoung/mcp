@@ -1,7 +1,7 @@
 //! Relocate TOML comments without reading or rewriting string values as comments.
 
-use toml_edit::{Decor, DocumentMut, Item, Key, Table};
 use std::collections::BTreeMap;
+use toml_edit::{Decor, DocumentMut, Item, Key, Table};
 
 use super::{table_at_mut, SECTION_ALIASES, SECTION_MOVES, SETTINGS};
 
@@ -16,7 +16,8 @@ fn canonical_section(section: &str) -> Option<String> {
             return Some(format!("{target}.{suffix}"));
         }
     }
-    if let Some(suffix) = section.strip_prefix("exclude.test_")
+    if let Some(suffix) = section
+        .strip_prefix("exclude.test_")
         .or_else(|| section.strip_prefix("caller_context.test_"))
     {
         return Some(format!("output.context.exclude.test_{suffix}"));
@@ -45,7 +46,9 @@ fn destination(section: &str, key: &str) -> Option<(String, String)> {
         return Some((setting.section.into(), setting.key.into()));
     }
     let target = canonical_section(section)?;
-    if SETTINGS.iter().any(|setting| setting.section == target && setting.key == key)
+    if SETTINGS
+        .iter()
+        .any(|setting| setting.section == target && setting.key == key)
         || SECTION_MOVES.iter().any(|(_, section)| target == *section)
         || target.starts_with("output.context.exclude.test_")
     {
@@ -71,8 +74,10 @@ fn assignment(line: &str) -> Option<&str> {
     let (key, _) = comment_body(line)?.split_once('=')?;
     let key = key.trim();
     (!key.is_empty()
-        && key.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'_'))
-        .then_some(key)
+        && key
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_'))
+    .then_some(key)
 }
 
 fn deliver(
@@ -85,11 +90,16 @@ fn deliver(
     if target == section {
         kept.push_str(pending);
     } else if !pending.trim().is_empty() {
-        let text = pending.lines().map(|line| {
-            header(line).map_or_else(|| line.to_string(), |(legacy, _)| {
-                line.replacen(legacy, target, 1)
+        let text = pending
+            .lines()
+            .map(|line| {
+                header(line).map_or_else(
+                    || line.to_string(),
+                    |(legacy, _)| line.replacen(legacy, target, 1),
+                )
             })
-        }).collect::<Vec<_>>().join("\n");
+            .collect::<Vec<_>>()
+            .join("\n");
         moved.push((target.into(), text));
     }
     pending.clear();
@@ -97,7 +107,12 @@ fn deliver(
 
 /// Recognized inactive assignments carry their preceding explanation. Incomplete
 /// examples and comments whose destination is unknown stay where they were.
-fn split_examples(text: &str, section: &str, example_scope: &str, moved: &mut Relocations) -> String {
+fn split_examples(
+    text: &str,
+    section: &str,
+    example_scope: &str,
+    moved: &mut Relocations,
+) -> String {
     let lines: Vec<_> = text.split_inclusive('\n').collect();
     let mut kept = String::new();
     let mut pending = String::new();
@@ -118,7 +133,9 @@ fn split_examples(text: &str, section: &str, example_scope: &str, moved: &mut Re
                 let mut end = index + 1;
                 let mut example = comment_body(line).unwrap().to_string();
                 while toml::from_str::<toml::Value>(&example).is_err() && end < lines.len() {
-                    let Some(body) = comment_body(lines[end]) else { break };
+                    let Some(body) = comment_body(lines[end]) else {
+                        break;
+                    };
                     example.push('\n');
                     example.push_str(body);
                     end += 1;
@@ -138,7 +155,11 @@ fn split_examples(text: &str, section: &str, example_scope: &str, moved: &mut Re
         pending.push_str(line);
         index += 1;
     }
-    let target = if has_pending_header { scope.as_str() } else { section };
+    let target = if has_pending_header {
+        scope.as_str()
+    } else {
+        section
+    };
     deliver(&mut pending, section, target, &mut kept, moved);
     kept
 }
@@ -148,7 +169,11 @@ fn append(document: &mut DocumentMut, section: &str, text: &str) -> Result<(), S
         return Ok(());
     }
     let table = table_at_mut(document.as_table_mut(), section)?;
-    let existing = table.decor().suffix().and_then(|raw| raw.as_str()).unwrap_or("");
+    let existing = table
+        .decor()
+        .suffix()
+        .and_then(|raw| raw.as_str())
+        .unwrap_or("");
     let suffix = format!("{existing}\n{}\n", text.trim_matches(['\r', '\n']));
     table.decor_mut().set_suffix(suffix);
     Ok(())
@@ -171,7 +196,11 @@ pub(super) fn move_section(
         key.leaf_decor().suffix(),
         decor.and_then(Decor::prefix),
         decor.and_then(Decor::suffix),
-    ].into_iter().flatten().filter_map(|raw| raw.as_str()) {
+    ]
+    .into_iter()
+    .flatten()
+    .filter_map(|raw| raw.as_str())
+    {
         let remaining = split_examples(raw, target, target, &mut moved);
         append(document, target, &remaining)?;
     }
@@ -197,7 +226,11 @@ fn collect_order(table: &Table, section: &str, order: &mut Vec<(isize, String)>)
         order.push((position, section.into()));
     }
     for (name, item) in table.iter() {
-        let path = if section.is_empty() { name.into() } else { format!("{section}.{name}") };
+        let path = if section.is_empty() {
+            name.into()
+        } else {
+            format!("{section}.{name}")
+        };
         match item {
             Item::Table(child) => collect_order(child, &path, order),
             Item::ArrayOfTables(children) => {
@@ -212,7 +245,12 @@ fn collect_order(table: &Table, section: &str, order: &mut Vec<(isize, String)>)
     }
 }
 
-fn walk(table: &mut Table, section: &str, previous: &BTreeMap<String, String>, moved: &mut Relocations) {
+fn walk(
+    table: &mut Table,
+    section: &str,
+    previous: &BTreeMap<String, String>,
+    moved: &mut Relocations,
+) {
     // TOML attaches comments before a header to that header. An inactive setting
     // there still belongs to the preceding section, even if headers are reordered.
     let prefix_scope = previous.get(section).map(String::as_str).unwrap_or(section);
@@ -246,7 +284,12 @@ pub(super) fn relocate_examples(document: &mut DocumentMut) -> Result<(), String
         last = section;
     }
     walk(document.as_table_mut(), "", &previous, &mut moved);
-    let trailing = split_examples(document.trailing().as_str().unwrap_or(""), "", &last, &mut moved);
+    let trailing = split_examples(
+        document.trailing().as_str().unwrap_or(""),
+        "",
+        &last,
+        &mut moved,
+    );
     document.set_trailing(trailing);
     for (section, text) in moved {
         append(document, &section, &text)?;

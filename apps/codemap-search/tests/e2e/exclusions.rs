@@ -348,7 +348,9 @@ async fn test_exclusions_pre_v6_transition_and_opt_out() {
         assert!(updated.contains("# keep"));
         assert!(updated.contains("# custom rule"));
         let value: toml::Value = toml::from_str(&updated).unwrap();
-        let patterns = value["index"]["exclude"]["excluded_directories"].as_array().unwrap();
+        let patterns = value["index"]["exclude"]["excluded_directories"]
+            .as_array()
+            .unwrap();
         for expected in ["custom", "node_modules", ".idea", "**/node_modules"] {
             assert!(
                 patterns.iter().any(|p| p.as_str() == Some(expected)),

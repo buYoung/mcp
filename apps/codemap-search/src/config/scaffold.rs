@@ -199,7 +199,10 @@ fn without_exclusions(mut value: toml::Value) -> toml::Value {
             if let Some(settings) = table.get_mut(section).and_then(toml::Value::as_table_mut) {
                 settings.remove("excluded_directories");
                 if section == "index" {
-                    if let Some(exclude) = settings.get_mut("exclude").and_then(toml::Value::as_table_mut) {
+                    if let Some(exclude) = settings
+                        .get_mut("exclude")
+                        .and_then(toml::Value::as_table_mut)
+                    {
                         exclude.remove("excluded_directories");
                         if exclude.is_empty() {
                             settings.remove("exclude");
