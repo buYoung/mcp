@@ -1,0 +1,23 @@
+[package]
+name = "regex-re2-poc"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Match the application's lockfile, including the embedded ripgrep baseline.
+regex = "=1.13.1"
+fancy-regex = "=0.19.2"
+grep-regex = "=0.1.14"
+grep-matcher = "=0.1.9"
+grep-searcher = "=0.1.17"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "=1.0.151"
+# Already used by grep-searcher; measure CPU time separately from preemption.
+libc = "=0.2.189"
+
+[profile.release]
+opt-level = 3
+strip = "none"

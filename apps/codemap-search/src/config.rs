@@ -100,8 +100,9 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// [`ensure_repo_config`] to decide whether an existing file needs an incremental sync. Bump
 /// this whenever the templates grow a key, and add the matching [`MIGRATIONS`] entry so
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
-/// start. Comment-only localization does not bump this version.
-const CONFIG_VERSION: u32 = 22;
+/// start. Wording changes alone do not bump this version; a one-time cleanup of existing
+/// generated comments does, so it runs once without rewriting current user files.
+const CONFIG_VERSION: u32 = 23;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -115,8 +116,8 @@ const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
 /// English scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
-/// and each commonly edited key is live at its default except optional response/client limits and
-/// advanced analysis overrides. Project-discovered exclusions are explicit; repo values override a
+/// and settings with concrete built-in defaults are active. Optional common/grep/client limits,
+/// compilation database paths and target-clearing examples stay commented. Repo values override a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
 /// key, update every config template, bump [`CONFIG_VERSION`], and add localized commented
@@ -1348,41 +1349,6 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
-        version: 22,
-        key: "output_exclude_order",
-        placement: KeyPlacement::TopLevel,
-        english_block: "# Schema v22 displays output.context.exclude last in output; keys and behavior are unchanged.",
-        korean_block: "# 설정 v22는 output.context.exclude를 output 묶음의 맨 아래에 표시하며 키와 동작은 유지합니다.",
-    },
-    Migration {
-        version: 21,
-        key: "comment_relocation",
-        placement: KeyPlacement::TopLevel,
-        english_block: "# Schema v21 keeps section notes and inactive setting examples beside their relocated settings.",
-        korean_block: "# 설정 v21은 섹션 설명과 비활성 설정 예시를 이동한 설정 옆에 배치합니다.",
-    },
-    Migration {
-        version: 20,
-        key: "exclude",
-        placement: KeyPlacement::TopLevel,
-        english_block: "# Schema v20 moves shared directory rules to index.exclude and test-context rules to output.context.exclude; behavior is unchanged.",
-        korean_block: "# 설정 v20은 공통 디렉터리 규칙을 index.exclude, 테스트 문맥 규칙을 output.context.exclude로 옮기며 적용 범위를 유지합니다.",
-    },
-    Migration {
-        version: 19,
-        key: "navigation",
-        placement: KeyPlacement::TopLevel,
-        english_block: "# Schema v19 groups navigation, macro expansion and event navigation under output.",
-        korean_block: "# 설정 v19는 navigation, macro_expansion, event_navigation을 output 아래로 모읍니다.",
-    },
-    Migration {
-        version: 18,
-        key: "output",
-        placement: KeyPlacement::TopLevel,
-        english_block: "# Schema v18 groups settings under output/index/analysis without changing configured values.",
-        korean_block: "# 설정 v18은 지정한 값을 유지하며 output/index/analysis 아래로 항목을 모읍니다.",
-    },
-    Migration {
         version: 17,
         key: "is_overview_stats_enabled",
         placement: KeyPlacement::Subtable("tool_output"),
@@ -1395,8 +1361,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 16,
         key: "pii_entities",
         placement: KeyPlacement::Subtable("redact"),
-        english_block: "# Opt-in PII entity types, e.g. [\"CREDIT_CARD\", \"EMAIL_ADDRESS\"]. Empty keeps credential-only masking.\n# pii_entities = []",
-        korean_block: "# 선택 활성화할 PII 종류입니다. 예: [\"CREDIT_CARD\", \"EMAIL_ADDRESS\"]. 비어 있으면 인증정보만 가립니다.\n# pii_entities = []",
+        english_block: "# Additional personal-data types, e.g. [\"EMAIL_ADDRESS\", \"CREDIT_CARD\"].\n# [] disables these types; built-in credential rules and custom rules still apply.\n# pii_entities = []",
+        korean_block: "# 추가로 가릴 개인정보 유형입니다. 예: [\"EMAIL_ADDRESS\", \"CREDIT_CARD\"].\n# []이면 이 개인정보 탐지를 끄며 내장 인증정보 규칙과 사용자 규칙은 계속 적용합니다.\n# pii_entities = []",
     },
     Migration {
         version: 15,
@@ -1430,8 +1396,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 13,
         key: "use_builtin_rules",
         placement: KeyPlacement::Subtable("event_navigation"),
-        english_block: "# Event analysis and relevant navigation output are enabled by default.\n# Set is_enabled to false only to disable event analysis; explicit values are preserved.\n# use_builtin_rules = true",
-        korean_block: "# 이벤트 분석과 관련 탐색 결과를 기본으로 제공합니다.\n# 이벤트 분석을 끌 때만 is_enabled를 false로 설정하세요. 명시한 값은 유지됩니다.\n# use_builtin_rules = true",
+        english_block: "# Use built-in event API rules. Custom rules still apply when false.\n# use_builtin_rules = true",
+        korean_block: "# 내장 이벤트 API 규칙을 사용합니다. false여도 사용자 규칙은 적용합니다.\n# use_builtin_rules = true",
     },
     Migration {
         version: 12,
@@ -1444,8 +1410,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 11,
         key: "target_os",
         placement: KeyPlacement::Subtable("analysis"),
-        english_block: "# Explicit Rust target OS. Empty means unknown; never uses the host OS.\n# target_os = \"\"",
-        korean_block: "# Rust 분석 대상 OS. 빈 값은 미지정이며 실행 컴퓨터의 OS를 추정하지 않습니다.\n# target_os = \"\"",
+        english_block: "# Rust analysis target OS. Omit to inherit; \"\" clears an inherited target.\n# target_os = \"\"",
+        korean_block: "# Rust 분석 대상 OS입니다. 생략하면 상속하고 \"\"는 상속한 대상을 해제합니다.\n# target_os = \"\"",
     },
     Migration {
         version: 10,
@@ -1573,7 +1539,8 @@ fn version_marker_line(version: u32) -> String {
 /// than crashing the server. The path matches exactly what [`load`] reads. Incrementally added
 /// keys are still commented; v6 materializes directory exclusions once. v8/v9 relocate
 /// test-code and workspace exclusions into `[exclude]` without changing effective values.
-/// v18 groups output/index/analysis settings and checks each configured value before writing.
+/// v18 groups output/index/analysis settings; v23 refreshes generated comments. Both preserve
+/// configured values, inactive settings and inheritance.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1674,7 +1641,7 @@ fn migrate_existing(path: &Path, existing: &str) {
             }
         };
     }
-    if file_version < 22 {
+    if file_version < 23 {
         updated = match layout::migrate(&updated, path) {
             Ok(updated) => updated,
             Err(error) => {

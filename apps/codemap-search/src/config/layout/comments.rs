@@ -37,6 +37,15 @@ fn canonical_section(section: &str) -> Option<String> {
 }
 
 fn destination(section: &str, key: &str) -> Option<(String, String)> {
+    // Older migrations could attach the analysis example to the preceding macro section.
+    if key == "target_os"
+        && matches!(
+            section,
+            "analysis" | "macro_expansion" | "analysis.macro_expansion" | "output.macro_expansion"
+        )
+    {
+        return Some(("analysis".into(), key.into()));
+    }
     for &(target, keys) in super::super::exclude::SECTIONS {
         if keys.contains(&key) {
             return Some((target.into(), key.into()));

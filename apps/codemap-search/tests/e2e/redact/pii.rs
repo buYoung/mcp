@@ -158,6 +158,7 @@ async fn test_all_pii_types_preserve_mcp_negotiation() {
     assert_eq!(
         names,
         [
+            "analyze",
             "find",
             "grep",
             "initial_instructions",

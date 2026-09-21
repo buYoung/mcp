@@ -1,0 +1,206 @@
+# "allowed_roots" 정책인 도구의 외부 루트입니다. 항목은 비어 있지 않은 문자열이어야 합니다.
+# "anywhere" (any path reachable by the process). Prefer allowed_roots for specific external trees.
+# "anywhere"는 프로세스가 접근 가능한 모든 경로입니다. 특정 외부 트리에는 allowed_roots를 사용하세요.
+# "apps/web/build" and "apps/api/**/__pycache__" are workspace-relative paths/globs.
+# "apps/web/build", "apps/api/**/__pycache__"는 작업공간 기준 상대 경로·glob입니다.
+# "build" and "**/build" match at any depth; "./build" matches only at the workspace root.
+# A configured list replaces inherited exceptions; [] clears them.
+# A configured list replaces the inherited custom list; built-in fields remain enabled.
+# A configured list replaces the inherited custom rules; [] clears them.
+# A uniquely confirmed target is marked precise; false uses approximate name matching.
+# Absolute paths and .. are invalid. [] clears optional rules; omitting the key inherits global/default rules.
+# Additional MCP output redaction rules; built-in rules remain enabled.
+# Additional sensitive field names. Names are normalized for case/separators and matched exactly.
+# Analysis runs without this section. An omitted/empty Rust target stays unknown; never uses the host OS.
+# Apply the built-in event API rules. Default true. Custom rules remain available when false.
+# Byte sizes also accept quoted b/kb/mb/gb units (case-insensitive, powers of 1024), e.g. "50mb".
+# C/C++/ASM 파일은 설치된 Clang/NASM을 자동으로 사용합니다. 실패하면 원문 선언과 사유를 표시합니다.
+# Call-relationship output size limit in bytes within `search_detail_byte_cap`.
+# Caller/callee result display.
+# Changing preprocessing settings requests a full index refresh.
+# Check source structure, imports, and local bindings to identify call targets.
+# Clang executable name or path. Omitted uses clang from PATH.
+# Clang 실행 파일 이름 또는 경로입니다. 생략하면 PATH의 clang을 사용합니다.
+# Claude characters (maximum 500000); reconnect MCP after changing.
+# Claude 문자 한도(최대 500000). 변경 후 MCP를 재연결하세요.
+# Client character/token budgets and preprocessor output limits are independent.
+# Complete optional directory rules for indexing, codemap, caller scans, and find/grep.
+# Create missing `.codemap/config.toml` on MCP startup and add new settings as comments.
+# Direct read does not apply these rules; its filesystem permission policy still applies.
+# Each rule needs an exact API selector and explicit event-argument/bus information; see the reference.
+# Enable indexed event routes and related navigation output. Default true.
+# Event analysis and relevant navigation output are enabled by default.
+# Exact exceptions containing rule_id and value; both must match. No path-wide bypass.
+# Existing components, including symlinks, resolve to real paths; nonexistent suffixes are retained.
+# Expanded callable bodies are paginated; oversized unexpanded responses request narrower results.
+# Explicit Rust target OS. Empty means unknown; never uses the host OS.
+# Export with codemap-search codex-config; apply the fragment in Codex.
+# External roots for tools set to "allowed_roots"; entries must be non-empty strings.
+# Extra Clang arguments appended after build settings. Lists replace inherited lists.
+# Extra NASM arguments appended after build settings. Lists replace inherited lists.
+# False disables event and source-route analysis; include_events=false suppresses one request's output.
+# False disables native preprocessing; failed expansion retains source declarations with a notice.
+# Filesystem policy for grep. The allowed policy values are described above.
+# Filesystem policy for read. The allowed policy values are described above.
+# If false or watching is unavailable, search/overview request refreshes using `index_staleness_ms`.
+# Ignore files apply independently. Initial creation adds recursive globs such as "**/node_modules" once per pattern.
+# Include test regions in automatic symbols and caller/callee context; live source is unchanged.
+# Index directory: an absolute path or a path relative to the workspace root.
+# Indexed event routes are enabled by default; related navigation output is automatic.
+# Initial exclusions use common folders and recursive globs for detected project types; other values are built-in defaults.
+# Invalid values warn on stderr and inherit a lower-priority value. Malformed TOML discards that file's layer.
+# MCP watches config directories present at startup and reloads after about 1000ms.
+# MCP 시작 시 누락된 `.codemap/config.toml`을 만들고 새 설정은 주석으로 추가합니다.
+# MCP 응답에서 탐지된 API 키·토큰·비밀번호·비밀키를 가립니다.
+# MCP 출력의 추가 마스킹 규칙. 내장 규칙은 유지됩니다.
+# MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 다시 읽습니다.
+# Manual changes request a full index refresh after settings reload.
+# Mask detected API keys, tokens, passwords and private keys in MCP responses.
+# Matching and local files/indexes keep original data. false disables output masking.
+# Maximum preprocessed text or NASM listing size, in bytes. Default 8 MiB.
+# NASM executable name or path. Omitted uses nasm from PATH.
+# NASM preprocessing and listing generation are separate process invocations.
+# NASM 실행 파일 이름 또는 경로입니다. 생략하면 PATH의 nasm을 사용합니다.
+# NASM 전처리와 확장 목록 생성은 각각 별도 프로세스로 실행됩니다.
+# Native files automatically use installed Clang/NASM; failures retain source declarations with a notice.
+# No configured limits: search 1 MiB; read and expanded grep 5 MiB.
+# Number of top-ranked files shown with details before the compact list.
+# Numeric settings require positive integers; grep_max_columns also accepts 0.
+# Numeric settings require positive integers; output.grep.max_columns also accepts 0.
+# Omitted sends no override. Applies to codemap-search tool metadata only.
+# Opt-in PII entity types, e.g. ["CREDIT_CARD", "EMAIL_ADDRESS"]. Empty keeps credential-only masking.
+# Opt-in PII entity types; [] keeps credential-only masking.
+# Optional Clang/NASM preprocessing. See docs/configuration.md.
+# Optional Claude Code text-result limit, in characters: positive integer, maximum 500000.
+# Optional Codex per-tool output budget, in tokens; positive integer. Omitted leaves client defaults.
+# Optional common MCP response ceiling; omitted keeps existing tool defaults.
+# Optional compile_commands.json file/directory or compile_flags.txt path.
+# Optional custom event API rules. A configured list replaces the inherited list; [] clears it.
+# Optional grep response ceiling, in bytes; overrides the same-layer common output.max_bytes.
+# Optional override; omitted inherits output.max_bytes, then the 1 MiB tool default.
+# Optional override; omitted inherits output.max_bytes, then the 5 MiB tool default.
+# Optional shared ceiling for MCP response text, in bytes.
+# Oversized output returns an error suggesting a narrower offset/limit.
+# Oversized reads return a narrowing error; expanded grep reports oversized bodies or pagination.
+# Per-key precedence: repo > global > built-in default. Delete or comment out a key to inherit it.
+# Policies for find/grep/read: "workspace" (workspace only), "allowed_roots" (workspace plus listed roots),
+# Pre-v6 configs migrate once. From version 6 onward, edit this array manually when new rules are needed.
+# Pre-v6 exclusion arrays migrate once; version 6 and later arrays remain user-managed.
+# Read and callable-expanded grep response limit, including line numbers and context.
+# Read response size limit in bytes, including line numbers and context.
+# Reconnect MCP after changes so Claude reloads tools/list. The value below is an inactive example.
+# Relative paths start at the workspace root. Omitted searches source parents up to that root.
+# Relative paths start at the workspace root; absolute paths are allowed.
+# Repository and monorepo project root overviews include indexed-file language statistics.
+# Restart if a config directory was absent or watching could not start.
+# Root overview includes indexed-file language statistics by default. Set false to omit them.
+# Run codemap-search codex-config and merge the printed fragment into Codex settings.
+# Rust 분석 대상 OS. 빈 값은 미지정이며 실행 컴퓨터의 OS를 추정하지 않습니다.
+# Same-layer per-tool max_bytes values override it. Omit it to retain existing defaults.
+# Schema v18 groups settings under output/index/analysis without changing configured values.
+# Schema v19 groups navigation, macro expansion and event navigation under output.
+# Schema v20 moves shared directory rules to index.exclude and test-context rules to output.context.exclude; behavior is unchanged.
+# Schema v21 keeps section notes and inactive setting examples beside their relocated settings.
+# Schema v22 displays output.context.exclude last in output; keys and behavior are unchanged.
+# Search response size limit in bytes, including the partial-output notice.
+# Set is_enabled to false only to disable event analysis; explicit values are preserved.
+# Set is_enabled to false to disable event analysis.
+# Shared directory rules for indexing, overview, search, caller scans, and find/grep.
+# Show caller/callee context by default in search. The per-call `caller_context` argument wins.
+# Source-based navigation and caller scanning budgets.
+# The default stores the index under `.codemap/`. Restart after changing it.
+# The value below is an inactive example; the server never rewrites client configuration.
+# This bounds analysis intermediates, not MCP response text; output.max_bytes does not override it.
+# This does not change functions.exec aggregate output or the global history limit.
+# This section is optional. Set is_enabled=false to disable native processes.
+# Timeout for each native process, in milliseconds. Default 5000.
+# Use installed Clang/NASM for supported C/C++/ASM files. Default true.
+# When grep/common is unset in a layer, expanded bodies inherit that layer's read ceiling.
+# codemap-search codex-config로 출력한 설정 조각을 Codex에 적용하세요.
+# codemap-search codex-config로 출력한 조각을 Codex 설정에 병합해야 적용됩니다.
+# false disables automatic writes, including migration, but settings are still read and watched.
+# false omits the statistics section.
+# false이면 외부 전처리를 끄며, 확장 실패 시에는 원문 선언과 미해결 사유를 유지합니다.
+# false이면 이벤트·소스 경로 분석을 끕니다. 요청별 include_events=false는 해당 출력만 생략합니다.
+# false이면 전환을 포함한 자동 작성을 끄지만 설정 읽기와 감시는 계속합니다.
+# false이면 통계 섹션을 출력하지 않습니다.
+# find/grep include_ignored=true bypasses optional rules. VCS internals, .codemap, .codemap-index, and the actual index directory remain excluded.
+# find/grep/read 정책: "workspace"는 작업공간만, "allowed_roots"는 작업공간과 지정 루트,
+# find/grep의 include_ignored=true는 선택적 규칙을 우회합니다. 버전 관리 내부 폴더, .codemap, .codemap-index, 실제 색인 경로는 항상 제외합니다.
+# functions.exec의 묶음 출력 한도나 전역 기록 한도는 변경하지 않습니다.
+# grep의 파일시스템 접근 정책입니다. 허용 값의 의미는 위 설명과 같습니다.
+# read 초과는 더 좁은 범위를 안내하는 오류를 반환하며, 확장된 grep은 본문 초과 또는 페이지 분할을 안내합니다.
+# read의 파일시스템 접근 정책입니다. 허용 값의 의미는 위 설명과 같습니다.
+# rule_id와 value가 모두 일치하는 정확한 예외입니다. 경로 전체를 예외 처리하지 않습니다.
+# 같은 계층의 도구별 max_bytes가 우선하며, 생략하면 기존 기본값을 유지합니다.
+# 검색 일치와 로컬 파일·인덱스는 원문을 유지합니다. false로 설정하면 마스킹을 끕니다.
+# 검색에서 호출자·호출 대상 정보를 기본 표시합니다. 호출별 `caller_context` 인자가 우선합니다.
+# 기본값은 `.codemap/` 안에 저장합니다. 변경 후 서버를 재시작하세요.
+# 내장 이벤트 API 규칙을 적용합니다. 기본값은 true이며 false여도 사용자 규칙은 사용할 수 있습니다.
+# 단일 대상을 확인하면 precise로 표시합니다. false이면 이름 기반 추정만 사용합니다.
+# 목록은 상속한 사용자 규칙을 대체하며 []로 비울 수 있습니다.
+# 목록은 상속한 사용자 목록을 대체하며 내장 필드 규칙은 유지합니다.
+# 목록은 상속한 예외를 대체하며 []로 비울 수 있습니다.
+# 무시 파일은 별도로 적용합니다. 최초 생성 시 "**/node_modules" 같은 재귀 glob을 중복 없이 추가합니다.
+# 바이트 크기는 "50mb"처럼 b/kb/mb/gb 단위 문자열도 허용합니다. 대소문자를 구분하지 않으며 1024배 단위입니다.
+# 버전 6 이전은 한 번 전환합니다. 버전 6부터 새 규칙이 필요하면 이 배열을 직접 관리하세요.
+# 버전 6 이전의 제외 배열은 한 번 전환하며 버전 6부터는 직접 관리합니다.
+# 변경 후 MCP를 재연결해 tools/list를 다시 읽게 하세요. 아래 값은 비활성 예시입니다.
+# 부분 출력 안내를 포함한 검색 응답 크기 제한입니다. 단위는 바이트입니다.
+# 분석 중간 자료의 한도이므로 MCP 응답의 output.max_bytes를 상속하지 않습니다.
+# 빌드 설정 뒤에 추가할 Clang 인자입니다. 목록을 지정하면 상속한 목록을 대체합니다.
+# 빌드 설정 뒤에 추가할 NASM 인자입니다. 목록을 지정하면 상속한 목록을 대체합니다.
+# 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다.
+# 상대 경로는 작업공간 루트 기준입니다. 생략하면 소스의 부모에서 루트까지 탐색합니다.
+# 상위 파일 중 상세 내용을 표시할 수입니다. 나머지는 간략 목록으로 표시합니다.
+# 색인 디렉터리입니다. 절대 경로나 작업공간 루트 기준 상대 경로를 사용합니다.
+# 색인·overview·search·호출자 탐색·find/grep이 공유하는 디렉터리 제외 규칙입니다.
+# 생략하면 재정의하지 않습니다. codemap-search의 도구 메타데이터에만 적용합니다.
+# 선택 활성화할 PII 종류입니다. []이면 인증정보만 가립니다.
+# 선택 활성화할 PII 종류입니다. 예: ["CREDIT_CARD", "EMAIL_ADDRESS"]. 비어 있으면 인증정보만 가립니다.
+# 선택적인 Claude Code 텍스트 결과 한도입니다. 단위는 문자 수이며 1~500000을 허용합니다.
+# 선택적인 Codex 도구별 출력 예산입니다. 단위는 토큰이며 양의 정수입니다. 생략하면 클라이언트 기본값을 유지합니다.
+# 선택적인 MCP 공통 응답 한도. 생략하면 기존 도구 기본값을 유지합니다.
+# 선택적인 MCP 응답 본문 공통 한도입니다. 단위는 바이트입니다.
+# 선택적인 compile_commands.json 파일·디렉터리 또는 compile_flags.txt 경로입니다.
+# 선택적인 grep 응답 한도입니다. 단위는 바이트이며 같은 계층의 공통 output.max_bytes보다 우선합니다.
+# 선택적인 사용자 이벤트 API 규칙입니다. 목록은 상속값을 대체하며 []는 목록을 비웁니다.
+# 선택적인 예외 한도입니다. 생략하면 output.max_bytes를 상속하고, 공통값도 없으면 1 MiB를 사용합니다.
+# 선택적인 예외 한도입니다. 생략하면 output.max_bytes를 상속하고, 공통값도 없으면 5 MiB를 사용합니다.
+# 설정 v18은 지정한 값을 유지하며 output/index/analysis 아래로 항목을 모읍니다.
+# 설정 v19는 navigation, macro_expansion, event_navigation을 output 아래로 모읍니다.
+# 설정 v20은 공통 디렉터리 규칙을 index.exclude, 테스트 문맥 규칙을 output.context.exclude로 옮기며 적용 범위를 유지합니다.
+# 설정 v21은 섹션 설명과 비활성 설정 예시를 이동한 설정 옆에 배치합니다.
+# 설정 v22는 output.context.exclude를 output 묶음의 맨 아래에 표시하며 키와 동작은 유지합니다.
+# 설정 디렉터리가 없었거나 감시를 시작하지 못했다면 재시작하세요.
+# 소스 구조·import·지역 변수 연결로 어떤 함수를 호출하는지 확인합니다.
+# 소스 구조에 따른 탐색과 호출자 검색 예산입니다.
+# 수동 변경은 설정을 다시 읽은 뒤 전체 색인 갱신을 요청합니다.
+# 아래 값은 비활성 예시이며 서버가 클라이언트 설정 파일을 자동 수정하지 않습니다.
+# 외부 프로세스 한 번의 시간 제한입니다. 단위는 밀리초이며 기본값은 5000입니다.
+# 이 섹션 없이도 분석합니다. Rust 대상 OS를 생략하거나 빈 값으로 두면 미지정이며 호스트 OS를 사용하지 않습니다.
+# 이 섹션은 생략해도 됩니다. 외부 전처리기 실행을 끌 때만 is_enabled=false로 설정하세요.
+# 이벤트 관계 색인과 관련 탐색 출력을 사용합니다. 기본값은 true입니다.
+# 이벤트 관계 색인은 기본으로 켜져 있으며 관련 탐색 결과에 자동으로 표시됩니다.
+# 이벤트 분석과 관련 탐색 결과를 기본으로 제공합니다.
+# 이벤트 분석을 끌 때만 is_enabled를 false로 설정하세요.
+# 이벤트 분석을 끌 때만 is_enabled를 false로 설정하세요. 명시한 값은 유지됩니다.
+# 잘못된 값은 stderr 경고 후 낮은 우선순위 값으로 대체합니다. TOML 구문 오류는 해당 파일의 설정 전체를 무시합니다.
+# 저장소 및 모노레포 프로젝트 루트 overview에 색인 파일 언어 통계를 포함합니다.
+# 전처리 결과 또는 NASM 확장 목록의 최대 크기입니다. 단위는 바이트이며 기본값은 8 MiB입니다.
+# 전처리 설정을 변경하면 전체 색인 갱신을 요청합니다.
+# 절대 경로와 ..은 허용하지 않습니다. []는 선택적 규칙 해제, 키 생략은 전역·기본값 상속입니다.
+# 정확한 API 선택자와 이벤트 인자·버스 정보가 필요합니다. 자세한 형식은 설정 문서를 참고하세요.
+# 존재하는 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고 아직 없는 뒷부분은 유지합니다.
+# 줄 번호와 문맥을 포함한 read 및 함수 본문으로 확장된 grep의 출력 크기 제한입니다.
+# 지원하는 C/C++/ASM 파일에 설치된 Clang/NASM을 사용합니다. 기본값은 true입니다.
+# 직접 read에는 적용하지 않으며 read는 파일시스템 접근 권한을 따릅니다.
+# 최초 제외 목록은 공통 폴더·감지한 프로젝트 종류의 재귀 glob을 사용하며 나머지는 내장 기본값입니다.
+# 추가 정규식 규칙입니다. 각 항목에는 고유한 custom.* id와 pattern이 필요합니다.
+# 추가로 가릴 민감 필드 이름입니다. 대소문자·구분자를 정규화한 뒤 정확히 일치해야 합니다.
+# 클라이언트의 문자·토큰 한도와 전처리 결과 한도는 별개입니다.
+# 키별 우선순위는 저장소 > 전역 > 내장 기본값입니다. 상속하려면 키를 삭제하거나 주석 처리하세요.
+# 한도를 전혀 지정하지 않으면 검색은 1 MiB, read와 확장 grep은 5 MiB입니다.
+# 해당 계층에 grep·공통 한도가 없으면 확장 본문은 그 계층의 read 한도를 상속합니다.
+# 호출자·호출 대상의 결과 표시 설정입니다.
+# 확장한 함수 본문은 페이지를 나누고, 확장하지 않은 응답이 초과하면 범위 축소를 요청합니다.
