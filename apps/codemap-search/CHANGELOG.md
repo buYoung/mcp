@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-21
+
+### Added
+
+- Added opt-in masking for 9 common PII types and 81 national identifier types across 18 countries.
+- Added `fd` file discovery and per-root `tokei` code statistics.
+- Added shared and per-tool output limits.
+- Added Codex configuration output.
+- Added CLI and MCP analytics for index status and read activity, with pagination and 30-day history with automatic cleanup.
+
+### Improved
+
+- Reduced repeated relationship analysis by reusing cached results and avoiding duplicate work across concurrent runs.
+- Reduced release archive size from 33.4MiB to 3.4MiB.
+
+### Fixed
+
+- Fixed reindexing that could expand beyond caller-specified paths.
+- Fixed index readiness and retries when multiple processes compete for the same index.
+- Fixed search output budgeting to preserve later results and flag partial output.
+
+### Changed
+
+- Reorganized output, indexing, and exclusion settings while preserving values, inheritance, comments, and support for legacy keys.
+
 ## [0.9.1] - 2026-09-17
 
 ### Added
