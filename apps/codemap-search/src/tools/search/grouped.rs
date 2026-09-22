@@ -3,6 +3,21 @@ use crate::declarations;
 use crate::parser::{ExtractedFile, ExtractedSymbol};
 use std::collections::BTreeSet;
 
+pub(super) struct BodyEvidence {
+    pub symbol: ExtractedSymbol,
+    pub displayed_body: String,
+    pub is_complete: bool,
+    pub displayed_context: String,
+}
+
+pub(super) struct SourceSegment {
+    /// Byte range relative to this file's results section.
+    pub span: std::ops::Range<usize>,
+    pub source_offset: Option<usize>,
+    pub source_len: usize,
+    pub body: Option<BodyEvidence>,
+}
+
 pub(super) struct Section {
     root: Option<ExtractedSymbol>,
     heading: String,
@@ -26,8 +41,11 @@ pub(super) struct FileOutput {
     cap: usize,
     pub budget_hit: bool,
     pub source_span: Option<std::ops::Range<usize>>,
+    pub primary_span: Option<std::ops::Range<usize>>,
+    is_partial_file: bool,
     first_result_source_offset: Option<usize>,
     pub first_source_byte: Option<usize>,
+    pub source_segments: Vec<SourceSegment>,
 }
 
 impl FileOutput {
@@ -52,8 +70,11 @@ impl FileOutput {
             cap,
             budget_hit: false,
             source_span: None,
+            primary_span: None,
+            is_partial_file: false,
             first_result_source_offset: None,
             first_source_byte: None,
+            source_segments: Vec::new(),
         }
     }
     pub fn len(&self) -> usize {
@@ -102,7 +123,36 @@ impl FileOutput {
                 .filter(|offset| *offset < text.len())
                 .map(|offset| self.results.len() + offset);
         }
+        let start = self.results.len();
         self.results.push_str(text);
+        self.source_segments.push(SourceSegment {
+            span: start..self.results.len(),
+            source_offset,
+            source_len: source_offset.map_or(0, |offset| text.len().saturating_sub(offset)),
+            body: None,
+        });
+        true
+    }
+    pub fn push_body(
+        &mut self,
+        text: &str,
+        source_offset: usize,
+        displayed_body: String,
+        symbol: &ExtractedSymbol,
+        is_complete: bool,
+    ) -> bool {
+        if !self.push_source(text, Some(source_offset)) {
+            return false;
+        }
+        if let Some(segment) = self.source_segments.last_mut() {
+            segment.source_len = displayed_body.len();
+            segment.body = Some(BodyEvidence {
+                symbol: symbol.clone(),
+                displayed_body,
+                is_complete,
+                displayed_context: String::new(),
+            });
+        }
         true
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
@@ -124,6 +174,13 @@ impl FileOutput {
             return false;
         }
         self.sections[index].text.push_str(&text);
+        if let Some(body) = self
+            .source_segments
+            .last_mut()
+            .and_then(|segment| segment.body.as_mut())
+        {
+            body.displayed_context.push_str(&text);
+        }
         true
     }
     pub fn start_symbol(&mut self, symbol: &ExtractedSymbol, source: Option<&str>) -> bool {
@@ -315,6 +372,8 @@ impl FileOutput {
         }
     }
     pub fn write_primary(&mut self, text: &mut String, is_partial_file: bool) {
+        let file_start = text.len();
+        self.is_partial_file = is_partial_file;
         text.push_str(&self.header);
         text.push_str(&self.metadata);
         for section in &mut self.sections {
@@ -331,6 +390,51 @@ impl FileOutput {
             // fits()/remaining_bytes() reserved the longer global cap footer, so
             // this local notice stays inside the file budget without hiding source.
             text.push_str("\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n");
+        }
+        self.primary_span = Some(file_start..text.len());
+    }
+
+    pub fn replace_body_segment(&mut self, segment_index: usize, replacement: &str) {
+        let span = self.source_segments[segment_index].span.clone();
+        self.results.replace_range(span, replacement);
+    }
+
+    /// Serialize the retained typed file once for the final response. The first
+    /// serialization was used only to select and budget evidence; this pass
+    /// uses the original file/declaration sections with filtered body segments.
+    pub fn rerender_primary(&mut self) -> String {
+        let original_start = self.primary_span.as_ref().map_or(0, |span| span.start);
+        let mut rendered = String::new();
+        self.write_primary(&mut rendered, self.is_partial_file);
+        for section in &mut self.sections {
+            section.insertion += original_start;
+        }
+        self.source_span = self
+            .source_span
+            .take()
+            .map(|span| (span.start + original_start)..(span.end + original_start));
+        self.first_source_byte = self.first_source_byte.map(|byte| byte + original_start);
+        self.primary_span = Some(original_start..original_start + rendered.len());
+        rendered
+    }
+
+    pub fn adjust_after_omissions(
+        &mut self,
+        replacements: &[(usize, usize, usize)],
+        omitted_ranges: &[(usize, usize)],
+    ) {
+        for section in &mut self.sections {
+            let removed_before = replacements
+                .iter()
+                .filter(|(start, _, _)| *start < section.insertion)
+                .map(|(start, end, replacement_len)| end - start - replacement_len)
+                .sum::<usize>();
+            section.insertion = section.insertion.saturating_sub(removed_before);
+            section.anchors.retain(|(_, start, end)| {
+                !omitted_ranges.iter().any(|(omitted_start, omitted_end)| {
+                    *start <= *omitted_end && *omitted_start <= *end
+                })
+            });
         }
     }
 }

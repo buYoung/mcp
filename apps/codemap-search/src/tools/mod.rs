@@ -207,14 +207,19 @@ pub fn server_instructions() -> &'static str {
 /// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
     let common = include_str!("instructions/navigation.md").trim_end();
-    if crate::codemap::looks_like_monorepo_workspace() {
+    let mut text = if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/navigation.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
+    };
+    let settings = &crate::config::get().jev;
+    if settings.overview_enabled || settings.search_filter_enabled {
+        text.push_str("\n\nOptional Jev modes are enabled. To use a mode, pass this call's original task intent as task_query; it is separate from search.query and overview paths. Redacted indexed metadata (overview) or selected displayed source (search) may be sent to the external provider. Without task_query or host credentials, the normal offline result is returned. A zero recommendation is not proof that code is absent; continue with search/read/grep/find.");
     }
+    text
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -265,6 +270,8 @@ pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
+    let overview_uses_jev = config.jev.overview_enabled;
+    let search_uses_jev = config.jev.search_filter_enabled;
     let live_view_description = "full returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
@@ -298,6 +305,7 @@ pub fn list_tools() -> Value {
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "task_query": { "type": "string", "description": "Optional original task intent supplied by this caller. Distinct from search.query; when Jev search filtering is enabled, a nonblank value and host API key activate it for this request only." },
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -326,24 +334,27 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": format!("{}{}", include_str!("instructions/tools/overview.md").trim_end(),
+                            if overview_uses_jev { "\n\nOptional Jev recommendations are enabled. Supply task_query with the original task intent; indexed metadata is sent to the configured external provider after redaction. Omit task_query for offline base overview." } else { "" }),
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": overview_uses_jev },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
+                                "task_query": { "type": "string", "description": "Optional original task intent supplied by this caller. Distinct from overview path aliases; when Jev recommendations are enabled, a nonblank value and host API key activate them for a ready root request only." },
                                 "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "description": format!("{}{}", include_str!("instructions/tools/search.md").trim_end(),
+                            if search_uses_jev { "\n\nOptional Jev source filtering is enabled. Supply task_query with the original task intent; selected displayed source is sent to the configured external provider after redaction. Omit task_query for offline base search." } else { "" }),
+                        "annotations": { "readOnlyHint": true, "openWorldHint": search_uses_jev },
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,

@@ -6,6 +6,7 @@ mod documents;
 mod exclusions;
 mod helpers;
 mod language_support;
+mod jev;
 mod mcp;
 mod parser;
 mod redact;

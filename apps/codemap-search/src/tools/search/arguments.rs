@@ -14,7 +14,7 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .filter(|key| {
             !matches!(
                 key.as_str(),
-                "query" | "caller_context" | "language_hint" | "extension_hint"
+                "query" | "task_query" | "caller_context" | "language_hint" | "extension_hint"
             ) && !matches!(
                 crate::tools::normalize_arg_key(key).as_str(),
                 "includeevents" | "eventkey" | "workspacescope" | "scope" | "debug"
@@ -23,6 +23,12 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .collect();
     if unsupported.is_empty() {
         crate::tools::live_options::debug_requested(arguments)?;
+        if object
+            .get("task_query")
+            .is_some_and(|value| !value.is_string())
+        {
+            return Err((-32602, "Invalid 'task_query': expected a string.".into()));
+        }
         return Ok(());
     }
     let names = unsupported
@@ -39,6 +45,6 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .join(", ");
     let more = if unsupported.len() > 8 { ", …" } else { "" };
     Err((-32602, format!(
-        "Unsupported search arguments: {names}{more}. Supported: query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
+        "Unsupported search arguments: {names}{more}. Supported: query, task_query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
     )))
 }

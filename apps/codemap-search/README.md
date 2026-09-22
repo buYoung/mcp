@@ -81,8 +81,8 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 | Tool | Use | Main arguments |
 |---|---|---|
 | `initial_instructions` | Load navigation guidance once | none |
-| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
-| `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
+| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format`, optional `task_query` |
+| `search` | Find implementations with ranked symbols and snippets | `query`, optional `task_query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
@@ -99,6 +99,34 @@ MCP `read`/`grep` use declaration-kind/name headings within each file, followed 
 Relevant source wrappers also show bounded argument, return, closure, field and callback-use relationships automatically. Default value context groups repeated paths and passing locations; `debug: true` exposes bounded detailed evidence and diagnostics. Basic conditional paths and native tuples are summarized within the existing budgets. These work independently of event API rules and distinguish source evidence, built-in models and unresolved candidates. Stale dependencies are withheld. Composite queries prioritize term coverage and bounded body evidence while exact identifier queries keep exact-name preference. See the [value-navigation reference and CLI examples](./docs/value-navigation.ko.md) for supported cases, limits and verification commands.
 
 Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.
+
+### Optional native Jev decisions
+
+The two Jev modes are independent and off by default. Ordinary calls need no account, key, or network access. To opt in, set `overview_enabled` and/or `search_filter_enabled` under `[analysis.jev]`, then set `TYPESAFE_API_KEY` in the MCP host environment. Never put its value in `config.toml`. Enabling a mode alone sends nothing: each evaluated call also needs its own nonblank `task_query` with the caller's original task intent.
+
+```toml
+[analysis.jev]
+overview_enabled = true
+search_filter_enabled = false
+search_filter_min_unrelated_probability = 0.70
+```
+
+```json
+{"name":"overview","arguments":{"task_query":"Find the request retry path"}}
+{"name":"search","arguments":{"query":"retry","task_query":"Find the request retry path"}}
+```
+
+Root `overview` sends redacted indexed file metadata to Jev and may append up to 24 qualified file references. A complete evaluation can return `recommendation_status=no_match` or `insufficient_evidence`; neither proves that source behavior is absent. Folder/file views bypass Jev. `search` sends only selected, displayed and redacted complete source bodies, then keeps declaration headings, incomplete bodies, ambiguous dependencies and unrelated tool output intact. Its default 0.70 Noul omission threshold is experimental, not a measured accuracy claim. A missing key or intent bypasses evaluation; transport, budget, deadline or answer failures keep the base result.
+
+The tool result's `_meta.jev` reports applied, bypassed or fallback status, a reason when relevant, known input/output token usage and elapsed time. The text includes a short status line when its configured output cap has room. Jev uses pinned model `jev-1.13.0`, a 45-second whole-call deadline, an 80,000-byte request ceiling, at most three concurrent HTTP requests, 300ms spacing and no automatic retries. JSON/UTF-8 byte counts are conservative token estimates; Jev also publishes 64k tokens for state plus all questions and 32k for state plus the longest question. Provider context rejection remains possible. The existing redaction rules mask presentation copies before transmission; original files and index data are unchanged. Review [Jev settings and limits](./docs/configuration.md#native-jev-decisions) before enabling external evaluation.
+
+The Rust common evaluator is callable without MCP or Python. This offline example asserts Score, Choice, Noul and usage values:
+
+```sh
+cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock
+```
+
+An operator can explicitly choose `--live` with a host-set `TYPESAFE_API_KEY`; it makes a paid provider request. No live quality or speed comparison is implied by the offline example.
 
 ## Configure exclusions and output
 

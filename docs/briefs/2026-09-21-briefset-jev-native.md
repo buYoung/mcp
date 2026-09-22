@@ -5,11 +5,11 @@
 - Coordinate the reusable evaluator, independent adapters, native request integration, and whole-feature verification while retaining the existing offline behavior.
 
 ## Child Briefs
-- [ ] `docs/briefs/2026-09-21-feat-jev-native-01-runtime.md` — Reusable decision runtime; exists because both adapters require the same typed evaluator and bounded failure contract.
-- [ ] `docs/briefs/2026-09-21-feat-jev-native-02-overview.md` — Indexed overview recommendation; exists because root-index ranking has its own candidate-coverage and snapshot acceptance boundary.
-- [ ] `docs/briefs/2026-09-21-feat-jev-native-03-search-filter.md` — Structured search filtering; exists because body filtering must prove source preservation through the renderer.
-- [ ] `docs/briefs/2026-09-21-feat-jev-native-04-integration.md` — Native MCP and config integration; exists because activation must connect config, schemas, asynchronous requests, and final response accounting atomically.
-- [ ] `docs/briefs/2026-09-21-test-jev-native-05-verification.md` — Whole-feature regression evidence; exists because cross-mode compatibility and operator reuse need proof after the implementation joins.
+- [x] `docs/briefs/2026-09-21-feat-jev-native-01-runtime.md` — Reusable decision runtime; exists because both adapters require the same typed evaluator and bounded failure contract.
+- [x] `docs/briefs/2026-09-21-feat-jev-native-02-overview.md` — Indexed overview recommendation; exists because root-index ranking has its own candidate-coverage and snapshot acceptance boundary.
+- [x] `docs/briefs/2026-09-21-feat-jev-native-03-search-filter.md` — Structured search filtering; exists because body filtering must prove source preservation through the renderer.
+- [x] `docs/briefs/2026-09-21-feat-jev-native-04-integration.md` — Native MCP and config integration; exists because activation must connect config, schemas, asynchronous requests, and final response accounting atomically.
+- [x] `docs/briefs/2026-09-21-test-jev-native-05-verification.md` — Whole-feature regression evidence; exists because cross-mode compatibility and operator reuse need proof after the implementation joins.
 
 ## Execution Order
 - Wave 1 — `docs/briefs/2026-09-21-feat-jev-native-01-runtime.md`: Start: The feature branch exists at the inspected main revision; Deliverable: Evaluator API and policy evidence; Location: `apps/codemap-search/validation/jev-native/01-runtime.md` (proposed); Done: Runtime tests and direct example checks recorded as passed; Handoff: Children 02 and 03 receive the evaluator contract.
@@ -66,17 +66,17 @@
 - For any later authorized live comparison, use the same Rust revision and source snapshot for Jev off, #1, and #2. Historical Python/rg results are reference columns, not interchangeable native baselines.
 
 ## Global Acceptance Criteria
-- [ ] All five child handoffs exist with their required fields, actual check outcomes, and no unresolved mandatory failure.
-- [ ] The feature is implemented in Rust inside codemap-search and no normal invocation requires the Python proxy or exported PoC index files.
-- [ ] The common evaluator is callable from the overview adapter, search adapter, and direct in-crate example using explicit inputs.
-- [ ] Both modes default to off, can be selected independently, and keep ordinary keyless/offline calls compatible.
-- [ ] With #1 active, all eligible files in one root snapshot are evaluated or the base overview is preserved with an explicit fallback.
-- [ ] With #2 active, only selected search evidence is evaluated and file/declaration boundaries, protected bodies, and post-filter source observations remain correct.
-- [ ] Run `cargo check --manifest-path apps/codemap-search/Cargo.toml --all-targets` on the final branch and require exit 0.
-- [ ] Run `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests` on the populated regression fixtures and require exit 0 with no external provider traffic.
-- [ ] Run the child-owned offline library regression groups for runtime, overview, and search and require their named scenarios to pass without empty-population shortcuts.
-- [ ] Inspect README/configuration examples against actual schemas: explicit task_query, environment credential setup, mode flags, limits, redaction, and fallback behavior agree.
-- [ ] Inspect `05-verification.md` for actual results and explicitly unrun live/platform checks. No Rust speedup, quality equivalence, or unconditional determinism claim is made without evidence.
+- [x] All five child handoffs exist with their required fields, actual check outcomes, and no unresolved mandatory failure.
+- [x] The feature is implemented in Rust inside codemap-search and no normal invocation requires the Python proxy or exported PoC index files.
+- [x] The common evaluator is callable from the overview adapter, search adapter, and direct in-crate example using explicit inputs.
+- [x] Both modes default to off, can be selected independently, and keep ordinary keyless/offline calls compatible.
+- [x] With #1 active, all eligible files in one root snapshot are evaluated or the base overview is preserved with an explicit fallback.
+- [x] With #2 active, only selected search evidence is evaluated and file/declaration boundaries, protected bodies, and post-filter source observations remain correct.
+- [x] Run `cargo check --manifest-path apps/codemap-search/Cargo.toml --all-targets` on the final branch and require exit 0.
+- [x] Run `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests` on the populated regression fixtures and require exit 0 with no external provider traffic.
+- [x] Run the child-owned offline library regression groups for runtime, overview, and search and require their named scenarios to pass without empty-population shortcuts.
+- [x] Inspect README/configuration examples against actual schemas: explicit task_query, environment credential setup, mode flags, limits, redaction, and fallback behavior agree.
+- [x] Inspect `05-verification.md` for actual results and explicitly unrun live/platform checks. No Rust speedup, quality equivalence, or unconditional determinism claim is made without evidence.
 
 ## Open Questions
 - None — The user settled reuse scope, default activation, and regression-test authorization. The children own bounded technical decisions.

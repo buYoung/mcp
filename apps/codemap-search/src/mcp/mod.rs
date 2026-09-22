@@ -10,7 +10,49 @@ use crate::index::EngineSupervisor;
 use crate::tools::ToolContext;
 use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::AsyncWriteExt;
+
+struct JevClient {
+    key_digest: blake3::Hash,
+    pool_idle_timeout_ms: u64,
+    evaluator: Arc<dyn crate::jev::Evaluator>,
+}
+
+fn task_query(arguments: &Value) -> Result<Option<&str>, (i64, String)> {
+    match arguments.get("task_query") {
+        None => Ok(None),
+        Some(value) => value
+            .as_str()
+            .map(|query| (!query.trim().is_empty()).then_some(query))
+            .ok_or_else(|| (-32602, "Invalid 'task_query': expected a string.".into())),
+    }
+}
+
+fn jev_policy(settings: &crate::config::JevConfig) -> crate::jev::Policy {
+    crate::jev::Policy {
+        deadline: Duration::from_millis(settings.timeout_ms),
+        max_batch_bytes: settings.max_batch_bytes,
+        max_in_flight_requests: settings.max_in_flight_requests,
+        request_spacing: Duration::from_millis(settings.request_spacing_ms),
+    }
+}
+
+fn add_jev_status(text: &mut String, cap: Option<usize>, label: &str) {
+    let note = format!("\n_Jev {label}._");
+    if cap.is_none_or(|cap| text.len().saturating_add(note.len()) <= cap) {
+        text.push_str(&note);
+    }
+}
+
+fn tool_result(text: String, jev: Option<Value>) -> Value {
+    let mut result = serde_json::json!({"content":[{"type":"text","text":text}]});
+    if let Some(jev) = jev {
+        result["_meta"] = serde_json::json!({"jev":jev});
+    }
+    result
+}
 
 fn returned_source_files(
     output: &crate::tools::live_symbols::LiveOutput,
@@ -82,6 +124,8 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
+    jev_client: Option<JevClient>,
+    injected_jev_evaluator: Option<Arc<dyn crate::jev::Evaluator>>,
 }
 
 impl McpServer {
@@ -91,7 +135,54 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            jev_client: None,
+            injected_jev_evaluator: None,
         }
+    }
+
+    /// Injection boundary for offline integration tests and library embedding.
+    /// Normal MCP construction uses the pinned HTTPS transport.
+    pub fn with_jev_evaluator(
+        engine: EngineSupervisor,
+        evaluator: Arc<dyn crate::jev::Evaluator>,
+    ) -> Self {
+        let mut server = Self::new(engine);
+        server.injected_jev_evaluator = Some(evaluator);
+        server
+    }
+
+    fn jev_evaluator(
+        &mut self,
+        settings: &crate::config::JevConfig,
+    ) -> Result<Arc<dyn crate::jev::Evaluator>, &'static str> {
+        if let Some(evaluator) = &self.injected_jev_evaluator {
+            return Ok(Arc::clone(evaluator));
+        }
+        let api_key = std::env::var(&settings.api_key_env)
+            .ok()
+            .filter(|key| !key.is_empty())
+            .ok_or("missing_api_key")?;
+        let key_digest = blake3::hash(api_key.as_bytes());
+        if let Some(client) = &self.jev_client {
+            if client.key_digest == key_digest
+                && client.pool_idle_timeout_ms == settings.pool_idle_timeout_ms
+            {
+                return Ok(Arc::clone(&client.evaluator));
+            }
+        }
+        let transport = crate::jev::HttpTransport::new(
+            api_key,
+            Duration::from_millis(settings.pool_idle_timeout_ms),
+        )
+        .map_err(|_| "transport_initialization")?;
+        let evaluator: Arc<dyn crate::jev::Evaluator> =
+            Arc::new(crate::jev::BatchEvaluator::new(Arc::new(transport)));
+        self.jev_client = Some(JevClient {
+            key_digest,
+            pool_idle_timeout_ms: settings.pool_idle_timeout_ms,
+            evaluator: Arc::clone(&evaluator),
+        });
+        Ok(evaluator)
     }
 
     pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
@@ -167,7 +258,8 @@ impl McpServer {
                         continue;
                     }
 
-                    let response_result = self.handle_request(&req.method, req.params.as_ref());
+                    let response_result =
+                        self.handle_request(&req.method, req.params.as_ref()).await;
 
                     let resp = match response_result {
                         Ok(res_val) => JsonRpcResponse {
@@ -199,7 +291,9 @@ impl McpServer {
         Ok(())
     }
 
-    fn handle_request(
+    /// Handle one request in the same sequential, pinned-config boundary as stdio.
+    /// Library callers may inject an evaluator for offline integration.
+    pub async fn handle_request(
         &mut self,
         method: &str,
         params: Option<&Value>,
@@ -215,7 +309,7 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
-        let result = match self.handle_request_inner(method, params) {
+        let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
@@ -253,7 +347,7 @@ impl McpServer {
         result
     }
 
-    fn handle_request_inner(
+    async fn handle_request_inner(
         &mut self,
         method: &str,
         params: Option<&Value>,
@@ -299,6 +393,13 @@ impl McpServer {
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
+                        let intent = task_query(arguments)?;
+                        let settings = crate::config::get().jev.clone();
+                        let evaluator = if settings.search_filter_enabled && intent.is_some() {
+                            Some(self.jev_evaluator(&settings))
+                        } else {
+                            None
+                        };
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately
@@ -308,23 +409,98 @@ impl McpServer {
                         // on the live-filesystem tools (read/find/grep).
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
-                        let ctx = ToolContext {
-                            engine: &self.engine,
-                            arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
+                        let output = {
+                            let ctx = ToolContext {
+                                engine: &self.engine,
+                                arguments,
+                                active_workspace_scope: self.active_workspace_scope.as_deref(),
+                            };
+                            if evaluator.as_ref().is_some_and(Result::is_ok) {
+                                crate::tools::search::prepare_for_jev(&ctx)?
+                            } else {
+                                crate::tools::search::run_with_metadata(&ctx)?
+                            }
                         };
-                        let output = crate::tools::search::run_with_metadata(&ctx)?;
-                        self.pending_source_files = output.source_files;
-                        Ok(serde_json::json!({
-                            "content": [
+                        let (mut output, jev_meta) = match evaluator {
+                            Some(Ok(evaluator)) => {
+                                match crate::tools::search::filter_prepared(
+                                    output,
+                                    intent.unwrap_or_default(),
+                                    arguments,
+                                    evaluator.as_ref(),
+                                    jev_policy(&settings),
+                                    crate::jev::Cancellation::new(),
+                                    settings.search_filter_min_unrelated_probability,
+                                )
+                                .await
                                 {
-                                    "type": "text",
-                                    "text": output.text
+                                    Ok(result) => {
+                                        let meta = serde_json::json!({
+                                            "mode":"search_filter","outcome":result.outcome,
+                                            "evaluated_bodies":result.evaluated_bodies,
+                                            "omitted_bodies":result.omitted_bodies,
+                                            "threshold":result.effective_threshold,
+                                            "policy_version":result.policy_version,
+                                            "input_tokens":result.usage.input_tokens,
+                                            "output_tokens":result.usage.output_tokens,
+                                            "elapsed_ms":result.elapsed.as_millis()
+                                        });
+                                        (result.output, Some(meta))
+                                    }
+                                    Err(failure) => {
+                                        let meta = serde_json::json!({
+                                            "mode":"search_filter","outcome":"fallback",
+                                            "reason":failure.reason,
+                                            "input_tokens":failure.usage.map(|usage| usage.input_tokens),
+                                            "output_tokens":failure.usage.map(|usage| usage.output_tokens),
+                                            "elapsed_ms":failure.elapsed.as_millis()
+                                        });
+                                        (failure.output, Some(meta))
+                                    }
                                 }
-                            ]
-                        }))
+                            }
+                            Some(Err(reason)) => (
+                                output,
+                                Some(serde_json::json!({
+                                    "mode":"search_filter","outcome":"bypassed","reason":reason,
+                                    "input_tokens":0,"output_tokens":0,"elapsed_ms":0
+                                })),
+                            ),
+                            None if settings.search_filter_enabled => (
+                                output,
+                                Some(serde_json::json!({
+                                    "mode":"search_filter","outcome":"bypassed",
+                                    "reason":"missing_task_query",
+                                    "input_tokens":0,"output_tokens":0,"elapsed_ms":0
+                                })),
+                            ),
+                            None => (output, None),
+                        };
+                        if let Some(meta) = &jev_meta {
+                            add_jev_status(
+                                &mut output.text,
+                                Some(crate::config::get().search_detail_byte_cap),
+                                &format!(
+                                    "search_filter: {}{}",
+                                    meta["outcome"].as_str().unwrap_or("bypassed"),
+                                    meta["reason"]
+                                        .as_str()
+                                        .map(|reason| format!(" ({reason})"))
+                                        .unwrap_or_default()
+                                ),
+                            );
+                        }
+                        self.pending_source_files = output.source_files;
+                        Ok(tool_result(output.text, jev_meta))
                     }
                     "overview" => {
+                        let intent = task_query(arguments)?;
+                        let settings = crate::config::get().jev.clone();
+                        let evaluator = if settings.overview_enabled && intent.is_some() {
+                            Some(self.jev_evaluator(&settings))
+                        } else {
+                            None
+                        };
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced) and read the codemap
                         // snapshot the indexer publishes — no per-call tree walk or parse.
@@ -333,21 +509,96 @@ impl McpServer {
                         // fires only here and on `search`, never on read/find/grep.
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
-                        let ctx = ToolContext {
-                            engine: &self.engine,
-                            arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
+                        let preparation = {
+                            let ctx = ToolContext {
+                                engine: &self.engine,
+                                arguments,
+                                active_workspace_scope: self.active_workspace_scope.as_deref(),
+                            };
+                            crate::tools::overview::prepare(&ctx)?
                         };
-                        let text = crate::tools::overview::run(&ctx)?;
                         self.update_active_workspace_scope_from_overview(arguments);
-                        Ok(serde_json::json!({
-                            "content": [
+                        let cap = crate::config::get()
+                            .overview_output_byte_cap
+                            .or(crate::config::get().output_byte_cap);
+                        let (mut text, jev_meta) = match evaluator {
+                            Some(Ok(evaluator)) if preparation.snapshot.is_some() => {
+                                let base = preparation.text.clone();
+                                match crate::tools::overview::recommend(
+                                    preparation,
+                                    intent.unwrap_or_default(),
+                                    evaluator.as_ref(),
+                                    jev_policy(&settings),
+                                    crate::jev::Cancellation::new(),
+                                    cap,
+                                )
+                                .await
                                 {
-                                    "type": "text",
-                                    "text": text
+                                    Ok(result) => (
+                                        result.text,
+                                        Some(serde_json::json!({
+                                            "mode":"overview","outcome":"applied",
+                                            "recommendation_status":result.status,
+                                            "evaluated_files":result.evaluated_files,
+                                            "evaluated_fragments":result.evaluated_fragments,
+                                            "policy_version":result.policy_version,
+                                            "input_tokens":result.usage.input_tokens,
+                                            "output_tokens":result.usage.output_tokens,
+                                            "elapsed_ms":result.elapsed.as_millis()
+                                        })),
+                                    ),
+                                    Err(failure) => (
+                                        base,
+                                        Some(serde_json::json!({
+                                            "mode":"overview","outcome":"fallback",
+                                            "reason":failure.reason,
+                                            "input_tokens":failure.usage.map(|usage| usage.input_tokens),
+                                            "output_tokens":failure.usage.map(|usage| usage.output_tokens),
+                                            "elapsed_ms":failure.elapsed.as_millis()
+                                        })),
+                                    ),
                                 }
-                            ]
-                        }))
+                            }
+                            Some(Ok(_)) => (
+                                preparation.text,
+                                Some(serde_json::json!({
+                                    "mode":"overview","outcome":"bypassed",
+                                    "reason":"index_not_ready_or_non_root",
+                                    "input_tokens":0,"output_tokens":0,"elapsed_ms":0
+                                })),
+                            ),
+                            Some(Err(reason)) => (
+                                preparation.text,
+                                Some(serde_json::json!({
+                                    "mode":"overview","outcome":"bypassed","reason":reason,
+                                    "input_tokens":0,"output_tokens":0,"elapsed_ms":0
+                                })),
+                            ),
+                            None if settings.overview_enabled => (
+                                preparation.text,
+                                Some(serde_json::json!({
+                                    "mode":"overview","outcome":"bypassed",
+                                    "reason":"missing_task_query",
+                                    "input_tokens":0,"output_tokens":0,"elapsed_ms":0
+                                })),
+                            ),
+                            None => (preparation.text, None),
+                        };
+                        if let Some(meta) = &jev_meta {
+                            add_jev_status(
+                                &mut text,
+                                cap,
+                                &format!(
+                                    "overview: {}{}",
+                                    meta["outcome"].as_str().unwrap_or("bypassed"),
+                                    meta["reason"]
+                                        .as_str()
+                                        .map(|reason| format!(" ({reason})"))
+                                        .unwrap_or_default()
+                                ),
+                            );
+                        }
+                        Ok(tool_result(text, jev_meta))
                     }
                     "read" => {
                         let options = crate::tools::live_options::LiveOptions::parse(arguments)?;

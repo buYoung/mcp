@@ -93,6 +93,7 @@ impl McpClient {
             .current_dir(cwd)
             // Hermetic global config home — never read the developer's real ~/.codemap.
             .env("CODEMAP_HOME", cwd)
+            .env_remove("TYPESAFE_API_KEY")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs

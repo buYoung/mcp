@@ -8,8 +8,10 @@
 
 mod arguments;
 mod grouped;
+mod jev;
 mod monorepo;
 pub mod render;
+pub use jev::{filter_prepared, FilterFailure, FilterResult};
 
 pub(crate) use arguments::validate as validate_arguments;
 
@@ -450,6 +452,15 @@ pub struct SearchOutput {
     /// Files with returned source/literal excerpts, excluding the ranked path-only tail.
     /// This metadata is not added to the MCP response envelope.
     pub source_files: Vec<crate::analyze::FileObservation>,
+    selected: Option<SelectedEvidence>,
+}
+
+struct SelectedEvidence {
+    files: Vec<grouped::FileOutput>,
+    snapshot: std::sync::Arc<crate::index::PublishedIndexSnapshot>,
+    workspace_scope: Option<String>,
+    should_include_calls: bool,
+    should_include_events: bool,
 }
 
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
@@ -530,17 +541,29 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 }
 
 pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String)> {
+    run_with_metadata_internal(ctx, false)
+}
+
+pub fn prepare_for_jev(ctx: &ToolContext) -> Result<SearchOutput, (i64, String)> {
+    run_with_metadata_internal(ctx, true)
+}
+
+fn run_with_metadata_internal(
+    ctx: &ToolContext,
+    prepare_for_jev: bool,
+) -> Result<SearchOutput, (i64, String)> {
     validate_arguments(ctx.arguments)?;
     if monorepo::should_use(ctx) {
-        return monorepo::run_with_metadata(ctx);
+        return monorepo::run_with_metadata(ctx, prepare_for_jev);
     }
-    run_inner_with_metadata(ctx, None, DEFAULT_SEARCH_LIMIT)
+    run_inner_with_metadata(ctx, None, DEFAULT_SEARCH_LIMIT, prepare_for_jev)
 }
 
 pub(crate) fn run_inner_with_metadata(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
+    prepare_for_jev: bool,
 ) -> Result<SearchOutput, (i64, String)> {
     let search_started = std::time::Instant::now();
     let query = ctx
@@ -1133,7 +1156,18 @@ pub(crate) fn run_inner_with_metadata(
         .collect();
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
+    let is_jev_eligible = prepare_for_jev
+        && !is_partial
+        && !is_warming
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none()
+        && !grouped_files.is_empty();
+    if !is_jev_eligible
+        && !is_partial
+        && !is_warming
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none()
+    {
         grouped::append_relations(
             &mut text,
             &grouped_files,
@@ -1153,5 +1187,16 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(SearchOutput { text, source_files })
+    let selected = is_jev_eligible.then_some(SelectedEvidence {
+        files: grouped_files,
+        snapshot: published_snapshot,
+        workspace_scope: workspace_scope.map(ToString::to_string),
+        should_include_calls: caller_context_enabled,
+        should_include_events,
+    });
+    Ok(SearchOutput {
+        text,
+        source_files,
+        selected,
+    })
 }

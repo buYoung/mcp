@@ -37,9 +37,11 @@ use crate::workspace::exclusions::DirectoryExclusions;
 
 mod event_navigation;
 mod exclude;
+mod jev;
 mod layout;
 mod output;
 pub use event_navigation::EventNavigationConfig;
+pub use jev::JevConfig;
 pub use output::ClientOutputConfig;
 mod macro_expansion;
 pub(crate) mod redact;
@@ -102,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 24;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -145,6 +147,7 @@ pub struct ResolvedConfig {
     pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
+    pub jev: JevConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
@@ -301,6 +304,7 @@ impl Default for ResolvedConfig {
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
+            jev: JevConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
@@ -368,6 +372,7 @@ struct ConfigLayer {
     redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
+    jev: jev::JevLayer,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
@@ -527,6 +532,10 @@ fn normalize_config_section(
 
     for (key, value) in table {
         let key_display = format!("{section}.{key}");
+        if section == "analysis" && key == "jev" {
+            layer.jev = jev::normalize(value, path);
+            continue;
+        }
         if layout::is_canonical_key(section, key) {
             continue;
         }
@@ -544,7 +553,7 @@ fn normalize_config_section(
 
 fn section_accepts_key(section: &str, key: &str) -> bool {
     match section {
-        "analysis" => key == "target_os",
+        "analysis" => matches!(key, "target_os" | "jev"),
         "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
@@ -805,6 +814,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         redact: redact::merge(repo.redact, global.redact),
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
+        jev: jev::merge(repo.jev, global.jev),
         analysis_target_os: repo
             .analysis_target_os
             .or(global.analysis_target_os)
@@ -1348,6 +1358,35 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 24,
+        key: "overview_enabled",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Optional native Jev decisions. Enable each mode independently and set TYPESAFE_API_KEY in the host environment.
+# [analysis.jev]
+# overview_enabled = false
+# search_filter_enabled = false
+# model = \"jev-1.13.0\"
+# api_key_env = \"TYPESAFE_API_KEY\"
+# timeout_ms = 45000
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# max_batch_bytes = 80000
+# pool_idle_timeout_ms = 30000
+# search_filter_min_unrelated_probability = 0.70",
+        korean_block: "# 선택형 네이티브 Jev 판단입니다. 모드를 각각 켜고 호스트 환경에 TYPESAFE_API_KEY를 설정하세요.
+# [analysis.jev]
+# overview_enabled = false
+# search_filter_enabled = false
+# model = \"jev-1.13.0\"
+# api_key_env = \"TYPESAFE_API_KEY\"
+# timeout_ms = 45000
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# max_batch_bytes = 80000
+# pool_idle_timeout_ms = 30000
+# search_filter_min_unrelated_probability = 0.70",
+    },
     Migration {
         version: 17,
         key: "is_overview_stats_enabled",
@@ -2434,6 +2473,21 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             1,
             "config_template.toml must contain exactly one schema version marker"
         );
+    }
+
+    #[test]
+    fn test_v24_migration_adds_inactive_jev_keys_without_changing_existing_values() {
+        let original = "# codemap-config-version: 23\n[output.search]\ndetail_file_limit = 7\n";
+        let migrated = apply_migrations(original, 23, CONFIG_VERSION, MIGRATIONS).unwrap();
+        assert_eq!(parse_version_marker(&migrated), Some(24));
+        assert!(migrated.contains("# [analysis.jev]"));
+        assert!(migrated.contains("# overview_enabled = false"));
+        assert!(migrated.contains("# search_filter_enabled = false"));
+        let value: toml::Value = toml::from_str(&migrated).unwrap();
+        let layer = normalize(value, Path::new("<test>"));
+        assert_eq!(layer.result_threshold, Some(7));
+        assert!(layer.jev == jev::JevLayer::default());
+        assert!(migrated.contains("detail_file_limit = 7"));
     }
 
     #[test]

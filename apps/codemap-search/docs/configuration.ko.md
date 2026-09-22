@@ -27,6 +27,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `analysis.jev` | 선택형 네이티브 Jev 추천과 검색 본문 필터 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -53,10 +54,10 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **23**이며 주석으로 표시합니다.
+현재 설정 버전은 **24**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -79,6 +80,7 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 - 버전 21은 섹션 설명과 비활성 설정 예시도 관련 새 섹션으로 옮기며, 예시의 키 이름을 새 이름에 맞춥니다. 설정값은 활성화하지 않습니다. 이전 전환에서 소속 정보가 없어진 임의 메모는 위치를 추측하지 않고 그대로 보존합니다.
 - 버전 22는 `output.context.exclude`와 하위 테스트 규칙을 `output` 묶음의 맨 아래로 옮깁니다. 설정 경로·값·적용 범위는 유지하며 주석도 함께 이동합니다.
 - 버전 23은 확인 가능한 자동 생성 설명을 현재 언어의 문구로 교체하고, 자동 생성된 변경 이력을 제거하며 파일 전체 안내를 맨 위에 둡니다. 기존 설정값·주석 처리 상태·자동 생성 설명으로 식별되지 않는 메모·문자열 내용은 보존합니다. 추가 기본값의 활성화는 새로 생성하는 파일에만 적용합니다.
+- 버전 24는 기존 저장소 설정에 `[analysis.jev]` 주석 블록을 추가합니다. 두 모드는 명시적으로 켜기 전까지 비활성이며 키 값은 저장하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
@@ -214,6 +216,16 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `false` | HCL/Terraform, Dockerfile, Nix 포함 |
 | `[index.language_support].is_interface_support_enabled` | bool | `false` | Protocol Buffers, GraphQL 포함 |
 | `[index.language_support].is_build_support_enabled` | bool | `false` | Make, CMake, Starlark/Bazel 포함 |
+| `[analysis.jev].overview_enabled` | bool | `false` | `task_query`가 있는 루트 overview의 색인 파일 추천 |
+| `[analysis.jev].search_filter_enabled` | bool | `false` | `task_query`가 있는 search의 선택된 본문 필터 |
+| `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 고정 제공자 모델 |
+| `[analysis.jev].api_key_env` | 환경 변수 이름 | `"TYPESAFE_API_KEY"` | 키 값이 아닌 호스트 환경 변수 이름 |
+| `[analysis.jev].timeout_ms` | 정수(ms) | `45000` | 대기와 HTTP를 포함한 전체 호출 제한시간, 1–45000 |
+| `[analysis.jev].max_in_flight_requests` | 정수 | `3` | 동시 HTTP 요청 상한, 1–3 |
+| `[analysis.jev].request_spacing_ms` | 정수(ms) | `300` | 요청 시작 간격, 300–60000 |
+| `[analysis.jev].max_batch_bytes` | 정수(바이트) | `80000` | 인코딩한 요청 상한, 1–80000 |
+| `[analysis.jev].pool_idle_timeout_ms` | 정수(ms) | `30000` | 유휴 HTTPS 연결 수명, 1–30000 |
+| `[analysis.jev].search_filter_min_unrelated_probability` | 유한 숫자 | `0.70` | 실험적 Noul 생략 기준, `0.5 < 값 <= 1.0` |
 | `[index.exclude].excluded_directories` | 문자열 배열(상대 디렉터리 glob) | 공통 + 기존 기본 이름. 생성 파일은 재귀 glob 사용 | 선택적 제외 전체 목록. [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 |
 | `[index.exclude].use_git_exclude` | bool | `true` | `.git/info/exclude` 적용 여부 |
 | `[output.context.exclude].should_include_test_code` | bool | `false` | 자동 심볼·호출 관계에 테스트 코드 포함 |
@@ -417,12 +429,35 @@ powershell = ["Describe", "Context", "It"]
 
 `indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`/`overview`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
 
+## 네이티브 Jev 판단
+
+`[analysis.jev]`의 두 모드는 독립적이며 기본으로 꺼져 있습니다. 평가하려는 MCP 호출마다 원래 작업 의도를 담은 비어 있지 않은 `task_query`가 필요합니다. 호스트 환경에는 `api_key_env`가 가리키는 환경 변수로 API 키를 설정합니다. 설정 파일에는 키 값을 쓰지 않습니다. 의도나 키가 없으면 Jev를 건너뛰고 기존 오프라인 결과를 유지합니다. `task_query`는 `search.query` 및 `overview` 경로 별칭과 별개이며, MCP 요청은 기존처럼 순서대로 처리합니다.
+
+```toml
+[analysis.jev]
+overview_enabled = true
+search_filter_enabled = false
+api_key_env = "TYPESAFE_API_KEY"
+search_filter_min_unrelated_probability = 0.70
+```
+
+```json
+{"name":"overview","arguments":{"task_query":"요청 취소 처리 위치 찾기"}}
+{"name":"search","arguments":{"query":"cancel","task_query":"요청 취소 처리 위치 찾기"}}
+```
+
+루트 `overview`는 동일한 게시 색인 스냅샷의 모든 적격 파일에서 가린 경로·선언·문서·가능한 호출 정보를 평가합니다. 파일을 먼저 적격 판정한 뒤 최대 24개를 추천합니다. 완전한 평가 결과의 `recommendation_status`는 `matched`, `no_match`, `insufficient_evidence` 중 하나이며, 추천이 0개라는 사실로 실제 구현의 부재를 단정할 수 없습니다. 폴더·파일 보기와 준비되지 않은 색인은 평가를 건너뜁니다. 응답 오류나 시간·출력 한도 오류에는 기본 overview를 유지합니다.
+
+`search` 필터는 기존 렌더러가 선택한 완전하고 크기가 제한된 본문만 가린 뒤 Jev에 전달합니다. Noul은 각 본문이 작업과 무관한지를 판단하고, Rust가 설정된 임계값을 적용합니다. 불완전하거나 큰 본문, 선언 이름·범위, 중첩·연결된 증거, 파일 경계, 경로만 있는 결과는 보존합니다. 선택된 본문이 64개를 넘으면 이유를 표시하고 기본 결과로 대체합니다. 평가 실패에도 기본 검색 결과를 반환합니다. 기본값 0.70은 실험적 기준이며 대표 실제 질의에 대한 보정은 아직 수행하지 않았습니다.
+
+결과의 `_meta.jev`에는 적용·우회·대체 상태, 가능한 경우 이유, 알려진 API 입력·출력 토큰 사용량과 경과 시간을 넣습니다. 출력 한도에 공간이 있으면 본문에도 짧은 상태를 표시합니다. 모델은 `jev-1.13.0`으로 고정하며 POST 자동 재시도는 하지 않습니다. 80,000바이트 배치 한도와 바이트 기반 컨텍스트 추정은 정확한 토크나이저가 아닙니다. 제공자가 게시한 한도는 state와 모든 질문에 64k 토큰, state와 가장 긴 질문에 32k 토큰이며, 제공자 한도 오류도 기본 결과로 되돌립니다. Python 프록시나 내보낸 색인은 사용하지 않습니다.
+
 ## `config.toml` 예시
 
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -692,6 +727,20 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+[analysis.jev]
+# 두 모드는 기본으로 꺼집니다. 키 값은 파일에 쓰지 말고 호스트 환경 변수에 설정하세요.
+overview_enabled = false
+search_filter_enabled = false
+model = "jev-1.13.0"
+api_key_env = "TYPESAFE_API_KEY"
+timeout_ms = 45000
+max_in_flight_requests = 3
+request_spacing_ms = 300
+max_batch_bytes = 80000
+pool_idle_timeout_ms = 30000
+# 실험적인 Noul 생략 기준이며 정확도 보정값이 아닙니다.
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,

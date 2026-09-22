@@ -4,14 +4,38 @@
 //! The dispatch arm (`crate::mcp`) calls `EngineSupervisor::ensure_alive`/`trigger_refresh`
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`.
 
+mod jev;
 mod monorepo;
 mod stats;
+
+pub use jev::{recommend, RecommendationResult};
 
 use crate::tools::ToolContext;
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    Ok(prepare(ctx)?.text)
+}
+
+pub struct OverviewPreparation {
+    pub text: String,
+    pub snapshot: Option<crate::index::CodemapSnapshot>,
+    pub snapshot_identity: Option<usize>,
+}
+
+impl OverviewPreparation {
+    fn base(text: String) -> Self {
+        Self {
+            text,
+            snapshot: None,
+            snapshot_identity: None,
+        }
+    }
+}
+
+/// Capture the rendered base view and eligible root candidates from one publication.
+pub fn prepare(ctx: &ToolContext) -> Result<OverviewPreparation, (i64, String)> {
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -84,7 +108,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(OverviewPreparation::base(text.to_string()));
     }
 
     use crate::codemap::CodemapView;
@@ -156,5 +180,15 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ));
     }
 
-    Ok(codemap_text)
+    let is_eligible_root = path.is_none()
+        && format != Some("llms-txt")
+        && !extracted_files.is_empty()
+        && !is_warming
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none();
+    Ok(OverviewPreparation {
+        text: codemap_text,
+        snapshot: is_eligible_root.then_some(snapshot),
+        snapshot_identity: is_eligible_root.then_some(std::sync::Arc::as_ptr(&published).addr()),
+    })
 }
