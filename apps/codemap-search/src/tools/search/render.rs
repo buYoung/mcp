@@ -779,7 +779,9 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
+                let is_complete = more_lines == 0 && !is_clipped
+                    && source.content().is_some_and(|content| end<=content.lines().count());
+                if !text.push_body(sym, &format!("```\n{capped}\n```\n"), "```\n".len(), &capped, is_complete) {
                     return AnchoredRenderOutcome {
                         budget_hit: true,
                         emitted_starts,
@@ -872,7 +874,9 @@ pub(super) fn render_anchored_symbols(
             }
             let source_offset = source_block.len() + "```\n".len();
             source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block, Some(source_offset)) {
+            let is_complete = !is_summary_container && !is_byte_clipped && snippet_start==start && displayed_end==end
+                && source.content().is_some_and(|content| end<=content.lines().count());
+            if !text.push_body(sym, &source_block, source_offset, &capped, is_complete) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,
@@ -885,6 +889,7 @@ pub(super) fn render_anchored_symbols(
                     annotations.render_for_symbol(file_path, sym, caller_block_dedup)
                 {
                     if text.push_annotation(prepared.text()) {
+                        text.body_context(sym, prepared.text());
                         prepared.commit(caller_block_dedup);
                     } else if !text.push_annotation(crate::callers::ANNOTATION_OMITTED_MARKER) {
                         text.budget_hit = true;

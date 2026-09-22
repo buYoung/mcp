@@ -5,6 +5,7 @@
 //! output in the JSON-RPC `result`/`error` envelope.
 
 pub mod protocol;
+mod jev;
 
 use crate::index::EngineSupervisor;
 use crate::tools::ToolContext;
@@ -82,6 +83,7 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
+    jev: jev::EvaluatorHost,
 }
 
 impl McpServer {
@@ -91,11 +93,19 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            jev: jev::EvaluatorHost::default(),
         }
     }
 
     pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
         self.call_recorder.set_enabled(is_enabled);
+    }
+
+    /// Explicit host injection for offline evaluation; no MCP argument can select it.
+    pub fn with_evaluator(engine: EngineSupervisor, evaluator: std::sync::Arc<dyn crate::jev::Evaluator>) -> Self {
+        let mut server=Self::new(engine);
+        server.jev=jev::EvaluatorHost::injected(evaluator);
+        server
     }
 
     fn overview_path_argument(arguments: &Value) -> Option<&str> {
@@ -167,7 +177,7 @@ impl McpServer {
                         continue;
                     }
 
-                    let response_result = self.handle_request(&req.method, req.params.as_ref());
+                    let response_result = self.handle_request(&req.method, req.params.as_ref()).await;
 
                     let resp = match response_result {
                         Ok(res_val) => JsonRpcResponse {
@@ -199,12 +209,23 @@ impl McpServer {
         Ok(())
     }
 
-    fn handle_request(
+    pub async fn handle_request(
         &mut self,
         method: &str,
         params: Option<&Value>,
     ) -> Result<Value, (i64, String)> {
+        self.handle_request_with_options(method, params, crate::jev::EvaluationOptions::default()).await
+    }
+
+    /// The sequential host may shorten the deadline or cancel its current decision work.
+    pub async fn handle_request_with_options(
+        &mut self,
+        method: &str,
+        params: Option<&Value>,
+        mut options: crate::jev::EvaluationOptions,
+    ) -> Result<Value, (i64, String)> {
         let _config_scope = crate::config::pin_request();
+        options.deadline=options.deadline.min(tokio::time::Instant::now()+std::time::Duration::from_millis(crate::config::get().jev.timeout_ms));
         let _redact_scope = crate::redact::begin_request();
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
@@ -215,7 +236,7 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
-        let result = match self.handle_request_inner(method, params) {
+        let result = match self.handle_request_inner(method, params, options).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
@@ -253,10 +274,11 @@ impl McpServer {
         result
     }
 
-    fn handle_request_inner(
+    async fn handle_request_inner(
         &mut self,
         method: &str,
         params: Option<&Value>,
+        options: crate::jev::EvaluationOptions,
     ) -> Result<Value, (i64, String)> {
         match method {
             "initialize" => {
@@ -314,17 +336,12 @@ impl McpServer {
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let output = crate::tools::search::run_with_metadata(&ctx)?;
-                        self.pending_source_files = output.source_files;
-                        Ok(serde_json::json!({
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": output.text
-                                }
-                            ]
-                        }))
+                        let (response,source_files)=self.jev.search(output,arguments,options).await?;
+                        self.pending_source_files = source_files;
+                        Ok(response)
                     }
                     "overview" => {
+                        crate::tools::task_query(arguments)?;
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced) and read the codemap
                         // snapshot the indexer publishes — no per-call tree walk or parse.
@@ -338,16 +355,9 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let text = crate::tools::overview::run(&ctx)?;
+                        let prepared = crate::tools::overview::prepare(&ctx)?;
                         self.update_active_workspace_scope_from_overview(arguments);
-                        Ok(serde_json::json!({
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": text
-                                }
-                            ]
-                        }))
+                        self.jev.overview(prepared,arguments,options).await
                     }
                     "read" => {
                         let options = crate::tools::live_options::LiveOptions::parse(arguments)?;

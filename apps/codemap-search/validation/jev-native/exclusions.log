@@ -1,0 +1,19 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling codemap-search v0.10.0 (/Users/buyong/workspace/private/buyong-mcp-astra/apps/codemap-search)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.59s
+     Running tests/e2e_tests.rs (apps/codemap-search/target/debug/deps/e2e_tests-270e31f821ae2115)
+
+running 4 tests
+[codemap-search] created default config: /Users/buyong/tmp/.tmpcGxbyw/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpS1cNiJ/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpn8kOuZ/.codemap/config.toml[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpSxeIOl/.codemap/config.toml
+
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpBKl5jC/.codemap/config.toml
+test e2e::exclusions::test_exclusions_v6_is_not_regenerated_on_restart ... ok
+test e2e::exclusions::test_exclusions_pre_v6_transition_and_opt_out ... ok
+test e2e::exclusions::test_exclusions_generated_common_and_project_globs ... ok
+test e2e::exclusions::test_exclusions_manual_reload_reconciles_index_without_source_edits ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 211 filtered out; finished in 6.64s

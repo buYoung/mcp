@@ -28,6 +28,10 @@ pub(super) struct FileOutput {
     pub source_span: Option<std::ops::Range<usize>>,
     first_result_source_offset: Option<usize>,
     pub first_source_byte: Option<usize>,
+    pub bodies: Vec<super::jev::BodyEvidence>,
+    pub source_segments: Vec<super::jev::SourceSegment>,
+    is_current_source: bool,
+    has_checked_source: bool,
 }
 
 impl FileOutput {
@@ -54,6 +58,10 @@ impl FileOutput {
             source_span: None,
             first_result_source_offset: None,
             first_source_byte: None,
+            bodies: Vec::new(),
+            source_segments: Vec::new(),
+            is_current_source: false,
+            has_checked_source: false,
         }
     }
     pub fn len(&self) -> usize {
@@ -102,8 +110,30 @@ impl FileOutput {
                 .filter(|offset| *offset < text.len())
                 .map(|offset| self.results.len() + offset);
         }
+        if let Some(offset) = source_offset.filter(|offset| *offset < text.len()) {
+            self.source_segments.push(super::jev::SourceSegment { path: self.path.clone(), span: self.results.len()..self.results.len()+text.len(), first_source_byte: self.results.len()+offset, body_index: None });
+        }
         self.results.push_str(text);
         true
+    }
+    pub fn push_body(&mut self, symbol: &ExtractedSymbol, text: &str, source_offset: usize, displayed_body: &str, is_complete: bool) -> bool {
+        let start = self.results.len();
+        if !self.push_source(text, Some(source_offset)) { return false; }
+        if let Some(index) = self.bodies.iter().position(|body| body.symbol.name == symbol.name && body.symbol.range == symbol.range && body.symbol.kind == symbol.kind && body.symbol.owner == symbol.owner) {
+            let body=&mut self.bodies[index];
+            body.span=Some(start..self.results.len());
+            body.displayed_body=displayed_body.to_string();
+            body.completeness=if displayed_body.len()>super::jev::MAX_BODY_BYTES { super::jev::Completeness::Oversized }
+                else if is_complete && self.is_current_source { super::jev::Completeness::Complete }
+                else { super::jev::Completeness::Partial };
+            if let Some(segment)=self.source_segments.last_mut() { segment.body_index=Some(index); }
+        }
+        true
+    }
+    pub fn body_context(&mut self, symbol: &ExtractedSymbol, context: &str) {
+        if let Some(body)=self.bodies.iter_mut().find(|body|body.symbol.name==symbol.name && body.symbol.range==symbol.range && body.symbol.kind==symbol.kind && body.symbol.owner==symbol.owner) {
+            body.displayed_context.push_str(context);
+        }
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
         let Some(index) = self.current else {
@@ -134,6 +164,11 @@ impl FileOutput {
         .then(|| std::fs::read_to_string(&self.path).ok())
         .flatten();
         let source = source.or(owned_source.as_deref());
+        if let (false,Some(file),Some(source))=(self.has_checked_source,&self.indexed,source) {
+            self.has_checked_source=true;
+            self.is_current_source=file.navigation.as_ref().and_then(|navigation|navigation.implementations.as_ref())
+                .is_some_and(|facts|facts.source_digest==crate::implementations::digest(source.as_bytes()));
+        }
         if !self.has_impl_scopes && self.path.ends_with(".rs") && source.is_some() {
             self.has_impl_scopes = true;
             if let (Some(file), Some(source)) = (&mut self.indexed, source) {
@@ -267,6 +302,19 @@ impl FileOutput {
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
+        for member in chain {
+            if !self.bodies.iter().any(|body|body.symbol.name==member.name && body.symbol.range==member.range && body.symbol.kind==member.kind && body.symbol.owner==member.owner) {
+                // Snippets contain whole physical lines. A same-line sibling can be
+                // present even when its AST span is outside this declaration.
+                let has_other_declarations=self.indexed.as_ref().is_some_and(|file|file.symbols.iter().any(|other| {
+                    let is_same=other.name==member.name && other.kind==member.kind && other.range==member.range && other.owner==member.owner;
+                    !is_same && !declarations::contains(other,&member)
+                        && other.range.start_line<=member.range.end_line_inclusive()
+                        && member.range.start_line<=other.range.end_line_inclusive()
+                }));
+                self.bodies.push(super::jev::BodyEvidence {path:self.path.clone(),symbol:member,span:None,displayed_body:String::new(),displayed_context:String::new(),completeness:super::jev::Completeness::Missing,has_other_declarations});
+            }
+        }
         true
     }
     pub fn anchor(&mut self, start: usize, end: usize) {
@@ -327,6 +375,8 @@ impl FileOutput {
         text.push_str(&self.results);
         self.source_span = (!self.results.is_empty()).then_some(start..text.len());
         self.first_source_byte = self.first_result_source_offset.map(|offset| start + offset);
+        for body in &mut self.bodies { if let Some(span)=&mut body.span {span.start+=start;span.end+=start;} }
+        for segment in &mut self.source_segments {segment.span.start+=start;segment.span.end+=start;segment.first_source_byte+=start;}
         if is_partial_file {
             // fits()/remaining_bytes() reserved the longer global cap footer, so
             // this local notice stays inside the file budget without hiding source.
@@ -342,7 +392,7 @@ pub(super) fn append_relations(
     scope: Option<&str>,
     should_include_calls: bool,
     should_include_events: bool,
-) {
+) -> Vec<(usize,usize)> {
     let cap = crate::config::get().search_detail_byte_cap;
     let mut remaining = cap
         .saturating_sub(text.len())
@@ -427,7 +477,9 @@ pub(super) fn append_relations(
         }
     }
     insertions.sort_by_key(|(offset, _)| std::cmp::Reverse(*offset));
+    let offsets=insertions.iter().map(|(offset,text)|(*offset,text.len())).collect();
     for (offset, relations) in insertions {
         text.insert_str(offset, &relations);
     }
+    offsets
 }

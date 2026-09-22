@@ -1,0 +1,38 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling codemap-search v0.10.0 (/Users/buyong/workspace/private/buyong-mcp-astra/apps/codemap-search)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.47s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-6418d5ebb3c5cb18)
+
+running 27 tests
+test config::jev::tests::test_jev_defaults_layers_threshold_and_invalid_values ... ok
+test jev::tests::test_score_criteria_two_to_ten_and_choice_255_options ... ok
+test jev::tests::test_exact_ids_model_types_probabilities_and_weighted_score ... ok
+test jev::tests::test_mixed_primitives_and_usage_without_noul_confidence ... ok
+test jev::tests::test_invalid_response_reports_known_usage_and_no_partial_answers ... ok
+test config::jev::tests::test_jev_migration_is_localized_additive_and_section_scoped ... ok
+test jev::tests::test_total_context_estimate_splits_below_transport_cap ... ok
+test jev::tests::test_pack_covers_every_question_without_truncation ... ok
+test tools::search::jev::tests::test_malformed_or_incomplete_judgments_fail_whole_call ... ok
+test tools::search::jev::tests::test_displayed_dependency_closure_and_ambiguous_links ... ok
+test tools::search::jev::tests::test_only_complete_selected_evidence_is_sent_and_raw_policy_replays ... ok
+test jev::tests::test_cancellation_before_and_during_http ... ok
+test jev::tests::test_provider_context_failures_and_http_errors_never_retry ... ok
+test tools::search::jev::tests::test_typescript_nested_method_and_enclosing_source_survive ... ok
+test tools::search::jev::tests::test_render_preserves_file_declarations_fences_and_post_filter_observations ... ok
+test tools::search::jev::tests::test_probability_boundary_and_threshold_replay ... ok
+test tools::search::jev::tests::test_partial_missing_oversized_unknown_and_rust_structure_are_protected ... ok
+test jev::tests::test_deadline_includes_queue_and_releases_permits ... ok
+test jev::transport::tests::test_idle_connection_reuse_and_expiry_on_loopback ... ok
+test tools::overview::jev::tests::test_qualification_precedes_max_score_limit ... ok
+test tools::overview::jev::tests::test_role_failure_preserves_first_stage_usage ... ok
+test tools::overview::jev::tests::test_full_catalog_before_limit_and_deterministic_path_ties ... ok
+test tools::overview::jev::tests::test_two_roles_max_exact_inclusive_read_window ... ok
+test tools::overview::jev::tests::test_fragmentation_covers_all_evidence_and_raw_scores_replay ... ok
+test tools::overview::jev::tests::test_snapshot_identity_survives_new_publication_and_missing_role ... ok
+test jev::tests::test_concurrency_ceiling_and_dispatch_spacing ... ok
+test tools::overview::jev::tests::test_no_match_and_tied_evidence_skip_role_stage ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 274 filtered out; finished in 2.81s

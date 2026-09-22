@@ -94,6 +94,8 @@ time = "0.3"
 
 # Async MCP server communication
 tokio = { version = "1.52", features = ["full"] }
+# Optional, explicitly invoked Jev evaluation; Rust TLS keeps releases independent of OpenSSL.
+reqwest = { version = "=0.12.28", default-features = false, features = ["rustls-tls", "json"] }
 
 # Directory scanning and file path iteration
 walkdir = "2.5"

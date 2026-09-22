@@ -1,0 +1,5 @@
+Experimental Jev modes are independently configured and require the original task intent in `task_query` on each overview/search call. Keep `search.query` and overview path aliases unchanged. Missing or blank intent never reuses another request. Enablement alone starts no provider requests.
+
+With credentials and usable evidence, root overview evaluates the complete captured indexed catalog; search evaluates only complete selected display bodies. Existing masking applies before transmission to TypeSafe and to returned text. Incomplete, nested, structural, and connected evidence is conservatively retained. Source files and the index are unchanged. No recommendation means indexed evidence did not establish a match; it does not prove source-level absence.
+
+Inspect `_meta.jev` for applied/bypassed/fallback, reported API input/output tokens, elapsed time, policy, and the effective search threshold. A content note is also included when it fits the existing output cap. Errors preserve the base tool result. The 0.70 Noul omission threshold is provisional and does not represent calibrated accuracy or confidence.

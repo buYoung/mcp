@@ -36,6 +36,8 @@ use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
 mod event_navigation;
+mod jev;
+pub use jev::JevConfig;
 mod exclude;
 mod layout;
 mod output;
@@ -102,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 24;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -145,6 +147,7 @@ pub struct ResolvedConfig {
     pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
+    pub jev: JevConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
@@ -301,6 +304,7 @@ impl Default for ResolvedConfig {
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
+            jev: JevConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
@@ -368,6 +372,7 @@ struct ConfigLayer {
     redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
+    jev: jev::JevLayer,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
@@ -805,6 +810,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         redact: redact::merge(repo.redact, global.redact),
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
+        jev: jev::merge(repo.jev, global.jev),
         analysis_target_os: repo
             .analysis_target_os
             .or(global.analysis_target_os)
@@ -1349,6 +1355,76 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
+        version: 24,
+        key: "overview_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Recommend from the complete root index only with explicit task_query. Experimental; off by default.\n# overview_enabled = false",
+        korean_block: "# 명시적 task_query가 있는 루트 overview에서 전체 인덱스로 추천합니다. 실험 기능이며 기본은 꺼짐입니다.\n# overview_enabled = false",
+    },
+    Migration {
+        version: 24,
+        key: "search_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Filter complete selected search bodies only with explicit task_query. Independent of overview.\n# search_filter_enabled = false",
+        korean_block: "# 명시적 task_query가 있는 search의 완전한 선택 본문을 필터링합니다. overview 설정과 독립적입니다.\n# search_filter_enabled = false",
+    },
+    Migration {
+        version: 24,
+        key: "model",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Pinned provider model; aliases are not accepted.\n# model = \"jev-1.13.0\"",
+        korean_block: "# 고정 공급자 모델입니다. 별칭은 허용하지 않습니다.\n# model = \"jev-1.13.0\"",
+    },
+    Migration {
+        version: 24,
+        key: "api_key_env",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Environment variable name only. Never store the API key in this file.\n# api_key_env = \"TYPESAFE_API_KEY\"",
+        korean_block: "# 환경변수 이름만 지정합니다. 이 파일에 API 키를 저장하지 마세요.\n# api_key_env = \"TYPESAFE_API_KEY\"",
+    },
+    Migration {
+        version: 24,
+        key: "timeout_ms",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Whole-call deadline including queue time, 1..45000 ms; no automatic retries.\n# timeout_ms = 45000",
+        korean_block: "# 대기 시간을 포함한 전체 호출 제한입니다. 1..45000ms이며 자동 재시도는 없습니다.\n# timeout_ms = 45000",
+    },
+    Migration {
+        version: 24,
+        key: "max_in_flight_requests",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Maximum simultaneous HTTP requests, 1..3.\n# max_in_flight_requests = 3",
+        korean_block: "# 동시 HTTP 요청의 최대 개수입니다. 1..3을 허용합니다.\n# max_in_flight_requests = 3",
+    },
+    Migration {
+        version: 24,
+        key: "request_spacing_ms",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Minimum interval between HTTP starts, 300..45000 ms.\n# request_spacing_ms = 300",
+        korean_block: "# HTTP 요청 시작 사이의 최소 간격입니다. 300..45000ms를 허용합니다.\n# request_spacing_ms = 300",
+    },
+    Migration {
+        version: 24,
+        key: "max_batch_bytes",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Encoded JSON ceiling, 1024..80000 bytes. Byte estimates do not prove provider token limits.\n# max_batch_bytes = 80000",
+        korean_block: "# 인코딩된 JSON 상한입니다. 1024..80000바이트이며 공급자 토큰 제한 충족을 보장하지 않습니다.\n# max_batch_bytes = 80000",
+    },
+    Migration {
+        version: 24,
+        key: "pool_idle_timeout_ms",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Idle pooled connection lifetime, 1..30000 ms.\n# pool_idle_timeout_ms = 30000",
+        korean_block: "# 재사용 연결의 유휴 수명입니다. 1..30000ms를 허용합니다.\n# pool_idle_timeout_ms = 30000",
+    },
+    Migration {
+        version: 24,
+        key: "search_filter_min_unrelated_probability",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Provisional omission threshold: finite 0.5 < value <= 1.0. Not confidence or calibrated accuracy.\n# search_filter_min_unrelated_probability = 0.70",
+        korean_block: "# 잠정 본문 생략 임계값입니다. 유한한 0.5 < 값 <= 1.0이며 confidence나 검증된 정확도가 아닙니다.\n# search_filter_min_unrelated_probability = 0.70",
+    },
+    Migration {
         version: 17,
         key: "is_overview_stats_enabled",
         placement: KeyPlacement::Subtable("tool_output"),
@@ -1742,7 +1818,11 @@ fn apply_migrations_with_language(
         .iter()
         .filter(|m| m.version > file_version && m.version <= target_version)
     {
-        if file_mentions_key(&out, migration.key) {
+        let is_present=match migration.placement {
+            KeyPlacement::Subtable("analysis.jev")=>jev::mentions_key(&out,migration.key),
+            _=>file_mentions_key(&out,migration.key),
+        };
+        if is_present {
             continue; // presence guard — already there, never duplicate
         }
         let block = migration.block(language);

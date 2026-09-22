@@ -30,6 +30,15 @@ pub struct ToolContext<'a> {
     pub active_workspace_scope: Option<&'a str>,
 }
 
+/// Caller-owned task intent is independent of query/path aliases and never retained.
+pub(crate) fn task_query(arguments: &Value) -> Result<Option<&str>, (i64, String)> {
+    match arguments.get("task_query") {
+        None => Ok(None),
+        Some(Value::String(query)) => Ok((!query.trim().is_empty()).then_some(query.as_str())),
+        _ => Err((-32602, "Invalid 'task_query': expected a string.".into())),
+    }
+}
+
 // --- Shared gitignore-style glob matching (find + grep) --------------------------------
 
 /// Strip a leading `./` (repeated) from a glob so `./src/*.rs` behaves as `src/*.rs`.
@@ -206,7 +215,12 @@ pub fn server_instructions() -> &'static str {
 
 /// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
-    let common = include_str!("instructions/navigation.md").trim_end();
+    let mut common = include_str!("instructions/navigation.md").trim_end().to_string();
+    let jev = &crate::config::get().jev;
+    if jev.is_overview_enabled || jev.is_search_filter_enabled {
+        common.push_str("\n\n");
+        common.push_str(include_str!("instructions/jev.md").trim_end());
+    }
     if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
@@ -298,6 +312,7 @@ pub fn list_tools() -> Value {
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "task_query": { "type": "string", "description": "Original caller-owned task intent, separate from query. Optional; omitted/blank bypasses experimental Jev filtering even when enabled. Never inferred or reused." },
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -331,10 +346,11 @@ pub fn list_tools() -> Value {
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": config.jev.is_overview_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "task_query": { "type": "string", "description": "Original caller-owned task intent, separate from path aliases. Optional; omitted/blank bypasses experimental Jev root recommendations even when enabled. Never inferred or reused." },
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
                                 "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
                             }
@@ -343,7 +359,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "search",
                         "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": config.jev.is_search_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,
@@ -422,6 +438,13 @@ pub fn list_tools() -> Value {
         .as_array_mut()
         .unwrap()
         .push(analyze::definition());
+    for tool in result["tools"].as_array_mut().into_iter().flatten() {
+        let is_enabled=match tool["name"].as_str() {Some("overview")=>config.jev.is_overview_enabled,Some("search")=>config.jev.is_search_filter_enabled,_=>false};
+        if is_enabled {
+            let description=tool["description"].as_str().unwrap_or_default();
+            tool["description"]=Value::String(format!("{description}\n\nExperimental Jev is enabled for this tool. With explicit task_query and credentials, selected evidence is sent to TypeSafe. Missing intent/credentials or unavailable evidence bypasses evaluation; failures preserve the base result. Inspect _meta.jev for outcome and reported usage."));
+        }
+    }
     if let Some(limit) = config.client_output.claude_max_result_chars {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
             tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });

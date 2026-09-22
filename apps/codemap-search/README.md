@@ -127,6 +127,19 @@ A bare `build` matches directories at any depth; `./build` means the workspace r
 
 MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index.path`, `index.refresh.watch` or `index.refresh.watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
 
+## Optional native Jev decisions
+
+The Rust server includes independent, experimental root recommendations and search body filtering. Both default to off. Set `[analysis.jev].overview_enabled` or `search_filter_enabled`, provide the operator's `TYPESAFE_API_KEY` to the MCP process, and supply the original task intent as `task_query` on each call. `search.query` and overview path aliases retain their meanings; missing intent or credentials bypasses evaluation.
+
+```json
+{"name":"overview","arguments":{"path":".","task_query":"Trace caller cancellation through an outgoing request"}}
+{"name":"search","arguments":{"query":"cancellation request","task_query":"Trace caller cancellation through an outgoing request"}}
+```
+
+Eligible calls send masked indexed metadata or selected displayed source to TypeSafe. Failures preserve the base result; `_meta.jev` separates outcome, reported usage and elapsed time. The provisional Noul threshold of 0.70 is not calibrated accuracy. See [Jev settings, limits and transmission scope](./docs/configuration.md#optional-native-jev-decisions).
+
+The common `codemap_search::jev` evaluator is also callable without MCP or an index. From this repository root, run the offline example with `cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock`. It verifies Score, Choice, Noul and usage. Only explicit `--live` reads credentials and calls the provider. Ordinary CLI search output is unchanged.
+
 ## Supported languages and formats
 
 | Language | Extensions |

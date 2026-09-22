@@ -10,6 +10,7 @@ mod arguments;
 mod grouped;
 mod monorepo;
 pub mod render;
+pub mod jev;
 
 pub(crate) use arguments::validate as validate_arguments;
 
@@ -450,6 +451,8 @@ pub struct SearchOutput {
     /// Files with returned source/literal excerpts, excluding the ranked path-only tail.
     /// This metadata is not added to the MCP response envelope.
     pub source_files: Vec<crate::analyze::FileObservation>,
+    /// Owned producer-supplied evidence; never rediscovered from rendered Markdown.
+    pub prepared: Option<jev::PreparedEvidence>,
 }
 
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
@@ -1133,7 +1136,7 @@ pub(crate) fn run_inner_with_metadata(
         .collect();
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
+    let insertions = if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
         grouped::append_relations(
             &mut text,
             &grouped_files,
@@ -1141,8 +1144,10 @@ pub(crate) fn run_inner_with_metadata(
             workspace_scope,
             caller_context_enabled,
             should_include_events,
-        );
-    }
+        )
+    } else { Vec::new() };
+    let prepared = (!is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none())
+        .then(|| jev::PreparedEvidence::capture(&grouped_files, &text, retained_primary_bytes, &insertions));
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started
@@ -1153,5 +1158,5 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(SearchOutput { text, source_files })
+    Ok(SearchOutput { text, source_files, prepared })
 }

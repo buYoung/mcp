@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.68s
+     Running tests/e2e_tests.rs (apps/codemap-search/target/debug/deps/e2e_tests-270e31f821ae2115)
+
+running 6 tests
+test e2e::jev::test_native_jev_schema_and_no_background_evaluation ... ok
+test e2e::jev::test_native_jev_preserves_adjacent_same_line_declarations ... ok
+test e2e::jev::test_native_jev_protects_rust_and_typescript_declarations_at_one ... ok
+test e2e::jev::test_native_jev_redaction_accounting_and_caps ... ok
+test e2e::jev::test_native_jev_snapshot_refresh_during_evaluation ... ok
+test e2e::jev::test_native_jev_injected_matrix ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 209 filtered out; finished in 5.98s

@@ -27,6 +27,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `analysis.jev` | 서로 독립적인 Jev 루트 추천과 검색 본문 필터 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -53,10 +54,10 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **23**이며 주석으로 표시합니다.
+현재 설정 버전은 **24**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -90,6 +91,66 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 버전 6에서는 명시한 배열이 선택적 기본 목록을 대체합니다. 이전 배열은 내장 목록에 추가하는 방식이었습니다. 자동 작성을 껐다면 기존 제외를 유지하기 위해 `node_modules`, `.yarn`, `target`, `dist`, `build`, `vendor` 중 필요한 항목을 직접 넣고, 공통·프로젝트 규칙을 추가한 뒤 버전 주석을 6으로 바꾸세요. 다른 키는 전환할 필요가 없습니다. 직접 편집하기 전에 설정을 백업하세요.
 
 전환하면서 상속받던 전역 제외값을 저장소 배열에 기록할 수 있습니다. 이후 전역 변경을 다시 상속하려면 저장소 키를 주석 처리하세요. 전역 배열도 버전 6에서는 전체 목록이며 자동으로 수정하지 않습니다.
+
+## 선택적 네이티브 Jev 평가
+
+Jev는 기존 Rust 실행 파일 안에서 동작하며 두 모드는 서로 독립적이고 기본으로 꺼져 있습니다. 설정을 켜는 것만으로 API를 호출하지 않습니다. 적격 overview/search 요청마다 명시적인 원래 작업 의도 `task_query`와 설정된 환경변수의 API 키가 필요합니다. 작업 의도가 생략되거나 공백이면 우회하고 문자열이 아니면 인자 오류를 반환합니다. 기존 키 없는 오프라인 호출은 계속 사용할 수 있습니다.
+
+| `analysis.jev` 키 | 기본값 | 허용값과 적용 |
+| --- | --- | --- |
+| `overview_enabled` | `false` | 불리언. 루트 overview와 같은 스냅샷의 전체 인덱스 메타데이터를 평가 |
+| `search_filter_enabled` | `false` | 불리언. 기존 search가 선택해 표시하는 완전한 본문만 평가 |
+| `model` | `"jev-1.13.0"` | 이 고정 ID만 허용하며 별칭은 거부 |
+| `api_key_env` | `"TYPESAFE_API_KEY"` | 키 자체가 아닌 환경변수 이름 |
+| `timeout_ms` | `45000` | 정수 1–45000ms. 대기와 overview의 두 단계를 포함 |
+| `max_in_flight_requests` | `3` | 동시 HTTP 요청 1–3개 |
+| `request_spacing_ms` | `300` | HTTP 시작 간격 300–45000ms |
+| `max_batch_bytes` | `80000` | 인코딩된 JSON 1024–80000바이트 |
+| `pool_idle_timeout_ms` | `30000` | 재사용 연결 유휴 시간 1–30000ms |
+| `search_filter_min_unrelated_probability` | `0.70` | 유한한 `0.5 < 값 <= 1.0`. 호스트가 적용하는 잠정 본문 생략 임계값 |
+
+다른 설정과 같은 키별 우선순위·잘못된 값의 하위 계층 복구를 사용합니다. 설정과 마스킹은 요청 시작 시 고정하며 변경값은 다음 요청에 적용합니다. 스키마 24는 이 섹션의 누락된 키를 주석으로 추가하고 기존 값과 사용자 메모를 보존합니다. MCP는 기존 순차 요청·알림 처리를 유지하며 HTTP 자동 재시도와 redirect는 하지 않습니다. 백그라운드 추론, 대화 기록 읽기, 요청 간 작업 의도 재사용, Python 프록시는 없습니다.
+
+루트 추천만 켜는 예시입니다. 운영자 키가 MCP 프로세스의 환경변수로 전달되도록 설정하세요.
+
+```toml
+[analysis.jev]
+overview_enabled = true
+search_filter_enabled = false
+api_key_env = "TYPESAFE_API_KEY"
+```
+
+```sh
+export TYPESAFE_API_KEY='<operator-provided-key>'
+```
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"overview","arguments":{"path":".","task_query":"호출자의 취소가 외부 요청까지 전달되는 흐름을 추적"}}}
+```
+
+검색 필터는 `search_filter_enabled = true`로 별도 활성화하고 검색어와 원래 작업 의도를 구분해서 전달합니다. overview의 `query`는 계속 경로 별칭입니다.
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"cancellation request","task_query":"호출자의 취소가 외부 요청까지 전달되는 흐름을 추적","caller_context":true}}}
+```
+
+overview는 캡처한 루트 전체의 경로·선언·문서·가능한 호출 메타데이터 사본을 전송합니다. 이 모드는 원문을 읽지 않으므로 마스킹을 켰을 때 인덱스 리터럴을 숨깁니다. search는 선택한 표시 본문, 제한된 표시 문맥, 선언 식별자와 검색 인자를 전송합니다. 두 모드 모두 `task_query`를 포함합니다. 기존 마스킹은 전송 전과 반환 텍스트에 적용하며 마스킹을 끄면 이 보호도 꺼집니다. 원본 파일과 커밋된 인덱스는 변경하지 않습니다.
+
+공급자 제한은 state와 모든 질문을 합쳐 64k 토큰, state와 가장 긴 질문을 합쳐 32k 토큰입니다. 런타임은 JSON 바이트를 토큰 대용으로 계산하고 1024의 여유를 두며 공급자 토크나이저를 쓰지 않습니다. 80000바이트 이하라고 두 토큰 제한을 충족하는 것은 아닙니다. 과대 입력과 공급자 거절은 증거를 몰래 자르지 않고 기본 결과로 복구합니다. 추가 상한은 질문 16384개, 배치 512개, 응답 2000000바이트입니다.
+
+overview는 조각의 supporting/direct 확률 합이 unrelated/tangential보다 큰 파일만 적합하다고 봅니다. 이후 최대 조각 Score와 경로로 정렬해 최대 24개 파일, 파일당 최대 두 대표 선언을 표시합니다. 완전한 평가 후에도 `recommendation_status=no_match` 또는 `insufficient_evidence`일 수 있으며 소스에 구현이 없다고 결론내리지 않습니다. search의 Noul은 무관할 확률입니다. 완전하고 보호되지 않은 본문에만 임계값을 적용하며 부분·누락·과대 본문, 구조적이거나 알 수 없는 선언, 중첩·연결된 근거를 보존합니다. 선언 이름·범위·파일 헤더·나머지 검색 목록은 유지합니다.
+
+`_meta.jev`는 `applied`/`bypassed`/`fallback`, 사유, 모델·정책, 실제 임계값, 추천 상태, 개수, API가 보고한 입력/출력 토큰, 전체 시간과 완료된 HTTP 누적 시간(ms)을 구분합니다. `selected_count`는 search에서 생략한 본문 수, overview에서 표시한 추천 파일 수입니다. 본문 여유가 있을 때만 상태 안내도 추가하므로 한도가 가득 차도 기본 근거는 유지하고 메타데이터에서 사유를 확인할 수 있습니다. 소스 관측은 필터 후 전달한 근거를 기준으로 계산합니다. 실패하거나 수행 중인 요청의 미보고 사용량은 비용 0이 아니라 미확인입니다.
+
+0.70은 실험 정책이며 대표성 있는 별도 평가와 보류 질의로 Noul 품질을 보정하지 않았습니다. 과거 Python Choice 결과로 Noul 품질·응답 결정성·Rust 속도 개선을 주장하지 않습니다. Score/Choice의 confidence는 분포 집중도이며 정답 보장이 아닙니다. 공통 Rust 평가기 예제는 MCP와 인덱스 없이 동작하고 기본 `--mock`은 Score=2.0, Choice=keep, Noul=0.9 및 fixture 사용량을 검사합니다.
+
+```sh
+cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock
+# 운영자가 명시적으로 실행할 때만 실제 API를 호출합니다.
+cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --live
+```
+
+`--live`는 `TYPESAFE_API_KEY`를 읽습니다. [TypeSafe API](https://docs.typesafe.ai/api.md), [모델 제한](https://docs.typesafe.ai/models.md).
 
 ## 디렉터리 제외 규칙
 
@@ -422,7 +483,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -692,6 +753,37 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+[analysis.jev]
+# 명시적 task_query가 있는 루트 overview에서 전체 인덱스로 추천합니다. 실험 기능이며 기본은 꺼짐입니다.
+overview_enabled = false
+
+# 명시적 task_query가 있는 search의 완전한 선택 본문을 필터링합니다. overview 설정과 독립적입니다.
+search_filter_enabled = false
+
+# 고정 공급자 모델입니다. 별칭은 허용하지 않습니다.
+model = "jev-1.13.0"
+
+# 환경변수 이름만 지정합니다. 이 파일에 API 키를 저장하지 마세요.
+api_key_env = "TYPESAFE_API_KEY"
+
+# 대기 시간을 포함한 전체 호출 제한입니다. 1..45000ms이며 자동 재시도는 없습니다.
+timeout_ms = 45000
+
+# 동시 HTTP 요청의 최대 개수입니다. 1..3을 허용합니다.
+max_in_flight_requests = 3
+
+# HTTP 요청 시작 사이의 최소 간격입니다. 300..45000ms를 허용합니다.
+request_spacing_ms = 300
+
+# 인코딩된 JSON 상한입니다. 1024..80000바이트이며 공급자 토큰 제한 충족을 보장하지 않습니다.
+max_batch_bytes = 80000
+
+# 재사용 연결의 유휴 수명입니다. 1..30000ms를 허용합니다.
+pool_idle_timeout_ms = 30000
+
+# 잠정 본문 생략 임계값입니다. 유한한 0.5 < 값 <= 1.0이며 confidence나 검증된 정확도가 아닙니다.
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,

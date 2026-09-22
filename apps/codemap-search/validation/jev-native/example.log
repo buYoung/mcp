@@ -1,0 +1,8 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling codemap-search v0.10.0 (/Users/buyong/workspace/private/buyong-mcp-astra/apps/codemap-search)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 22.51s
+     Running `apps/codemap-search/target/debug/examples/jev_decisions --mock`
+{"answers":{"disposition":{"choice":"keep","confidence":0.8,"probabilities":{"keep":0.9,"omit":0.1},"type":"choice"},"is_useful":{"noul":0.9,"type":"noul"},"relevance":{"confidence":1.0,"legend":{"0":"No evidence","1":"Supporting evidence","2":"Direct evidence"},"probabilities":{"0":0.0,"1":0.0,"2":1.0},"score":2.0,"type":"score"}},"metrics":{"elapsed_ms":2,"http_elapsed_ms":0,"requests_completed":1,"requests_started":1,"usage":{"input_tokens":123,"output_tokens":11}},"mode":"mock","model":"jev-1.13.0"}

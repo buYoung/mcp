@@ -1,0 +1,47 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.83s
+     Running unittests src/lib.rs (apps/codemap-search/target/debug/deps/codemap_search-6418d5ebb3c5cb18)
+
+running 36 tests
+test config::tests::test_apply_migrations_noop_when_already_current ... ok
+test config::tests::test_apply_migrations_premarker_file_runs_from_baseline ... ok
+test config::tests::test_apply_migrations_presence_guard_skips_existing_key ... ok
+test config::tests::test_apply_migrations_inserts_top_level_before_table ... ok
+test config::tests::test_config_template_version_marker_matches_config_version ... ok
+test config::jev::tests::test_jev_defaults_layers_threshold_and_invalid_values ... ok
+test config::tests::test_ensure_repo_config_skips_when_auto_update_disabled ... ok
+test config::tests::test_caller_context_keys_override ... ok
+test config::tests::test_analysis_target_os_layers_clear_and_invalid_fallback ... ok
+test config::event_navigation::tests::test_event_rules_replace_layers_and_reject_conflicting_selectors ... ok
+test config::tests::test_file_mentions_key_guards_prefix_collisions ... ok
+test config::jev::tests::test_jev_migration_is_localized_additive_and_section_scoped ... ok
+test config::tests::test_index_scope_refresh_survives_a_full_path_queue ... ok
+test config::tests::test_insert_subtable_places_key_under_header ... ok
+test config::tests::test_defaults_when_no_files ... ok
+test config::scaffold::tests::test_atomic_migration_preserves_concurrent_edits_and_symlinks ... ok
+test config::tests::test_set_version_marker_replaces_or_prepends ... ok
+test config::tests::test_repo_overrides_global_overrides_default ... ok
+test config::scaffold::tests::test_legacy_inline_missing_and_empty_arrays ... ok
+test config::scaffold::tests::test_migration_preserves_comments_strings_and_sections ... ok
+test config::tests::test_parse_version_marker ... ok
+test config::tests::test_excluded_directories_replace_and_validate ... ok
+test config::scaffold::tests::test_localized_templates_generate_equivalent_settings ... ok
+test config::tests::test_malformed_config_falls_back_to_defaults ... ok
+test config::tests::test_unknown_key_and_bad_type_ignored ... ok
+test config::tests::test_test_rules_override_per_language_and_allow_disabling_defaults ... ok
+test config::tests::test_update_config_auto_update_overrides ... ok
+test config::tests::test_v3_migration_adds_commented_update_section_before_tables ... ok
+test config::tests::test_v2_migrations_insert_navigation_keys_under_caller_context ... ok
+test config::tests::test_use_git_exclude_default_and_override ... ok
+test config::tests::test_language_support_repo_overrides_global_and_bad_type_falls_back ... ok
+test redact::pii::tests::test_pii_configuration_inheritance_and_per_key_fallback ... ok
+test config::tests::test_language_support_migrations_are_localized_and_idempotent ... ok
+test redact::tests::test_configuration_layers_and_cli_do_not_silently_enable_or_disable_redaction ... ok
+test config::tests::test_ensure_repo_config_scaffolds_with_version_marker ... ok
+test config::tests::test_ensure_repo_config_is_idempotent ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 265 filtered out; finished in 0.23s

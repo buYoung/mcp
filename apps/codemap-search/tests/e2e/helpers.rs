@@ -61,6 +61,18 @@ pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Erro
     Ok(temp_dir)
 }
 
+/// Keep native-library fixtures' cwd/config globals inside their own test process.
+pub fn run_isolated_jev_test(name: &str, root: &Path) {
+    let result = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", name, "--nocapture"])
+        .current_dir(root)
+        .env("CODEMAP_HOME", root.join("isolated-global"))
+        .env("CODEMAP_JEV_ISOLATED_TEST", "1")
+        .env_remove("CODEMAP_JEV_ABSENT_KEY")
+        .output().unwrap();
+    assert!(result.status.success(), "isolated test failed:\n{}\n{}", String::from_utf8_lossy(&result.stdout), String::from_utf8_lossy(&result.stderr));
+}
+
 /// Helper to invoke the codemap-search binary for CLI tests using assert_cmd
 pub fn run_cli(args: &[&str], cwd: &Path) -> assert_cmd::assert::Assert {
     use assert_cmd::prelude::*;

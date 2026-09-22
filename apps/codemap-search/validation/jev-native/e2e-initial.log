@@ -1,0 +1,355 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.09s
+     Running tests/e2e_tests.rs (apps/codemap-search/target/debug/deps/e2e_tests-270e31f821ae2115)
+
+running 214 tests
+test e2e::codemap::test_codemap_empty_directory ... ok
+test e2e::codemap::test_codemap_deep_nested_dirs ... ok
+test e2e::codemap::test_codemap_details_view ... ok
+test e2e::codemap::test_codemap_exclusive_end_at_next_line ... ok
+test e2e::codemap::test_codemap_excludes_minified_and_generated_bundles ... ok
+test e2e::benchmark::test_benchmark_invalid_queries ... ok
+test e2e::benchmark::test_benchmark_empty_queries ... ok
+test e2e::codemap::test_codemap_formatting_validation ... ok
+test e2e::codemap::test_codemap_missing_file ... ok
+test e2e::codemap::test_codemap_folder_view ... ok
+test e2e::codemap::test_codemap_missing_folder ... ok
+test e2e::codemap::test_codemap_hierarchical_navigation ... ok
+test e2e::codemap::test_codemap_non_source_files ... ok
+test e2e::codemap::test_codemap_renders_structured_and_graphql_declarations ... ok
+test e2e::codemap::test_codemap_renders_tfvars_attribute_symbols ... ok
+test e2e::codemap::test_codemap_root_view ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpcpguLV/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpwk30on/.codemap/config.toml
+test e2e::benchmark::test_benchmark_malformed_queries ... ok
+test e2e::benchmark::test_benchmark_empty_repo ... ok
+test e2e::config::test_index_refuses_user_home_before_creating_state ... ok
+test e2e::config::test_index_refuses_explicit_home_target_from_descendant_project ... ok
+test e2e::config::test_mcp_refuses_user_home_before_creating_state ... ok
+test e2e::benchmark::test_benchmark_query_list ... ok
+test e2e::benchmark::test_benchmark_run ... ok
+test e2e::benchmark::test_benchmark_malformed_expected_schema ... ok
+test e2e::benchmark::test_benchmark_recall_calculation ... ok
+test e2e::benchmark::test_benchmark_output_format ... ok
+test e2e::cross_feature::test_cross_extraction_codemaps ... ok
+test e2e::benchmark::test_benchmark_identical_results ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp691W1f/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpLPIeqp/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpzLzA1Y/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpXfb4Ju/.codemap/config.toml
+test e2e::config::test_default_index_materializes_under_codemap_dir ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpm3RYxE/.codemap/config.toml
+test e2e::config::test_index_allows_project_below_user_home ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpdhzuss/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpgREiUq/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpVXElAv/.codemap/config.toml
+test e2e::config::test_index_warns_and_continues_when_home_is_unknown ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpIUEIka/.codemap/config.toml
+test e2e::cross_feature::test_cross_benchmark_indexing ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpB3FrEB/.codemap/config.toml
+test e2e::config::test_config_excluded_directories_augment ... ok
+test e2e::config::test_config_threshold_override_changes_branching ... ok
+test e2e::cross_feature::test_cross_mcp_overview_accepts_slash_and_backslash_file_paths ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpyJHMWs/.codemap/config.toml
+test e2e::documents::test_document_support_gates_cli_search_and_codemap_but_not_direct_parse ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpcqeTAs/.codemap/config.toml
+test e2e::cross_feature::test_cross_mcp_codemaps_dynamic ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpLEcEJp/.codemap/config.toml
+test e2e::codemap::test_codemap_renders_every_checked_priority_grammar_capability ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpBjqZVO/.codemap/config.toml
+test e2e::cross_feature::test_cross_mcp_codemap_reflects_modify ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpSCSB3U/.codemap/config.toml
+test e2e::exclusions::test_exclusions_generated_common_and_project_globs ... FAILED
+test e2e::cross_feature::test_cross_mcp_search_read_suggestion_path_is_readable ... ok
+test e2e::exclusions::test_exclusions_pre_v6_transition_and_opt_out ... FAILED
+test e2e::exclusions::test_exclusions_v6_is_not_regenerated_on_restart ... FAILED
+test e2e::cross_feature::test_cross_indexing_mcp_realtime ... ok
+test e2e::cross_feature::test_cross_mcp_search_and_overview_consume_priority_format_results ... ok
+test e2e::cross_feature::test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpJBWCim/.codemap/config.toml
+test e2e::jev::test_native_jev_preserves_adjacent_same_line_declarations ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpcLEmrD/.codemap/config.toml
+test e2e::cross_feature::test_cross_bm25_mcp_branching ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpuLI5Ti/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpw90DjW/.codemap/config.toml
+test e2e::jev::test_native_jev_schema_and_no_background_evaluation ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpt3HtcR/.codemap/config.toml
+test e2e::language_support::test_junk_files_require_include_ignored_for_find_and_grep ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp2wZblY/.codemap/config.toml
+test e2e::jev::test_native_jev_redaction_accounting_and_caps ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpXwOKez/.codemap/config.toml
+test e2e::config::test_use_git_exclude_scopes_to_git_info_exclude_only ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpGvLMpJ/.codemap/config.toml
+test e2e::mcp::test_caller_context_annotation_respects_byte_cap ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpKNmPKH/.codemap/config.toml
+test e2e::mcp::test_caller_context_broad_match_hybrid_tail ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpgVCNdg/.codemap/config.toml
+test e2e::jev::test_native_jev_snapshot_refresh_during_evaluation ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpTZscsR/.codemap/config.toml
+test e2e::documents::test_document_support_runtime_toggle_converges_index_while_live_tools_remain_available ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpoYKPLU/.codemap/config.toml
+test e2e::mcp::test_caller_context_schema_is_optional ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpSKHmz7/.codemap/config.toml
+test e2e::mcp::test_caller_context_default_on_annotates_when_omitted ... ok
+test e2e::mcp::test_mcp_abrupt_disconnect ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpZ3PD4B/.codemap/config.toml
+test e2e::mcp::test_caller_context_on_renders_callers_callees_qualified ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpmBYSEd/.codemap/config.toml
+test e2e::mcp::test_caller_context_explicit_false_overrides_repo_default_on ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpSfjYUh/.codemap/config.toml
+test e2e::mcp::test_caller_context_repo_off_is_byte_identical ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpGRFuSJ/.codemap/config.toml
+test e2e::mcp::test_caller_context_zero_callers_caveat ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp4NPju2/.codemap/config.toml
+test e2e::jev::test_native_jev_injected_matrix ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpnXooG0/.codemap/config.toml
+test e2e::mcp::test_index_and_codemap_exclude_junk_dirs ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpBfcOFq/.codemap/config.toml
+test e2e::mcp::test_mcp_initialize ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp513U34/.codemap/config.toml
+test e2e::mcp::test_index_excludes_minified_and_generated_bundles_case_insensitively ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpJJm6oD/.codemap/config.toml
+test e2e::mcp::test_index_respects_codemapignore ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpUvDRTJ/.codemap/config.toml
+[codemap-search] config template skipped: write /Users/buyong/tmp/.tmpUvDRTJ/.codemap/config.toml: File exists (os error 17)
+test e2e::mcp::test_mcp_invalid_request ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpri6SsV/.codemap/config.toml
+test e2e::mcp::test_mcp_list_tools ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpuvQOqB/.codemap/config.toml
+test e2e::mcp::test_mcp_missing_arguments ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpf5uilq/.codemap/config.toml
+test e2e::exclusions::test_exclusions_manual_reload_reconciles_index_without_source_edits ... ok
+test e2e::mcp::test_mcp_fallback_match_no_snippets_and_clean_tail ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpem9ksd/.codemap/config.toml
+test e2e::parser::test_astro_excludes_expression_strings_and_capitalized_components ... ok
+test e2e::mcp::test_mcp_path_traversal ... ok
+test e2e::mcp::test_mcp_parallel_requests ... ok
+test e2e::parser::test_composite_code_markup_and_style_preserve_original_lines ... ok
+test e2e::mcp::test_mcp_branching_scope_view ... ok
+test e2e::parser::test_composite_boundaries_attributes_and_source_order ... ok
+test e2e::parser::test_lsr_002_toml_comments_never_become_keys_and_keep_table_path ... ok
+test e2e::parser::test_lsr_003_tree_sitter_style_and_verified_component_regions ... ok
+test e2e::parser::test_lsr_005_and_lsr_009_hcl_comments_and_ast_relationships_are_conservative ... ok
+test e2e::parser::test_lsr_008_bash_function_keyword_without_parentheses_is_a_symbol ... ok
+test e2e::mcp::test_mcp_branching_hybrid_view ... ok
+test e2e::parser::test_markdown_documents_extract_headings_links_code_and_original_ranges ... ok
+test e2e::parser::test_mdx_recovers_markdown_around_malformed_jsx_without_code_navigation ... ok
+test e2e::parser::test_mdx_structures_markdown_but_not_javascript_expressions ... ok
+test e2e::parser::test_fifth_priority_navigation_references_respect_opt_in_config ... ok
+test e2e::parser::test_existing_language_cross_language_sentinels_are_not_symbols ... ok
+test e2e::parser::test_new_tree_sitter_formats_emit_symbols_and_dependencies ... ok
+test e2e::parser::test_priority_four_infrastructure_symbols_and_dependencies ... ok
+test e2e::parser::test_priority_one_nested_paths_and_unicode_ranges_are_original_and_one_based ... ok
+test e2e::parser::test_priority_three_shell_symbols_and_source_import_do_not_create_calls ... ok
+test e2e::mcp::test_search_hint_schema_is_optional ... ok
+test e2e::parser::test_priority_two_markup_and_css_symbols_preserve_navigation_boundary ... ok
+test e2e::parser::test_priority_one_structured_data_is_searchable_and_has_key_symbols ... ok
+test e2e::parser::test_tree_sitter_deeply_nested ... ok
+test e2e::parser::test_tree_sitter_docstring_association ... ok
+test e2e::parser::test_sql_declarations_are_extracted_without_navigation ... ok
+test e2e::parser::test_tree_sitter_empty_file ... ok
+test e2e::parser::test_tree_sitter_flags_attributes ... ok
+test e2e::parser::test_tree_sitter_flags_todo_fixme ... ok
+test e2e::parser::test_tree_sitter_invalid_syntax ... ok
+test e2e::parser::test_tree_sitter_special_chars ... ok
+test e2e::parser::test_tree_sitter_rust_extraction ... ok
+test e2e::parser::test_tree_sitter_sub_tokenization ... ok
+test e2e::parser::test_unterminated_astro_frontmatter_is_not_reinterpreted_as_markup ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp1FW1oi/.codemap/config.toml
+test e2e::parser::test_priority_two_sass_less_and_component_structure_is_complete ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp2WmIRm/.codemap/config.toml
+test e2e::mcp::test_mcp_symlink_workspace_compatibility ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmphUvZft/.codemap/config.toml
+test e2e::parser::test_existing_language_extraction_matrix ... ok
+test e2e::parser::test_malformed_priority_files_remain_searchable_without_recovered_structure ... ok
+test e2e::parser::test_tree_sitter_large_file ... ok
+test e2e::mcp::test_search_hint_is_applied_by_mcp ... ok
+test e2e::cross_feature::test_rust_target_reload_and_reexport_identity_reach_all_tool_views ... ok
+test e2e::redact::pii::test_selected_pii_rules_reach_mcp_source_and_indexed_outputs ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp1tsysA/.codemap/config.toml
+test e2e::redact::test_redact_applies_to_errors_and_can_be_disabled_in_config ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpJS7EcV/.codemap/config.toml
+test e2e::redact::pii::test_pii_live_configuration_and_context_survive_clipped_outputs ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpbIvGOT/.codemap/config.toml
+test e2e::redact::pii::test_all_pii_types_preserve_mcp_negotiation ... ok
+test e2e::redact::test_redact_preserves_grep_original_column_limits ... ok
+test e2e::redact::test_redact_custom_rules_and_exact_exceptions_reach_json_rpc_output ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp6tQAzC/.codemap/config.toml
+test e2e::redact::test_redact_protects_interior_lines_and_search_truncation ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpVtv8OY/.codemap/config.toml
+test e2e::redact::test_redact_masks_all_mcp_views_and_preserves_matching_and_disk ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpv2sMWn/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpwUmHJY/.codemap/config.toml
+test e2e::redact::test_redact_syntax_and_precise_literals_reach_json_rpc_output ... ok
+test e2e::scenarios::test_realworld_ai_agent_simulation ... ok
+test e2e::scenarios::test_realworld_multilang_workspace ... ok
+test e2e::scenarios::test_realworld_medium_repo ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpLcjb76/.codemap/config.toml
+test e2e::scenarios::test_realworld_small_repo ... ok
+test e2e::search::test_bm25_basic_search ... ok
+test e2e::search::test_bm25_composite_code_and_markup_are_indexed_without_mdx ... ok
+test e2e::language_support::test_optional_language_groups_toggle_index_discovery_but_keep_direct_access ... ok
+test e2e::scenarios::test_realworld_todo_finder ... ok
+test e2e::redact::test_redact_search_literal_hints_preserve_safe_labels ... ok
+test e2e::search::test_bm25_concurrent_access ... ok
+test e2e::search::test_bm25_corrupt_index ... ok
+test e2e::search::test_bm25_existing_language_hints_do_not_promote_new_formats ... ok
+test e2e::search::test_bm25_explicit_test_filename_is_not_demoted ... ok
+test e2e::search::test_bm25_field_weighting ... ok
+test e2e::search::test_bm25_format_text_surfaces_structured_markup_shell_and_infrastructure_files ... ok
+test e2e::search::test_bm25_incremental_no_change ... ok
+test e2e::search::test_bm25_index_persistence ... ok
+test e2e::search::test_bm25_incremental_update ... ok
+test e2e::search::test_bm25_language_hint_reduces_cross_language_top1_misrank ... ok
+test e2e::search::test_bm25_long_camel_case_identifiers ... ok
+test e2e::search::test_bm25_partial_failure_non_utf8 ... ok
+test e2e::search::test_bm25_mtime_oscillation ... ok
+test e2e::search::test_bm25_search_non_existent ... ok
+test e2e::search::test_bm25_search_special_chars ... ok
+test e2e::cross_feature::test_programming_languages_flow_through_index_search_and_mcp_overview ... ok
+test e2e::search::test_bm25_search_reaches_every_priority_alias_and_grammar_boundary ... ok
+test e2e::search::test_events_scope_and_argument_fixed_key_channel_rules ... ok
+test e2e::search::test_composite_query_preserves_coverage_body_evidence_and_continuation ... ok
+test e2e::search::test_explicit_filename_is_recalled_after_common_symbols_fill_the_primary_pool ... ok
+test e2e::search::test_events_builtin_api_catalog_and_disable_reach_output ... ok
+test e2e::search::test_events_exact_key_negative_controls_and_ranked_search ... ok
+test e2e::search::test_events_query_caps_keep_explicit_omissions ... ok
+test e2e::redact::large_file::test_redact_ten_secrets_in_ten_thousand_line_file ... ok
+test e2e::tools::test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpPeDeeS/.codemap/config.toml
+test e2e::tools::test_find_accepts_windows_style_relative_pattern ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpuhsjix/.codemap/config.toml
+test e2e::tools::test_find_accepts_workspace_internal_absolute_backslash_pattern ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp46KVSy/.codemap/config.toml
+test e2e::source_routes::test_events_source_routes_input_limit_and_disabled ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp7mcz6u/.codemap/config.toml
+test e2e::tools::test_find_include_ignored_bypass ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp9x0YcW/.codemap/config.toml
+test e2e::tools::test_find_and_grep_exclude_generated_files_unless_explicitly_bypassed ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpy74UMT/.codemap/config.toml
+test e2e::tools::test_find_path_param_escape_is_rejected ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpBdKLcc/.codemap/config.toml
+test e2e::tools::test_find_respects_gitignore_and_excludes_node_modules ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpy3d8hk/.codemap/config.toml
+test e2e::source_routes::test_events_source_routes_support_freshness_and_delete ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpbhaK0c/.codemap/config.toml
+test e2e::tools::test_grep_case_insensitive ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpOsoFFs/.codemap/config.toml
+test e2e::tools::test_grep_content_is_default_mode ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpUklzWC/.codemap/config.toml
+test e2e::tools::test_grep_content_mode_line_format ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpzky6Q5/.codemap/config.toml
+test e2e::tools::test_grep_path_param_escape_is_rejected ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp59VTPr/.codemap/config.toml
+test e2e::source_routes::test_events_source_routes_exclusions_and_target_reload ... ok
+test e2e::tools::test_grep_pattern_starting_with_dash_is_literal ... ok
+test e2e::tools::test_grep_type_filter ... ok
+test e2e::tools::test_grep_count_mode ... ok
+test e2e::tools::test_live_callable_caps_are_explicit_and_continuable ... ok
+test e2e::tools::test_events_live_modes_forward_reverse_and_schema ... ok
+test e2e::tools::test_live_callable_shapes_and_unavailable_notices ... ok
+test e2e::tools::test_implementation_rust_target_reload_with_events_disabled ... ok
+test e2e::tools::test_live_callable_expansion_deduplicates_and_uses_live_boundaries ... ok
+test e2e::tools::test_live_constant_context_respects_the_read_output_budget ... ok
+test e2e::tools::test_macro_expansion_reaches_search_read_and_refreshes_header_changes ... ignored, Requires an installed Clang preprocessor
+[codemap-search] created default config: /Users/buyong/tmp/.tmpH9vhwz/.codemap/config.toml
+Warning: Not indexing ./legacy.rs: invalid UTF-8; indexing accepts UTF-8 source only
+test e2e::tools::test_live_diagnostics_distinguish_empty_excluded_and_stale_source ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpRWFYhE/.codemap/config.toml
+test e2e::tools::test_live_context_includes_callee_locations_and_constant_values ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpG5jGKq/.codemap/config.toml
+test e2e::tools::test_live_views_preserve_source_and_unresolved_totals ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpq3FT6W/.codemap/config.toml
+test e2e::tools::test_read_binary_by_extension_is_rejected ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpSCcEFQ/.codemap/config.toml
+test e2e::tools::test_read_directory_is_rejected ... ok
+test e2e::tools::test_read_empty_file_warns ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpqB963M/.codemap/config.toml
+[codemap-search] created default config: /Users/buyong/tmp/.tmpWfYa2d/.codemap/config.toml
+test e2e::tools::test_read_basic_arrow_format ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmp6fFh9g/.codemap/config.toml
+test e2e::tools::test_read_non_utf8_content_decodes_lossily ... ok
+test e2e::tools::test_read_path_traversal_is_rejected ... ok
+[codemap-search] created default config: /Users/buyong/tmp/.tmpunnZJN/.codemap/config.toml
+test e2e::tools::test_tools_list_includes_read_find_grep ... ok
+test e2e::tools::test_implementation_context_cli_views_refresh_and_restart ... ok
+test e2e::tools::test_read_offset_and_limit ... ok
+test e2e::tools::test_value_relationships_stay_removed_across_live_views_and_restart ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpO6E8TZ/.codemap/config.toml
+[codemap-search] invalid event_navigation.rules in /Users/buyong/tmp/.tmp145K8V/.codemap/config.toml: require unique exact API selectors, valid roles/argument positions and explicit bus rules; using lower layer
+test e2e::benchmark::test_benchmark_large_query_list has been running for over 60 seconds
+test e2e::tools::test_non_utf8_source_explains_index_exclusion_without_hiding_read ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpXwCGRL/.codemap/config.toml
+test e2e::watcher::test_events_target_global_rules_and_git_exclusions_reload ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp3o9bka/.codemap/config.toml
+test e2e::tools::test_test_context_rules_reload_and_can_disable_builtin_detection ... ok
+test e2e::watcher::test_watch_false_preserves_request_triggered_refresh ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmprfu85X/.codemap/config.toml
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp0GJknC/.codemap/config.toml
+test e2e::watcher::test_watcher_autonomous_modify_refresh ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpib6NmB/.codemap/config.toml
+test e2e::watcher::test_watcher_does_not_index_repo_local_custom_index ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmpvPpZxx/.codemap/config.toml
+test e2e::watcher::test_watcher_branch_switch_full_walk ... ok
+[codemap-search] synced config to schema v24: /Users/buyong/tmp/.tmp8EFMmJ/.codemap/config.toml
+test e2e::watcher::test_watcher_incremental_delete ... ok
+test e2e::watcher::test_watcher_refreshes_priority_format_create_modify_and_delete ... ok
+test e2e::mcp::test_mcp_huge_payload has been running for over 60 seconds
+test e2e::mcp::test_mcp_oom_mitigation has been running for over 60 seconds
+test e2e::redact::pii_large_file::test_all_ninety_pii_types_in_ten_thousand_lines has been running for over 60 seconds
+test e2e::redact::pii_large_file::test_go_ten_thousand_lines has been running for over 60 seconds
+test e2e::redact::pii_large_file::test_html_ten_thousand_lines has been running for over 60 seconds
+test e2e::redact::pii_large_file::test_java_ten_thousand_lines has been running for over 60 seconds
+test e2e::redact::pii_large_file::test_rust_ten_thousand_lines has been running for over 60 seconds
+test e2e::watcher::test_events_watcher_dependencies_rules_filters_and_restart ... ok
+test e2e::source_routes::test_events_source_routes_all_languages_live_and_restart ... ok
+test e2e::redact::pii_large_file::test_java_ten_thousand_lines ... ok
+test e2e::redact::pii_large_file::test_all_ninety_pii_types_in_ten_thousand_lines ... ok
+test e2e::redact::pii_large_file::test_go_ten_thousand_lines ... ok
+test e2e::redact::pii_large_file::test_rust_ten_thousand_lines ... ok
+test e2e::watcher::test_lsr_007_watcher_covers_supported_priority_inputs has been running for over 60 seconds
+test e2e::watcher::test_watcher_refreshes_programming_languages_on_create_modify_and_delete ... ok
+test e2e::watcher::test_lsr_007_watcher_covers_supported_priority_inputs ... ok
+test e2e::benchmark::test_benchmark_large_query_list ... ok
+test e2e::redact::pii_large_file::test_html_ten_thousand_lines ... ok
+test e2e::mcp::test_mcp_huge_payload ... ok
+Error: "Max line length exceeded"
+test e2e::mcp::test_mcp_oom_mitigation ... ok
+
+failures:
+
+---- e2e::exclusions::test_exclusions_generated_common_and_project_globs stdout ----
+
+thread 'e2e::exclusions::test_exclusions_generated_common_and_project_globs' (58009054) panicked at tests/e2e/exclusions.rs:69:5:
+assertion `left == right` failed
+  left: Some("# codemap-config-version: 24")
+ right: Some("# codemap-config-version: 23")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- e2e::exclusions::test_exclusions_pre_v6_transition_and_opt_out stdout ----
+
+thread 'e2e::exclusions::test_exclusions_pre_v6_transition_and_opt_out' (58009189) panicked at tests/e2e/exclusions.rs:349:9:
+assertion `left == right` failed
+  left: Some("# codemap-config-version: 24")
+ right: Some("# codemap-config-version: 23")
+
+---- e2e::exclusions::test_exclusions_v6_is_not_regenerated_on_restart stdout ----
+
+thread 'e2e::exclusions::test_exclusions_v6_is_not_regenerated_on_restart' (58009196) panicked at tests/e2e/exclusions.rs:319:9:
+assertion `left == right` failed
+  left: Some("# codemap-config-version: 24")
+ right: Some("# codemap-config-version: 23")
+
+
+failures:
+    e2e::exclusions::test_exclusions_generated_common_and_project_globs
+    e2e::exclusions::test_exclusions_pre_v6_transition_and_opt_out
+    e2e::exclusions::test_exclusions_v6_is_not_regenerated_on_restart
+
+test result: FAILED. 210 passed; 3 failed; 1 ignored; 0 measured; 0 filtered out; finished in 214.30s
+
+error: test failed, to rerun pass `--test e2e_tests`

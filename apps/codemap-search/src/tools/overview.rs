@@ -6,12 +6,19 @@
 
 mod monorepo;
 mod stats;
+pub mod jev;
 
 use crate::tools::ToolContext;
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    prepare(ctx).map(|prepared| prepared.base_text)
+}
+
+/// Capture the base view and recommendation evidence from one published generation.
+pub fn prepare(ctx: &ToolContext) -> Result<jev::PreparedOverview, (i64, String)> {
+    crate::tools::task_query(ctx.arguments)?;
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -84,7 +91,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(jev::PreparedOverview::unavailable(text.to_string(), "index_not_ready"));
     }
 
     use crate::codemap::CodemapView;
@@ -156,5 +163,10 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ));
     }
 
-    Ok(codemap_text)
+    let is_root = path.is_none() || resolved_path.as_ref().is_some_and(|p| p == &cwd);
+    let reason = if !is_root { Some("non_root_overview") }
+        else if is_warming || ctx.engine.is_dead() || ctx.engine.last_error().is_some() { Some("index_not_ready") }
+        else if extracted_files.is_empty() { Some("empty_index") }
+        else { None };
+    Ok(jev::PreparedOverview { base_text: codemap_text, snapshot: reason.is_none().then_some(published), bypass_reason: reason })
 }

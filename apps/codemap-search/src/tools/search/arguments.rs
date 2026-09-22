@@ -3,6 +3,7 @@ use serde_json::Value;
 /// Reject ignored controls before starting search or index lifecycle work. Match
 /// the existing readers: only get_arg-based controls accept normalized aliases.
 pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
+    crate::tools::task_query(arguments)?;
     let object = arguments.as_object().ok_or_else(|| {
         (
             -32602,
@@ -14,7 +15,7 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .filter(|key| {
             !matches!(
                 key.as_str(),
-                "query" | "caller_context" | "language_hint" | "extension_hint"
+                "query" | "task_query" | "caller_context" | "language_hint" | "extension_hint"
             ) && !matches!(
                 crate::tools::normalize_arg_key(key).as_str(),
                 "includeevents" | "eventkey" | "workspacescope" | "scope" | "debug"
@@ -39,6 +40,6 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .join(", ");
     let more = if unsupported.len() > 8 { ", …" } else { "" };
     Err((-32602, format!(
-        "Unsupported search arguments: {names}{more}. Supported: query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
+        "Unsupported search arguments: {names}{more}. Supported: query, task_query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
     )))
 }

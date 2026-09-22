@@ -1,4 +1,4 @@
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -268,6 +268,38 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+
+[analysis.jev]
+# 명시적 task_query가 있는 루트 overview에서 전체 인덱스로 추천합니다. 실험 기능이며 기본은 꺼짐입니다.
+overview_enabled = false
+
+# 명시적 task_query가 있는 search의 완전한 선택 본문을 필터링합니다. overview 설정과 독립적입니다.
+search_filter_enabled = false
+
+# 고정 공급자 모델입니다. 별칭은 허용하지 않습니다.
+model = "jev-1.13.0"
+
+# 환경변수 이름만 지정합니다. 이 파일에 API 키를 저장하지 마세요.
+api_key_env = "TYPESAFE_API_KEY"
+
+# 대기 시간을 포함한 전체 호출 제한입니다. 1..45000ms이며 자동 재시도는 없습니다.
+timeout_ms = 45000
+
+# 동시 HTTP 요청의 최대 개수입니다. 1..3을 허용합니다.
+max_in_flight_requests = 3
+
+# HTTP 요청 시작 사이의 최소 간격입니다. 300..45000ms를 허용합니다.
+request_spacing_ms = 300
+
+# 인코딩된 JSON 상한입니다. 1024..80000바이트이며 공급자 토큰 제한 충족을 보장하지 않습니다.
+max_batch_bytes = 80000
+
+# 재사용 연결의 유휴 수명입니다. 1..30000ms를 허용합니다.
+pool_idle_timeout_ms = 30000
+
+# 잠정 본문 생략 임계값입니다. 유한한 0.5 < 값 <= 1.0이며 confidence나 검증된 정확도가 아닙니다.
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,

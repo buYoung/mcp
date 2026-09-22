@@ -242,6 +242,7 @@ const SECTION_ALIASES: &[(&str, &str)] = &[
 ];
 
 pub(super) fn is_canonical_key(section: &str, key: &str) -> bool {
+    if section=="analysis" && key=="jev" {return true;}
     let full = format!("{section}.{key}");
     SETTINGS.iter().any(|setting| {
         (setting.section == section && setting.key == key)
@@ -307,6 +308,7 @@ pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Pat
 }
 
 fn normalize_table(layer: &mut ConfigLayer, section: &str, value: &toml::Value, path: &Path) {
+    if section=="analysis.jev" {layer.jev=super::jev::normalize(value,path);return;}
     if super::exclude::SECTIONS
         .iter()
         .any(|(name, _)| *name == section)

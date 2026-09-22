@@ -125,6 +125,19 @@ excluded_directories = [
 
 MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
 
+## 선택적 네이티브 Jev 평가
+
+Rust 서버에 루트 추천과 검색 본문 필터가 포함되어 있습니다. 두 모드는 독립적이고 기본으로 꺼져 있습니다. `[analysis.jev].overview_enabled` 또는 `search_filter_enabled`를 켜고 MCP 프로세스에 운영자의 `TYPESAFE_API_KEY`를 제공한 뒤, 호출마다 원래 작업 의도를 `task_query`로 전달합니다. 기존 `search.query`와 overview 경로 별칭은 그대로이며 의도나 키가 없으면 평가를 우회합니다.
+
+```json
+{"name":"overview","arguments":{"path":".","task_query":"호출자의 취소가 외부 요청까지 전달되는 흐름 추적"}}
+{"name":"search","arguments":{"query":"cancellation request","task_query":"호출자의 취소가 외부 요청까지 전달되는 흐름 추적"}}
+```
+
+적격 호출에서 마스킹된 인덱스 메타데이터 또는 선택한 표시 본문을 TypeSafe로 전송합니다. 실패하면 기본 결과를 보존하며 `_meta.jev`에서 적용·우회·복구, 보고된 사용량과 시간을 구분합니다. Noul 임계값 0.70은 잠정 정책이며 검증된 정확도가 아닙니다. [설정과 전송 범위](./docs/configuration.ko.md#선택적-네이티브-jev-평가)를 참고하세요.
+
+공통 `codemap_search::jev` 평가기는 MCP·인덱스 없이도 호출할 수 있습니다. 저장소 루트에서 `cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock`으로 Score·Choice·Noul과 사용량을 검증합니다. 명시적 `--live`에서만 인증정보를 읽고 공급자를 호출합니다. 기존 CLI 검색 출력은 그대로입니다.
+
 ## 지원 언어와 형식
 
 | 언어 | 확장자 |
