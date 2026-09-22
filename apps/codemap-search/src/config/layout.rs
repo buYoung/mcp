@@ -152,6 +152,16 @@ settings![
         "caller_omit_def_threshold",
         "caller_context"
     ),
+    ("analysis.jev", "overview_enabled", "jev_overview_enabled", ""),
+    ("analysis.jev", "search_filter_enabled", "jev_search_filter_enabled", ""),
+    ("analysis.jev", "model", "jev_model", ""),
+    ("analysis.jev", "api_key_env", "jev_api_key_env", ""),
+    ("analysis.jev", "timeout_ms", "jev_timeout_ms", ""),
+    ("analysis.jev", "max_in_flight_requests", "jev_max_in_flight_requests", ""),
+    ("analysis.jev", "request_spacing_ms", "jev_request_spacing_ms", ""),
+    ("analysis.jev", "max_batch_bytes", "jev_max_batch_bytes", ""),
+    ("analysis.jev", "pool_idle_timeout_ms", "jev_pool_idle_timeout_ms", ""),
+    ("analysis.jev", "search_filter_min_unrelated_probability", "jev_search_filter_min_unrelated_probability", ""),
     ("index", "path", "index_path", "index"),
     ("index", "max_file_bytes", "max_file_size", "index"),
     (

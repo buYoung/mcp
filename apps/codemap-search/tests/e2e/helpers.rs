@@ -93,6 +93,8 @@ impl McpClient {
             .current_dir(cwd)
             // Hermetic global config home — never read the developer's real ~/.codemap.
             .env("CODEMAP_HOME", cwd)
+            // Hermetic Jev keyless cases must never inherit an operator credential.
+            .env_remove("CODEMAP_JEV_TEST_NO_KEY")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs

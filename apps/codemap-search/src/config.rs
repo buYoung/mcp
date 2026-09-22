@@ -39,6 +39,7 @@ mod event_navigation;
 mod exclude;
 mod layout;
 mod output;
+pub mod jev;
 pub use event_navigation::EventNavigationConfig;
 pub use output::ClientOutputConfig;
 mod macro_expansion;
@@ -102,7 +103,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 24;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -147,6 +148,7 @@ pub struct ResolvedConfig {
     pub event_navigation: EventNavigationConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
+    pub jev: jev::JevConfig,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
     pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
@@ -302,6 +304,7 @@ impl Default for ResolvedConfig {
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             analysis_target_os: None,
+            jev: jev::JevConfig::default(),
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
@@ -369,6 +372,7 @@ struct ConfigLayer {
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
     analysis_target_os: Option<Option<String>>,
+    jev: jev::JevLayer,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
@@ -544,7 +548,7 @@ fn normalize_config_section(
 
 fn section_accepts_key(section: &str, key: &str) -> bool {
     match section {
-        "analysis" => key == "target_os",
+        "analysis" => key == "target_os" || key == "jev",
         "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
@@ -612,6 +616,9 @@ fn assign_config_key(
     key_display: &str,
     path: &Path,
 ) -> bool {
+    if let Some(jev_key) = key.strip_prefix("jev_") {
+        return jev::assign(&mut layer.jev, jev_key, value, key_display, path);
+    }
     match key {
         "output_byte_cap" => {
             layer.output_byte_cap = as_positive_byte_size(value, key_display, path)
@@ -809,6 +816,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .analysis_target_os
             .or(global.analysis_target_os)
             .flatten(),
+        jev: jev::merge(repo.jev, global.jev),
         config_auto_update: repo
             .config_auto_update
             .or(global.config_auto_update)
@@ -1348,6 +1356,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 24,
+        key: "jev",
+        placement: KeyPlacement::TopLevel,
+        english_block: "# Optional Jev decisions. Both modes are off; credentials come only from the environment.\n# [analysis.jev]\n# overview_enabled = false\n# search_filter_enabled = false\n# model = \"jev-1.13.0\"\n# api_key_env = \"TYPESAFE_API_KEY\"\n# timeout_ms = 45000\n# max_in_flight_requests = 3\n# request_spacing_ms = 300\n# max_batch_bytes = 80000\n# pool_idle_timeout_ms = 30000\n# search_filter_min_unrelated_probability = 0.70",
+        korean_block: "# Jev 판단은 선택 사항입니다. 두 모드는 기본으로 꺼지며 인증정보는 환경변수에서만 읽습니다.\n# [analysis.jev]\n# overview_enabled = false\n# search_filter_enabled = false\n# model = \"jev-1.13.0\"\n# api_key_env = \"TYPESAFE_API_KEY\"\n# timeout_ms = 45000\n# max_in_flight_requests = 3\n# request_spacing_ms = 300\n# max_batch_bytes = 80000\n# pool_idle_timeout_ms = 30000\n# search_filter_min_unrelated_probability = 0.70",
+    },
     Migration {
         version: 17,
         key: "is_overview_stats_enabled",

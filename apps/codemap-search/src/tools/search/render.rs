@@ -779,7 +779,9 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
+                let is_complete = !is_clipped && more_lines == 0 &&
+                    capped.lines().filter(|line| line.contains('→')).count() == end.saturating_sub(start) + 1;
+                if !text.push_source_segment(&format!("```\n{capped}\n```\n"), "```\n".len(), &capped, is_complete) {
                     return AnchoredRenderOutcome {
                         budget_hit: true,
                         emitted_starts,
@@ -872,7 +874,10 @@ pub(super) fn render_anchored_symbols(
             }
             let source_offset = source_block.len() + "```\n".len();
             source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block, Some(source_offset)) {
+            let is_complete = !is_summary_container && !needs_notice && !is_byte_clipped
+                && snippet_start == start && displayed_end == end
+                && displayed_lines == end.saturating_sub(start) + 1;
+            if !text.push_source_segment(&source_block, source_offset, &capped, is_complete) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,

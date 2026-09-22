@@ -3,6 +3,7 @@ use crate::declarations;
 use crate::parser::{ExtractedFile, ExtractedSymbol};
 use std::collections::BTreeSet;
 
+#[derive(Clone)]
 pub(super) struct Section {
     root: Option<ExtractedSymbol>,
     heading: String,
@@ -12,6 +13,17 @@ pub(super) struct Section {
     pub insertion: usize,
 }
 
+/// Typed source selected by the renderer, before any Jev decision. Offsets are in `results`.
+#[derive(Clone)]
+pub(super) struct SourceSegment {
+    pub symbol: Option<ExtractedSymbol>,
+    pub range: std::ops::Range<usize>,
+    pub body: String,
+    pub is_complete: bool,
+    pub is_code: bool,
+}
+
+#[derive(Clone)]
 pub(super) struct FileOutput {
     pub path: String,
     header: String,
@@ -26,8 +38,13 @@ pub(super) struct FileOutput {
     cap: usize,
     pub budget_hit: bool,
     pub source_span: Option<std::ops::Range<usize>>,
+    pub primary_span: Option<std::ops::Range<usize>>,
+    pub is_partial_file: bool,
     first_result_source_offset: Option<usize>,
     pub first_source_byte: Option<usize>,
+    pub source_segments: Vec<SourceSegment>,
+    current_symbol: Option<ExtractedSymbol>,
+    is_jev_capture_enabled: bool,
 }
 
 impl FileOutput {
@@ -37,6 +54,7 @@ impl FileOutput {
         indexed: Option<&ExtractedFile>,
         base_bytes: usize,
         cap: usize,
+        is_jev_capture_enabled: bool,
     ) -> Self {
         Self {
             path: path.into(),
@@ -52,8 +70,13 @@ impl FileOutput {
             cap,
             budget_hit: false,
             source_span: None,
+            primary_span: None,
+            is_partial_file: false,
             first_result_source_offset: None,
             first_source_byte: None,
+            source_segments: Vec::new(),
+            current_symbol: None,
+            is_jev_capture_enabled,
         }
     }
     pub fn len(&self) -> usize {
@@ -102,7 +125,24 @@ impl FileOutput {
                 .filter(|offset| *offset < text.len())
                 .map(|offset| self.results.len() + offset);
         }
+        if let Some(offset) = source_offset.filter(|offset| self.is_jev_capture_enabled && *offset < text.len()) {
+            self.source_segments.push(SourceSegment {
+                symbol: None, range: self.results.len()..self.results.len() + text.len(),
+                body: text[offset..].to_string(), is_complete: false, is_code: false,
+            });
+        }
         self.results.push_str(text);
+        true
+    }
+    pub fn push_source_segment(&mut self, text: &str, source_offset: usize, body: &str, is_complete: bool) -> bool {
+        if !self.push_source(text, Some(source_offset)) { return false; }
+        if self.is_jev_capture_enabled {
+            let segment = self.source_segments.last_mut().expect("source offset recorded");
+            segment.symbol = self.current_symbol.clone();
+            segment.body = body.to_string();
+            segment.is_complete = is_complete;
+            segment.is_code = true;
+        }
         true
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
@@ -266,6 +306,7 @@ impl FileOutput {
             ));
         }
         self.current = Some(index);
+        if self.is_jev_capture_enabled { self.current_symbol = Some(symbol.clone()); }
         self.current_depth = chain.len() - 1;
         true
     }
@@ -311,10 +352,27 @@ impl FileOutput {
                 self.sections.len() - 1
             });
             self.current = Some(index);
+            self.current_symbol = None;
             self.anchor(line, line);
         }
     }
+    pub fn replace_result_block(&mut self, range: std::ops::Range<usize>, replacement: &str) {
+        self.results.replace_range(range, replacement);
+    }
+    pub fn section_insertions(&self) -> Vec<usize> {
+        self.sections.iter().map(|section| section.insertion).collect()
+    }
+    pub fn result_block(&self, range: &std::ops::Range<usize>) -> String {
+        self.results.get(range.clone()).unwrap_or_default().to_string()
+    }
+    pub fn context_for(&self, symbol: &ExtractedSymbol) -> String {
+        self.sections.iter().filter(|section| section.shown.contains(&(
+            symbol.name.clone(), symbol.range.start_line, symbol.range.start_col,
+        ))).flat_map(|section| section.text.chars()).take(2_000).collect()
+    }
     pub fn write_primary(&mut self, text: &mut String, is_partial_file: bool) {
+        let primary_start = text.len();
+        self.is_partial_file = is_partial_file;
         text.push_str(&self.header);
         text.push_str(&self.metadata);
         for section in &mut self.sections {
@@ -332,6 +390,7 @@ impl FileOutput {
             // this local notice stays inside the file budget without hiding source.
             text.push_str("\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n");
         }
+        self.primary_span = Some(primary_start..text.len());
     }
 }
 
@@ -342,7 +401,7 @@ pub(super) fn append_relations(
     scope: Option<&str>,
     should_include_calls: bool,
     should_include_events: bool,
-) {
+) -> Vec<(usize, String)> {
     let cap = crate::config::get().search_detail_byte_cap;
     let mut remaining = cap
         .saturating_sub(text.len())
@@ -427,7 +486,8 @@ pub(super) fn append_relations(
         }
     }
     insertions.sort_by_key(|(offset, _)| std::cmp::Reverse(*offset));
-    for (offset, relations) in insertions {
-        text.insert_str(offset, &relations);
+    for (offset, relations) in &insertions {
+        text.insert_str(*offset, relations);
     }
+    insertions
 }

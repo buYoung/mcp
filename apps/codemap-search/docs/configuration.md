@@ -27,6 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
+| `analysis.jev` | Independently opt-in external Jev recommendations and body filtering |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -42,6 +43,19 @@ Search returns explicit partial output; read requests a narrower range. Overview
 
 Characters, tokens and bytes are not converted at a fixed ratio. Client settings do not change server response ceilings, Code Mode `functions.exec` aggregate budgets, or the global tool-history limit. Unset client settings leave client defaults in control.
 
+## Optional Jev decisions
+
+`[analysis.jev]` defaults to `overview_enabled = false` and `search_filter_enabled = false`; either can be enabled independently. Set `TYPESAFE_API_KEY` in the MCP host environment (or set `api_key_env` to another environment **variable name**). Never put the key in TOML. Calls with no key or no nonblank `task_query` bypass Jev and keep the ordinary offline result. Enabling a mode does not start background requests.
+
+```json
+{"name":"overview","arguments":{"task_query":"Locate the request authorization flow"}}
+{"name":"search","arguments":{"query":"authorize request","task_query":"Locate the request authorization flow"}}
+```
+
+`task_query` is the caller's original task intent, not an alias for `overview.path`/`query` or `search.query`; it is never remembered across calls. #1 applies only to a ready root overview: it sends redacted indexed file metadata, evaluates all eligible fragments, qualifies files before the 24-file limit, and labels zero matches as `no_match` or `insufficient_evidence` without claiming the implementation is absent. #2 sends only selected redacted source excerpts and displayed context; Noul asks whether a complete body is unrelated. Rust keeps incomplete, uncertain and protected evidence. Final outcomes and separate input/output token usage, HTTP time and whole-stage time appear under MCP `_meta.jev`. API failure preserves the base result with a fallback reason. `read`/`find`/`grep` never call Jev.
+
+`model` is pinned to `jev-1.13.0`. `timeout_ms` is 1–45000 including queue time, `max_in_flight_requests` 1–3, `request_spacing_ms` 0–10000, `max_batch_bytes` 1–80000 and `pool_idle_timeout_ms` 1–300000. Request bytes are conservatively bounded against the provider's 64k-token total and 32k-token state-plus-longest-question limits; this is **not** an exact tokenizer and a provider-limit error remains possible. Requests are not automatically retried or silently truncated. `search_filter_min_unrelated_probability` accepts finite floats `0.5 < value <= 1.0`, defaults to an **uncalibrated experimental** 0.70 and is applied by Rust after Noul inference (not a confidence field). Invalid settings fall back per key to the next config layer/default. Redaction follows the existing output setting; disabling it can transmit unmasked indexed metadata/source to the provider. Live quality, repeatability and speed have not been measured in Rust.
+
 ## Files and precedence
 
 Config is read from two layers and merged **per key** as `repo > global > default`. Use the repo file for project-specific behavior; use the global file only for defaults you want across repositories.
@@ -55,10 +69,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **23**. The marker is a comment:
+The current configuration schema is **24**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -81,6 +95,7 @@ The current configuration schema is **23**. The marker is a comment:
 - Version 21 also moves section notes and inactive setting examples beside their relocated settings, updating example key names without activating values. Arbitrary notes whose origin was lost in an earlier migration remain in place rather than being assigned a guessed destination.
 - Version 22 displays `output.context.exclude` and its test-rule subtables last in the `output` group. Key paths, values and scope remain unchanged; comments move with the section.
 - Version 23 replaces recognized generated descriptions with the current localized wording, removes generated migration history, and restores the file-level introduction. Existing assignments, inactive values, unknown notes and string contents are preserved. The additional active defaults apply only to newly generated files.
+- Version 24 adds the commented `[analysis.jev]` activation block to old repo configs. Both modes stay off and no credentials are written.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -425,7 +440,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
@@ -695,6 +710,19 @@ is_build_support_enabled = false
 # Rust analysis target OS, e.g. "linux", "macos" or "windows". The host OS is never inferred.
 # Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
+
+[analysis.jev]
+# External Jev calls are optional and require explicit task_query and an environment key.
+overview_enabled = false
+search_filter_enabled = false
+model = "jev-1.13.0"
+api_key_env = "TYPESAFE_API_KEY"
+timeout_ms = 45000
+max_in_flight_requests = 3
+request_spacing_ms = 300
+max_batch_bytes = 80000
+pool_idle_timeout_ms = 30000
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # Filesystem access for find/grep/read: "workspace" limits access to the workspace,

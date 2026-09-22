@@ -8,6 +8,7 @@
 
 mod arguments;
 mod grouped;
+pub mod jev;
 mod monorepo;
 pub mod render;
 
@@ -450,6 +451,9 @@ pub struct SearchOutput {
     /// Files with returned source/literal excerpts, excluding the ranked path-only tail.
     /// This metadata is not added to the MCP response envelope.
     pub source_files: Vec<crate::analyze::FileObservation>,
+    pub(crate) evidence: Vec<jev::SearchEvidence>,
+    render_plan: Option<jev::RenderPlan>,
+    pub(crate) is_partial_or_stale: bool,
 }
 
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
@@ -703,6 +707,9 @@ pub(crate) fn run_inner_with_metadata(
             .collect();
     let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
     let remaining_results = &ordered[detail_results.len()..];
+    let is_jev_capture_enabled = crate::config::get().jev.search_filter_enabled
+        && ctx.arguments.get("task_query").and_then(|value| value.as_str())
+            .is_some_and(|query| !query.trim().is_empty());
     let mut output_was_capped = false;
     let mut retained_primary_bytes = usize::MAX;
     let mut grouped_files = Vec::new();
@@ -818,6 +825,7 @@ pub(crate) fn run_inner_with_metadata(
                     .find(|file| file.file_path == res.file_path),
                 text.len(),
                 file_byte_cap,
+                is_jev_capture_enabled,
             );
             if !file_output.can_fit(0) {
                 budget_hit = true;
@@ -1131,17 +1139,76 @@ pub(crate) fn run_inner_with_metadata(
             })
         })
         .collect();
+    // Record typed, already selected source spans, not headings parsed from Markdown.
+    let mut evidence = Vec::new();
+    // A displayed detail file may call a declaration in another selected file.
+    // Protect both ends conservatively using selected-file indexed identities only.
+    let selected_call_names: std::collections::HashSet<String> = if is_jev_capture_enabled {
+        let indexed = published_snapshot.codemap();
+        grouped_files.iter().filter_map(|file| indexed.iter().find(|item| item.file_path == file.path))
+            .flat_map(|file| file.navigation.iter().flat_map(|navigation| navigation.calls.iter()))
+            .map(|call| call.name.clone()).collect()
+    } else { std::collections::HashSet::new() };
+    for (file_index, file) in grouped_files.iter().enumerate() {
+        if !is_jev_capture_enabled { break; }
+        if file.source_span.is_none() { continue; }
+        let indexed = published_snapshot.codemap();
+        let indexed_file = indexed.iter().find(|item| item.file_path == file.path);
+        for segment in &file.source_segments {
+            let absolute_end = file.source_span.as_ref().unwrap().start + segment.range.end;
+            if absolute_end > retained_primary_bytes { continue; }
+            let symbol = segment.symbol.clone();
+            let is_protected = symbol.as_ref().is_none_or(|symbol| {
+                !crate::declarations::callable(symbol)
+                || selected_call_names.contains(&symbol.name)
+                || indexed_file.is_none_or(|indexed| {
+                    indexed.symbols.iter().any(|other| {
+                        crate::declarations::contains(other, symbol) || crate::declarations::contains(symbol, other)
+                    }) || indexed.navigation.as_ref().is_some_and(|navigation| navigation.calls.iter().any(|call| {
+                        symbol.range.start_line <= call.range.start_line && call.range.start_line <= symbol.range.end_line_inclusive()
+                            || call.name == symbol.name
+                    }))
+                })
+            });
+            let context = symbol.as_ref().map(|symbol| file.context_for(symbol)).unwrap_or_default();
+            evidence.push(jev::SearchEvidence { file_path:file.path.clone(), file_index, symbol,
+                result_range:segment.range.clone(), block:file.result_block(&segment.range),
+                body:segment.body.clone(), context,
+                is_complete:segment.is_complete, is_code:segment.is_code, is_protected });
+        }
+    }
+    // If any view of one declaration is incomplete, retain all views of it.
+    for index in 0..evidence.len() {
+        if !evidence[index].is_code || evidence[index].is_complete { continue; }
+        let incomplete = evidence[index].symbol.as_ref().map(|symbol| (evidence[index].file_path.clone(), symbol.clone()));
+        if let Some((path, symbol)) = incomplete {
+            for segment in &mut evidence {
+                if segment.file_path == path && segment.symbol.as_ref() == Some(&symbol) {
+                    segment.is_protected = true;
+                }
+            }
+        }
+    }
+    let base_for_jev = (is_jev_capture_enabled && !is_partial && !is_warming
+        && !ctx.engine.is_dead() && ctx.engine.last_error().is_none()).then(|| text.clone());
+    let mut relation_insertions = Vec::new();
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
     if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
-        grouped::append_relations(
-            &mut text,
-            &grouped_files,
-            &published_snapshot,
-            workspace_scope,
-            caller_context_enabled,
-            should_include_events,
+        let shifts = grouped::append_relations(
+            &mut text, &grouped_files, &published_snapshot, workspace_scope,
+            caller_context_enabled, should_include_events,
         );
+        if base_for_jev.is_some() {
+            for (offset, row) in shifts {
+                for (file_index, file) in grouped_files.iter().enumerate() {
+                    if let Some(section_index) = file.section_insertions().iter().position(|position| *position == offset) {
+                        relation_insertions.push((file_index, section_index, row));
+                        break;
+                    }
+                }
+            }
+        }
     }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
@@ -1153,5 +1220,9 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(SearchOutput { text, source_files })
+    let render_plan = base_for_jev.map(|base_text| jev::RenderPlan {
+        base_text, files: grouped_files, relation_insertions,
+    });
+    Ok(SearchOutput { text, source_files, evidence, render_plan, is_partial_or_stale: is_partial || is_warming
+        || ctx.engine.is_dead() || ctx.engine.last_error().is_some() })
 }

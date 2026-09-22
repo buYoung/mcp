@@ -11,7 +11,21 @@ use crate::tools::ToolContext;
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
+pub mod jev;
+
+/// A root-only, same-generation input for optional asynchronous recommendations.
+pub struct PreparedOverview {
+    pub text: String,
+    pub files: Vec<crate::parser::ExtractedFile>,
+    pub snapshot_id: usize,
+    pub is_eligible: bool,
+}
+
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    prepare(ctx).map(|prepared| prepared.text)
+}
+
+pub fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, String)> {
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -84,7 +98,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(PreparedOverview { text: text.to_string(), files: Vec::new(), snapshot_id: 0, is_eligible: false });
     }
 
     use crate::codemap::CodemapView;
@@ -156,5 +170,13 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ));
     }
 
-    Ok(codemap_text)
+    let is_eligible = path.is_none() && format != Some("llms-txt")
+        && !extracted_files.is_empty() && !ctx.engine.is_dead()
+        && !is_warming && ctx.engine.last_error().is_none();
+    Ok(PreparedOverview {
+        text: codemap_text,
+        files: if is_eligible { extracted_files.to_vec() } else { Vec::new() },
+        snapshot_id: std::sync::Arc::as_ptr(&published).addr(),
+        is_eligible,
+    })
 }

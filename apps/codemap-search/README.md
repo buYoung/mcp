@@ -106,6 +106,19 @@ Settings are read per key from `<repo>/.codemap/config.toml`, then `$CODEMAP_HOM
 
 MCP responses mask detected API keys, tokens, passwords and private keys by default. `[output].is_redact_enabled = false` disables masking. Matching and ranking still use original data; files and local indexes are unchanged. Detection combines Tree-sitter with pattern rules; `[output.redact]` adds sensitive field names, custom regexes and exact-value exceptions. Unfamiliar formats can still be missed. See [credential redaction](./docs/configuration.md#credential-redaction) for coverage and limits.
 
+### Optional native Jev decisions
+
+The default MCP/CLI remains offline and keyless. Independently enable root-index recommendations (`overview_enabled`) and selected search-body filtering (`search_filter_enabled`) under `[analysis.jev]` in `.codemap/config.toml`, then provide `TYPESAFE_API_KEY` in the MCP host environment. Each opted-in call also needs its own original `task_query` (distinct from `search.query` and overview path aliases). For example:
+
+```json
+{"name":"overview","arguments":{"task_query":"Locate the request authorization flow"}}
+{"name":"search","arguments":{"query":"authorize request","task_query":"Locate the request authorization flow"}}
+```
+
+Enabled stages send redacted indexed metadata or selected displayed source to the external TypeSafe API. Incomplete evidence, absent keys/intent, or inference failures preserve the base result. Outcome, no-match/uncertainty, usage, time and fallback reason are reported in `_meta.jev`. The search Noul threshold 0.70 is experimental, not calibrated; byte bounds do not guarantee provider token-limit acceptance. `read`/`find`/`grep` never invoke Jev. See [Jev configuration and data scope](./docs/configuration.md#optional-jev-decisions).
+
+A Rust caller can use `codemap_search::jev::{Evaluator, JevEvaluator, EvaluationRequest, Question}` independently of MCP, Python and exported indexes. Run the direct offline example with `cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock` from the repository root; it verifies Score/Choice/Noul and usage. An operator can explicitly opt into a paid request with `--live` and `TYPESAFE_API_KEY` set; this has **not** been run as part of automated verification.
+
 Automatic symbol/call context excludes test regions by default. Set `[output.context.exclude].should_include_test_code = true` to include them. `test_file_patterns` and the per-language `test_attributes`, `test_decorators`, and `test_calls` lists let you add custom rules or remove built-ins; each explicit list replaces its inherited value and `[]` disables it. Live `read`/`grep` source is preserved. See [test-code context](./docs/configuration.md#test-code-context) for defaults and examples.
 
 On first MCP startup, a missing repo file is generated with **common exclusions plus recursive globs for detected project types**. Common names include `.git`, `.idea`, `.vscode`, `.vs`, `.codemap`, and other supported VCS internals. A JS/TS project adds `**/node_modules`, `**/dist`, `**/build`, framework outputs and caches; Python, Rust and other build systems add their corresponding globs. Each pattern appears once and applies throughout the workspace, regardless of where the project was detected.

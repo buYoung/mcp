@@ -207,14 +207,19 @@ pub fn server_instructions() -> &'static str {
 /// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
     let common = include_str!("instructions/navigation.md").trim_end();
-    if crate::codemap::looks_like_monorepo_workspace() {
+    let mut text = if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/navigation.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
+    };
+    let jev = &crate::config::get().jev;
+    if jev.overview_enabled || jev.search_filter_enabled {
+        text.push_str("\n\nOptional Jev stages require an explicit task_query on each overview/search call and the configured API-key environment variable. Missing intent/key or unavailable evidence bypasses evaluation; failures preserve the base result. Results are navigation evidence, not source proof; verify with read/grep.");
     }
+    text
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -298,6 +303,7 @@ pub fn list_tools() -> Value {
     );
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "task_query": { "type": "string", "description": "Optional original task intent for the independently configured Jev search-body filter. Distinct from search.query; omitted or blank bypasses the external call." },
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -326,24 +332,25 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": if config.jev.overview_enabled { format!("{}\n\nJev root-index recommendations are opt-in and may send redacted indexed metadata to an external provider only when task_query and an API key are supplied. Folder/file/llms-txt requests bypass Jev; API failures preserve the base result.",include_str!("instructions/tools/overview.md").trim_end()) } else { include_str!("instructions/tools/overview.md").trim_end().to_string() },
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": config.jev.overview_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
+                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." },
+                                "task_query": { "type": "string", "description": "Optional original task intent for Jev root-index recommendations when configured. Never a path alias; omitted or blank bypasses the external call." }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "description": if config.jev.search_filter_enabled { format!("{}\n\nOptional Jev body filtering sends selected redacted source evidence to an external provider only with an explicit task_query and API key. Incomplete/protected bodies and failures retain source; threshold is experimental.",include_str!("instructions/tools/search.md").trim_end()) } else { include_str!("instructions/tools/search.md").trim_end().to_string() },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": config.jev.search_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,

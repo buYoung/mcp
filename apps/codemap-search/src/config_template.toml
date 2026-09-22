@@ -1,4 +1,4 @@
-# codemap-config-version: 23
+# codemap-config-version: 24
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
@@ -268,6 +268,23 @@ is_build_support_enabled = false
 # Rust analysis target OS, e.g. "linux", "macos" or "windows". The host OS is never inferred.
 # Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
+
+[analysis.jev]
+# Optional external Jev calls. Both modes remain disabled unless explicitly enabled.
+overview_enabled = false
+search_filter_enabled = false
+# Pinned Jev model; no alias or provider expansion.
+model = "jev-1.13.0"
+# Name of the host environment variable, not an API key.
+api_key_env = "TYPESAFE_API_KEY"
+# Whole-call deadline including queue and HTTP time; may be shortened (ms).
+timeout_ms = 45000
+max_in_flight_requests = 3
+request_spacing_ms = 300
+max_batch_bytes = 80000
+pool_idle_timeout_ms = 30000
+# Experimental Noul omission threshold (0.5 < value <= 1.0); not calibrated.
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # Filesystem access for find/grep/read: "workspace" limits access to the workspace,

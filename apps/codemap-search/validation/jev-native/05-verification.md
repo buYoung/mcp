@@ -1,0 +1,34 @@
+# 05 — Offline verification and later comparison protocol
+
+## Executed (repository root; no provider traffic)
+
+| Area / population | Command | Result |
+|---|---|---|
+| Common runtime, 9 named unit cases; 3 primitive types, validation, 32/64 KiB bounds, batches, timeout/queue, cancellation, mock reuse | `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib jev::tests` | Passed after correcting two test-input sizes that initially did not cross their intended bounds |
+| Overview: 30 indexed candidates, qualification after index 24; no match/tie, role skip and read mapping | `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib tools::overview` | 4 passed after the output-budget case was added |
+| Search: Noul 0/0.50/0.69/0.70/0.71/1.00, replay 0.80 at 0.70/0.90, protected and incomplete spans/file fences | `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib tools::search` | 3 passed |
+| Config defaults, precedence, invalid values, localized templates/sync | `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib config::` | 34 passed |
+| Native in-process MCP with **injected** fake evaluator; populated Rust/TypeScript/constant source, matched/no-match, threshold reload while in flight, fallback, post-filter observation | `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib mcp::jev_tests::test_jev_mcp_native_injected_paths` | 1 passed in an isolated test process |
+| Keyless MCP schema, old text equivalence, intent not reused, type rejection | `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::jev` | 1 passed |
+| Config and MCP existing regressions | `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::config` and `... e2e::mcp` | 9 and 26 passed |
+| Broad e2e except watcher branch-switch tests | `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests -- --skip e2e::watcher` | 199 passed, 1 existing Clang-dependent ignored, 10 filtered out |
+| Library, binary, example and test compilation | `cargo check --manifest-path apps/codemap-search/Cargo.toml --all-targets` | Exit 0, including after the last Rust changes |
+| Reuse fixture: Score=2.0, Choice=keep, Noul=0.9, usage=42/8 | `cargo run --manifest-path apps/codemap-search/Cargo.toml --example jev_decisions -- --mock` | Exit 0; no credential/MCP/Python |
+| Native OpenSSL dependency in this host tree | `cargo tree --manifest-path apps/codemap-search/Cargo.toml -i openssl` | No matching package (command itself exits nonzero) |
+
+After the conservative cross-file protection, typed render-plan correction and output-budget correction, `cargo test --manifest-path apps/codemap-search/Cargo.toml --lib jev` passed 19 cases and `... --test e2e_tests e2e::jev` passed 1 again. The broad 199-case e2e suite (10 watcher branch-switch cases excluded) and `cargo check --all-targets` were also rerun **after** the typed render-plan change; both passed. Test fixtures are generated inside temporary directories and contain no private repository source or credential. The isolated MCP fake is supplied only by an in-process setter; it is not an MCP argument or a provider endpoint override. No stdout logs were saved as separate files; the command results above are the observed output, not claimed artifacts.
+
+## Not executed / acceptance limits
+
+- The **unfiltered** `cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests` was not run: `e2e::watcher` includes a temporary-repository `checkout` from `feature` to `main`; the operator explicitly prohibited checking worktrees/other branches. Ten watcher tests were excluded. No worktree or other branch was inspected for this task. `cargo package --list --allow-dirty` was also not run to avoid a Cargo packaging/VCS worktree inspection. Thus the briefset's full-e2e and packaging gates remain open.
+- Real Jev HTTPS/idle TCP connection, actual cost, output quality, latency and numerical repeatability: **not run**. Linux GNU/musl, Windows and both macOS release targets: **not cross-built** here. The indexed-snapshot race is guarded by ownership and tested with a populated fake path, but a live refresh during the delayed Score response was not separately measured.
+- The `experiments/jev-playground/checkpoint-poc` path in the briefs was absent in the current directory. No source-level PoC parity claim is made. Filtering uses typed per-file source blocks before final Markdown assembly; `tools::search`, the isolated injected MCP path and the broad e2e suite excluding branch-switch watcher tests passed after this correction. The **full** unfiltered e2e and packaging gates remain open under the operator's restriction.
+- No source/index/revision hash or branch name was recorded: the operator prohibited worktree and other-branch checks. An implementation revision cannot be asserted from the commands above. No release or publication was attempted.
+
+## Historical reference only (not native evidence)
+
+`/Users/buyong/.codex/checkpoints/codemap-search-comparison/JEV-COMPARISON.md` describes Python/proxy runs against 815 exported files, not the current Rust index population (elsewhere recorded as 822). Its AA/AD/AE 3-run means were 338.053/335.575/309.498 seconds; AA/AD/AE main-model total tokens 1,054,421.7/944,918.3/857,413.7, and AD/AE Jev input/output 702,208.7/32,894.7 and 41,269/2,129. Main-model cached input is a subset of input; reasoning is a subset of output, so neither is added twice. The report excludes three aborted connection-error and three Markdown-boundary sessions (plus authentication probes); their known usage is accounted for there. These figures are **not** Rust gains, Noul calibration or a deterministic-score claim.
+
+## Later authorized live comparison method (not a request to run it now)
+
+Freeze one Rust binary revision, source/index hashes, scope, task intent, search/codemap output caps, Jev model and cache state; compare native off, #1 and #2 on the **same** snapshot and three independently recorded whole-task runs/mode. Track every attempt, excluded response and reason, API fallback rate, the actual applied/bypassed status, question count/usage, Jev input/output, and main-model input broken into cached and uncached (with cached a subset), output with reasoning subset, separately. Keep token throughput separate from actual billing. Record whole-task time and Jev-stage/HTTP time, tool/read count, delivered response bytes, omissions and source-file+line preservation. Freeze a quality rubric and labeled core/extended items before measurement; record root-file recall against known files, protected-source retention and repeated identical-request variation. Three runs estimate a direction, not statistical equivalence. Keep Python/rg columns labeled historical reference; do not combine them with native baselines.

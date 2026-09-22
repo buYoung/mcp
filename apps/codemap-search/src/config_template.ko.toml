@@ -1,4 +1,4 @@
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -268,6 +268,23 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+[analysis.jev]
+# 외부 Jev 요청은 선택 사항이며 두 모드는 명시적으로 켜기 전까지 비활성화됩니다.
+overview_enabled = false
+search_filter_enabled = false
+# 고정된 Jev 모델입니다. 별칭이나 다른 제공자는 지원하지 않습니다.
+model = "jev-1.13.0"
+# 키 값이 아닌 호스트 환경변수의 이름입니다.
+api_key_env = "TYPESAFE_API_KEY"
+# 대기와 HTTP 시간을 포함한 호출 전체 제한(ms). 더 짧게 설정할 수 있습니다.
+timeout_ms = 45000
+max_in_flight_requests = 3
+request_spacing_ms = 300
+max_batch_bytes = 80000
+pool_idle_timeout_ms = 30000
+# 실험적 Noul 생략 임계값(0.5 < 값 <= 1.0). 정확도 교정은 수행되지 않았습니다.
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,

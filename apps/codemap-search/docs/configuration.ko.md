@@ -27,6 +27,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `analysis.jev` | 외부 Jev 추천·본문 필터의 독립적인 선택 활성화 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -42,6 +43,19 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 문자·토큰·바이트를 고정 비율로 변환하지 않습니다. 이 두 설정은 서버 응답 한도를 바꾸지 않으며 Codex `functions.exec`의 묶음 출력 한도나 전역 기록 한도도 변경하지 않습니다. 미지정인 클라이언트 한도에는 새 기본값을 강제로 넣지 않습니다.
 
+## Jev 선택 활성화
+
+`[analysis.jev]`의 `overview_enabled`와 `search_filter_enabled`는 서로 독립적이고 기본값이 `false`입니다. MCP 호스트 환경에 `TYPESAFE_API_KEY`를 설정하세요. 다른 이름을 쓰려면 `api_key_env`에 **환경변수 이름**만 적습니다. TOML에 키 값을 기록하지 않습니다. 비어 있지 않은 `task_query`와 인증정보가 모두 있어야 해당 요청에서 외부 호출을 시작합니다. 설정만 켜두어도 백그라운드 요청은 생기지 않습니다.
+
+```json
+{"name":"overview","arguments":{"task_query":"요청 인증 흐름의 구현 위치 찾기"}}
+{"name":"search","arguments":{"query":"authorize request","task_query":"요청 인증 흐름의 구현 위치 찾기"}}
+```
+
+`task_query`는 매번 호출자가 주는 원래 작업 의도이며 `overview.path`/`query`와 `search.query`와는 다른 값입니다. 이전 요청에서 가져오지 않습니다. #1은 색인 준비가 끝난 루트 개요에서만 가려진 색인 메타데이터의 전체 후보를 평가하고 최대 24개를 추천합니다. 추천이 없으면 `no_match` 또는 `insufficient_evidence`이며 소스에 구현이 없다는 뜻이 아닙니다. #2는 선택된 가려진 소스 조각과 표시 문맥만 전송합니다. Noul은 완전한 본문이 작업과 무관한지 판단하고 Rust가 불완전하거나 보호가 필요한 코드를 유지합니다. MCP `_meta.jev`에 적용·우회·대체 결과와 사유, 입력/출력 토큰, HTTP/전체 경과시간을 나누어 표시합니다. 실패해도 원래 도구 결과를 유지하고 read/find/grep에는 적용하지 않습니다.
+
+고정 모델은 `jev-1.13.0`입니다. `timeout_ms`는 대기시간을 포함한 1–45000ms, `max_in_flight_requests`는 1–3, `request_spacing_ms`는 0–10000ms, `max_batch_bytes`는 1–80000바이트, `pool_idle_timeout_ms`는 1–300000ms입니다. 제공자의 64k 전체 및 상태+최장 질문 32k 토큰 한도를 보수적인 UTF-8 바이트로 제한하지만 정확한 토크나이저는 아니며 제공자 한도 오류도 가능합니다. 입력을 몰래 잘라내거나 자동 재시도하지 않습니다. `search_filter_min_unrelated_probability`는 유한한 `0.5 < 값 <= 1.0`만 허용하며 기본 0.70은 **교정하지 않은 실험값**입니다. Noul 신뢰도가 아닌 Rust의 생략 임계값입니다. 유효하지 않은 키는 항목별로 하위 계층/기본값을 적용합니다. 가림을 끄면 원문 색인 메타데이터와 소스가 외부 제공자에게 전송될 수 있습니다. Rust 실측 품질·속도 검증은 수행하지 않았습니다.
+
 ## 설정 위치와 우선순위
 
 키별 우선순위는 저장소 → 전역 → 내장 기본값입니다. 저장소 파일에 `[output.search].detail_file_limit`만 있으면 다른 키는 전역 설정이나 기본값을 이어받습니다.
@@ -53,10 +67,10 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **23**이며 주석으로 표시합니다.
+현재 설정 버전은 **24**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -79,6 +93,7 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 - 버전 21은 섹션 설명과 비활성 설정 예시도 관련 새 섹션으로 옮기며, 예시의 키 이름을 새 이름에 맞춥니다. 설정값은 활성화하지 않습니다. 이전 전환에서 소속 정보가 없어진 임의 메모는 위치를 추측하지 않고 그대로 보존합니다.
 - 버전 22는 `output.context.exclude`와 하위 테스트 규칙을 `output` 묶음의 맨 아래로 옮깁니다. 설정 경로·값·적용 범위는 유지하며 주석도 함께 이동합니다.
 - 버전 23은 확인 가능한 자동 생성 설명을 현재 언어의 문구로 교체하고, 자동 생성된 변경 이력을 제거하며 파일 전체 안내를 맨 위에 둡니다. 기존 설정값·주석 처리 상태·자동 생성 설명으로 식별되지 않는 메모·문자열 내용은 보존합니다. 추가 기본값의 활성화는 새로 생성하는 파일에만 적용합니다.
+- 버전 24는 기존 저장소 설정에 비활성화된 `[analysis.jev]` 주석 블록을 추가합니다. 인증정보는 기록하지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
@@ -422,7 +437,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -692,6 +707,19 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+[analysis.jev]
+# 외부 Jev 요청은 선택 사항이며 task_query와 환경변수 키를 명시해야 합니다.
+overview_enabled = false
+search_filter_enabled = false
+model = "jev-1.13.0"
+api_key_env = "TYPESAFE_API_KEY"
+timeout_ms = 45000
+max_in_flight_requests = 3
+request_spacing_ms = 300
+max_batch_bytes = 80000
+pool_idle_timeout_ms = 30000
+search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,
