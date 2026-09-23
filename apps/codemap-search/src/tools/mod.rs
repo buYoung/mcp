@@ -207,14 +207,63 @@ pub fn server_instructions() -> &'static str {
 /// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
     let common = include_str!("instructions/navigation.md").trim_end();
-    if crate::codemap::looks_like_monorepo_workspace() {
+    let mut text = if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/navigation.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
+    };
+    if let Some(guidance) = jev_guidance(&crate::config::get().jev) {
+        text.push_str("\n\n");
+        text.push_str(&guidance);
     }
+    text
+}
+
+/// Explicit intent shared by the optional overview and search/read/grep Jev stages.
+pub(crate) const TASK_QUERY_DESCRIPTION: &str = "Explicit intent of this call in the caller's words. The optional Jev stage for this tool (analysis.jev) may send a masked copy of it and the selected evidence to TypeSafe: overview recommends indexed files; search/read/grep omit complete callable bodies judged unrelated. Never inferred from earlier calls or query/pattern. Without task_query, or when this tool's stage is disabled, source is not filtered. Omit task_query when using read to restore an omitted body.";
+
+/// The explicit task intent of one call, used only by the optional Jev stages. `None` when
+/// the argument is absent or blank; a non-string value is an argument error.
+pub(crate) fn task_query(arguments: &serde_json::Value) -> Result<Option<String>, (i64, String)> {
+    match get_arg(arguments, "task_query") {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::String(text)) => {
+            let text = text.trim();
+            Ok((!text.is_empty()).then(|| text.to_string()))
+        }
+        Some(_) => Err((
+            -32602,
+            "Invalid task_query: expected a string carrying the explicit intent of this call."
+                .into(),
+        )),
+    }
+}
+
+/// Navigation guidance appended while at least one Jev stage is enabled.
+fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
+    let mut lines = Vec::new();
+    if jev.overview_enabled {
+        lines.push("A root overview called with task_query appends a `Recommended files for the task (indexed evidence)` section ranked from indexed metadata (docs, declarations, call names), never from source bodies; treat it as a navigation hint to verify with read. Zero recommendations mean no indexed evidence qualified for that intent, never that the behavior is absent; continue with search/grep/read.");
+    }
+    if jev.search_filter_enabled {
+        lines.push("search called with task_query may omit complete callable bodies judged unrelated to that intent; partial bodies and protected relationships stay.");
+    }
+    if jev.read_filter_enabled {
+        lines.push("read called with task_query may omit complete callable bodies within the selected live source window. To restore unfiltered source, omit task_query.");
+    }
+    if jev.grep_filter_enabled {
+        lines.push("grep content output called with task_query may omit complete callable bodies within the selected page. Counts, file lists, partial matches and declarations/relations-only views are not filtered.");
+    }
+    if lines.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "Jev stages (analysis.jev) are enabled: these calls may send a masked copy of task_query and of the selected evidence (including live source for read/grep) to the external TypeSafe API. Pass task_query, the explicit intent of the current call, to use them; without it, or when a stage bypasses or fails, the base output is returned unchanged and the reason is logged on the server's stderr. {}",
+        lines.join(" ")
+    ))
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -273,7 +322,7 @@ pub fn list_tools() -> Value {
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
-    let read_description = format!(
+    let mut read_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/read.md").trim_end(),
@@ -287,7 +336,7 @@ pub fn list_tools() -> Value {
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = format!(
+    let mut grep_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/grep.md").trim_end(),
@@ -296,8 +345,45 @@ pub fn list_tools() -> Value {
         ),
         include_str!("instructions/tools/grep.evidence.md").trim_end(),
     );
+    let jev = &config.jev;
+    for (tool, is_enabled, description) in [
+        ("read", jev.read_filter_enabled, &mut read_description),
+        ("grep", jev.grep_filter_enabled, &mut grep_description),
+    ] {
+        if is_enabled {
+            description.push_str(&format!("\n\nJev body filter is enabled for {tool}: with task_query, a masked copy of the intent, arguments and selected live callable bodies may be sent to TypeSafe. Only complete, verified bodies judged unrelated may be replaced by read-range notes. Existing source windows/pages, filesystem permissions, partial source and protected relationships are preserved. Missing intent/credentials or a stage failure returns the base output unchanged; diagnostics are on stderr. Omit task_query to read unfiltered source."));
+        }
+    }
+    let overview_description = if jev.overview_enabled {
+        format!(
+            "{}\n\nJev overview recommendation is enabled: a root overview called with task_query may send a masked copy of the intent and of the indexed file metadata to the external TypeSafe API and append recommended files (indexed hints, not source-verified). Without task_query, or when the stage bypasses or fails, the base overview is returned unchanged; the reason is logged on stderr.",
+            include_str!("instructions/tools/overview.md").trim_end()
+        )
+    } else {
+        include_str!("instructions/tools/overview.md")
+            .trim_end()
+            .to_string()
+    };
+    let search_description = if jev.search_filter_enabled {
+        format!(
+            "{}\n\nJev body filter is enabled: search called with task_query may send a masked copy of the intent and of the displayed declaration bodies to the external TypeSafe API and omit complete bodies judged unrelated to it (inline notes keep the read ranges). Without task_query, or when the stage bypasses or fails, the full output is returned unchanged; the reason is logged on stderr.",
+            include_str!("instructions/tools/search.md").trim_end()
+        )
+    } else {
+        include_str!("instructions/tools/search.md")
+            .trim_end()
+            .to_string()
+    };
+    // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
+    // effective enable flag of this request, because an enabled stage may contact the
+    // external provider even when no key is present at this moment.
+    let overview_annotations =
+        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.overview_enabled });
+    let search_annotations =
+        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.search_filter_enabled });
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "task_query": { "type": "string", "description": TASK_QUERY_DESCRIPTION },
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -326,24 +412,25 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
-                        // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        // interactive ones). The open-world hint turns on with the Jev stage.
+                        "annotations": overview_annotations,
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
+                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." },
+                                "task_query": { "type": "string", "description": TASK_QUERY_DESCRIPTION }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "description": search_description,
+                        "annotations": search_annotations,
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,
@@ -353,10 +440,11 @@ pub fn list_tools() -> Value {
                     {
                         "name": "read",
                         "description": read_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.read_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "task_query": { "type": "string", "description": TASK_QUERY_DESCRIPTION },
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
@@ -389,10 +477,11 @@ pub fn list_tools() -> Value {
                     {
                         "name": "grep",
                         "description": grep_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.grep_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "task_query": { "type": "string", "description": TASK_QUERY_DESCRIPTION },
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },

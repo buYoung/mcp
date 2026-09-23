@@ -5,6 +5,7 @@ mod cross_feature;
 mod documents;
 mod exclusions;
 mod helpers;
+mod jev;
 mod language_support;
 mod mcp;
 mod parser;

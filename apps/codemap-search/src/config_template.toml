@@ -1,4 +1,4 @@
-# codemap-config-version: 23
+# codemap-config-version: 25
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
@@ -268,6 +268,52 @@ is_build_support_enabled = false
 # Rust analysis target OS, e.g. "linux", "macos" or "windows". The host OS is never inferred.
 # Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
+
+[analysis.jev]
+# Optional TypeSafe Jev decision stages. All stages are off by default, and enabling one
+# sends nothing by itself: a request is evaluated only when the tool call also passes an
+# explicit task_query, and the API key comes from the environment variable named below.
+
+# Judge root overview calls: recommend indexed files for the task_query.
+# overview_enabled = false
+
+# Omit complete, identity-verified declaration bodies from search details that Jev judges
+# unrelated to the task_query; each omitted body leaves an inline note with the exact read
+# range. Bypasses and failures return the plain output; the reason is logged on stderr.
+# search_filter_enabled = false
+
+# Independently opt in read/grep calls carrying task_query. Only complete callable bodies
+# in the selected live source are eligible. Without task_query, read restores unfiltered
+# source; grep file/count modes and definitions/relations-only views are never filtered.
+# read_filter_enabled = false
+# grep_filter_enabled = false
+
+# Concrete provider model, validated against every response; alias names are rejected.
+# model = "jev-1.13.0"
+
+# Environment variable that holds the TypeSafe API key. The key itself is never stored here.
+# api_key_env = "TYPESAFE_API_KEY"
+
+# One absolute deadline per tool call in milliseconds (at most 7 days), counted from the
+# start of the stage's preparation and including queue time. Never extended.
+# timeout_ms = 45000
+
+# HTTP requests in flight at once (1 to 3) and the minimum spacing between request starts
+# (at least 300 ms). Both may only tighten the runtime's initial policy.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+
+# Encoded request bytes per batch (1 to 80000); a question that does not fit fails explicitly.
+# max_batch_bytes = 80000
+
+# Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
+# is opened.
+# pool_idle_timeout_ms = 30000
+
+# Shared search/read/grep body-filter threshold (the key name is kept for compatibility).
+# A complete body is omitted only when Jev's probability that it is
+# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # Filesystem access for find/grep/read: "workspace" limits access to the workspace,

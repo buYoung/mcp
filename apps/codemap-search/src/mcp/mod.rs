@@ -4,51 +4,15 @@
 //! lifecycle (`ensure_alive`/`trigger_refresh`) on the snapshot-backed tools, and wraps tool
 //! output in the JSON-RPC `result`/`error` envelope.
 
+mod jev;
 pub mod protocol;
 
 use crate::index::EngineSupervisor;
 use crate::tools::ToolContext;
 use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
-use tokio::io::AsyncWriteExt;
-
-fn returned_source_files(
-    output: &crate::tools::live_symbols::LiveOutput,
-    options: crate::tools::live_options::LiveOptions,
-) -> Vec<crate::analyze::FileObservation> {
-    use crate::tools::live_options::LiveView;
-    if !matches!(options.view, LiveView::Full | LiveView::Source) {
-        return Vec::new();
-    }
-    let mut files = output
-        .source_ranges
-        .iter()
-        .map(|(path, _, _)| (path.as_str(), 0u64))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    for span in &output.files {
-        if let Some(bytes) = files.get_mut(span.file_path.as_str()) {
-            let mut result_bytes = span.end_byte.saturating_sub(span.start_byte);
-            if options.view == LiveView::Full {
-                // Full view removes the producer-written path prefixes under file headings.
-                let prefix_bytes = output
-                    .path_prefixes
-                    .iter()
-                    .filter(|prefix| span.start_byte <= prefix.start && prefix.end <= span.end_byte)
-                    .map(|prefix| prefix.end - prefix.start)
-                    .sum::<usize>();
-                result_bytes = result_bytes.saturating_sub(prefix_bytes);
-            }
-            *bytes = bytes.saturating_add(result_bytes as u64);
-        }
-    }
-    files
-        .into_iter()
-        .map(|(path, result_bytes)| crate::analyze::FileObservation {
-            path: path.into(),
-            result_bytes,
-        })
-        .collect()
-}
+use std::path::Path;
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
 /// Search/read already construct bounded output. Other tools reject an oversized
 /// response only when a new common or per-tool response budget was explicitly set.
@@ -82,6 +46,9 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
+    // Optional Jev stages: credentials and the shared evaluator live here, never in the
+    // tools. Idle unless `[analysis.jev]` enables a stage and a call passes `task_query`.
+    jev: jev::JevHost,
 }
 
 impl McpServer {
@@ -91,7 +58,53 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            jev: jev::JevHost::default(),
         }
+    }
+
+    /// Build the index subsystem for `cwd` (searcher, background indexer, config and
+    /// filesystem watchers) from the current in-memory config and wrap it in a server. The
+    /// `mcp` command and in-process tests share this; call `config::reload(cwd)` first.
+    pub fn bootstrap(cwd: &Path) -> Result<Self, String> {
+        use crate::index;
+        let engine = index::TantivySearchEngine::new(&crate::config::get().index_path)?;
+        // Read-only search handle for the request loop; the engine (the single tantivy
+        // writer) moves into the background indexer, which starts the initial index pass
+        // immediately so the first request need not block on it.
+        let searcher = engine.searcher_handle();
+        let indexer = index::spawn_indexer(engine);
+        let config_watcher = crate::config::spawn_config_watcher(cwd, indexer.command_sender());
+        // Health gate shared with the server: stays unhealthy when `watch = false` or the
+        // watch fails to start, which keeps the request-triggered fallback active.
+        let watcher_status = std::sync::Arc::new(index::WatcherStatus::default());
+        let watcher = crate::config::get().watch.then(|| {
+            index::spawn_watcher(
+                cwd,
+                indexer.command_sender(),
+                std::sync::Arc::clone(&watcher_status),
+            )
+        });
+        // The supervisor owns all the handles so it can rebuild them when the indexer dies
+        // (`indexer_auto_restart`); its field order guarantees the shutdown sequence —
+        // config/filesystem watchers drop first (threads joined, their command-sender clones
+        // released) before IndexerHandle::drop closes the channel and joins the indexer,
+        // whose recv loop ends only when ALL senders are gone.
+        let supervisor = index::EngineSupervisor::new(
+            searcher,
+            config_watcher,
+            watcher.flatten(),
+            indexer,
+            watcher_status,
+        );
+        Ok(Self::new(supervisor))
+    }
+
+    /// Use `evaluator` for every Jev stage instead of building the HTTPS evaluator from the
+    /// configured credentials. Regression suites inject `jev::mock::MockEvaluator` here so
+    /// the whole MCP path runs offline; production never calls this.
+    pub fn with_evaluator(mut self, evaluator: std::sync::Arc<dyn crate::jev::Evaluator>) -> Self {
+        self.jev = jev::JevHost::injected(evaluator);
+        self
     }
 
     pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
@@ -118,9 +131,19 @@ impl McpServer {
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
-        let stdin = tokio::io::stdin();
-        let mut reader = LimitedLineReader::new(stdin, 10 * 1024 * 1024 + 100 * 1024);
-        let mut stdout = tokio::io::stdout();
+        self.run_with_io(tokio::io::stdin(), tokio::io::stdout())
+            .await
+    }
+
+    /// The stdio loop over arbitrary line-framed streams (stdin/stdout in production,
+    /// in-memory pipes in tests). Requests are handled one at a time; a Jev stage awaits
+    /// inside the request, so the loop stays sequential.
+    pub async fn run_with_io<R, W>(&mut self, reader: R, mut stdout: W) -> Result<(), String>
+    where
+        R: AsyncRead + Unpin,
+        W: AsyncWrite + Unpin,
+    {
+        let mut reader = LimitedLineReader::new(reader, 10 * 1024 * 1024 + 100 * 1024);
         self.call_recorder.maintain();
         let period = std::time::Duration::from_secs(60);
         let mut retention = tokio::time::interval_at(tokio::time::Instant::now() + period, period);
@@ -167,7 +190,8 @@ impl McpServer {
                         continue;
                     }
 
-                    let response_result = self.handle_request(&req.method, req.params.as_ref());
+                    let response_result =
+                        self.handle_request(&req.method, req.params.as_ref()).await;
 
                     let resp = match response_result {
                         Ok(res_val) => JsonRpcResponse {
@@ -199,11 +223,14 @@ impl McpServer {
         Ok(())
     }
 
-    fn handle_request(
+    async fn handle_request(
         &mut self,
         method: &str,
         params: Option<&Value>,
     ) -> Result<Value, (i64, String)> {
+        // Both scopes are thread-local and stay pinned across the awaits inside one request:
+        // the loop is sequential and the runtime is single-threaded, so no other request can
+        // observe or replace them while a Jev stage is in flight.
         let _config_scope = crate::config::pin_request();
         let _redact_scope = crate::redact::begin_request();
         let started = std::time::Instant::now();
@@ -215,7 +242,7 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
-        let result = match self.handle_request_inner(method, params) {
+        let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
@@ -253,7 +280,7 @@ impl McpServer {
         result
     }
 
-    fn handle_request_inner(
+    async fn handle_request_inner(
         &mut self,
         method: &str,
         params: Option<&Value>,
@@ -308,12 +335,18 @@ impl McpServer {
                         // on the live-filesystem tools (read/find/grep).
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
+                        let config = crate::config::get();
+                        let task_query = crate::tools::task_query(arguments)?;
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let output = crate::tools::search::run_with_metadata(&ctx)?;
+                        let output = if config.jev.search_filter_enabled {
+                            jev::search(&mut self.jev, &ctx, task_query.as_deref(), &config).await?
+                        } else {
+                            crate::tools::search::run_with_metadata(&ctx)?
+                        };
                         self.pending_source_files = output.source_files;
                         Ok(serde_json::json!({
                             "content": [
@@ -333,12 +366,19 @@ impl McpServer {
                         // fires only here and on `search`, never on read/find/grep.
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
+                        let config = crate::config::get();
+                        let task_query = crate::tools::task_query(arguments)?;
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let text = crate::tools::overview::run(&ctx)?;
+                        let text = if config.jev.overview_enabled {
+                            jev::overview(&mut self.jev, &ctx, task_query.as_deref(), &config)
+                                .await?
+                        } else {
+                            crate::tools::overview::run(&ctx)?
+                        };
                         self.update_active_workspace_scope_from_overview(arguments);
                         Ok(serde_json::json!({
                             "content": [
@@ -349,47 +389,26 @@ impl McpServer {
                             ]
                         }))
                     }
-                    "read" => {
-                        let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
-                        let output = crate::tools::read::read_file_with_metadata(arguments)?;
-                        self.pending_source_files = returned_source_files(&output, options);
-                        let text = crate::tools::live_symbols::append(
+                    "read" | "grep" => {
+                        let tool = if name == "read" { "read" } else { "grep" };
+                        let config = crate::config::get();
+                        let task_query = crate::tools::task_query(arguments)?;
+                        let output = jev::live(
+                            &mut self.jev,
                             &self.engine,
-                            output,
-                            Some(crate::config::get().read_output_byte_cap),
-                            options,
-                        )?;
+                            tool,
+                            arguments,
+                            task_query.as_deref(),
+                            &config,
+                        )
+                        .await?;
+                        self.pending_source_files = output.source_files;
                         Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": text }]
+                            "content": [{ "type": "text", "text": output.text }]
                         }))
                     }
                     "find" => {
                         let text = crate::tools::find::find_files(arguments)?;
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": text }]
-                        }))
-                    }
-                    "grep" => {
-                        let options =
-                            crate::tools::live_options::LiveOptions::parse_grep(arguments)?;
-                        let output = crate::tools::grep::grep_with_metadata(arguments)?;
-                        self.pending_source_files = returned_source_files(&output, options);
-                        let output_mode = arguments
-                            .get("output_mode")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("content");
-                        let text = if output_mode == "content" {
-                            crate::tools::live_symbols::append(
-                                &self.engine,
-                                output,
-                                options
-                                    .should_expand_callable
-                                    .then(|| crate::config::get().grep_output_byte_cap),
-                                options,
-                            )?
-                        } else {
-                            output.text
-                        };
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
                         }))

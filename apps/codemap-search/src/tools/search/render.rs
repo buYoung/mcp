@@ -779,18 +779,24 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
-                    return AnchoredRenderOutcome {
-                        budget_hit: true,
-                        emitted_starts,
-                    };
-                }
                 let shown = capped
                     .lines()
                     .filter(|line| line.contains('→'))
                     .count()
                     .saturating_sub(usize::from(is_clipped));
                 let displayed_end = start + shown.saturating_sub(1);
+                if !text.push_source_for_symbol(
+                    &format!("```\n{capped}\n```\n"),
+                    Some("```\n".len()),
+                    sym,
+                    (start, displayed_end),
+                    is_clipped,
+                ) {
+                    return AnchoredRenderOutcome {
+                        budget_hit: true,
+                        emitted_starts,
+                    };
+                }
                 emitted_ranges.push((start, displayed_end));
                 if is_full_anchor {
                     text.anchor(start, displayed_end);
@@ -872,7 +878,13 @@ pub(super) fn render_anchored_symbols(
             }
             let source_offset = source_block.len() + "```\n".len();
             source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block, Some(source_offset)) {
+            if !text.push_source_for_symbol(
+                &source_block,
+                Some(source_offset),
+                sym,
+                (snippet_start, displayed_end),
+                is_byte_clipped,
+            ) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,

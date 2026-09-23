@@ -127,6 +127,32 @@ A bare `build` matches directories at any depth; `./build` means the workspace r
 
 MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index.path`, `index.refresh.watch` or `index.refresh.watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
 
+## Optional Jev decision stages
+
+Optional overview recommendations and search/read/grep body filters send bounded, redacted evidence to the TypeSafe Jev API and let Rust decide what to do with the answers. All are independently off by default; the default installation keeps working without a key, network access or Python. Enable the desired tools in the repo or global config and export the API key under the configured environment variable name (the key is never written to a config file):
+
+```toml
+[analysis.jev]
+overview_enabled = true          # root overview recommends indexed files for task_query
+search_filter_enabled = true     # search omits complete bodies judged unrelated to task_query
+read_filter_enabled = true       # read filters only within its selected live window
+grep_filter_enabled = true       # grep filters only within its selected content page
+# api_key_env = "TYPESAFE_API_KEY"
+```
+
+```sh
+export TYPESAFE_API_KEY="<your key>"
+```
+
+A stage runs only when the call also passes `task_query`, the explicit intent of that call; nothing is inferred from earlier calls. Blank intent, missing credentials, a bypass or a failure return the ordinary output unchanged, and the reason is logged on stderr. While a stage is enabled the tool advertises `openWorldHint: true` (it may contact the external provider), so clients that cache tool metadata may need to re-list tools after changing a flag:
+
+```json
+{ "name": "overview", "arguments": { "task_query": "where is the response byte cap applied?" } }
+{ "name": "search", "arguments": { "query": "byte cap footer", "task_query": "where is the response byte cap applied?" } }
+```
+
+The overview appends a `Recommended files for the task (indexed evidence)` section ranked from indexed metadata only (never source bodies) whose status (`matched`, `no_match`, `insufficient_evidence`) is reported separately from the stage outcome; zero recommendations never claim that the behavior is absent, and recommendations are navigation hints to verify with `read`. Search, read and grep can omit complete callable bodies judged unrelated, leaving inline `read` notes. Partial, unverified or unusably masked bodies and protected relationships stay; output only shrinks. Read/grep use their captured live source, not stale index bodies, and never widen a selected window/page. Grep file/count modes and definitions/relations-only views are not filtered. Omit `task_query` from `read` to restore unfiltered source. Each tool requires its own enable flag; enabling search does not enable read or grep. Failures, deadlines and invalid answers preserve the complete base output byte for byte; every outcome, its counts and the known token usage are logged on stderr as a `jev stage` line. The shared body-filter threshold `search_filter_min_unrelated_probability` (the existing key name is retained for compatibility) (default `0.70`, allowed `0.5 < value <= 1.0`) is provisional and not calibrated; requests are single attempts (no retries, no redirects) against the pinned model `jev-1.13.0`. The decision runtime is reusable from Rust; `cargo run --example jev_decisions -- --mock` replays a fixed synthetic response offline, and `--live` sends one real request only when an operator asks for it. See [Optional Jev decision stages](./docs/configuration.md#optional-jev-decision-stages) for transmitted data, limits and outcomes.
+
 ## Supported languages and formats
 
 | Language | Extensions |

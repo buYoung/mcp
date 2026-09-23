@@ -3,7 +3,7 @@ use super::{detection::SourceScan, is_enabled};
 use std::borrow::Cow;
 use std::ops::Range;
 
-pub(super) const MARKER: &str = "[REDACTED]";
+pub(crate) const MARKER: &str = "[REDACTED]";
 
 impl SourceScan {
     pub(crate) fn render<'a>(&self, source: &'a str) -> Cow<'a, str> {

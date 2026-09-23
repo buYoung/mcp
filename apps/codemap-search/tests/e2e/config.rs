@@ -336,3 +336,166 @@ fn test_index_warns_and_continues_when_home_is_unknown() {
 
     assert!(project.path().join(".codemap/index").exists());
 }
+
+// --- `[analysis.jev]`: defaults, template, migration and threshold normalization ------------
+
+mod jev_config {
+    use crate::e2e::helpers::{create_mock_repo, response_text, with_in_process_server, McpClient};
+    use codemap_search::jev::mock::{answers, MockEvaluator};
+    use codemap_search::jev::EvaluationRequest;
+    use serde_json::json;
+    use std::sync::Arc;
+
+    const BUDGET_TS: &str =
+        "export function keepMe(remainingBytes: number, footer: string): number {
+  const reserve = footer.length + 8;
+  if (remainingBytes <= reserve) {
+    return 0;
+  }
+  return remainingBytes - reserve;
+}
+
+export function dropMe(input: string): string {
+  const parts = input.split(\",\");
+  const trimmed = parts.map((part) => part.trim());
+  return trimmed.join(\"|\").toUpperCase();
+}
+";
+
+    fn unrelated_judge(probability: f64) -> MockEvaluator {
+        MockEvaluator::new(move |request: &EvaluationRequest| {
+            Ok(request
+                .questions()
+                .iter()
+                .map(|question| (question.id().clone(), answers::noul(probability)))
+                .collect())
+        })
+    }
+
+    #[tokio::test]
+    async fn test_jev_template_and_migration_add_a_commented_section_after_analysis() {
+        // A fresh repo scaffolds the current template with the commented section.
+        let temp = create_mock_repo(&[("src/a.rs", "fn scaffold_me() {}")]).unwrap();
+        let mut client = McpClient::spawn(temp.path()).await.unwrap();
+        client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
+        let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
+        assert!(
+            scaffolded.starts_with("# codemap-config-version: 25\n"),
+            "{scaffolded}"
+        );
+        assert!(scaffolded.contains("\n[analysis.jev]\n"), "{scaffolded}");
+        assert!(scaffolded.contains("# overview_enabled = false\n"));
+        assert!(scaffolded.contains("# search_filter_enabled = false\n"));
+        assert!(scaffolded.contains("# api_key_env = \"TYPESAFE_API_KEY\"\n"));
+        assert!(scaffolded.contains("# search_filter_min_unrelated_probability = 0.70\n"));
+        assert!(
+            !scaffolded.contains("TYPESAFE_API_KEY =") && !scaffolded.contains("sk-"),
+            "no secret is ever written"
+        );
+        drop(client);
+
+        // A v23 file gains the section as one commented paragraph between [analysis] and the
+        // next table, with its own settings untouched.
+        let original = "# codemap-config-version: 23\n[output.search]\ndetail_file_limit = 7\n\n[analysis]\n# target_os = \"\"\n\n[filesystem_permissions]\nfind = \"workspace\"\n";
+        let temp = create_mock_repo(&[
+            (".codemap/config.toml", original),
+            ("src/a.rs", "fn migrate_me() {}"),
+        ])
+        .unwrap();
+        let mut client = McpClient::spawn(temp.path()).await.unwrap();
+        client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
+        let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
+        assert!(
+            migrated.starts_with("# codemap-config-version: 25\n"),
+            "{migrated}"
+        );
+        assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
+        let analysis = migrated.find("[analysis]\n").expect("analysis header kept");
+        let jev = migrated
+            .find("# [analysis.jev]\n")
+            .expect("commented jev header added");
+        let permissions = migrated
+            .find("[filesystem_permissions]\n")
+            .expect("next table kept");
+        assert!(
+            analysis < jev && jev < permissions,
+            "section order: {migrated}"
+        );
+        assert!(
+            migrated.contains("# search_filter_enabled = false\n"),
+            "{migrated}"
+        );
+        assert!(
+            !migrated.contains("\n[analysis.jev]\n"),
+            "migration never activates the section: {migrated}"
+        );
+        drop(client);
+
+        // Existing values survive the added, commented per-tool flags.
+        let already =
+            "# codemap-config-version: 23\n[analysis.jev]\nsearch_filter_enabled = true\n";
+        let temp = create_mock_repo(&[
+            (".codemap/config.toml", already),
+            ("src/a.rs", "fn keep_me() {}"),
+        ])
+        .unwrap();
+        let mut client = McpClient::spawn(temp.path()).await.unwrap();
+        client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
+        let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
+        assert!(kept.starts_with("# codemap-config-version: 25\n"), "{kept}");
+        assert!(kept.contains("# read_filter_enabled = false\n"), "{kept}");
+        assert!(kept.contains("# grep_filter_enabled = false\n"), "{kept}");
+        assert_eq!(
+            toml::from_str::<toml::Value>(&kept).unwrap(),
+            toml::from_str::<toml::Value>(already).unwrap(),
+            "active values must be unchanged: {kept}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_jev_threshold_overrides_and_invalid_values_reach_the_retention_policy() {
+        // 0.90 keeps both bodies judged 0.80 unrelated (the output is the plain search);
+        // an invalid 0.5 or a string falls back to the 0.70 default, which omits both. The
+        // evaluator never sees the threshold.
+        for (configured, expected_omissions) in [("0.90", 0), ("0.5", 2), ("\"seventy\"", 2)] {
+            let config = format!("[analysis.jev]\nsearch_filter_enabled = true\nsearch_filter_min_unrelated_probability = {configured}\n");
+            let temp = create_mock_repo(&[
+                (".codemap/config.toml", &config),
+                ("src/budget.ts", BUDGET_TS),
+            ])
+            .unwrap();
+            let evaluator = Arc::new(unrelated_judge(0.80));
+            let judge = Arc::clone(&evaluator);
+            with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+                let plain = client
+                    .call_tool_until(
+                        "search",
+                        json!({ "query": "keepMe dropMe" }),
+                        |text| text.contains("function keepMe") && text.contains("function dropMe"),
+                    )
+                    .await
+                    .unwrap();
+                let response = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "search", "arguments": { "query": "keepMe dropMe", "task_query": "where is the output budget reserved?" } }),
+                    )
+                    .await
+                    .unwrap();
+                let text = response_text(&response);
+                assert_eq!(judge.request_count(), 1, "configured {configured}: one evaluation");
+                assert_eq!(
+                    text.matches("- _omitted body:").count(),
+                    expected_omissions,
+                    "configured {configured}: {text}"
+                );
+                assert_eq!(!text.contains("input.split"), expected_omissions > 0, "configured {configured}: {text}");
+                if expected_omissions == 0 {
+                    assert_eq!(text, response_text(&plain), "configured {configured}: all-keep is the plain output");
+                }
+                assert!(text.contains("dropMe (fn) [L9-13]"), "rows stay: {text}");
+            })
+            .await;
+        }
+    }
+}

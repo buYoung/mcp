@@ -4,6 +4,7 @@
 //! The dispatch arm (`crate::mcp`) calls `EngineSupervisor::ensure_alive`/`trigger_refresh`
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`.
 
+pub mod jev;
 mod monorepo;
 mod stats;
 
@@ -12,6 +13,57 @@ use crate::tools::ToolContext;
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    // Keep the readiness observed before this snapshot so a concurrent initial publish
+    // cannot make an empty pre-index snapshot lose its warm-up notice.
+    let is_warming = ctx.engine.is_warming();
+    let published = ctx.engine.published_snapshot();
+    render(ctx, &published, is_warming).map(|rendered| rendered.text)
+}
+
+/// The base overview plus the recommendation input captured from the same published
+/// snapshot generation (Jev mode #1). `input` is `Err(reason)` when the call is not a ready
+/// root overview, so folder/file requests and warming/dead/empty indexes keep their
+/// existing behavior without any evaluation.
+pub struct PreparedRootOverview {
+    pub base_text: String,
+    pub input: Result<jev::RootInput, &'static str>,
+}
+
+/// Render the base overview and, for a ready root request, capture every indexed file of
+/// that same snapshot as presentation copies for [`jev::recommend`]. This never evaluates
+/// anything by itself; the caller decides whether and with which evaluator to continue.
+pub fn prepare_root_recommendation(
+    ctx: &ToolContext,
+    task_query: &str,
+) -> Result<PreparedRootOverview, (i64, String)> {
+    let is_warming = ctx.engine.is_warming();
+    let published = ctx.engine.published_snapshot();
+    let rendered = render(ctx, &published, is_warming)?;
+    let input = match rendered.activation {
+        Ok(()) => {
+            let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
+            let files = published.codemap();
+            jev::RootInput::capture(task_query, snapshot_id, &files)
+        }
+        Err(reason) => Err(reason),
+    };
+    Ok(PreparedRootOverview {
+        base_text: rendered.text,
+        input,
+    })
+}
+
+struct Rendered {
+    text: String,
+    /// Whether the root recommendation adapter may run on this call.
+    activation: Result<(), &'static str>,
+}
+
+fn render(
+    ctx: &ToolContext,
+    published: &std::sync::Arc<crate::index::PublishedIndexSnapshot>,
+    is_warming: bool,
+) -> Result<Rendered, (i64, String)> {
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -26,10 +78,6 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     let cwd = std::env::current_dir()
         .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
-    // Keep the readiness observed before this snapshot so a concurrent initial publish
-    // cannot make an empty pre-index snapshot lose its warm-up notice.
-    let is_warming = ctx.engine.is_warming();
-    let published = ctx.engine.published_snapshot();
     let catalog = published.workspace_catalog();
     let snapshot = published.codemap();
     let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
@@ -78,13 +126,24 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
     // render an empty codemap.
-    if extracted_files.is_empty() && (is_warming || ctx.engine.is_dead()) {
-        let text = if ctx.engine.is_dead() {
+    let is_dead = ctx.engine.is_dead();
+    let activation = jev::root_activation(
+        path.is_none(),
+        format,
+        is_warming,
+        is_dead,
+        extracted_files.len(),
+    );
+    if extracted_files.is_empty() && (is_warming || is_dead) {
+        let text = if is_dead {
             "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(Rendered {
+            text: text.to_string(),
+            activation,
+        });
     }
 
     use crate::codemap::CodemapView;
@@ -144,17 +203,20 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 
     if let Some(stats_scope) = stats_scope {
         let workspace = cwd.to_string_lossy().into_owned();
-        let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
+        let snapshot_id = std::sync::Arc::as_ptr(published).addr();
         codemap_text.push_str("\n\n");
         codemap_text.push_str(&stats::render(
             &cwd,
             &workspace,
             snapshot_id,
-            &published,
+            published,
             extracted_files,
             stats_scope,
         ));
     }
 
-    Ok(codemap_text)
+    Ok(Rendered {
+        text: codemap_text,
+        activation,
+    })
 }

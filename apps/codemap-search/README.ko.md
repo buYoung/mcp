@@ -125,6 +125,32 @@ excluded_directories = [
 
 MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
 
+## 선택적 Jev 판단 단계
+
+선택적 overview 추천과 search/read/grep 본문 필터는 범위가 제한되고 가림 처리된 근거를 TypeSafe Jev API에 보내고, 답변의 활용은 Rust가 결정합니다. 모든 단계는 도구별로 기본으로 꺼져 있으며, 기본 설치는 키·네트워크·Python 없이 그대로 동작합니다. 저장소 또는 전역 설정에서 원하는 단계를 켜고, 설정한 환경 변수 이름으로 API 키를 내보내세요(키는 설정 파일에 기록하지 않습니다).
+
+```toml
+[analysis.jev]
+overview_enabled = true          # 루트 overview가 task_query에 맞는 색인 파일을 추천
+search_filter_enabled = true     # search가 task_query와 무관하다고 판단된 완전한 본문을 생략
+read_filter_enabled = true       # read가 선택한 실제 소스 범위 안에서만 필터링
+grep_filter_enabled = true       # grep이 선택한 content 페이지 안에서만 필터링
+# api_key_env = "TYPESAFE_API_KEY"
+```
+
+```sh
+export TYPESAFE_API_KEY="<발급받은 키>"
+```
+
+단계는 호출이 그 호출의 명시적 의도인 `task_query`를 함께 전달할 때만 실행됩니다. 이전 호출에서 의도를 추정하지 않습니다. 의도가 비어 있거나, 인증정보가 없거나, 단계를 건너뛰거나 실패하면 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다. 단계가 켜져 있는 동안 도구는 `openWorldHint: true`(외부 제공자에 접근할 수 있음)로 알리므로, 도구 메타데이터를 캐시하는 클라이언트는 설정을 바꾼 뒤 도구 목록을 다시 조회해야 할 수 있습니다.
+
+```json
+{ "name": "overview", "arguments": { "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
+{ "name": "search", "arguments": { "query": "byte cap footer", "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
+```
+
+overview는 원문 본문이 아니라 색인 메타데이터만으로 순위를 매긴 `Recommended files for the task (indexed evidence)` 섹션을 덧붙이며 추천 상태(`matched`, `no_match`, `insufficient_evidence`)를 단계 결과와 분리해 보고합니다. 추천이 0건이어도 구현이 없다고 주장하지 않으며, 추천은 `read`로 확인해야 할 탐색 힌트입니다. search/read/grep은 무관하다고 판단된 완전한 함수·메서드 본문만 생략하고 그 자리에 `read` 안내를 남깁니다. 부분 본문·정체성 미확인·마스킹으로 근거가 부족한 본문과 보호 관계는 유지하며 출력은 줄어들기만 합니다. read/grep은 오래된 인덱스 본문이 아닌 동일한 실제 소스 버퍼를 사용하고 선택된 범위·페이지를 넓히지 않습니다. grep 파일 목록·개수 모드와 definitions/relations 전용 보기는 필터링하지 않습니다. 생략 없는 소스를 복원하려면 `read`에서 `task_query`를 빼세요. 각 도구는 별도 활성화 설정이 필요하며 search를 켜도 read/grep은 켜지지 않습니다. 실패·마감 초과·잘못된 답변은 기본 출력을 바이트 단위로 그대로 유지하고, 모든 결과와 개수·알려진 토큰 사용량은 stderr의 `jev stage` 줄에 기록합니다. 공통 본문 필터 임계값 `search_filter_min_unrelated_probability`(호환성을 위해 기존 키 이름 유지)(기본 `0.70`, 허용 범위 `0.5 < 값 <= 1.0`)는 잠정값이며 보정되지 않았고, 요청은 고정 모델 `jev-1.13.0`에 대한 한 번의 시도입니다(재시도·리다이렉트 없음). 판단 런타임은 Rust에서 재사용할 수 있고, `cargo run --example jev_decisions -- --mock`은 고정된 합성 응답을 오프라인으로 재생하며 `--live`는 운영자가 요청할 때만 실제 요청 한 건을 보냅니다. 전송 데이터·한도·결과는 [선택적 Jev 판단 단계](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+
 ## 지원 언어와 형식
 
 | 언어 | 확장자 |

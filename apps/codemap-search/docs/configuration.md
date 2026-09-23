@@ -4,7 +4,7 @@
 
 Configuration is optional. Add only the keys you want to change; other keys use global settings or built-in defaults.
 
-`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win.
+`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win. `analysis.jev` holds the optional Jev decision stages; all stages stay off unless enabled explicitly (see [Optional Jev decision stages](#optional-jev-decision-stages)).
 
 ## Section layout and output budgets
 
@@ -27,6 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
+| `analysis.jev` | Optional root overview recommendation and independent search/read/grep body filters; all off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -55,10 +56,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **23**. The marker is a comment:
+The current configuration schema is **25**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 25
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -81,6 +82,8 @@ The current configuration schema is **23**. The marker is a comment:
 - Version 21 also moves section notes and inactive setting examples beside their relocated settings, updating example key names without activating values. Arbitrary notes whose origin was lost in an earlier migration remain in place rather than being assigned a guessed destination.
 - Version 22 displays `output.context.exclude` and its test-rule subtables last in the `output` group. Key paths, values and scope remain unchanged; comments move with the section.
 - Version 23 replaces recognized generated descriptions with the current localized wording, removes generated migration history, and restores the file-level introduction. Existing assignments, inactive values, unknown notes and string contents are preserved. The additional active defaults apply only to newly generated files.
+- Version 24 adds the commented `[analysis.jev]` section as one paragraph after the `[analysis]` section. Both Jev modes remain off, every key stays commented, and no credential is ever written: the section names the environment variable that holds the API key. A file that already mentions the section is only re-stamped.
+- Version 25 adds commented `read_filter_enabled` and `grep_filter_enabled` keys to `[analysis.jev]`. Existing search opt-in does not enable external transmission from live tools.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -224,6 +227,18 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
+| `[analysis.jev].overview_enabled` | bool | `false` | Root `overview` calls that pass `task_query` append Jev-ranked recommended files |
+| `[analysis.jev].search_filter_enabled` | bool | `false` | `search` calls that pass `task_query` omit complete, identity-verified declaration bodies Jev judges unrelated, leaving inline read notes |
+| `[analysis.jev].read_filter_enabled` | bool | `false` | Filter complete callable bodies within a `read` window only with explicit `task_query` |
+| `[analysis.jev].grep_filter_enabled` | bool | `false` | Filter complete callable bodies in a selected `grep` content page only with explicit `task_query` |
+| `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
+| `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
+| `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
+| `[analysis.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
+| `[analysis.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
+| `[analysis.jev].max_batch_bytes` | integer bytes or size string, 1 to 80000 | `80000` | Encoded request bytes per batch (80000 is the runtime ceiling); a question that does not fit is an explicit failure |
+| `[analysis.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
+| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Shared search/read/grep threshold; existing key name retained for compatibility |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -425,7 +440,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 25
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
@@ -696,6 +711,52 @@ is_build_support_enabled = false
 # Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
 
+[analysis.jev]
+# Optional TypeSafe Jev decision stages. All stages are off by default, and enabling one
+# sends nothing by itself: a request is evaluated only when the tool call also passes an
+# explicit task_query, and the API key comes from the environment variable named below.
+
+# Judge root overview calls: recommend indexed files for the task_query.
+# overview_enabled = false
+
+# Omit complete, identity-verified declaration bodies from search details that Jev judges
+# unrelated to the task_query; each omitted body leaves an inline note with the exact read
+# range. Bypasses and failures return the plain output; the reason is logged on stderr.
+# search_filter_enabled = false
+
+# Independently opt in read/grep calls carrying task_query. Only complete callable bodies
+# in the selected live source are eligible. Without task_query, read restores unfiltered
+# source; grep file/count modes and definitions/relations-only views are never filtered.
+# read_filter_enabled = false
+# grep_filter_enabled = false
+
+# Concrete provider model, validated against every response; alias names are rejected.
+# model = "jev-1.13.0"
+
+# Environment variable that holds the TypeSafe API key. The key itself is never stored here.
+# api_key_env = "TYPESAFE_API_KEY"
+
+# One absolute deadline per tool call in milliseconds (at most 7 days), counted from the
+# start of the stage's preparation and including queue time. Never extended.
+# timeout_ms = 45000
+
+# HTTP requests in flight at once (1 to 3) and the minimum spacing between request starts
+# (at least 300 ms). Both may only tighten the runtime's initial policy.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+
+# Encoded request bytes per batch (1 to 80000); a question that does not fit fails explicitly.
+# max_batch_bytes = 80000
+
+# Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
+# is opened.
+# pool_idle_timeout_ms = 30000
+
+# Shared search/read/grep body-filter threshold (the key name is kept for compatibility).
+# A complete body is omitted only when Jev's probability that it is
+# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# search_filter_min_unrelated_probability = 0.70
+
 [filesystem_permissions]
 # Filesystem access for find/grep/read: "workspace" limits access to the workspace,
 # "allowed_roots" adds the roots below, and "anywhere" allows any path the process can access.
@@ -789,6 +850,39 @@ Conditions on imports, reexports, declarations, call sites and discoverable pare
 
 One response uses one configuration snapshot; a concurrent reload applies to subsequent requests.
 
+## Optional Jev decision stages
+
+```toml
+[analysis.jev]
+overview_enabled = true
+search_filter_enabled = true
+read_filter_enabled = true
+grep_filter_enabled = true
+# api_key_env = "TYPESAFE_API_KEY"
+# search_filter_min_unrelated_probability = 0.70
+```
+
+```sh
+export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
+```
+
+Overview recommendation and each of the search/read/grep body filters are independently off by default. Enabling a stage sends nothing by itself. A request is evaluated only with an explicit `task_query` and credentials from `api_key_env`. Intent is never inferred from earlier calls, `search.query` or `grep.pattern`; blank intent bypasses the stage, and non-string intent is an argument error (`-32602`) regardless of activation. Existing arguments, aliases, permissions, windows/pages, envelopes and output limits stay unchanged. `find`, `analyze`, `initial_instructions` and the CLI do not invoke Jev. To restore an omitted body with `read`, omit `task_query`.
+
+While a stage is enabled, `tools/list` advertises the matching tool with `openWorldHint: true` (it may contact the external provider) next to the unchanged `readOnlyHint: true`, and the tool description and `initial_instructions` say so. Hints and descriptions follow the configuration of the request that lists them, so after turning a stage on or off a client that caches tool metadata may need to list the tools again or reconnect; not every client refreshes on its own.
+
+Root `overview` with `overview_enabled` projects every indexed file of the current snapshot as masked presentation copies: canonical path, line count, every unique file docstring, a bounded summary of the most frequent indexed call names, and every significant declaration (name, kind, owner, inclusive range, exported/test/deprecated flags and its whole docstring). Source bodies are never read. The projection is split into fragments of at most 10,000 encoded bytes that repeat the file identity, and a docstring too large for one fragment continues across fragments with its declaration identity; a file that cannot be projected fails the whole recommendation (`projection_incomplete`) instead of being dropped. One Score question per fragment asks how directly the fragment helps locate the behavior in `task_query`, against four described levels. A file qualifies when the probability mass of the two useful levels exceeds that of the two unhelpful levels for at least one fragment; qualified files are ranked by their best fragment score, then by path, and at most 24 are recommended. For those files one Choice question per candidate declaration (at most 48 per file, the rest reported) names a single representative role among `implementation`, `caller`, `consumer`, `configuration`, `contract`, `validation`, `unrelated` and `insufficient_evidence`; at most two positively classified declarations per file are shown with read windows of at most 180 lines, and a declaration whose top probability ties with a negative option shows no role. The appended section (`## Recommended files for the task (indexed evidence)`) states the recommendation status: `matched` lists the ranked files; `no_match` and `insufficient_evidence` return zero recommendations and say that indexed evidence did not establish a recommendation, never that the behavior is absent. A file whose indexed evidence is absent or fully masked is sent as a path-only fragment that says so and counts as unavailable evidence, never as a no-match. If the role stage fails or runs out of the shared deadline, the file list stays and roles are reported unavailable. Folder and file overviews are outside the stage and return the base overview silently.
+
+`search` with `search_filter_enabled` asks one Noul question ("is the displayed declaration body unrelated to the behavior requested in `task_query`?") per complete callable declaration body that the ordinary search already selected and rendered, whose identity the displayed buffer confirms (the indexed declaration name appears as a whole identifier within the first three displayed lines of a body that starts on the indexed line), and that still carries unmasked text beyond its signature line. Rust then applies its own retention policy: partial windows, byte-clipped bodies, oversized bodies (above 24,000 rendered bytes), bodies whose identity could not be verified (the file changed since indexing), bodies masked beyond use, non-callable declarations, unanswered questions and bodies no larger than their omission note are retained; a body judged unrelated at or above `search_filter_min_unrelated_probability` also stays when a retained callable visibly calls it or is called by it, when its lines are displayed inside a retained enclosing block, or when a retained declaration is displayed inside it. Each omitted body is replaced in place by a note with the declaration and the exact `read` arguments; declaration rows, file headings, ranked tail rows and literal rows always remain, and the output only ever shrinks. A status line (`_Jev body filter applied (...)_`) is written inline only when the omissions freed at least that much room; the base output is never reduced to make room for filter text. Source observations count only delivered source, never omitted bodies or notes.
+
+`read_filter_enabled` and `grep_filter_enabled` apply the same Noul threshold and retention policy to live source, independently of search activation. The producer captures metadata and safe callable bounds from the exact bounded UTF-8 buffer it used to render the selected source, without relying on stale index ranges. Unsupported, invalid, incomplete, oversized or unusably masked source is retained. Full/source views may filter complete bodies, including bodies completely contained in a read window or an unexpanded grep page; definitions/relations-only views and grep file/count modes bypass filtering. Existing callable expansion, matching, page boundaries and source permissions are unchanged. Source and context are finalized before inference, so no source is reread and no freed space is refilled after the await. Omission notes are excluded from source observations; failures and all-keep decisions preserve the base response. No extra inline summary is added for live tools.
+
+What leaves the machine: for overview, a masked copy of `task_query` and the masked file projection described above; for search, a masked copy of `task_query`, the masked search arguments, and for each judged body its identity, evidence status, displayed callers/callees and the displayed source lines exactly as rendered. Redaction runs before transmission, so masked values reach the provider masked; with redaction off, text is sent as rendered. Read/grep send the masked intent, tool arguments and eligible displayed source bodies with their identities and displayed call links. Raw index files and undisplayed source bodies are not transmitted. The API key is used only in the HTTPS authorization header, never in model state or questions. Requests are batched by encoded bytes (`max_batch_bytes`) and checked against the published 64k (state plus all questions) and 32k (state plus the longest question) token limits with a conservative estimate of one token per three bytes; the byte ceiling is not a token guarantee, and a provider-side rejection is a fallback, never a silent truncation. Every request is one attempt: the client never retries, never follows redirects, reads at most 4 MiB of a response, and one request carries at most 8,192 questions in at most 128 batches.
+
+Outcomes are recorded on stderr, never inline: one `jev stage` line per stage run (tracing target `codemap_search::mcp::jev`, level `info`, shown by the default stderr filter) carries the tool, the outcome (`applied`, `bypassed`, `fallback`), the status or reason, the model, the evidence/question/policy versions, counts (coverage, questions, judged, qualified, omitted and rendered omissions, protected, linked, unverified, masked), the known token usage together with the number of responses that reported none, the number of attempted requests, and elapsed/HTTP/queue time. It never contains the intent, evidence, a credential or provider error text, and disabled stages log nothing. Bypass reasons include `missing_task_query`, `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index` and `insufficient_output_room`; fallback kinds are the runtime's error labels (`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete`, …). A bypass, a fallback, a filter that keeps every body and a call without intent return the base output byte for byte.
+
+`search_filter_min_unrelated_probability` is shared by search/read/grep (the existing key name is retained for compatibility). It is a provisional policy value, not a calibrated accuracy target. It must be a finite number above 0.5 and at most 1.0; other values warn and fall back to the lower layer or the default. Transport keys may only tighten the runtime's initial safety policy: `max_in_flight_requests` 1 to 3, `request_spacing_ms` at least 300, `max_batch_bytes` 1 to 80000, `timeout_ms` and `pool_idle_timeout_ms` positive and at most seven days; other values warn and fall back the same way. Each request fixes its configuration and one absolute deadline (`timeout_ms`, counted from the moment the stage starts preparing and shared by both overview stages and every batch); a config change applies to subsequent requests, and the runtime never extends a deadline. No live evaluation or threshold calibration has been performed for the shipped defaults.
+
+The decision runtime is also usable directly from Rust (`codemap_search::jev`): the in-crate example replays a fixed synthetic response offline with `cargo run --example jev_decisions -- --mock` (no credentials, no network) and, only when an operator explicitly asks for a live request, sends one with `cargo run --example jev_decisions -- --live` using `TYPESAFE_API_KEY`. The example shows the three primitives: Score (probability-weighted level plus distribution), Choice (option probabilities) and Noul (yes probability).
 
 ## Indexed event navigation
 

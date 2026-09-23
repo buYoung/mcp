@@ -8,11 +8,80 @@ pub(super) struct Section {
     heading: String,
     text: String,
     shown: BTreeSet<(String, usize, usize)>,
+    /// Every declaration row written into this section, in row order.
+    members: Vec<BlockSymbol>,
     pub anchors: Vec<(String, usize, usize)>,
     pub insertion: usize,
 }
 
-pub(super) struct FileOutput {
+/// Identity of one indexed declaration as shown in the output (inclusive end line).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlockSymbol {
+    pub name: String,
+    pub kind: String,
+    pub owner: Option<String>,
+    pub start_line: usize,
+    pub end_line: usize,
+}
+
+impl BlockSymbol {
+    pub(crate) fn from_symbol(symbol: &ExtractedSymbol) -> Self {
+        Self {
+            name: symbol.name.clone(),
+            kind: symbol.kind.clone(),
+            owner: symbol.owner.clone(),
+            start_line: symbol.range.start_line,
+            end_line: symbol.range.end_line_inclusive(),
+        }
+    }
+
+    pub(crate) fn contains(&self, other: &BlockSymbol) -> bool {
+        self.start_line <= other.start_line
+            && other.end_line <= self.end_line
+            && (self.start_line, self.end_line) != (other.start_line, other.end_line)
+    }
+}
+
+/// One unit of the results body exactly as pushed: text plus, for a declaration body, the
+/// declaration and the displayed line range. The structured filter works on these blocks
+/// instead of re-parsing the rendered Markdown.
+#[derive(Clone, Debug)]
+pub struct SourceBlock {
+    pub text: String,
+    pub source_offset: Option<usize>,
+    pub symbol: Option<BlockSymbol>,
+    /// First and last displayed source line of a declaration body.
+    pub displayed: Option<(usize, usize)>,
+    /// The body was cut by the byte budget (its last displayed line may be incomplete).
+    pub is_clipped: bool,
+    /// The block is an omission note written by the structured filter, not source.
+    pub is_note: bool,
+}
+
+impl SourceBlock {
+    /// The body is complete when every line of the declaration is displayed uncut.
+    pub(crate) fn is_complete_body(&self) -> bool {
+        match (&self.symbol, self.displayed) {
+            (Some(symbol), Some((first, last))) => {
+                !self.is_clipped && first == symbol.start_line && last == symbol.end_line
+            }
+            _ => false,
+        }
+    }
+
+    /// The numbered source lines of the block, without the fence or window notice.
+    pub(crate) fn displayed_source(&self) -> String {
+        self.text
+            .lines()
+            .filter(|line| line.contains('\u{2192}'))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
+pub(super) const PARTIAL_FILE_NOTICE: &str = "\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n";
+
+pub(crate) struct FileOutput {
     pub path: String,
     header: String,
     metadata: String,
@@ -20,6 +89,7 @@ pub(super) struct FileOutput {
     current: Option<usize>,
     current_depth: usize,
     results: String,
+    blocks: Vec<SourceBlock>,
     indexed: Option<ExtractedFile>,
     has_impl_scopes: bool,
     base_bytes: usize,
@@ -46,6 +116,7 @@ impl FileOutput {
             current: None,
             current_depth: 0,
             results: String::new(),
+            blocks: Vec::new(),
             indexed: indexed.cloned(),
             has_impl_scopes: false,
             base_bytes,
@@ -94,16 +165,142 @@ impl FileOutput {
         }
     }
     pub fn push_source(&mut self, text: &str, source_offset: Option<usize>) -> bool {
-        if !self.fits(text.len()) {
+        self.push_block(SourceBlock {
+            text: text.into(),
+            source_offset,
+            symbol: None,
+            displayed: None,
+            is_clipped: false,
+            is_note: false,
+        })
+    }
+    /// `push_source` for a declaration body: records which declaration the block shows and
+    /// the displayed line range, so the structured filter can judge completeness later.
+    pub fn push_source_for_symbol(
+        &mut self,
+        text: &str,
+        source_offset: Option<usize>,
+        symbol: &ExtractedSymbol,
+        displayed: (usize, usize),
+        is_clipped: bool,
+    ) -> bool {
+        self.push_block(SourceBlock {
+            text: text.into(),
+            source_offset,
+            symbol: Some(BlockSymbol::from_symbol(symbol)),
+            displayed: Some(displayed),
+            is_clipped,
+            is_note: false,
+        })
+    }
+    fn push_block(&mut self, block: SourceBlock) -> bool {
+        if !self.fits(block.text.len()) {
             return false;
         }
         if self.first_result_source_offset.is_none() {
-            self.first_result_source_offset = source_offset
-                .filter(|offset| *offset < text.len())
+            self.first_result_source_offset = block
+                .source_offset
+                .filter(|offset| *offset < block.text.len())
                 .map(|offset| self.results.len() + offset);
         }
-        self.results.push_str(text);
+        self.results.push_str(&block.text);
+        self.blocks.push(block);
         true
+    }
+    pub(crate) fn blocks(&self) -> &[SourceBlock] {
+        &self.blocks
+    }
+    pub(crate) fn indexed(&self) -> Option<&ExtractedFile> {
+        self.indexed.as_ref()
+    }
+    /// Every declaration row shown in the file's sections, in output order.
+    pub(crate) fn shown_symbols(&self) -> Vec<BlockSymbol> {
+        self.sections
+            .iter()
+            .flat_map(|section| section.members.iter().cloned())
+            .collect()
+    }
+    /// Replace blocks for which `replace` returns a note, then rebuild the results body and
+    /// the first-source offset from what remains. Anchors inside a replaced declaration are
+    /// dropped so relation rendering does not claim evidence that is no longer displayed.
+    /// Returns how many blocks were replaced.
+    pub(crate) fn retain_blocks(
+        &mut self,
+        mut replace: impl FnMut(usize, &SourceBlock) -> Option<String>,
+    ) -> usize {
+        let mut removed_symbols: Vec<BlockSymbol> = Vec::new();
+        let mut replaced = 0;
+        for (index, block) in self.blocks.iter_mut().enumerate() {
+            let Some(note) = replace(index, block) else {
+                continue;
+            };
+            replaced += 1;
+            if let Some(symbol) = block.symbol.take() {
+                removed_symbols.push(symbol);
+            }
+            block.text = note;
+            block.source_offset = None;
+            block.displayed = None;
+            block.is_clipped = false;
+            block.is_note = true;
+        }
+        if replaced == 0 {
+            return 0;
+        }
+        for section in &mut self.sections {
+            section.anchors.retain(|(_, start, end)| {
+                !removed_symbols
+                    .iter()
+                    .any(|symbol| symbol.start_line <= *start && *end <= symbol.end_line)
+            });
+        }
+        self.results.clear();
+        self.first_result_source_offset = None;
+        for block in &self.blocks {
+            if self.first_result_source_offset.is_none() {
+                self.first_result_source_offset = block
+                    .source_offset
+                    .filter(|offset| *offset < block.text.len())
+                    .map(|offset| self.results.len() + offset);
+            }
+            self.results.push_str(&block.text);
+        }
+        replaced
+    }
+    #[cfg(test)]
+    pub(crate) fn anchors(&self) -> Vec<(String, usize, usize)> {
+        self.sections
+            .iter()
+            .flat_map(|section| section.anchors.iter().cloned())
+            .collect()
+    }
+    /// Bytes of source blocks (omission notes excluded) that `write_primary` delivered
+    /// before the absolute text offset `limit`, for source observations.
+    pub fn delivered_source_bytes(&self, limit: usize) -> usize {
+        let Some(span) = &self.source_span else {
+            return 0;
+        };
+        let mut offset = span.start;
+        let mut delivered = 0;
+        for block in &self.blocks {
+            let start = offset;
+            let end = offset + block.text.len();
+            offset = end;
+            if block.is_note {
+                continue;
+            }
+            delivered += end.min(limit).saturating_sub(start.min(limit));
+        }
+        delivered
+    }
+    /// The bytes `write_primary` will append for this file.
+    pub fn written_len(&self, is_partial_file: bool) -> usize {
+        self.len()
+            + if is_partial_file {
+                PARTIAL_FILE_NOTICE.len()
+            } else {
+                0
+            }
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
         let Some(index) = self.current else {
@@ -252,6 +449,7 @@ impl FileOutput {
                 heading,
                 text: String::new(),
                 shown: BTreeSet::new(),
+                members: Vec::new(),
                 anchors: Vec::new(),
                 insertion: 0,
             });
@@ -264,6 +462,9 @@ impl FileOutput {
                 member.range.start_line,
                 member.range.start_col,
             ));
+            self.sections[index]
+                .members
+                .push(BlockSymbol::from_symbol(member));
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
@@ -305,6 +506,7 @@ impl FileOutput {
                     heading: heading.into(),
                     text: String::new(),
                     shown: BTreeSet::new(),
+                    members: Vec::new(),
                     anchors: Vec::new(),
                     insertion: 0,
                 });
@@ -330,7 +532,7 @@ impl FileOutput {
         if is_partial_file {
             // fits()/remaining_bytes() reserved the longer global cap footer, so
             // this local notice stays inside the file budget without hiding source.
-            text.push_str("\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n");
+            text.push_str(PARTIAL_FILE_NOTICE);
         }
     }
 }

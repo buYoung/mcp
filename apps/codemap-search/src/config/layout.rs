@@ -241,6 +241,9 @@ const SECTION_ALIASES: &[(&str, &str)] = &[
     ("analysis.event_navigation", "output.event_navigation"),
 ];
 
+/// Canonical sub-tables whose module owns validation of every key (no legacy spelling).
+const OWNED_SUBTABLES: &[&str] = &["analysis.jev"];
+
 pub(super) fn is_canonical_key(section: &str, key: &str) -> bool {
     let full = format!("{section}.{key}");
     SETTINGS.iter().any(|setting| {
@@ -249,6 +252,7 @@ pub(super) fn is_canonical_key(section: &str, key: &str) -> bool {
             || setting.section.starts_with(&format!("{full}."))
     }) || SECTION_MOVES.iter().any(|(_, target)| *target == full)
         || SECTION_ALIASES.iter().any(|(legacy, _)| *legacy == full)
+        || OWNED_SUBTABLES.contains(&full.as_str())
         || super::exclude::SECTIONS
             .iter()
             .any(|(section, _)| *section == full || section.starts_with(&format!("{full}.")))
@@ -262,6 +266,9 @@ fn value_at<'a>(value: &'a toml::Value, path: &str) -> Option<&'a toml::Value> {
 pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Path) {
     if let Some(navigation) = value_at(value, "analysis.navigation") {
         normalize_table(layer, "output.navigation", navigation, path);
+    }
+    if let Some(jev) = value_at(value, "analysis.jev") {
+        layer.jev = super::jev::normalize(jev, path);
     }
     for section in ["output", "index", "analysis"] {
         if let Some(value) = value.get(section) {
@@ -330,6 +337,7 @@ fn normalize_table(layer: &mut ConfigLayer, section: &str, value: &toml::Value, 
             assign_config_key(layer, setting.internal, value, &full, path);
         } else if SECTION_MOVES.iter().any(|(_, target)| *target == full)
             || SECTION_ALIASES.iter().any(|(legacy, _)| *legacy == full)
+            || OWNED_SUBTABLES.contains(&full.as_str())
         {
             // These sections own their validation and per-key legacy fallback.
         } else if is_canonical_key(section, key) {

@@ -234,38 +234,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // server still boots.
             codemap_search::config::ensure_repo_config(&cwd);
             codemap_search::config::reload(&cwd);
-            let engine =
-                index::TantivySearchEngine::new(&codemap_search::config::get().index_path)?;
-            // Read-only search handle for the request loop; the engine (the single tantivy
-            // writer) moves into the background indexer, which starts the initial index pass
-            // immediately so the first request need not block on it.
-            let searcher = engine.searcher_handle();
-            let indexer = index::spawn_indexer(engine);
-            let config_watcher =
-                codemap_search::config::spawn_config_watcher(&cwd, indexer.command_sender());
-            // Health gate shared with the server: stays unhealthy when `watch = false` or
-            // the watch fails to start, which keeps the request-triggered fallback active.
-            let watcher_status = std::sync::Arc::new(index::WatcherStatus::default());
-            let watcher = codemap_search::config::get().watch.then(|| {
-                index::spawn_watcher(
-                    &cwd,
-                    indexer.command_sender(),
-                    std::sync::Arc::clone(&watcher_status),
-                )
-            });
-            // The supervisor owns all the handles so it can rebuild them when the indexer
-            // dies (`indexer_auto_restart`); its field order guarantees the shutdown
-            // sequence — config/filesystem watchers drop first (threads joined, their
-            // command-sender clones released) before IndexerHandle::drop closes the channel
-            // and joins the indexer, whose recv loop ends only when ALL senders are gone.
-            let supervisor = index::EngineSupervisor::new(
-                searcher,
-                config_watcher,
-                watcher.flatten(),
-                indexer,
-                watcher_status,
-            );
-            let mut server = mcp::McpServer::new(supervisor);
+            // The index subsystem (searcher, background indexer, config/filesystem
+            // watchers) and its shutdown order live in `McpServer::bootstrap`, shared with
+            // the in-process regression suite.
+            let mut server = mcp::McpServer::bootstrap(&cwd)?;
             server.set_call_logging_enabled(!no_call_log);
             server.run().await?;
             // server drop → EngineSupervisor drop → watcher fields drop → indexer field drop.

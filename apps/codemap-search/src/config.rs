@@ -41,8 +41,10 @@ mod layout;
 mod output;
 pub use event_navigation::EventNavigationConfig;
 pub use output::ClientOutputConfig;
+mod jev;
 mod macro_expansion;
 pub(crate) mod redact;
+pub use jev::JevConfig;
 pub use macro_expansion::MacroExpansionConfig;
 pub use redact::RedactConfig;
 mod scaffold;
@@ -102,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 25;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -145,6 +147,8 @@ pub struct ResolvedConfig {
     pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
+    /// Optional Jev decision stages (`[analysis.jev]`); all stages are off by default.
+    pub jev: JevConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
@@ -301,6 +305,7 @@ impl Default for ResolvedConfig {
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
+            jev: JevConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
@@ -368,6 +373,7 @@ struct ConfigLayer {
     redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
+    jev: jev::JevLayer,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
@@ -805,6 +811,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         redact: redact::merge(repo.redact, global.redact),
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
+        jev: jev::merge(repo.jev, global.jev),
         analysis_target_os: repo
             .analysis_target_os
             .or(global.analysis_target_os)
@@ -1309,6 +1316,9 @@ enum KeyPlacement {
     TopLevel,
     /// A key under the named sub-table — inserted right after that table's header line.
     Subtable(&'static str),
+    /// A whole new sub-table block — inserted as its own paragraph after the named table's
+    /// section (before the next table header), so its keys never fall under another table.
+    AfterSubtable(&'static str),
 }
 
 /// One additive schema change: the commented block for a key introduced at `version`.
@@ -1348,6 +1358,27 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 24,
+        key: "jev",
+        placement: KeyPlacement::AfterSubtable("analysis"),
+        english_block: JEV_MIGRATION_BLOCK_EN,
+        korean_block: JEV_MIGRATION_BLOCK_KO,
+    },
+    Migration {
+        version: 25,
+        key: "read_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Opt-in body filtering for read calls carrying task_query; absent intent preserves source.\n# read_filter_enabled = false",
+        korean_block: "# task_query가 있는 read 호출의 본문 필터입니다. 의도가 없으면 소스를 그대로 반환합니다.\n# read_filter_enabled = false",
+    },
+    Migration {
+        version: 25,
+        key: "grep_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Opt-in body filtering for grep content calls carrying task_query; file/count modes stay unchanged.\n# grep_filter_enabled = false",
+        korean_block: "# task_query가 있는 grep content 호출의 본문 필터입니다. 파일 목록·개수 출력은 바꾸지 않습니다.\n# grep_filter_enabled = false",
+    },
     Migration {
         version: 17,
         key: "is_overview_stats_enabled",
@@ -1521,6 +1552,67 @@ const MIGRATIONS: &[Migration] = &[
         korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
     },
 ];
+
+/// v24: the whole `[analysis.jev]` section as one commented block. The header line carries
+/// the presence guard (`jev`), so a file that already has the section is never touched.
+const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
+# Optional TypeSafe Jev decision stages. Both modes are off by default, and enabling one
+# sends nothing by itself: a request is evaluated only when the tool call also passes an
+# explicit task_query, and the API key comes from the environment variable named below.
+# Judge root overview calls: recommend indexed files for the task_query.
+# overview_enabled = false
+# Omit complete, identity-verified declaration bodies from search details that Jev judges
+# unrelated to the task_query; each omitted body leaves an inline note with the exact read
+# range. Bypasses and failures return the plain output; the reason is logged on stderr.
+# search_filter_enabled = false
+# Concrete provider model, validated against every response; alias names are rejected.
+# model = \"jev-1.13.0\"
+# Environment variable that holds the TypeSafe API key. The key itself is never stored here.
+# api_key_env = \"TYPESAFE_API_KEY\"
+# One absolute deadline per tool call in milliseconds (at most 7 days), counted from the
+# start of the stage's preparation and including queue time. Never extended.
+# timeout_ms = 45000
+# HTTP requests in flight at once (1 to 3) and the minimum spacing between request starts
+# (at least 300 ms). Both may only tighten the runtime's initial policy.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# Encoded request bytes per batch (1 to 80000); a question that does not fit fails explicitly.
+# max_batch_bytes = 80000
+# Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
+# is opened.
+# pool_idle_timeout_ms = 30000
+# Search filter threshold: a complete body is omitted only when Jev's probability that it is
+# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# search_filter_min_unrelated_probability = 0.70";
+
+const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
+# 선택적 TypeSafe Jev 판단 단계입니다. 두 모드 모두 기본으로 꺼져 있고, 켜는 것만으로는
+# 아무것도 보내지 않습니다. 도구 호출이 명시적인 task_query를 함께 전달할 때만 평가하며,
+# API 키는 아래에 지정한 환경 변수에서 읽습니다.
+# 루트 overview 호출을 판단해 task_query에 맞는 색인 파일을 추천합니다.
+# overview_enabled = false
+# search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
+# 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는
+# 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
+# search_filter_enabled = false
+# 모든 응답에서 검증하는 구체적인 제공자 모델입니다. 별칭 이름은 거부합니다.
+# model = \"jev-1.13.0\"
+# TypeSafe API 키를 담은 환경 변수 이름입니다. 키 자체는 여기에 저장하지 않습니다.
+# api_key_env = \"TYPESAFE_API_KEY\"
+# 도구 호출 한 건의 절대 마감 시각(밀리초, 최대 7일)입니다. 단계 준비를 시작한 순간부터
+# 계산하고 대기 시간을 포함하며 늘리지 않습니다.
+# timeout_ms = 45000
+# 동시에 진행하는 HTTP 요청 수(1~3)와 요청 시작 사이의 최소 간격(300밀리초 이상)입니다.
+# 둘 다 런타임의 초기 정책을 더 조일 수만 있습니다.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# 배치 하나의 인코딩된 요청 바이트 상한(1~80000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
+# max_batch_bytes = 80000
+# 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
+# pool_idle_timeout_ms = 30000
+# search 필터 임계값입니다. Jev가 본문이 무관하다고 본 확률이 이 값 이상일 때만 완전한 본문을
+# 생략합니다(유한, 0.5 초과, 1.0 이하). 잠정값이며 보정되지 않았습니다.
+# search_filter_min_unrelated_probability = 0.70";
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
 fn version_marker_line(version: u32) -> String {
@@ -1749,6 +1841,7 @@ fn apply_migrations_with_language(
         out = match migration.placement {
             KeyPlacement::TopLevel => insert_top_level(&out, block),
             KeyPlacement::Subtable(table) => insert_subtable(&out, table, block),
+            KeyPlacement::AfterSubtable(table) => insert_after_subtable(&out, table, block),
         };
     }
     // `file_version < target_version` here, so the marker always advances → always a change.
@@ -1819,6 +1912,48 @@ fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
         offset += line.len();
     }
     insert_top_level(contents, &format!("# {header}\n{block}"))
+}
+
+/// Insert a new sub-table `block` as its own paragraph after the `[table]` section: before
+/// the next table header that follows it, or at end-of-file when `[table]` is the last
+/// section. Falls back to top-level placement when the header is absent.
+fn insert_after_subtable(contents: &str, table: &str, block: &str) -> String {
+    let header = format!("[{table}]");
+    let value_ranges = config_value_ranges(contents);
+    let mut offset = 0;
+    let mut is_inside = false;
+    for line in contents.split_inclusive('\n') {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        let is_header =
+            body.starts_with('[') && !value_ranges.iter().any(|range| range.contains(&offset));
+        if is_header && is_inside {
+            let mut out = String::with_capacity(contents.len() + block.len() + 2);
+            out.push_str(&contents[..offset]);
+            if !out.ends_with("\n\n") {
+                out.push('\n');
+            }
+            out.push_str(block);
+            out.push_str("\n\n");
+            out.push_str(&contents[offset..]);
+            return out;
+        }
+        if is_header && body.starts_with(&header) {
+            is_inside = true;
+        }
+        offset += line.len();
+    }
+    if !is_inside {
+        return insert_top_level(contents, block);
+    }
+    let mut out = contents.to_string();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push('\n');
+    out.push_str(block);
+    out.push('\n');
+    out
 }
 
 /// Immutable TOML documents retain the physical spans discarded by DocumentMut.

@@ -872,3 +872,520 @@ async fn test_caller_context_annotation_respects_byte_cap() {
         text.len()
     );
 }
+
+// --- Jev stages: config-gated, intent-driven, offline through an injected evaluator ---------
+
+mod jev_stages {
+    use crate::e2e::helpers::{create_mock_repo, response_text, with_in_process_server, McpClient};
+    use codemap_search::jev::mock::{answers, Gate, MockEvaluator};
+    use codemap_search::jev::{EvaluationRequest, JevError, QuestionKind};
+    use serde_json::json;
+    use std::sync::Arc;
+
+    const TASK: &str = "how is the output byte budget reserved before rendering?";
+
+    const BUDGET_TS: &str =
+        "export function keepMe(remainingBytes: number, footer: string, limit: number): number {
+  const reserve = footer.length + 8;
+  if (remainingBytes <= reserve) {
+    return 0;
+  }
+  const allowed = Math.min(limit, remainingBytes - reserve);
+  return allowed;
+}
+
+export function dropMe(input: string): string {
+  const parts = input.split(\",\");
+  const trimmed = parts.map((part) => part.trim());
+  const joined = trimmed.join(\"|\");
+  return joined.toUpperCase();
+}
+";
+
+    const A_TS: &str = "/** Reserves output budget bytes and applies the response cap. */
+export function applyBudgetCap(remaining: number, cap: number): number {
+  return Math.min(remaining, cap);
+}
+";
+
+    const B_TS: &str = "/** Formats greeting banners for the CLI. */
+export function greet(name: string): string {
+  return `hi ${name}`;
+}
+";
+
+    fn search_filter_config(threshold: &str) -> String {
+        format!("[analysis.jev]\nsearch_filter_enabled = true\nsearch_filter_min_unrelated_probability = {threshold}\n")
+    }
+
+    fn search_arguments(task_query: Option<&str>) -> serde_json::Value {
+        let mut arguments = json!({ "query": "keepMe dropMe" });
+        if let Some(task_query) = task_query {
+            arguments["task_query"] = json!(task_query);
+        }
+        arguments
+    }
+
+    /// Answers every body question from the declaration name; unknown names are related.
+    fn body_judge(unrelated_by_name: &'static [(&'static str, f64)]) -> MockEvaluator {
+        MockEvaluator::new(move |request: &EvaluationRequest| {
+            Ok(request
+                .questions()
+                .iter()
+                .map(|question| {
+                    let name = question.instructions()["candidate"]["name"]
+                        .as_str()
+                        .unwrap_or("");
+                    let unrelated = unrelated_by_name
+                        .iter()
+                        .find(|(candidate, _)| *candidate == name)
+                        .map_or(0.0, |(_, probability)| *probability);
+                    (question.id().clone(), answers::noul(unrelated))
+                })
+                .collect())
+        })
+    }
+
+    /// Qualifies exactly `qualifying_path` in the file stage and labels every role
+    /// `implementation`.
+    fn overview_judge(qualifying_path: &'static str) -> MockEvaluator {
+        MockEvaluator::new(move |request: &EvaluationRequest| {
+            Ok(request
+                .questions()
+                .iter()
+                .map(|question| {
+                    let answer = match question.kind() {
+                        QuestionKind::Score { .. } => {
+                            let path = question.instructions()["candidate"]["file_path"]
+                                .as_str()
+                                .unwrap_or("");
+                            if path == qualifying_path {
+                                answers::score(&[0.05, 0.05, 0.2, 0.7])
+                            } else {
+                                answers::score(&[0.8, 0.1, 0.05, 0.05])
+                            }
+                        }
+                        QuestionKind::Choice { options } => {
+                            let probabilities: Vec<(&str, f64)> = options
+                                .keys()
+                                .map(|key| {
+                                    (
+                                        key.as_str(),
+                                        if key == "implementation" { 1.0 } else { 0.0 },
+                                    )
+                                })
+                                .collect();
+                            answers::choice("implementation", &probabilities)
+                        }
+                        QuestionKind::Noul { .. } => answers::noul(0.0),
+                    };
+                    (question.id().clone(), answer)
+                })
+                .collect())
+        })
+    }
+
+    #[tokio::test]
+    async fn test_jev_search_filter_uses_the_captured_threshold_for_an_in_flight_call() {
+        let temp = create_mock_repo(&[
+            (".codemap/config.toml", &search_filter_config("0.70")),
+            ("src/budget.ts", BUDGET_TS),
+        ])
+        .unwrap();
+        let cwd = temp.path().to_path_buf();
+        let gate = Gate::new();
+        let evaluator = Arc::new(
+            body_judge(&[("dropMe", 0.80), ("keepMe", 0.10)]).with_gate(Arc::clone(&gate)),
+        );
+        let judge = Arc::clone(&evaluator);
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            // Without task_query the stage bypasses and the plain output is returned as is.
+            let response = client
+                .call_tool_until("search", search_arguments(None), |text| {
+                    text.contains("function keepMe") && text.contains("function dropMe")
+                })
+                .await
+                .unwrap();
+            let plain = response_text(&response).to_string();
+            assert!(!plain.contains("Jev"), "a bypass adds no inline text: {plain}");
+            assert_eq!(judge.request_count(), 0, "a blank intent never evaluates");
+
+            // The tools list reflects the enabled stage, including the external-access hint.
+            let tools = client.call("tools/list", json!({})).await.unwrap();
+            let tool = |name: &str| {
+                tools["result"]["tools"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|tool| tool["name"] == name)
+                    .unwrap()
+                    .clone()
+            };
+            let search_tool = tool("search");
+            assert!(search_tool["description"].as_str().unwrap().contains("Jev body filter is enabled"));
+            assert!(search_tool["inputSchema"]["properties"]["task_query"].is_object());
+            assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
+            assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
+            let overview_tool = tool("overview");
+            assert_eq!(overview_tool["annotations"]["openWorldHint"], json!(false), "the overview stage is off");
+            assert!(!overview_tool["description"].as_str().unwrap().contains("is enabled"));
+
+            // In flight: the threshold captured at 0.70 survives a config change to 0.90.
+            client
+                .send("tools/call", json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }))
+                .await
+                .unwrap();
+            gate.entered().await;
+            std::fs::write(cwd.join(".codemap/config.toml"), search_filter_config("0.90")).unwrap();
+            codemap_search::config::reload(&cwd);
+            gate.release();
+            let response = client.receive().await.unwrap();
+            let text = response_text(&response);
+            assert!(
+                text.contains("- _omitted body: L10-15 (fn dropMe) judged unrelated to the task (Jev unrelated 0.80); read src/budget.ts offset 10 limit 6 to restore it._"),
+                "{text}"
+            );
+            assert!(!text.contains("input.split"), "the omitted body is gone: {text}");
+            assert!(text.contains("const reserve = footer.length + 8;"), "the related body stays: {text}");
+            assert!(text.contains("dropMe (fn) [L10-15]"), "declaration rows stay: {text}");
+            assert!(text.len() < plain.len(), "an omission only ever shrinks the output");
+            assert_eq!(judge.request_count(), 1);
+
+            // The next call reads the reloaded threshold: 0.80 is below 0.90, so nothing is
+            // omitted and the output is the plain output again (all-keep adds no text).
+            let response = client
+                .call("tools/call", json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }))
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert_eq!(text, plain, "all-keep preserves the base output byte for byte");
+            assert_eq!(judge.request_count(), 2);
+            let requests = judge.requests();
+            assert!(requests.iter().all(|request| request.task_query() == Some(TASK)));
+            assert!(requests.iter().all(|request| request.state["search_arguments"]["query"] == json!("keepMe dropMe")));
+            assert_eq!(requests[0].questions.len(), 2, "one Noul question per complete body");
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_jev_overview_recommendation_reports_matched_and_no_match_separately() {
+        let temp = create_mock_repo(&[
+            (
+                ".codemap/config.toml",
+                "[analysis.jev]\noverview_enabled = true\n",
+            ),
+            ("src/a.ts", A_TS),
+            ("src/b.ts", B_TS),
+        ])
+        .unwrap();
+        let evaluator = Arc::new(overview_judge("src/a.ts"));
+        let judge = Arc::clone(&evaluator);
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            // Warm up on the plain overview first; a blank intent bypasses without any note.
+            let response = client
+                .call_tool_until("overview", json!({}), |text| text.contains("src/a.ts") && !text.contains("warming up"))
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert!(!text.contains("Jev"), "{text}");
+            assert_eq!(judge.request_count(), 0);
+
+            let response = client
+                .call("tools/call", json!({ "name": "overview", "arguments": { "task_query": TASK } }))
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            let (base, section) = text
+                .split_once("## Recommended files for the task (indexed evidence)")
+                .unwrap_or_else(|| panic!("missing recommendation section: {text}"));
+            assert!(base.contains("src/a.ts") && base.contains("src/b.ts"), "base overview intact: {base}");
+            assert!(section.contains("2 indexed files in this snapshot; 1 qualified, showing 1"), "{section}");
+            assert!(section.contains("### 1. src/a.ts"), "{section}");
+            assert!(!section.contains("src/b.ts"), "unqualified files are not recommended: {section}");
+            assert!(section.contains("role: implementation"), "{section}");
+            assert!(judge.request_count() >= 2, "file stage plus role stage");
+
+            // A folder overview is outside the root-scope stage: no section, no note, no request.
+            let requests_before = judge.request_count();
+            let response = client
+                .call("tools/call", json!({ "name": "overview", "arguments": { "path": "src", "task_query": TASK } }))
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert!(!text.contains("Jev overview recommendation"), "{text}");
+            assert!(!text.contains("Recommended files"), "{text}");
+            assert_eq!(judge.request_count(), requests_before);
+        })
+        .await;
+
+        // No qualifying file: zero recommendations, stated as no_match without claiming absence.
+        let temp = create_mock_repo(&[
+            (
+                ".codemap/config.toml",
+                "[analysis.jev]\noverview_enabled = true\n",
+            ),
+            ("src/a.ts", A_TS),
+            ("src/b.ts", B_TS),
+        ])
+        .unwrap();
+        let evaluator = Arc::new(overview_judge("src/none.ts"));
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            let response = client
+                .call_tool_until("overview", json!({ "task_query": TASK }), |text| {
+                    text.contains("## Recommended files for the task")
+                })
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert!(
+                text.contains("2 indexed files in this snapshot; none qualified."),
+                "{text}"
+            );
+            assert!(
+                text.contains("does not show that the implementation is absent"),
+                "{text}"
+            );
+            assert!(!text.contains("### 1."), "{text}");
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_jev_stages_are_independent_and_failures_preserve_the_base_output() {
+        // Only the search filter is on: overview ignores task_query entirely.
+        let temp = create_mock_repo(&[
+            (".codemap/config.toml", &search_filter_config("0.70")),
+            ("src/budget.ts", BUDGET_TS),
+        ])
+        .unwrap();
+        let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]));
+        let judge = Arc::clone(&evaluator);
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            let response = client
+                .call_tool_until("overview", json!({ "task_query": TASK }), |text| {
+                    text.contains("src/budget.ts") && !text.contains("warming up")
+                })
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert!(
+                !text.contains("Jev"),
+                "overview stays plain while only the filter is enabled: {text}"
+            );
+            assert_eq!(judge.request_count(), 0);
+            let response = client
+                .call_tool_until("search", search_arguments(Some(TASK)), |text| {
+                    text.contains("_omitted body:")
+                })
+                .await
+                .unwrap();
+            assert!(response_text(&response).contains("(fn dropMe) judged unrelated"));
+            assert_eq!(judge.request_count(), 1);
+        })
+        .await;
+
+        // Only the overview stage is on: search never mentions the filter.
+        let temp = create_mock_repo(&[
+            (
+                ".codemap/config.toml",
+                "[analysis.jev]\noverview_enabled = true\n",
+            ),
+            ("src/budget.ts", BUDGET_TS),
+        ])
+        .unwrap();
+        let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]));
+        let judge = Arc::clone(&evaluator);
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            let response = client
+                .call_tool_until("search", search_arguments(Some(TASK)), |text| {
+                    text.contains("function dropMe")
+                })
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert!(!text.contains("Jev body filter"), "{text}");
+            assert!(text.contains("input.split"), "{text}");
+            assert_eq!(judge.request_count(), 0);
+        })
+        .await;
+
+        // A provider failure keeps every body and the whole base overview.
+        let temp = create_mock_repo(&[
+            (
+                ".codemap/config.toml",
+                "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\n",
+            ),
+            ("src/budget.ts", BUDGET_TS),
+        ])
+        .unwrap();
+        let evaluator = Arc::new(MockEvaluator::failing(JevError::RateLimited {
+            status: 429,
+        }));
+        let judge = Arc::clone(&evaluator);
+        with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            let plain = client
+                .call_tool_until("search", search_arguments(None), |text| {
+                    text.contains("function keepMe") && text.contains("function dropMe")
+                })
+                .await
+                .unwrap();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response_text(&response),
+                response_text(&plain),
+                "a provider failure returns the plain search byte for byte"
+            );
+            assert_eq!(judge.request_count(), 1, "the failed request was attempted");
+            let plain = client
+                .call_tool_until("overview", json!({}), |text| {
+                    text.contains("src/budget.ts") && !text.contains("warming up")
+                })
+                .await
+                .unwrap();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "overview", "arguments": { "task_query": TASK } }),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response_text(&response),
+                response_text(&plain),
+                "a provider failure returns the base overview byte for byte"
+            );
+            assert_eq!(judge.request_count(), 2);
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_jev_missing_credentials_bypass_without_any_request() {
+        let temp = create_mock_repo(&[
+            (
+                ".codemap/config.toml",
+                "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\napi_key_env = \"CODEMAP_TEST_JEV_KEY_UNSET\"\n",
+            ),
+            ("src/budget.ts", BUDGET_TS),
+        ])
+        .unwrap();
+        std::env::remove_var("CODEMAP_TEST_JEV_KEY_UNSET");
+        with_in_process_server(temp.path(), None, |mut client| async move {
+            let plain = client
+                .call_tool_until("search", search_arguments(None), |text| {
+                    text.contains("function keepMe") && text.contains("function dropMe")
+                })
+                .await
+                .unwrap();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }),
+                )
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert_eq!(
+                text,
+                response_text(&plain),
+                "missing credentials return the plain output: {text}"
+            );
+            assert!(text.contains("input.split"), "{text}");
+            let plain = client
+                .call_tool_until("overview", json!({}), |text| {
+                    text.contains("src/budget.ts") && !text.contains("warming up")
+                })
+                .await
+                .unwrap();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "overview", "arguments": { "task_query": TASK } }),
+                )
+                .await
+                .unwrap();
+            let text = response_text(&response);
+            assert_eq!(
+                text,
+                response_text(&plain),
+                "missing credentials return the base overview: {text}"
+            );
+            assert!(!text.contains("Jev"), "{text}");
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_jev_task_query_is_validated_and_ignored_while_disabled() {
+        let temp = create_mock_repo(&[("src/budget.ts", BUDGET_TS)]).unwrap();
+        let mut client = McpClient::spawn(temp.path()).await.unwrap();
+
+        let response = client
+            .send_request(
+                "tools/call",
+                json!({ "name": "search", "arguments": { "query": "keepMe", "task_query": 5 } }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response["error"]["code"], json!(-32602), "{response}");
+        assert!(response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("task_query"));
+        let response = client
+            .send_request(
+                "tools/call",
+                json!({ "name": "overview", "arguments": { "task_query": ["x"] } }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response["error"]["code"], json!(-32602), "{response}");
+
+        let response = client
+            .send_tool_until("search", search_arguments(Some(TASK)), |text| {
+                text.contains("function keepMe")
+            })
+            .await
+            .unwrap();
+        let text = response_text(&response);
+        assert!(
+            !text.contains("Jev"),
+            "disabled stages ignore task_query: {text}"
+        );
+        let response = client
+            .send_request(
+                "tools/call",
+                json!({ "name": "overview", "arguments": { "task_query": TASK } }),
+            )
+            .await
+            .unwrap();
+        assert!(!response_text(&response).contains("Jev"));
+
+        let tools = client.send_request("tools/list", json!({})).await.unwrap();
+        for name in ["overview", "search"] {
+            let tool = tools["result"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|tool| tool["name"] == name)
+                .unwrap();
+            assert_eq!(
+                tool["inputSchema"]["properties"]["task_query"]["type"],
+                json!("string")
+            );
+            assert!(!tool["description"].as_str().unwrap().contains("is enabled"));
+            assert_eq!(
+                tool["annotations"]["openWorldHint"],
+                json!(false),
+                "{name} is local-only while its stage is off"
+            );
+        }
+    }
+}

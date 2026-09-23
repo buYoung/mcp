@@ -250,3 +250,142 @@ fn overview_response_is_waiting_for_index(params: &Value, response: &Value) -> b
             .and_then(Value::as_str)
             .is_some_and(|message| message.contains("is not in the codemap"))
 }
+
+// --- In-process server for offline Jev scenarios ---------------------------------------
+//
+// The Jev stages need an injected evaluator (`codemap_search::jev::mock::MockEvaluator`), which
+// only a same-process server can receive. The server shares process-global state (current
+// directory, in-memory config), so every in-process scenario runs under one lock and sets the
+// working directory itself; subprocess-based tests are unaffected because they pass explicit
+// paths to the child.
+
+use std::future::Future;
+use std::sync::Arc;
+use tokio::io::{ReadHalf, WriteHalf};
+
+static IN_PROCESS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// The client half of an in-process JSON-RPC session over an in-memory duplex pipe.
+pub struct InProcessClient {
+    writer: WriteHalf<tokio::io::DuplexStream>,
+    reader: BufReader<ReadHalf<tokio::io::DuplexStream>>,
+    request_id: i64,
+}
+
+impl InProcessClient {
+    /// Write one request without waiting for its response (`receive` reads it later).
+    pub async fn send(&mut self, method: &str, params: Value) -> Result<i64, String> {
+        let id = self.request_id;
+        self.request_id += 1;
+        let request =
+            serde_json::json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
+        let mut payload = serde_json::to_string(&request).map_err(|e| e.to_string())?;
+        payload.push('\n');
+        self.writer
+            .write_all(payload.as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+        self.writer.flush().await.map_err(|e| e.to_string())?;
+        Ok(id)
+    }
+
+    /// Read exactly one response line.
+    pub async fn receive(&mut self) -> Result<Value, String> {
+        let mut line = String::new();
+        let read = self
+            .reader
+            .read_line(&mut line)
+            .await
+            .map_err(|e| e.to_string())?;
+        if read == 0 {
+            return Err("server closed the pipe".into());
+        }
+        serde_json::from_str(&line).map_err(|e| e.to_string())
+    }
+
+    /// One round trip; `tools/call` polls through the initial index warm-up like `McpClient`.
+    pub async fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        let start = Instant::now();
+        loop {
+            self.send(method, params.clone()).await?;
+            let response = self.receive().await?;
+            if method == "tools/call"
+                && (response_is_warming(&response)
+                    || overview_response_is_waiting_for_index(&params, &response))
+                && start.elapsed() < Duration::from_secs(10)
+            {
+                sleep(Duration::from_millis(50)).await;
+                continue;
+            }
+            return Ok(response);
+        }
+    }
+
+    /// Call a tool until `predicate` accepts the result text or 15s elapse.
+    pub async fn call_tool_until<F>(
+        &mut self,
+        name: &str,
+        arguments: Value,
+        predicate: F,
+    ) -> Result<Value, String>
+    where
+        F: Fn(&str) -> bool,
+    {
+        let params = serde_json::json!({ "name": name, "arguments": arguments });
+        let start = Instant::now();
+        loop {
+            let response = self.call("tools/call", params.clone()).await?;
+            let text = response["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap_or("");
+            if predicate(text) || start.elapsed() >= Duration::from_secs(15) {
+                return Ok(response);
+            }
+            sleep(Duration::from_millis(50)).await;
+        }
+    }
+}
+
+/// Run `script` against an in-process MCP server rooted at `cwd`, with `evaluator` injected
+/// for the Jev stages (`None` builds the production HTTPS path, which bypasses without
+/// credentials). The server exits when the client is dropped at the end of the script.
+pub async fn with_in_process_server<F, Fut>(
+    cwd: &Path,
+    evaluator: Option<Arc<dyn codemap_search::jev::Evaluator>>,
+    script: F,
+) where
+    F: FnOnce(InProcessClient) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    let _serialized = IN_PROCESS.lock().await;
+    std::env::set_var("CODEMAP_HOME", cwd);
+    std::env::set_current_dir(cwd).expect("set the workspace as the current directory");
+    codemap_search::config::reload(cwd);
+    let mut server = codemap_search::mcp::McpServer::bootstrap(cwd).expect("bootstrap the server");
+    if let Some(evaluator) = evaluator {
+        server = server.with_evaluator(evaluator);
+    }
+    server.set_call_logging_enabled(false);
+    let (client_end, server_end) = tokio::io::duplex(4 * 1024 * 1024);
+    let (server_reader, server_writer) = tokio::io::split(server_end);
+    let (client_reader, client_writer) = tokio::io::split(client_end);
+    let client = InProcessClient {
+        writer: client_writer,
+        reader: BufReader::new(client_reader),
+        request_id: 1,
+    };
+    let (server_result, ()) = tokio::join!(
+        server.run_with_io(server_reader, server_writer),
+        async move {
+            script(client).await;
+        }
+    );
+    server_result.expect("the server loop ends cleanly at EOF");
+}
+
+/// The text of the first content item of a `tools/call` response.
+pub fn response_text(response: &Value) -> &str {
+    response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or("")
+}
