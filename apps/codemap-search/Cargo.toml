@@ -95,6 +95,14 @@ time = "0.3"
 # Async MCP server communication
 tokio = { version = "1.52", features = ["full"] }
 
+# Jev decision runtime (`src/jev/`): one HTTPS POST client, built only when an operator
+# enables a Jev mode and supplies a credential. rustls with the ring provider avoids
+# OpenSSL and aws-lc build tooling on the release targets; the platform verifier uses
+# each OS trust store. HTTP/2, compression, redirects, and automatic retries stay off.
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7"
+
 # Directory scanning and file path iteration
 walkdir = "2.5"
 
@@ -162,6 +170,8 @@ libc = "0.2"
 assert_cmd = "2.2"
 predicates = "3.1"
 filetime = "0.2"
+# Paused virtual time keeps Jev deadline, spacing, and cancellation tests deterministic.
+tokio = { version = "1.52", features = ["test-util"] }
 
 [build-dependencies]
 blake3 = "1.8.7"

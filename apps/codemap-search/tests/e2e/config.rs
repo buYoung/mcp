@@ -3,6 +3,8 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use std::process::Command;
 
+mod jev;
+
 #[tokio::test]
 async fn test_config_threshold_override_changes_branching() {
     // result_threshold = 1 means 2 matches render hybrid: detail for the single top file,

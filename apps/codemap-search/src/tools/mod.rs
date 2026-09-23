@@ -9,11 +9,13 @@
 pub(crate) mod analyze;
 pub mod find;
 pub mod grep;
+pub(crate) mod jev_note;
 pub(crate) mod live_options;
 pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
+pub(crate) mod task_query;
 
 use crate::index::EngineSupervisor;
 use serde_json::Value;
@@ -204,17 +206,32 @@ pub fn server_instructions() -> &'static str {
     include_str!("instructions/server.md").trim_end()
 }
 
-/// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
+/// Shared navigation and output rules, with only scope-specific guidance added for monorepos
+/// and task-intent guidance added while a Jev mode is enabled.
 pub fn instructions() -> String {
-    let common = include_str!("instructions/navigation.md").trim_end();
+    let mut text = include_str!("instructions/navigation.md")
+        .trim_end()
+        .to_string();
     if crate::codemap::looks_like_monorepo_workspace() {
-        format!(
-            "{common}\n\n{}",
-            include_str!("instructions/navigation.monorepo.md").trim_end()
-        )
-    } else {
-        common.to_string()
+        text.push_str("\n\n");
+        text.push_str(include_str!("instructions/navigation.monorepo.md").trim_end());
     }
+    let jev = &crate::config::get().jev;
+    let modes = match (jev.is_overview_enabled, jev.is_search_filter_enabled) {
+        (true, true) => Some("overview recommendations and search filtering"),
+        (true, false) => Some("overview recommendations"),
+        (false, true) => Some("search filtering"),
+        (false, false) => None,
+    };
+    if let Some(modes) = modes {
+        text.push_str("\n\n");
+        text.push_str(
+            &include_str!("instructions/navigation.jev.md")
+                .trim_end()
+                .replace("{modes}", modes),
+        );
+    }
+    text
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -226,6 +243,14 @@ pub fn instructions_with_root_overview(root_overview: &str) -> String {
 
 pub(super) fn grep_regex_guidance() -> &'static str {
     include_str!("instructions/grep-regex.md").trim_end()
+}
+
+/// A tool description followed by its Jev mode guidance while that mode is enabled.
+fn jev_tool_description(base_description: &str, mode_guidance: Option<String>) -> String {
+    match mode_guidance {
+        Some(guidance) => format!("{}\n\n{}", base_description.trim_end(), guidance.trim_end()),
+        None => base_description.trim_end().to_string(),
+    }
 }
 
 fn filesystem_tool_description(
@@ -296,8 +321,37 @@ pub fn list_tools() -> Value {
         ),
         include_str!("instructions/tools/grep.evidence.md").trim_end(),
     );
+    let jev = &config.jev;
+    let overview_description = jev_tool_description(
+        include_str!("instructions/tools/overview.md"),
+        jev.is_overview_enabled
+            .then(|| include_str!("instructions/tools/overview.jev.md").to_string()),
+    );
+    let search_description = jev_tool_description(
+        include_str!("instructions/tools/search.md"),
+        jev.is_search_filter_enabled.then(|| {
+            include_str!("instructions/tools/search.jev.md").replace(
+                "{min_unrelated_probability}",
+                &format!("{:.2}", jev.search_filter_min_unrelated_probability),
+            )
+        }),
+    );
+    let overview_task_query_description = if jev.is_overview_enabled {
+        "The user's original task, verbatim or faithfully summarized; never a path or search query. On the default root view it is sent with indexed metadata to api.typesafe.ai for Jev recommendations. Omit or leave blank to skip them."
+    } else {
+        "The user's original task for optional Jev root recommendations; ignored while analysis.jev.is_overview_enabled=false."
+    };
+    let search_task_query_description = if jev.is_search_filter_enabled {
+        format!(
+            "The user's original task, verbatim or faithfully summarized; never the search query. It is sent with the displayed bodies to api.typesafe.ai, and bodies with Jev P(unrelated) >= {:.2} are omitted. Omit or leave blank for the regular output.",
+            jev.search_filter_min_unrelated_probability
+        )
+    } else {
+        "The user's original task for the optional Jev body filter; ignored while analysis.jev.is_search_filter_enabled=false.".to_string()
+    };
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "task_query": { "type": "string", "maxLength": task_query::MAX_TASK_QUERY_CHARS, "description": search_task_query_description },
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -326,24 +380,25 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
-                        // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        // interactive ones). An enabled Jev mode also contacts its provider.
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_overview_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
+                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." },
+                                "task_query": { "type": "string", "maxLength": task_query::MAX_TASK_QUERY_CHARS, "description": overview_task_query_description }
                             }
                         }
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "description": search_description,
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_search_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,

@@ -46,12 +46,7 @@ fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, 
     }
 }
 
-pub(crate) fn run_with_metadata(ctx: &ToolContext) -> Result<super::SearchOutput, (i64, String)> {
+pub(crate) fn prepare(ctx: &ToolContext) -> Result<super::PreparedSearch, (i64, String)> {
     let workspace_scope = requested_workspace_scope(ctx)?;
-    match workspace_scope {
-        Some(scope) => {
-            super::run_inner_with_metadata(ctx, Some(&scope), super::DEFAULT_SEARCH_LIMIT)
-        }
-        None => super::run_inner_with_metadata(ctx, None, super::DEFAULT_SEARCH_LIMIT),
-    }
+    super::prepare_inner(ctx, workspace_scope.as_deref(), super::DEFAULT_SEARCH_LIMIT)
 }

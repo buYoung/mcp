@@ -2,7 +2,7 @@
 
 [한국어](./README.ko.md) | English
 
-A self-contained MCP stdio server and CLI for coding agents. Map a repository, search extracted symbols, documentation and literals with BM25, then confirm the source with embedded `read`, `find` and `grep`. Tree-sitter grammars, Tantivy and ripgrep libraries are compiled into one Rust binary; no system `rg`, language server, external runtime, account or API key is required.
+A self-contained MCP stdio server and CLI for coding agents. Map a repository, search extracted symbols, documentation and literals with BM25, then confirm the source with embedded `read`, `find` and `grep`. Tree-sitter grammars, Tantivy and ripgrep libraries are compiled into one Rust binary; no system `rg`, language server, external runtime, account or API key is required. Only the opt-in [Jev judgments](#optional-jev-judgments) use an API key.
 
 ## Install
 
@@ -81,8 +81,8 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 | Tool | Use | Main arguments |
 |---|---|---|
 | `initial_instructions` | Load navigation guidance once | none |
-| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
-| `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
+| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format`, `task_query` |
+| `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context`, `task_query` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
@@ -98,7 +98,7 @@ MCP `read`/`grep` use declaration-kind/name headings within each file, followed 
 
 Relevant source wrappers also show bounded argument, return, closure, field and callback-use relationships automatically. Default value context groups repeated paths and passing locations; `debug: true` exposes bounded detailed evidence and diagnostics. Basic conditional paths and native tuples are summarized within the existing budgets. These work independently of event API rules and distinguish source evidence, built-in models and unresolved candidates. Stale dependencies are withheld. Composite queries prioritize term coverage and bounded body evidence while exact identifier queries keep exact-name preference. See the [value-navigation reference and CLI examples](./docs/value-navigation.ko.md) for supported cases, limits and verification commands.
 
-Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.
+Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered. `task_query` is used only by the [Jev modes](#optional-jev-judgments); a tool whose mode is off (the default) does not use it and sends nothing over the network.
 
 ## Configure exclusions and output
 
@@ -126,6 +126,33 @@ excluded_directories = [
 A bare `build` matches directories at any depth; `./build` means the workspace root; `apps/web/build` scopes it to that project. Explicit arrays replace optional defaults. `[]` clears optional directory rules; omitting the key inherits global/default rules. `.gitignore`, global Git ignores, `.git/info/exclude` and `.codemapignore` still apply. VCS internals, `.codemap`, `.codemap-index` and the actual index location remain excluded from walks regardless of the array. `find`/`grep` can bypass optional exclusions with `include_ignored: true`; direct `read` remains subject to filesystem permissions.
 
 MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index.path`, `index.refresh.watch` or `index.refresh.watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
+
+## Optional Jev judgments
+
+Two independent modes can use the TypeSafe Jev API. Both are off by default; nothing is sent until a mode is enabled and a call passes `task_query`.
+
+- **Overview recommendations** (`[analysis.jev].is_overview_enabled`): a repository-root `overview` appends up to 24 recommended indexed files with declarations and `read` windows.
+- **Search filtering** (`[analysis.jev].is_search_filter_enabled`): `search` omits displayed bodies judged unrelated to the task. The default threshold, P(unrelated) >= 0.70, is provisional and uncalibrated. File headings, declaration rows and the ranked tail stay, and omitted bodies are listed with ranges to `read`.
+
+Export the key in the environment that starts the MCP server, then enable a mode in the global config (`$CODEMAP_HOME/config.toml`, default `~/.codemap/config.toml`). Only the global file can change the key variable with `api_key_env`.
+
+```bash
+export TYPESAFE_API_KEY=...
+```
+
+```toml
+[analysis.jev]
+is_overview_enabled = true
+is_search_filter_enabled = true
+```
+
+Pass the user's original request, not a reformulated search query:
+
+```json
+{"name": "search", "arguments": {"query": "upload retry attempts", "task_query": "Why does the upload retry stop after the third attempt?"}}
+```
+
+Enabled calls send `task_query` with bounded index metadata (overview) or displayed declaration bodies (search) to `api.typesafe.ai`, after the same masking as tool output; keep secrets out of `task_query`, whose free text is sent as written unless it matches a credential format. They end with an `applied`, `bypassed` or `fallback` line; applied and fallback lines report requests, input/output tokens and elapsed time separately. Missing `task_query` or key, index warm-up, errors and timeouts keep the regular output. The evaluator can also be called from Rust as `codemap_search::jev`; `cargo run --example jev_decisions -- --mock` shows Score, Choice and Noul questions offline. See [optional Jev judgments](./docs/configuration.md#optional-jev-judgments) for activation rules, transmitted data, limits and every setting.
 
 ## Supported languages and formats
 

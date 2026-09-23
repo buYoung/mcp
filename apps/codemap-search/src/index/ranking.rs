@@ -482,7 +482,7 @@ fn should_supplement_qualified_query(query: &QueryTokens) -> bool {
 }
 
 /// True for paths that look like test/bench scaffolding rather than implementation.
-fn is_test_like_path(path: &str) -> bool {
+pub(crate) fn is_test_like_path(path: &str) -> bool {
     let lower = path.to_lowercase();
     let in_test_dir = ["tests/", "test/", "benches/", "bench/", "__tests__/"]
         .iter()

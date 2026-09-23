@@ -12,7 +12,7 @@ mod transform;
 pub(crate) use detection::SourceScan;
 pub(crate) use pii::is_supported as is_supported_pii_entity;
 pub(crate) use request::{begin_request, is_enabled};
-pub(crate) use response::response;
+pub(crate) use response::{presentation_text, response};
 pub(crate) use source::{in_file, named_value, node_text, source};
 pub(crate) use transform::hidden;
 

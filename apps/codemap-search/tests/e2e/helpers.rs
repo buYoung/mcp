@@ -1,5 +1,7 @@
 use serde_json::Value;
 use std::path::Path;
+#[cfg(debug_assertions)]
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
@@ -48,6 +50,50 @@ pub fn event_navigation_repo() -> TempDir {
     .unwrap()
 }
 
+/// Environment variable that makes a debug-build server answer Jev requests from a script
+/// file instead of the provider (see `src/mcp/jev/scripted.rs`). Release builds ignore it,
+/// so Jev end-to-end tests exist only in debug builds.
+pub const JEV_SCRIPT_ENV: &str = "CODEMAP_TEST_JEV_SCRIPT";
+/// Key variable that Jev tests name in the global `api_key_env`. Only these tests set it,
+/// and servers never inherit a developer's `TYPESAFE_API_KEY`.
+pub const JEV_TEST_KEY_ENV: &str = "CODEMAP_TEST_JEV_KEY";
+
+/// Offline Jev answers for one test: the script the server re-reads for every request and
+/// the log of request bodies it received. Keep both outside the indexed workspace.
+#[cfg(debug_assertions)]
+pub struct JevScript {
+    pub script_path: PathBuf,
+    pub record_path: PathBuf,
+}
+
+#[cfg(debug_assertions)]
+impl JevScript {
+    /// `script` holds `rules` and optionally `delay_ms`/`status`; the log path is added.
+    pub fn new(directory: &Path, script: Value) -> Self {
+        let jev_script = Self {
+            script_path: directory.join("jev-script.json"),
+            record_path: directory.join("jev-requests.jsonl"),
+        };
+        jev_script.update(script);
+        jev_script
+    }
+
+    /// Replaces the answers or delay for the following requests.
+    pub fn update(&self, mut script: Value) {
+        script["record_path"] = Value::String(self.record_path.to_string_lossy().into_owned());
+        std::fs::write(&self.script_path, script.to_string()).unwrap();
+    }
+
+    /// Request bodies received so far, oldest first.
+    pub fn requests(&self) -> Vec<Value> {
+        std::fs::read_to_string(&self.record_path)
+            .unwrap_or_default()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect()
+    }
+}
+
 /// Helper to dynamically build a mock directory with specific files
 pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Error> {
     let temp_dir = tempfile::tempdir()?;
@@ -85,6 +131,33 @@ pub struct McpClient {
 impl McpClient {
     /// Spawn the codemap-search binary in MCP server mode
     pub async fn spawn(cwd: &Path) -> Result<Self, std::io::Error> {
+        Self::spawn_with_env(cwd, &[]).await
+    }
+
+    /// Spawn with scripted offline Jev answers and the global config directory `global_dir`,
+    /// kept outside the indexed workspace. `has_key` sets the test key variable, which the
+    /// global config names as `analysis.jev.api_key_env`.
+    #[cfg(debug_assertions)]
+    pub async fn spawn_with_jev(
+        cwd: &Path,
+        global_dir: &Path,
+        script: &JevScript,
+        has_key: bool,
+    ) -> Result<Self, std::io::Error> {
+        let script_path = script.script_path.to_string_lossy().into_owned();
+        let global_dir = global_dir.to_string_lossy().into_owned();
+        let mut envs = vec![
+            (JEV_SCRIPT_ENV, script_path.as_str()),
+            ("CODEMAP_HOME", global_dir.as_str()),
+        ];
+        if has_key {
+            envs.push((JEV_TEST_KEY_ENV, "offline-test-key"));
+        }
+        Self::spawn_with_env(cwd, &envs).await
+    }
+
+    /// Spawn with extra environment variables for the server process.
+    pub async fn spawn_with_env(cwd: &Path, envs: &[(&str, &str)]) -> Result<Self, std::io::Error> {
         // Obtains path to the cargo-built binary
         let binary_path = assert_cmd::cargo::cargo_bin("codemap-search");
 
@@ -93,6 +166,11 @@ impl McpClient {
             .current_dir(cwd)
             // Hermetic global config home — never read the developer's real ~/.codemap.
             .env("CODEMAP_HOME", cwd)
+            // Never hand a developer's real provider key or test script to a server.
+            .env_remove("TYPESAFE_API_KEY")
+            .env_remove(JEV_SCRIPT_ENV)
+            .env_remove(JEV_TEST_KEY_ENV)
+            .envs(envs.iter().copied())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs
@@ -138,6 +216,12 @@ impl McpClient {
 
     /// One JSON-RPC round trip over stdio.
     async fn send_request_once(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        self.start_request(method, params).await?;
+        self.read_response().await
+    }
+
+    /// Write one JSON-RPC request without waiting for its response; returns its id.
+    pub async fn start_request(&mut self, method: &str, params: Value) -> Result<i64, String> {
         let id = self.request_id;
         self.request_id += 1;
 
@@ -158,8 +242,11 @@ impl McpClient {
             .await
             .map_err(|e| e.to_string())?;
         self.stdin.flush().await.map_err(|e| e.to_string())?;
+        Ok(id)
+    }
 
-        // Read single line response from server's stdout
+    /// Read the next JSON-RPC response line from the server's stdout.
+    pub async fn read_response(&mut self) -> Result<Value, String> {
         let mut line = String::new();
         self.stdout_reader
             .read_line(&mut line)

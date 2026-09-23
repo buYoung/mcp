@@ -4,6 +4,7 @@
 //! lifecycle (`ensure_alive`/`trigger_refresh`) on the snapshot-backed tools, and wraps tool
 //! output in the JSON-RPC `result`/`error` envelope.
 
+mod jev;
 pub mod protocol;
 
 use crate::index::EngineSupervisor;
@@ -82,6 +83,9 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
+    // Optional Jev overview recommendations and search filtering. Idle until an enabled
+    // mode receives an explicit task_query; it never reads a key or sends a request earlier.
+    jev: jev::JevHost,
 }
 
 impl McpServer {
@@ -91,6 +95,7 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            jev: jev::JevHost::from_environment(),
         }
     }
 
@@ -167,7 +172,8 @@ impl McpServer {
                         continue;
                     }
 
-                    let response_result = self.handle_request(&req.method, req.params.as_ref());
+                    let response_result =
+                        self.handle_request(&req.method, req.params.as_ref()).await;
 
                     let resp = match response_result {
                         Ok(res_val) => JsonRpcResponse {
@@ -199,7 +205,11 @@ impl McpServer {
         Ok(())
     }
 
-    fn handle_request(
+    /// Handles one request to completion before the run loop reads the next line. The pinned
+    /// config and redaction scope are thread-local guards held across the Jev awaits; the
+    /// current-thread runtime polls this future on the same thread, and no other request
+    /// runs until it finishes.
+    async fn handle_request(
         &mut self,
         method: &str,
         params: Option<&Value>,
@@ -215,7 +225,7 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
-        let result = match self.handle_request_inner(method, params) {
+        let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
             Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
@@ -253,7 +263,7 @@ impl McpServer {
         result
     }
 
-    fn handle_request_inner(
+    async fn handle_request_inner(
         &mut self,
         method: &str,
         params: Option<&Value>,
@@ -299,6 +309,7 @@ impl McpServer {
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
+                        let task_query = crate::tools::task_query::parse(arguments)?;
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately
@@ -313,7 +324,9 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let output = crate::tools::search::run_with_metadata(&ctx)?;
+                        let prepared = crate::tools::search::prepare(&ctx)?;
+                        // Observations describe the delivered text, after any Jev omission.
+                        let output = self.jev.search(prepared, task_query.as_deref()).await;
                         self.pending_source_files = output.source_files;
                         Ok(serde_json::json!({
                             "content": [
@@ -325,6 +338,8 @@ impl McpServer {
                         }))
                     }
                     "overview" => {
+                        // `task_query` is only the explicit task intent; `query` stays a path alias.
+                        let task_query = crate::tools::task_query::parse(arguments)?;
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced) and read the codemap
                         // snapshot the indexer publishes — no per-call tree walk or parse.
@@ -338,7 +353,9 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let text = crate::tools::overview::run(&ctx)?;
+                        let prepared = crate::tools::overview::prepare(&ctx)?;
+                        let text = self.jev.overview(prepared, task_query.as_deref()).await;
+                        // Scope follows the requested path only, never recommendations.
                         self.update_active_workspace_scope_from_overview(arguments);
                         Ok(serde_json::json!({
                             "content": [

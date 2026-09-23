@@ -4,14 +4,36 @@
 //! The dispatch arm (`crate::mcp`) calls `EngineSupervisor::ensure_alive`/`trigger_refresh`
 //! before delegating here; this body only reads the committed snapshot through `ctx.engine`.
 
+pub mod jev;
 mod monorepo;
 mod stats;
 
+use std::sync::Arc;
+
+use crate::index::PublishedIndexSnapshot;
 use crate::tools::ToolContext;
+
+/// Rendered overview text plus the published generation a default root view came from.
+pub struct PreparedOverview {
+    pub text: String,
+    /// Set only for the default-format root view of a populated or empty committed
+    /// snapshot; folder, file, `llms-txt`, warming, and stopped-indexer responses leave it
+    /// `None`. Root recommendations must project candidates from this same generation.
+    pub root_snapshot: Option<Arc<PublishedIndexSnapshot>>,
+    /// Readiness observed before the snapshot was read: the initial index pass was still
+    /// running, so a root snapshot may not hold every file yet.
+    pub is_index_warming: bool,
+}
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    prepare(ctx).map(|prepared| prepared.text)
+}
+
+/// Render the overview from one published snapshot and keep that snapshot for a default
+/// root view, so later root recommendations cannot mix generations with the base text.
+pub fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, String)> {
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -84,9 +106,14 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(PreparedOverview {
+            text: text.to_string(),
+            root_snapshot: None,
+            is_index_warming: is_warming,
+        });
     }
 
+    let is_default_root_view = path.is_none() && format != Some("llms-txt");
     use crate::codemap::CodemapView;
     let mut codemap_text = if let Some(p) = path {
         let target_path = resolved_path
@@ -144,7 +171,7 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 
     if let Some(stats_scope) = stats_scope {
         let workspace = cwd.to_string_lossy().into_owned();
-        let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
+        let snapshot_id = Arc::as_ptr(&published).addr();
         codemap_text.push_str("\n\n");
         codemap_text.push_str(&stats::render(
             &cwd,
@@ -156,5 +183,9 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ));
     }
 
-    Ok(codemap_text)
+    Ok(PreparedOverview {
+        text: codemap_text,
+        root_snapshot: is_default_root_view.then(|| Arc::clone(&published)),
+        is_index_warming: is_warming,
+    })
 }

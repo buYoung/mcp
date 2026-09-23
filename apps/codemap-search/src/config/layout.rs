@@ -243,11 +243,13 @@ const SECTION_ALIASES: &[(&str, &str)] = &[
 
 pub(super) fn is_canonical_key(section: &str, key: &str) -> bool {
     let full = format!("{section}.{key}");
-    SETTINGS.iter().any(|setting| {
-        (setting.section == section && setting.key == key)
-            || setting.section == full
-            || setting.section.starts_with(&format!("{full}."))
-    }) || SECTION_MOVES.iter().any(|(_, target)| *target == full)
+    full == super::jev::SECTION
+        || SETTINGS.iter().any(|setting| {
+            (setting.section == section && setting.key == key)
+                || setting.section == full
+                || setting.section.starts_with(&format!("{full}."))
+        })
+        || SECTION_MOVES.iter().any(|(_, target)| *target == full)
         || SECTION_ALIASES.iter().any(|(legacy, _)| *legacy == full)
         || super::exclude::SECTIONS
             .iter()
@@ -332,6 +334,8 @@ fn normalize_table(layer: &mut ConfigLayer, section: &str, value: &toml::Value, 
             || SECTION_ALIASES.iter().any(|(legacy, _)| *legacy == full)
         {
             // These sections own their validation and per-key legacy fallback.
+        } else if full == super::jev::SECTION {
+            layer.jev = super::jev::normalize(value, path);
         } else if is_canonical_key(section, key) {
             normalize_table(layer, &full, value, path);
         } else if !super::section_accepts_key(section, key) {

@@ -8,6 +8,7 @@
 
 mod arguments;
 mod grouped;
+pub(crate) mod jev;
 mod monorepo;
 pub mod render;
 
@@ -15,6 +16,7 @@ pub(crate) use arguments::validate as validate_arguments;
 
 use crate::tools::ToolContext;
 use std::collections::BTreeSet;
+use std::ops::Range;
 
 const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached the configured output byte limit. Continue by narrowing the query or reading the listed file ranges with `read`._\n";
 // Small overall budgets retain their existing behavior. Larger multi-file searches
@@ -530,18 +532,195 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
 }
 
 pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String)> {
-    validate_arguments(ctx.arguments)?;
-    if monorepo::should_use(ctx) {
-        return monorepo::run_with_metadata(ctx);
-    }
-    run_inner_with_metadata(ctx, None, DEFAULT_SEARCH_LIMIT)
+    prepare(ctx).map(PreparedSearch::into_output)
 }
 
-pub(crate) fn run_inner_with_metadata(
+/// Validates the arguments and renders the search in structured form, with the same
+/// errors, notices, caps, and text as [`run_with_metadata`].
+pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedSearch, (i64, String)> {
+    validate_arguments(ctx.arguments)?;
+    if monorepo::should_use(ctx) {
+        return monorepo::prepare(ctx);
+    }
+    prepare_inner(ctx, None, DEFAULT_SEARCH_LIMIT)
+}
+
+/// Which branch produced a search response. Only ranked results carry declaration bodies.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SearchShape {
+    /// `event_key` lookup output.
+    EventLookup,
+    /// No ranked match: readiness/scope notices and the no-match message only.
+    NoResults,
+    /// Ranked detail and tail output.
+    RankedResults,
+}
+
+/// The arguments that shaped a search, kept for evaluation state.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct SearchArguments {
+    pub query: String,
+    pub language_hint: Option<String>,
+    pub extension_hint: Option<String>,
+    pub workspace_scope: Option<String>,
+}
+
+/// A rendered search kept in structured form until the final text is assembled.
+/// [`PreparedSearch::into_output`] returns exactly the regular response;
+/// [`PreparedSearch::render_without`] drops whole body blocks first, so relation hints and
+/// source observations describe only what is delivered.
+pub(crate) struct PreparedSearch {
+    shape: SearchShape,
+    arguments: SearchArguments,
+    /// Final capped text before relation hints are inserted.
+    text: String,
+    relation_insertions: Vec<(usize, String)>,
+    files: Vec<grouped::FileOutput>,
+    /// Bytes of `text` that belong to the primary output; later bytes are cap notices.
+    retained_primary_bytes: usize,
+    byte_cap: usize,
+    /// Ranked results rendered while the initial index pass was still running.
+    is_index_warming: bool,
+}
+
+impl PreparedSearch {
+    fn passthrough(shape: SearchShape, arguments: SearchArguments, text: String) -> Self {
+        Self {
+            shape,
+            arguments,
+            retained_primary_bytes: text.len(),
+            text,
+            relation_insertions: Vec::new(),
+            files: Vec::new(),
+            byte_cap: crate::config::get().search_detail_byte_cap,
+            is_index_warming: false,
+        }
+    }
+
+    pub(crate) fn shape(&self) -> SearchShape {
+        self.shape
+    }
+
+    pub(crate) fn arguments(&self) -> &SearchArguments {
+        &self.arguments
+    }
+
+    /// The configured search output cap this response was rendered under.
+    pub(crate) fn byte_cap(&self) -> usize {
+        self.byte_cap
+    }
+
+    /// Whether ranked results came from an index whose initial pass was still running.
+    pub(crate) fn is_index_warming(&self) -> bool {
+        self.is_index_warming
+    }
+
+    /// The regular response, with nothing dropped.
+    pub(crate) fn into_output(self) -> SearchOutput {
+        let source_files = self.source_observations(&BTreeSet::new(), &[]);
+        let mut text = self.text;
+        grouped::insert_relations(&mut text, self.relation_insertions);
+        SearchOutput { text, source_files }
+    }
+
+    /// The response without the body blocks addressed by `(file index, block index)`.
+    /// Addresses of non-body blocks, or of blocks not wholly inside the primary output,
+    /// are ignored. Headings, symbol rows, notices, the ranked tail, and every other block
+    /// keep their bytes and order.
+    pub(crate) fn render_without(&self, omitted_blocks: &BTreeSet<(usize, usize)>) -> SearchOutput {
+        let omitted: BTreeSet<(usize, usize)> = omitted_blocks
+            .iter()
+            .copied()
+            .filter(|&(file_index, block_index)| {
+                self.files[file_index]
+                    .blocks()
+                    .get(block_index)
+                    .is_some_and(|block| block.body.is_some())
+                    && self
+                        .block_range(file_index, block_index)
+                        .is_some_and(|range| range.end <= self.retained_primary_bytes)
+            })
+            .collect();
+        let mut removed: Vec<Range<usize>> = omitted
+            .iter()
+            .filter_map(|&(file_index, block_index)| self.block_range(file_index, block_index))
+            .collect();
+        removed.sort_by_key(|range| range.start);
+        let mut text = String::with_capacity(self.text.len());
+        let mut cursor = 0;
+        for range in &removed {
+            text.push_str(&self.text[cursor..range.start]);
+            cursor = range.end;
+        }
+        text.push_str(&self.text[cursor..]);
+        let source_files = self.source_observations(&omitted, &removed);
+        let insertions = self
+            .relation_insertions
+            .iter()
+            .map(|(offset, relations)| (shifted(*offset, &removed), relations.clone()))
+            .collect();
+        grouped::insert_relations(&mut text, insertions);
+        SearchOutput { text, source_files }
+    }
+
+    /// Absolute byte range of one result block in `text`.
+    fn block_range(&self, file_index: usize, block_index: usize) -> Option<Range<usize>> {
+        let file = self.files.get(file_index)?;
+        let start = file.results_start()?;
+        let block = file.blocks().get(block_index)?;
+        Some(start + block.range.start..start + block.range.end)
+    }
+
+    /// A file is observed when a kept block with source starts inside the delivered primary
+    /// output; its bytes are the kept part of its results.
+    fn source_observations(
+        &self,
+        omitted: &BTreeSet<(usize, usize)>,
+        removed: &[Range<usize>],
+    ) -> Vec<crate::analyze::FileObservation> {
+        let retained_primary_bytes = shifted(self.retained_primary_bytes, removed);
+        self.files
+            .iter()
+            .enumerate()
+            .filter_map(|(file_index, file)| {
+                let results_start = file.results_start()?;
+                let first_source = file
+                    .blocks()
+                    .iter()
+                    .enumerate()
+                    .filter(|(block_index, _)| !omitted.contains(&(file_index, *block_index)))
+                    .find_map(|(_, block)| block.source_start)?;
+                if shifted(results_start + first_source, removed) >= retained_primary_bytes {
+                    return None;
+                }
+                let span = file.source_span.as_ref()?;
+                let result_bytes = shifted(span.end, removed)
+                    .min(retained_primary_bytes)
+                    .saturating_sub(shifted(span.start, removed));
+                (result_bytes > 0).then(|| crate::analyze::FileObservation {
+                    path: file.path.clone(),
+                    result_bytes: result_bytes as u64,
+                })
+            })
+            .collect()
+    }
+}
+
+/// Moves an offset of the unfiltered text past the removed ranges that end before it.
+fn shifted(offset: usize, removed: &[Range<usize>]) -> usize {
+    offset
+        - removed
+            .iter()
+            .filter(|range| range.end <= offset)
+            .map(|range| range.len())
+            .sum::<usize>()
+}
+
+fn prepare_inner(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
-) -> Result<SearchOutput, (i64, String)> {
+) -> Result<PreparedSearch, (i64, String)> {
     let search_started = std::time::Instant::now();
     let query = ctx
         .arguments
@@ -570,16 +749,22 @@ pub(crate) fn run_inner_with_metadata(
                         .into(),
                 )
             })?;
+        let arguments = SearchArguments {
+            query: query.to_string(),
+            workspace_scope: workspace_scope.map(ToString::to_string),
+            ..SearchArguments::default()
+        };
         if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
-            return Ok(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()});
+            return Ok(PreparedSearch::passthrough(SearchShape::EventLookup, arguments, "[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into()));
         }
         let root = std::env::current_dir().unwrap_or_default();
         let snapshot = ctx.engine.published_snapshot();
         let cap = crate::config::get().search_detail_byte_cap;
-        return Ok(SearchOutput {
-            text: snapshot.events().for_key(key, workspace_scope, cap, &root),
-            ..SearchOutput::default()
-        });
+        return Ok(PreparedSearch::passthrough(
+            SearchShape::EventLookup,
+            arguments,
+            snapshot.events().for_key(key, workspace_scope, cap, &root),
+        ));
     }
 
     // Caller/callee context (default on). Precedence: the per-call
@@ -603,6 +788,12 @@ pub(crate) fn run_inner_with_metadata(
             .and_then(|value| value.as_str())
             .map(ToString::to_string),
     };
+    let arguments = SearchArguments {
+        query: query.to_string(),
+        language_hint: search_context.language_hint.clone(),
+        extension_hint: search_context.extension_hint.clone(),
+        workspace_scope: workspace_scope.map(ToString::to_string),
+    };
 
     // Capture readiness before reading the index and keep it for this response. If the
     // initial pass finishes after we read an empty snapshot, checking again while
@@ -622,11 +813,6 @@ pub(crate) fn run_inner_with_metadata(
         results.retain(|result| monorepo::result_is_under_scope(result, scope));
         results.truncate(DEFAULT_SEARCH_LIMIT);
     }
-
-    // Result-branch threshold: at or below it, return file details;
-    // above it, return a codemap overview. Config-driven (Child 05),
-    // default 5.
-    let result_branch_threshold = crate::config::get().result_threshold;
 
     let mut text = String::new();
     // While the initial background index builds, results can be empty or
@@ -674,15 +860,86 @@ pub(crate) fn run_inner_with_metadata(
                 " Next: confirm with a scoped `grep` for the exact text (only supported source files are indexed, so unindexed files never appear here), or reword the query with different terms.",
             );
         }
-        return Ok(SearchOutput {
+        return Ok(PreparedSearch::passthrough(
+            SearchShape::NoResults,
+            arguments,
             text,
-            ..SearchOutput::default()
-        });
+        ));
     }
+
+    let annotation_state = caller_context_enabled.then(|| crate::callers::AnnotationRuntimeState {
+        is_warming,
+        has_refresh_error: ctx.engine.last_error().is_some(),
+        is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
+    });
+    let rendered =
+        render_ranked_results(text, query, &results, &published_snapshot, annotation_state);
+    // A clipped primary body no longer guarantees that all collected anchors
+    // remain visible. It already carries the search-cap notice; skip relations.
+    let relation_insertions = if !rendered.is_partial
+        && !is_warming
+        && !ctx.engine.is_dead()
+        && ctx.engine.last_error().is_none()
+    {
+        grouped::plan_relations(
+            rendered.text.len(),
+            &rendered.files,
+            &published_snapshot,
+            workspace_scope,
+            caller_context_enabled,
+            should_include_events,
+        )
+    } else {
+        Vec::new()
+    };
+    tracing::debug!(
+        candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
+        output_ms = search_started
+            .elapsed()
+            .saturating_sub(candidates_elapsed)
+            .as_secs_f64()
+            * 1000.0,
+        total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
+        "search tool timing"
+    );
+    Ok(PreparedSearch {
+        shape: SearchShape::RankedResults,
+        arguments,
+        text: rendered.text,
+        relation_insertions,
+        files: rendered.files,
+        retained_primary_bytes: rendered.retained_primary_bytes,
+        byte_cap: crate::config::get().search_detail_byte_cap,
+        is_index_warming: is_warming,
+    })
+}
+
+/// The capped detail/tail text of a non-empty ranked result set, before relation hints.
+struct RankedOutput {
+    text: String,
+    files: Vec<grouped::FileOutput>,
+    retained_primary_bytes: usize,
+    is_partial: bool,
+}
+
+/// Renders the detail view and ranked tail after `text` (readiness and scope notices).
+/// Caller annotations run only when `annotation_state` is present.
+fn render_ranked_results(
+    mut text: String,
+    query: &str,
+    results: &[crate::index::SearchResult],
+    published_snapshot: &crate::index::PublishedIndexSnapshot,
+    annotation_state: Option<crate::callers::AnnotationRuntimeState>,
+) -> RankedOutput {
+    // Result-branch threshold: at or below it, return file details;
+    // above it, return a codemap overview. Config-driven (Child 05),
+    // default 5.
+    let result_branch_threshold = crate::config::get().result_threshold;
+
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
     // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so
     // the per-file ambiguity note can flag multi-route names path-aware.
-    let cross_path = CrossPathPresence::build(&results);
+    let cross_path = CrossPathPresence::build(results);
 
     // Hybrid rendering: the top-ranked files (BM25 order) always get the
     // full detail view — snippets plus call context — and every match
@@ -697,7 +954,7 @@ pub(crate) fn run_inner_with_metadata(
     // fall straight into the tail, so nothing is dropped.
     const DETAIL_DIR_CAP: usize = 3;
     let ordered: Vec<&crate::index::SearchResult> =
-        diversified_order(&results, result_branch_threshold, DETAIL_DIR_CAP)
+        diversified_order(results, result_branch_threshold, DETAIL_DIR_CAP)
             .into_iter()
             .map(|index| &results[index])
             .collect();
@@ -725,7 +982,7 @@ pub(crate) fn run_inner_with_metadata(
         // annotation byte budget is what is still free under `byte_cap`
         // at this point (snippets keep priority, two-counter inside).
         let callers_started = std::time::Instant::now();
-        let caller_annotations = if caller_context_enabled {
+        let caller_annotations = if let Some(runtime_state) = annotation_state {
             let snapshot = published_snapshot.codemap();
             let requests: Vec<crate::callers::AnnotationRequest<'_>> = detail_results
                 .iter()
@@ -747,11 +1004,6 @@ pub(crate) fn run_inner_with_metadata(
                 navigation_callsite_budget: cfg.navigation_callsite_budget,
                 navigation_store_references: cfg.navigation_store_references,
             };
-            let runtime_state = crate::callers::AnnotationRuntimeState {
-                is_warming,
-                has_refresh_error: ctx.engine.last_error().is_some(),
-                is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
-            };
             let available = byte_cap.saturating_sub(text.len());
             let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             crate::callers::annotate_results_with_state(
@@ -767,7 +1019,7 @@ pub(crate) fn run_inner_with_metadata(
         };
         tracing::debug!(
             elapsed_ms = callers_started.elapsed().as_secs_f64() * 1000.0,
-            enabled = caller_context_enabled,
+            enabled = annotation_state.is_some(),
             "search caller annotation timing"
         );
 
@@ -1112,46 +1364,12 @@ pub(crate) fn run_inner_with_metadata(
     }
 
     let is_partial = output_was_capped || text.len() > byte_cap;
-    let (mut text, retained_bytes) = finish_search_output(text, byte_cap, is_partial);
+    let (text, retained_bytes) = finish_search_output(text, byte_cap, is_partial);
     retained_primary_bytes = retained_primary_bytes.min(retained_bytes);
-    let source_files = grouped_files
-        .iter()
-        .filter_map(|file| {
-            if file.first_source_byte? >= retained_primary_bytes {
-                return None;
-            }
-            let span = file.source_span.as_ref()?;
-            let result_bytes = span
-                .end
-                .min(retained_primary_bytes)
-                .saturating_sub(span.start);
-            (result_bytes > 0).then(|| crate::analyze::FileObservation {
-                path: file.path.clone(),
-                result_bytes: result_bytes as u64,
-            })
-        })
-        .collect();
-    // A clipped primary body no longer guarantees that all collected anchors
-    // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
-        grouped::append_relations(
-            &mut text,
-            &grouped_files,
-            &published_snapshot,
-            workspace_scope,
-            caller_context_enabled,
-            should_include_events,
-        );
+    RankedOutput {
+        text,
+        files: grouped_files,
+        retained_primary_bytes,
+        is_partial,
     }
-    tracing::debug!(
-        candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
-        output_ms = search_started
-            .elapsed()
-            .saturating_sub(candidates_elapsed)
-            .as_secs_f64()
-            * 1000.0,
-        total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
-        "search tool timing"
-    );
-    Ok(SearchOutput { text, source_files })
 }

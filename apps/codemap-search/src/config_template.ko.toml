@@ -1,8 +1,8 @@
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
-# 숫자 설정은 양의 정수이며 output.grep.max_columns만 0도 허용합니다.
+# 숫자 설정은 양수여야 하며 output.grep.max_columns와 analysis.jev.request_spacing_ms는 0도 허용합니다.
 # 바이트 크기는 "50mb"처럼 b/kb/mb/gb 단위를 사용할 수 있습니다. 각 단위는 1024배입니다.
 # MCP 시작 시 존재하는 설정 디렉터리를 감시합니다. 감시를 사용할 수 없으면 재시작하세요.
 
@@ -268,6 +268,39 @@ is_build_support_enabled = false
 # Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
+
+[analysis.jev]
+# overview/search에서 선택적으로 사용하는 TypeSafe Jev 판정입니다. docs/configuration.ko.md를 참고하세요.
+# 각 모드는 기본으로 꺼져 있으며 task_query가 있는 호출에서 키 환경 변수가 설정된 경우에만 실행합니다.
+# 환경 변수 이름(api_key_env, 기본 "TYPESAFE_API_KEY")은 전역 설정에서만 읽습니다.
+# 실행하면 task_query와 제한된 색인·검색 텍스트를 api.typesafe.ai로 보냅니다.
+# 저장소 루트 overview에 파일과 선언을 추천합니다.
+# is_overview_enabled = false
+
+# task_query와 무관하다고 판정된 search 본문을 생략합니다. 파일 제목과 선언 행은 유지합니다.
+# is_search_filter_enabled = false
+
+# 고정할 모델 버전입니다. "jev-latest" 같은 별칭은 거부합니다.
+# model = "jev-1.13.0"
+
+# 도구 호출 한 번의 평가 기한입니다. 대기 시간을 포함하며 단위는 밀리초입니다(1–600000).
+# timeout_ms = 45000
+
+# 모든 호출이 공유하는 동시 API 요청 수입니다(1–16).
+# max_in_flight_requests = 3
+
+# API 요청 시작 사이의 최소 간격입니다. 단위는 밀리초입니다(0–10000).
+# request_spacing_ms = 300
+
+# 요청 본문 최대 크기입니다. 단위는 바이트입니다(4096–512000). 토큰 한도는 별도로 추정합니다.
+# max_batch_bytes = 80000
+
+# 이 시간보다 오래 쉬는 연결은 재사용하지 않고 닫습니다. 단위는 밀리초입니다(1–600000).
+# pool_idle_timeout_ms = 30000
+
+# 보정하지 않은 임시 search 기준값입니다. P(무관)이 이 값 이상일 때만 본문을 생략합니다.
+# 0.5 < 값 <= 1.0만 허용하며 신뢰도나 정확도를 뜻하지 않습니다.
+# search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,

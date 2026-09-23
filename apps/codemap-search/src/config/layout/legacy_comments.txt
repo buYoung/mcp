@@ -65,6 +65,7 @@
 # Native files automatically use installed Clang/NASM; failures retain source declarations with a notice.
 # No configured limits: search 1 MiB; read and expanded grep 5 MiB.
 # Number of top-ranked files shown with details before the compact list.
+# Numeric settings must be positive; output.grep.max_columns also accepts 0.
 # Numeric settings require positive integers; grep_max_columns also accepts 0.
 # Numeric settings require positive integers; output.grep.max_columns also accepts 0.
 # Omitted sends no override. Applies to codemap-search tool metadata only.
@@ -176,6 +177,7 @@
 # 소스 구조·import·지역 변수 연결로 어떤 함수를 호출하는지 확인합니다.
 # 소스 구조에 따른 탐색과 호출자 검색 예산입니다.
 # 수동 변경은 설정을 다시 읽은 뒤 전체 색인 갱신을 요청합니다.
+# 숫자 설정은 양의 정수이며 output.grep.max_columns만 0도 허용합니다.
 # 아래 값은 비활성 예시이며 서버가 클라이언트 설정 파일을 자동 수정하지 않습니다.
 # 외부 프로세스 한 번의 시간 제한입니다. 단위는 밀리초이며 기본값은 5000입니다.
 # 이 섹션 없이도 분석합니다. Rust 대상 OS를 생략하거나 빈 값으로 두면 미지정이며 호스트 OS를 사용하지 않습니다.

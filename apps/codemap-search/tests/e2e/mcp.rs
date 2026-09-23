@@ -1,6 +1,10 @@
 use crate::e2e::helpers::{create_mock_repo, McpClient};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 
+// Scripted offline Jev answers exist only in debug builds, so these cases do too.
+#[cfg(debug_assertions)]
+mod jev;
+
 #[tokio::test]
 async fn test_mcp_initialize() {
     let temp = create_mock_repo(&[]).unwrap();

@@ -2,6 +2,38 @@
 use crate::declarations;
 use crate::parser::{ExtractedFile, ExtractedSymbol};
 use std::collections::BTreeSet;
+use std::ops::Range;
+
+/// A declaration the renderer started under a file heading, and the result block that
+/// displays its body, if one was written.
+#[derive(Clone, Debug)]
+pub(super) struct ShownDeclaration {
+    pub symbol: ExtractedSymbol,
+    pub body_block: Option<usize>,
+}
+
+/// One entry written to a file's `### results`, recorded as it is pushed so later stages
+/// can address it without reading the rendered Markdown back.
+#[derive(Clone, Debug)]
+pub(super) struct ResultBlock {
+    /// Byte range inside the file's results text.
+    pub range: Range<usize>,
+    /// First source byte inside the file's results text, when the block carries source.
+    pub source_start: Option<usize>,
+    pub body: Option<BodyWindow>,
+}
+
+/// The displayed window of one declaration body.
+#[derive(Clone, Debug)]
+pub(super) struct BodyWindow {
+    /// The numbered, display-masked source lines inside the file's results text.
+    pub source: Range<usize>,
+    pub first_line: usize,
+    pub last_line: usize,
+    pub line_count: usize,
+    /// A byte cap cut the last displayed line.
+    pub is_clipped: bool,
+}
 
 pub(super) struct Section {
     root: Option<ExtractedSymbol>,
@@ -28,6 +60,10 @@ pub(super) struct FileOutput {
     pub source_span: Option<std::ops::Range<usize>>,
     first_result_source_offset: Option<usize>,
     pub first_source_byte: Option<usize>,
+    declarations: Vec<ShownDeclaration>,
+    current_declaration: Option<usize>,
+    blocks: Vec<ResultBlock>,
+    results_start: Option<usize>,
 }
 
 impl FileOutput {
@@ -54,7 +90,25 @@ impl FileOutput {
             source_span: None,
             first_result_source_offset: None,
             first_source_byte: None,
+            declarations: Vec::new(),
+            current_declaration: None,
+            blocks: Vec::new(),
+            results_start: None,
         }
+    }
+    /// The file's own index entry, including impl containers added while rendering.
+    pub fn indexed(&self) -> Option<&ExtractedFile> {
+        self.indexed.as_ref()
+    }
+    pub fn declarations(&self) -> &[ShownDeclaration] {
+        &self.declarations
+    }
+    pub fn blocks(&self) -> &[ResultBlock] {
+        &self.blocks
+    }
+    /// Offset of the file's results text in the response, set by `write_primary`.
+    pub fn results_start(&self) -> Option<usize> {
+        self.results_start
     }
     pub fn len(&self) -> usize {
         self.base_bytes
@@ -94,15 +148,48 @@ impl FileOutput {
         }
     }
     pub fn push_source(&mut self, text: &str, source_offset: Option<usize>) -> bool {
+        self.push_block(text, source_offset, None)
+    }
+    /// Pushes the displayed body of the declaration started last. `window.source` is
+    /// relative to `text` and is rebased onto the results text.
+    pub fn push_body(
+        &mut self,
+        text: &str,
+        source_offset: Option<usize>,
+        mut window: BodyWindow,
+    ) -> bool {
+        let start = self.results.len();
+        window.source = start + window.source.start..start + window.source.end;
+        if !self.push_block(text, source_offset, Some(window)) {
+            return false;
+        }
+        if let Some(declaration) = self.current_declaration {
+            self.declarations[declaration].body_block = Some(self.blocks.len() - 1);
+        }
+        true
+    }
+    fn push_block(
+        &mut self,
+        text: &str,
+        source_offset: Option<usize>,
+        body: Option<BodyWindow>,
+    ) -> bool {
         if !self.fits(text.len()) {
             return false;
         }
+        let start = self.results.len();
+        let source_start = source_offset
+            .filter(|offset| *offset < text.len())
+            .map(|offset| start + offset);
         if self.first_result_source_offset.is_none() {
-            self.first_result_source_offset = source_offset
-                .filter(|offset| *offset < text.len())
-                .map(|offset| self.results.len() + offset);
+            self.first_result_source_offset = source_start;
         }
         self.results.push_str(text);
+        self.blocks.push(ResultBlock {
+            range: start..self.results.len(),
+            source_start,
+            body,
+        });
         true
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
@@ -267,6 +354,18 @@ impl FileOutput {
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
+        let shown = self.declarations.iter().position(|shown| {
+            shown.symbol.name == symbol.name
+                && shown.symbol.kind == symbol.kind
+                && shown.symbol.range == symbol.range
+        });
+        self.current_declaration = Some(shown.unwrap_or_else(|| {
+            self.declarations.push(ShownDeclaration {
+                symbol: symbol.clone(),
+                body_block: None,
+            });
+            self.declarations.len() - 1
+        }));
         true
     }
     pub fn anchor(&mut self, start: usize, end: usize) {
@@ -311,6 +410,7 @@ impl FileOutput {
                 self.sections.len() - 1
             });
             self.current = Some(index);
+            self.current_declaration = None;
             self.anchor(line, line);
         }
     }
@@ -324,6 +424,7 @@ impl FileOutput {
         }
         text.push_str("\n### results\n");
         let start = text.len();
+        self.results_start = Some(start);
         text.push_str(&self.results);
         self.source_span = (!self.results.is_empty()).then_some(start..text.len());
         self.first_source_byte = self.first_result_source_offset.map(|offset| start + offset);
@@ -335,17 +436,20 @@ impl FileOutput {
     }
 }
 
-pub(super) fn append_relations(
-    text: &mut String,
+/// Relation hints for the anchored sections of `files`, as `(offset, text)` insertions
+/// into a response of `text_len` bytes. Nothing is inserted yet, so a caller can still
+/// drop whole result blocks and move the offsets before [`insert_relations`].
+pub(super) fn plan_relations(
+    text_len: usize,
     files: &[FileOutput],
     snapshot: &crate::index::PublishedIndexSnapshot,
     scope: Option<&str>,
     should_include_calls: bool,
     should_include_events: bool,
-) {
+) -> Vec<(usize, String)> {
     let cap = crate::config::get().search_detail_byte_cap;
     let mut remaining = cap
-        .saturating_sub(text.len())
+        .saturating_sub(text_len)
         .min(cap / 2)
         .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
     let root = std::env::current_dir().unwrap_or_default();
@@ -426,6 +530,10 @@ pub(super) fn append_relations(
             }
         }
     }
+    insertions
+}
+
+pub(super) fn insert_relations(text: &mut String, mut insertions: Vec<(usize, String)>) {
     insertions.sort_by_key(|(offset, _)| std::cmp::Reverse(*offset));
     for (offset, relations) in insertions {
         text.insert_str(offset, &relations);

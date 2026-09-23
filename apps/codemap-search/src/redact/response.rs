@@ -23,6 +23,12 @@ fn response_text(text: &str, is_tool_text: bool) -> String {
         .collect()
 }
 
+/// Masks text that leaves the process for external evaluation exactly as tool text is
+/// masked in responses, so an evaluator never receives more than the client would.
+pub(crate) fn presentation_text(text: &str) -> String {
+    response_text(text, true)
+}
+
 /// Preserve JSON-RPC ids, object keys and schema structure. Named string fields keep
 /// their existing treatment; parent objects/arrays do not acquire field sensitivity.
 pub(crate) fn response(value: &mut serde_json::Value) {

@@ -37,9 +37,11 @@ use crate::workspace::exclusions::DirectoryExclusions;
 
 mod event_navigation;
 mod exclude;
+mod jev;
 mod layout;
 mod output;
 pub use event_navigation::EventNavigationConfig;
+pub use jev::{JevConfig, DEFAULT_API_KEY_ENV};
 pub use output::ClientOutputConfig;
 mod macro_expansion;
 pub(crate) mod redact;
@@ -102,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 24;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -117,7 +119,8 @@ const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 /// English scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
 /// and settings with concrete built-in defaults are active. Optional common/grep/client limits,
-/// compilation database paths and target-clearing examples stay commented. Repo values override a
+/// compilation database paths, target-clearing examples and every `[analysis.jev]` key stay
+/// commented, the last so a global Jev opt-in reaches scaffolded repos. Repo values override a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
 /// key, update every config template, bump [`CONFIG_VERSION`], and add localized commented
@@ -147,6 +150,8 @@ pub struct ResolvedConfig {
     pub event_navigation: EventNavigationConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
+    /// Optional Jev overview recommendations and search filtering; both off by default.
+    pub jev: JevConfig,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
     pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
@@ -302,6 +307,7 @@ impl Default for ResolvedConfig {
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             analysis_target_os: None,
+            jev: JevConfig::default(),
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
@@ -369,6 +375,7 @@ struct ConfigLayer {
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
     analysis_target_os: Option<Option<String>>,
+    jev: jev::JevLayer,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
@@ -420,7 +427,9 @@ struct FilesystemPermissionsLayer {
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
 /// Pure (no globals, no env reads) so it is unit-testable with temp directories.
 pub fn load(repo_root: &Path, global_dir: &Path) -> ResolvedConfig {
-    let repo_layer = read_layer(&repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME));
+    let repo_path = repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+    let repo_layer = read_layer(&repo_path);
+    jev::warn_repository_credential_source(&repo_layer.jev, &repo_path);
     let global_layer = read_layer(&global_dir.join(CONFIG_FILE_NAME));
     let mut resolved = merge(repo_layer, global_layer);
     resolved.index_root =
@@ -809,6 +818,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .analysis_target_os
             .or(global.analysis_target_os)
             .flatten(),
+        jev: jev::merge(repo.jev, global.jev),
         config_auto_update: repo
             .config_auto_update
             .or(global.config_auto_update)
@@ -1309,6 +1319,9 @@ enum KeyPlacement {
     TopLevel,
     /// A key under the named sub-table — inserted right after that table's header line.
     Subtable(&'static str),
+    /// A block that opens its own commented sub-table — inserted before the first table
+    /// header after the named table, so neither table's settings are split by it.
+    SectionEnd(&'static str),
 }
 
 /// One additive schema change: the commented block for a key introduced at `version`.
@@ -1348,6 +1361,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 24,
+        key: "jev",
+        placement: KeyPlacement::SectionEnd("analysis"),
+        english_block: "# Optional TypeSafe Jev judgments, off by default; see docs/configuration.md.\n# A mode runs only for calls with task_query while the key variable is set; api_key_env is read only from the global config.\n# [analysis.jev]\n# is_overview_enabled = false\n# is_search_filter_enabled = false\n# model = \"jev-1.13.0\"\n# timeout_ms = 45000\n# max_in_flight_requests = 3\n# request_spacing_ms = 300\n# max_batch_bytes = 80000\n# pool_idle_timeout_ms = 30000\n# search_filter_min_unrelated_probability = 0.70",
+        korean_block: "# 선택 기능인 TypeSafe Jev 판정이며 기본으로 꺼져 있습니다. docs/configuration.ko.md를 참고하세요.\n# task_query가 있는 호출에서 키 환경 변수가 설정된 경우에만 실행하며 api_key_env는 전역 설정에서만 읽습니다.\n# [analysis.jev]\n# is_overview_enabled = false\n# is_search_filter_enabled = false\n# model = \"jev-1.13.0\"\n# timeout_ms = 45000\n# max_in_flight_requests = 3\n# request_spacing_ms = 300\n# max_batch_bytes = 80000\n# pool_idle_timeout_ms = 30000\n# search_filter_min_unrelated_probability = 0.70",
+    },
     Migration {
         version: 17,
         key: "is_overview_stats_enabled",
@@ -1540,7 +1560,8 @@ fn version_marker_line(version: u32) -> String {
 /// keys are still commented; v6 materializes directory exclusions once. v8/v9 relocate
 /// test-code and workspace exclusions into `[exclude]` without changing effective values.
 /// v18 groups output/index/analysis settings; v23 refreshes generated comments. Both preserve
-/// configured values, inactive settings and inheritance.
+/// configured values, inactive settings and inheritance. v24 adds the commented
+/// `[analysis.jev]` block after the `[analysis]` settings.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1749,6 +1770,7 @@ fn apply_migrations_with_language(
         out = match migration.placement {
             KeyPlacement::TopLevel => insert_top_level(&out, block),
             KeyPlacement::Subtable(table) => insert_subtable(&out, table, block),
+            KeyPlacement::SectionEnd(table) => insert_section_end(&out, table, block),
         };
     }
     // `file_version < target_version` here, so the marker always advances → always a change.
@@ -1819,6 +1841,43 @@ fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
         offset += line.len();
     }
     insert_top_level(contents, &format!("# {header}\n{block}"))
+}
+
+/// Insert a block that opens its own commented sub-table where the `[table]` section ends:
+/// before the first table header (commented or not) after `[table]`, else at end-of-file.
+/// Settings of the named table and of the next table stay contiguous either way.
+fn insert_section_end(contents: &str, table: &str, block: &str) -> String {
+    let header = format!("[{table}]");
+    let value_ranges = config_value_ranges(contents);
+    let mut offset = 0;
+    let mut is_inside_table = false;
+    for line in contents.split_inclusive('\n') {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        if body.starts_with('[') && !value_ranges.iter().any(|range| range.contains(&offset)) {
+            if is_inside_table {
+                let mut out = String::with_capacity(contents.len() + block.len() + 3);
+                out.push_str(&contents[..offset]);
+                if !out.ends_with("\n\n") {
+                    out.push('\n');
+                }
+                out.push_str(block);
+                out.push_str("\n\n");
+                out.push_str(&contents[offset..]);
+                return out;
+            }
+            is_inside_table = body.starts_with(&header);
+        }
+        offset += line.len();
+    }
+    let mut out = contents.to_string();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push('\n');
+    out.push_str(block);
+    out.push('\n');
+    out
 }
 
 /// Immutable TOML documents retain the physical spans discarded by DocumentMut.
@@ -2077,6 +2136,149 @@ mod tests {
         let dir = repo.join(CODEMAP_DIR_NAME);
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join(CONFIG_FILE_NAME), body).unwrap();
+    }
+
+    /// Uncomments generated `# key = value` and `# [table]` example lines.
+    fn activate_examples(text: &str) -> String {
+        text.lines()
+            .map(|line| {
+                let body = line.trim_start().strip_prefix("# ").unwrap_or(line);
+                let is_example = body.starts_with('[')
+                    || body.split_once(" = ").is_some_and(|(key, _)| {
+                        key.bytes()
+                            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+                    });
+                if is_example {
+                    body.to_string()
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn jev_section(template: &str) -> &str {
+        let start = template.find("[analysis.jev]").unwrap();
+        let end = start
+            + template[start..]
+                .find("\n[filesystem_permissions]")
+                .unwrap();
+        &template[start..end]
+    }
+
+    #[test]
+    fn test_jev_template_examples_match_the_parsed_defaults() {
+        let english: toml::Value = toml::from_str(CONFIG_TEMPLATE).unwrap();
+        let korean: toml::Value = toml::from_str(CONFIG_TEMPLATE_KO).unwrap();
+        assert_eq!(
+            english, korean,
+            "both templates keep the same keys and values"
+        );
+        assert_eq!(
+            english["analysis"]["jev"]
+                .as_table()
+                .map(|table| table.len()),
+            Some(0),
+            "every Jev key stays commented so global settings are inherited"
+        );
+        for template in [CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO] {
+            let section = jev_section(template);
+            assert!(
+                !section.contains("api_key_env ="),
+                "api_key_env is global-only: {section}"
+            );
+            let active = activate_examples(section);
+            let layer = normalize(
+                toml::from_str(&format!("[analysis]\n{active}")).unwrap(),
+                Path::new("t"),
+            );
+            let resolved = merge(layer, ConfigLayer::default());
+            assert_eq!(resolved.jev, JevConfig::default(), "{active}");
+            assert_eq!(resolved.jev.search_filter_min_unrelated_probability, 0.70);
+        }
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        ensure_repo_config(repo.path());
+        let loaded = load(repo.path(), global.path());
+        assert!(!loaded.jev.is_overview_enabled && !loaded.jev.is_search_filter_enabled);
+        fs::write(
+            global.path().join(CONFIG_FILE_NAME),
+            "[analysis.jev]\nis_search_filter_enabled = true\nsearch_filter_min_unrelated_probability = 0.9\n",
+        )
+        .unwrap();
+        let inherited = load(repo.path(), global.path());
+        assert!(
+            inherited.jev.is_search_filter_enabled,
+            "a scaffolded repo inherits a global opt-in"
+        );
+        assert!(!inherited.jev.is_overview_enabled);
+        assert_eq!(inherited.jev.search_filter_min_unrelated_probability, 0.9);
+    }
+
+    #[test]
+    fn test_v24_migration_appends_commented_jev_block_after_analysis_settings() {
+        let original = "# codemap-config-version: 23\n[output.search]\n# keep note\ndetail_file_limit = 7\n\n[analysis]\n# Rust analysis target OS.\ntarget_os = \"linux\"\n\n[filesystem_permissions]\nfind = \"workspace\"\n";
+        for language in [
+            ConfigCommentLanguage::English,
+            ConfigCommentLanguage::Korean,
+        ] {
+            let migrated =
+                apply_migrations_with_language(original, 23, CONFIG_VERSION, MIGRATIONS, language)
+                    .unwrap();
+            assert!(
+                migrated.starts_with("# codemap-config-version: 24\n"),
+                "{migrated}"
+            );
+            let target = migrated.find("target_os = \"linux\"").unwrap();
+            let block = migrated.find("# [analysis.jev]").unwrap();
+            let next = migrated.find("[filesystem_permissions]").unwrap();
+            assert!(target < block && block < next, "{migrated}");
+            assert!(
+                migrated.contains("# keep note\ndetail_file_limit = 7"),
+                "{migrated}"
+            );
+            let parsed: toml::Value = toml::from_str(&migrated).unwrap();
+            assert!(
+                parsed["analysis"].get("jev").is_none(),
+                "the block stays commented"
+            );
+            let layer = normalize(parsed, Path::new("t"));
+            let resolved = merge(layer, ConfigLayer::default());
+            assert_eq!(resolved.jev, JevConfig::default());
+            assert_eq!(resolved.analysis_target_os.as_deref(), Some("linux"));
+            assert_eq!(resolved.result_threshold, 7);
+            let activated = activate_examples(&migrated);
+            let activated = normalize(toml::from_str(&activated).unwrap(), Path::new("t"));
+            let resolved = merge(activated, ConfigLayer::default());
+            assert_eq!(resolved.jev, JevConfig::default());
+            assert_eq!(
+                resolved.analysis_target_os.as_deref(),
+                Some("linux"),
+                "target_os stays under [analysis]"
+            );
+            assert!(apply_migrations_with_language(
+                &migrated,
+                CONFIG_VERSION,
+                CONFIG_VERSION,
+                MIGRATIONS,
+                language
+            )
+            .is_none());
+        }
+        let existing = "# codemap-config-version: 23\n[analysis.jev]\nis_overview_enabled = true\n";
+        let migrated = apply_migrations(existing, 23, CONFIG_VERSION, MIGRATIONS).unwrap();
+        assert_eq!(migrated.matches("analysis.jev").count(), 1, "{migrated}");
+        let without_analysis = "# codemap-config-version: 23\n[update]\nconfig_auto_update = true";
+        let migrated = apply_migrations(without_analysis, 23, CONFIG_VERSION, MIGRATIONS).unwrap();
+        assert!(
+            migrated.ends_with("# search_filter_min_unrelated_probability = 0.70\n"),
+            "{migrated}"
+        );
+        assert!(
+            migrated.contains("config_auto_update = true\n\n# Optional TypeSafe Jev"),
+            "{migrated}"
+        );
     }
 
     #[test]

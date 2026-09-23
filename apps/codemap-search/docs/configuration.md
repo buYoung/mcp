@@ -4,11 +4,11 @@
 
 Configuration is optional. Add only the keys you want to change; other keys use global settings or built-in defaults.
 
-`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win.
+`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win. `[analysis.jev]` is optional as well: both [Jev modes](#optional-jev-judgments) are off by default and no configuration is needed without them.
 
 ## Section layout and output budgets
 
-Keep one configuration file and group keys by responsibility. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
+Keep one configuration file and group keys by responsibility. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path, the target-clearing example and every `[analysis.jev]` key remain commented, so repositories inherit global Jev settings. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
 
 | Section | Responsibility |
 |---|---|
@@ -27,6 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
+| `analysis.jev` | Optional Jev overview recommendations and search filtering; off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -55,10 +56,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **23**. The marker is a comment:
+The current configuration schema is **24**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -81,6 +82,7 @@ The current configuration schema is **23**. The marker is a comment:
 - Version 21 also moves section notes and inactive setting examples beside their relocated settings, updating example key names without activating values. Arbitrary notes whose origin was lost in an earlier migration remain in place rather than being assigned a guessed destination.
 - Version 22 displays `output.context.exclude` and its test-rule subtables last in the `output` group. Key paths, values and scope remain unchanged; comments move with the section.
 - Version 23 replaces recognized generated descriptions with the current localized wording, removes generated migration history, and restores the file-level introduction. Existing assignments, inactive values, unknown notes and string contents are preserved. The additional active defaults apply only to newly generated files.
+- Version 24 adds a commented `[analysis.jev]` block after the `[analysis]` settings (at the end of the file when `[analysis]` is absent). Both Jev modes stay off. The block omits `api_key_env`, which only the global file can set.
 - Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
@@ -164,14 +166,15 @@ MCP watches the repo/global config directories that exist at startup, independen
 | `config_auto_update` | Automatic writes at the next MCP startup |
 | `[output.client].claude_max_result_chars` | Next tools/list after reload; reconnect MCP to refresh client metadata |
 | `[output.client].codex_output_token_limit` | Re-run codex-config and merge the fragment into Codex settings |
+| `[analysis.jev]` | Subsequent `overview`/`search` calls after reload; an evaluation in flight keeps the settings it started with. Tool descriptions change at the next tools/list, so reconnect clients that cache them |
 
 Manual exclusion changes update file filters and request a full index refresh. Removed files disappear from results and newly included files become searchable when the refresh finishes. If indexing is unavailable, recover or restart the server before checking the results.
 
 ## Key reference
 
-This table summarizes supported keys, accepted types, and defaults. Numeric keys require positive integers except `output.grep.max_columns`, which also accepts `0`. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `result_threshold = 5`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
+This table summarizes supported keys, accepted types, and defaults. Numeric keys require positive integers except `output.grep.max_columns` and `analysis.jev.request_spacing_ms`, which also accept `0`, and `analysis.jev.search_filter_min_unrelated_probability`, a number with `0.5 < value <= 1.0`. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `result_threshold = 5`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
 
-Byte-size keys accept either an integer byte count or a quoted positive integer with `b`, `kb`, `mb`, or `gb`. Units are case-insensitive and use powers of 1024: `"50mb"` = `52428800` bytes. Surrounding whitespace and a space before the unit are accepted (`"50 MB"`). Fractions, zero, negative values, unknown units, and values outside the destination integer range warn and inherit the lower layer. TOML requires quotes around unit-bearing values; bare `50mb` is invalid TOML. This applies to `index.max_file_bytes`, `output.read.max_bytes`, `output.search.max_bytes`, `output.context.max_bytes`, and `output.macro_expansion.max_output_bytes`; counts and milliseconds still require integers.
+Byte-size keys accept either an integer byte count or a quoted positive integer with `b`, `kb`, `mb`, or `gb`. Units are case-insensitive and use powers of 1024: `"50mb"` = `52428800` bytes. Surrounding whitespace and a space before the unit are accepted (`"50 MB"`). Fractions, zero, negative values, unknown units, and values outside the destination integer range warn and inherit the lower layer. TOML requires quotes around unit-bearing values; bare `50mb` is invalid TOML. This applies to `index.max_file_bytes`, `output.read.max_bytes`, `output.search.max_bytes`, `output.context.max_bytes`, `output.macro_expansion.max_output_bytes`, and `analysis.jev.max_batch_bytes`; counts and milliseconds still require integers.
 
 | Key | Type | Default | Summary |
 |---|---|---|---|
@@ -228,6 +231,16 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
+| `[analysis.jev].is_overview_enabled` | bool | `false` | Jev recommendations on the repository-root `overview` for calls with `task_query` |
+| `[analysis.jev].is_search_filter_enabled` | bool | `false` | Jev omission of unrelated displayed `search` bodies for calls with `task_query` |
+| `[analysis.jev].model` | string | `"jev-1.13.0"` | Pinned versioned model; aliases such as `jev-latest` are rejected |
+| `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Variable that holds the API key; read only from the global config, never the key itself |
+| `[analysis.jev].timeout_ms` | integer (ms), 1–600000 | `45000` | Evaluation deadline for one tool call, including queueing and spacing |
+| `[analysis.jev].max_in_flight_requests` | integer, 1–16 | `3` | Concurrent API requests shared by all calls |
+| `[analysis.jev].request_spacing_ms` | integer (ms), 0–10000 | `300` | Minimum gap between API request starts |
+| `[analysis.jev].max_batch_bytes` | integer bytes or size string, 4096–512000 | `80000` | Largest encoded request body; token limits are estimated separately |
+| `[analysis.jev].pool_idle_timeout_ms` | integer (ms), 1–600000 | `30000` | Pooled connections idle longer are closed, not reused |
+| `[analysis.jev].search_filter_min_unrelated_probability` | number, 0.5 < value ≤ 1.0 | `0.70` | Provisional, uncalibrated omission threshold for the search filter |
 | `[update].config_auto_update` | bool | `true` | Create missing repo config and append commented schema-sync blocks on `mcp` startup |
 
 ### Indexing and file exclusions
@@ -425,11 +438,11 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
-# Numeric settings must be positive; output.grep.max_columns also accepts 0.
+# Numeric settings must be positive; output.grep.max_columns and analysis.jev.request_spacing_ms also accept 0.
 # Byte sizes accept b/kb/mb/gb (powers of 1024), e.g. "50mb".
 # MCP watches config directories present at startup; restart if watching is unavailable.
 
@@ -696,6 +709,39 @@ is_build_support_enabled = false
 # Omit the key to inherit; "" clears an inherited target and leaves the target unknown.
 # target_os = ""
 
+[analysis.jev]
+# Optional TypeSafe Jev judgments for overview/search; see docs/configuration.md.
+# Each mode is off by default and runs only for a call with task_query while the key variable
+# is set. That variable's name (api_key_env, default "TYPESAFE_API_KEY") is read only from
+# the global config. Enabled calls send task_query and bounded index or search text to api.typesafe.ai.
+# Recommend files and declarations in the repository root overview.
+# is_overview_enabled = false
+
+# Omit displayed search bodies judged unrelated to task_query; headings and declaration rows remain.
+# is_search_filter_enabled = false
+
+# Pinned model version; aliases such as "jev-latest" are rejected.
+# model = "jev-1.13.0"
+
+# Evaluation deadline for one tool call, including queueing, in milliseconds (1–600000).
+# timeout_ms = 45000
+
+# Concurrent API requests shared by all calls (1–16).
+# max_in_flight_requests = 3
+
+# Minimum gap between API request starts, in milliseconds (0–10000).
+# request_spacing_ms = 300
+
+# Largest request body, in bytes (4096–512000). Token limits are estimated separately.
+# max_batch_bytes = 80000
+
+# Close pooled connections idle longer than this, in milliseconds (1–600000).
+# pool_idle_timeout_ms = 30000
+
+# Provisional, uncalibrated search threshold: omit a body only when P(unrelated) reaches it.
+# Accepts 0.5 < value <= 1.0; it is not a confidence or accuracy level.
+# search_filter_min_unrelated_probability = 0.70
+
 [filesystem_permissions]
 # Filesystem access for find/grep/read: "workspace" limits access to the workspace,
 # "allowed_roots" adds the roots below, and "anywhere" allows any path the process can access.
@@ -789,6 +835,48 @@ Conditions on imports, reexports, declarations, call sites and discoverable pare
 
 One response uses one configuration snapshot; a concurrent reload applies to subsequent requests.
 
+
+## Optional Jev judgments
+
+`[analysis.jev]` connects two independent, opt-in uses of the TypeSafe Jev API to MCP calls. Both are off by default; the default installation needs no key, network access or Python, and read/find/grep never use Jev.
+
+| Mode | Switch | With `task_query` |
+|---|---|---|
+| Overview recommendations | `is_overview_enabled` | The default repository-root `overview` appends up to 24 recommended indexed files, each with at most two declarations and `read` windows |
+| Search filtering | `is_search_filter_enabled` | `search` omits displayed bodies whose Noul P(unrelated) reaches `search_filter_min_unrelated_probability`. File headings, declaration rows, notices and the ranked tail stay, and omitted bodies are listed with ranges for `read` |
+
+A mode evaluates only when all of the following hold; otherwise the regular output is returned:
+
+1. Its switch is `true` in the request's effective config. Enabling a mode sends nothing by itself.
+2. The call passes `task_query`: the user's original request, verbatim or faithfully summarized. It is never derived from `search.query`, overview path aliases, earlier calls or transcripts. An absent or blank value skips evaluation; a non-string value or one over 2,000 characters is an invalid-params error.
+3. The environment variable named by `api_key_env` (default `TYPESAFE_API_KEY`) holds the key when the call runs. Only the global config file can set `api_key_env`, so a repository file cannot choose which variable is sent as a credential. The key itself never belongs in a config file.
+4. The index has finished its initial pass. Overview recommendations also need the default root view: no folder or file path and no `llms-txt` format.
+
+Set the key in the environment that starts `codemap-search mcp` (for example `export TYPESAFE_API_KEY=...`), then enable a mode in the global file (`$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml`):
+
+```toml
+[analysis.jev]
+is_search_filter_enabled = true
+# is_overview_enabled = true
+# search_filter_min_unrelated_probability = 0.70
+```
+
+Generated repository files keep every `[analysis.jev]` key commented, so global settings apply; an active repository value overrides the global one per key, and repository files can enable or disable modes. Pass the task with each call:
+
+```json
+{"name": "overview", "arguments": {"task_query": "Why does the upload retry stop after the third attempt?"}}
+{"name": "search", "arguments": {"query": "upload retry attempts", "task_query": "Why does the upload retry stop after the third attempt?"}}
+```
+
+**Transmitted data.** Overview first sends `task_query`, a copy of the base overview of up to 8 KiB and, for every indexed file, its path, line count, test-file flag, declaration names, kinds and ranges, first doc lines and call texts; a second stage sends the selected files' declarations with their calls and possible callers for role classification. Search sends `task_query`, the search arguments (query and hints) and each complete displayed declaration body with its identity and up to eight displayed callers and callees. Everything passes the same masking as tool output before it is sent (none when `output.is_redact_enabled = false`). That masking recognizes credential formats and assignments, so other free text, including anything written into `task_query`, is sent as written; keep secrets out of `task_query`. Source files and the index are never modified.
+
+**Outcome notes.** An enabled mode ends its tool's output with one line: `[jev <tool>: applied · … · requests=N · input_tokens=… · output_tokens=… · elapsed_ms=… · http_ms=…]`, `[jev <tool>: bypassed (<reason>) · original output unchanged]` or `[jev <tool>: fallback (<reason>) · original output preserved · …]`. Bypass reasons are `no_task_query`, `missing_credential`, `index_warming`, `not_repository_root` (overview with `task_query` on a non-root view), `output_budget`, `event_lookup`, `no_results` and `no_eligible_bodies`; a folder or file `overview` without `task_query` gets no note. Fallback reasons are the runtime error labels, such as `http_status`, `deadline_exceeded`, `transport`, `answer_set_mismatch`, `invalid_answer` or `invalid_credential`; a fallback never applies a partial result. Applied overview notes report `status=matched`, `no_match` or `insufficient_evidence`; the last two recommend nothing and do not mean the implementation is absent. Notes are added only within the output limits, and a filtered search whose note cannot fit returns the regular output instead. The same outcomes, usage and timing are logged to stderr.
+
+**Judgment versus host rules.** Jev returns probabilities; Rust decides what is shown. The search filter keeps partial, missing, oversized, unknown-kind and ambiguously linked bodies, bodies below the threshold, bodies linked to or nested in kept code, and every body without a valid answer. Overview ranks only files whose Score mass favours the supporting or direct levels and never fills unused slots with other files. These policies are experimental and uncalibrated: `search_filter_min_unrelated_probability = 0.70` is a provisional default, not a confidence or accuracy level. It accepts `0.5 < value <= 1.0`; invalid or non-finite values warn and fall back to the lower layer.
+
+**Time and size limits.** `timeout_ms` bounds one tool call's evaluation, including permit queueing and request spacing; overview shares one deadline across its two stages. `max_in_flight_requests` and `request_spacing_ms` apply across calls of one server. `max_batch_bytes` limits the encoded bytes of one request. Token limits (64k for the state plus all questions and 32k for the state plus the longest question) are checked with a conservative local estimate because no tokenizer is published, and a search body too large for one question is kept without one. Nothing is retried automatically; `pool_idle_timeout_ms` closes idle connections instead of reusing them.
+
+**Reuse from Rust.** The evaluator is the crate module `codemap_search::jev` and does not depend on MCP. `examples/jev_decisions.rs` builds Score, Choice and Noul questions over caller-supplied state: `cargo run --example jev_decisions -- --mock` (the default) checks a fixed offline response, and `-- --live` sends one billed request with `TYPESAFE_API_KEY`. Score returns a distribution over ordered levels, Choice returns one named option with option probabilities, and Noul returns the probability that the question is true. Answer quality and the thresholds have not been calibrated.
 
 ## Indexed event navigation
 

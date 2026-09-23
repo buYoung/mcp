@@ -4,11 +4,11 @@
 
 codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변경할 키만 설정하면 나머지는 전역 설정이나 내장 기본값을 사용합니다.
 
-`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다.
+`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다. `[analysis.jev]`도 선택 섹션입니다. 두 [Jev 모드](#선택-기능-jev-판정)는 기본으로 꺼져 있으며 사용하지 않으면 설정할 필요가 없습니다.
 
 ## 섹션 구성과 출력 한도
 
-설정 파일을 추가로 나누지 않고 역할별 하위 섹션으로 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep·클라이언트 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+설정 파일을 추가로 나누지 않고 역할별 하위 섹션으로 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep·클라이언트 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시, `[analysis.jev]`의 모든 키는 주석으로 유지하므로 저장소는 전역 Jev 설정을 상속합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
@@ -27,6 +27,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `analysis.jev` | 선택 기능인 Jev overview 추천과 search 필터. 기본으로 꺼짐 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -53,10 +54,10 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **23**이며 주석으로 표시합니다.
+현재 설정 버전은 **24**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -79,6 +80,7 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 - 버전 21은 섹션 설명과 비활성 설정 예시도 관련 새 섹션으로 옮기며, 예시의 키 이름을 새 이름에 맞춥니다. 설정값은 활성화하지 않습니다. 이전 전환에서 소속 정보가 없어진 임의 메모는 위치를 추측하지 않고 그대로 보존합니다.
 - 버전 22는 `output.context.exclude`와 하위 테스트 규칙을 `output` 묶음의 맨 아래로 옮깁니다. 설정 경로·값·적용 범위는 유지하며 주석도 함께 이동합니다.
 - 버전 23은 확인 가능한 자동 생성 설명을 현재 언어의 문구로 교체하고, 자동 생성된 변경 이력을 제거하며 파일 전체 안내를 맨 위에 둡니다. 기존 설정값·주석 처리 상태·자동 생성 설명으로 식별되지 않는 메모·문자열 내용은 보존합니다. 추가 기본값의 활성화는 새로 생성하는 파일에만 적용합니다.
+- 버전 24는 `[analysis]` 설정 뒤(`[analysis]`가 없으면 파일 끝)에 주석 처리한 `[analysis.jev]` 블록을 추가합니다. 두 Jev 모드는 꺼진 상태를 유지하며, 전역 파일에서만 지정할 수 있는 `api_key_env`는 블록에 넣지 않습니다.
 - 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
@@ -161,14 +163,15 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[output.client].claude_max_result_chars` | 다시 읽은 도구 정의에 반영. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | codex-config를 다시 실행하고 출력 조각을 Codex 설정에 반영 |
+| `[analysis.jev]` | 다시 읽은 뒤 다음 `overview`/`search` 호출. 진행 중인 판정은 시작할 때의 설정을 유지. 도구 설명은 다음 tools/list에 반영되므로 도구 목록을 저장해 두는 클라이언트는 다시 연결 |
 
 제외 규칙을 직접 바꾸면 파일 필터를 갱신하고 전체 색인 갱신을 요청합니다. 갱신 완료 후 제외된 파일은 결과에서 사라지고 새로 포함한 파일은 검색할 수 있습니다. 색인 기능을 사용할 수 없으면 복구하거나 서버를 재시작한 뒤 결과를 확인하세요.
 
 ## 설정 키
 
-숫자 키는 양의 정수이며 `output.grep.max_columns`만 `0`도 허용합니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `result_threshold = 5` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
+숫자 키는 양의 정수이며 `output.grep.max_columns`와 `analysis.jev.request_spacing_ms`는 `0`도 허용합니다. `analysis.jev.search_filter_min_unrelated_probability`는 `0.5 < 값 <= 1.0`인 숫자입니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `result_threshold = 5` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
 
-바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.macro_expansion.max_output_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
+바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.macro_expansion.max_output_bytes`, `analysis.jev.max_batch_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
 
 | 키 | 자료형 | 기본값 | 설명 |
 |---|---|---|---|
@@ -225,6 +228,16 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
+| `[analysis.jev].is_overview_enabled` | bool | `false` | `task_query`가 있는 저장소 루트 `overview` 호출에 Jev 추천 추가 |
+| `[analysis.jev].is_search_filter_enabled` | bool | `false` | `task_query`가 있는 `search` 호출에서 무관한 표시 본문 생략 |
+| `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 버전을 고정한 모델. `jev-latest` 같은 별칭은 거부 |
+| `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | API 키를 담은 환경 변수 이름. 전역 설정에서만 읽으며 키 자체는 넣지 않음 |
+| `[analysis.jev].timeout_ms` | 정수(ms), 1~600000 | `45000` | 도구 호출 한 번의 판정 기한. 대기와 요청 간격 포함 |
+| `[analysis.jev].max_in_flight_requests` | 정수, 1~16 | `3` | 모든 호출이 공유하는 동시 API 요청 수 |
+| `[analysis.jev].request_spacing_ms` | 정수(ms), 0~10000 | `300` | API 요청 시작 사이의 최소 간격 |
+| `[analysis.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 4096~512000 | `80000` | 인코딩한 요청 본문의 최대 크기. 토큰 한도는 별도로 추정 |
+| `[analysis.jev].pool_idle_timeout_ms` | 정수(ms), 1~600000 | `30000` | 이 시간보다 오래 쉰 연결은 재사용하지 않고 닫음 |
+| `[analysis.jev].search_filter_min_unrelated_probability` | 숫자, 0.5 < 값 ≤ 1.0 | `0.70` | search 필터의 잠정 생략 기준. 보정하지 않은 값 |
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
 
 ### 색인과 파일 제외
@@ -422,11 +435,11 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 24
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
-# 숫자 설정은 양의 정수이며 output.grep.max_columns만 0도 허용합니다.
+# 숫자 설정은 양수여야 하며 output.grep.max_columns와 analysis.jev.request_spacing_ms는 0도 허용합니다.
 # 바이트 크기는 "50mb"처럼 b/kb/mb/gb 단위를 사용할 수 있습니다. 각 단위는 1024배입니다.
 # MCP 시작 시 존재하는 설정 디렉터리를 감시합니다. 감시를 사용할 수 없으면 재시작하세요.
 
@@ -693,6 +706,39 @@ is_build_support_enabled = false
 # 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
 # target_os = ""
 
+[analysis.jev]
+# overview/search에서 선택적으로 사용하는 TypeSafe Jev 판정입니다. docs/configuration.ko.md를 참고하세요.
+# 각 모드는 기본으로 꺼져 있으며 task_query가 있는 호출에서 키 환경 변수가 설정된 경우에만 실행합니다.
+# 환경 변수 이름(api_key_env, 기본 "TYPESAFE_API_KEY")은 전역 설정에서만 읽습니다.
+# 실행하면 task_query와 제한된 색인·검색 텍스트를 api.typesafe.ai로 보냅니다.
+# 저장소 루트 overview에 파일과 선언을 추천합니다.
+# is_overview_enabled = false
+
+# task_query와 무관하다고 판정된 search 본문을 생략합니다. 파일 제목과 선언 행은 유지합니다.
+# is_search_filter_enabled = false
+
+# 고정할 모델 버전입니다. "jev-latest" 같은 별칭은 거부합니다.
+# model = "jev-1.13.0"
+
+# 도구 호출 한 번의 평가 기한입니다. 대기 시간을 포함하며 단위는 밀리초입니다(1–600000).
+# timeout_ms = 45000
+
+# 모든 호출이 공유하는 동시 API 요청 수입니다(1–16).
+# max_in_flight_requests = 3
+
+# API 요청 시작 사이의 최소 간격입니다. 단위는 밀리초입니다(0–10000).
+# request_spacing_ms = 300
+
+# 요청 본문 최대 크기입니다. 단위는 바이트입니다(4096–512000). 토큰 한도는 별도로 추정합니다.
+# max_batch_bytes = 80000
+
+# 이 시간보다 오래 쉬는 연결은 재사용하지 않고 닫습니다. 단위는 밀리초입니다(1–600000).
+# pool_idle_timeout_ms = 30000
+
+# 보정하지 않은 임시 search 기준값입니다. P(무관)이 이 값 이상일 때만 본문을 생략합니다.
+# 0.5 < 값 <= 1.0만 허용하며 신뢰도나 정확도를 뜻하지 않습니다.
+# search_filter_min_unrelated_probability = 0.70
+
 [filesystem_permissions]
 # find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,
 # "allowed_roots"는 작업공간과 아래 지정한 경로, "anywhere"는 프로세스가 접근 가능한 모든 경로를 허용합니다.
@@ -787,6 +833,48 @@ import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 �
 
 한 응답 안에서는 같은 설정을 사용합니다. 처리 도중 설정이 갱신되면 후속 요청부터 적용합니다.
 
+
+## 선택 기능: Jev 판정
+
+`[analysis.jev]`는 TypeSafe Jev API를 쓰는 두 가지 선택 기능을 MCP 호출에 연결합니다. 두 기능은 서로 독립적이며 기본으로 꺼져 있습니다. 기본 설치에는 키·네트워크·Python이 필요 없고, read·find·grep은 Jev를 사용하지 않습니다.
+
+| 모드 | 스위치 | `task_query`를 전달하면 |
+|---|---|---|
+| overview 추천 | `is_overview_enabled` | 기본 저장소 루트 `overview` 뒤에 추천 색인 파일을 최대 24개 추가합니다. 파일마다 선언 최대 2개와 `read` 구간을 표시합니다 |
+| search 필터 | `is_search_filter_enabled` | Noul P(unrelated)가 `search_filter_min_unrelated_probability` 이상인 표시 본문을 생략합니다. 파일 제목·선언 행·안내·순위 꼬리 목록은 유지하며, 생략한 본문은 `read`용 범위와 함께 나열합니다 |
+
+다음 조건을 모두 만족할 때만 판정하며, 그 밖에는 일반 출력을 반환합니다.
+
+1. 요청에 적용되는 설정에서 해당 스위치가 `true`입니다. 기능을 켜는 것만으로는 아무것도 보내지 않습니다.
+2. 호출에 `task_query`로 사용자의 원래 요청을 원문 그대로 또는 충실히 요약해 전달합니다. `search.query`, overview 경로 별칭, 이전 호출이나 대화 기록에서 만들어 내지 않습니다. 값이 없거나 공백이면 판정을 건너뛰고, 문자열이 아니거나 2,000자를 넘으면 잘못된 인자 오류를 반환합니다.
+3. 호출 시점에 `api_key_env`가 가리키는 환경 변수(기본값 `TYPESAFE_API_KEY`)에 키가 있습니다. `api_key_env`는 전역 설정 파일에서만 지정할 수 있으므로 저장소 파일이 인증정보로 보낼 변수를 고를 수 없습니다. 키 자체는 설정 파일에 넣지 않습니다.
+4. 색인의 첫 구축이 끝났습니다. overview 추천은 폴더·파일 경로와 `llms-txt` 형식이 없는 기본 루트 보기에서만 동작합니다.
+
+`codemap-search mcp`를 실행하는 환경에 키를 설정하고(예: `export TYPESAFE_API_KEY=...`), 전역 파일(`$CODEMAP_HOME/config.toml`, 없으면 `~/.codemap/config.toml`)에서 기능을 켭니다.
+
+```toml
+[analysis.jev]
+is_search_filter_enabled = true
+# is_overview_enabled = true
+# search_filter_min_unrelated_probability = 0.70
+```
+
+자동 생성한 저장소 파일은 `[analysis.jev]`의 모든 키를 주석으로 두므로 전역 설정을 상속합니다. 저장소 파일의 활성 값은 키별로 전역 값보다 우선하며, 저장소 파일에서도 기능을 켜거나 끌 수 있습니다. 호출할 때마다 작업 내용을 함께 전달하세요.
+
+```json
+{"name": "overview", "arguments": {"task_query": "업로드 재시도가 세 번째 시도 뒤에 멈추는 이유는?"}}
+{"name": "search", "arguments": {"query": "upload retry attempts", "task_query": "업로드 재시도가 세 번째 시도 뒤에 멈추는 이유는?"}}
+```
+
+**전송하는 데이터.** overview는 먼저 `task_query`, 최대 8 KiB의 기본 overview 사본, 모든 색인 파일의 경로·줄 수·테스트 파일 여부·선언 이름·종류·범위·첫 문서 줄·호출 텍스트를 보냅니다. 두 번째 단계에서는 역할 분류를 위해 선택한 파일의 선언과 호출, 호출할 수 있는 위치를 보냅니다. search는 `task_query`, 검색 인자(query와 힌트), 표시된 완전한 선언 본문과 그 식별 정보, 표시된 호출자·호출 대상 최대 8개를 보냅니다. 모든 데이터는 보내기 전에 도구 출력과 같은 마스킹을 거칩니다(`output.is_redact_enabled = false`이면 가리지 않음). 이 마스킹은 인증정보 형식과 대입문을 인식하므로, `task_query`에 적은 내용을 포함한 그 밖의 자유 문장은 그대로 전송됩니다. `task_query`에는 비밀값을 넣지 마세요. 원본 파일과 색인은 변경하지 않습니다.
+
+**결과 안내.** 기능이 켜진 도구는 출력 끝에 `[jev <tool>: applied · … · requests=N · input_tokens=… · output_tokens=… · elapsed_ms=… · http_ms=…]`, `[jev <tool>: bypassed (<reason>) · original output unchanged]`, `[jev <tool>: fallback (<reason>) · original output preserved · …]` 중 한 줄을 추가합니다. 건너뛴 이유는 `no_task_query`, `missing_credential`, `index_warming`, `not_repository_root`(루트가 아닌 보기에 `task_query`를 전달한 overview), `output_budget`, `event_lookup`, `no_results`, `no_eligible_bodies`입니다. `task_query`가 없는 폴더·파일 `overview`에는 안내를 붙이지 않습니다. 대체 이유는 `http_status`, `deadline_exceeded`, `transport`, `answer_set_mismatch`, `invalid_answer`, `invalid_credential` 같은 런타임 오류 라벨이며, 대체할 때 부분 결과는 적용하지 않습니다. 적용한 overview 안내에는 `status=matched`, `no_match`, `insufficient_evidence` 중 하나가 표시됩니다. 뒤의 두 상태는 아무것도 추천하지 않으며 구현이 없다는 뜻이 아닙니다. 안내는 출력 한도 안에서만 추가하며, 안내를 넣을 수 없는 필터 결과는 일반 출력으로 대체합니다. 같은 결과와 사용량·시간은 stderr 로그에도 기록합니다.
+
+**판정과 호스트 규칙.** Jev는 확률을 반환하고 표시 여부는 Rust가 결정합니다. search 필터는 일부만 표시된 본문, 누락된 본문, 너무 큰 본문, 종류를 알 수 없거나 연결이 모호한 본문, 기준 미만인 본문, 유지한 코드와 연결되거나 그 안에 중첩된 본문, 유효한 답이 없는 모든 본문을 유지합니다. overview는 Score 확률이 보조·직접 수준 쪽으로 기운 파일만 순위에 올리며, 남은 자리를 다른 파일로 채우지 않습니다. 이 정책은 실험 단계이며 보정하지 않았습니다. `search_filter_min_unrelated_probability = 0.70`은 잠정 기본값이며 신뢰도나 정확도를 뜻하지 않습니다. 허용 범위는 `0.5 < 값 <= 1.0`이며, 잘못되었거나 유한하지 않은 값은 경고 후 하위 설정을 사용합니다.
+
+**시간과 크기 한도.** `timeout_ms`는 허가 대기와 요청 간격을 포함해 도구 호출 한 번의 판정 시간을 제한하며, overview는 두 단계가 하나의 기한을 공유합니다. `max_in_flight_requests`와 `request_spacing_ms`는 한 서버의 모든 호출에 함께 적용합니다. `max_batch_bytes`는 요청 하나의 인코딩 크기를 제한합니다. 공개된 토크나이저가 없으므로 토큰 한도(상태와 모든 질문 64k, 상태와 가장 긴 질문 32k)는 보수적인 로컬 추정으로 확인하며, 질문 하나에 담기에 너무 큰 search 본문은 질문 없이 유지합니다. 자동 재시도는 하지 않으며, `pool_idle_timeout_ms`보다 오래 쉰 연결은 재사용하지 않고 닫습니다.
+
+**Rust에서 재사용.** 판정기는 crate 모듈 `codemap_search::jev`이며 MCP에 의존하지 않습니다. `examples/jev_decisions.rs`는 호출자가 제공한 상태로 Score·Choice·Noul 질문을 만듭니다. `cargo run --example jev_decisions -- --mock`(기본값)은 고정된 오프라인 응답을 확인하고, `-- --live`는 `TYPESAFE_API_KEY`로 과금되는 요청 하나를 보냅니다. Score는 순서가 있는 수준의 확률 분포를, Choice는 선택지 하나와 선택지별 확률을, Noul은 질문에 '예'라고 답할 확률을 반환합니다. 답변 품질과 기준값은 보정하지 않았습니다.
 
 ## 이벤트 관계 탐색
 

@@ -2,7 +2,7 @@
 
 한국어 | [English](./README.md)
 
-코딩 에이전트용 독립 실행형 MCP stdio 서버와 CLI입니다. 저장소 구조를 보고, 심볼·설명·문자열을 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 원문을 확인합니다. Tree-sitter 문법, Tantivy와 ripgrep 라이브러리를 하나의 Rust 바이너리에 포함하므로 시스템 `rg`, 언어 서버, 별도 런타임, 계정이나 API 키가 필요하지 않습니다.
+코딩 에이전트용 독립 실행형 MCP stdio 서버와 CLI입니다. 저장소 구조를 보고, 심볼·설명·문자열을 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 원문을 확인합니다. Tree-sitter 문법, Tantivy와 ripgrep 라이브러리를 하나의 Rust 바이너리에 포함하므로 시스템 `rg`, 언어 서버, 별도 런타임, 계정이나 API 키가 필요하지 않습니다. 직접 켜는 [Jev 판정](#선택-기능-jev-판정)만 API 키를 사용합니다.
 
 ## 설치
 
@@ -81,8 +81,8 @@ args = ["mcp"]
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
 | `initial_instructions` | 탐색 안내를 한 번 읽기 | 없음 |
-| `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
-| `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
+| `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format`, `task_query` |
+| `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context`, `task_query` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
@@ -96,7 +96,7 @@ args = ["mcp"]
 
 MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호출 관계를 표시합니다. 호출 대상이 정해지면 정의 파일과 줄 번호를 붙입니다. 같은 파일의 상수 참조에는 정의 위치와 초기값 미리보기를 표시하고, 이름이 모호하면 생략합니다. 색인 정보는 최근 편집을 아직 반영하지 않았을 수 있습니다.
 
-도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인과 파일 내용 반환 기록을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다.
+도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인과 파일 내용 반환 기록을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다. `task_query`는 [Jev 모드](#선택-기능-jev-판정)에서만 사용합니다. 모드가 꺼진 도구(기본값)는 이 값을 사용하지 않으며 네트워크로 아무것도 보내지 않습니다.
 
 ## 제외 목록과 출력 설정
 
@@ -124,6 +124,33 @@ excluded_directories = [
 `build`는 모든 깊이의 해당 폴더, `./build`는 루트만, `apps/web/build`는 지정 프로젝트만 제외합니다. 명시한 배열은 선택적 기본 목록을 대체합니다. `[]`는 선택적 제외 해제, 키 생략은 전역/기본값 상속입니다. `.gitignore`, 전역 Git ignore, `.git/info/exclude`, `.codemapignore`는 별도로 적용합니다. VCS 내부, `.codemap`, `.codemap-index`, 실제 색인 위치는 배열과 무관하게 탐색에서 제외합니다. `find`·`grep`의 `include_ignored: true`는 선택적 제외를 우회하며, 직접 `read`는 파일시스템 권한을 따릅니다.
 
 MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
+
+## 선택 기능: Jev 판정
+
+두 가지 독립 모드에서 TypeSafe Jev API를 사용할 수 있습니다. 두 모드는 기본으로 꺼져 있으며, 모드를 켜고 호출에 `task_query`를 전달하기 전에는 아무것도 보내지 않습니다.
+
+- **overview 추천** (`[analysis.jev].is_overview_enabled`): 저장소 루트 `overview` 뒤에 추천 색인 파일을 최대 24개 추가하고, 선언과 `read` 구간을 함께 표시합니다.
+- **search 필터** (`[analysis.jev].is_search_filter_enabled`): `search`에서 작업과 무관하다고 판정한 표시 본문을 생략합니다. 기본 기준인 P(unrelated) >= 0.70은 보정하지 않은 잠정값입니다. 파일 제목·선언 행·순위 꼬리 목록은 유지하며, 생략한 본문은 `read`할 범위와 함께 나열합니다.
+
+MCP 서버를 실행하는 환경에 키를 내보낸 뒤 전역 설정(`$CODEMAP_HOME/config.toml`, 기본 `~/.codemap/config.toml`)에서 모드를 켭니다. 키를 담을 환경 변수는 전역 파일의 `api_key_env`에서만 바꿀 수 있습니다.
+
+```bash
+export TYPESAFE_API_KEY=...
+```
+
+```toml
+[analysis.jev]
+is_overview_enabled = true
+is_search_filter_enabled = true
+```
+
+검색어로 바꾸지 말고 사용자의 원래 요청을 전달하세요.
+
+```json
+{"name": "search", "arguments": {"query": "upload retry attempts", "task_query": "업로드 재시도가 세 번째 시도 뒤에 멈추는 이유는?"}}
+```
+
+켜진 모드는 도구 출력과 같은 마스킹을 거친 `task_query`와 제한된 색인 정보(overview) 또는 표시된 선언 본문(search)을 `api.typesafe.ai`로 보냅니다. `task_query`의 자유 문장은 인증정보 형식이 아니면 그대로 전송되므로 비밀값을 넣지 마세요. 켜진 호출은 끝에 `applied`, `bypassed`, `fallback` 중 한 줄을 추가하며, `applied`와 `fallback` 줄은 요청 수·입력/출력 토큰·경과 시간을 따로 보고합니다. `task_query`나 키가 없거나 색인 준비 중이거나 오류·시간 초과가 나면 일반 출력을 유지합니다. 판정기는 Rust에서 `codemap_search::jev`로 직접 호출할 수도 있으며, `cargo run --example jev_decisions -- --mock`은 Score·Choice·Noul 질문을 오프라인으로 보여 줍니다. 활성 조건, 전송 데이터, 한도와 모든 설정은 [선택 기능: Jev 판정](./docs/configuration.ko.md#선택-기능-jev-판정)을 참고하세요.
 
 ## 지원 언어와 형식
 

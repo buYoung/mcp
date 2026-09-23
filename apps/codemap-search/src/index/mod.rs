@@ -12,6 +12,7 @@ mod path_role;
 mod preprocess;
 pub use preprocess::MacroExpander;
 mod ranking;
+pub(crate) use ranking::is_test_like_path;
 mod supervisor;
 mod watcher;
 

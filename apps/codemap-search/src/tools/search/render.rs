@@ -779,7 +779,19 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
+                let numbered_lines = capped.lines().filter(|line| line.contains('→')).count();
+                let window = super::grouped::BodyWindow {
+                    source: "```\n".len().."```\n".len() + capped.len(),
+                    first_line: start,
+                    last_line: (start + numbered_lines).saturating_sub(1),
+                    line_count: numbered_lines,
+                    is_clipped,
+                };
+                if !text.push_body(
+                    &format!("```\n{capped}\n```\n"),
+                    Some("```\n".len()),
+                    window,
+                ) {
                     return AnchoredRenderOutcome {
                         budget_hit: true,
                         emitted_starts,
@@ -872,7 +884,14 @@ pub(super) fn render_anchored_symbols(
             }
             let source_offset = source_block.len() + "```\n".len();
             source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block, Some(source_offset)) {
+            let window = super::grouped::BodyWindow {
+                source: source_offset..source_offset + capped.len(),
+                first_line: shown_lines.first().copied().unwrap_or(snippet_start),
+                last_line: displayed_end,
+                line_count: displayed_lines,
+                is_clipped: is_byte_clipped,
+            };
+            if !text.push_body(&source_block, Some(source_offset), window) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,
