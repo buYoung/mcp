@@ -1,5 +1,7 @@
 # 개발 언어 전체 공개 저장소 검증
 
+> 2026-09의 고정 실행을 보존한 검증 보고서입니다. 아래 설정·바이너리·검사 수·기본값은 당시 기준이며 현재 제품의 검증 결과가 아닙니다. 현재 실행 방법은 [개발 언어 품질 확인 명령](development-language-commands.ko.md), 설정은 [현재 참조](configuration.ko.md)를 따릅니다.
+
 Rust·Go 검증을 포함해 25개 개발 언어, 50개 언어·저장소 조합을 대상으로 검증을 확대했다. 저장소는 49개다. PostgreSQL을 C와 SQL에 각각 사용했다. 모든 대상의 커밋 수는 1,000개 이상이며, 사용자가 승인한 코드 규모 예외는 10개 조합에 적용했다.
 
 호출·상수 문맥과 제외 규칙 개선에 이어 Groovy·Zsh·Kotlin 파서, C++ 변환 연산자, 파일명 검색과 PowerShell 문맥 준비를 수정했다. C/C++·ASM에는 선택적으로 켜는 Clang/NASM 매크로 확장을 추가했다. 비 UTF-8 소스는 색인하지 않고 제외 이유를 표시한다. 공개 검증의 실패 4건과 선언 대조 보류 216건은 아래에 구분해 보존한다. 사용자가 선택한 대로 **Flow 지원은 별도 작업으로 분리**한다. 이 문서는 통과한 검사와 남은 실패·판정 보류를 구분하며, 언어 전체의 무오류 판정이나 전수 코드 검토 결과가 아니다.
@@ -195,6 +197,6 @@ python3 apps/codemap-search/scripts/probe_development_languages.py \
 
 실제 전체 실행의 바이너리·설정·소스·파서 해시, 원시 `mcp.jsonl`, 오류 로그, 파일별 독립 파서 결과는 `/Users/buyong/tmp/codemap-public-validation/runs/`에 보존한다. 중단된 검사도 실행기가 `partial-results.json`에 완료한 항목과 실패 요청을 남긴다. 이 보존 개선 전의 기준선은 원시 요청·응답과 최상위 오류 기록을 사용한다.
 
-`cm read`·`cm grep`과 CLI `parse`·`codemap`·`search`로 직접 비교하는 명령은 [품질 확인 명령](development-language-commands.ko.md)에 정리했다.
+당시 `cm read`·`cm grep`과 CLI로 직접 비교한 명령은 [개별 확인 기록](history/development-language-commands.ko.md)에 보존한다. 현재 환경에서 다시 실행할 때는 [품질 확인 명령](development-language-commands.ko.md)을 사용한다.
 
 이후 실시간 출력·Rust 연결·이벤트 탐색 브리프의 설치본과 검증 기록은 [통합 결과](../../../docs/briefs/evidence/codemap-nav/integration.json)에 분리했다. 위 공개 저장소 결과를 이후 바이너리의 전체 재검증 결과로 해석하지 않는다.

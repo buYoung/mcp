@@ -282,8 +282,8 @@ is_build_support_enabled = false
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
 # search_filter_enabled = false
 
-# 호출별 task_query 없이 등록한 목적으로 read/grep을 자동 필터링합니다. 선택된 완전한
-# 본문만 판단하며 원문 복원 시 read_filter_enabled를 끕니다. grep 파일 목록·개수 모드와
+# 등록한 목적에 맞춰 read/grep에서 선택된 완전한 본문을 자동 필터링합니다.
+# 생략 없는 원문을 읽으려면 read_filter_enabled를 끕니다. grep 파일 목록·개수 모드와
 # definitions/relations 전용 보기는 필터링하지 않습니다.
 # read_filter_enabled = false
 # grep_filter_enabled = false
@@ -309,7 +309,7 @@ is_build_support_enabled = false
 # 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
 # pool_idle_timeout_ms = 30000
 
-# search/read/grep 공통 본문 필터 임계값입니다(호환성을 위해 기존 키 이름 유지).
+# search/read/grep 공통 본문 필터 임계값입니다.
 # Jev가 본문이 무관하다고 본 확률이 이 값 이상일 때만 완전한 본문을
 # 생략합니다(유한, 0.5 초과, 1.0 이하). 잠정값이며 보정되지 않았습니다.
 # search_filter_min_unrelated_probability = 0.70

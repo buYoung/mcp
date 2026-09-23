@@ -66,25 +66,9 @@ The current configuration schema is **25**. The marker is a comment:
 - On `mcp` startup, `[update].config_auto_update = true` creates a missing repo file. Its directory array contains common folders and recursive globs for detected project types; other active values use their built-in defaults. Active repo values override global settings.
 - A pre-v6 repo config, including one without a marker, receives a **one-time directory migration**. Existing user rules, the old effective exclusions, common folders and recommended recursive globs are made explicit in its array. Existing entries and comments are preserved; missing values are appended without duplication. The marker advances to the current schema version.
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
-- Version 8 moves active test-code settings from the root or `[caller_context]` into `[exclude]`, preserving effective values and user comments. Automatic writes still follow `config_auto_update`; legacy locations remain readable, including in the global file. Invalid or conflicting values that cannot be moved without changing behavior leave the file untouched and produce a warning.
-- Version 9 also moves `excluded_directories` and `use_git_exclude` from `[index]` or root-level aliases into `[exclude]`. Existing arrays, explicit `[]`, booleans, and comments are preserved; no directory rules are added by this relocation. Valid `[exclude]` values take precedence within the same file.
-- Version 12 introduced the commented `[event_navigation].is_enabled` opt-in, with event indexing disabled by default in that version.
-- Version 13 enables event indexing and relevant navigation output by default. Explicit `is_enabled=false` values remain disabled; `include_events=false` suppresses event context for one request.
-- Version 14 adds `[tool_output].is_redact_enabled`, defaulting to `true`. Its migration adds a commented setting; the built-in default applies unless explicitly overridden.
-- Version 15 adds commented empty `sensitive_fields`, `rules` and `exceptions` lists under `[redact]`, preserving existing rules and exceptions.
-- Version 16 adds `[redact].pii_entities` as a commented empty list. PII rules remain opt-in; existing credential masking defaults are preserved.
-- Version 17 adds `[tool_output].is_overview_stats_enabled`, defaulting to `true`. Repository-root and monorepo project-root `overview` output includes indexed-file language statistics; set `false` to omit them.
-- Version 11 adds a commented `[analysis].target_os`; omitted or empty remains target-neutral.
-- Version 10 introduced the commented `[macro_expansion]` section, initially disabled by default. Native preprocessing is now enabled by default; an existing explicit `is_enabled=false` remains disabled. Migration distinguishes TOML string contents from section headers and version comments.
-- Version 18 groups rendering under `output`, placing `output.client` immediately after it. Refresh/language switches move under `index`; navigation, macros and events move under `analysis`. Legacy names remain readable. Migration checks configured values and inheritance before writing; optional common/client limits are not automatically enabled.
-- Version 19 moves navigation, macro_expansion and event_navigation under `output` and restores per-key descriptions. The v18 `analysis.*` locations remain readable aliases; migration preserves configured values and user comments.
-- Version 20 moves directory rules from `[exclude]` to `[index.exclude]` and test-context rules to `[output.context.exclude]`. Scope, values and inheritance remain unchanged; no independent per-tool exclusion policies are added. Legacy locations remain readable, and migration preserves user comments and explicit `[]` values.
-- Version 21 also moves section notes and inactive setting examples beside their relocated settings, updating example key names without activating values. Arbitrary notes whose origin was lost in an earlier migration remain in place rather than being assigned a guessed destination.
-- Version 22 displays `output.context.exclude` and its test-rule subtables last in the `output` group. Key paths, values and scope remain unchanged; comments move with the section.
-- Version 23 replaces recognized generated descriptions with the current localized wording, removes generated migration history, and restores the file-level introduction. Existing assignments, inactive values, unknown notes and string contents are preserved. The additional active defaults apply only to newly generated files.
-- Version 24 adds the commented `[analysis.jev]` section as one paragraph after the `[analysis]` section. Both Jev modes remain off, every key stays commented, and no credential is ever written: the section names the environment variable that holds the API key. A file that already mentions the section is only re-stamped.
-- Version 25 adds commented `read_filter_enabled` and `grep_filter_enabled` keys to `[analysis.jev]`. Existing search opt-in does not enable external transmission from live tools.
-- Ordinary schema updates still add new settings as commented blocks according to `config_auto_update`; they do not automatically enable those keys. A current file is not rewritten.
+- Schema updates relocate supported older key names to the current layout while preserving effective values, inheritance, explicit `[]` lists and user comments. Older aliases remain readable, including in the global file. Conflicting or invalid values that cannot be moved safely leave the file unchanged and produce a warning.
+- New settings are added as commented examples, not active assignments. Omitted keys use their inherited or built-in defaults; explicit values such as `is_enabled=false` remain effective. Each Jev stage stays off unless its own flag is enabled.
+- Generated descriptions and section placement may be refreshed, but inactive assignments and user notes are preserved. A current file is not rewritten.
 - `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
 
@@ -238,7 +222,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[analysis.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
 | `[analysis.jev].max_batch_bytes` | integer bytes or size string, 1 to 80000 | `80000` | Encoded request bytes per batch (80000 is the runtime ceiling); a question that does not fit is an explicit failure |
 | `[analysis.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
-| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Shared search/read/grep threshold; existing key name retained for compatibility |
+| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Shared search/read/grep unrelated-probability threshold for complete bodies |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -724,7 +708,7 @@ is_build_support_enabled = false
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
 
-# Automatically filter read/grep using the registered task, not a per-call task_query.
+# Automatically filter read/grep using the registered task.
 # Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
 # restoration; grep file/count modes and definitions/relations-only views are never filtered.
 # read_filter_enabled = false
@@ -752,7 +736,7 @@ is_build_support_enabled = false
 # is opened.
 # pool_idle_timeout_ms = 30000
 
-# Shared search/read/grep body-filter threshold (the key name is kept for compatibility).
+# Shared search/read/grep body-filter threshold.
 # A complete body is omitted only when Jev's probability that it is
 # unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
 # search_filter_min_unrelated_probability = 0.70
@@ -866,27 +850,83 @@ grep_filter_enabled = true
 export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
 ```
 
-Overview recommendation and each search/read/grep filter are independently off by default. When any stage is enabled, start each task with `initial_instructions` and a nonempty string `task_query` containing the user's complete purpose. This registers connection-local context; it is not inferred from `search.query` or `grep.pattern`. Register again on task changes. Registration replaces the old context, invalid registration clears it, and a new initialize resets it. Missing/blank context or invalid registration is an argument error (`-32602`), not an unfiltered opt-out.
+All four stages are independently off by default. Enabling one permits external requests for that tool, not for the other tools. `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
-**Caller migration:** `search`, `read` and `grep` no longer accept a per-call `task_query`; passing it is an argument error even if the stage is disabled. Enabled filters automatically use the registered task for eligible output. After registration, if overview is enabled, call root `overview {}` before search/grep/read, even if scopes or paths are already known; inspect recommendations first and retry if indexing was still warming. Overview's legacy optional `task_query` remains a recommendation-only override and does not register or replace the body-filter task. Other arguments, aliases, permissions, windows/pages, envelopes and output limits stay unchanged. `find`, `analyze`, registration itself and the CLI do not invoke Jev. For unfiltered restoration, disable `analysis.jev.read_filter_enabled` and then read the indicated range; parameter omission no longer bypasses filtering.
+### Task registration and tool order
 
-While a stage is enabled, `tools/list` advertises the matching tool with `openWorldHint: true` (it may contact the external provider) next to the unchanged `readOnlyHint: true`, and the tool description and `initial_instructions` say so. Hints and descriptions follow the configuration of the request that lists them, so after turning a stage on or off a client that caches tool metadata may need to list the tools again or reconnect; not every client refreshes on its own.
+1. At task start, call `initial_instructions` with a nonempty string `task_query` containing the user's complete purpose. Register again whenever the task changes.
+2. If overview recommendations are enabled, call root `overview {}` next, even if paths or scopes are already known. Inspect the recommended files before search/grep/read. If indexing was warming, retry overview once ready.
+3. Call search/read/grep normally. Enabled body filters automatically use the registered task for eligible output.
 
-Root `overview` with `overview_enabled` uses the same per-file summary and row renderer as the ordinary overview, but removes its file-count and per-kind symbol-name display caps. Every indexed file in the captured snapshot is included, also in monorepos where the ordinary root response remains a workspace list. Each masked row contains the canonical path, line/symbol counts and significant names grouped by kind. It does not add source bodies, docstrings, owners, line ranges or call graphs that are absent from the root overview. Only the file rows are evidence; navigation instructions and runtime statistics are not repeated as model input. The root response and file population keep one snapshot; this is an internal rendering path, not a recursive MCP call.
+Task context stays within the connection; it is not inferred from `search.query` or `grep.pattern`. A new registration replaces it, invalid registration clears it, and `initialize` resets it. Missing required context or invalid registration returns an argument error (`-32602`), not unfiltered output.
 
-Full overview rows are split into consecutive fragments of at most 10,000 encoded bytes, preserving all characters and repeating the file identity and part numbers. The shared state contains the explicit intent and catalog/version identity, not a copy of the whole overview in every batch. One Score question per fragment judges suitability as a next navigation step. A file qualifies when useful-level probability mass exceeds unhelpful-level mass for any usable fragment; the complete catalog must be judged before ranking by best fragment score, path and the 24-file output limit. Unrepresentable input or incomplete coverage causes whole-stage fallback, never silent candidate dropping. The recommendation section keeps `matched`, `no_match` and `insufficient_evidence` separate; neither no-match nor unavailable evidence claims implementation absence. Files without usable names cannot qualify solely from a positive path-only answer. There is no Choice role stage: overview names cannot establish caller/consumer roles or source-verified behavior. Recommendations link to file overview for further inspection. Changed intent, snapshot or overview content invalidates raw-judgment replay through the input fingerprint. Evidence/question/policy versions are `overview-recommendation-projection/3`, `overview-recommendation-questions/3` and `overview-recommendation-policy/3-experimental`. Folder and file overviews remain outside this stage.
+`task_query` is not an accepted search/read/grep argument, regardless of their enable flags. Overview accepts an optional `task_query` to override that recommendation's purpose only; it does not register or replace the body-filter task.
 
-`search` with `search_filter_enabled` asks one Noul question ("is the displayed declaration body unrelated to the behavior requested in `task_query`?") per complete callable declaration body that the ordinary search already selected and rendered, whose identity the displayed buffer confirms (the indexed declaration name appears as a whole identifier within the first three displayed lines of a body that starts on the indexed line), and that still carries unmasked text beyond its signature line. Rust then applies its own retention policy: partial windows, byte-clipped bodies, oversized bodies (above 24,000 rendered bytes), bodies whose identity could not be verified (the file changed since indexing), bodies masked beyond use, non-callable declarations, unanswered questions and bodies no larger than their omission note are retained; a body judged unrelated at or above `search_filter_min_unrelated_probability` also stays when a retained callable visibly calls it or is called by it, when its lines are displayed inside a retained enclosing block, or when a retained declaration is displayed inside it. Each omitted body is replaced in place by a note with the declaration and the exact `read` arguments; declaration rows, file headings, ranked tail rows and literal rows always remain, and the output only ever shrinks. A status line (`_Jev body filter applied (...)_`) is written inline only when the omissions freed at least that much room; the base output is never reduced to make room for filter text. Source observations count only delivered source, never omitted bodies or notes.
+Enabled tools advertise `openWorldHint: true` and `readOnlyHint: true`. Clients that cache tool metadata may need to list tools again or reconnect after changing flags.
 
-`read_filter_enabled` and `grep_filter_enabled` apply the same Noul threshold and retention policy to live source, independently of search activation. The producer captures metadata and safe callable bounds from the exact bounded UTF-8 buffer it used to render the selected source, without relying on stale index ranges. Unsupported, invalid, incomplete, oversized or unusably masked source is retained. Full/source views may filter complete bodies, including bodies completely contained in a read window or an unexpanded grep page; definitions/relations-only views and grep file/count modes bypass filtering. Existing callable expansion, matching, page boundaries and source permissions are unchanged. Source and context are finalized before inference, so no source is reread and no freed space is refilled after the await. Omission notes are excluded from source observations; failures and all-keep decisions preserve the base response. No extra inline summary is added for live tools.
+### Overview recommendations
 
-What leaves the machine: for overview, a masked copy of `task_query` and the masked complete overview file rows described above; for search, a masked copy of `task_query`, the masked search arguments, and for each judged body its identity, evidence status, displayed callers/callees and the displayed source lines exactly as rendered. Redaction runs before transmission, so masked values reach the provider masked; with redaction off, text is sent as rendered. Read/grep send the masked intent, tool arguments and eligible displayed source bodies with their identities and displayed call links. Raw index files and undisplayed source bodies are not transmitted. The API key is used only in the HTTPS authorization header, never in model state or questions. Requests are batched by encoded bytes (`max_batch_bytes`) and checked against the published 64k (state plus all questions) and 32k (state plus the longest question) token limits with a conservative estimate of one token per three bytes; the byte ceiling is not a token guarantee, and a provider-side rejection is a fallback, never a silent truncation. Every request is one attempt: the client never retries, never follows redirects, reads at most 4 MiB of a response, and one request carries at most 8,192 questions in at most 128 batches.
+Root overview evaluates the complete per-file summaries of all indexed files in one snapshot, including monorepos, without the normal file-count or symbol-name presentation caps. Folder and file overviews are not evaluated.
 
-Outcomes are recorded on stderr, never inline: one `jev stage` line per stage run (tracing target `codemap_search::mcp::jev`, level `info`, shown by the default stderr filter) carries the tool, the outcome (`applied`, `bypassed`, `fallback`), the status or reason, the model, the evidence/question/policy versions, counts (coverage, questions, judged, qualified, omitted and rendered omissions, protected, linked, unverified, masked), the known token usage together with the number of responses that reported none, the number of attempted requests, and elapsed/HTTP/queue time. It never contains the intent, evidence, a credential or provider error text, and disabled stages log nothing. Missing task registration is an MCP argument error. Other bypass reasons include `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index` and `insufficient_output_room`; fallback kinds are the runtime's error labels (`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete`, …). A bypass, a fallback or a filter that keeps every body returns the base output byte for byte. Calls requiring an unregistered task return an error instead.
+Summaries contain paths, line/symbol counts and significant names grouped by kind. Each is split losslessly into fragments of at most 10,000 encoded bytes. After complete evaluation, files with usable name evidence are ranked and at most 24 recommendations fit within the output budget. A positive path-only judgment cannot qualify a file. Incomplete evaluation falls back to ordinary overview rather than silently dropping candidates.
 
-`search_filter_min_unrelated_probability` is shared by search/read/grep (the existing key name is retained for compatibility). It is a provisional policy value, not a calibrated accuracy target. It must be a finite number above 0.5 and at most 1.0; other values warn and fall back to the lower layer or the default. Transport keys may only tighten the runtime's initial safety policy: `max_in_flight_requests` 1 to 3, `request_spacing_ms` at least 300, `max_batch_bytes` 1 to 80000, `timeout_ms` and `pool_idle_timeout_ms` positive and at most seven days; other values warn and fall back the same way. Each request fixes its configuration and one absolute deadline (`timeout_ms`, counted from the moment the stage starts preparing and shared by all preparation and every batch); a config change applies to subsequent requests, and the runtime never extends a deadline. The default threshold remains uncalibrated; no general accuracy or omission-safety guarantee has been established.
+The `Recommended files for the task (indexed evidence)` section reports `matched`, `no_match` or `insufficient_evidence`. No match is not proof that an implementation is absent. Recommendations are navigation hints: inspect the indicated files and source before claiming behavior or caller/consumer relationships.
 
-The decision runtime is also usable directly from Rust (`codemap_search::jev`): the in-crate example replays a fixed synthetic response offline with `cargo run --example jev_decisions -- --mock` (no credentials, no network) and, only when an operator explicitly asks for a live request, sends one with `cargo run --example jev_decisions -- --live` using `TYPESAFE_API_KEY`. The example shows the three primitives: Score (probability-weighted level plus distribution), Choice (option probabilities) and Noul (yes probability).
+### Body filtering and unfiltered reads
+
+Search, read and grep can omit complete function or method bodies judged unrelated at or above `search_filter_min_unrelated_probability`. Only bodies already selected for display are considered; read/grep use their captured live source, not stale index bodies.
+
+The following are retained:
+
+- Partial, clipped, unsupported, malformed, identity-unverified or unusably masked bodies.
+- Bodies above 24,000 rendered bytes, bodies without a judgment, and bodies no larger than their omission note.
+- Non-callable declarations and bodies connected to retained callables through displayed call or nesting relationships.
+
+Read/grep filtering applies to `full`/`source` views, including complete bodies inside ordinary windows or unexpanded grep context. Definitions/relations-only views and grep file/count modes are not filtered. Filtering does not expand the selected range/page, reread source after inference, refill freed space or change filesystem permissions.
+
+Each omission leaves a declaration and exact read-range note. **To obtain unfiltered source, disable `analysis.jev.read_filter_enabled`, then read that range.** Other content and output limits remain intact; the response only shrinks. Search may add a brief filter summary if omissions free enough space. Read/grep add no separate summary. [Reading-activity metrics](./analysis.md#interpreting-counts-and-bytes) exclude omitted bodies and omission notes from delivered-source observations.
+
+The shared threshold defaults to `0.70` and must be finite with `0.5 < value <= 1.0`. It is a provisional policy value, not a calibrated accuracy target. No general accuracy or omission-safety guarantee has been established.
+
+### Data sent to TypeSafe
+
+| Stage | Transmitted evidence |
+| --- | --- |
+| Overview | Task purpose and complete per-file overview summaries; no source bodies, docstrings or extra call graphs |
+| Search | Task purpose, search arguments, eligible displayed bodies, declaration identity/evidence status and displayed callers/callees |
+| Read/grep | Task purpose, tool arguments, eligible displayed live bodies, declaration identity and displayed call links |
+
+Redaction applies before transmission. Masked values stay masked; with redaction disabled, text is sent as rendered. Masking cannot detect every sensitive format. Raw index files and undisplayed source bodies are not sent. The API key is used only in the HTTPS authorization header, not in model state or questions. The model is pinned to `jev-1.13.0`.
+
+### Transport limits
+
+| Setting or limit | Contract |
+| --- | --- |
+| `max_in_flight_requests` | 1–3 concurrent requests |
+| `request_spacing_ms` | At least 300ms |
+| `max_batch_bytes` | 1–80,000 encoded bytes |
+| `timeout_ms` | Positive, at most seven days; one deadline includes preparation and all batches |
+| `pool_idle_timeout_ms` | Positive, at most seven days |
+| Batch/response limits | At most 8,192 questions and 128 batches per evaluation; 4 MiB per response |
+| Retries/redirects | None |
+
+Invalid configured values warn and fall back to the lower configuration layer or default. Each stage pins its configuration at the start; changes affect later requests and do not extend a running deadline.
+
+The runtime estimates tokens at one per three bytes against the provider's 64k state-plus-all-questions and 32k state-plus-longest-question limits. This is not a tokenizer guarantee. Provider rejection preserves the base output instead of silently truncating evidence.
+
+### Outcomes and diagnostics
+
+| Outcome | Meaning |
+| --- | --- |
+| `applied` | Evaluation completed; retention rules may still keep every body |
+| `bypassed` | No evaluation, for example missing credentials, no complete bodies, index warming or insufficient output room |
+| `fallback` | Evaluation failed, for example deadline expiry, rate limiting, invalid/incomplete answers or incomplete projection |
+
+Bypasses, failures and all-keep filters preserve the base output byte for byte. Missing required task registration instead returns an MCP argument error. Automatic filtering does not guarantee an HTTP request when no eligible evidence exists.
+
+Each executed stage records a `jev stage` line on stderr at `info` level (`codemap_search::mcp::jev`). It includes tool, outcome/reason, model and evidence versions, coverage/judgment/omission counts, known token usage, responses without usage, attempted requests and elapsed/HTTP/queue times. It does not log the task, source evidence, credentials or provider error bodies. Disabled stages log nothing.
+
+For direct Rust integration, see [`codemap_search::jev`](../src/jev/mod.rs) and the [decision example](../examples/jev_decisions.rs). The example's `--mock` mode is offline; `--live` uses an API key and sends a real request.
 
 ## Indexed event navigation
 

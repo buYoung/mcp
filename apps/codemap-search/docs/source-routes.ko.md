@@ -6,7 +6,7 @@
 
 ## 조회와 설정
 
-별도 API나 설정 키를 추가하지 않는다. `[output.event_navigation].is_enabled`의 기본값은 `true`다.
+`[output.event_navigation].is_enabled`로 제어하며 기본값은 `true`다.
 
 | 요청·설정 | 소스 경로 동작 |
 | --- | --- |
@@ -18,7 +18,7 @@
 | `use_builtin_rules=false`, `rules=[]` | 규칙 기반 이벤트만 제어한다. 소스 경로는 계속 동작한다. |
 | `search`의 `event_key` | 기존 규칙 기반 이벤트 키 조회다. 범용 소스 경로를 이벤트 키로 분류하지 않는다. |
 
-`caller_context`, 작업공간 범위, 테스트·디렉터리·Git 제외 규칙과 기존 원문 출력 계약을 유지한다. `debug=true`로 분석 범위를 넓히지 않는다. 제거한 `Value relationships` 및 그 요청 시점 평가기는 다시 사용하지 않는다.
+`caller_context`, 작업공간 범위, 테스트·디렉터리·Git 제외 규칙과 원문 출력 계약을 따른다. `debug=true`는 분석 범위를 바꾸지 않는다.
 
 다음 TypeScript 코드는 `register`의 저장과 `dispatch`의 콜백 소비를 잇는 예다.
 
@@ -72,7 +72,7 @@ Bevy의 Observer, SystemId, glTF 등록부터 최종 콜백까지의 세 경로�
 
 Effect `Stream.ts`를 포함하는 **확장 입력 검증 실행에만** 파일당 1 MiB를 허용한다. 이는 테스트 실행기의 명시적 옵션이며 제품 기본값이나 설정 옵션이 아니다. 제품은 512 KiB 초과 입력을 누락 사유와 함께 처리한다.
 
-18개 언어의 소스를 보존하기 위해 색인 형식을 `v34-native-source-routes`로 변경했다. 이전 형식은 기존 자동 재생성 경로를 사용한다. 재시작 시 저장된 입력으로 소스 경로 스냅샷을 다시 만든다.
+호환되지 않는 이전 색인 형식은 자동으로 다시 생성한다. 재시작 시 저장된 입력으로 소스 경로 스냅샷을 다시 만든다.
 
 ## 검증 근거와 남은 한계
 

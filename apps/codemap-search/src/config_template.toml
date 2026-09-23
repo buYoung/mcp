@@ -282,7 +282,7 @@ is_build_support_enabled = false
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
 
-# Automatically filter read/grep using the registered task, not a per-call task_query.
+# Automatically filter read/grep using the registered task.
 # Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
 # restoration; grep file/count modes and definitions/relations-only views are never filtered.
 # read_filter_enabled = false
@@ -310,7 +310,7 @@ is_build_support_enabled = false
 # is opened.
 # pool_idle_timeout_ms = 30000
 
-# Shared search/read/grep body-filter threshold (the key name is kept for compatibility).
+# Shared search/read/grep body-filter threshold.
 # A complete body is omitted only when Jev's probability that it is
 # unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
 # search_filter_min_unrelated_probability = 0.70

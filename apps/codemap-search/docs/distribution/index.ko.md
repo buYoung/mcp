@@ -10,11 +10,11 @@
 | macOS | [Cargo](./crates-io.ko.md) | [설치 스크립트](./curl-installer.ko.md), [Homebrew](./homebrew.ko.md) 또는 GitHub 릴리스 압축 파일 |
 | Windows | [Cargo](./crates-io.ko.md) | [WinGet 또는 압축 파일 수동 설치](./winget.ko.md) |
 
-Cargo는 Rust와 C 도구 모음이 필요합니다. macOS/Linux 스크립트는 표준 POSIX 도구, `curl` 또는 `wget`, `tar`, SHA-256 도구가 필요하며 기본 설치 위치는 `~/.local/bin`입니다. Homebrew·WinGet은 자체 설치 위치를 관리합니다. 채널별 안내에서 버전 선택, `PATH`, 문제 해결, 배포 담당자의 게시 절차를 확인할 수 있습니다.
+Cargo는 Rust와 C 도구 모음이 필요합니다. macOS/Linux 스크립트는 표준 POSIX 도구, `curl` 또는 `wget`, `tar`, SHA-256 도구가 필요하며 기본 설치 위치는 `~/.local/bin`입니다. Homebrew·WinGet은 자체 설치 위치를 관리합니다. 채널별 안내에서 버전 선택·`PATH`·문제 해결을 확인할 수 있습니다. 게시와 패키지 제출은 별도의 [배포 담당자 안내](./releasing.ko.md)를 따릅니다.
 
 ## 채널 제공 상태
 
-2026-09-11 문서 검토에서 공식 페이지로 게시 버전과 패키지 수용 여부를 확인하지 못했습니다. 각 안내의 명령은 선택한 릴리스·패키지가 제공되어야 동작합니다. 공개 채널을 선택하기 전에 [crates.io 패키지](https://crates.io/crates/codemap-search), [GitHub Releases](https://github.com/buYoung/mcp/releases), [Homebrew 포뮬러 목록](https://formulae.brew.sh/formula/codemap-search), [WinGet 저장소](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search)를 확인하세요.
+제공 여부는 채널과 버전마다 다릅니다. 각 안내의 명령은 선택한 릴리스·패키지가 해당 채널에 게시·수용되어야 동작합니다. 공개 채널을 선택하기 전에 [crates.io 패키지](https://crates.io/crates/codemap-search), [GitHub Releases](https://github.com/buYoung/mcp/releases), [Homebrew 포뮬러 목록](https://formulae.brew.sh/formula/codemap-search), [WinGet 저장소](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search)를 확인하세요.
 
 저장소의 Homebrew 포뮬러와 WinGet 매니페스트에는 아직 임시 체크섬이 있습니다. 로컬 설치 전 릴리스 정보에 맞게 갱신해야 합니다. 공개 설치를 사용할 수 없으면 [로컬 소스 빌드 명령](./crates-io.ko.md#설치와-확인)을 사용하세요.
 

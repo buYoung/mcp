@@ -10,11 +10,11 @@ Choose a source build or a prebuilt binary for your operating system. After inst
 | macOS | [Cargo](./crates-io.md) | [Install script](./curl-installer.md), [Homebrew](./homebrew.md), or GitHub release archive |
 | Windows | [Cargo](./crates-io.md) | [WinGet or manual archive installation](./winget.md) |
 
-Cargo requires Rust and a native C toolchain. The macOS/Linux script requires standard POSIX tools, `curl` or `wget`, `tar`, and a SHA-256 utility; it installs to `~/.local/bin` by default. Homebrew and WinGet manage their own installation directories. Each guide covers version selection, `PATH`, troubleshooting, and maintainer publishing.
+Cargo requires Rust and a native C toolchain. The macOS/Linux script requires standard POSIX tools, `curl` or `wget`, `tar`, and a SHA-256 utility; it installs to `~/.local/bin` by default. Homebrew and WinGet manage their own installation directories. Each guide covers version selection, `PATH` and troubleshooting. Publishing and package submissions are covered separately in the [maintainer guide](./releasing.md).
 
 ## Channel availability
 
-During the 2026-09-11 documentation review, the official pages could not be used to confirm published versions or package acceptance. The commands in these guides depend on the selected release or package being available. Check the [crates.io package](https://crates.io/crates/codemap-search), [GitHub Releases](https://github.com/buYoung/mcp/releases), [Homebrew formula directory](https://formulae.brew.sh/formula/codemap-search), or [WinGet repository](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search) before choosing a public channel.
+Availability is channel- and version-specific. The commands in these guides require the selected release or package to be published and accepted by that channel. Check the [crates.io package](https://crates.io/crates/codemap-search), [GitHub Releases](https://github.com/buYoung/mcp/releases), [Homebrew formula directory](https://formulae.brew.sh/formula/codemap-search), or [WinGet repository](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search) before choosing a public channel.
 
 The checked-in Homebrew formula and WinGet manifests still contain checksum placeholders. They require release metadata updates before local installation. If public installation is unavailable, use the [local source-build commands](./crates-io.md#install-and-verify).
 

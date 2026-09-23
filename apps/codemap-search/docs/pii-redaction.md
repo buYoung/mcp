@@ -2,7 +2,7 @@
 
 [한국어](./pii-redaction.ko.md) | English
 
-Schema 16 adds opt-in PII masking to MCP output. Credential masking stays enabled by default; `pii_entities` defaults to `[]`. Select the exact types needed for your repository.
+PII masking is opt-in for MCP output. Credential masking is enabled by default; `[output.redact].pii_entities` defaults to `[]`. Select the exact types needed for your repository.
 
 ```toml
 [output]
@@ -15,12 +15,12 @@ exceptions = [{ rule_id = "pii.email-address", value = "info@presidio.site" }]
 
 | Setting | Behavior |
 | --- | --- |
-| `redact.pii_entities` | Case-sensitive entity names from the table below. No wildcard or automatic country selection. |
+| `output.redact.pii_entities` | Case-sensitive entity names from the table below. No wildcard or automatic country selection. |
 | Omitted key | Inherits the global list; otherwise `[]`. |
 | Explicit `[]` | Disables additional PII types, including an inherited selection. |
 | Invalid list | Warns without printing its values and falls back for this key. Other valid keys still apply. |
-| `tool_output.is_redact_enabled = false` | Disables credential and PII masking. |
-| `redact.exceptions` | Exact rule ID plus entire original matched value. `CREDIT_CARD` uses `pii.credit-card`; other IDs follow the same lowercase, underscore-to-hyphen conversion. |
+| `output.is_redact_enabled = false` | Disables credential and PII masking. |
+| `output.redact.exceptions` | Exact rule ID plus entire original matched value. `CREDIT_CARD` uses `pii.credit-card`; other IDs follow the same lowercase, underscore-to-hyphen conversion. |
 
 An exception for one rule cannot exempt an overlapping detection by another rule. Repository lists replace global lists. Changes apply to subsequent requests after config reload; no index rebuild is needed.
 

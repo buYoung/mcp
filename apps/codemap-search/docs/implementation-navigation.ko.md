@@ -64,4 +64,4 @@ cargo test --locked --lib implementations::tests::
 cargo test --locked --test e2e_tests test_implementation_
 ```
 
-구현 근거는 `src/implementations/`, 파서 통합은 `src/parser/mod.rs`, 최종 소비자는 `src/tools/live_symbols.rs`와 `src/tools/search/mod.rs`입니다. 실제 CLI 확인 명령은 [개발 언어 품질 확인 명령](development-language-commands.ko.md#추상-선언과-구현-후보)을 참고하세요.
+구현 근거는 `src/implementations/`, 파서 통합은 `src/parser/mod.rs`, 최종 소비자는 `src/tools/live_symbols.rs`와 `src/tools/search/mod.rs`입니다. 재실행할 검증 명령은 [개발 언어 품질 확인 명령](development-language-commands.ko.md#추상-선언과-구현-후보)을 참고하세요.
