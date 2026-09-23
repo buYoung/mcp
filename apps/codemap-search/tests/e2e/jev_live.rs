@@ -1,7 +1,7 @@
 //! Actual MCP regressions for opt-in live body filters. Every judge is injected;
 //! SQLite assertions inspect the real final response accounting, not a copied policy.
 use super::helpers::{
-    create_mock_repo, response_text, with_in_process_server_logging, InProcessClient,
+    create_mock_repo, response_text, with_in_process_server_logging as run_server, InProcessClient,
 };
 use codemap_search::jev::mock::{answers, Gate, MockEvaluator};
 use codemap_search::jev::{EvaluationRequest, JevError};
@@ -50,16 +50,33 @@ fn judge() -> MockEvaluator {
             .collect())
     })
 }
-fn arguments(tool: &str, view: &str, intent: bool) -> Value {
-    let mut args = if tool == "read" {
+async fn with_in_process_server_logging<F, Fut>(
+    root: &Path,
+    evaluator: Option<Arc<dyn codemap_search::jev::Evaluator>>,
+    should_record_calls: bool,
+    script: F,
+) where
+    F: FnOnce(InProcessClient) -> Fut,
+    Fut: std::future::Future<Output = ()>,
+{
+    run_server(
+        root,
+        evaluator,
+        should_record_calls,
+        |mut client| async move {
+            client.register_task(TASK).await;
+            script(client).await;
+        },
+    )
+    .await;
+}
+
+fn arguments(tool: &str, view: &str) -> Value {
+    if tool == "read" {
         json!({"file_path":"src/budget.ts", "view":view, "include_events":false})
     } else {
         json!({"path":"src/budget.ts", "pattern":"function", "expand":"callable", "view":view, "include_events":false})
-    };
-    if intent {
-        args["task_query"] = json!(TASK);
     }
-    args
 }
 async fn call(client: &mut InProcessClient, tool: &str, args: Value) -> Value {
     let response = client
@@ -135,10 +152,10 @@ async fn read_and_grep_omit_only_unrelated_bodies_and_record_delivered_bytes() {
             let recorded = evaluator.clone();
             with_in_process_server_logging(temp.path(), Some(evaluator), true, |mut client| async move {
                 warm(&mut client).await;
-                let plain = call(&mut client, tool, arguments(tool, view, false)).await;
+                let plain = client.plain_call(tool, arguments(tool, view)).await.unwrap();
                 let before = observations(&root, &plain);
                 assert_eq!(before.len(), 1);
-                let filtered = call(&mut client, tool, arguments(tool, view, true)).await;
+                let filtered = call(&mut client, tool, arguments(tool, view)).await;
                 let text = response_text(&filtered);
                 assert!(text.contains("_omitted body:") && text.contains("fn dropBody"), "{tool}/{view}: {text}");
                 assert!(text.contains("const reserve = footer.length + 8;"));
@@ -159,10 +176,9 @@ async fn read_and_grep_omit_only_unrelated_bodies_and_record_delivered_bytes() {
                 assert!(requests[0].state.get("search_arguments").is_none());
                 assert_eq!(requests[0].task_query(), Some(TASK));
                 assert!(requests[0].questions.values().all(|q| q["type"] == "noul"));
-                // The marker's range restores original lines without inference, even though
-                // the read filter remains enabled in configuration.
+                // Restoration requires the read filter to be disabled, as the marker states.
                 assert!(text.contains(&format!("offset {start} limit {}", end - start + 1)));
-                let restored = call(&mut client, "read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source"})).await;
+                let restored = client.plain_call("read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source"})).await.unwrap();
                 for (i, line) in DROP.lines().enumerate() {
                     assert!(response_text(&restored).contains(&format!("{:>6}→{line}", start+i)));
                 }
@@ -190,7 +206,7 @@ async fn marker_only_files_are_not_recorded_as_read_source() {
             true,
             |mut client| async move {
                 let (start, end) = drop_range();
-                let mut args = arguments(tool, "source", true);
+                let mut args = arguments(tool, "source");
                 if tool == "read" {
                     args["offset"] = json!(start);
                     args["limit"] = json!(end - start + 1);
@@ -232,9 +248,8 @@ async fn partial_windows_rows_and_metadata_modes_never_send_body_questions() {
             ("grep", json!({"path":"src/budget.ts","pattern":"function","output_mode":"count"})),
             ("grep", json!({"path":"src/budget.ts","pattern":"function","output_mode":"files_with_matches"})),
         ] {
-            let plain = call(&mut client, tool, args.clone()).await;
-            let mut filtered = args; filtered["task_query"] = json!(TASK);
-            let response = call(&mut client, tool, filtered).await;
+            let plain = client.plain_call(tool, args.clone()).await.unwrap();
+            let response = call(&mut client, tool, args).await;
             assert_eq!(response_text(&response), response_text(&plain), "{tool}");
         }
         assert_eq!(recorded.request_count(), 0);
@@ -250,7 +265,7 @@ async fn complete_bodies_in_unexpanded_grep_context_can_be_omitted() {
     let evaluator = Arc::new(judge());
     let recorded = evaluator.clone();
     with_in_process_server_logging(temp.path(), Some(evaluator), true, |mut client| async move {
-        let response = call(&mut client, "grep", json!({"path":"src/budget.ts","pattern":"function dropBody","expand":"none","-A":7,"view":"source","task_query":TASK})).await;
+        let response = call(&mut client, "grep", json!({"path":"src/budget.ts","pattern":"function dropBody","expand":"none","-A":7,"view":"source"})).await;
         assert!(response_text(&response).contains("_omitted body:"), "{response}");
         assert!(!response_text(&response).contains("UNRELATED_MARKER"));
         assert!(observations(&root, &response).is_empty());
@@ -273,15 +288,13 @@ async fn an_omitted_grep_page_keeps_its_footer_and_does_not_refill_from_the_next
         |mut client| async move {
             let args =
                 json!({"path":"src/budget.ts","pattern":"function","head_limit":1,"view":"source"});
-            let plain = call(&mut client, "grep", args.clone()).await;
+            let plain = client.plain_call("grep", args.clone()).await.unwrap();
             let footer = response_text(&plain)
                 .lines()
                 .find(|line| line.contains("next_offset=1"))
                 .unwrap()
                 .to_string();
-            let mut filtered = args;
-            filtered["task_query"] = json!(TASK);
-            let response = call(&mut client, "grep", filtered).await;
+            let response = call(&mut client, "grep", args).await;
             let text = response_text(&response);
             assert!(
                 text.contains("_omitted body:") && text.contains(&footer),
@@ -320,7 +333,7 @@ async fn retained_callers_and_nested_declarations_protect_their_bodies() {
         false,
         |mut client| async move {
             for tool in ["read", "grep"] {
-                let response = call(&mut client, tool, arguments(tool, "source", true)).await;
+                let response = call(&mut client, tool, arguments(tool, "source")).await;
                 let text = response_text(&response);
                 assert!(
                     text.contains("function helperBudget"),
@@ -345,8 +358,11 @@ async fn retained_callers_and_nested_declarations_protect_their_bodies() {
         Some(evaluator),
         false,
         |mut client| async move {
-            let plain = call(&mut client, "read", arguments("read", "source", false)).await;
-            let filtered = call(&mut client, "read", arguments("read", "source", true)).await;
+            let plain = client
+                .plain_call("read", arguments("read", "source"))
+                .await
+                .unwrap();
+            let filtered = call(&mut client, "read", arguments("read", "source")).await;
             assert_eq!(
                 response_text(&filtered),
                 response_text(&plain),
@@ -386,9 +402,12 @@ async fn all_keep_and_provider_failure_preserve_text_and_source_observations() {
                 warm(&mut client).await;
                 for tool in ["read", "grep"] {
                     for view in ["source", "full"] {
-                        let plain = call(&mut client, tool, arguments(tool, view, false)).await;
+                        let plain = client
+                            .plain_call(tool, arguments(tool, view))
+                            .await
+                            .unwrap();
                         let before = observations(&root, &plain);
-                        let filtered = call(&mut client, tool, arguments(tool, view, true)).await;
+                        let filtered = call(&mut client, tool, arguments(tool, view)).await;
                         assert_eq!(response_text(&filtered), response_text(&plain));
                         assert_eq!(observations(&root, &filtered), before);
                     }
@@ -421,8 +440,8 @@ async fn captures_masked_payload_and_keeps_the_snapshot_during_inference() {
             Some(evaluator),
             false,
             |mut client| async move {
-                let mut args = arguments(tool, "source", true);
-                args["task_query"] = json!(format!("{TASK} {secret}"));
+                client.register_task(&format!("{TASK} {secret}")).await;
+                let args = arguments(tool, "source");
                 client
                     .send("tools/call", json!({"name":tool,"arguments":args}))
                     .await
@@ -450,12 +469,7 @@ async fn captures_masked_payload_and_keeps_the_snapshot_during_inference() {
                 );
                 assert!(text.contains("_omitted body:"));
                 assert!(!text.contains("NEW_SOURCE"));
-                let restored = call(
-                    &mut client,
-                    "read",
-                    json!({"file_path":"src/budget.ts","view":"source"}),
-                )
-                .await;
+                let restored = client.plain_call("read", json!({"file_path":"src/budget.ts","view":"source"})).await.unwrap();
                 assert!(response_text(&restored).contains("NEW_SOURCE"));
                 assert_eq!(recorded.request_count(), 1);
             },
@@ -483,31 +497,63 @@ async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
             for (tool, enabled) in [("read", true), ("grep", false), ("search", false)] {
                 let entry = tools.iter().find(|entry| entry["name"] == tool).unwrap();
                 assert_eq!(entry["annotations"]["openWorldHint"], enabled);
-                assert_eq!(
-                    entry["inputSchema"]["properties"]["task_query"]["type"],
-                    "string"
-                );
+                assert!(entry["inputSchema"]["properties"]
+                    .get("task_query")
+                    .is_none());
             }
-            let plain = call(&mut client, "read", arguments("read", "source", false)).await;
-            let kept = call(&mut client, "read", arguments("read", "source", true)).await;
+            let plain = client
+                .plain_call("read", arguments("read", "source"))
+                .await
+                .unwrap();
+            let kept = call(&mut client, "read", arguments("read", "source")).await;
             assert_eq!(
                 response_text(&kept),
                 response_text(&plain),
                 "1.0 retains a 0.99 judgment"
             );
-            let unfiltered = call(&mut client, "grep", arguments("grep", "source", true)).await;
+            let unfiltered = call(&mut client, "grep", arguments("grep", "source")).await;
             assert!(response_text(&unfiltered).contains("UNRELATED_MARKER"));
             assert_eq!(recorded.request_count(), 1);
             std::fs::write(root.join(".codemap/config.toml"), CONFIG).unwrap();
             codemap_search::config::reload(&root);
             for tool in ["read", "grep"] {
-                let response = call(&mut client, tool, arguments(tool, "source", true)).await;
+                let response = call(&mut client, tool, arguments(tool, "source")).await;
                 assert!(
                     response_text(&response).contains("_omitted body:"),
                     "0.70 applies after reload: {response}"
                 );
             }
             assert_eq!(recorded.request_count(), 3);
+            client.register_task("inspect the updated task").await;
+            call(&mut client, "read", arguments("read", "source")).await;
+            assert_eq!(
+                recorded.requests().last().unwrap().task_query(),
+                Some("inspect the updated task")
+            );
+            let missing = client
+                .call(
+                    "tools/call",
+                    json!({"name":"initial_instructions","arguments":{"task_query":" "}}),
+                )
+                .await
+                .unwrap();
+            assert_eq!(missing["error"]["code"], -32602);
+            let missing = client
+                .call(
+                    "tools/call",
+                    json!({"name":"read","arguments":arguments("read","source")}),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                missing["error"]["code"], -32602,
+                "a failed new registration clears the old task"
+            );
+            assert_eq!(
+                recorded.request_count(),
+                4,
+                "missing context cannot evaluate or silently bypass"
+            );
             let invalid = client
                 .call(
                     "tools/call",

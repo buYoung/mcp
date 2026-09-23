@@ -1037,7 +1037,7 @@ pub fn omission_note(entity: &FilterEntity, unrelated_probability: Option<f64>) 
     let probability =
         unrelated_probability.map_or_else(|| "n/a".to_string(), |p| format!("{p:.2}"));
     format!(
-        "- _omitted body: L{start}-{end} ({kind} {name}) judged unrelated to the task (Jev unrelated {probability}); read {path} offset {start} limit {lines} to restore it._\n",
+        "- _omitted body: L{start}-{end} ({kind} {name}) judged unrelated to the task (Jev unrelated {probability}); read {path} offset {start} limit {lines} with read filtering off to restore._\n",
         start = entity.symbol.start_line,
         end = entity.symbol.end_line,
         kind = entity.symbol.kind,

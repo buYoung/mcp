@@ -46,8 +46,9 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
-    // Optional Jev stages: credentials and the shared evaluator live here, never in the
-    // tools. Idle unless `[analysis.jev]` enables a stage and a call passes `task_query`.
+    // Task context is connection-local, registered once through initial_instructions.
+    // Credentials/evaluator remain separate and are resolved only for enabled stages.
+    registered_task_query: Option<String>,
     jev: jev::JevHost,
 }
 
@@ -58,6 +59,7 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            registered_task_query: None,
             jev: jev::JevHost::default(),
         }
     }
@@ -287,6 +289,7 @@ impl McpServer {
     ) -> Result<Value, (i64, String)> {
         match method {
             "initialize" => {
+                self.registered_task_query = None;
                 // Echo the client's requested protocolVersion when we support it,
                 // otherwise fall back to our newest supported version (MCP negotiation).
                 const SUPPORTED_PROTOCOL_VERSIONS: &[&str] =
@@ -336,14 +339,19 @@ impl McpServer {
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
                         let config = crate::config::get();
-                        let task_query = crate::tools::task_query(arguments)?;
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let output = if config.jev.search_filter_enabled {
-                            jev::search(&mut self.jev, &ctx, task_query.as_deref(), &config).await?
+                            jev::search(
+                                &mut self.jev,
+                                &ctx,
+                                self.registered_task_query.as_deref(),
+                                &config,
+                            )
+                            .await?
                         } else {
                             crate::tools::search::run_with_metadata(&ctx)?
                         };
@@ -374,8 +382,15 @@ impl McpServer {
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let text = if config.jev.overview_enabled {
-                            jev::overview(&mut self.jev, &ctx, task_query.as_deref(), &config)
-                                .await?
+                            jev::overview(
+                                &mut self.jev,
+                                &ctx,
+                                task_query
+                                    .as_deref()
+                                    .or(self.registered_task_query.as_deref()),
+                                &config,
+                            )
+                            .await?
                         } else {
                             crate::tools::overview::run(&ctx)?
                         };
@@ -392,13 +407,13 @@ impl McpServer {
                     "read" | "grep" => {
                         let tool = if name == "read" { "read" } else { "grep" };
                         let config = crate::config::get();
-                        let task_query = crate::tools::task_query(arguments)?;
+                        crate::tools::reject_body_task_query(arguments)?;
                         let output = jev::live(
                             &mut self.jev,
                             &self.engine,
                             tool,
                             arguments,
-                            task_query.as_deref(),
+                            self.registered_task_query.as_deref(),
                             &config,
                         )
                         .await?;
@@ -414,6 +429,14 @@ impl McpServer {
                         }))
                     }
                     "initial_instructions" => {
+                        // A new registration replaces the old task; an invalid registration
+                        // must not leave a previous task active for subsequent filtering.
+                        self.registered_task_query = None;
+                        let task_query = crate::tools::task_query(arguments)?;
+                        if crate::config::get().jev.is_any_enabled() {
+                            jev::require_task_query(task_query.as_deref())?;
+                        }
+                        self.registered_task_query = task_query;
                         let text = if crate::codemap::looks_like_monorepo_workspace() {
                             // Match `overview` lifecycle behavior so the initial response can
                             // include the same root scope selection without a second MCP call.

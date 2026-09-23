@@ -467,31 +467,42 @@ export function dropMe(input: string): string {
             let evaluator = Arc::new(unrelated_judge(0.80));
             let judge = Arc::clone(&evaluator);
             with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+                client
+                    .register_task("where is the output budget reserved?")
+                    .await;
                 let plain = client
-                    .call_tool_until(
-                        "search",
-                        json!({ "query": "keepMe dropMe" }),
-                        |text| text.contains("function keepMe") && text.contains("function dropMe"),
-                    )
+                    .plain_call("search", json!({ "query": "keepMe dropMe" }))
                     .await
                     .unwrap();
                 let response = client
                     .call(
                         "tools/call",
-                        json!({ "name": "search", "arguments": { "query": "keepMe dropMe", "task_query": "where is the output budget reserved?" } }),
+                        json!({ "name": "search", "arguments": { "query": "keepMe dropMe" } }),
                     )
                     .await
                     .unwrap();
                 let text = response_text(&response);
-                assert_eq!(judge.request_count(), 1, "configured {configured}: one evaluation");
+                assert_eq!(
+                    judge.request_count(),
+                    1,
+                    "configured {configured}: one evaluation"
+                );
                 assert_eq!(
                     text.matches("- _omitted body:").count(),
                     expected_omissions,
                     "configured {configured}: {text}"
                 );
-                assert_eq!(!text.contains("input.split"), expected_omissions > 0, "configured {configured}: {text}");
+                assert_eq!(
+                    !text.contains("input.split"),
+                    expected_omissions > 0,
+                    "configured {configured}: {text}"
+                );
                 if expected_omissions == 0 {
-                    assert_eq!(text, response_text(&plain), "configured {configured}: all-keep is the plain output");
+                    assert_eq!(
+                        text,
+                        response_text(&plain),
+                        "configured {configured}: all-keep is the plain output"
+                    );
                 }
                 assert!(text.contains("dropMe (fn) [L9-13]"), "rows stay: {text}");
             })

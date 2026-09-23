@@ -142,14 +142,15 @@ grep_filter_enabled = true       # grep이 선택한 content 페이지 안에서
 export TYPESAFE_API_KEY="<발급받은 키>"
 ```
 
-단계는 호출이 그 호출의 명시적 의도인 `task_query`를 함께 전달할 때만 실행됩니다. 이전 호출에서 의도를 추정하지 않습니다. 의도가 비어 있거나, 인증정보가 없거나, 단계를 건너뛰거나 실패하면 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다. 단계가 켜져 있는 동안 도구는 `openWorldHint: true`(외부 제공자에 접근할 수 있음)로 알리므로, 도구 메타데이터를 캐시하는 클라이언트는 설정을 바꾼 뒤 도구 목록을 다시 조회해야 할 수 있습니다.
+작업 시작 시 `initial_instructions(task_query)`로 사용자의 전체 작업 목적을 한 번 등록합니다. 켜진 search/read/grep 필터는 이 연결의 등록된 목적에 맞춰 자동 적용하며, 호출별 `task_query` 옵션은 제거했습니다. 미등록 상태는 일반 출력으로 우회하지 않고 인수 오류로 안내합니다. 작업이 바뀌면 다시 등록하세요. overview 추천이 켜졌다면 경로나 workspace를 이미 알아도 다음에 루트 `overview {}`를 먼저 호출하고 추천 파일을 확인한 뒤 search/grep/read로 진행합니다. 색인 준비 중이었다면 준비 후 다시 호출합니다. 인증정보 없음·대상 근거 없음·제공자 실패는 일반 출력을 보존하고 사유를 stderr에 기록합니다. 켜진 도구는 `openWorldHint: true`로 알리므로 설정 변경 뒤 도구 목록을 다시 조회해야 할 수 있습니다.
 
 ```json
-{ "name": "overview", "arguments": { "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
-{ "name": "search", "arguments": { "query": "byte cap footer", "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
+{ "name": "initial_instructions", "arguments": { "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
+{ "name": "overview", "arguments": {} }
+{ "name": "search", "arguments": { "query": "byte cap footer" } }
 ```
 
-overview는 공통 파일별 개요에서 파일·심볼 표시 제한만 제거한 내용을 사용합니다. 모노레포도 모든 파일을 포함하고 파일별 조각으로 나눠 전송하며, 소스 본문이나 추가 색인 문서·호출 그래프는 보내지 않고 선언 역할도 추론하지 않습니다. 이 근거로 순위를 매긴 `Recommended files for the task (indexed evidence)` 섹션을 덧붙이며 추천 상태(`matched`, `no_match`, `insufficient_evidence`)를 단계 결과와 분리해 보고합니다. 추천이 0건이어도 구현이 없다고 주장하지 않으며, 추천은 `read`로 확인해야 할 탐색 힌트입니다. search/read/grep은 무관하다고 판단된 완전한 함수·메서드 본문만 생략하고 그 자리에 `read` 안내를 남깁니다. 부분 본문·정체성 미확인·마스킹으로 근거가 부족한 본문과 보호 관계는 유지하며 출력은 줄어들기만 합니다. read/grep은 오래된 인덱스 본문이 아닌 동일한 실제 소스 버퍼를 사용하고 선택된 범위·페이지를 넓히지 않습니다. grep 파일 목록·개수 모드와 definitions/relations 전용 보기는 필터링하지 않습니다. 생략 없는 소스를 복원하려면 `read`에서 `task_query`를 빼세요. 각 도구는 별도 활성화 설정이 필요하며 search를 켜도 read/grep은 켜지지 않습니다. 실패·마감 초과·잘못된 답변은 기본 출력을 바이트 단위로 그대로 유지하고, 모든 결과와 개수·알려진 토큰 사용량은 stderr의 `jev stage` 줄에 기록합니다. 공통 본문 필터 임계값 `search_filter_min_unrelated_probability`(호환성을 위해 기존 키 이름 유지)(기본 `0.70`, 허용 범위 `0.5 < 값 <= 1.0`)는 잠정값이며 보정되지 않았고, 요청은 고정 모델 `jev-1.13.0`에 대한 한 번의 시도입니다(재시도·리다이렉트 없음). 판단 런타임은 Rust에서 재사용할 수 있고, `cargo run --example jev_decisions -- --mock`은 고정된 합성 응답을 오프라인으로 재생하며 `--live`는 운영자가 요청할 때만 실제 요청 한 건을 보냅니다. 전송 데이터·한도·결과는 [선택적 Jev 판단 단계](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+overview는 공통 파일별 개요에서 파일·심볼 표시 제한만 제거한 내용을 사용합니다. 모노레포도 모든 파일을 포함하고 파일별 조각으로 나눠 전송하며, 소스 본문이나 추가 색인 문서·호출 그래프는 보내지 않고 선언 역할도 추론하지 않습니다. 이 근거로 순위를 매긴 `Recommended files for the task (indexed evidence)` 섹션을 덧붙이며 추천 상태(`matched`, `no_match`, `insufficient_evidence`)를 단계 결과와 분리해 보고합니다. 추천이 0건이어도 구현이 없다고 주장하지 않으며, 추천은 `read`로 확인해야 할 탐색 힌트입니다. search/read/grep은 무관하다고 판단된 완전한 함수·메서드 본문만 생략하고 그 자리에 `read` 안내를 남깁니다. 부분 본문·정체성 미확인·마스킹으로 근거가 부족한 본문과 보호 관계는 유지하며 출력은 줄어들기만 합니다. read/grep은 오래된 인덱스 본문이 아닌 동일한 실제 소스 버퍼를 사용하고 선택된 범위·페이지를 넓히지 않습니다. grep 파일 목록·개수 모드와 definitions/relations 전용 보기는 필터링하지 않습니다. 생략 없는 소스를 복원하려면 `analysis.jev.read_filter_enabled`를 끄고 안내된 범위를 읽으세요. 인수 누락으로는 필터를 우회할 수 없습니다. 기존 overview 전용 `task_query` 재지정은 유지하지만 본문 필터에 등록한 목적은 바꾸지 않습니다. 각 도구는 별도 활성화 설정이 필요하며 search를 켜도 read/grep은 켜지지 않습니다. 실패·마감 초과·잘못된 답변은 기본 출력을 바이트 단위로 그대로 유지하고, 모든 결과와 개수·알려진 토큰 사용량은 stderr의 `jev stage` 줄에 기록합니다. 공통 본문 필터 임계값 `search_filter_min_unrelated_probability`(호환성을 위해 기존 키 이름 유지)(기본 `0.70`, 허용 범위 `0.5 < 값 <= 1.0`)는 잠정값이며 보정되지 않았고, 요청은 고정 모델 `jev-1.13.0`에 대한 한 번의 시도입니다(재시도·리다이렉트 없음). 판단 런타임은 Rust에서 재사용할 수 있고, `cargo run --example jev_decisions -- --mock`은 고정된 합성 응답을 오프라인으로 재생하며 `--live`는 운영자가 요청할 때만 실제 요청 한 건을 보냅니다. 전송 데이터·한도·결과는 [선택적 Jev 판단 단계](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 

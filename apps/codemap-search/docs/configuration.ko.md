@@ -229,10 +229,10 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
-| `[analysis.jev].overview_enabled` | bool | `false` | `task_query`를 전달한 루트 `overview`에 Jev가 순위를 매긴 추천 파일을 덧붙임 |
-| `[analysis.jev].search_filter_enabled` | bool | `false` | `task_query`를 전달한 `search`에서 Jev가 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을 생략하고 read 안내 줄을 남김 |
-| `[analysis.jev].read_filter_enabled` | bool | `false` | 명시적 `task_query`가 있는 `read`의 선택 범위 안에서 완전한 함수 본문 필터링 |
-| `[analysis.jev].grep_filter_enabled` | bool | `false` | 명시적 `task_query`가 있는 `grep` content의 선택 페이지 안에서 완전한 함수 본문 필터링 |
+| `[analysis.jev].overview_enabled` | bool | `false` | 루트 `overview`에서 등록한 작업 목적에 맞는 Jev 추천 파일을 덧붙임 |
+| `[analysis.jev].search_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 search의 완전하고 정체성이 확인된 본문을 자동 필터링하고 read 안내를 남김 |
+| `[analysis.jev].read_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 read 선택 범위의 완전한 함수 본문을 자동 필터링 |
+| `[analysis.jev].grep_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 grep content 선택 페이지의 완전한 함수 본문을 자동 필터링 |
 | `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
 | `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | 요청 시점에 API 키를 읽을 환경 변수. 키 자체는 아님 |
 | `[analysis.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
@@ -709,11 +709,11 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# 선택적 TypeSafe Jev 판단 단계입니다. 모든 단계는 기본으로 꺼져 있고, 켜는 것만으로는
-# 아무것도 보내지 않습니다. 도구 호출이 명시적인 task_query를 함께 전달할 때만 평가하며,
+# 선택적 TypeSafe Jev 단계이며 기본으로 꺼져 있습니다. initial_instructions(task_query)에서
+# 전체 작업 목적을 한 번 등록하면 켜진 단계가 대상 호출에 자동 적용됩니다. 미등록은 오류이며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
 
-# 루트 overview 호출을 판단해 task_query에 맞는 색인 파일을 추천합니다.
+# 작업 등록 후 루트 overview {}를 먼저 호출해 등록한 목적에 맞는 파일을 추천받습니다.
 # overview_enabled = false
 
 # search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
@@ -721,9 +721,9 @@ is_build_support_enabled = false
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
 # search_filter_enabled = false
 
-# task_query가 있는 read/grep 호출을 각각 켭니다. 선택한 실제 소스의 완전한 함수 본문만
-# 판단합니다. task_query 없이 read하면 생략 없는 소스를 받습니다. grep 파일 목록·개수
-# 모드와 definitions/relations 전용 보기는 필터링하지 않습니다.
+# 호출별 task_query 없이 등록한 목적으로 read/grep을 자동 필터링합니다. 선택된 완전한
+# 본문만 판단하며 원문 복원 시 read_filter_enabled를 끕니다. grep 파일 목록·개수 모드와
+# definitions/relations 전용 보기는 필터링하지 않습니다.
 # read_filter_enabled = false
 # grep_filter_enabled = false
 
@@ -863,7 +863,9 @@ grep_filter_enabled = true
 export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에만 읽으며 어떤 설정 파일에도 기록하지 않습니다
 ```
 
-overview 추천과 search/read/grep 각각의 본문 필터는 서로 독립적이며 기본으로 꺼져 있습니다. 켜는 것만으로는 아무것도 보내지 않으며, 명시적 `task_query`와 `api_key_env`의 인증정보가 있어야 평가합니다. 의도는 이전 호출이나 `search.query`, `grep.pattern`으로 대체하지 않습니다. 빈 값이면 건너뛰고 문자열이 아니면 활성화 여부와 관계없이 인수 오류(`-32602`)입니다. 다른 인수·별칭·권한·선택 범위와 페이지·응답 봉투·출력 한도는 유지합니다. `find`, `analyze`, `initial_instructions`, CLI는 Jev를 호출하지 않습니다. 생략한 본문을 복원할 때는 `read`에서 `task_query`를 빼세요.
+overview 추천과 search/read/grep 필터는 독립적이며 기본으로 꺼져 있습니다. 하나라도 켰다면 작업 시작 시 `initial_instructions`에 비어 있지 않은 문자열 `task_query`로 사용자의 전체 목적을 등록합니다. 목적은 연결 안에서만 유지하며 `search.query`나 `grep.pattern`으로 추정하지 않습니다. 작업이 바뀌면 다시 등록하세요. 등록은 이전 목적을 교체하고, 잘못된 새 등록은 이전 목적을 지우며, 새 initialize도 등록을 초기화합니다. 필요한 목적이 없거나 비었거나 등록 값이 잘못되면 인수 오류(`-32602`)이며 일반 출력으로 우회하지 않습니다.
+
+**호출자 전환:** `search`·`read`·`grep`의 호출별 `task_query` 옵션은 제거했습니다. 설정이 꺼져 있어도 해당 인수를 전달하면 오류이며, 켜진 필터는 등록된 목적을 대상 출력에 자동 적용합니다. overview가 켜졌다면 등록 직후 경로나 workspace를 이미 알아도 루트 `overview {}`를 search/grep/read보다 먼저 호출하고 추천을 확인하세요. 색인 준비 중이었다면 준비 후 다시 호출합니다. 기존 overview 전용 `task_query`는 해당 추천의 목적만 재지정하며 본문 필터의 등록 목적을 바꾸지 않습니다. 다른 인수·별칭·권한·선택 범위와 페이지·응답 봉투·출력 한도는 유지합니다. `find`, `analyze`, 등록 자체와 CLI는 Jev를 호출하지 않습니다. 생략 없는 원문 복원은 `analysis.jev.read_filter_enabled`를 끈 뒤 안내된 범위를 읽어야 합니다. 인수 누락으로는 필터를 우회할 수 없습니다.
 
 단계가 켜져 있는 동안 `tools/list`는 해당 도구를 `openWorldHint: true`(외부 제공자에 접근할 수 있음)로 알리고 `readOnlyHint: true`는 그대로 유지하며, 도구 설명과 `initial_instructions`에도 같은 내용을 적습니다. 힌트와 설명은 목록을 요청한 시점의 설정을 따르므로, 단계를 켜거나 끈 뒤 도구 메타데이터를 캐시하는 클라이언트는 도구 목록을 다시 조회하거나 재연결해야 할 수 있습니다. 모든 클라이언트가 자동으로 갱신하지는 않습니다.
 
@@ -877,9 +879,9 @@ overview 추천과 search/read/grep 각각의 본문 필터는 서로 독립적�
 
 외부로 전송하는 데이터는 다음과 같습니다. overview는 가림 처리한 `task_query` 사본과 위에서 설명한 가림 처리한 파일별 개요 전문입니다. search는 가림 처리한 `task_query` 사본, 가림 처리한 검색 인수, 그리고 판단 대상 본문마다 선언 정보·근거 상태·표시된 호출자와 호출 대상·렌더링된 그대로의 원문 줄입니다. 가림은 전송 전에 적용되므로 가려진 값은 가려진 채 제공자에게 전달되고, 가림을 끄면 렌더링된 그대로 전송됩니다. read/grep은 가림 처리한 의도·도구 인수와 판단 대상의 표시된 본문·선언 정보·표시된 호출 관계를 보냅니다. 원본 색인 파일과 표시하지 않은 소스 본문은 전송하지 않습니다. API 키는 HTTPS 인증 헤더에서만 사용하고 모델의 상태나 질문에는 넣지 않습니다. 요청은 인코딩 바이트(`max_batch_bytes`) 단위로 묶고, 공개된 64k(상태와 모든 질문)·32k(상태와 가장 긴 질문) 토큰 한도는 3바이트당 1토큰의 보수적 추정으로 검사합니다. 바이트 상한은 토큰 보장이 아니며, 제공자 측 거부는 대체 처리이지 조용히 자르는 일이 아닙니다. 모든 요청은 한 번의 시도입니다. 클라이언트는 재시도하지 않고, 리다이렉트를 따라가지 않으며, 응답은 최대 4MiB까지만 읽고, 요청 하나는 최대 8,192개 질문을 최대 128개 배치에 담습니다.
 
-결과는 본문이 아니라 stderr에 기록합니다. 단계 실행마다 `jev stage` 줄 하나(tracing 대상 `codemap_search::mcp::jev`, `info` 수준, 기본 stderr 필터에서 표시)가 도구, 결과(`applied`, `bypassed`, `fallback`), 상태 또는 사유, 모델, 근거/질문/정책 버전, 개수(범위, 질문, 판단, 자격, 생략과 실제 생략, 보호, 연결, 미확인, 가림), 알려진 토큰 사용량과 사용량을 보고하지 않은 응답 수, 시도한 요청 수, 경과·HTTP·대기 시간을 담습니다. 의도, 근거, 인증정보, 제공자 오류 본문은 절대 담지 않으며 꺼진 단계는 아무것도 기록하지 않습니다. 건너뜀 사유에는 `missing_task_query`, `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index`, `insufficient_output_room`이 있고, 대체 종류는 런타임 오류 라벨(`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete` 등)입니다. 건너뜀, 대체, 모든 본문을 유지한 필터, 의도 없는 호출은 기본 출력을 바이트 단위로 그대로 반환합니다.
+결과는 본문이 아니라 stderr에 기록합니다. 단계 실행마다 `jev stage` 줄 하나(tracing 대상 `codemap_search::mcp::jev`, `info` 수준, 기본 stderr 필터에서 표시)가 도구, 결과(`applied`, `bypassed`, `fallback`), 상태 또는 사유, 모델, 근거/질문/정책 버전, 개수(범위, 질문, 판단, 자격, 생략과 실제 생략, 보호, 연결, 미확인, 가림), 알려진 토큰 사용량과 사용량을 보고하지 않은 응답 수, 시도한 요청 수, 경과·HTTP·대기 시간을 담습니다. 의도, 근거, 인증정보, 제공자 오류 본문은 절대 담지 않으며 꺼진 단계는 아무것도 기록하지 않습니다. 작업 목적 미등록은 MCP 인수 오류입니다. 그 밖의 건너뜀 사유에는 `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index`, `insufficient_output_room`이 있고, 대체 종류는 런타임 오류 라벨(`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete` 등)입니다. 건너뜀, 대체, 모든 본문을 유지한 필터는 기본 출력을 바이트 단위로 그대로 반환합니다. 등록된 목적이 필요한데 없으면 오류를 반환합니다.
 
-`search_filter_min_unrelated_probability`는 search/read/grep의 공통 임계값입니다(호환성을 위해 기존 키 이름 유지). 잠정적인 정책값이며 보정된 정확도 목표가 아닙니다. 0.5 초과 1.0 이하의 유한한 수여야 하고, 그 밖의 값은 경고 후 하위 계층이나 기본값으로 대체합니다. 전송 관련 키는 런타임의 초기 안전 정책을 더 조일 수만 있습니다. `max_in_flight_requests`는 1~3, `request_spacing_ms`는 300 이상, `max_batch_bytes`는 1~80000, `timeout_ms`와 `pool_idle_timeout_ms`는 양수이며 최대 7일이고, 그 밖의 값은 같은 방식으로 경고 후 대체합니다. 각 요청은 시작 시점의 설정과 하나의 절대 마감 시각(`timeout_ms`, 단계의 준비를 시작한 순간부터 계산하며 모든 준비 과정과 배치가 공유)을 고정합니다. 설정 변경은 후속 요청부터 적용하고 런타임은 마감을 늘리지 않습니다. 기본값에 대한 실제 평가나 임계값 보정은 수행하지 않았습니다.
+`search_filter_min_unrelated_probability`는 search/read/grep의 공통 임계값입니다(호환성을 위해 기존 키 이름 유지). 잠정적인 정책값이며 보정된 정확도 목표가 아닙니다. 0.5 초과 1.0 이하의 유한한 수여야 하고, 그 밖의 값은 경고 후 하위 계층이나 기본값으로 대체합니다. 전송 관련 키는 런타임의 초기 안전 정책을 더 조일 수만 있습니다. `max_in_flight_requests`는 1~3, `request_spacing_ms`는 300 이상, `max_batch_bytes`는 1~80000, `timeout_ms`와 `pool_idle_timeout_ms`는 양수이며 최대 7일이고, 그 밖의 값은 같은 방식으로 경고 후 대체합니다. 각 요청은 시작 시점의 설정과 하나의 절대 마감 시각(`timeout_ms`, 단계의 준비를 시작한 순간부터 계산하며 모든 준비 과정과 배치가 공유)을 고정합니다. 설정 변경은 후속 요청부터 적용하고 런타임은 마감을 늘리지 않습니다. 기본 임계값은 여전히 보정되지 않았으며 일반적인 정확도나 생략 안전성을 보장하지 않습니다.
 
 판단 런타임은 Rust에서 직접 사용할 수도 있습니다(`codemap_search::jev`). 크레이트 예제는 `cargo run --example jev_decisions -- --mock`으로 고정된 합성 응답을 오프라인 재생하고(인증정보·네트워크 불필요), 운영자가 명시적으로 요청한 경우에만 `cargo run --example jev_decisions -- --live`로 `TYPESAFE_API_KEY`를 사용해 실제 요청 한 건을 보냅니다. 예제는 세 가지 기본 질문 유형인 Score(확률 가중 등급과 분포), Choice(선택지 확률), Noul(예 확률)을 보여 줍니다.
 

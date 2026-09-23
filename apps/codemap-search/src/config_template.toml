@@ -270,11 +270,11 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# Optional TypeSafe Jev decision stages. All stages are off by default, and enabling one
-# sends nothing by itself: a request is evaluated only when the tool call also passes an
-# explicit task_query, and the API key comes from the environment variable named below.
+# Optional TypeSafe Jev stages; all are off by default. Register the full task once through
+# initial_instructions(task_query). Enabled stages then apply automatically to eligible calls;
+# missing registration is an error. The API key comes from the environment variable below.
 
-# Judge root overview calls: recommend indexed files for the task_query.
+# After registration, call root overview {} first to recommend files for the registered task.
 # overview_enabled = false
 
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
@@ -282,9 +282,9 @@ is_build_support_enabled = false
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
 
-# Independently opt in read/grep calls carrying task_query. Only complete callable bodies
-# in the selected live source are eligible. Without task_query, read restores unfiltered
-# source; grep file/count modes and definitions/relations-only views are never filtered.
+# Automatically filter read/grep using the registered task, not a per-call task_query.
+# Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
+# restoration; grep file/count modes and definitions/relations-only views are never filtered.
 # read_filter_enabled = false
 # grep_filter_enabled = false
 

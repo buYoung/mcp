@@ -227,10 +227,10 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
-| `[analysis.jev].overview_enabled` | bool | `false` | Root `overview` calls that pass `task_query` append Jev-ranked recommended files |
-| `[analysis.jev].search_filter_enabled` | bool | `false` | `search` calls that pass `task_query` omit complete, identity-verified declaration bodies Jev judges unrelated, leaving inline read notes |
-| `[analysis.jev].read_filter_enabled` | bool | `false` | Filter complete callable bodies within a `read` window only with explicit `task_query` |
-| `[analysis.jev].grep_filter_enabled` | bool | `false` | Filter complete callable bodies in a selected `grep` content page only with explicit `task_query` |
+| `[analysis.jev].overview_enabled` | bool | `false` | Root `overview` uses the registered task to append Jev-ranked recommended files |
+| `[analysis.jev].search_filter_enabled` | bool | `false` | Automatically filter complete, identity-verified search bodies against the registered task, leaving read notes |
+| `[analysis.jev].read_filter_enabled` | bool | `false` | Automatically filter complete callable bodies in a `read` window against the registered task |
+| `[analysis.jev].grep_filter_enabled` | bool | `false` | Automatically filter complete callable bodies in a `grep` content page against the registered task |
 | `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
 | `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
 | `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
@@ -712,11 +712,11 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# Optional TypeSafe Jev decision stages. All stages are off by default, and enabling one
-# sends nothing by itself: a request is evaluated only when the tool call also passes an
-# explicit task_query, and the API key comes from the environment variable named below.
+# Optional TypeSafe Jev stages; all are off by default. Register the full task once through
+# initial_instructions(task_query). Enabled stages then apply automatically to eligible calls;
+# missing registration is an error. The API key comes from the environment variable below.
 
-# Judge root overview calls: recommend indexed files for the task_query.
+# After registration, call root overview {} first to recommend files for the registered task.
 # overview_enabled = false
 
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
@@ -724,9 +724,9 @@ is_build_support_enabled = false
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
 
-# Independently opt in read/grep calls carrying task_query. Only complete callable bodies
-# in the selected live source are eligible. Without task_query, read restores unfiltered
-# source; grep file/count modes and definitions/relations-only views are never filtered.
+# Automatically filter read/grep using the registered task, not a per-call task_query.
+# Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
+# restoration; grep file/count modes and definitions/relations-only views are never filtered.
 # read_filter_enabled = false
 # grep_filter_enabled = false
 
@@ -866,7 +866,9 @@ grep_filter_enabled = true
 export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
 ```
 
-Overview recommendation and each of the search/read/grep body filters are independently off by default. Enabling a stage sends nothing by itself. A request is evaluated only with an explicit `task_query` and credentials from `api_key_env`. Intent is never inferred from earlier calls, `search.query` or `grep.pattern`; blank intent bypasses the stage, and non-string intent is an argument error (`-32602`) regardless of activation. Existing arguments, aliases, permissions, windows/pages, envelopes and output limits stay unchanged. `find`, `analyze`, `initial_instructions` and the CLI do not invoke Jev. To restore an omitted body with `read`, omit `task_query`.
+Overview recommendation and each search/read/grep filter are independently off by default. When any stage is enabled, start each task with `initial_instructions` and a nonempty string `task_query` containing the user's complete purpose. This registers connection-local context; it is not inferred from `search.query` or `grep.pattern`. Register again on task changes. Registration replaces the old context, invalid registration clears it, and a new initialize resets it. Missing/blank context or invalid registration is an argument error (`-32602`), not an unfiltered opt-out.
+
+**Caller migration:** `search`, `read` and `grep` no longer accept a per-call `task_query`; passing it is an argument error even if the stage is disabled. Enabled filters automatically use the registered task for eligible output. After registration, if overview is enabled, call root `overview {}` before search/grep/read, even if scopes or paths are already known; inspect recommendations first and retry if indexing was still warming. Overview's legacy optional `task_query` remains a recommendation-only override and does not register or replace the body-filter task. Other arguments, aliases, permissions, windows/pages, envelopes and output limits stay unchanged. `find`, `analyze`, registration itself and the CLI do not invoke Jev. For unfiltered restoration, disable `analysis.jev.read_filter_enabled` and then read the indicated range; parameter omission no longer bypasses filtering.
 
 While a stage is enabled, `tools/list` advertises the matching tool with `openWorldHint: true` (it may contact the external provider) next to the unchanged `readOnlyHint: true`, and the tool description and `initial_instructions` say so. Hints and descriptions follow the configuration of the request that lists them, so after turning a stage on or off a client that caches tool metadata may need to list the tools again or reconnect; not every client refreshes on its own.
 
@@ -880,9 +882,9 @@ Full overview rows are split into consecutive fragments of at most 10,000 encode
 
 What leaves the machine: for overview, a masked copy of `task_query` and the masked complete overview file rows described above; for search, a masked copy of `task_query`, the masked search arguments, and for each judged body its identity, evidence status, displayed callers/callees and the displayed source lines exactly as rendered. Redaction runs before transmission, so masked values reach the provider masked; with redaction off, text is sent as rendered. Read/grep send the masked intent, tool arguments and eligible displayed source bodies with their identities and displayed call links. Raw index files and undisplayed source bodies are not transmitted. The API key is used only in the HTTPS authorization header, never in model state or questions. Requests are batched by encoded bytes (`max_batch_bytes`) and checked against the published 64k (state plus all questions) and 32k (state plus the longest question) token limits with a conservative estimate of one token per three bytes; the byte ceiling is not a token guarantee, and a provider-side rejection is a fallback, never a silent truncation. Every request is one attempt: the client never retries, never follows redirects, reads at most 4 MiB of a response, and one request carries at most 8,192 questions in at most 128 batches.
 
-Outcomes are recorded on stderr, never inline: one `jev stage` line per stage run (tracing target `codemap_search::mcp::jev`, level `info`, shown by the default stderr filter) carries the tool, the outcome (`applied`, `bypassed`, `fallback`), the status or reason, the model, the evidence/question/policy versions, counts (coverage, questions, judged, qualified, omitted and rendered omissions, protected, linked, unverified, masked), the known token usage together with the number of responses that reported none, the number of attempted requests, and elapsed/HTTP/queue time. It never contains the intent, evidence, a credential or provider error text, and disabled stages log nothing. Bypass reasons include `missing_task_query`, `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index` and `insufficient_output_room`; fallback kinds are the runtime's error labels (`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete`, …). A bypass, a fallback, a filter that keeps every body and a call without intent return the base output byte for byte.
+Outcomes are recorded on stderr, never inline: one `jev stage` line per stage run (tracing target `codemap_search::mcp::jev`, level `info`, shown by the default stderr filter) carries the tool, the outcome (`applied`, `bypassed`, `fallback`), the status or reason, the model, the evidence/question/policy versions, counts (coverage, questions, judged, qualified, omitted and rendered omissions, protected, linked, unverified, masked), the known token usage together with the number of responses that reported none, the number of attempted requests, and elapsed/HTTP/queue time. It never contains the intent, evidence, a credential or provider error text, and disabled stages log nothing. Missing task registration is an MCP argument error. Other bypass reasons include `missing_credentials`, `invalid_config`, `invalid_threshold`, `no_complete_bodies`, `index_warming`, `indexer_dead`, `empty_index` and `insufficient_output_room`; fallback kinds are the runtime's error labels (`deadline_exceeded`, `rate_limited`, `unauthorized`, `rejected`, `incomplete_answers`, `invalid_answer`, `estimated_token_limit`, `question_too_large`, `projection_incomplete`, …). A bypass, a fallback or a filter that keeps every body returns the base output byte for byte. Calls requiring an unregistered task return an error instead.
 
-`search_filter_min_unrelated_probability` is shared by search/read/grep (the existing key name is retained for compatibility). It is a provisional policy value, not a calibrated accuracy target. It must be a finite number above 0.5 and at most 1.0; other values warn and fall back to the lower layer or the default. Transport keys may only tighten the runtime's initial safety policy: `max_in_flight_requests` 1 to 3, `request_spacing_ms` at least 300, `max_batch_bytes` 1 to 80000, `timeout_ms` and `pool_idle_timeout_ms` positive and at most seven days; other values warn and fall back the same way. Each request fixes its configuration and one absolute deadline (`timeout_ms`, counted from the moment the stage starts preparing and shared by all preparation and every batch); a config change applies to subsequent requests, and the runtime never extends a deadline. No live evaluation or threshold calibration has been performed for the shipped defaults.
+`search_filter_min_unrelated_probability` is shared by search/read/grep (the existing key name is retained for compatibility). It is a provisional policy value, not a calibrated accuracy target. It must be a finite number above 0.5 and at most 1.0; other values warn and fall back to the lower layer or the default. Transport keys may only tighten the runtime's initial safety policy: `max_in_flight_requests` 1 to 3, `request_spacing_ms` at least 300, `max_batch_bytes` 1 to 80000, `timeout_ms` and `pool_idle_timeout_ms` positive and at most seven days; other values warn and fall back the same way. Each request fixes its configuration and one absolute deadline (`timeout_ms`, counted from the moment the stage starts preparing and shared by all preparation and every batch); a config change applies to subsequent requests, and the runtime never extends a deadline. The default threshold remains uncalibrated; no general accuracy or omission-safety guarantee has been established.
 
 The decision runtime is also usable directly from Rust (`codemap_search::jev`): the in-crate example replays a fixed synthetic response offline with `cargo run --example jev_decisions -- --mock` (no credentials, no network) and, only when an operator explicitly asks for a live request, sends one with `cargo run --example jev_decisions -- --live` using `TYPESAFE_API_KEY`. The example shows the three primitives: Score (probability-weighted level plus distribution), Choice (option probabilities) and Noul (yes probability).
 

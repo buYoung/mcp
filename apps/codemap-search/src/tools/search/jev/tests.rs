@@ -894,7 +894,7 @@ async fn retention_rewrites_the_results_body_and_drops_omitted_anchors_only() {
         .expect("unrelatedThing is omitted");
     assert_eq!(
         note,
-        "- _omitted body: L1-6 (function unrelatedThing) judged unrelated to the task (Jev unrelated 0.99); read src/search/other.ts offset 1 limit 6 to restore it._\n"
+        "- _omitted body: L1-6 (function unrelatedThing) judged unrelated to the task (Jev unrelated 0.99); read src/search/other.ts offset 1 limit 6 with read filtering off to restore._\n"
     );
 
     let Fixture { cap, mut other } = fixture;

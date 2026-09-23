@@ -270,11 +270,11 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# 선택적 TypeSafe Jev 판단 단계입니다. 모든 단계는 기본으로 꺼져 있고, 켜는 것만으로는
-# 아무것도 보내지 않습니다. 도구 호출이 명시적인 task_query를 함께 전달할 때만 평가하며,
+# 선택적 TypeSafe Jev 단계이며 기본으로 꺼져 있습니다. initial_instructions(task_query)에서
+# 전체 작업 목적을 한 번 등록하면 켜진 단계가 대상 호출에 자동 적용됩니다. 미등록은 오류이며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
 
-# 루트 overview 호출을 판단해 task_query에 맞는 색인 파일을 추천합니다.
+# 작업 등록 후 루트 overview {}를 먼저 호출해 등록한 목적에 맞는 파일을 추천받습니다.
 # overview_enabled = false
 
 # search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
@@ -282,9 +282,9 @@ is_build_support_enabled = false
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
 # search_filter_enabled = false
 
-# task_query가 있는 read/grep 호출을 각각 켭니다. 선택한 실제 소스의 완전한 함수 본문만
-# 판단합니다. task_query 없이 read하면 생략 없는 소스를 받습니다. grep 파일 목록·개수
-# 모드와 definitions/relations 전용 보기는 필터링하지 않습니다.
+# 호출별 task_query 없이 등록한 목적으로 read/grep을 자동 필터링합니다. 선택된 완전한
+# 본문만 판단하며 원문 복원 시 read_filter_enabled를 끕니다. grep 파일 목록·개수 모드와
+# definitions/relations 전용 보기는 필터링하지 않습니다.
 # read_filter_enabled = false
 # grep_filter_enabled = false
 

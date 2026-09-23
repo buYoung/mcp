@@ -273,6 +273,58 @@ pub struct InProcessClient {
 }
 
 impl InProcessClient {
+    /// Register one task through the public setup contract, not a per-call filter argument.
+    pub async fn register_task(&mut self, task: &str) {
+        let response = self
+            .call(
+                "tools/call",
+                serde_json::json!({
+                    "name": "initial_instructions", "arguments": { "task_query": task }
+                }),
+            )
+            .await
+            .unwrap();
+        assert!(response["error"].is_null(), "{response}");
+    }
+
+    /// Obtain the unfiltered baseline through the real MCP path with all Jev flags off.
+    pub async fn plain_call(&mut self, name: &str, arguments: Value) -> Result<Value, String> {
+        let root = std::env::current_dir().unwrap();
+        let path = root.join(".codemap/config.toml");
+        if !codemap_search::config::get().jev.is_any_enabled() {
+            return self
+                .call(
+                    "tools/call",
+                    serde_json::json!({"name":name,"arguments":arguments}),
+                )
+                .await;
+        }
+        let original = std::fs::read_to_string(&path).unwrap();
+        let mut config: toml::Value = toml::from_str(&original).unwrap();
+        for key in [
+            "overview_enabled",
+            "search_filter_enabled",
+            "read_filter_enabled",
+            "grep_filter_enabled",
+        ] {
+            config["analysis"]["jev"]
+                .as_table_mut()
+                .unwrap()
+                .insert(key.into(), toml::Value::Boolean(false));
+        }
+        std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
+        codemap_search::config::reload(&root);
+        let response = self
+            .call(
+                "tools/call",
+                serde_json::json!({"name":name,"arguments":arguments}),
+            )
+            .await;
+        std::fs::write(&path, original).unwrap();
+        codemap_search::config::reload(&root);
+        response
+    }
+
     /// Write one request without waiting for its response (`receive` reads it later).
     pub async fn send(&mut self, method: &str, params: Value) -> Result<i64, String> {
         let id = self.request_id;

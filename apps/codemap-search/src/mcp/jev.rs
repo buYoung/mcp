@@ -2,8 +2,8 @@
 //! environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
 //! per tool call, and the per-tool glue that turns adapter results into response text plus
 //! secret-free stderr diagnostics. Nothing here runs unless a stage is enabled in
-//! `[analysis.jev]` and the call carries an explicit `task_query`; every bypass and
-//! fallback returns the base tool output byte for byte, and the canonical record of what
+//! `[analysis.jev]`. Enabled filters use the task registered for this connection; missing
+//! registration is an error. Other bypasses/fallbacks preserve the base output. The record of what
 //! happened is the `jev stage` diagnostic line, never inline text.
 
 use crate::config::{JevConfig, ResolvedConfig};
@@ -158,6 +158,14 @@ fn log_bypass(tool: &'static str, reason: &str, model: &str) {
     });
 }
 
+/// Missing task context is a setup error, never a per-call opt-out from an enabled filter.
+pub(super) fn require_task_query(task_query: Option<&str>) -> Result<&str, (i64, String)> {
+    task_query.filter(|text| !text.trim().is_empty()).ok_or_else(|| (
+        -32602,
+        "Jev requires a registered task. Call initial_instructions with task_query set to the user's full task, then retry. Register again whenever the task changes.".into(),
+    ))
+}
+
 /// Mode #1 for one `overview` call: the base overview, plus the recommendation section for a
 /// ready root request that carries an explicit intent and has credentials. Every other case
 /// returns the base overview unchanged and reports the reason on stderr; non-root and
@@ -178,6 +186,7 @@ pub(super) async fn overview(
         Ok(input) => input,
         Err("not_root_scope" | "unsupported_format") => return Ok(text),
         Err(reason) => {
+            require_task_query(task_query)?;
             log_bypass("overview", reason, model);
             return Ok(text);
         }
@@ -242,8 +251,8 @@ pub(super) async fn overview(
 }
 
 /// Mode #2 for one `search` call: the structured body filter over the selected evidence,
-/// or the byte-identical plain output when the call carries no intent, no credentials are
-/// available, or the filter bypasses or fails.
+/// using the registered task. Missing registration is an error; unavailable credentials,
+/// ineligible evidence or provider failures preserve the byte-identical plain output.
 pub(super) async fn search(
     host: &mut JevHost,
     ctx: &ToolContext<'_>,
@@ -252,10 +261,7 @@ pub(super) async fn search(
 ) -> Result<SearchOutput, (i64, String)> {
     let jev = &config.jev;
     let model = jev.model.as_str();
-    let Some(task_query) = task_query else {
-        log_bypass("search", "missing_task_query", model);
-        return crate::tools::search::run_with_metadata(ctx);
-    };
+    let task_query = require_task_query(task_query)?;
     let Some(deadline_at) = deadline_at(jev) else {
         log_bypass("search", "invalid_config", model);
         return crate::tools::search::run_with_metadata(ctx);
@@ -309,7 +315,7 @@ pub(super) async fn search(
 }
 
 /// Live tools retain their filesystem permissions, selected windows/pages and final base
-/// rendering. Only an explicitly enabled, intent-bearing source request captures bodies.
+/// rendering. Every enabled source request uses the registered task, without a per-call opt-in.
 pub(super) async fn live(
     host: &mut JevHost,
     engine: &crate::index::EngineSupervisor,
@@ -341,9 +347,8 @@ pub(super) async fn live(
     let started = Instant::now();
     let mut evaluation = None;
     if is_enabled && is_source {
-        if task_query.is_none() {
-            log_bypass(tool, "missing_task_query", &config.jev.model);
-        } else if let Some(deadline_at) = deadline_at(&config.jev) {
+        require_task_query(task_query)?;
+        if let Some(deadline_at) = deadline_at(&config.jev) {
             match host.resolve(&config.jev) {
                 Ok(evaluator) => {
                     evaluation = Some((

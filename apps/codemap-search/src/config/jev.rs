@@ -1,8 +1,8 @@
 //! `[analysis.jev]`: the optional TypeSafe Jev decision stages (root overview
-//! recommendation and search/read/grep body filtering). All stages are off by default and enabling
-//! one sends nothing by itself; a request is evaluated only when a tool call also passes an
-//! explicit `task_query` and the API key named by `api_key_env` is present in the
-//! environment. The key itself is never part of the configuration.
+//! recommendation and search/read/grep body filtering). All stages are off by default.
+//! Register the full task once through `initial_instructions`; enabled stages automatically
+//! use it for eligible calls. The API key comes from the environment variable named by
+//! `api_key_env`, never from configuration or tool arguments.
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
 //! `MAX_IN_FLIGHT_REQUESTS` (3) requests in flight, at least `MIN_REQUEST_SPACING`
@@ -17,7 +17,7 @@ pub const DEFAULT_API_KEY_ENV: &str = "TYPESAFE_API_KEY";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JevConfig {
-    /// Mode #1: judge root `overview` calls that carry `task_query`.
+    /// Mode #1: judge root `overview` calls using the registered task.
     pub overview_enabled: bool,
     /// Mode #2: filter complete declaration bodies in `search` details.
     pub search_filter_enabled: bool,

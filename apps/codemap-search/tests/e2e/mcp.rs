@@ -918,12 +918,8 @@ export function greet(name: string): string {
         format!("[analysis.jev]\nsearch_filter_enabled = true\nsearch_filter_min_unrelated_probability = {threshold}\n")
     }
 
-    fn search_arguments(task_query: Option<&str>) -> serde_json::Value {
-        let mut arguments = json!({ "query": "keepMe dropMe" });
-        if let Some(task_query) = task_query {
-            arguments["task_query"] = json!(task_query);
-        }
-        arguments
+    fn search_arguments() -> serde_json::Value {
+        json!({ "query": "keepMe dropMe" })
     }
 
     /// Answers every body question from the declaration name; unknown names are related.
@@ -990,16 +986,13 @@ export function greet(name: string): string {
         );
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
-            // Without task_query the stage bypasses and the plain output is returned as is.
-            let response = client
-                .call_tool_until("search", search_arguments(None), |text| {
-                    text.contains("function keepMe") && text.contains("function dropMe")
-                })
-                .await
-                .unwrap();
+            let missing = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
+            assert_eq!(missing["error"]["code"], -32602, "missing registration is not an opt-out");
+            client.register_task(TASK).await;
+            let response = client.plain_call("search", search_arguments()).await.unwrap();
             let plain = response_text(&response).to_string();
             assert!(!plain.contains("Jev"), "a bypass adds no inline text: {plain}");
-            assert_eq!(judge.request_count(), 0, "a blank intent never evaluates");
+            assert_eq!(judge.request_count(), 0, "the disabled baseline never evaluates");
 
             // The tools list reflects the enabled stage, including the external-access hint.
             let tools = client.call("tools/list", json!({})).await.unwrap();
@@ -1014,7 +1007,7 @@ export function greet(name: string): string {
             };
             let search_tool = tool("search");
             assert!(search_tool["description"].as_str().unwrap().contains("Jev body filter is enabled"));
-            assert!(search_tool["inputSchema"]["properties"]["task_query"].is_object());
+            assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
             let overview_tool = tool("overview");
@@ -1023,7 +1016,7 @@ export function greet(name: string): string {
 
             // In flight: the threshold captured at 0.70 survives a config change to 0.90.
             client
-                .send("tools/call", json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }))
+                .send("tools/call", json!({ "name": "search", "arguments": search_arguments() }))
                 .await
                 .unwrap();
             gate.entered().await;
@@ -1033,7 +1026,7 @@ export function greet(name: string): string {
             let response = client.receive().await.unwrap();
             let text = response_text(&response);
             assert!(
-                text.contains("- _omitted body: L10-15 (fn dropMe) judged unrelated to the task (Jev unrelated 0.80); read src/budget.ts offset 10 limit 6 to restore it._"),
+                text.contains("- _omitted body: L10-15 (fn dropMe) judged unrelated to the task (Jev unrelated 0.80); read src/budget.ts offset 10 limit 6 with read filtering off to restore._"),
                 "{text}"
             );
             assert!(!text.contains("input.split"), "the omitted body is gone: {text}");
@@ -1045,7 +1038,7 @@ export function greet(name: string): string {
             // The next call reads the reloaded threshold: 0.80 is below 0.90, so nothing is
             // omitted and the output is the plain output again (all-keep adds no text).
             let response = client
-                .call("tools/call", json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }))
+                .call("tools/call", json!({ "name": "search", "arguments": search_arguments() }))
                 .await
                 .unwrap();
             let text = response_text(&response);
@@ -1073,11 +1066,8 @@ export function greet(name: string): string {
         let evaluator = Arc::new(overview_judge("src/a.ts"));
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
-            // Warm up on the plain overview first; a blank intent bypasses without any note.
-            let response = client
-                .call_tool_until("overview", json!({}), |text| text.contains("src/a.ts") && !text.contains("warming up"))
-                .await
-                .unwrap();
+            client.register_task(TASK).await;
+            let response = client.plain_call("overview", json!({})).await.unwrap();
             let text = response_text(&response);
             assert!(!text.contains("Jev"), "{text}");
             assert_eq!(judge.request_count(), 0);
@@ -1144,7 +1134,7 @@ export function greet(name: string): string {
 
     #[tokio::test]
     async fn test_jev_stages_are_independent_and_failures_preserve_the_base_output() {
-        // Only the search filter is on: overview ignores task_query entirely.
+        // Only the search filter is on: registration does not enable overview.
         let temp = create_mock_repo(&[
             (".codemap/config.toml", &search_filter_config("0.70")),
             ("src/budget.ts", BUDGET_TS),
@@ -1165,8 +1155,9 @@ export function greet(name: string): string {
                 "overview stays plain while only the filter is enabled: {text}"
             );
             assert_eq!(judge.request_count(), 0);
+            client.register_task(TASK).await;
             let response = client
-                .call_tool_until("search", search_arguments(Some(TASK)), |text| {
+                .call_tool_until("search", search_arguments(), |text| {
                     text.contains("_omitted body:")
                 })
                 .await
@@ -1189,7 +1180,7 @@ export function greet(name: string): string {
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
             let response = client
-                .call_tool_until("search", search_arguments(Some(TASK)), |text| {
+                .call_tool_until("search", search_arguments(), |text| {
                     text.contains("function dropMe")
                 })
                 .await
@@ -1215,16 +1206,15 @@ export function greet(name: string): string {
         }));
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+            client.register_task(TASK).await;
             let plain = client
-                .call_tool_until("search", search_arguments(None), |text| {
-                    text.contains("function keepMe") && text.contains("function dropMe")
-                })
+                .plain_call("search", search_arguments())
                 .await
                 .unwrap();
             let response = client
                 .call(
                     "tools/call",
-                    json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }),
+                    json!({ "name": "search", "arguments": search_arguments() }),
                 )
                 .await
                 .unwrap();
@@ -1234,12 +1224,7 @@ export function greet(name: string): string {
                 "a provider failure returns the plain search byte for byte"
             );
             assert_eq!(judge.request_count(), 1, "the failed request was attempted");
-            let plain = client
-                .call_tool_until("overview", json!({}), |text| {
-                    text.contains("src/budget.ts") && !text.contains("warming up")
-                })
-                .await
-                .unwrap();
+            let plain = client.plain_call("overview", json!({})).await.unwrap();
             let response = client
                 .call(
                     "tools/call",
@@ -1269,16 +1254,15 @@ export function greet(name: string): string {
         .unwrap();
         std::env::remove_var("CODEMAP_TEST_JEV_KEY_UNSET");
         with_in_process_server(temp.path(), None, |mut client| async move {
+            client.register_task(TASK).await;
             let plain = client
-                .call_tool_until("search", search_arguments(None), |text| {
-                    text.contains("function keepMe") && text.contains("function dropMe")
-                })
+                .plain_call("search", search_arguments())
                 .await
                 .unwrap();
             let response = client
                 .call(
                     "tools/call",
-                    json!({ "name": "search", "arguments": search_arguments(Some(TASK)) }),
+                    json!({ "name": "search", "arguments": search_arguments() }),
                 )
                 .await
                 .unwrap();
@@ -1289,12 +1273,7 @@ export function greet(name: string): string {
                 "missing credentials return the plain output: {text}"
             );
             assert!(text.contains("input.split"), "{text}");
-            let plain = client
-                .call_tool_until("overview", json!({}), |text| {
-                    text.contains("src/budget.ts") && !text.contains("warming up")
-                })
-                .await
-                .unwrap();
+            let plain = client.plain_call("overview", json!({})).await.unwrap();
             let response = client
                 .call(
                     "tools/call",
@@ -1340,7 +1319,7 @@ export function greet(name: string): string {
         assert_eq!(response["error"]["code"], json!(-32602), "{response}");
 
         let response = client
-            .send_tool_until("search", search_arguments(Some(TASK)), |text| {
+            .send_tool_until("search", search_arguments(), |text| {
                 text.contains("function keepMe")
             })
             .await
@@ -1367,10 +1346,16 @@ export function greet(name: string): string {
                 .iter()
                 .find(|tool| tool["name"] == name)
                 .unwrap();
-            assert_eq!(
-                tool["inputSchema"]["properties"]["task_query"]["type"],
-                json!("string")
-            );
+            if name == "overview" {
+                assert_eq!(
+                    tool["inputSchema"]["properties"]["task_query"]["type"],
+                    "string"
+                );
+            } else {
+                assert!(tool["inputSchema"]["properties"]
+                    .get("task_query")
+                    .is_none());
+            }
             assert!(!tool["description"].as_str().unwrap().contains("is enabled"));
             assert_eq!(
                 tool["annotations"]["openWorldHint"],

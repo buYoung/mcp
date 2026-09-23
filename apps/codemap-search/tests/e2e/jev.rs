@@ -5,7 +5,9 @@
 //! expectations are checked on the delivered tool text, on what the evaluator received and
 //! on the `jev stage` diagnostic lines (the canonical record of every outcome).
 
-use crate::e2e::helpers::{create_mock_repo, response_text, with_in_process_server};
+use crate::e2e::helpers::{
+    create_mock_repo, response_text, with_in_process_server as run_server, InProcessClient,
+};
 use codemap_search::jev::mock::{answers, MockEvaluator, MockTransport, ScriptedResponse};
 use codemap_search::jev::{
     EvaluationRequest, Evaluator, EvaluatorConfig, JevEvaluator, QuestionKind, Transport, Usage,
@@ -94,12 +96,23 @@ const FILTER_ONLY: &str = "[analysis.jev]\nsearch_filter_enabled = true\n";
 const OVERVIEW_ONLY: &str = "[analysis.jev]\noverview_enabled = true\n";
 const SECTION_HEADER: &str = "## Recommended files for the task (indexed evidence)";
 
-fn search_arguments(query: &str, task_query: Option<&str>) -> Value {
-    let mut arguments = json!({ "query": query });
-    if let Some(task_query) = task_query {
-        arguments["task_query"] = json!(task_query);
-    }
-    arguments
+async fn with_in_process_server<F, Fut>(
+    root: &std::path::Path,
+    evaluator: Option<Arc<dyn Evaluator>>,
+    script: F,
+) where
+    F: FnOnce(InProcessClient) -> Fut,
+    Fut: std::future::Future<Output = ()>,
+{
+    run_server(root, evaluator, |mut client| async move {
+        client.register_task(TASK).await;
+        script(client).await;
+    })
+    .await;
+}
+
+fn search_arguments(query: &str) -> Value {
+    json!({ "query": query })
 }
 
 /// One judge for both stages: files under `qualifying_prefix` qualify with a clear margin,
@@ -268,16 +281,22 @@ async fn test_jev_disabled_stages_ignore_intent_and_an_injected_evaluator() {
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         let plain = client
-            .call_tool_until("search", search_arguments("keepMe dropMe", None), |text| {
-                text.contains("function keepMe") && text.contains("function dropMe")
-            })
+            .plain_call("search", search_arguments("keepMe dropMe"))
             .await
             .unwrap();
+        client.register_task(TASK_KO).await;
         let with_intent = client
-            .call("tools/call", json!({ "name": "search", "arguments": search_arguments("keepMe dropMe", Some(TASK)) }))
+            .call(
+                "tools/call",
+                json!({ "name": "search", "arguments": search_arguments("keepMe dropMe") }),
+            )
             .await
             .unwrap();
-        assert_eq!(response_text(&plain), response_text(&with_intent), "task_query is inert while both stages are off");
+        assert_eq!(
+            response_text(&plain),
+            response_text(&with_intent),
+            "task_query is inert while both stages are off"
+        );
         assert!(!response_text(&plain).contains("Jev"));
 
         let overview = client
@@ -286,20 +305,48 @@ async fn test_jev_disabled_stages_ignore_intent_and_an_injected_evaluator() {
             })
             .await
             .unwrap();
-        assert!(!response_text(&overview).contains("Jev"), "{}", response_text(&overview));
-        assert_eq!(judge.request_count(), 0, "an injected evaluator is never consulted while both stages are off");
+        assert!(
+            !response_text(&overview).contains("Jev"),
+            "{}",
+            response_text(&overview)
+        );
+        assert_eq!(
+            judge.request_count(),
+            0,
+            "an injected evaluator is never consulted while both stages are off"
+        );
 
         let instructions = client
-            .call("tools/call", json!({ "name": "initial_instructions", "arguments": {} }))
+            .call(
+                "tools/call",
+                json!({ "name": "initial_instructions", "arguments": {} }),
+            )
             .await
             .unwrap();
-        assert!(!response_text(&instructions).contains("are enabled"), "no Jev guidance while disabled");
+        assert!(
+            !response_text(&instructions).contains("are enabled"),
+            "no Jev guidance while disabled"
+        );
         let tools = client.call("tools/list", json!({})).await.unwrap();
         for tool in tools["result"]["tools"].as_array().unwrap() {
             let description = tool["description"].as_str().unwrap();
-            assert!(!description.contains("is enabled"), "{}: {description}", tool["name"]);
-            assert_eq!(tool["annotations"]["openWorldHint"], json!(false), "{}", tool["name"]);
-            assert_eq!(tool["annotations"]["readOnlyHint"], json!(true), "{}", tool["name"]);
+            assert!(
+                !description.contains("is enabled"),
+                "{}: {description}",
+                tool["name"]
+            );
+            assert_eq!(
+                tool["annotations"]["openWorldHint"],
+                json!(false),
+                "{}",
+                tool["name"]
+            );
+            assert_eq!(
+                tool["annotations"]["readOnlyHint"],
+                json!(true),
+                "{}",
+                tool["name"]
+            );
         }
     })
     .await;
@@ -472,14 +519,14 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         tracing::callsite::rebuild_interest_cache();
         let response = client
-            .call_tool_until("search", search_arguments("keepMe wideDrop", Some(TASK)), |text| text.contains("_omitted body:"))
+            .call_tool_until("search", search_arguments("keepMe wideDrop"), |text| text.contains("_omitted body:"))
             .await
             .unwrap();
         let text = response_text(&response);
         assert!(text.contains("const reserve = footer.length + 8;"), "the partial window of keepMe stays: {text}");
         assert!(text.contains("more lines)"), "the window keeps its elision marker: {text}");
         assert!(!text.contains("padEnd(160"), "the complete unrelated body is omitted: {text}");
-        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) judged unrelated to the task (Jev unrelated 0.99); read src/window.ts offset 10 limit 3 to restore it._"), "{text}");
+        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) judged unrelated to the task (Jev unrelated 0.99); read src/window.ts offset 10 limit 3 with read filtering off to restore._"), "{text}");
         assert_eq!(judged_names(&judge), vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]], "only the complete body is judged");
     })
     .await;
@@ -513,16 +560,17 @@ async fn test_jev_search_keeps_linked_rust_methods_and_never_judges_data_declara
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         tracing::callsite::rebuild_interest_cache();
+        client.register_task("how is the order total computed at checkout?").await;
         let response = client
             .call_tool_until(
                 "search",
-                search_arguments("banner submit total MAX_LINES", Some("how is the order total computed at checkout?")),
+                search_arguments("banner submit total MAX_LINES"),
                 |text| text.contains("_omitted body:"),
             )
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("- _omitted body: L25-33 (fn banner) judged unrelated to the task (Jev unrelated 0.95); read src/checkout.rs offset 25 limit 9 to restore it._"), "{text}");
+        assert!(text.contains("- _omitted body: L25-33 (fn banner) judged unrelated to the task (Jev unrelated 0.95); read src/checkout.rs offset 25 limit 9 with read filtering off to restore._"), "{text}");
         assert!(!text.contains("rendered.push_str"), "{text}");
         assert!(text.contains("Ok(self.total())"), "submit stays through its call to the related total: {text}");
         assert!(text.contains("line.price * line.quantity"), "{text}");
@@ -574,34 +622,50 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
     )
     .expect("runtime defaults validate");
     let posts = Arc::clone(&transport);
-    with_in_process_server(temp.path(), Some(Arc::new(evaluator) as Arc<dyn Evaluator>), |mut client| async move {
-        tracing::callsite::rebuild_interest_cache();
-        let plain = client
-            .call_tool_until("search", search_arguments("keepMe dropMe", None), |text| {
-                text.contains("function keepMe") && text.contains("function dropMe")
-            })
-            .await
-            .unwrap();
-        let started = std::time::Instant::now();
-        let response = client
-            .call("tools/call", json!({ "name": "search", "arguments": search_arguments("keepMe dropMe", Some(TASK)) }))
-            .await
-            .unwrap();
-        assert_eq!(response_text(&response), response_text(&plain), "a deadline fallback returns the base output byte for byte");
-        assert!(started.elapsed() < Duration::from_secs(5), "the 1.5 s deadline is enforced, not the 45 s runtime default");
-        assert_eq!(posts.post_count(), 1, "one attempt, no retry");
+    with_in_process_server(
+        temp.path(),
+        Some(Arc::new(evaluator) as Arc<dyn Evaluator>),
+        |mut client| async move {
+            tracing::callsite::rebuild_interest_cache();
+            let plain = client
+                .plain_call("search", search_arguments("keepMe dropMe"))
+                .await
+                .unwrap();
+            let started = std::time::Instant::now();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "search", "arguments": search_arguments("keepMe dropMe") }),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response_text(&response),
+                response_text(&plain),
+                "a deadline fallback returns the base output byte for byte"
+            );
+            assert!(
+                started.elapsed() < Duration::from_secs(5),
+                "the 1.5 s deadline is enforced, not the 45 s runtime default"
+            );
+            assert_eq!(posts.post_count(), 1, "one attempt, no retry");
 
-        let plain = client
-            .call_tool_until("overview", json!({}), |text| text.contains("src/budget.ts") && !text.contains("warming up"))
-            .await
-            .unwrap();
-        let response = client
-            .call("tools/call", json!({ "name": "overview", "arguments": { "task_query": TASK } }))
-            .await
-            .unwrap();
-        assert_eq!(response_text(&response), response_text(&plain), "the base overview is unchanged on fallback");
-        assert_eq!(posts.post_count(), 2);
-    })
+            let plain = client.plain_call("overview", json!({})).await.unwrap();
+            let response = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "overview", "arguments": { "task_query": TASK } }),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response_text(&response),
+                response_text(&plain),
+                "the base overview is unchanged on fallback"
+            );
+            assert_eq!(posts.post_count(), 2);
+        },
+    )
     .await;
     let stages = capture.stages();
     let fallbacks: Vec<&BTreeMap<String, String>> = stages
@@ -679,13 +743,14 @@ async fn test_jev_context_and_batch_limits_fail_explicitly_without_sending() {
             |mut client| async move {
                 tracing::callsite::rebuild_interest_cache();
                 let plain = client
-                    .call_tool_until("search", search_arguments("bulky", None), |text| {
-                        text.contains("row-23-")
-                    })
+                    .plain_call("search", search_arguments("bulky"))
                     .await
                     .unwrap();
                 let response = client
-                    .call("tools/call", json!({ "name": "search", "arguments": search_arguments("bulky", Some(TASK)) }))
+                    .call(
+                        "tools/call",
+                        json!({ "name": "search", "arguments": search_arguments("bulky") }),
+                    )
                     .await
                     .unwrap();
                 assert_eq!(
@@ -728,7 +793,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
         client
             .call_tool_until(
                 "search",
-                search_arguments("keepMe dropMe", Some(TASK)),
+                search_arguments("keepMe dropMe"),
                 |text| text.contains("_omitted body:"),
             )
             .await
@@ -736,7 +801,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
         client
             .call(
                 "tools/call",
-                json!({ "name": "search", "arguments": search_arguments("keepMe dropMe", None) }),
+                json!({ "name": "search", "arguments": search_arguments("keepMe dropMe") }),
             )
             .await
             .unwrap();
@@ -785,13 +850,10 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
             && applied.contains_key("queue_ms"),
         "{applied:?}"
     );
-    let bypassed = stages
-        .iter()
-        .find(|stage| stage["outcome"] == "bypassed")
-        .unwrap_or_else(|| panic!("no bypassed stage line in:\n{log}"));
-    assert_eq!(bypassed["status"], "missing_task_query");
-    assert_eq!(bypassed["input_tokens"], "None");
-    assert_eq!(bypassed["attempts"], "0");
+    assert!(
+        stages.iter().all(|stage| stage["outcome"] == "applied"),
+        "both searches run automatically after one registration: {log}"
+    );
     assert_eq!(
         stages.len(),
         2,
@@ -814,10 +876,9 @@ async fn test_jev_korean_intent_reaches_both_stages_verbatim() {
     let evaluator = Arc::new(stage_judge("src/budget.ts", "", &[("dropMe", 0.80)]));
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+        client.register_task(TASK_KO).await;
         let response = client
-            .call_tool_until("overview", json!({ "task_query": TASK_KO }), |text| {
-                text.contains(SECTION_HEADER)
-            })
+            .call_tool_until("overview", json!({}), |text| text.contains(SECTION_HEADER))
             .await
             .unwrap();
         let text = response_text(&response);
@@ -826,11 +887,9 @@ async fn test_jev_korean_intent_reaches_both_stages_verbatim() {
             "{text}"
         );
         let response = client
-            .call_tool_until(
-                "search",
-                search_arguments("keepMe dropMe", Some(TASK_KO)),
-                |text| text.contains("_omitted body:"),
-            )
+            .call_tool_until("search", search_arguments("keepMe dropMe"), |text| {
+                text.contains("_omitted body:")
+            })
             .await
             .unwrap();
         let text = response_text(&response);
@@ -857,7 +916,7 @@ async fn test_jev_omitted_bodies_restore_through_read_and_retained_lines_are_ver
     let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]));
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         let response = client
-            .call_tool_until("search", search_arguments("keepMe dropMe", Some(TASK)), |text| text.contains("_omitted body:"))
+            .call_tool_until("search", search_arguments("keepMe dropMe"), |text| text.contains("_omitted body:"))
             .await
             .unwrap();
         let text = response_text(&response);
@@ -898,15 +957,16 @@ async fn test_jev_output_caps_bound_stage_output() {
     let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]));
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         let plain = client
-            .call_tool_until("search", search_arguments("keepMe dropMe", None), |text| {
-                text.contains("function keepMe")
-            })
+            .plain_call("search", search_arguments("keepMe dropMe"))
             .await
             .unwrap();
         let plain = response_text(&plain).to_string();
         assert!(plain.len() <= 1600);
         let response = client
-            .call("tools/call", json!({ "name": "search", "arguments": search_arguments("keepMe dropMe", Some(TASK)) }))
+            .call(
+                "tools/call",
+                json!({ "name": "search", "arguments": search_arguments("keepMe dropMe") }),
+            )
             .await
             .unwrap();
         let text = response_text(&response);
@@ -916,7 +976,10 @@ async fn test_jev_output_caps_bound_stage_output() {
             "{} bytes exceed the 1600-byte cap: {text}",
             text.len()
         );
-        assert!(text.len() <= plain.len(), "the filter only ever shrinks the output");
+        assert!(
+            text.len() <= plain.len(),
+            "the filter only ever shrinks the output"
+        );
         assert!(text.contains("function keepMe"), "{text}");
     })
     .await;
@@ -941,15 +1004,9 @@ async fn test_jev_output_caps_bound_stage_output() {
             .await
             .unwrap();
         let full = response_text(&full).to_string();
-        let base = client
-            .call("tools/call", json!({ "name": "overview", "arguments": {} }))
-            .await
-            .unwrap();
+        let base = client.plain_call("overview", json!({})).await.unwrap();
         let base = response_text(&base).to_string();
-        let again = client
-            .call("tools/call", json!({ "name": "overview", "arguments": {} }))
-            .await
-            .unwrap();
+        let again = client.plain_call("overview", json!({})).await.unwrap();
         assert_eq!(
             base,
             response_text(&again),
@@ -957,7 +1014,7 @@ async fn test_jev_output_caps_bound_stage_output() {
         );
         assert!(
             !base.contains("Jev"),
-            "a missing intent adds nothing to the base overview: {base}"
+            "disabled overview adds nothing to the base: {base}"
         );
         assert!(
             full.starts_with(&base) && full.len() > base.len() + 2 + 150,
@@ -1036,7 +1093,12 @@ async fn test_jev_output_caps_bound_stage_output() {
         .iter()
         .filter(|stage| stage["status"] == "missing_task_query")
         .count();
-    assert_eq!(missing_intent, 2, "{}", capture.text());
+    assert_eq!(
+        missing_intent,
+        0,
+        "registered task never silently bypasses: {}",
+        capture.text()
+    );
 }
 
 #[tokio::test]
@@ -1061,9 +1123,7 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         tracing::callsite::rebuild_interest_cache();
         client
-            .call_tool_until("search", search_arguments("keepMe dropMe", None), |text| {
-                text.contains("function keepMe") && text.contains("function dropMe")
-            })
+            .plain_call("search", search_arguments("keepMe dropMe"))
             .await
             .unwrap();
         // Same line count, different declaration on the indexed lines of `dropMe`.
@@ -1073,18 +1133,31 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
         );
         std::fs::write(&path, rewritten).unwrap();
         let response = client
-            .call("tools/call", json!({ "name": "search", "arguments": search_arguments("keepMe dropMe", Some(TASK)) }))
+            .call(
+                "tools/call",
+                json!({ "name": "search", "arguments": search_arguments("keepMe dropMe") }),
+            )
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("function shifted"), "the live buffer is displayed: {text}");
-        assert!(!text.contains("(fn dropMe) judged unrelated"), "a stale body is never omitted: {text}");
+        assert!(
+            text.contains("function shifted"),
+            "the live buffer is displayed: {text}"
+        );
+        assert!(
+            !text.contains("(fn dropMe) judged unrelated"),
+            "a stale body is never omitted: {text}"
+        );
         let judged: Vec<String> = judged_names(&judge)
             .into_iter()
             .flatten()
             .map(|(name, _, _)| name)
             .collect();
-        assert_eq!(judged, vec!["keepMe".to_string()], "only the verified body is judged");
+        assert_eq!(
+            judged,
+            vec!["keepMe".to_string()],
+            "only the verified body is judged"
+        );
     })
     .await;
     let stages = capture.stages();
