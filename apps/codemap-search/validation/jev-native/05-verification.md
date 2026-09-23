@@ -1,6 +1,6 @@
 # 05 — 네이티브 Jev 기능 전체 검증
 
-> 이 문서는 #2가 search에만 적용되던 최초 완료 시점의 기록입니다. 후속 read/grep 확장과 현재 소스의 검증 범위·남은 한계는 [06-live-tools.md](06-live-tools.md)를 참고하세요.
+> 이 문서는 #2가 search에만 적용되던 최초 완료 시점의 기록입니다. 후속 read/grep 확장은 [06-live-tools.md](06-live-tools.md), overview 입력 변경과 활성 경로의 최종 회귀 결과는 [07-overview-live-regressions.md](07-overview-live-regressions.md)를 참고하세요.
 
 ## 1. 검증 대상
 

@@ -357,6 +357,19 @@ pub async fn with_in_process_server<F, Fut>(
     F: FnOnce(InProcessClient) -> Fut,
     Fut: Future<Output = ()>,
 {
+    with_in_process_server_logging(cwd, evaluator, false, script).await;
+}
+
+/// Same real MCP path with usage recording optionally enabled for observation assertions.
+pub async fn with_in_process_server_logging<F, Fut>(
+    cwd: &Path,
+    evaluator: Option<Arc<dyn codemap_search::jev::Evaluator>>,
+    should_record_calls: bool,
+    script: F,
+) where
+    F: FnOnce(InProcessClient) -> Fut,
+    Fut: Future<Output = ()>,
+{
     let _serialized = IN_PROCESS.lock().await;
     std::env::set_var("CODEMAP_HOME", cwd);
     std::env::set_current_dir(cwd).expect("set the workspace as the current directory");
@@ -365,7 +378,7 @@ pub async fn with_in_process_server<F, Fut>(
     if let Some(evaluator) = evaluator {
         server = server.with_evaluator(evaluator);
     }
-    server.set_call_logging_enabled(false);
+    server.set_call_logging_enabled(should_record_calls);
     let (client_end, server_end) = tokio::io::duplex(4 * 1024 * 1024);
     let (server_reader, server_writer) = tokio::io::split(server_end);
     let (client_reader, client_writer) = tokio::io::split(client_end);

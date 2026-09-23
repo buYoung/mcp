@@ -1,6 +1,6 @@
 # 브리프셋: codemap-search의 네이티브 Jev 판단 단계
 
-> 후속 사용자 요청으로 #2의 도구 범위가 `search`·`read`·`grep`으로 확대되었다. 아래 최초 계약의 read/grep 제외 조항과 완료 체크는 최초 구현 시점의 기록이다. 확장 구현·실행 증거·새 활성 경로의 미검증 사항은 [06-live-tools.md](../../apps/codemap-search/validation/jev-native/06-live-tools.md)에 구분한다. #1 overview 입력 변경은 재검토만 했으며 아직 구현하지 않았다.
+> 후속 사용자 요청이 아래 최초 계약보다 우선한다. 현재 #1은 공통 overview의 전체 파일별 개요(표시 제한 제거)를 Score로 판단하며 별도의 색인 문서·호출 투영과 Choice 역할 단계를 사용하지 않는다. #2의 도구 범위는 `search`·`read`·`grep`이다. 아래 최초 계약과 완료 체크는 최초 구현 시점의 기록이며, 현 구현과 생략·보존·복원·관측 회귀의 최종 증거는 [07-overview-live-regressions.md](../../apps/codemap-search/validation/jev-native/07-overview-live-regressions.md)를 따른다.
 
 ## 목적
 - Python PoC에서 조사한 두 판단 위치를 기존 codemap-search Rust 크레이트 안에 구현한다. #1은 인덱스 기반 파일 추천, #2는 검색이 이미 선택한 본문의 보수적 필터링이다.

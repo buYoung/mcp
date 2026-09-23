@@ -104,8 +104,7 @@ fn search_arguments(query: &str, task_query: Option<&str>) -> Value {
 
 /// One judge for both stages: files under `qualifying_prefix` qualify with a clear margin,
 /// files under `tied_prefix` return equal useful/unhelpful mass, everything else is
-/// unhelpful; every role is `implementation`; bodies are judged unrelated by declaration
-/// name.
+/// unhelpful; bodies are judged unrelated by declaration name. Overview never requests roles.
 fn stage_judge(
     qualifying_prefix: &'static str,
     tied_prefix: &'static str,
@@ -129,17 +128,8 @@ fn stage_judge(
                             answers::score(&[0.8, 0.1, 0.05, 0.05])
                         }
                     }
-                    QuestionKind::Choice { options } => {
-                        let probabilities: Vec<(&str, f64)> = options
-                            .keys()
-                            .map(|key| {
-                                (
-                                    key.as_str(),
-                                    if key == "implementation" { 1.0 } else { 0.0 },
-                                )
-                            })
-                            .collect();
-                        answers::choice("implementation", &probabilities)
+                    QuestionKind::Choice { .. } => {
+                        panic!("overview must not infer roles from names")
                     }
                     QuestionKind::Noul { .. } => {
                         let name = question.instructions()["candidate"]["name"]
@@ -373,11 +363,16 @@ async fn test_jev_overview_qualifies_before_the_cap_and_skips_roles_without_a_ma
             "a tied file never outranks a qualified one: {text}"
         );
         assert!(
-            text.contains("- q00 (fn) L1–1 · role: implementation"),
+            text.contains("overview {\"path\":\"src/q00.ts\"}"),
             "{text}"
         );
+        assert!(!text.contains("role:"), "{text}");
         let requests = judge.requests();
-        assert_eq!(requests.len(), 2, "one Score request, one Choice request");
+        assert_eq!(
+            requests.len(),
+            1,
+            "only the complete overview Score request"
+        );
         assert!(requests[0]
             .questions
             .values()
@@ -392,25 +387,23 @@ async fn test_jev_overview_qualifies_before_the_cap_and_skips_roles_without_a_ma
             assert!(candidate["file_path"].is_string());
             assert_eq!(candidate["evidence_available"], json!(true));
             assert!(
-                candidate["declarations"].as_array().unwrap().len() == 1,
+                candidate["overview_text"]
+                    .as_str()
+                    .unwrap()
+                    .contains("(1 lines, 1 symbols)"),
                 "{candidate}"
             );
+            assert!(
+                candidate.get("declarations").is_none(),
+                "no separate index projection: {candidate}"
+            );
         }
-        assert!(requests[1]
-            .questions
-            .values()
-            .all(|question| question["type"] == json!("choice")));
-        assert_eq!(
-            requests[1].questions.len(),
-            24,
-            "roles only for the recommended files"
-        );
         assert!(requests
             .iter()
             .all(|request| request.task_query() == Some(TASK)));
-        assert_eq!(
-            requests[0].deadline_at, requests[1].deadline_at,
-            "both stages share one deadline"
+        assert!(
+            requests[0].deadline_at.is_some(),
+            "all fragments share the stage deadline"
         );
     })
     .await;
@@ -420,13 +413,28 @@ async fn test_jev_overview_qualifies_before_the_cap_and_skips_roles_without_a_ma
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         let response = client
-            .call_tool_until("overview", json!({ "task_query": TASK }), |text| text.contains(SECTION_HEADER))
+            .call_tool_until("overview", json!({ "task_query": TASK }), |text| {
+                text.contains(SECTION_HEADER)
+            })
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("Evaluated all 30 indexed files in this snapshot; none qualified. Indexed evidence did not establish a recommendation for this task, which does not show that the implementation is absent."), "{text}");
+        assert!(
+            text.contains(
+                "Evaluated all 30 indexed files in this snapshot; 0 qualified, showing 0."
+            ),
+            "{text}"
+        );
+        assert!(
+            text.contains("does not show that the implementation is absent"),
+            "{text}"
+        );
         assert!(!text.contains("· relevance"), "{text}");
-        assert_eq!(judge.request_count(), 1, "no Choice request when nothing qualified");
+        assert_eq!(
+            judge.request_count(),
+            1,
+            "no Choice request when nothing qualified"
+        );
     })
     .await;
 
@@ -442,7 +450,7 @@ async fn test_jev_overview_qualifies_before_the_cap_and_skips_roles_without_a_ma
             .unwrap();
         let text = response_text(&response);
         assert!(
-            text.contains("none qualified and some indexed evidence was tied or unavailable."),
+            text.contains("none qualified and some overview evidence was tied or unavailable."),
             "{text}"
         );
         assert!(!text.contains("· relevance"), "{text}");
@@ -828,7 +836,7 @@ async fn test_jev_korean_intent_reaches_both_stages_verbatim() {
         let text = response_text(&response);
         assert!(text.contains("(fn dropMe) judged unrelated"), "{text}");
         let requests = judge.requests();
-        assert_eq!(requests.len(), 3, "Score, Choice, Noul");
+        assert_eq!(requests.len(), 2, "overview Score and search Noul");
         assert!(
             requests
                 .iter()

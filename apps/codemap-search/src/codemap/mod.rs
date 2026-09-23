@@ -39,7 +39,7 @@ const ROOT_SYMBOLS_PER_KIND_LIMIT: usize = 4;
 /// folder overview and find; llms-txt is a first-call orientation surface, not an index dump.
 const LLMS_TXT_FILE_LIMIT: usize = 200;
 
-fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
+fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>, limit: Option<usize>) -> Option<String> {
     let mut by_kind: std::collections::BTreeMap<&str, Vec<&str>> =
         std::collections::BTreeMap::new();
     for symbol in &file.symbols {
@@ -56,7 +56,7 @@ fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
         let total = names.len();
         let shown: Vec<&str> = names
             .into_iter()
-            .take(ROOT_SYMBOLS_PER_KIND_LIMIT)
+            .take(limit.unwrap_or(usize::MAX))
             .collect();
         let mut group = format!("{kind}: {}", shown.join(", "));
         if total > shown.len() {
@@ -65,6 +65,18 @@ fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
         groups.push(group);
     }
     Some(format!("{{{}}}", groups.join("; ")))
+}
+
+/// One common overview file row. User-facing roots cap names per kind; the Jev input
+/// uses the same renderer with no symbol limit, over every file of the same snapshot.
+pub(crate) fn render_file_summary(file: &ExtractedFileSummary<'_>, limit: Option<usize>) -> String {
+    let symbols = grouped_symbol_summary(file, limit)
+        .map(|summary| format!(" {summary}"))
+        .unwrap_or_default();
+    format!(
+        "- File: {} ({} lines, {} symbols){}",
+        file.file_path, file.total_lines, file.symbol_count, symbols
+    )
 }
 
 #[derive(Debug, Clone)]
@@ -115,13 +127,10 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
                 ROOT_FILE_SUMMARY_LIMIT.min(self.files.len())
             )?;
             for file in self.files.iter().take(ROOT_FILE_SUMMARY_LIMIT) {
-                let symbols = grouped_symbol_summary(file)
-                    .map(|summary| format!(" {summary}"))
-                    .unwrap_or_default();
                 writeln!(
                     f,
-                    "- File: {} ({} lines, {} symbols){}",
-                    file.file_path, file.total_lines, file.symbol_count, symbols
+                    "{}",
+                    render_file_summary(file, Some(ROOT_SYMBOLS_PER_KIND_LIMIT))
                 )?;
             }
             if self.files.len() > ROOT_FILE_SUMMARY_LIMIT {

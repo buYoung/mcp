@@ -246,7 +246,7 @@ pub(crate) fn task_query(arguments: &serde_json::Value) -> Result<Option<String>
 fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
     let mut lines = Vec::new();
     if jev.overview_enabled {
-        lines.push("A root overview called with task_query appends a `Recommended files for the task (indexed evidence)` section ranked from indexed metadata (docs, declarations, call names), never from source bodies; treat it as a navigation hint to verify with read. Zero recommendations mean no indexed evidence qualified for that intent, never that the behavior is absent; continue with search/grep/read.");
+        lines.push("A root overview called with task_query appends a `Recommended files for the task (indexed evidence)` section ranked from the complete overview file rows (paths and significant declaration names, without display caps), never from source bodies or additional indexed docs/call graphs; treat it as a navigation hint to verify with read. Zero recommendations mean no indexed evidence qualified for that intent, never that the behavior is absent; continue with search/grep/read.");
     }
     if jev.search_filter_enabled {
         lines.push("search called with task_query may omit complete callable bodies judged unrelated to that intent; partial bodies and protected relationships stay.");
@@ -356,7 +356,7 @@ pub fn list_tools() -> Value {
     }
     let overview_description = if jev.overview_enabled {
         format!(
-            "{}\n\nJev overview recommendation is enabled: a root overview called with task_query may send a masked copy of the intent and of the indexed file metadata to the external TypeSafe API and append recommended files (indexed hints, not source-verified). Without task_query, or when the stage bypasses or fails, the base overview is returned unchanged; the reason is logged on stderr.",
+            "{}\n\nJev overview recommendation is enabled: a root overview called with task_query may send a masked copy of the intent and of every full overview file row (including monorepo files, with no file/symbol display caps) to the external TypeSafe API and append recommended files (overview hints, not source-verified; no declaration-role inference). Without task_query, or when the stage bypasses or fails, the base overview is returned unchanged; the reason is logged on stderr.",
             include_str!("instructions/tools/overview.md").trim_end()
         )
     } else {

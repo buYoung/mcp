@@ -203,8 +203,7 @@ pub(super) async fn overview(
     let result = recommend(&input, evaluator.as_ref(), &policy).await;
     let status = result.status.label();
     let detail = format!(
-        "role_stage={} snapshot_files={} eligible_files={} declarations={} fragments={} path_only={} questions={} judged={} qualified={} ranked={} rendered={} role_candidates_omitted={}",
-        result.role_stage.label(),
+        "snapshot_files={} eligible_files={} declarations={} fragments={} path_only={} questions={} judged={} qualified={} ranked={} rendered={}",
         result.coverage.snapshot_files,
         result.coverage.eligible_files,
         result.coverage.projected_declarations,
@@ -215,7 +214,6 @@ pub(super) async fn overview(
         result.qualified_file_count,
         result.ranking.len(),
         result.rendered_file_count,
-        result.role_candidates_omitted,
     );
     let versions = format!(
         "{} {} {}",

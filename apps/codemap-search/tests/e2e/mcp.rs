@@ -965,17 +965,8 @@ export function greet(name: string): string {
                                 answers::score(&[0.8, 0.1, 0.05, 0.05])
                             }
                         }
-                        QuestionKind::Choice { options } => {
-                            let probabilities: Vec<(&str, f64)> = options
-                                .keys()
-                                .map(|key| {
-                                    (
-                                        key.as_str(),
-                                        if key == "implementation" { 1.0 } else { 0.0 },
-                                    )
-                                })
-                                .collect();
-                            answers::choice("implementation", &probabilities)
+                        QuestionKind::Choice { .. } => {
+                            panic!("overview must not request declaration roles")
                         }
                         QuestionKind::Noul { .. } => answers::noul(0.0),
                     };
@@ -1103,8 +1094,8 @@ export function greet(name: string): string {
             assert!(section.contains("2 indexed files in this snapshot; 1 qualified, showing 1"), "{section}");
             assert!(section.contains("### 1. src/a.ts"), "{section}");
             assert!(!section.contains("src/b.ts"), "unqualified files are not recommended: {section}");
-            assert!(section.contains("role: implementation"), "{section}");
-            assert!(judge.request_count() >= 2, "file stage plus role stage");
+            assert!(!section.contains("role:"), "{section}");
+            assert!(judge.request_count() >= 1, "file overview stage executed");
 
             // A folder overview is outside the root-scope stage: no section, no note, no request.
             let requests_before = judge.request_count();
@@ -1139,7 +1130,7 @@ export function greet(name: string): string {
                 .unwrap();
             let text = response_text(&response);
             assert!(
-                text.contains("2 indexed files in this snapshot; none qualified."),
+                text.contains("2 indexed files in this snapshot; 0 qualified, showing 0."),
                 "{text}"
             );
             assert!(

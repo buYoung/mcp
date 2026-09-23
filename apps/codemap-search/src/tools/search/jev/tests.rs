@@ -13,6 +13,25 @@ use crate::parser::{
 use std::collections::BTreeMap;
 use std::time::Duration;
 
+#[test]
+fn identity_matching_advances_on_unicode_boundaries_after_a_substring_match() {
+    let symbol = BlockSymbol {
+        name: "증가".into(),
+        kind: "fn".into(),
+        owner: None,
+        start_line: 1,
+        end_line: 3,
+    };
+    assert!(identity_verified(
+        "1→ // 증가량 is not the declaration\n2→ function 증가() {\n3→ }",
+        &symbol
+    ));
+    assert!(!identity_verified(
+        "1→ // 증가량 is only a longer identifier",
+        &symbol
+    ));
+}
+
 const TASK: &str = "how does the search tool cap output bytes?";
 const AWS_LIKE_TOKEN: &str = "AKIAABCDEFGHIJKLMNOP";
 

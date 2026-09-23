@@ -1,5 +1,7 @@
 # 06 — #2를 search·read·grep으로 확장
 
+> 이 문서는 전용 활성 경로 회귀를 추가하기 전의 기록입니다. 이후 #1 변경과 미검증 항목의 회귀 결과는 [07-overview-live-regressions.md](07-overview-live-regressions.md)에 기록했습니다.
+
 ## 범위와 소스 상태
 
 - 후속 사용자 요청: #2의 적용 도구를 `search`, `read`, `grep`으로 확장. #1 overview는 제안 내용을 재검토해 보고하며 이번에는 구현을 변경하지 않음.
