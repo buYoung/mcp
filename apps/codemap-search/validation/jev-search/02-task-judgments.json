@@ -1,0 +1,205 @@
+{
+  "completed": true,
+  "source_revision": "8b8222003584a3875ce3804557d3d5e70113ea4b",
+  "source_diff_hash": "81332dace7181a95d1240fed444b55aa44b0eb25621f7becd2a0f62dcd52e531",
+  "source_tree_sha256": "12dd4d2974f3f0251a8b769ddfe1ac055df96fa4269d21ac95345d4c62fda019",
+  "source_patch": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-source.patch",
+  "identity_evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-identity.json",
+  "schema": {
+    "additionalProperties": false,
+    "properties": {
+      "match": {
+        "default": "all",
+        "description": "all requires every criterion; any accepts at least one. Code composes yes/no/uncertain decisions, not a joint probability.",
+        "enum": [
+          "all",
+          "any"
+        ],
+        "type": "string"
+      },
+      "questions": {
+        "description": "Derive focused yes/no questions from the task. A yes means the candidate matches that criterion. Preserve indirect and bidirectional flows and ask about supplied evidence; absent cross-file facts mean uncertainty, not false. Entire registration: at most 16384 encoded bytes.",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "description": "Unique stable criterion id within this task.",
+              "pattern": "^[A-Za-z0-9_-]{1,32}$",
+              "type": "string"
+            },
+            "question": {
+              "description": "One explicit yes/no question about this candidate and its supplied supporting evidence; at most 2048 UTF-8 bytes.",
+              "maxLength": 2048,
+              "minLength": 1,
+              "type": "string"
+            },
+            "when_false": {
+              "description": "Facts that establish no; missing context alone is insufficient. At most 2048 UTF-8 bytes.",
+              "maxLength": 2048,
+              "minLength": 1,
+              "type": "string"
+            },
+            "when_true": {
+              "description": "Facts that establish yes; at most 2048 UTF-8 bytes.",
+              "maxLength": 2048,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "question",
+            "when_true",
+            "when_false"
+          ],
+          "type": "object"
+        },
+        "maxItems": 8,
+        "minItems": 1,
+        "type": "array"
+      },
+      "task_query": {
+        "description": "The complete current task goal, preserving the user's target, direction and coverage. At most 8192 UTF-8 bytes. Register once per task, not per search query.",
+        "maxLength": 8192,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "task_query",
+      "questions"
+    ],
+    "type": "object"
+  },
+  "question_examples": [
+    {
+      "task_query": "codemap-search를 활용해서 이벤트버스 패턴 중 measure worker와 통신하는 구간 다 확인해줘.",
+      "questions": [
+        {
+          "id": "event_flow",
+          "question": "이 함수가 제공된 근거에서 이벤트 흐름의 발행·구독·수신·중계·처리에 참여하거나 그 흐름을 성립시키는 구체적인 계약·설정·오류 처리를 지원하는가?",
+          "when_true": "본문이나 제공된 연결 근거가 이벤트 흐름에 직접 참여하거나 해당 흐름의 구체적인 지원 역할을 보여 준다. 비동기 큐와 데이터베이스 구독자 흐름도 포함한다.",
+          "when_false": "제공된 근거가 해당 함수의 동작이 이벤트 흐름 및 그 구체적 지원과 별개임을 보여 준다. 이름 부재나 보이지 않는 파일 간 연결만으로는 아니오가 아니며 불확실하다."
+        },
+        {
+          "id": "measure_worker_flow",
+          "question": "이 함수가 참여하거나 구체적으로 지원하는 그 동일한 이벤트 흐름이 measure worker의 입력 또는 출력과 연결되는가?",
+          "when_true": "제공된 소스나 연결 근거가 같은 흐름을 measure worker로 들어가는 입력 또는 그 worker가 내보내는 출력에 연결한다. 간접 전달·설정·오류·우회 계약도 해당 흐름을 설명하는 구체적 근거이면 포함한다.",
+          "when_false": "제공된 근거가 그 흐름이 measure worker의 입력·출력과 별개임을 보여 준다. 다른 종류의 worker나 별개의 이벤트의 존재는 긍정 근거가 아니며, 연결 근거가 없으면 불확실하다."
+        }
+      ],
+      "match": "all"
+    }
+  ],
+  "composition": {
+    "all": "하나라도 명확한 아니오이면 불일치; 모두 예이면 일치; 나머지는 불확실",
+    "any": "하나라도 명확한 예이면 일치; 모두 아니오이면 불일치; 나머지는 불확실",
+    "threshold": 0.7,
+    "leaf_no": "1 - yes >= threshold",
+    "leaf_yes": "yes >= threshold",
+    "uncertain": "두 결정 경계 사이; 전체 소스 보존",
+    "joint_probability": false
+  },
+  "limits": {
+    "questions": 8,
+    "goal_utf8_bytes": 8192,
+    "question_or_criterion_utf8_bytes": 2048,
+    "registration_encoded_bytes": 16384,
+    "question_id_characters": 32,
+    "group_candidates": 8,
+    "group_encoded_bytes": 64000,
+    "maximum_groups": 128,
+    "transport_requests_in_flight": 3,
+    "request_spacing_ms": 300,
+    "maximum_transport_encoded_bytes": 80000,
+    "absolute_deadline": "모든 묶음에 같은 호출자 마감 시각과 취소 신호 전달"
+  },
+  "consumer_trace": [
+    {
+      "producer": "tools::task::parse",
+      "consumer": "McpServer.registered_task",
+      "contract": "연결 안에서 원자적 등록; 잘못된 교체는 기존 등록 삭제"
+    },
+    {
+      "producer": "McpServer search dispatch",
+      "consumer": "search::FilterInput::capture",
+      "contract": "검색어와 별도인 등록 목적·모든 질문 전달; 전송 전에 마스킹"
+    },
+    {
+      "producer": "search::jev::questions::groups",
+      "consumer": "Evaluator::evaluate",
+      "contract": "묶음별 후보 본문은 state에 한 번, 독립 질문은 후보·기준 id로 참조"
+    },
+    {
+      "producer": "Noul answers",
+      "consumer": "compose → apply_policy → FilterOutcome → finish_detail",
+      "contract": "후보 2개·질문 4개 실제 요청과 생략된 출력 검증",
+      "evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-task-trace.json"
+    }
+  ],
+  "failure_behavior": {
+    "missing_registration": "MCP -32602; 텍스트만 등록해도 오류",
+    "invalid_replacement": "이전 작업 삭제 후 오류",
+    "disabled": "initial_instructions({}) 허용; 일반 검색 유지",
+    "missing_credentials": "검색 전체 일반 출력 보존",
+    "failed_or_missing_required_answer": "검색 전체 일반 출력 보존; 일부 판단 적용하지 않음",
+    "cancel_or_deadline": "기존 공유 전송 계층을 통해 전체 대체 및 사용량 기록",
+    "local_tools": "overview/read/grep은 등록·인증정보 없이 원본 반환. 폐기한 설정은 경고 후 무시."
+  },
+  "checks": [
+    {
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml --all-targets",
+      "exit_code": 0,
+      "passed": null,
+      "ignored": null,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-check-complete.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --lib jev",
+      "exit_code": 0,
+      "passed": 72,
+      "ignored": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-lib-jev-2.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::jev -- --nocapture",
+      "exit_code": 0,
+      "passed": 13,
+      "ignored": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-e2e-jev-2.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::tools",
+      "exit_code": 0,
+      "passed": 35,
+      "ignored": 1,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-e2e-tools.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::config",
+      "exit_code": 0,
+      "passed": 11,
+      "ignored": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-e2e-config-2.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::mcp",
+      "exit_code": 0,
+      "passed": 30,
+      "ignored": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/02-e2e-mcp-2.log"
+    }
+  ],
+  "reference_question_review": {
+    "task_text_preserved_verbatim": true,
+    "q1": "이벤트 발행·구독·수신·중계·처리 및 구체적인 지원 역할",
+    "q2": "그 같은 흐름과 measure worker 입력 또는 출력의 연결",
+    "coverage_reference": "기존 변경 없는 6개 핵심·5개 확장 기준에 대해 입력 큐·출력 통지·내부 이벤트·구독자 및 오류/우회 계약이 질문 범위에 포함됨. 실제 모델 커버리지 성공을 주장하지 않음."
+  },
+  "runtime": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "evidence_paths": [
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-task-trace.json",
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-tool-metadata.json"
+  ],
+  "token_improvement_claimed": false
+}

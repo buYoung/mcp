@@ -1,5 +1,5 @@
-//! `[analysis.jev]`: the optional TypeSafe Jev decision stages (root overview
-//! recommendation and search/read/grep body filtering). All stages are off by default.
+//! `[analysis.jev]`: optional TypeSafe Jev search body selection.
+//! Search is off by default.
 //! Register the full task once through `initial_instructions`; enabled stages automatically
 //! use it for eligible calls. The API key comes from the environment variable named by
 //! `api_key_env`, never from configuration or tool arguments.
@@ -17,14 +17,8 @@ pub const DEFAULT_API_KEY_ENV: &str = "TYPESAFE_API_KEY";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JevConfig {
-    /// Mode #1: judge root `overview` calls using the registered task.
-    pub overview_enabled: bool,
     /// Mode #2: filter complete declaration bodies in `search` details.
     pub search_filter_enabled: bool,
-    /// Filter complete live declaration bodies explicitly selected by `read`.
-    pub read_filter_enabled: bool,
-    /// Filter complete live declaration bodies in `grep` content output.
-    pub grep_filter_enabled: bool,
     /// Concrete provider model, validated against every response.
     pub model: String,
     /// Name of the environment variable that holds the TypeSafe API key.
@@ -35,7 +29,7 @@ pub struct JevConfig {
     pub request_spacing_ms: u64,
     pub max_batch_bytes: usize,
     pub pool_idle_timeout_ms: u64,
-    /// Shared body-filter threshold (legacy key name); finite and in `(0.5, 1.0]`.
+    /// Probability of a registered criterion being false (legacy key name); finite and in `(0.5, 1.0]`.
     pub search_filter_min_unrelated_probability: f64,
 }
 
@@ -44,10 +38,7 @@ impl Default for JevConfig {
         let evaluator = crate::jev::EvaluatorConfig::default();
         let https = crate::jev::HttpsSettings::default();
         Self {
-            overview_enabled: false,
             search_filter_enabled: false,
-            read_filter_enabled: false,
-            grep_filter_enabled: false,
             model: evaluator.model,
             api_key_env: DEFAULT_API_KEY_ENV.into(),
             timeout_ms: evaluator.deadline.as_millis() as u64,
@@ -63,10 +54,7 @@ impl Default for JevConfig {
 
 impl JevConfig {
     pub fn is_any_enabled(&self) -> bool {
-        self.overview_enabled
-            || self.search_filter_enabled
-            || self.read_filter_enabled
-            || self.grep_filter_enabled
+        self.search_filter_enabled
     }
 
     /// The runtime settings this configuration selects (validated by the evaluator).
@@ -96,10 +84,7 @@ impl JevConfig {
 
 #[derive(Default, PartialEq)]
 pub(super) struct JevLayer {
-    overview_enabled: Option<bool>,
     search_filter_enabled: Option<bool>,
-    read_filter_enabled: Option<bool>,
-    grep_filter_enabled: Option<bool>,
     model: Option<String>,
     api_key_env: Option<String>,
     timeout_ms: Option<u64>,
@@ -221,15 +206,8 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
     for (key, value) in table {
         let label = format!("analysis.jev.{key}");
         match key.as_str() {
-            "overview_enabled" => layer.overview_enabled = super::as_bool(value, &label, path),
             "search_filter_enabled" => {
                 layer.search_filter_enabled = super::as_bool(value, &label, path)
-            }
-            "read_filter_enabled" => {
-                layer.read_filter_enabled = super::as_bool(value, &label, path)
-            }
-            "grep_filter_enabled" => {
-                layer.grep_filter_enabled = super::as_bool(value, &label, path)
             }
             "model" => layer.model = super::as_nonempty_string(value, &label, path),
             "api_key_env" => layer.api_key_env = as_env_var_name(value, &label, path),
@@ -260,22 +238,10 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
 pub(super) fn merge(repo: JevLayer, global: JevLayer) -> JevConfig {
     let defaults = JevConfig::default();
     JevConfig {
-        overview_enabled: repo
-            .overview_enabled
-            .or(global.overview_enabled)
-            .unwrap_or(defaults.overview_enabled),
         search_filter_enabled: repo
             .search_filter_enabled
             .or(global.search_filter_enabled)
             .unwrap_or(defaults.search_filter_enabled),
-        read_filter_enabled: repo
-            .read_filter_enabled
-            .or(global.read_filter_enabled)
-            .unwrap_or(defaults.read_filter_enabled),
-        grep_filter_enabled: repo
-            .grep_filter_enabled
-            .or(global.grep_filter_enabled)
-            .unwrap_or(defaults.grep_filter_enabled),
         model: repo.model.or(global.model).unwrap_or(defaults.model),
         api_key_env: repo
             .api_key_env
@@ -320,10 +286,7 @@ mod tests {
     #[test]
     fn defaults_are_off_and_mirror_the_runtime_ceilings() {
         let config = merge(JevLayer::default(), JevLayer::default());
-        assert!(!config.overview_enabled);
         assert!(!config.search_filter_enabled);
-        assert!(!config.read_filter_enabled);
-        assert!(!config.grep_filter_enabled);
         assert!(!config.is_any_enabled());
         assert_eq!(config.model, crate::jev::DEFAULT_MODEL);
         assert_eq!(config.api_key_env, "TYPESAFE_API_KEY");
@@ -340,12 +303,11 @@ mod tests {
     #[test]
     fn layers_merge_per_key_with_repo_precedence() {
         let global = layer(
-            "overview_enabled = true\nsearch_filter_min_unrelated_probability = 0.9\nmodel = 'jev-1.12.0'\n",
+            "search_filter_enabled = true\nsearch_filter_min_unrelated_probability = 0.9\nmodel = 'jev-1.12.0'\n",
         );
         let repo =
             layer("search_filter_enabled = true\nsearch_filter_min_unrelated_probability = 0.75\n");
         let config = merge(repo, global);
-        assert!(config.overview_enabled, "inherited from the global layer");
         assert!(config.search_filter_enabled);
         assert_eq!(config.search_filter_min_unrelated_probability, 0.75);
         assert_eq!(config.model, "jev-1.12.0");

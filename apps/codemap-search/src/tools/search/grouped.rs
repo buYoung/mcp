@@ -10,6 +10,7 @@ pub(super) struct Section {
     shown: BTreeSet<(String, usize, usize)>,
     /// Every declaration row written into this section, in row order.
     members: Vec<BlockSymbol>,
+    annotations: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     pub anchors: Vec<(String, usize, usize)>,
     pub insertion: usize,
 }
@@ -47,7 +48,10 @@ impl BlockSymbol {
 /// instead of re-parsing the rendered Markdown.
 #[derive(Clone, Debug)]
 pub struct SourceBlock {
+    /// Evidence text. Callable fences and notices are held separately until selection.
     pub text: String,
+    pub prefix: String,
+    pub suffix: String,
     pub source_offset: Option<usize>,
     pub symbol: Option<BlockSymbol>,
     /// First and last displayed source line of a declaration body.
@@ -59,6 +63,16 @@ pub struct SourceBlock {
 }
 
 impl SourceBlock {
+    pub(crate) fn rendered_len(&self) -> usize {
+        self.prefix.len() + self.text.len() + self.suffix.len()
+    }
+
+    fn write(&self, output: &mut String) {
+        output.push_str(&self.prefix);
+        output.push_str(&self.text);
+        output.push_str(&self.suffix);
+    }
+
     /// The body is complete when every line of the declaration is displayed uncut.
     pub(crate) fn is_complete_body(&self) -> bool {
         match (&self.symbol, self.displayed) {
@@ -88,7 +102,10 @@ pub(crate) struct FileOutput {
     sections: Vec<Section>,
     current: Option<usize>,
     current_depth: usize,
-    results: String,
+    current_symbol: Option<BlockSymbol>,
+    // Source blocks are the render plan; the large results string is assembled only
+    // after selection in write_primary. Budgeting needs only its byte count.
+    results_bytes: usize,
     blocks: Vec<SourceBlock>,
     indexed: Option<ExtractedFile>,
     has_impl_scopes: bool,
@@ -115,7 +132,8 @@ impl FileOutput {
             sections: Vec::new(),
             current: None,
             current_depth: 0,
-            results: String::new(),
+            current_symbol: None,
+            results_bytes: 0,
             blocks: Vec::new(),
             indexed: indexed.cloned(),
             has_impl_scopes: false,
@@ -131,7 +149,7 @@ impl FileOutput {
         self.base_bytes
             + self.header.len()
             + self.metadata.len()
-            + self.results.len()
+            + self.results_bytes
             + "\n### results\n".len()
             + self
                 .sections
@@ -167,6 +185,8 @@ impl FileOutput {
     pub fn push_source(&mut self, text: &str, source_offset: Option<usize>) -> bool {
         self.push_block(SourceBlock {
             text: text.into(),
+            prefix: String::new(),
+            suffix: String::new(),
             source_offset,
             symbol: None,
             displayed: None,
@@ -174,18 +194,21 @@ impl FileOutput {
             is_note: false,
         })
     }
-    /// `push_source` for a declaration body: records which declaration the block shows and
-    /// the displayed line range, so the structured filter can judge completeness later.
-    pub fn push_source_for_symbol(
+    /// Plan a callable excerpt without assembling its final Markdown body.
+    pub(crate) fn plan_source_for_symbol(
         &mut self,
-        text: &str,
-        source_offset: Option<usize>,
+        source: &str,
+        notice: &str,
         symbol: &ExtractedSymbol,
         displayed: (usize, usize),
         is_clipped: bool,
     ) -> bool {
+        let prefix = format!("{notice}```\n");
+        let source_offset = Some(prefix.len());
         self.push_block(SourceBlock {
-            text: text.into(),
+            text: source.into(),
+            prefix,
+            suffix: "\n```\n".into(),
             source_offset,
             symbol: Some(BlockSymbol::from_symbol(symbol)),
             displayed: Some(displayed),
@@ -193,17 +216,18 @@ impl FileOutput {
             is_note: false,
         })
     }
+
     fn push_block(&mut self, block: SourceBlock) -> bool {
-        if !self.fits(block.text.len()) {
+        if !self.fits(block.rendered_len()) {
             return false;
         }
         if self.first_result_source_offset.is_none() {
             self.first_result_source_offset = block
                 .source_offset
-                .filter(|offset| *offset < block.text.len())
-                .map(|offset| self.results.len() + offset);
+                .filter(|offset| *offset < block.rendered_len())
+                .map(|offset| self.results_bytes + offset);
         }
-        self.results.push_str(&block.text);
+        self.results_bytes += block.rendered_len();
         self.blocks.push(block);
         true
     }
@@ -213,6 +237,17 @@ impl FileOutput {
     pub(crate) fn indexed(&self) -> Option<&ExtractedFile> {
         self.indexed.as_ref()
     }
+    /// Already prepared caller/callee evidence, including its precise/approximate labels.
+    /// Borrow ranges instead of retaining another full annotation catalogue.
+    pub(crate) fn annotation_for(&self, symbol: &BlockSymbol) -> Option<&str> {
+        self.sections.iter().find_map(|section| {
+            section
+                .annotations
+                .iter()
+                .find(|(owner, _)| owner == symbol)
+                .map(|(_, range)| &section.text[range.clone()])
+        })
+    }
     /// Every declaration row shown in the file's sections, in output order.
     pub(crate) fn shown_symbols(&self) -> Vec<BlockSymbol> {
         self.sections
@@ -220,7 +255,7 @@ impl FileOutput {
             .flat_map(|section| section.members.iter().cloned())
             .collect()
     }
-    /// Replace blocks for which `replace` returns a note, then rebuild the results body and
+    /// Select blocks for which `replace` returns a note, then recompute the byte budget and
     /// the first-source offset from what remains. Anchors inside a replaced declaration are
     /// dropped so relation rendering does not claim evidence that is no longer displayed.
     /// Returns how many blocks were replaced.
@@ -239,6 +274,8 @@ impl FileOutput {
                 removed_symbols.push(symbol);
             }
             block.text = note;
+            block.prefix.clear();
+            block.suffix.clear();
             block.source_offset = None;
             block.displayed = None;
             block.is_clipped = false;
@@ -254,16 +291,16 @@ impl FileOutput {
                     .any(|symbol| symbol.start_line <= *start && *end <= symbol.end_line)
             });
         }
-        self.results.clear();
+        self.results_bytes = 0;
         self.first_result_source_offset = None;
         for block in &self.blocks {
             if self.first_result_source_offset.is_none() {
                 self.first_result_source_offset = block
                     .source_offset
-                    .filter(|offset| *offset < block.text.len())
-                    .map(|offset| self.results.len() + offset);
+                    .filter(|offset| *offset < block.rendered_len())
+                    .map(|offset| self.results_bytes + offset);
             }
-            self.results.push_str(&block.text);
+            self.results_bytes += block.rendered_len();
         }
         replaced
     }
@@ -284,7 +321,7 @@ impl FileOutput {
         let mut delivered = 0;
         for block in &self.blocks {
             let start = offset;
-            let end = offset + block.text.len();
+            let end = offset + block.rendered_len();
             offset = end;
             if block.is_note {
                 continue;
@@ -320,7 +357,14 @@ impl FileOutput {
         if !self.can_fit(text.len()) {
             return false;
         }
-        self.sections[index].text.push_str(&text);
+        let section = &mut self.sections[index];
+        let start = section.text.len();
+        section.text.push_str(&text);
+        if let Some(symbol) = &self.current_symbol {
+            section
+                .annotations
+                .push((symbol.clone(), start..section.text.len()));
+        }
         true
     }
     pub fn start_symbol(&mut self, symbol: &ExtractedSymbol, source: Option<&str>) -> bool {
@@ -450,6 +494,7 @@ impl FileOutput {
                 text: String::new(),
                 shown: BTreeSet::new(),
                 members: Vec::new(),
+                annotations: Vec::new(),
                 anchors: Vec::new(),
                 insertion: 0,
             });
@@ -468,6 +513,7 @@ impl FileOutput {
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
+        self.current_symbol = Some(BlockSymbol::from_symbol(symbol));
         true
     }
     pub fn anchor(&mut self, start: usize, end: usize) {
@@ -507,6 +553,7 @@ impl FileOutput {
                     text: String::new(),
                     shown: BTreeSet::new(),
                     members: Vec::new(),
+                    annotations: Vec::new(),
                     anchors: Vec::new(),
                     insertion: 0,
                 });
@@ -526,8 +573,10 @@ impl FileOutput {
         }
         text.push_str("\n### results\n");
         let start = text.len();
-        text.push_str(&self.results);
-        self.source_span = (!self.results.is_empty()).then_some(start..text.len());
+        for block in &self.blocks {
+            block.write(text);
+        }
+        self.source_span = (self.results_bytes > 0).then_some(start..text.len());
         self.first_source_byte = self.first_result_source_offset.map(|offset| start + offset);
         if is_partial_file {
             // fits()/remaining_bytes() reserved the longer global cap footer, so

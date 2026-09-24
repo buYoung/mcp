@@ -4,7 +4,6 @@ use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub(crate) struct CallableBounds {
-    pub symbol_index: usize,
     pub start: usize,
     pub end: usize,
 }
@@ -14,14 +13,6 @@ pub(crate) fn input_byte_cap() -> usize {
 }
 
 pub(crate) fn bounds(path: &Path, source: &str) -> Result<Vec<CallableBounds>, String> {
-    capture(path, source).map(|(_, bounds)| bounds)
-}
-
-/// Parse the exact source buffer once for both declaration identity and safe body bounds.
-pub(crate) fn capture(
-    path: &Path,
-    source: &str,
-) -> Result<(crate::parser::ExtractedFile, Vec<CallableBounds>), String> {
     if source.len() > input_byte_cap() {
         return Err(format!(
             "live parsing input exceeds {} bytes",
@@ -40,11 +31,10 @@ pub(crate) fn capture(
     let tree = crate::parser::parse_source(&mut parser, source.as_bytes())?;
     let file = TreeSitterExtractor::new().extract(source, &path.to_string_lossy())?;
     let mut result = Vec::new();
-    for (symbol_index, symbol) in file
+    for symbol in file
         .symbols
         .iter()
-        .enumerate()
-        .filter(|(_, s)| super::structure::callable(s))
+        .filter(|s| super::structure::callable(s))
     {
         let Some(node) = super::structure::symbol_node(&tree, symbol, source) else {
             continue;
@@ -95,13 +85,12 @@ pub(crate) fn capture(
             continue;
         }
         result.push(CallableBounds {
-            symbol_index,
             start,
             end: symbol.range.end_line_inclusive(),
         });
     }
     result.sort_by_key(|r| (r.start, r.end));
-    Ok((file, result))
+    Ok(result)
 }
 
 pub(crate) fn containing(

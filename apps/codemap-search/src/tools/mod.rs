@@ -14,6 +14,7 @@ pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
+pub mod task;
 
 use crate::index::EngineSupervisor;
 use serde_json::Value;
@@ -205,6 +206,8 @@ pub fn server_instructions() -> String {
         .trim_end()
         .to_string();
     if let Some(guidance) = jev_guidance(&crate::config::get().jev) {
+        text = text.replace("Call initial_instructions once without arguments before using the tools.",
+            "Before search, register the current task with initial_instructions as described below. Overview/read/grep remain available without registration.");
         text.push_str("\n\n");
         text.push_str(&guidance);
     }
@@ -229,53 +232,25 @@ pub fn instructions() -> String {
     text
 }
 
-/// Task registration is shared by the automatic, independently configured Jev stages.
-pub(crate) const TASK_QUERY_DESCRIPTION: &str = "The user's complete current task in their own words, not a short search query. Register once at the start of each task; call initial_instructions again to replace it when the task changes. Required when any analysis.jev stage is enabled. Enabled stages automatically use this connection-local task and may send masked intent/evidence to TypeSafe. No credentials or task context are persisted by this registration.";
-
-/// Parse task registration or the legacy overview-only override. `None` when absent or
-/// blank; activation-specific registration requirements are enforced by the MCP host.
-pub(crate) fn task_query(arguments: &serde_json::Value) -> Result<Option<String>, (i64, String)> {
-    match get_arg(arguments, "task_query") {
-        None | Some(serde_json::Value::Null) => Ok(None),
-        Some(serde_json::Value::String(text)) => {
-            let text = text.trim();
-            Ok((!text.is_empty()).then(|| text.to_string()))
-        }
-        Some(_) => Err((
-            -32602,
-            "Invalid task_query: expected a string carrying the user's complete task.".into(),
-        )),
-    }
-}
-
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
 pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
     if get_arg(arguments, "task_query").is_some() {
-        return Err((-32602, "task_query is no longer a search/read/grep option. Register the full task once with initial_instructions; enabled body filters run automatically.".into()));
+        return Err((-32602, "task_query is not a search option. Register the full task once with initial_instructions; enabled search runs automatically.".into()));
     }
     Ok(())
 }
 
-/// Navigation guidance appended while at least one Jev stage is enabled.
+/// Navigation guidance for search task registration.
 fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
-    if !jev.is_any_enabled() {
+    if !jev.search_filter_enabled {
         return None;
     }
     let mut lines = Vec::new();
-    if jev.overview_enabled {
-        lines.push("NEXT, call overview with {} at the repository root BEFORE search/grep/read, even for known keywords and even if initial_instructions already showed workspace scopes. This required first navigation step appends `Recommended files for the task (indexed evidence)` using every full overview file row without display caps. Inspect the recommended files before expanding the search; they are navigation hints, not source-verified behavior. If the index is warming, retry root overview once ready. Zero qualified files do not prove absence; continue with search/grep/read.");
-    }
     if jev.search_filter_enabled {
-        lines.push("Every search automatically filters eligible displayed bodies against the registered task; do not pass task_query to search. Partial bodies and protected relationships stay.");
-    }
-    if jev.read_filter_enabled {
-        lines.push("Every source-bearing read automatically filters eligible bodies within the selected live window; do not pass task_query to read. To restore unfiltered source, the operator must disable analysis.jev.read_filter_enabled before reading the indicated range.");
-    }
-    if jev.grep_filter_enabled {
-        lines.push("Every source-bearing grep automatically filters eligible bodies within the selected page; do not pass task_query to grep. Counts, file lists, partial bodies and declarations/relations-only views are not filtered.");
+        lines.push("Search uses each registered question to evaluate eligible functions. Separate answers are composed in code; uncertain evidence stays. Read and grep always return original source without registration or credentials.");
     }
     Some(format!(
-        "REQUIRED Jev workflow (analysis.jev enabled): at the start of each user task, call initial_instructions with task_query containing the user's complete task. Register again when the task changes; never reuse a previous task or replace it with a narrower search query. Registration is not a per-call opt-in: enabled stages run automatically and may send masked task/evidence (including live source) to the external TypeSafe API. Missing registration is an error, not an unfiltered fallback. {} Unavailable credentials, ineligible evidence and provider failures preserve the base output, with reasons on stderr.",
+        "REQUIRED Jev workflow (analysis.jev enabled): at the start of each user task, derive focused yes/no questions and call initial_instructions with task_query, questions (unique id, question, when_true, when_false), and match (all by default, or any). A yes must mean a criterion matches. Preserve the user's target, direction and full coverage, including indirect flows; missing cross-file evidence means uncertainty. Do this once per task without a separate question-generation API. Register again when the task changes; never reuse a previous task or replace it with a narrower search query. Registration is not a per-call opt-in: enabled search runs automatically and may send masked task/evidence (including live source) to the external TypeSafe API. Missing registration is an error, not an unfiltered fallback. {} Unavailable credentials, ineligible evidence and provider failures preserve the base output, with reasons on stderr.",
         lines.join(" ")
     ))
 }
@@ -336,7 +311,7 @@ pub fn list_tools() -> Value {
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
-    let mut read_description = format!(
+    let read_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/read.md").trim_end(),
@@ -350,7 +325,7 @@ pub fn list_tools() -> Value {
         permissions.find,
         &permissions.allowed_roots,
     );
-    let mut grep_description = format!(
+    let grep_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/grep.md").trim_end(),
@@ -360,27 +335,9 @@ pub fn list_tools() -> Value {
         include_str!("instructions/tools/grep.evidence.md").trim_end(),
     );
     let jev = &config.jev;
-    for (tool, is_enabled, description) in [
-        ("read", jev.read_filter_enabled, &mut read_description),
-        ("grep", jev.grep_filter_enabled, &mut grep_description),
-    ] {
-        if is_enabled {
-            description.push_str(&format!("\n\nJev body filter is enabled for {tool} and runs automatically on eligible source, using the full task registered once through initial_instructions. Do not pass task_query here: it is not a per-call option. Missing registration is an error. Masked task, arguments and live callable bodies may be sent to TypeSafe. Only complete, verified bodies judged unrelated may be replaced by read-range notes; windows/pages, permissions and protected relationships stay. Credentials/provider failures preserve the base output. For unfiltered restoration, disable analysis.jev.read_filter_enabled before read; omitting arguments does not bypass filtering."));
-        }
-    }
-    let overview_description = if jev.overview_enabled {
-        format!(
-            "{}\n\nJev overview recommendation is enabled. After registering the user's full task through initial_instructions, call root overview with {{}} BEFORE search/grep/read, even when workspace scopes or keywords are already known. It automatically uses the registered task and sends masked full overview file rows (including monorepo files, no display caps) to TypeSafe, then appends recommended files. Inspect these hints first, verify behavior with read, and retry root overview if the index was warming. A legacy overview-only task_query may override the recommendation intent but does not register or change the task used by body filters.",
-            include_str!("instructions/tools/overview.md").trim_end()
-        )
-    } else {
-        include_str!("instructions/tools/overview.md")
-            .trim_end()
-            .to_string()
-    };
     let search_description = if jev.search_filter_enabled {
         format!(
-            "{}\n\nJev body filter is enabled and runs automatically using the full task registered once through initial_instructions. Do not pass task_query to search. Missing registration is an error. Masked task and displayed declaration bodies may be sent to TypeSafe; complete unrelated bodies may be replaced by read-range notes. Credentials/provider failures and ineligible evidence preserve the base output. If read filtering is enabled, disable analysis.jev.read_filter_enabled before restoring omitted source with read.",
+            "{}\n\nJev body filter is enabled and runs automatically using the task goal and focused questions registered once through initial_instructions. Do not pass task_query to search. Missing registration is an error. Masked task questions and bounded candidate bodies/support may be sent to TypeSafe. Selection precedes final body rendering; unrelated bodies leave read-range notes, while uncertain evidence stays. Bodies with no possible selection benefit bypass evaluation. Credentials/provider failures and ineligible evidence preserve the base output. Ordinary read always restores original source; no configuration change or registration is needed.",
             include_str!("instructions/tools/search.md").trim_end()
         )
     } else {
@@ -391,8 +348,6 @@ pub fn list_tools() -> Value {
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
-    let overview_annotations =
-        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.overview_enabled });
     let search_annotations =
         serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.search_filter_enabled });
     let mut search_properties = serde_json::json!({
@@ -418,41 +373,33 @@ pub fn list_tools() -> Value {
     let initial_description = format!(
         "{}{}",
         include_str!("instructions/tools/initial_instructions.md").trim_end(),
-        if jev.is_any_enabled() {
-            "\n\nREQUIRED at the start of every task: pass task_query with the user's complete task to register it for automatic Jev stages. Call again when the task changes. If overview recommendation is enabled, follow this call with root overview {} before search/grep/read."
+        if jev.search_filter_enabled {
+            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with id, question, when_true and when_false. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when Jev search is enabled. Call again when the task changes."
         } else {
             ""
         }
     );
-    let initial_required: Vec<&str> = if jev.is_any_enabled() {
-        vec!["task_query"]
-    } else {
-        vec![]
-    };
     let mut result = serde_json::json!({
                 "tools": [
                     {
                         "name": "initial_instructions",
                         "description": initial_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": { "type": "object", "properties": {
-                            "task_query": { "type": "string", "minLength": 1, "description": TASK_QUERY_DESCRIPTION }
-                        }, "required": initial_required }
+                        "inputSchema": task::schema(jev.search_filter_enabled)
                     },
                     {
                         "name": "overview",
-                        "description": overview_description,
+                        "description": include_str!("instructions/tools/overview.md").trim_end(),
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
-                        // interactive ones). The open-world hint turns on with the Jev stage.
-                        "annotations": overview_annotations,
+                        // interactive ones).
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." },
-                                "task_query": { "type": "string", "description": "Optional legacy override for this root overview recommendation only. Normally omit it: the registered task from initial_instructions is used automatically. This does not register or change the body filters' task." }
+                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
                             }
                         }
                     },
@@ -469,7 +416,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "read",
                         "description": read_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.read_filter_enabled },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -505,7 +452,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "grep",
                         "description": grep_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.grep_filter_enabled },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
                         "inputSchema": {
                             "type": "object",
                             "properties": {

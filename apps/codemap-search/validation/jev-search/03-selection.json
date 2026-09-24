@@ -1,0 +1,240 @@
+{
+  "completed": true,
+  "baseline": {
+    "source_identity": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/02-identity.json",
+    "plain_manifest": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/03-baseline-plain/manifest.json",
+    "live_manifest": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/03-baseline-live/manifest.json",
+    "candidate_hashes": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/03-baseline-candidates.json",
+    "source_responses": 312,
+    "evaluated_candidates": 298,
+    "historical_plain_identical": 312,
+    "task_questions": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/reference-task.json",
+    "recorded_searches": 9,
+    "evaluated_searches": 5,
+    "exact_event_bypasses": 4,
+    "provider_groups": 40,
+    "provider_group_failures": 0,
+    "paired_answer_reuse": "candidate body, goal and question/criteria hash must match; missing cache entry falls back explicitly"
+  },
+  "policy": {
+    "version": "search-selection-policy/4-experimental",
+    "evidence_version": "search-task-evidence/5",
+    "question_version": "search-task-questions/3",
+    "threshold": 0.7,
+    "threshold_meaning": "positive leaf >= 0.70; negative leaf when 1-p >= 0.70; all/any composes three-valued leaves, not a joint probability",
+    "selection_boundary": "structured ranked detail plan -> bounded task evaluation -> block retention -> final source/fence assembly",
+    "deterministic_bypasses": [
+      "non-callable",
+      "incomplete/oversized/unverified/masked source",
+      "non-shrinkable body with no shrinkable neighbor",
+      "covered body with no shrinkable neighbor",
+      "stale snapshot",
+      "exact event map",
+      "no ranked candidates"
+    ],
+    "direct_support": "Retain neighbors only for a positively matched candidate, plus necessary overlapping source protection. Displayed-name call candidates are explicitly approximate; bounded indexed caller/event evidence is separately supplied.",
+    "support_budget_bytes": 16384,
+    "per_candidate_caller_bytes": 1024,
+    "per_candidate_event_bytes": 1024,
+    "uncertain": "retain body, declaration, source location and recovery hint",
+    "calibration_scope": "provisional 0.70 retained; matched recorded answers support this local policy result only",
+    "indexed_callers_without_displayed_callsite": "At most eight additional caller locations per candidate, with missing caller source and approximate name resolution explicit; scoped caller event anchors share the existing support-text budget. They do not create new retention graph edges."
+  },
+  "paired_results": [
+    {
+      "label": "13.2-1",
+      "source_responses": 40,
+      "unchanged_responses": 39,
+      "baseline_bytes": 358683,
+      "final_bytes": 333603,
+      "baseline_chars": 349304,
+      "final_chars": 325364,
+      "baseline_omissions": 11,
+      "final_omissions": 27,
+      "plain_byte_identical": 40,
+      "preserved_errors": []
+    },
+    {
+      "label": "13.2-2",
+      "source_responses": 53,
+      "unchanged_responses": 52,
+      "baseline_bytes": 408615,
+      "final_bytes": 383535,
+      "baseline_chars": 397445,
+      "final_chars": 373505,
+      "baseline_omissions": 11,
+      "final_omissions": 27,
+      "plain_byte_identical": 53,
+      "preserved_errors": [
+        {
+          "order": 27,
+          "error": {
+            "code": -32602,
+            "message": "Search path is not a directory: /Users/buyong/workspace/hicare/hicare-rpm-api/src/worker/"
+          }
+        }
+      ]
+    },
+    {
+      "label": "13.2-3",
+      "source_responses": 48,
+      "unchanged_responses": 47,
+      "baseline_bytes": 432235,
+      "final_bytes": 394726,
+      "baseline_chars": 422099,
+      "final_chars": 386314,
+      "baseline_omissions": 11,
+      "final_omissions": 33,
+      "plain_byte_identical": 48,
+      "preserved_errors": [
+        {
+          "order": 27,
+          "error": {
+            "code": -32602,
+            "message": "Cannot read 'src/modules/websockets/subscription/subscription.registry.ts': No such file or directory (os error 2)"
+          }
+        }
+      ]
+    },
+    {
+      "label": "13.3-1",
+      "source_responses": 53,
+      "unchanged_responses": 52,
+      "baseline_bytes": 363082,
+      "final_bytes": 345973,
+      "baseline_chars": 353613,
+      "final_chars": 337320,
+      "baseline_omissions": 11,
+      "final_omissions": 22,
+      "plain_byte_identical": 53,
+      "preserved_errors": []
+    },
+    {
+      "label": "13.3-2",
+      "source_responses": 58,
+      "unchanged_responses": 57,
+      "baseline_bytes": 388816,
+      "final_bytes": 368196,
+      "baseline_chars": 376250,
+      "final_chars": 356606,
+      "baseline_omissions": 11,
+      "final_omissions": 27,
+      "plain_byte_identical": 58,
+      "preserved_errors": []
+    },
+    {
+      "label": "13.3-3",
+      "source_responses": 60,
+      "unchanged_responses": 60,
+      "baseline_bytes": 343249,
+      "final_bytes": 343249,
+      "baseline_chars": 331231,
+      "final_chars": 331231,
+      "baseline_omissions": 0,
+      "final_omissions": 0,
+      "plain_byte_identical": 60,
+      "preserved_errors": []
+    }
+  ],
+  "coverage": {
+    "previously_delivered_rubric_source_preserved": true,
+    "anchor_windows_compared": 66,
+    "previously_absent_anchor_windows": 8,
+    "all_uncertain_candidates_retained": true,
+    "whole_agent_coverage_not_yet_measured": true,
+    "evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-paired-selection.json",
+    "method_adjustment": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/03-paired-selection-window-audit.json"
+  },
+  "recovery": {
+    "unique_omitted_ranges": 43,
+    "exact_source": true,
+    "registration_required": false,
+    "jev_calls": 0,
+    "historical_bootstrap_typeorm_requests_unchanged": 12,
+    "evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-recovery.json"
+  },
+  "checks": [
+    {
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml --all-targets",
+      "exit_code": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/logs/03-check.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --lib jev",
+      "exit_code": 0,
+      "passed": 72,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/logs/03-lib-jev.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::search",
+      "exit_code": 0,
+      "passed": 24,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/logs/03-e2e-search.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::jev",
+      "exit_code": 0,
+      "passed": 13,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/logs/03-e2e-jev.log"
+    },
+    {
+      "command": "cargo build --manifest-path apps/codemap-search/Cargo.toml --release --locked",
+      "exit_code": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/logs/03-release-build.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "source_revision": "8b8222003584a3875ce3804557d3d5e70113ea4b",
+  "source_diff_hash": "54160b7d73b1699d79a19752f1783d8288310d7a46c79ab4250872ac6cad362e",
+  "source_tree_sha256": "8a715588a027f420fd3fdfeee72c327eaf44586b37481d7378e6bb001c6faf45",
+  "source_identity": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-identity.json",
+  "binary": {
+    "path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/binaries/03-selection",
+    "sha256": "e56b52fb4db9adadf4cbcc63bfeb130ec5c003bbe90f1c7bb9902987975b6bc0"
+  },
+  "paired_totals": {
+    "source_responses": 312,
+    "unchanged_responses": 307,
+    "baseline_bytes": 2294680,
+    "final_bytes": 2169282,
+    "baseline_chars": 2229942,
+    "final_chars": 2110340,
+    "baseline_omissions": 55,
+    "final_omissions": 136,
+    "plain_byte_identical": 312,
+    "saved_bytes": 125398,
+    "saved_chars": 119602
+  },
+  "candidate_totals": {
+    "previous_groups": 40,
+    "final_groups": 36,
+    "previous_candidates": 298,
+    "final_candidates": 271
+  },
+  "evidence_paths": [
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/03-final-plain/manifest.json",
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/03-final-cached/manifest.json",
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-paired-selection.json",
+    "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-recovery.json"
+  ],
+  "limitations": [
+    "Source byte/character counts are not model token counts.",
+    "Initial fixed anchor+36 window included a separate Mattermost webhook function at lines 142–145 after the MIO handler ended at 140; its loss is retained in the window-audit artifact and excluded from the MIO criterion after direct source inspection.",
+    "Fixed replay cannot measure new navigation choices or recovery calls.",
+    "Coverage compares previously delivered numbered source around frozen rubric anchors; whole-answer grading belongs to the fresh comparison.",
+    "Cached paired evaluation is a diagnostic only; newly added supporting context does not change the recorded leaf answers. Fresh provider/agent measurement is child 04."
+  ],
+  "status": "bounded_context_correction_verified",
+  "previous_completed_handoff": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/04-first-measurement-handoff.json",
+  "correction_evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/parent-replan.json",
+  "correction": {
+    "first_failed_measurement": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/04-first-measurement-handoff.json",
+    "replan": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/parent-replan.json",
+    "probe": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/03-support-probe/manifest.json",
+    "consumer_trace": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-support-consumer-trace.json",
+    "observation": "The same three prior question/search combinations retained the previously omitted monitoring-recipient helper as uncertain once its indexed caller was explicitly supplied. No new whole-agent token claim is made from this probe."
+  }
+}

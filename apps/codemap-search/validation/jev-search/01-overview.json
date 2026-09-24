@@ -1,0 +1,94 @@
+{
+  "completed": true,
+  "baseline_revision": "97e3ebc8e3708df01062fdd3e90b9ac68f7b08f3",
+  "source_revision": "8b8222003584a3875ce3804557d3d5e70113ea4b",
+  "source_diff_hash": "965bd7e22f6fbf0f983c36f358948f5ce8944f751e827008a9d26dd13f8f6254",
+  "source_patch": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/01-source.patch",
+  "surfaces": [
+    {
+      "surface": "output",
+      "evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/01-overview-comparison.json",
+      "result": "일치"
+    },
+    {
+      "surface": "schema",
+      "evidence": "overview_metadata: 일반·모노레포 모두 JSON 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "guidance",
+      "evidence": "initial_instructions: 기존 탐색 지침·통계 포함 응답 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "annotations",
+      "evidence": "overview openWorldHint=false; baseline metadata 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "configuration",
+      "evidence": "overview_enabled 제거; 오래된 값은 알림 후 무시; 양쪽 fixture에 stale=true 포함",
+      "result": "일치"
+    },
+    {
+      "surface": "scope",
+      "evidence": "workspace→search→all→search 비교 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "limits",
+      "evidence": "준비 완료 후 100바이트 한도 오류 동일; 렌더링 상수/함수 기준 소스 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "statistics",
+      "evidence": "일반·모노레포 준비 완료 통계 비교 동일; stats.rs 기준 소스 동일",
+      "result": "일치"
+    },
+    {
+      "surface": "readiness",
+      "evidence": "overview.rs의 준비 중·중단 분기와 메시지 기준 소스 바이트 동일; 중단 상태는 별도 실행하지 않음",
+      "result": "일치"
+    },
+    {
+      "surface": "external_calls",
+      "evidence": "호출 경로·모듈 제거 및 비교 stderr overview Jev 호출 0",
+      "result": "일치"
+    },
+    {
+      "surface": "source_rendering",
+      "evidence": "overview.rs, stats.rs, monorepo.rs, summary.rs, tree.rs 기준 소스 동일",
+      "result": "일치"
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo check --manifest-path apps/codemap-search/Cargo.toml",
+      "exit_code": 0,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/01-check.log"
+    },
+    {
+      "command": "cargo test --manifest-path apps/codemap-search/Cargo.toml --test e2e_tests e2e::codemap",
+      "exit_code": 0,
+      "passed": 15,
+      "log": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/logs/01-codemap.log"
+    },
+    {
+      "command": "python3 /Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/harness/overview_compare.py",
+      "exit_code": 0,
+      "comparisons": 33,
+      "unexplained_differences": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "remaining_differences": [],
+  "visibility_only_deviation": "codemap::significant_symbols의 pub(crate) 재노출은 child 02에서 제거할 live 필터 소비자를 위해 잠시 보존. overview 출력에는 영향 없음.",
+  "readiness_comparison_correction": "최초 한도 비교에서 준비 중 119바이트 응답과 완료 응답을 혼합함. readiness를 맞춘 후 전체 33개 일치. 최초 비교는 외부 evidence에 보존.",
+  "external_call_count": 0,
+  "baseline_binary_sha256": "6846ea866b1ab00d30690fc8a38a4a5de468a02b7d643961838bd5e8837f1a87",
+  "restored_binary_sha256": "4101b0044ac358e5fcca5abc6434f5295154a954d6760b09a70a91f2ec1903c9",
+  "evidence_directory": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence"
+}

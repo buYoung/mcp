@@ -1366,20 +1366,6 @@ const MIGRATIONS: &[Migration] = &[
         korean_block: JEV_MIGRATION_BLOCK_KO,
     },
     Migration {
-        version: 25,
-        key: "read_filter_enabled",
-        placement: KeyPlacement::Subtable("analysis.jev"),
-        english_block: "# Opt-in body filtering for read calls carrying task_query; absent intent preserves source.\n# read_filter_enabled = false",
-        korean_block: "# task_query가 있는 read 호출의 본문 필터입니다. 의도가 없으면 소스를 그대로 반환합니다.\n# read_filter_enabled = false",
-    },
-    Migration {
-        version: 25,
-        key: "grep_filter_enabled",
-        placement: KeyPlacement::Subtable("analysis.jev"),
-        english_block: "# Opt-in body filtering for grep content calls carrying task_query; file/count modes stay unchanged.\n# grep_filter_enabled = false",
-        korean_block: "# task_query가 있는 grep content 호출의 본문 필터입니다. 파일 목록·개수 출력은 바꾸지 않습니다.\n# grep_filter_enabled = false",
-    },
-    Migration {
         version: 17,
         key: "is_overview_stats_enabled",
         placement: KeyPlacement::Subtable("tool_output"),
@@ -1556,11 +1542,9 @@ const MIGRATIONS: &[Migration] = &[
 /// v24: the whole `[analysis.jev]` section as one commented block. The header line carries
 /// the presence guard (`jev`), so a file that already has the section is never touched.
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
-# Optional TypeSafe Jev decision stages. Both modes are off by default, and enabling one
-# sends nothing by itself: a request is evaluated only when the tool call also passes an
-# explicit task_query, and the API key comes from the environment variable named below.
-# Judge root overview calls: recommend indexed files for the task_query.
-# overview_enabled = false
+# Optional TypeSafe Jev body filters, off by default. Register the full task once through
+# initial_instructions(task_query, questions); enabled search then applies automatically.
+# The API key comes from the environment variable named below.
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
 # unrelated to the task_query; each omitted body leaves an inline note with the exact read
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
@@ -1581,16 +1565,14 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
 # is opened.
 # pool_idle_timeout_ms = 30000
-# Search filter threshold: a complete body is omitted only when Jev's probability that it is
-# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# Per-criterion false-probability threshold (1 - yes). all/any composes decisions.
+# Uncertain evidence stays. Finite, above 0.5, at most 1.0; provisional, not calibrated.
 # search_filter_min_unrelated_probability = 0.70";
 
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
-# 선택적 TypeSafe Jev 판단 단계입니다. 두 모드 모두 기본으로 꺼져 있고, 켜는 것만으로는
-# 아무것도 보내지 않습니다. 도구 호출이 명시적인 task_query를 함께 전달할 때만 평가하며,
+# 선택적 TypeSafe Jev 본문 필터이며 기본으로 꺼져 있습니다. initial_instructions(task_query, questions)로
+# 전체 목적을 한 번 등록하면 켜진 search가 자동 적용되며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
-# 루트 overview 호출을 판단해 task_query에 맞는 색인 파일을 추천합니다.
-# overview_enabled = false
 # search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
 # 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
@@ -1610,8 +1592,8 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # max_batch_bytes = 80000
 # 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
 # pool_idle_timeout_ms = 30000
-# search 필터 임계값입니다. Jev가 본문이 무관하다고 본 확률이 이 값 이상일 때만 완전한 본문을
-# 생략합니다(유한, 0.5 초과, 1.0 이하). 잠정값이며 보정되지 않았습니다.
+# 질문별 거짓 확률(1 - 예 확률)의 임계값입니다. all/any로 조합하며 불확실한 근거는 유지합니다.
+# 유한, 0.5 초과, 1.0 이하의 잠정값이며 보정된 결합 확률이 아닙니다.
 # search_filter_min_unrelated_probability = 0.70";
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.

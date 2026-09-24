@@ -111,14 +111,6 @@ pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
 }
 
 pub(crate) fn read_file_with_metadata(args: &Value) -> Result<LiveOutput, (i64, String)> {
-    read_file_impl(args, false)
-}
-
-pub(crate) fn read_file_for_filter(args: &Value) -> Result<LiveOutput, (i64, String)> {
-    read_file_impl(args, true)
-}
-
-fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i64, String)> {
     let options = super::live_options::LiveOptions::parse(args)?;
     let file_path = resolve_file_path_arg(args)?;
     let (offset, limit) = resolve_window_args(args);
@@ -291,23 +283,6 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         let end = anchor.end_line.unwrap_or(start);
         output.record_source(&path, start, end);
         output.record_file(&path, 0, output.text.len());
-        if should_capture_bodies {
-            if std::str::from_utf8(&bytes).is_ok() {
-                output.jev.add_source(&path, content);
-            }
-            let mut offset_bytes = 0;
-            for (i, row) in output.text.split_inclusive('\n').enumerate() {
-                let end_bytes = offset_bytes + row.len();
-                output.jev.rows.push(super::live_symbols::jev::SourceRow {
-                    path: path.clone(),
-                    line: start + i,
-                    range: offset_bytes..end_bytes,
-                    is_complete: true,
-                    content: window[i].into(),
-                });
-                offset_bytes = end_bytes;
-            }
-        }
     }
     Ok(output)
 }

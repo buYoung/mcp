@@ -367,7 +367,7 @@ export function dropMe(input: string): string {
             Ok(request
                 .questions()
                 .iter()
-                .map(|question| (question.id().clone(), answers::noul(probability)))
+                .map(|question| (question.id().clone(), answers::noul(1.0 - probability)))
                 .collect())
         })
     }
@@ -384,7 +384,7 @@ export function dropMe(input: string): string {
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[analysis.jev]\n"), "{scaffolded}");
-        assert!(scaffolded.contains("# overview_enabled = false\n"));
+        assert!(!scaffolded.contains("overview_enabled"));
         assert!(scaffolded.contains("# search_filter_enabled = false\n"));
         assert!(scaffolded.contains("# api_key_env = \"TYPESAFE_API_KEY\"\n"));
         assert!(scaffolded.contains("# search_filter_min_unrelated_probability = 0.70\n"));
@@ -431,7 +431,7 @@ export function dropMe(input: string): string {
         );
         drop(client);
 
-        // Existing values survive the added, commented per-tool flags.
+        // Existing values survive; retired per-tool flags are never added.
         let already =
             "# codemap-config-version: 23\n[analysis.jev]\nsearch_filter_enabled = true\n";
         let temp = create_mock_repo(&[
@@ -443,8 +443,8 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(kept.starts_with("# codemap-config-version: 25\n"), "{kept}");
-        assert!(kept.contains("# read_filter_enabled = false\n"), "{kept}");
-        assert!(kept.contains("# grep_filter_enabled = false\n"), "{kept}");
+        assert!(!kept.contains("read_filter_enabled"), "{kept}");
+        assert!(!kept.contains("grep_filter_enabled"), "{kept}");
         assert_eq!(
             toml::from_str::<toml::Value>(&kept).unwrap(),
             toml::from_str::<toml::Value>(already).unwrap(),

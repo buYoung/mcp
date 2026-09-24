@@ -270,23 +270,15 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# Optional TypeSafe Jev stages; all are off by default. Register the full task once through
-# initial_instructions(task_query). Enabled stages then apply automatically to eligible calls;
+# Optional TypeSafe Jev search judgments; off by default. Register the full task once through
+# initial_instructions(task_query, questions). Enabled search then applies automatically to eligible calls;
 # missing registration is an error. The API key comes from the environment variable below.
 
-# After registration, call root overview {} first to recommend files for the registered task.
-# overview_enabled = false
 
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
 # unrelated to the task_query; each omitted body leaves an inline note with the exact read
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
-
-# Automatically filter read/grep using the registered task.
-# Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
-# restoration; grep file/count modes and definitions/relations-only views are never filtered.
-# read_filter_enabled = false
-# grep_filter_enabled = false
 
 # Concrete provider model, validated against every response; alias names are rejected.
 # model = "jev-1.13.0"
@@ -310,9 +302,9 @@ is_build_support_enabled = false
 # is opened.
 # pool_idle_timeout_ms = 30000
 
-# Shared search/read/grep body-filter threshold.
-# A complete body is omitted only when Jev's probability that it is
-# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# Per-question false-probability threshold; compose all/any decisions, never joint probabilities.
+# A criterion is false only when 1 - its yes probability meets this threshold.
+# all/any composition decides omissions; uncertain answers stay. Finite, above 0.5, at most 1.0.
 # search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]

@@ -2,8 +2,7 @@
 //! JSON state, evaluated through the TypeSafe HTTP API (`POST /v1/systemone`).
 //!
 //! The module is independent of MCP dispatch, the index, the workspace, the current
-//! directory and the global config loader. Adapters (root overview recommendation, search
-//! body filtering) build an [`EvaluationRequest`] from presentation copies of their own data,
+//! directory and the global config loader. Adapters (search task judgments) build an [`EvaluationRequest`] from presentation copies of their own data,
 //! hand it to an [`Evaluator`], and recompute their policies from the raw typed answers. A
 //! request is sent only when a caller explicitly evaluates one; linking this module never
 //! starts network traffic, and the mock evaluator/transport in [`mock`] exercise every

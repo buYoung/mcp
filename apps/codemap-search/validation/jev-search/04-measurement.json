@@ -1,0 +1,655 @@
+{
+  "completed": false,
+  "accepted": false,
+  "status": "measurement_finished_acceptance_not_met",
+  "source_identity": {
+    "source_revision": "8b8222003584a3875ce3804557d3d5e70113ea4b",
+    "source_diff_hash": "54160b7d73b1699d79a19752f1783d8288310d7a46c79ab4250872ac6cad362e",
+    "source_tree_sha256": "8a715588a027f420fd3fdfeee72c327eaf44586b37481d7378e6bb001c6faf45"
+  },
+  "source_identity_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/03-identity.json",
+  "binary_sha256": "e56b52fb4db9adadf4cbcc63bfeb130ec5c003bbe90f1c7bb9902987975b6bc0",
+  "manifest_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/manifest.json",
+  "session_ids": [
+    "01a0d187-117f-7262-96b6-f85e0917dbcc",
+    "01a0d187-1176-7bd3-8308-3f04f0e3324b",
+    "01a0d187-1175-7c70-8d6f-05c0d05f8276"
+  ],
+  "execution_scope": {
+    "at": "2026-09-24T03:47:58.570151+00:00",
+    "instruction": "Keep existing rg and #11 results. Measure only the added Jev condition once; do not schedule further repetitions without user instruction.",
+    "groups_to_execute": [
+      "improved-on"
+    ],
+    "sessions_in_group": 3,
+    "reference_runs": [
+      "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/manifest.json",
+      "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-comparison-18x-32k/manifest.json"
+    ],
+    "redundant_rg_records_retained": true,
+    "redundant_rg_used_for_comparison": false,
+    "script_sha256": "b2db36fca9faaf8383d263202af487e857c9c2554cd89a449c9fb8cd26bade5d"
+  },
+  "metrics": {
+    "n": 3,
+    "metrics": {
+      "elapsed_s": {
+        "values": [
+          284.642,
+          241.223,
+          278.272
+        ],
+        "mean": 268.04566666666665,
+        "min": 241.223,
+        "max": 284.642,
+        "sample_sd": 23.446445579945223
+      },
+      "input_tokens": {
+        "values": [
+          933717,
+          946855,
+          972023
+        ],
+        "mean": 950865,
+        "min": 933717,
+        "max": 972023,
+        "sample_sd": 19465.289209256563
+      },
+      "cached_input_tokens": {
+        "values": [
+          816128,
+          833408,
+          842496
+        ],
+        "mean": 830677.3333333334,
+        "min": 816128,
+        "max": 842496,
+        "sample_sd": 13394.4115709998
+      },
+      "uncached_input_tokens": {
+        "values": [
+          117589,
+          113447,
+          129527
+        ],
+        "mean": 120187.66666666667,
+        "min": 113447,
+        "max": 129527,
+        "sample_sd": 8349.035952332062
+      },
+      "output_tokens": {
+        "values": [
+          14772,
+          12119,
+          13744
+        ],
+        "mean": 13545,
+        "min": 12119,
+        "max": 14772,
+        "sample_sd": 1337.648309534311
+      },
+      "reasoning_output_tokens": {
+        "values": [
+          7076,
+          5639,
+          5694
+        ],
+        "mean": 6136.333333333333,
+        "min": 5639,
+        "max": 7076,
+        "sample_sd": 814.239727189317
+      },
+      "total_tokens": {
+        "values": [
+          948489,
+          958974,
+          985767
+        ],
+        "mean": 964410,
+        "min": 948489,
+        "max": 985767,
+        "sample_sd": 19224.330755581585
+      },
+      "last_request_input_tokens": {
+        "values": [
+          138246,
+          111073,
+          126994
+        ],
+        "mean": 125437.66666666667,
+        "min": 111073,
+        "max": 138246,
+        "sample_sd": 13653.190555080279
+      },
+      "outer_tool_wait_s": {
+        "values": [
+          5.027,
+          4.363,
+          6.605
+        ],
+        "mean": 5.331666666666667,
+        "min": 4.363,
+        "max": 6.605,
+        "sample_sd": 1.1516324645186646
+      },
+      "tool_output_chars": {
+        "values": [
+          428349,
+          299871,
+          365828
+        ],
+        "mean": 364682.6666666667,
+        "min": 299871,
+        "max": 428349,
+        "sample_sd": 64246.65720746359
+      },
+      "mcp_call_count": {
+        "values": [
+          68,
+          59,
+          64
+        ],
+        "mean": 63.666666666666664,
+        "min": 59,
+        "max": 68,
+        "sample_sd": 4.509249752822894
+      },
+      "outer_calls": {
+        "values": [
+          11,
+          13,
+          13
+        ],
+        "mean": 12.333333333333334,
+        "min": 11,
+        "max": 13,
+        "sample_sd": 1.1547005383792515
+      },
+      "model_response_count": {
+        "values": [
+          12,
+          14,
+          14
+        ],
+        "mean": 13.333333333333334,
+        "min": 12,
+        "max": 14,
+        "sample_sd": 1.1547005383792515
+      },
+      "truncated_output_records": {
+        "values": [
+          1,
+          0,
+          0
+        ],
+        "mean": 0.3333333333333333,
+        "min": 0,
+        "max": 1,
+        "sample_sd": 0.5773502691896257
+      },
+      "mcp_failed_count": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "min": 1,
+        "max": 1,
+        "sample_sd": 0.0
+      },
+      "combined_total_tokens": {
+        "values": [
+          1026832,
+          1020281,
+          1057000
+        ],
+        "mean": 1034704.3333333334,
+        "min": 1020281,
+        "max": 1057000,
+        "sample_sd": 19584.469978361256
+      },
+      "delivered_omissions": {
+        "values": [
+          11,
+          21,
+          27
+        ],
+        "mean": 19.666666666666668,
+        "min": 11,
+        "max": 27,
+        "sample_sd": 8.082903768654761
+      },
+      "mcp_result_text_bytes": {
+        "values": [
+          404149,
+          267844,
+          335647
+        ],
+        "mean": 335880,
+        "min": 267844,
+        "max": 404149,
+        "sample_sd": 68152.79871729406
+      },
+      "mcp_result_text_chars": {
+        "values": [
+          394610,
+          260055,
+          326310
+        ],
+        "mean": 326991.6666666667,
+        "min": 260055,
+        "max": 394610,
+        "sample_sd": 67280.08998458112
+      }
+    },
+    "jev": {
+      "input_tokens": {
+        "values": [
+          76433,
+          60340,
+          69485
+        ],
+        "mean": 68752.66666666667,
+        "min": 60340,
+        "max": 76433,
+        "sample_sd": 8071.455651450569
+      },
+      "output_tokens": {
+        "values": [
+          1910,
+          967,
+          1748
+        ],
+        "mean": 1541.6666666666667,
+        "min": 967,
+        "max": 1910,
+        "sample_sd": 504.22448704256055
+      },
+      "total_tokens": {
+        "values": [
+          78343,
+          61307,
+          71233
+        ],
+        "mean": 70294.33333333333,
+        "min": 61307,
+        "max": 78343,
+        "sample_sd": 8556.7017789177
+      },
+      "estimated_cost_usd": {
+        "values": [
+          0.0032101860000000003,
+          0.00253428,
+          0.0029183700000000004
+        ],
+        "mean": 0.0028876120000000003,
+        "min": 0.00253428,
+        "max": 0.0032101860000000003,
+        "sample_sd": 0.00033900113736092414
+      },
+      "http_requests": {
+        "values": [
+          6,
+          6,
+          6
+        ],
+        "mean": 6,
+        "min": 6,
+        "max": 6,
+        "sample_sd": 0.0
+      },
+      "fallback_calls": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "mean": 0,
+        "min": 0,
+        "max": 0,
+        "sample_sd": 0.0
+      },
+      "requests_with_unknown_usage": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "mean": 0,
+        "min": 0,
+        "max": 0,
+        "sample_sd": 0.0
+      },
+      "applied_calls": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "min": 1,
+        "max": 1,
+        "sample_sd": 0.0
+      },
+      "rendered_omissions": {
+        "values": [
+          11,
+          21,
+          27
+        ],
+        "mean": 19.666666666666668,
+        "min": 11,
+        "max": 27,
+        "sample_sd": 8.082903768654761
+      }
+    },
+    "tools": {
+      "read": {
+        "values": [
+          43,
+          39,
+          40
+        ],
+        "mean": 40.666666666666664,
+        "min": 39,
+        "max": 43,
+        "sample_sd": 2.0816659994661326
+      },
+      "search": {
+        "values": [
+          1,
+          2,
+          2
+        ],
+        "mean": 1.6666666666666667,
+        "min": 1,
+        "max": 2,
+        "sample_sd": 0.5773502691896257
+      },
+      "grep": {
+        "values": [
+          20,
+          14,
+          19
+        ],
+        "mean": 17.666666666666668,
+        "min": 14,
+        "max": 20,
+        "sample_sd": 3.2145502536643185
+      },
+      "overview": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "mean": 0,
+        "min": 0,
+        "max": 0,
+        "sample_sd": 0.0
+      },
+      "find": {
+        "values": [
+          2,
+          2,
+          1
+        ],
+        "mean": 1.6666666666666667,
+        "min": 1,
+        "max": 2,
+        "sample_sd": 0.5773502691896257
+      },
+      "initial_instructions": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "mean": 2,
+        "min": 2,
+        "max": 2,
+        "sample_sd": 0.0
+      }
+    },
+    "transport": {
+      "outer_exec_truncated_records": {
+        "values": [
+          1,
+          0,
+          0
+        ],
+        "mean": 0.3333333333333333,
+        "min": 0,
+        "max": 1,
+        "sample_sd": 0.5773502691896257
+      },
+      "unique_read_files": {
+        "values": [
+          35,
+          33,
+          32
+        ],
+        "mean": 33.333333333333336,
+        "min": 32,
+        "max": 35,
+        "sample_sd": 1.5275252316519468
+      },
+      "repeat_file_read_calls": {
+        "values": [
+          8,
+          6,
+          8
+        ],
+        "mean": 7.333333333333333,
+        "min": 6,
+        "max": 8,
+        "sample_sd": 1.1547005383792515
+      }
+    }
+  },
+  "retained_references": {
+    "rg": {
+      "kind": "retained native-default rg",
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-rg-default-and-jev-analysis/data/rg-default-metrics.json",
+      "mean_main_total_tokens": 1039993.6666666666
+    },
+    "11.1": {
+      "kind": "retained historical #11.1",
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-comparison-18x-32k/data/comparison.json",
+      "mean_main_total_tokens": 947241
+    },
+    "13": {
+      "kind": "retained completed frozen #13 from first cohort",
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/comparison.json",
+      "mean_main_total_tokens": 793505.6666666666
+    },
+    "improved-off": {
+      "kind": "retained completed off group; corrected evidence code is only used when Jev is on, and off source replay is byte-identical",
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/data/comparison.json",
+      "mean_main_total_tokens": 852438
+    }
+  },
+  "jev_exercise_by_run": {
+    "improved-on-1": {
+      "observed": true,
+      "registered_question_lists": 1,
+      "successful_applied_searches": 1,
+      "consumed_leaf_answers": 94,
+      "logged_applied_leaf_answers": 94,
+      "provider_group_records": 6,
+      "bypassed_searches": 0,
+      "fallback_searches": 0
+    },
+    "improved-on-2": {
+      "observed": true,
+      "registered_question_lists": 1,
+      "successful_applied_searches": 1,
+      "consumed_leaf_answers": 47,
+      "logged_applied_leaf_answers": 47,
+      "provider_group_records": 6,
+      "bypassed_searches": 1,
+      "fallback_searches": 0
+    },
+    "improved-on-3": {
+      "observed": true,
+      "registered_question_lists": 1,
+      "successful_applied_searches": 1,
+      "consumed_leaf_answers": 86,
+      "logged_applied_leaf_answers": 86,
+      "provider_group_records": 6,
+      "bypassed_searches": 1,
+      "fallback_searches": 0
+    }
+  },
+  "comparison_deltas": {
+    "13_to_improved-on": {
+      "baseline_mean": 793505.6666666666,
+      "new_mean": 964410,
+      "difference": 170904.33333333337,
+      "percent_change": 21.537884417544607
+    },
+    "13_to_improved-off": {
+      "baseline_mean": 793505.6666666666,
+      "new_mean": 852438,
+      "difference": 58932.33333333337,
+      "percent_change": 7.4268320705124236
+    },
+    "improved-off_to_improved-on": {
+      "baseline_mean": 852438,
+      "new_mean": 964410,
+      "difference": 111972,
+      "percent_change": 13.135500763691898
+    },
+    "11.1_to_improved-on": {
+      "baseline_mean": 947241,
+      "new_mean": 964410,
+      "difference": 17169,
+      "percent_change": 1.8125271182307445
+    }
+  },
+  "coverage_by_criterion": {
+    "retained_13": {
+      "api_queue": 3,
+      "queue_worker": 3,
+      "worker_redis": 3,
+      "redis_eventbus": 3,
+      "eventbus_ws": 3,
+      "claim_lambda": 3,
+      "service_candidate": 1,
+      "custom_bypass": 0,
+      "mio_precedence": 0,
+      "publish_failure": 3,
+      "manual_extra": 1
+    },
+    "retained_improved_off": {
+      "api_queue": 3,
+      "queue_worker": 3,
+      "worker_redis": 3,
+      "redis_eventbus": 3,
+      "eventbus_ws": 3,
+      "claim_lambda": 3,
+      "service_candidate": 1,
+      "custom_bypass": 0,
+      "mio_precedence": 0,
+      "publish_failure": 3,
+      "manual_extra": 0
+    },
+    "corrected_improved_on": {
+      "api_queue": 3,
+      "queue_worker": 3,
+      "worker_redis": 3,
+      "redis_eventbus": 3,
+      "eventbus_ws": 3,
+      "claim_lambda": 3,
+      "service_candidate": 1,
+      "custom_bypass": 0,
+      "mio_precedence": 0,
+      "publish_failure": 3,
+      "manual_extra": 0
+    }
+  },
+  "recovery": {
+    "improved-on-1": {
+      "recovery_read_count": 2,
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/improved-on-1-metrics.json"
+    },
+    "improved-on-2": {
+      "recovery_read_count": 3,
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/improved-on-2-metrics.json"
+    },
+    "improved-on-3": {
+      "recovery_read_count": 8,
+      "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/improved-on-3-metrics.json"
+    }
+  },
+  "checks": [
+    {
+      "command": "python3 aggregate.py",
+      "working_directory": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 validate_jev_only.py",
+      "working_directory": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01",
+      "exit_code": 0,
+      "acceptance_passed": false,
+      "evidence": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/final-validation.json"
+    }
+  ],
+  "acceptance": {
+    "main_total_tokens_lower_than_retained_13": false,
+    "all_core_in_every_added_run": true,
+    "no_per_criterion_coverage_regression": false,
+    "no_new_source_contradictions": true,
+    "jev_active_in_all_added_runs": true,
+    "accepted": false
+  },
+  "failure_owner": {
+    "03-selection": "The final three-run mean remains above the retained frozen #13. Local paired source compression does not establish whole-agent token savings.",
+    "02-task-judgments": "Each final run first exceeded the 32-character question-id contract and registered successfully after an explicit error; these extra calls remain in the metrics.",
+    "answer_coverage": "manual_extra fell from 1/3 retained control answers to 0/3 final answers; all six core criteria remained in all three final answers."
+  },
+  "source_contradictions": [],
+  "limitations": [
+    "Only the corrected Jev group is newly measured, per user instruction; the controls and #11.1 are retained results.",
+    "The full global configuration hash changed after the first cohort; pinned model, CLI, target source, task and codemap output policy remain the same.",
+    "Three runs do not establish statistical significance."
+  ],
+  "no_more_model_measurements_without_user_instruction": true,
+  "environment": {
+    "target_configuration_restored": true,
+    "source_and_target_states_preserved": true,
+    "remaining_owned_pids": []
+  },
+  "previous_failed_cohort": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-implementation/evidence/04-first-measurement-handoff.json",
+  "redundant_rg": {
+    "used_for_comparison": false,
+    "records": [
+      {
+        "label": "rg-1",
+        "exit_code": 0,
+        "completed_turn": false,
+        "used_in_comparison": false,
+        "reason": "User stopped the redundant rerun; original outcomes preserved."
+      },
+      {
+        "label": "rg-2",
+        "exit_code": 0,
+        "completed_turn": false,
+        "used_in_comparison": false,
+        "reason": "User stopped the redundant rerun; original outcomes preserved."
+      },
+      {
+        "label": "rg-3",
+        "exit_code": 0,
+        "completed_turn": false,
+        "used_in_comparison": false,
+        "reason": "User stopped the redundant rerun; original outcomes preserved."
+      }
+    ],
+    "evidence_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/rg-remeasurement-stopped.json"
+  },
+  "report_path": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/data/report.md",
+  "price_reference": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-correction-01/evidence/04-price-reference.json"
+}

@@ -545,7 +545,7 @@ pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String
 /// base output is byte-identical and nothing is reserved or appended for the filter.
 pub(crate) async fn run_with_filter(
     ctx: &ToolContext<'_>,
-    task_query: &str,
+    task: &crate::tools::task::RegisteredTask,
     evaluator: &dyn crate::jev::Evaluator,
     policy: &jev::FilterPolicy,
 ) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
@@ -559,15 +559,15 @@ pub(crate) async fn run_with_filter(
         ctx,
         workspace_scope.as_deref(),
         DEFAULT_SEARCH_LIMIT,
-        task_query,
+        task,
         evaluator,
         policy,
     )
     .await
 }
 
-/// Everything the second half of a detail search needs once ranking and per-file rendering
-/// are done but before the files are serialized. The structured body filter (Jev mode #2)
+/// The bounded detail plan after retrieval: source blocks, identities and metadata,
+/// with source output assembly deferred until after selection. The structured body filter (Jev mode #2)
 /// runs between [`prepare_detail`] and [`finish_detail`]; with no filter the two halves
 /// reproduce the previous single-pass output byte for byte.
 pub(crate) struct DetailState {
@@ -618,21 +618,58 @@ pub(crate) async fn run_inner_with_filter(
     ctx: &ToolContext<'_>,
     workspace_scope: Option<&str>,
     search_limit: usize,
-    task_query: &str,
+    task: &crate::tools::task::RegisteredTask,
     evaluator: &dyn crate::jev::Evaluator,
     policy: &jev::FilterPolicy,
 ) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
+    let selection_started = tokio::time::Instant::now();
     let state = match prepare_detail(ctx, workspace_scope, search_limit)? {
         Prepared::Done(output) => return Ok((output, None)),
         Prepared::Detail(state) => state,
     };
     let files: Vec<&grouped::FileOutput> = state.files.iter().map(|(file, _)| file).collect();
-    let input = jev::FilterInput::capture(task_query, state.search_arguments.clone(), &files);
+    let mut input = jev::FilterInput::capture(task, state.search_arguments.clone(), &files);
+    input.add_supporting_evidence(
+        &files,
+        &state.published_snapshot,
+        workspace_scope,
+        state.should_include_events,
+        !state.is_warming && !state.is_dead && !state.has_refresh_error,
+    );
+    let planned_primary_bytes = state
+        .files
+        .last()
+        .map_or(state.text.len(), |(file, is_partial)| {
+            file.written_len(*is_partial)
+        });
+    tracing::info!(
+        candidate_count = input.entities.len(),
+        complete_bodies = input.evidence_summary().complete,
+        eligible_bodies = input.judgeable().len(),
+        supporting_context_bytes = input
+            .entities
+            .iter()
+            .map(|entity| entity.supporting_context.len())
+            .sum::<usize>(),
+        "jev selection plan"
+    );
     let mut result = jev::evaluate(&input, evaluator, policy).await;
     let outcome = jev::FilterOutcome::from_result(&input, &result);
     result.is_note_inline = outcome.inline_note.is_some();
     let (output, rendered_omissions) = finish_detail(*state, Some(outcome));
     result.rendered_omissions = rendered_omissions;
+    result.timing.elapsed = selection_started.elapsed();
+    tracing::info!(
+        planned_primary_bytes,
+        returned_text_bytes = output.text.len(),
+        returned_source_bytes = output
+            .source_files
+            .iter()
+            .map(|file| file.result_bytes)
+            .sum::<u64>(),
+        rendered_omissions,
+        "jev selection output"
+    );
     Ok((output, Some(result)))
 }
 
@@ -665,8 +702,8 @@ fn masked_search_arguments(
     serde_json::Value::Object(arguments)
 }
 
-/// The first half of a detail search: ranking, readiness notices and per-file rendering
-/// into unwritten `FileOutput`s under the configured detail budget. The budget is the
+/// Plan ranking, readiness notices, source blocks and metadata under the configured budget.
+/// Large result bodies are assembled once, after any Jev selection. The budget is the
 /// same whether or not a filter follows.
 pub(crate) fn prepare_detail(
     ctx: &ToolContext,
@@ -837,7 +874,7 @@ pub(crate) fn prepare_detail(
     let mut output_was_capped = false;
     let mut grouped_files: Vec<(grouped::FileOutput, bool)> = Vec::new();
     text.push_str("# codemap-search\n");
-    // Files are rendered now and written in `finish_detail`; this mirrors what `text.len()`
+    // Files are planned now and assembled in `finish_detail`; this mirrors what `text.len()`
     // would be after each write so budgets are identical to the former single pass.
     let mut projected_len = text.len();
     let detail_result_count;
@@ -929,7 +966,7 @@ pub(crate) fn prepare_detail(
         // Cross-file caller-block dedup (Child 05 / over-match repair): owned ACROSS the whole
         // detail loop, not per file, so a repeated caller list spanning file boundaries collapses
         // to a "same as `name` above" back-reference instead of re-printing. Threaded into every
-        // file's `render_anchored_symbols` call.
+        // file's `plan_anchored_symbols` call.
         let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
         for &res in &detail_results {
             let source = render::RenderSource::new(&res.file_path);
@@ -1047,7 +1084,7 @@ pub(crate) fn prepare_detail(
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
                         byte_cap: file_byte_cap,
                     };
-                    let outcome = render::render_anchored_symbols(
+                    let outcome = render::plan_anchored_symbols(
                         text,
                         &source,
                         matched_in_fallback,
@@ -1102,7 +1139,7 @@ pub(crate) fn prepare_detail(
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
                         byte_cap: file_byte_cap,
                     };
-                    let outcome = render::render_anchored_symbols(
+                    let outcome = render::plan_anchored_symbols(
                         text,
                         &source,
                         symbols,

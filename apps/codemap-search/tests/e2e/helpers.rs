@@ -279,7 +279,10 @@ impl InProcessClient {
             .call(
                 "tools/call",
                 serde_json::json!({
-                    "name": "initial_instructions", "arguments": { "task_query": task }
+                    "name": "initial_instructions", "arguments": { "task_query": task, "questions": [
+                        {"id":"budget", "question":"Does this function implement or concretely support the requested output-budget behavior?", "when_true":"It computes, reserves, caps, renders or passes the requested output budget.", "when_false":"Supplied code establishes a separate behavior with no concrete budget role."},
+                        {"id":"flow", "question":"Does the same function participate in the requested output-budget flow?", "when_true":"The body or supplied call evidence connects it to that output-budget flow.", "when_false":"Supplied evidence establishes an unrelated flow; missing links alone are uncertain."}
+                    ], "match":"all" }
                 }),
             )
             .await
@@ -301,17 +304,10 @@ impl InProcessClient {
         }
         let original = std::fs::read_to_string(&path).unwrap();
         let mut config: toml::Value = toml::from_str(&original).unwrap();
-        for key in [
-            "overview_enabled",
-            "search_filter_enabled",
-            "read_filter_enabled",
-            "grep_filter_enabled",
-        ] {
-            config["analysis"]["jev"]
-                .as_table_mut()
-                .unwrap()
-                .insert(key.into(), toml::Value::Boolean(false));
-        }
+        config["analysis"]["jev"]
+            .as_table_mut()
+            .unwrap()
+            .insert("search_filter_enabled".into(), toml::Value::Boolean(false));
         std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
         codemap_search::config::reload(&root);
         let response = self

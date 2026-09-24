@@ -27,7 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
-| `analysis.jev` | Optional root overview recommendation and independent search/read/grep body filters; all off by default |
+| `analysis.jev` | Optional search-only task judgments; off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -211,10 +211,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
-| `[analysis.jev].overview_enabled` | bool | `false` | Root `overview` uses the registered task to append Jev-ranked recommended files |
 | `[analysis.jev].search_filter_enabled` | bool | `false` | Automatically filter complete, identity-verified search bodies against the registered task, leaving read notes |
-| `[analysis.jev].read_filter_enabled` | bool | `false` | Automatically filter complete callable bodies in a `read` window against the registered task |
-| `[analysis.jev].grep_filter_enabled` | bool | `false` | Automatically filter complete callable bodies in a `grep` content page against the registered task |
 | `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
 | `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
 | `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
@@ -222,7 +219,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[analysis.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
 | `[analysis.jev].max_batch_bytes` | integer bytes or size string, 1 to 80000 | `80000` | Encoded request bytes per batch (80000 is the runtime ceiling); a question that does not fit is an explicit failure |
 | `[analysis.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
-| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Shared search/read/grep unrelated-probability threshold for complete bodies |
+| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -696,23 +693,15 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# Optional TypeSafe Jev stages; all are off by default. Register the full task once through
-# initial_instructions(task_query). Enabled stages then apply automatically to eligible calls;
+# Optional TypeSafe Jev search judgments; off by default. Register the full task once through
+# initial_instructions(task_query, questions). Enabled search then applies automatically to eligible calls;
 # missing registration is an error. The API key comes from the environment variable below.
 
-# After registration, call root overview {} first to recommend files for the registered task.
-# overview_enabled = false
 
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
 # unrelated to the task_query; each omitted body leaves an inline note with the exact read
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
-
-# Automatically filter read/grep using the registered task.
-# Only complete selected live bodies qualify. Disable read_filter_enabled for unfiltered
-# restoration; grep file/count modes and definitions/relations-only views are never filtered.
-# read_filter_enabled = false
-# grep_filter_enabled = false
 
 # Concrete provider model, validated against every response; alias names are rejected.
 # model = "jev-1.13.0"
@@ -736,9 +725,9 @@ is_build_support_enabled = false
 # is opened.
 # pool_idle_timeout_ms = 30000
 
-# Shared search/read/grep body-filter threshold.
-# A complete body is omitted only when Jev's probability that it is
-# unrelated is at least this value (finite, above 0.5, at most 1.0). Provisional, not calibrated.
+# Per-question false-probability threshold; compose all/any decisions, never joint probabilities.
+# A criterion is false only when 1 - its yes probability meets this threshold.
+# all/any composition decides omissions; uncertain answers stay. Finite, above 0.5, at most 1.0.
 # search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
@@ -838,10 +827,7 @@ One response uses one configuration snapshot; a concurrent reload applies to sub
 
 ```toml
 [analysis.jev]
-overview_enabled = true
 search_filter_enabled = true
-read_filter_enabled = true
-grep_filter_enabled = true
 # api_key_env = "TYPESAFE_API_KEY"
 # search_filter_min_unrelated_probability = 0.70
 ```
@@ -850,53 +836,63 @@ grep_filter_enabled = true
 export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
 ```
 
-All four stages are independently off by default. Enabling one permits external requests for that tool, not for the other tools. `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev search is off by default. Enabling it permits external requests only for search. `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
-### Task registration and tool order
+### Task registration
 
-1. At task start, call `initial_instructions` with a nonempty string `task_query` containing the user's complete purpose. Register again whenever the task changes.
-2. If overview recommendations are enabled, call root `overview {}` next, even if paths or scopes are already known. Inspect the recommended files before search/grep/read. If indexing was warming, retry overview once ready.
-3. Call search/read/grep normally. Enabled body filters automatically use the registered task for eligible output.
+When `search_filter_enabled=true`, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns `-32602`. Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
 
-Task context stays within the connection; it is not inferred from `search.query` or `grep.pattern`. A new registration replaces it, invalid registration clears it, and `initialize` resets it. Missing required context or invalid registration returns an argument error (`-32602`), not unfiltered output.
+```json
+{
+  "task_query": "Where is the response byte cap applied?",
+  "questions": [{
+    "id": "byte_cap",
+    "question": "Does this function implement or concretely support the response byte cap?",
+    "when_true": "The supplied source computes, reserves, enforces or passes this response byte budget.",
+    "when_false": "The supplied facts establish a separate behavior with no concrete role in that budget; missing cross-file evidence alone is uncertain."
+  }],
+  "match": "all"
+}
+```
 
-`task_query` is not an accepted search/read/grep argument, regardless of their enable flags. Overview accepts an optional `task_query` to override that recommendation's purpose only; it does not register or replace the body-filter task.
+| Field | Contract |
+| --- | --- |
+| `task_query` | Nonempty goal; at most 8,192 UTF-8 bytes |
+| `questions` | 1–8 independent yes/no criteria; preserve the requested target, direction and coverage |
+| `id` | Unique 1–32 characters from `[A-Za-z0-9_-]` |
+| `question`, `when_true`, `when_false` | Required nonempty strings, each at most 2,048 UTF-8 bytes; true means the criterion matches |
+| `match` | `all` (default) or `any`; no nested expressions |
+| Whole registration | At most 16,384 encoded JSON bytes; question fields do not accept nested values |
 
-Enabled tools advertise `openWorldHint: true` and `readOnlyHint: true`. Clients that cache tool metadata may need to list tools again or reconnect after changing flags.
+Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve ordinary search output.
 
-### Overview recommendations
+Only enabled search advertises `openWorldHint: true`; every tool remains read-only. Overview, read and grep always use local original evidence without registration or credentials. Retired overview/read/grep enable flags warn and are ignored, preserving unrelated configuration values. Ordinary `read` of an omitted location restores its source without changing settings.
 
-Root overview evaluates the complete per-file summaries of all indexed files in one snapshot, including monorepos, without the normal file-count or symbol-name presentation caps. Folder and file overviews are not evaluated.
+### Question decisions and evidence
 
-Summaries contain paths, line/symbol counts and significant names grouped by kind. Each is split losslessly into fragments of at most 10,000 encoded bytes. After complete evaluation, files with usable name evidence are ranked and at most 24 recommendations fit within the output budget. A positive path-only judgment cannot qualify a file. Incomplete evaluation falls back to ordinary overview rather than silently dropping candidates.
+Each eligible function is evaluated against every registered criterion with Noul. The function body appears once in a group state, with identity, source range, completeness, masking status and bounded static call evidence. Missing cross-file or channel evidence is explicit and must not be treated as proof of irrelevance. Questions refer to their named candidate and the same flow; two unrelated true properties do not prove a connection.
 
-The `Recommended files for the task (indexed evidence)` section reports `matched`, `no_match` or `insufficient_evidence`. No match is not proof that an implementation is absent. Recommendations are navigation hints: inspect the indicated files and source before claiming behavior or caller/consumer relationships.
+`search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of a criterion being false for a no decision. A yes requires the same threshold on the positive answer; values between the two are uncertain. `all` fails on any decisive no and matches only if every leaf is yes; `any` matches on any decisive yes and fails only if every leaf is no. All other combinations are uncertain. These are discrete decisions, not calibrated joint probabilities. The threshold remains provisional.
 
-### Body filtering and unfiltered reads
+Partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments. Non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
 
-Search, read and grep can omit complete function or method bodies judged unrelated at or above `search_filter_min_unrelated_probability`. Only bodies already selected for display are considered; read/grep use their captured live source, not stale index bodies.
+Evidence is split before question packing: at most eight candidates and 64,000 encoded bytes per group, further restricted by `max_batch_bytes`. Each body occurs once per group, not once per criterion or as a whole-catalogue copy in each batch. At most 128 groups share one absolute deadline, caller cancellation and the existing evaluator pool. A missing answer or failed required group preserves the entire base search response. Exact `event_key` maps bypass selection.
 
-The following are retained:
+### Selection before rendering
 
-- Partial, clipped, unsupported, malformed, identity-unverified or unusably masked bodies.
-- Bodies above 24,000 rendered bytes, bodies without a judgment, and bodies no larger than their omission note.
-- Non-callable declarations and bodies connected to retained callables through displayed call or nesting relationships.
+Search first plans the same ranked candidates and source windows under the ordinary output budgets. Jev selects from these source blocks before the final fenced bodies and large result strings are assembled. Disabled search remains byte-identical for matched inputs, and a failed evaluation returns the complete ordinary plan.
 
-Read/grep filtering applies to `full`/`source` views, including complete bodies inside ordinary windows or unexpanded grep context. Definitions/relations-only views and grep file/count modes are not filtered. Filtering does not expand the selected range/page, reread source after inference, refill freed space or change filesystem permissions.
+Uncertain, partial and identity-unverified source stays. A matched function can protect directly connected supporting bodies, and overlapping retained source keeps its enclosing body. Retention does not spread transitively from uncertain, small or already protected functions through an entire connected component.
 
-Each omission leaves a declaration and exact read-range note. **To obtain unfiltered source, disable `analysis.jev.read_filter_enabled`, then read that range.** Other content and output limits remain intact; the response only shrinks. Search may add a brief filter summary if omissions free enough space. Read/grep add no separate summary. [Reading-activity metrics](./analysis.md#interpreting-counts-and-bytes) exclude omitted bodies and omission notes from delivered-source observations.
+Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their recovery note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
 
-The shared threshold defaults to `0.70` and must be finite with `0.5 < value <= 1.0`. It is a provisional policy value, not a calibrated accuracy target. No general accuracy or omission-safety guarantee has been established.
+The already prepared caller annotations and existing scoped event maps provide supporting context, preserving approximate/precise and incomplete labels. At most 16,384 UTF-8 bytes of masked support text are shared across a search; each candidate's caller and event portions are individually capped at 1,024 bytes, with separators included in the shared budget. Up to eight additional indexed caller locations identify calls outside the displayed source windows; their missing source and approximate target identity remain explicit. Their scoped event endpoints can support the candidate without copying the caller's body or starting another implementation lookup. All evidence still fits the encoded group cap. `caller_context` and `include_events` choices still apply. Clipped or absent cross-file context does not establish irrelevance. A warming, stopped or failed snapshot bypasses evaluation.
+
+Compact omission notes preserve source locations and ordinary read recovery. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations.
 
 ### Data sent to TypeSafe
 
-| Stage | Transmitted evidence |
-| --- | --- |
-| Overview | Task purpose and complete per-file overview summaries; no source bodies, docstrings or extra call graphs |
-| Search | Task purpose, search arguments, eligible displayed bodies, declaration identity/evidence status and displayed callers/callees |
-| Read/grep | Task purpose, tool arguments, eligible displayed live bodies, declaration identity and displayed call links |
-
-Redaction applies before transmission. Masked values stay masked; with redaction disabled, text is sent as rendered. Masking cannot detect every sensitive format. Raw index files and undisplayed source bodies are not sent. The API key is used only in the HTTPS authorization header, not in model state or questions. The model is pinned to `jev-1.13.0`.
+Only search sends the masked registered goal and questions, search arguments, eligible function bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
 
 ### Transport limits
 

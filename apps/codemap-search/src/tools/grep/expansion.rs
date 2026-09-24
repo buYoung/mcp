@@ -16,7 +16,6 @@ pub(super) struct ExpansionPage {
     anchors: Vec<LiveAnchor>,
     source_lines: Vec<Vec<usize>>,
     path_prefixes: Vec<Vec<std::ops::Range<usize>>>,
-    jev: crate::tools::live_symbols::jev::Capture,
 }
 
 impl ExpansionPage {
@@ -35,7 +34,6 @@ impl ExpansionPage {
             anchors: Vec::new(),
             source_lines: Vec::new(),
             path_prefixes: Vec::new(),
-            jev: Default::default(),
         }
     }
 
@@ -46,7 +44,6 @@ impl ExpansionPage {
         hits: &[LineHit],
         show_lines: bool,
         max_columns: usize,
-        should_capture_bodies: bool,
     ) {
         let source = bytes
             .and_then(|bytes| std::str::from_utf8(bytes).ok())
@@ -106,7 +103,6 @@ impl ExpansionPage {
             let mut has_omitted_columns = false;
             let mut source_lines = Vec::new();
             let mut path_prefixes = Vec::new();
-            let mut filter_rows = Vec::new();
             for line in start..=end {
                 let value = lines
                     .get(line.saturating_sub(1))
@@ -132,7 +128,6 @@ impl ExpansionPage {
                 if max_columns == 0 || source_byte_len <= max_columns {
                     source_lines.push(line);
                 }
-                let filter_source = should_capture_bodies.then(|| value.to_string());
                 let value = cap_line(value, source_byte_len, max_columns, is_match);
                 let prefix_start = text.len();
                 path_prefixes
@@ -141,15 +136,6 @@ impl ExpansionPage {
                     text.push_str(&format!("{path}{sep}{line}{sep}{value}\n"));
                 } else {
                     text.push_str(&format!("{path}{sep}{value}\n"));
-                }
-                if let Some(content) = filter_source {
-                    filter_rows.push(crate::tools::live_symbols::jev::SourceRow {
-                        path: path.into(),
-                        line,
-                        range: prefix_start..text.len(),
-                        is_complete: max_columns == 0 || source_byte_len <= max_columns,
-                        content,
-                    });
                 }
                 if text.len() > self.cap {
                     break;
@@ -161,21 +147,11 @@ impl ExpansionPage {
             if text.len() > self.cap {
                 source_lines.clear();
                 path_prefixes.clear();
-                filter_rows.clear();
                 text = format!("[Callable body unavailable: {path}:{start}-{end} exceeds the output cap. Read this range with expand=none and smaller offset/limit windows.]\n");
             }
             if self.used + text.len() > self.cap {
                 self.has_full_page = true;
                 continue;
-            }
-            if !filter_rows.is_empty() {
-                if let Some(source) = source {
-                    self.jev.add_source(path, source);
-                }
-                for mut row in filter_rows {
-                    row.range = self.used + row.range.start..self.used + row.range.end;
-                    self.jev.rows.push(row);
-                }
             }
             self.used += text.len();
             self.text.push(text);
@@ -202,7 +178,6 @@ impl ExpansionPage {
         }
         let mut output = LiveOutput {
             notices,
-            jev: self.jev,
             ..LiveOutput::default()
         };
         for (((text, anchor), lines), prefixes) in self
@@ -230,9 +205,6 @@ impl ExpansionPage {
             .truncate(output.text.trim_end_matches('\n').len());
         if let Some(last) = output.files.last_mut() {
             last.end_byte = output.text.len();
-        }
-        for row in &mut output.jev.rows {
-            row.range.end = row.range.end.min(output.text.len());
         }
         output
     }

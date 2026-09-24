@@ -70,7 +70,7 @@ args = ["mcp"]
 
 ## 첫 연결 확인
 
-1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다. [Jev 단계](#선택적-jev-판단-단계)를 하나라도 켰다면 `task_query`에 사용자의 전체 작업을 넣고 아래의 등록·개요 조회 순서를 따릅니다.
+1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다. [Jev 단계](#선택적-jev-판단-단계)를 하나라도 켰다면 `task_query`와 집중된 `questions`를 아래 계약에 맞춰 등록합니다.
 2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 `overview`를 다시 호출합니다.
 3. 알고 있는 소스 파일을 `find`로 찾고 `read`로 읽습니다. 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
 
@@ -80,7 +80,7 @@ args = ["mcp"]
 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
-| `initial_instructions` | 탐색 안내와 Jev 작업 목적 등록 | `task_query` (Jev 단계를 하나라도 켰다면 필수) |
+| `initial_instructions` | 탐색 안내와 Jev 작업 목적 등록 | `task_query`, `questions`, `match` (Jev search를 켜면 목적·질문은 필수) |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
@@ -129,32 +129,11 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 ## 선택적 Jev 판단 단계
 
-Jev는 색인 파일을 추천하거나 작업과 무관하다고 판단한 완전한 함수 본문을 생략합니다. 각 단계는 독립적이며 **기본으로 꺼져 있습니다.** 켜면 작업 목적과 판단 대상 근거를 외부 TypeSafe Jev API에 전송합니다. 필요한 도구만 활성화하고 API 키는 설정 파일이 아닌 환경 변수로 전달하세요.
+Jev는 등록한 작업 질문으로 search의 함수 근거를 판단하며 기본으로 꺼져 있습니다. `analysis.jev.search_filter_enabled=true`로 켜고 `TYPESAFE_API_KEY` 환경 변수로 인증정보를 전달합니다.
 
-```toml
-[analysis.jev]
-overview_enabled = true          # 루트 overview가 task_query에 맞는 색인 파일을 추천
-search_filter_enabled = true     # search가 task_query와 무관하다고 판단된 완전한 본문을 생략
-read_filter_enabled = true       # read가 선택한 실제 소스 범위 안에서만 필터링
-grep_filter_enabled = true       # grep이 선택한 content 페이지 안에서만 필터링
-# api_key_env = "TYPESAFE_API_KEY"
-```
+주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `id`, `question`, `when_true`, `when_false`를 넣고 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
 
-```sh
-export TYPESAFE_API_KEY="<발급받은 키>"
-```
-
-작업 시작 시 `initial_instructions(task_query)`로 사용자의 전체 작업 목적을 한 번 등록하고, 작업이 바뀌면 다시 등록합니다. 켜진 본문 필터는 연결 안에 등록된 목적을 자동으로 사용하며, 필요한 등록이 없으면 인수 오류를 반환합니다. overview 추천이 켜졌다면 경로나 범위를 이미 알아도 다음에 루트 `overview {}`를 호출하고 추천 파일을 확인한 뒤 search/grep/read로 진행합니다. 색인 준비 중이었다면 준비 후 overview를 다시 호출하세요.
-
-```json
-{ "name": "initial_instructions", "arguments": { "task_query": "응답 바이트 상한은 어디에서 적용되는가?" } }
-{ "name": "overview", "arguments": {} }
-{ "name": "search", "arguments": { "query": "byte cap footer" } }
-```
-
-overview는 소스 본문이 아닌 파일별 요약을 전송합니다. 본문 필터는 출력 대상 소스를 전송하고 생략한 본문마다 안내를 남깁니다. 전송 전에 마스킹을 적용하지만 모든 민감값을 탐지할 수는 없으며, 마스킹을 끄면 렌더링한 텍스트를 가리지 않고 보냅니다.
-
-추천은 탐색 힌트이며 필터의 정확도를 보장하지 않습니다. 생략한 범위를 필터 없이 읽으려면 먼저 `analysis.jev.read_filter_enabled`를 끄세요. 인증정보 없음·대상 근거 없음·제공자 실패는 일반 출력을 보존하며, 단계 결과와 알려진 토큰 사용량은 stderr에 기록합니다. 켜진 도구는 외부 접근을 알리므로 도구 정보를 캐시하는 클라이언트는 설정 변경 뒤 도구 목록을 다시 조회하거나 재연결해야 할 수 있습니다. 전송 범위·필터 규칙·한도·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+Search는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. Overview·read·grep은 항상 로컬 원문 도구이므로 등록·키·설정 변경 없이 원문을 읽을 수 있습니다. 제공자 실패는 검색 전체의 일반 출력을 보존합니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 

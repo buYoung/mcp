@@ -270,23 +270,15 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# 선택적 TypeSafe Jev 단계이며 기본으로 꺼져 있습니다. initial_instructions(task_query)에서
-# 전체 작업 목적을 한 번 등록하면 켜진 단계가 대상 호출에 자동 적용됩니다. 미등록은 오류이며,
+# 선택적 TypeSafe Jev 단계이며 기본으로 꺼져 있습니다. initial_instructions(task_query, questions)에서
+# 전체 작업 목적을 한 번 등록하면 켜진 search가 대상 함수에 자동 적용됩니다. 미등록은 오류이며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
 
-# 작업 등록 후 루트 overview {}를 먼저 호출해 등록한 목적에 맞는 파일을 추천받습니다.
-# overview_enabled = false
 
 # search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
 # 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
 # search_filter_enabled = false
-
-# 등록한 목적에 맞춰 read/grep에서 선택된 완전한 본문을 자동 필터링합니다.
-# 생략 없는 원문을 읽으려면 read_filter_enabled를 끕니다. grep 파일 목록·개수 모드와
-# definitions/relations 전용 보기는 필터링하지 않습니다.
-# read_filter_enabled = false
-# grep_filter_enabled = false
 
 # 모든 응답에서 검증하는 구체적인 제공자 모델입니다. 별칭 이름은 거부합니다.
 # model = "jev-1.13.0"
@@ -309,9 +301,9 @@ is_build_support_enabled = false
 # 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
 # pool_idle_timeout_ms = 30000
 
-# search/read/grep 공통 본문 필터 임계값입니다.
-# Jev가 본문이 무관하다고 본 확률이 이 값 이상일 때만 완전한 본문을
-# 생략합니다(유한, 0.5 초과, 1.0 이하). 잠정값이며 보정되지 않았습니다.
+# 질문별 거짓 확률 임계값입니다. all/any 판단을 조합하며 결합 확률이 아닙니다.
+# 질문의 거짓 확률(1 - 예 확률)이 이 값 이상이면 아니오로 판단합니다.
+# all/any 조합으로 생략을 결정하고 불확실한 근거는 유지합니다(유한, 0.5 초과, 1.0 이하).
 # search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]

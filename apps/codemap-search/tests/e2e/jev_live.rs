@@ -1,15 +1,14 @@
-//! Actual MCP regressions for opt-in live body filters. Every judge is injected;
+//! Actual MCP regressions for original source despite retired live-filter flags. Judges never run;
 //! SQLite assertions inspect the real final response accounting, not a copied policy.
 use super::helpers::{
     create_mock_repo, response_text, with_in_process_server_logging as run_server, InProcessClient,
 };
-use codemap_search::jev::mock::{answers, Gate, MockEvaluator};
+use codemap_search::jev::mock::{answers, MockEvaluator};
 use codemap_search::jev::{EvaluationRequest, JevError};
 use serde_json::{json, Value};
 use std::path::Path;
 use std::sync::Arc;
 
-const TASK: &str = "locate the output budget calculation";
 const CONFIG: &str = "[analysis.jev]\nread_filter_enabled = true\ngrep_filter_enabled = true\n[index.refresh]\nwatch = false\n";
 const KEEP: &str =
     "export function keepBody(remainingBytes: number, footer: string, limit: number): number {
@@ -59,15 +58,9 @@ async fn with_in_process_server_logging<F, Fut>(
     F: FnOnce(InProcessClient) -> Fut,
     Fut: std::future::Future<Output = ()>,
 {
-    run_server(
-        root,
-        evaluator,
-        should_record_calls,
-        |mut client| async move {
-            client.register_task(TASK).await;
-            script(client).await;
-        },
-    )
+    run_server(root, evaluator, should_record_calls, |client| async move {
+        script(client).await;
+    })
     .await;
 }
 
@@ -121,26 +114,8 @@ fn observations(root: &Path, response: &Value) -> Vec<(String, u64)> {
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
 }
-fn source_block<'a>(text: &'a str, view: &str) -> &'a str {
-    if view == "source" {
-        text
-    } else {
-        text.split_once("\n### results\n").unwrap().1
-    }
-}
-fn row_number(row: &str) -> Option<usize> {
-    if let Some((number, _)) = row.split_once('→') {
-        return number.trim().parse().ok();
-    }
-    let row = row
-        .strip_prefix("src/budget.ts")
-        .map(|s| &s[1..])
-        .unwrap_or(row);
-    row.split([':', '-']).next()?.parse().ok()
-}
-
 #[tokio::test]
-async fn read_and_grep_omit_only_unrelated_bodies_and_record_delivered_bytes() {
+async fn read_and_grep_preserve_original_bodies_and_record_delivered_bytes() {
     for tool in ["read", "grep"] {
         for view in ["source", "full"] {
             let source = source();
@@ -157,76 +132,21 @@ async fn read_and_grep_omit_only_unrelated_bodies_and_record_delivered_bytes() {
                 assert_eq!(before.len(), 1);
                 let filtered = call(&mut client, tool, arguments(tool, view)).await;
                 let text = response_text(&filtered);
-                assert!(text.contains("_omitted body:") && text.contains("fn dropBody"), "{tool}/{view}: {text}");
+                assert_eq!(text, response_text(&plain));
+                assert!(text.contains("UNRELATED_MARKER"));
                 assert!(text.contains("const reserve = footer.length + 8;"));
-                assert!(!text.contains("UNRELATED_MARKER"));
-                assert!(text.len() < response_text(&plain).len());
+                assert_eq!(observations(&root, &filtered), before);
+                assert_eq!(recorded.request_count(), 0);
                 let (start, end) = drop_range();
-                let original = source_block(response_text(&plain), view);
-                let removed_bytes: usize = original.split_inclusive('\n').filter(|row| row_number(row).is_some_and(|line| start <= line && line <= end)).map(str::len).sum();
-                assert!(removed_bytes > 0);
-                let after = observations(&root, &filtered);
-                assert_eq!(after, vec![("src/budget.ts".into(), before[0].1 - removed_bytes as u64)], "omission notes are not delivered source");
-                for row in original.lines().filter(|row| row_number(row).is_some_and(|line| line < start || line > end)) {
-                    assert!(text.lines().any(|returned| returned == row), "retained file/line/content lost: {row}");
-                }
-                assert_eq!(recorded.request_count(), 1);
-                let requests = recorded.requests();
-                assert_eq!(requests[0].state["tool"], tool);
-                assert!(requests[0].state.get("search_arguments").is_none());
-                assert_eq!(requests[0].task_query(), Some(TASK));
-                assert!(requests[0].questions.values().all(|q| q["type"] == "noul"));
-                // Restoration requires the read filter to be disabled, as the marker states.
-                assert!(text.contains(&format!("offset {start} limit {}", end - start + 1)));
-                let restored = client.plain_call("read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source"})).await.unwrap();
+                let restored = call(&mut client, "read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source"})).await;
                 for (i, line) in DROP.lines().enumerate() {
                     assert!(response_text(&restored).contains(&format!("{:>6}→{line}", start+i)));
                 }
                 assert!(!response_text(&restored).contains("_omitted body:"));
-                assert_eq!(recorded.request_count(), 1);
+                assert_eq!(recorded.request_count(), 0);
                 assert_eq!(observations(&root, &restored)[0].1, response_text(&restored).len() as u64);
             }).await;
         }
-    }
-}
-
-#[tokio::test]
-async fn marker_only_files_are_not_recorded_as_read_source() {
-    for tool in ["read", "grep"] {
-        let source = source();
-        let temp =
-            create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &source)])
-                .unwrap();
-        let root = temp.path().to_path_buf();
-        let evaluator = Arc::new(judge());
-        let recorded = evaluator.clone();
-        with_in_process_server_logging(
-            temp.path(),
-            Some(evaluator),
-            true,
-            |mut client| async move {
-                let (start, end) = drop_range();
-                let mut args = arguments(tool, "source");
-                if tool == "read" {
-                    args["offset"] = json!(start);
-                    args["limit"] = json!(end - start + 1);
-                } else {
-                    args["pattern"] = json!("function dropBody");
-                }
-                let response = call(&mut client, tool, args).await;
-                assert!(
-                    response_text(&response).contains("_omitted body:"),
-                    "{response}"
-                );
-                assert!(!response_text(&response).contains("UNRELATED_MARKER"));
-                assert!(
-                    observations(&root, &response).is_empty(),
-                    "markers do not count as source"
-                );
-                assert_eq!(recorded.request_count(), 1);
-            },
-        )
-        .await;
     }
 }
 
@@ -254,123 +174,6 @@ async fn partial_windows_rows_and_metadata_modes_never_send_body_questions() {
         }
         assert_eq!(recorded.request_count(), 0);
     }).await;
-}
-
-#[tokio::test]
-async fn complete_bodies_in_unexpanded_grep_context_can_be_omitted() {
-    let source = source();
-    let temp =
-        create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &source)]).unwrap();
-    let root = temp.path().to_path_buf();
-    let evaluator = Arc::new(judge());
-    let recorded = evaluator.clone();
-    with_in_process_server_logging(temp.path(), Some(evaluator), true, |mut client| async move {
-        let response = call(&mut client, "grep", json!({"path":"src/budget.ts","pattern":"function dropBody","expand":"none","-A":7,"view":"source"})).await;
-        assert!(response_text(&response).contains("_omitted body:"), "{response}");
-        assert!(!response_text(&response).contains("UNRELATED_MARKER"));
-        assert!(observations(&root, &response).is_empty());
-        assert_eq!(recorded.request_count(), 1);
-    }).await;
-}
-
-#[tokio::test]
-async fn an_omitted_grep_page_keeps_its_footer_and_does_not_refill_from_the_next_page() {
-    let source = format!("{DROP}\n\n{KEEP}\n");
-    let temp =
-        create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &source)]).unwrap();
-    let root = temp.path().to_path_buf();
-    let evaluator = Arc::new(judge());
-    let recorded = evaluator.clone();
-    with_in_process_server_logging(
-        temp.path(),
-        Some(evaluator),
-        true,
-        |mut client| async move {
-            let args =
-                json!({"path":"src/budget.ts","pattern":"function","head_limit":1,"view":"source"});
-            let plain = client.plain_call("grep", args.clone()).await.unwrap();
-            let footer = response_text(&plain)
-                .lines()
-                .find(|line| line.contains("next_offset=1"))
-                .unwrap()
-                .to_string();
-            let response = call(&mut client, "grep", args).await;
-            let text = response_text(&response);
-            assert!(
-                text.contains("_omitted body:") && text.contains(&footer),
-                "{text}"
-            );
-            assert!(
-                !text.contains("keepBody") && !text.contains("const reserve"),
-                "the next page must not refill freed space"
-            );
-            assert!(observations(&root, &response).is_empty());
-            assert_eq!(recorded.request_count(), 1);
-            assert_eq!(recorded.requests()[0].questions.len(), 1);
-        },
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn retained_callers_and_nested_declarations_protect_their_bodies() {
-    let linked = format!(
-        "{}\n\n{}\n\n{}\n",
-        KEEP.replace("return allowed;", "return helperBudget(allowed);"),
-        DROP.replace(
-            "dropBody(input: string): string",
-            "helperBudget(input: number): string"
-        )
-        .replace("input.trim()", "String(input).trim()"),
-        DROP
-    );
-    let temp =
-        create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &linked)]).unwrap();
-    let evaluator = Arc::new(judge());
-    with_in_process_server_logging(
-        temp.path(),
-        Some(evaluator),
-        false,
-        |mut client| async move {
-            for tool in ["read", "grep"] {
-                let response = call(&mut client, tool, arguments(tool, "source")).await;
-                let text = response_text(&response);
-                assert!(
-                    text.contains("function helperBudget"),
-                    "linked helper must stay: {text}"
-                );
-                assert!(text.contains("(fn dropBody) judged unrelated"), "{text}");
-                assert!(!text.contains("(fn helperBudget) judged unrelated"));
-            }
-        },
-    )
-    .await;
-    // A retained nested callable must not disappear inside an unrelated outer one.
-    let nested = format!(
-        "export function outerBody() {{\n{}\n{}\n  return keepBody(10, '', 20);\n}}",
-        KEEP, DROP
-    );
-    let temp =
-        create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &nested)]).unwrap();
-    let evaluator = Arc::new(judge());
-    with_in_process_server_logging(
-        temp.path(),
-        Some(evaluator),
-        false,
-        |mut client| async move {
-            let plain = client
-                .plain_call("read", arguments("read", "source"))
-                .await
-                .unwrap();
-            let filtered = call(&mut client, "read", arguments("read", "source")).await;
-            assert_eq!(
-                response_text(&filtered),
-                response_text(&plain),
-                "retained nested source protects its enclosing body"
-            );
-        },
-    )
-    .await;
 }
 
 #[tokio::test]
@@ -412,157 +215,9 @@ async fn all_keep_and_provider_failure_preserve_text_and_source_observations() {
                         assert_eq!(observations(&root, &filtered), before);
                     }
                 }
-                assert_eq!(recorded.request_count(), 4);
+                assert_eq!(recorded.request_count(), 0);
             },
         )
         .await;
     }
-}
-
-#[tokio::test]
-async fn captures_masked_payload_and_keeps_the_snapshot_during_inference() {
-    for tool in ["read", "grep"] {
-        let secret = format!("AKIA{}", "IOSFODNN7EXAMPLE");
-        let source = source().replace(
-            "const trimmed = input.trim();",
-            &format!("const api_key = '{secret}';\n  const trimmed = input.trim();"),
-        );
-        let temp =
-            create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &source)])
-                .unwrap();
-        let path = temp.path().join("src/budget.ts");
-        let gate = Gate::new();
-        let release = gate.clone();
-        let evaluator = Arc::new(judge().with_gate(gate));
-        let recorded = evaluator.clone();
-        with_in_process_server_logging(
-            temp.path(),
-            Some(evaluator),
-            false,
-            |mut client| async move {
-                client.register_task(&format!("{TASK} {secret}")).await;
-                let args = arguments(tool, "source");
-                client
-                    .send("tools/call", json!({"name":tool,"arguments":args}))
-                    .await
-                    .unwrap();
-                release.entered().await;
-                let requests = recorded.requests();
-                let wire = serde_json::to_string(
-                    &json!({"state":requests[0].state,"questions":requests[0].questions.values().collect::<Vec<_>>()}),
-                )
-                .unwrap();
-                assert!(!wire.contains(&secret), "outbound payload must be masked");
-                assert!(wire.contains("[REDACTED]"));
-                assert!(wire.contains("candidate.body") && wire.contains("tool_arguments"));
-                std::fs::write(
-                    &path,
-                    "export function afterCapture() { return 'NEW_SOURCE'; }\n",
-                )
-                .unwrap();
-                release.release();
-                let response = client.receive().await.unwrap();
-                let text = response_text(&response);
-                assert!(
-                    text.contains("const reserve"),
-                    "old kept source must remain: {text}"
-                );
-                assert!(text.contains("_omitted body:"));
-                assert!(!text.contains("NEW_SOURCE"));
-                let restored = client.plain_call("read", json!({"file_path":"src/budget.ts","view":"source"})).await.unwrap();
-                assert!(response_text(&restored).contains("NEW_SOURCE"));
-                assert_eq!(recorded.request_count(), 1);
-            },
-        )
-        .await;
-    }
-}
-
-#[tokio::test]
-async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
-    let source = source();
-    let config = "[analysis.jev]\nread_filter_enabled=true\ngrep_filter_enabled=false\nsearch_filter_min_unrelated_probability=1.0\n";
-    let temp =
-        create_mock_repo(&[(".codemap/config.toml", config), ("src/budget.ts", &source)]).unwrap();
-    let root = temp.path().to_path_buf();
-    let evaluator = Arc::new(judge());
-    let recorded = evaluator.clone();
-    with_in_process_server_logging(
-        temp.path(),
-        Some(evaluator),
-        false,
-        |mut client| async move {
-            let listed = client.call("tools/list", json!({})).await.unwrap();
-            let tools = listed["result"]["tools"].as_array().unwrap();
-            for (tool, enabled) in [("read", true), ("grep", false), ("search", false)] {
-                let entry = tools.iter().find(|entry| entry["name"] == tool).unwrap();
-                assert_eq!(entry["annotations"]["openWorldHint"], enabled);
-                assert!(entry["inputSchema"]["properties"]
-                    .get("task_query")
-                    .is_none());
-            }
-            let plain = client
-                .plain_call("read", arguments("read", "source"))
-                .await
-                .unwrap();
-            let kept = call(&mut client, "read", arguments("read", "source")).await;
-            assert_eq!(
-                response_text(&kept),
-                response_text(&plain),
-                "1.0 retains a 0.99 judgment"
-            );
-            let unfiltered = call(&mut client, "grep", arguments("grep", "source")).await;
-            assert!(response_text(&unfiltered).contains("UNRELATED_MARKER"));
-            assert_eq!(recorded.request_count(), 1);
-            std::fs::write(root.join(".codemap/config.toml"), CONFIG).unwrap();
-            codemap_search::config::reload(&root);
-            for tool in ["read", "grep"] {
-                let response = call(&mut client, tool, arguments(tool, "source")).await;
-                assert!(
-                    response_text(&response).contains("_omitted body:"),
-                    "0.70 applies after reload: {response}"
-                );
-            }
-            assert_eq!(recorded.request_count(), 3);
-            client.register_task("inspect the updated task").await;
-            call(&mut client, "read", arguments("read", "source")).await;
-            assert_eq!(
-                recorded.requests().last().unwrap().task_query(),
-                Some("inspect the updated task")
-            );
-            let missing = client
-                .call(
-                    "tools/call",
-                    json!({"name":"initial_instructions","arguments":{"task_query":" "}}),
-                )
-                .await
-                .unwrap();
-            assert_eq!(missing["error"]["code"], -32602);
-            let missing = client
-                .call(
-                    "tools/call",
-                    json!({"name":"read","arguments":arguments("read","source")}),
-                )
-                .await
-                .unwrap();
-            assert_eq!(
-                missing["error"]["code"], -32602,
-                "a failed new registration clears the old task"
-            );
-            assert_eq!(
-                recorded.request_count(),
-                4,
-                "missing context cannot evaluate or silently bypass"
-            );
-            let invalid = client
-                .call(
-                    "tools/call",
-                    json!({"name":"read","arguments":{"file_path":"src/budget.ts","task_query":7}}),
-                )
-                .await
-                .unwrap();
-            assert_eq!(invalid["error"]["code"], -32602);
-        },
-    )
-    .await;
 }

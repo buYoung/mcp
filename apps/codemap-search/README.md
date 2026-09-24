@@ -70,7 +70,7 @@ This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/d
 
 ## Verify the first connection
 
-1. Ask the client to call `initial_instructions` once. It returns navigation guidance and the root overview; monorepos include selectable scopes and their languages. If any [Jev stage](#optional-jev-decision-stages) is enabled, include the user's full task in `task_query` and follow the registration/overview sequence below.
+1. Ask the client to call `initial_instructions` once. It returns navigation guidance and the root overview; monorepos include selectable scopes and their languages. If any [Jev stage](#optional-jev-decision-stages) is enabled, register the task goal and focused `questions` as described below.
 2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry `overview` after it completes.
 3. Find a known source file with `find`, then `read` its path. Search for a known symbol with `search` and confirm that the same file appears after indexing completes.
 
@@ -80,7 +80,7 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 
 | Tool | Use | Main arguments |
 |---|---|---|
-| `initial_instructions` | Load navigation guidance and register the task for Jev | `task_query` (required when any Jev stage is enabled) |
+| `initial_instructions` | Load navigation guidance and register the task for Jev | `task_query`, `questions`, `match` (goal and questions required when Jev search is enabled) |
 | `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
@@ -129,32 +129,11 @@ MCP watches existing config directories and reloads after about 1000ms. Manual e
 
 ## Optional Jev decision stages
 
-Jev can recommend indexed files and omit complete function bodies judged unrelated to the task. Each stage is independently **off by default**. Enabling it sends task context and eligible evidence to the external TypeSafe Jev API. Enable only the tools you want and supply the API key through the environment, not a config file:
+Jev evaluates search functions against registered task questions and is off by default. Enable `analysis.jev.search_filter_enabled=true` and supply credentials through the `TYPESAFE_API_KEY` environment variable.
 
-```toml
-[analysis.jev]
-overview_enabled = true          # root overview recommends indexed files for task_query
-search_filter_enabled = true     # search omits complete bodies judged unrelated to task_query
-read_filter_enabled = true       # read filters only within its selected live window
-grep_filter_enabled = true       # grep filters only within its selected content page
-# api_key_env = "TYPESAFE_API_KEY"
-```
+The main agent registers `task_query` and focused yes/no `questions` once through `initial_instructions`, preserving the task's target, direction and coverage. Each question has `id`, `question`, `when_true` and `when_false`; `match` is `all` (default) or `any`. Register again when the task changes. Retrieval queries never replace task intent. Text-only registration is rejected when search filtering is enabled.
 
-```sh
-export TYPESAFE_API_KEY="<your key>"
-```
-
-Register the user's full task once with `initial_instructions(task_query)` at task start and whenever the task changes. Enabled body filters automatically use this connection-local context; missing required registration is an argument error. With overview recommendations enabled, call root `overview {}` next, even if you already know a path or scope, and inspect the recommended files before search/grep/read. Retry overview after indexing finishes if it was warming:
-
-```json
-{ "name": "initial_instructions", "arguments": { "task_query": "where is the response byte cap applied?" } }
-{ "name": "overview", "arguments": {} }
-{ "name": "search", "arguments": { "query": "byte cap footer" } }
-```
-
-Overview sends file summaries, not source bodies. Body filters send eligible displayed source and leave a note for each omitted body. Redaction runs before transmission, but cannot detect every sensitive format; disabling redaction sends the rendered text without masking.
-
-Recommendations are navigation hints, and filtering accuracy is not guaranteed. To read an omitted range without filtering, disable `analysis.jev.read_filter_enabled` first. Missing credentials, ineligible evidence and provider failures preserve ordinary output; stage results and known token usage appear on stderr. Enabled tools advertise external access, so clients caching tool metadata may need to re-list tools or reconnect after changing flags. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for data scope, filtering rules, limits and diagnostics.
+Search sends masked goal, questions and function evidence to TypeSafe and composes the separate answers in code. Uncertain evidence stays; omitted bodies retain source locations. Overview, read and grep always provide local original evidence without registration, credentials or configuration changes. Provider failure preserves the whole ordinary search response. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
 
 ## Supported languages and formats
 
