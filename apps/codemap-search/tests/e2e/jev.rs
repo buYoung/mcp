@@ -669,7 +669,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
     assert_eq!(applied["model"], "jev-1.13.0");
     assert_eq!(
         applied["versions"],
-        "search-task-evidence/5 search-task-questions/3 search-selection-policy/4-experimental"
+        "search-task-evidence/6 search-task-questions/4 search-selection-policy/4-experimental"
     );
     let counts = detail_counts(applied);
     assert_eq!(counts["bodies"], "2");
@@ -744,8 +744,14 @@ async fn test_jev_korean_intent_reaches_search_verbatim() {
         assert!(text.contains("(fn dropMe) did not match the task questions"), "{text}");
         let requests = judge.requests();
         assert_eq!(requests[0].questions.len(), 4);
-        for question in requests[0].questions.values() {
-            assert!(matches!(question["instructions"]["criterion_id"].as_str(), Some("budget" | "flow")));
+        for (id, question) in &requests[0].questions {
+            assert!(question["instructions"].get("criterion_id").is_none());
+            let expected = if id.as_str().ends_with(".q0") {
+                "Does this function implement or concretely support the requested output-budget behavior?"
+            } else {
+                "Does the same function participate in the requested output-budget flow?"
+            };
+            assert_eq!(question["instructions"]["question"], expected);
             assert!(question["instructions"]["candidate"].get("body").is_none());
         }
         eprintln!("JEV_TASK_TRACE {}", json!({"state":requests[0].state,

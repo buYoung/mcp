@@ -48,8 +48,9 @@ impl Default for BatchLimits {
     fn default() -> Self {
         Self {
             max_batch_bytes: super::MAX_BATCH_BYTES,
-            max_estimated_tokens: 64_000,
-            max_estimated_state_plus_longest_question_tokens: 32_000,
+            max_estimated_tokens: super::DEFAULT_REQUEST_TOKEN_BUDGET,
+            max_estimated_state_plus_longest_question_tokens:
+                super::DEFAULT_STATE_QUESTION_TOKEN_BUDGET,
             max_batches: super::MAX_BATCHES_PER_REQUEST,
         }
     }
@@ -191,13 +192,18 @@ pub(crate) fn pack(
                 max_batch_bytes: limits.max_batch_bytes,
             });
         }
+        let question_tokens = estimate_tokens(encoded.len());
         let with_question = current.request_bytes(envelope_bytes)
             + added
             + usize::from(!current.entries.is_empty());
-        if with_question > limits.max_batch_bytes && !current.entries.is_empty() {
+        let exceeds_tokens = state_tokens + current.question_tokens + question_tokens
+            > limits.max_estimated_tokens
+            || state_tokens + current.longest_question_tokens.max(question_tokens)
+                > limits.max_estimated_state_plus_longest_question_tokens;
+        if (with_question > limits.max_batch_bytes || exceeds_tokens) && !current.entries.is_empty()
+        {
             flush(&mut current, &mut batches)?;
         }
-        let question_tokens = estimate_tokens(encoded.len());
         current.ids.push(question.id().clone());
         current
             .entries
@@ -208,4 +214,13 @@ pub(crate) fn pack(
     }
     flush(&mut current, &mut batches)?;
     Ok(batches)
+}
+
+/// Offline preflight uses the same serializer and limits as actual dispatch.
+pub(crate) fn request_batch_count(
+    request: &super::EvaluationRequest,
+    model: &str,
+    limits: &BatchLimits,
+) -> Result<usize, JevError> {
+    pack(model, request.state(), request.questions(), limits).map(|batches| batches.len())
 }

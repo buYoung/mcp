@@ -205,11 +205,9 @@ pub fn server_instructions() -> String {
     let mut text = include_str!("instructions/server.md")
         .trim_end()
         .to_string();
-    if let Some(guidance) = jev_guidance(&crate::config::get().jev) {
+    if crate::config::get().jev.search_filter_enabled {
         text = text.replace("Call initial_instructions once without arguments before using the tools.",
-            "Before search, register the current task with initial_instructions as described below. Overview/read/grep remain available without registration.");
-        text.push_str("\n\n");
-        text.push_str(&guidance);
+            "Before search, register this task through initial_instructions using its schema. IDs are automatic. Read/grep return original source without registration. Enabled search may send masked evidence to TypeSafe.");
     }
     text
 }
@@ -245,14 +243,7 @@ fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
     if !jev.search_filter_enabled {
         return None;
     }
-    let mut lines = Vec::new();
-    if jev.search_filter_enabled {
-        lines.push("Search uses each registered question to evaluate eligible functions. Separate answers are composed in code; uncertain evidence stays. Read and grep always return original source without registration or credentials.");
-    }
-    Some(format!(
-        "REQUIRED Jev workflow (analysis.jev enabled): at the start of each user task, derive focused yes/no questions and call initial_instructions with task_query, questions (unique id, question, when_true, when_false), and match (all by default, or any). A yes must mean a criterion matches. Preserve the user's target, direction and full coverage, including indirect flows; missing cross-file evidence means uncertainty. Do this once per task without a separate question-generation API. Register again when the task changes; never reuse a previous task or replace it with a narrower search query. Registration is not a per-call opt-in: enabled search runs automatically and may send masked task/evidence (including live source) to the external TypeSafe API. Missing registration is an error, not an unfiltered fallback. {} Unavailable credentials, ineligible evidence and provider failures preserve the base output, with reasons on stderr.",
-        lines.join(" ")
-    ))
+    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows in scope; missing evidence means uncertainty. Enabled search sends masked task/evidence to TypeSafe and preserves uncertain or unavailable evidence. Read/grep return original source without registration. Re-register only when the task changes.".into())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -374,7 +365,7 @@ pub fn list_tools() -> Value {
         "{}{}",
         include_str!("instructions/tools/initial_instructions.md").trim_end(),
         if jev.search_filter_enabled {
-            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with id, question, when_true and when_false. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when Jev search is enabled. Call again when the task changes."
+            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when Jev search is enabled. Call again when the task changes."
         } else {
             ""
         }

@@ -469,27 +469,31 @@ fn pack_rejects_a_single_question_over_the_ceiling() {
 }
 
 #[test]
-fn pack_reports_the_total_token_limit() {
+fn pack_splits_on_the_total_token_limit() {
     let limits = BatchLimits {
         max_estimated_tokens: 2_500,
         ..BatchLimits::default()
     };
     let request = request(large_questions(3, 3_000));
-    let error = pack(DEFAULT_MODEL, request.state(), request.questions(), &limits)
-        .expect_err("over the total estimate");
-    match error {
-        JevError::EstimatedTokenLimit {
-            kind,
-            batch_index,
-            estimated_tokens,
-            limit_tokens,
-        } => {
-            assert_eq!(kind, TokenLimitKind::Total);
-            assert_eq!(batch_index, 0);
-            assert!(estimated_tokens > 2_500, "{estimated_tokens}");
-            assert_eq!(limit_tokens, 2_500);
-        }
-        other => panic!("unexpected error {other:?}"),
+    let batches = pack(DEFAULT_MODEL, request.state(), request.questions(), &limits).unwrap();
+    assert_eq!(batches.len(), 2);
+    assert_eq!(
+        batches
+            .iter()
+            .map(|batch| batch.question_ids.len())
+            .sum::<usize>(),
+        3
+    );
+    for batch in batches {
+        let body: Value = serde_json::from_slice(&batch.body).unwrap();
+        let state_tokens = estimate_tokens(serde_json::to_vec(&body["state"]).unwrap().len());
+        let question_tokens: u64 = body["questions"]
+            .as_object()
+            .unwrap()
+            .values()
+            .map(|question| estimate_tokens(serde_json::to_vec(question).unwrap().len()))
+            .sum();
+        assert!(state_tokens + question_tokens <= limits.max_estimated_tokens);
     }
 }
 
@@ -1357,17 +1361,17 @@ fn evaluator_config_defaults_carry_the_initial_safety_policy() {
     assert_eq!(config.model, "jev-1.13.0");
     assert_eq!(config.max_in_flight_requests, 3);
     assert_eq!(config.request_spacing, Duration::from_millis(300));
-    assert_eq!(config.max_batch_bytes, 80_000);
+    assert_eq!(config.max_batch_bytes, 168_000);
     assert_eq!(config.deadline, Duration::from_millis(45_000));
-    assert_eq!(config.max_estimated_tokens, 64_000);
+    assert_eq!(config.max_estimated_tokens, 56_000);
     assert_eq!(
         config.max_estimated_state_plus_longest_question_tokens,
-        32_000
+        28_000
     );
     assert!(config.validate().is_ok());
     assert_eq!(MAX_IN_FLIGHT_REQUESTS, 3);
     assert_eq!(MIN_REQUEST_SPACING, Duration::from_millis(300));
-    assert_eq!(MAX_BATCH_BYTES, 80_000);
+    assert_eq!(MAX_BATCH_BYTES, 168_000);
     assert_eq!(MAX_QUESTIONS_PER_REQUEST, 8_192);
     assert_eq!(MAX_BATCHES_PER_REQUEST, 128);
     assert_eq!(MAX_RESPONSE_BODY_BYTES, 4 * 1024 * 1024);

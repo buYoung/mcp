@@ -23,8 +23,8 @@
 //!   [`MAX_BATCHES_PER_REQUEST`] batches per request, [`MAX_RESPONSE_BODY_BYTES`] per
 //!   response. Exceeding one is a typed budget failure before dispatch (or after a bounded
 //!   read), never a silent truncation of evidence.
-//! - Both published Jev 1.13 context limits are checked with a documented byte-based
-//!   estimate ([`batch::estimate_tokens`]). The estimate is conservative, not the provider
+//! - Operating budgets of 28k/56k leave headroom below the published 32k/64k
+//!   context limits and use a documented byte-based estimate ([`batch::estimate_tokens`]). The estimate is conservative, not the provider
 //!   tokenizer; a provider-side context rejection surfaces as [`JevError::Rejected`] rather
 //!   than silently dropping input.
 //! - Typed validation (pinned model, exact response-ID set without duplicate keys, answer
@@ -47,6 +47,7 @@ pub use answer::{
     EvaluationFailure, EvaluationOutcome, NoulAnswer, RequestIdentity, ScoreAnswer, Timing, Usage,
     CHOICE_TIE_TOLERANCE, PROBABILITY_PRECISION, PROBABILITY_SUM_TOLERANCE, SCORE_TOLERANCE,
 };
+pub(crate) use batch::request_batch_count;
 pub use batch::{estimate_tokens, BatchLimits, TokenLimitKind, ESTIMATED_BYTES_PER_TOKEN};
 pub use evaluator::{is_safe_duration, EvaluatorConfig, JevEvaluator, MAX_SAFE_DURATION};
 pub use question::{
@@ -79,18 +80,21 @@ pub const MAX_IN_FLIGHT_REQUESTS: usize = 3;
 /// Lower bound of [`EvaluatorConfig::request_spacing`]: request starts are at least 300 ms
 /// apart on one evaluator.
 pub const MIN_REQUEST_SPACING: Duration = Duration::from_millis(300);
-/// Upper bound of [`EvaluatorConfig::max_batch_bytes`]: one encoded request body never
-/// exceeds 80,000 bytes.
-pub const MAX_BATCH_BYTES: usize = 80_000;
+/// Operating budgets leave 12.5% headroom below Jev 1.13's 64k / 32k limits.
+pub const DEFAULT_REQUEST_TOKEN_BUDGET: u64 = 56_000;
+pub const DEFAULT_STATE_QUESTION_TOKEN_BUDGET: u64 = 28_000;
+/// Memory/transport ceiling aligned with the estimate, not an exact token count.
+pub const MAX_BATCH_BYTES: usize =
+    DEFAULT_REQUEST_TOKEN_BUDGET as usize * ESTIMATED_BYTES_PER_TOKEN as usize;
 /// Questions accepted in one [`EvaluationRequest`]. The smallest useful question encodes to
 /// roughly 120 bytes, so this bound alone keeps a request under about 1 MB of encoded
 /// questions and its answers well under [`MAX_RESPONSE_BODY_BYTES`].
 pub const MAX_QUESTIONS_PER_REQUEST: usize = 8_192;
 /// Batches produced from one request. At [`MIN_REQUEST_SPACING`] this many batches need at
 /// least 38.1 s of dispatch spacing, which already approaches the default 45 s deadline; the
-/// bound also caps the encoded bodies held in memory at `128 * MAX_BATCH_BYTES` (10.24 MB).
+/// bound also caps the encoded bodies held in memory at `128 * MAX_BATCH_BYTES` (21.504 MB).
 pub const MAX_BATCHES_PER_REQUEST: usize = 128;
-/// Bytes read from one HTTP response body before the read is abandoned. A full 80,000-byte
+/// Bytes read from one HTTP response body before the read is abandoned. A full 168,000-byte
 /// batch answers in well under 1 MB; 4 MiB leaves room for legends and provider extensions
 /// while bounding memory at `MAX_IN_FLIGHT_REQUESTS` bodies.
 pub const MAX_RESPONSE_BODY_BYTES: usize = 4 * 1024 * 1024;

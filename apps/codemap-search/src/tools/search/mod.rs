@@ -635,6 +635,7 @@ pub(crate) async fn run_inner_with_filter(
         workspace_scope,
         state.should_include_events,
         !state.is_warming && !state.is_dead && !state.has_refresh_error,
+        policy,
     );
     let planned_primary_bytes = state
         .files

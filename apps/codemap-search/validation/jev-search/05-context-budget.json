@@ -1,0 +1,41 @@
+{
+  "status": "implementation_and_single_measurement_complete",
+  "completed": true,
+  "full_quality_acceptance_established": false,
+  "checkpoint_commit": "c813bec9e",
+  "source_identity_sha256": "559dc79806473ba9e3438ae4f3a174f328264d400c88bc46b25d0f2992cdaf18",
+  "binary_sha256": "4def3e0e4b6903af94440f5dec1ad1086499a607d82366f9edb9b9770e0b7766",
+  "measurement_mode": "#2 search only",
+  "fresh_sessions": 1,
+  "baseline_reruns": 0,
+  "report": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-context-02-single/data/report.md",
+  "validation": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-context-02-single/data/final-validation.json",
+  "main_total_tokens": 584554,
+  "jev_total_tokens": 91118,
+  "core_coverage": "6/6",
+  "extended_coverage": "1/5",
+  "remaining_omissions": [
+    "service_candidate",
+    "custom_bypass",
+    "mio_precedence",
+    "manual_extra"
+  ],
+  "verification_passed": 115,
+  "configuration_restored": true,
+  "target_unchanged": true,
+  "further_model_runs_require_user_instruction": true,
+  "implementation_changes": [
+    "server-generated question ids; legacy labels accepted and ignored",
+    "64 KiB whole-registration budget without small per-field caps",
+    "28k/56k estimated token budgets and 168000-byte transport ceiling",
+    "preflight and splitting share evaluator serialization and limits",
+    "per-candidate supporting evidence and deduplicated direct caller source",
+    "shortened bootstrap and shared evidence policy"
+  ],
+  "historical_records_preserved": [
+    "01-overview.json",
+    "02-task-judgments.json",
+    "03-selection.json",
+    "04-measurement.json"
+  ]
+}

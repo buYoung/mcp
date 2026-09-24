@@ -91,3 +91,15 @@
 - 추가 Jev 평균은 총 964,410토큰이다. 유지된 #11.1 대비 +1.813%, #13 대비 +21.538%이며, `manual_extra`도 #13의 1/3에서 0/3으로 감소했다. 핵심 6개는 모두 3/3이다. 04는 측정 종료·불합격(`completed=false`, `accepted=false`)으로 남긴다.
 - 마지막 측정의 질문 등록·실제 평가·최종 선별 소비와 토큰 산술을 확인했다. 설정을 복원했고 남은 소유 프로세스는 없다. 사용자 지시 없이 추가 모델 측정을 진행하지 않는다.
 - 최종 수치·세션·제한·중단 기록: `apps/codemap-search/validation/jev-search/04-measurement.json`. 상세 보고서는 해당 handoff의 `report_path`를 따른다.
+
+
+## 2026-09-24 추가 개선과 단일 실측
+
+- 사용자 지시에 따라 기존 상태를 `c813bec9e`에 먼저 커밋했다. 커밋 훅이 요구한 서식과 단일 원소 반복문만 정리한 뒤 새 개선을 적용했다.
+- ID 자동 생성, 등록 전체 64 KiB, 28k/56k 추정 토큰 예산, 후보별 근거 배분과 직접 호출자 원문 공유, 반복 안내 축소를 적용했다. 기존 임계값과 LLM의 탐색 자율성은 유지했다.
+- 사용자가 #2만 1회 평가하도록 변경했다. rg·#11·#13·off·#1·#1+#2는 재측정하지 않았다. 새 세션은 정확히 1개다.
+- 관측값: 메인 584,554토큰, Jev 91,118토큰, 176.952초. 등록은 ID 없이 1회 성공했고 도구 오류·Jev fallback은 0회다.
+- 기존 검증 115개와 Clippy·릴리스 빌드가 통과했다. 대상 소스는 변경되지 않았고 설정은 복원됐다.
+- 핵심 6/6, 확장 1/5다. ServiceCandidate·custom 우회·MIO 우선 분기·manual extra 계약 누락이 남았다. 단일 실행의 낮은 토큰 수를 안정적인 성능 개선이나 전체 품질 무저하의 증명으로 취급하지 않는다. 기존 04 수용 조건은 완료로 표시하지 않는다.
+- 상세 근거: `apps/codemap-search/validation/jev-search/05-context-budget.json` 및 /Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-context-02-single/data/report.md
+- 추가 모델 실측은 실행하지 않는다.

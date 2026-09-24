@@ -131,7 +131,7 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 Jev는 등록한 작업 질문으로 search의 함수 근거를 판단하며 기본으로 꺼져 있습니다. `analysis.jev.search_filter_enabled=true`로 켜고 `TYPESAFE_API_KEY` 환경 변수로 인증정보를 전달합니다.
 
-주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `id`, `question`, `when_true`, `when_false`를 넣고 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
+주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
 
 Search는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. Overview·read·grep은 항상 로컬 원문 도구이므로 등록·키·설정 변경 없이 원문을 읽을 수 있습니다. 제공자 실패는 검색 전체의 일반 출력을 보존합니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 

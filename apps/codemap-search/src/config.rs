@@ -1560,8 +1560,8 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # (at least 300 ms). Both may only tighten the runtime's initial policy.
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
-# Encoded request bytes per batch (1 to 80000); a question that does not fit fails explicitly.
-# max_batch_bytes = 80000
+# Encoded request bytes per batch (1 to 168000); a question that does not fit fails explicitly.
+# max_batch_bytes = 168000
 # Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
 # is opened.
 # pool_idle_timeout_ms = 30000
@@ -1588,8 +1588,8 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # 둘 다 런타임의 초기 정책을 더 조일 수만 있습니다.
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
-# 배치 하나의 인코딩된 요청 바이트 상한(1~80000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
-# max_batch_bytes = 80000
+# 배치 하나의 인코딩된 요청 바이트 상한(1~168000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
+# max_batch_bytes = 168000
 # 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
 # pool_idle_timeout_ms = 30000
 # 질문별 거짓 확률(1 - 예 확률)의 임계값입니다. all/any로 조합하며 불확실한 근거는 유지합니다.

@@ -295,8 +295,8 @@ is_build_support_enabled = false
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
 
-# Encoded request bytes per batch (1 to 80000); a question that does not fit fails explicitly.
-# max_batch_bytes = 80000
+# Encoded request bytes per batch (1 to 168000); a question that does not fit fails explicitly.
+# max_batch_bytes = 168000
 
 # Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
 # is opened.

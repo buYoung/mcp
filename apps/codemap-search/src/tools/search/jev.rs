@@ -24,6 +24,7 @@ use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use tokio::time::Instant;
 
+mod evidence;
 mod questions;
 use crate::tools::task::{MatchMode, RegisteredTask};
 use questions::question_id;
@@ -32,16 +33,17 @@ use questions::question_id;
 mod tests;
 
 /// Version of the evidence capture (statuses, identity check, masking rule, links).
-pub const EVIDENCE_VERSION: &str = "search-task-evidence/5";
-pub const QUESTION_VERSION: &str = "search-task-questions/3";
+pub const EVIDENCE_VERSION: &str = "search-task-evidence/6";
+pub const QUESTION_VERSION: &str = "search-task-questions/4";
 pub const POLICY_VERSION: &str = "search-selection-policy/4-experimental";
 /// Provisional default for `search_filter_min_unrelated_probability`. It is a starting
 /// policy value, not a calibrated one: omission needs a decisive composed no-match; a Noul
 /// answer assigns at least this much mass to a criterion being false.
 pub const DEFAULT_MIN_UNRELATED_PROBABILITY: f64 = 0.70;
-/// A complete body larger than this many displayed bytes is protected instead of judged,
-/// so one declaration can never dominate a batch or approach the per-question budget.
-pub const MAX_COMPLETE_BODY_BYTES: usize = 24_000;
+/// A body alone cannot exceed the entire state-plus-question operating budget.
+/// Smaller bodies are preflighted together with their goal, questions and evidence.
+pub const MAX_COMPLETE_BODY_BYTES: usize = crate::jev::DEFAULT_STATE_QUESTION_TOKEN_BUDGET as usize
+    * crate::jev::ESTIMATED_BYTES_PER_TOKEN as usize;
 /// Call links named per direction in one question.
 pub const MAX_LINKS_PER_QUESTION: usize = 8;
 /// Displayed lines inspected for the declaration name when verifying identity.
@@ -154,7 +156,7 @@ impl FilterEntity {
     /// A body is judged only when it is a callable displayed completely with a verified
     /// identity and usable text.
     pub fn is_judgeable(&self) -> bool {
-        self.is_callable && self.evidence == EvidenceStatus::Complete
+        self.is_callable && self.evidence == EvidenceStatus::Complete && !self.is_context_clipped
     }
 
     pub fn qualified_name(&self) -> String {
@@ -191,6 +193,8 @@ pub struct FilterInput {
     pub entities: Vec<FilterEntity>,
     pub file_count: usize,
     pub is_snapshot_fresh: bool,
+    /// Masked direct caller source shared by candidate groups.
+    pub supporting_sources: HashMap<usize, String>,
 }
 
 fn symbol_key(symbol: &BlockSymbol) -> (String, usize, usize) {
@@ -479,6 +483,7 @@ impl FilterInput {
             entities,
             file_count: files.len(),
             is_snapshot_fresh: true,
+            supporting_sources: HashMap::new(),
         }
     }
 
@@ -509,76 +514,6 @@ impl FilterInput {
             ancestor = container.parent;
         }
         None
-    }
-
-    /// Bounded existing caller/event evidence, captured before final output assembly.
-    /// Source positions and approximate/precise labels stay with the supplied facts.
-    pub(crate) fn add_supporting_evidence(
-        &mut self,
-        files: &[&FileOutput],
-        snapshot: &crate::index::PublishedIndexSnapshot,
-        scope: Option<&str>,
-        should_include_events: bool,
-        is_snapshot_fresh: bool,
-    ) {
-        self.is_snapshot_fresh = is_snapshot_fresh;
-        if !is_snapshot_fresh {
-            return;
-        }
-        let root = std::env::current_dir().unwrap_or_default();
-        let mut remaining_bytes = 16_384usize;
-        for index in self.judgeable() {
-            // The caller may be listed without its body. Its indexed event endpoints
-            // still provide bounded context for this helper; no source is fabricated.
-            let mut anchors: Vec<_> = self.entities[index]
-                .indexed_callers
-                .iter()
-                .map(|(caller, _)| {
-                    let caller = &self.entities[*caller];
-                    (
-                        files[caller.file_index].path.clone(),
-                        caller.symbol.start_line,
-                        caller.symbol.end_line,
-                    )
-                })
-                .collect();
-            let entity = &mut self.entities[index];
-            let file = files[entity.file_index];
-            if remaining_bytes == 0 {
-                entity.is_context_clipped = true;
-                continue;
-            }
-            let annotation = file.annotation_for(&entity.symbol).unwrap_or("");
-            let (annotation, is_clipped) = bounded_context(annotation, remaining_bytes.min(1_024));
-            remaining_bytes = remaining_bytes.saturating_sub(annotation.len());
-            entity.supporting_context = annotation;
-            entity.is_context_clipped = is_clipped;
-            if should_include_events && remaining_bytes >= 256 {
-                anchors.push((
-                    file.path.clone(),
-                    entity.symbol.start_line,
-                    entity.symbol.end_line,
-                ));
-                let events = snapshot.events().for_paths_with_context(
-                    &anchors,
-                    scope,
-                    remaining_bytes.min(1_024),
-                    &root,
-                    Some(&file.path),
-                    None,
-                );
-                let (events, is_clipped) =
-                    bounded_context(&events, remaining_bytes.saturating_sub(1).min(1_024));
-                if !events.is_empty() {
-                    entity.supporting_context.push('\n');
-                    entity.supporting_context.push_str(&events);
-                    remaining_bytes = remaining_bytes.saturating_sub(events.len() + 1);
-                }
-                entity.is_context_clipped |= is_clipped;
-            } else if should_include_events {
-                entity.is_context_clipped = true;
-            }
-        }
     }
 
     /// Entity indices that can shrink and therefore receive questions, in output order.
@@ -628,15 +563,6 @@ impl FilterInput {
         }
         summary
     }
-}
-
-fn bounded_context(text: &str, cap_bytes: usize) -> (String, bool) {
-    let masked = crate::redact::source(text);
-    let mut end = masked.len().min(cap_bytes);
-    while !masked.is_char_boundary(end) {
-        end -= 1;
-    }
-    (masked[..end].to_string(), end < masked.len())
 }
 
 /// One typed answer, kept with its entity for replay.
@@ -1038,6 +964,9 @@ pub async fn evaluate(
             )
         }
     };
+    if groups.is_empty() {
+        return bypass("candidate_context_budget", threshold);
+    }
     let deadline_at = policy
         .deadline_at
         .unwrap_or_else(|| started + crate::jev::EvaluatorConfig::default().deadline);

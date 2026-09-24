@@ -295,8 +295,8 @@ is_build_support_enabled = false
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
 
-# 배치 하나의 인코딩된 요청 바이트 상한(1~80000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
-# max_batch_bytes = 80000
+# 배치 하나의 인코딩된 요청 바이트 상한(1~168000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
+# max_batch_bytes = 168000
 
 # 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
 # pool_idle_timeout_ms = 30000

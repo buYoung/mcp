@@ -38,9 +38,9 @@ pub struct EvaluatorConfig {
     /// Whole-call ceiling measured from `evaluate` entry, including queue time. A caller
     /// deadline (`RequestPolicy::deadline_at`) can only bring the effective deadline forward.
     pub deadline: Duration,
-    /// Published limit for state plus all questions, checked with the byte estimate.
+    /// Operating limit for state plus all questions, checked with the byte estimate.
     pub max_estimated_tokens: u64,
-    /// Published limit for state plus the longest question, checked with the byte estimate.
+    /// Operating limit for state plus the longest question, checked with the byte estimate.
     pub max_estimated_state_plus_longest_question_tokens: u64,
 }
 
@@ -52,8 +52,9 @@ impl Default for EvaluatorConfig {
             request_spacing: MIN_REQUEST_SPACING,
             max_batch_bytes: MAX_BATCH_BYTES,
             deadline: Duration::from_millis(45_000),
-            max_estimated_tokens: 64_000,
-            max_estimated_state_plus_longest_question_tokens: 32_000,
+            max_estimated_tokens: super::DEFAULT_REQUEST_TOKEN_BUDGET,
+            max_estimated_state_plus_longest_question_tokens:
+                super::DEFAULT_STATE_QUESTION_TOKEN_BUDGET,
         }
     }
 }

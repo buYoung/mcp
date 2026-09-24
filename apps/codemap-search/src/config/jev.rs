@@ -6,7 +6,7 @@
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
 //! `MAX_IN_FLIGHT_REQUESTS` (3) requests in flight, at least `MIN_REQUEST_SPACING`
-//! (300 ms) between request starts, at most `MAX_BATCH_BYTES` (80,000) encoded bytes per
+//! (300 ms) between request starts, at most `MAX_BATCH_BYTES` (168,000) encoded bytes per
 //! batch. Timeouts must be positive and representable on the monotonic clock. Any invalid
 //! value warns and falls back to the lower layer or the default, like every other section.
 
@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(config.timeout_ms, 45_000);
         assert_eq!(config.max_in_flight_requests, 3);
         assert_eq!(config.request_spacing_ms, 300);
-        assert_eq!(config.max_batch_bytes, 80_000);
+        assert_eq!(config.max_batch_bytes, 168_000);
         assert_eq!(config.pool_idle_timeout_ms, 30_000);
         assert_eq!(config.search_filter_min_unrelated_probability, 0.70);
         assert!(config.evaluator_config().validate().is_ok());
@@ -343,12 +343,12 @@ mod tests {
             "an integer 1 is the inclusive upper bound"
         );
         let config = merge(
-            layer("timeout_ms = 0\napi_key_env = 'not a name'\nmax_batch_bytes = 80001\nrequest_spacing_ms = 299\nmax_in_flight_requests = 4\npool_idle_timeout_ms = -5\nmodel = ''\n"),
+            layer("timeout_ms = 0\napi_key_env = 'not a name'\nmax_batch_bytes = 168001\nrequest_spacing_ms = 299\nmax_in_flight_requests = 4\npool_idle_timeout_ms = -5\nmodel = ''\n"),
             global,
         );
         assert_eq!(config.timeout_ms, 1000);
         assert_eq!(config.api_key_env, "TYPESAFE_API_KEY");
-        assert_eq!(config.max_batch_bytes, 80_000);
+        assert_eq!(config.max_batch_bytes, 168_000);
         assert_eq!(config.request_spacing_ms, 300);
         assert_eq!(config.max_in_flight_requests, 3);
         assert_eq!(config.pool_idle_timeout_ms, 30_000);
