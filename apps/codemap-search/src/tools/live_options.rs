@@ -7,6 +7,7 @@ pub(crate) enum LiveView {
     #[default]
     Full,
     Source,
+    SourceGrouped,
     Definitions,
     Relations,
 }
@@ -86,7 +87,17 @@ impl LiveOptions {
             .get("output_mode")
             .and_then(Value::as_str)
             .unwrap_or("content");
-        let mut options = Self::parse(args)?;
+        // This additional presentation is grep-only. Plain source remains byte compatible.
+        let mut options = if get_arg(args, "view").and_then(Value::as_str) == Some("source_grouped")
+        {
+            let mut normalized = args.clone();
+            normalized["view"] = Value::String("source".into());
+            let mut options = Self::parse(&normalized)?;
+            options.view = LiveView::SourceGrouped;
+            options
+        } else {
+            Self::parse(args)?
+        };
         if mode == "content" && get_arg(args, "expand").is_none() {
             options.should_expand_callable = true;
         }

@@ -14,11 +14,20 @@ impl FilterEntity {
             .into_iter()
             .collect()
     }
+
+    pub(super) fn direct_support(&self) -> Vec<usize> {
+        self.direct_callers()
+            .into_iter()
+            .chain(self.outgoing.iter().take(MAX_LINKS_PER_QUESTION).copied())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    }
 }
 
 /// Reuse the ordinary read path's scope checks and full-file secret masking. Neither
 /// this read nor its result invokes Jev, expands call chains, or changes agent output.
-fn caller_source(caller: &FilterEntity, file: &FileOutput) -> Option<String> {
+fn supporting_source(caller: &FilterEntity, file: &FileOutput) -> Option<String> {
     if let Some(body) = &caller.body {
         return Some(body.clone());
     }
@@ -66,17 +75,17 @@ impl FilterInput {
         let callers: BTreeSet<_> = indices
             .iter()
             .filter(|_| should_include_callers)
-            .flat_map(|index| self.entities[*index].direct_callers())
+            .flat_map(|index| self.entities[*index].direct_support())
             .collect();
         for index in callers {
             let caller = &self.entities[index];
-            if let Some(source) = caller_source(caller, files[caller.file_index]) {
+            if let Some(source) = supporting_source(caller, files[caller.file_index]) {
                 self.supporting_sources.insert(index, source);
             }
         }
         let root = std::env::current_dir().unwrap_or_default();
         for index in indices {
-            // Keep caller evidence intact; do not silently cut it to make a negative
+            // Keep direct support intact; do not silently cut it to make a negative
             // judgment fit. Preflight also accounts for the goal and every criterion.
             if !questions::candidate_fits(self, index, policy) {
                 self.entities[index].is_context_clipped = true;

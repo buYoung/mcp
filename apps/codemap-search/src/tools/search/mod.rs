@@ -7,6 +7,7 @@
 //! so it never needs `&mut` access to the engine.
 
 mod arguments;
+mod display;
 mod grouped;
 pub mod jev;
 mod monorepo;
@@ -657,7 +658,21 @@ pub(crate) async fn run_inner_with_filter(
     let mut result = jev::evaluate(&input, evaluator, policy).await;
     let outcome = jev::FilterOutcome::from_result(&input, &result);
     result.is_note_inline = outcome.inline_note.is_some();
-    let (output, rendered_omissions) = finish_detail(*state, Some(outcome));
+    let should_add_candidates = result.status.is_applied()
+        && state.caller_context_enabled
+        && input.is_snapshot_fresh
+        && !state.output_was_capped;
+    let snapshot = std::sync::Arc::clone(&state.published_snapshot);
+    let (mut output, rendered_omissions) = finish_detail(*state, Some(outcome));
+    if should_add_candidates {
+        jev::append_call_candidates(
+            &mut output.text,
+            &input,
+            &result,
+            &snapshot,
+            workspace_scope,
+        );
+    }
     result.rendered_omissions = rendered_omissions;
     result.timing.elapsed = selection_started.elapsed();
     tracing::info!(
@@ -1253,16 +1268,51 @@ fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (Sea
         .map(|index| &results[*index])
         .collect();
     let mut retained_primary_bytes = usize::MAX;
+    let byte_cap = display::delivery_byte_cap(byte_cap);
     let mut grouped_files = Vec::with_capacity(files.len());
     let mut rendered_omissions = 0;
+    let mut display = display::DisplayContext::default();
     for (file_index, (mut file_output, is_partial_file)) in files.into_iter().enumerate() {
         if let Some(filter) = &filter {
             rendered_omissions += file_output
                 .retain_blocks(|block_index, _| filter.replacement_for(file_index, block_index));
         }
-        file_output.write_primary(&mut text, is_partial_file);
-        grouped_files.push(file_output);
+        file_output.compact_display(&mut display);
+        grouped_files.push((file_output, is_partial_file));
     }
+    // Reserve discovery/relationship space before allowing the client to clip the
+    // middle of source. Candidate capture and Jev input used the original server cap.
+    let reserved_bytes = (byte_cap / 8).min(12 * 1024);
+    let primary_budget_bytes = byte_cap.saturating_sub(reserved_bytes);
+    let mut primary_bytes = text.len()
+        + grouped_files
+            .iter()
+            .map(|(file, partial)| file.primary_bytes(*partial))
+            .sum::<usize>();
+    let mut deferred_bodies = 0;
+    // Apply this additional guard only when the client explicitly tightens the server cap.
+    if byte_cap < crate::config::get().search_detail_byte_cap {
+        for (file_index, (file, _)) in grouped_files.iter_mut().enumerate().rev() {
+            deferred_bodies +=
+                file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |block_index| {
+                    filter
+                        .as_ref()
+                        .is_some_and(|filter| filter.is_delivery_protected(file_index, block_index))
+                });
+        }
+    }
+    let grouped_files = grouped_files
+        .into_iter()
+        .map(|(mut file, partial)| {
+            file.write_primary(&mut text, partial);
+            file
+        })
+        .collect::<Vec<_>>();
+    tracing::info!(
+        delivery_byte_cap = byte_cap,
+        deferred_bodies,
+        "search delivery guard"
+    );
     if let Some(note) = filter
         .as_ref()
         .and_then(|filter| filter.inline_note.as_deref())
@@ -1381,8 +1431,16 @@ fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (Sea
             &grouped_files,
             &published_snapshot,
             workspace_scope,
-            caller_context_enabled,
-            should_include_events,
+            grouped::RelationOptions {
+                should_include_calls: caller_context_enabled,
+                should_include_events,
+                byte_cap: if filter.is_some() {
+                    byte_cap.saturating_sub(4096)
+                } else {
+                    byte_cap
+                },
+            },
+            &mut display,
         );
     }
     tracing::debug!(

@@ -137,7 +137,11 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
     if output.files.is_empty() {
         text.push_str(&output.text);
     } else {
-        text.push_str("Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n");
+        text.push_str(if options.view == LiveView::SourceGrouped {
+            "Locations refer to the enclosing file; 42:match and 43-context preserve the original grep rows.\n"
+        } else {
+            "Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n"
+        });
         if options.should_include_relations() {
             if let Some(target_os) = crate::config::get().analysis_target_os.as_deref() {
                 if output
@@ -149,7 +153,7 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
                 }
             }
         }
-        if output.files.len() > OUTLINED_FILE_LIMIT {
+        if options.view != LiveView::SourceGrouped && output.files.len() > OUTLINED_FILE_LIMIT {
             text.push_str(&format!(
                 "[File limit: {} returned files not outlined; narrow the path for their context.]\n",
                 output.files.len() - OUTLINED_FILE_LIMIT,
@@ -158,14 +162,18 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
         for (i, file) in output.files.iter().enumerate() {
             let path = file.file_path.replace('\r', "\\r").replace('\n', "\\n");
             text.push_str(&format!("\n\n## {}. {path}\n\n", i + 1));
-            let context = &contexts[i];
-            if context.is_empty() {
-                text.push_str("[Symbol context omitted by output/file budget.]\n");
-            } else {
-                text.push_str(context);
+            if options.view != LiveView::SourceGrouped {
+                let context = &contexts[i];
+                if context.is_empty() {
+                    text.push_str("[Symbol context omitted by output/file budget.]\n");
+                } else {
+                    text.push_str(context);
+                }
             }
-            if options.view == LiveView::Full {
-                text.push_str("\n### results\n");
+            if matches!(options.view, LiveView::Full | LiveView::SourceGrouped) {
+                if options.view == LiveView::Full {
+                    text.push_str("\n### results\n");
+                }
                 output.append_file_source(file, &mut text);
             }
         }
@@ -202,6 +210,16 @@ pub(crate) fn append(
                 -32602,
                 "Source output plus expansion notices exceeds the output cap; narrow the request."
                     .into(),
+            ));
+        }
+        return Ok(text);
+    }
+    if options.view == LiveView::SourceGrouped {
+        let text = frame(&output, &[], options);
+        if output_byte_cap.is_some_and(|cap| text.len() > cap) {
+            return Err((
+                -32602,
+                "Grouped source output exceeds the output cap; narrow the request.".into(),
             ));
         }
         return Ok(text);

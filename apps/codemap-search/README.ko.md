@@ -15,6 +15,8 @@ codemap-search --version
 
 `~/.cargo/bin`이 `PATH`에 있어야 합니다. macOS/Linux에서 운영체제에 맞는 설치 파일을 받으려면 [설치 스크립트 안내](./docs/distribution/curl-installer.ko.md)를 따르세요. 소스 빌드, 버전 선택, Homebrew·WinGet 제공 상태는 [설치 채널 개요](./docs/distribution/index.ko.md)에 있습니다.
 
+
+간결한 grep 원문은 `view="source_grouped"`, `expand="none"`으로 요청합니다. 반복 경로를 파일 제목으로 묶고 원문 행과 줄 번호는 유지합니다. 기존 `view="source"` 형식은 바뀌지 않습니다. 검색 주석은 Jev 판정 후 표시용 복사본에서 압축하며, 명시한 Codex 출력 한도에 따른 전달 보호가 미표시 본문의 읽기 범위를 남깁니다. [설정 문서](./docs/configuration.ko.md#클라이언트-전달-한도)를 참고하세요.
 ## MCP 클라이언트 등록
 
 클라이언트가 **탐색할 저장소를 작업 디렉터리로 지정**해 `codemap-search mcp`를 실행해야 합니다. 사용자 전역 등록으로 같은 바이너리를 여러 프로젝트에서 재사용할 수 있지만, 실행 위치는 클라이언트 설정을 확인하세요. 사용자 홈 자체는 거부하며 `~/work/project` 같은 하위 프로젝트는 허용합니다.

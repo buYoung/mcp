@@ -96,6 +96,8 @@ In monorepos, `overview` on a directory selects that exact scope for later `sear
 
 MCP `read`/`grep` use declaration-kind/name headings within each file, followed by one source section. Folder `overview` retains its file list and adds source-backed signatures and nested fields/methods. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
 
+For compact grep source, use `view="source_grouped"` with `expand="none"`: file headings replace repeated paths while source rows and line numbers remain intact. `view="source"` retains its original format. Search compacts annotation copies after Jev judgment; an explicitly configured Codex output limit also enables a final delivery guard with read ranges for deferred bodies. See [configuration](./docs/configuration.md#client-delivery-limits).
+
 Relevant results can also show event maps and `Source routes` connecting storage to callback, argument or data consumers. These are static candidates, not proof of runtime delivery; stale dependencies are withheld. `debug` does not change the output. See the [navigation output reference](./docs/value-navigation.ko.md) and [source-route contract](./docs/source-routes.ko.md) for supported relationships and limits.
 
 Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.

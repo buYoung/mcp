@@ -25,16 +25,18 @@ use std::collections::HashMap;
 use tokio::time::Instant;
 
 mod evidence;
+mod followups;
 mod questions;
 use crate::tools::task::{MatchMode, RegisteredTask};
+pub(super) use followups::append_call_candidates;
 use questions::question_id;
 
 #[cfg(test)]
 mod tests;
 
 /// Version of the evidence capture (statuses, identity check, masking rule, links).
-pub const EVIDENCE_VERSION: &str = "search-task-evidence/6";
-pub const QUESTION_VERSION: &str = "search-task-questions/4";
+pub const EVIDENCE_VERSION: &str = "search-task-evidence/7";
+pub const QUESTION_VERSION: &str = "search-task-questions/5";
 pub const POLICY_VERSION: &str = "search-selection-policy/4-experimental";
 /// Provisional default for `search_filter_min_unrelated_probability`. It is a starting
 /// policy value, not a calibrated one: omission needs a decisive composed no-match; a Noul
@@ -193,7 +195,7 @@ pub struct FilterInput {
     pub entities: Vec<FilterEntity>,
     pub file_count: usize,
     pub is_snapshot_fresh: bool,
-    /// Masked direct caller source shared by candidate groups.
+    /// Masked direct caller/callee source shared by candidate groups.
     pub supporting_sources: HashMap<usize, String>,
 }
 
@@ -1142,18 +1144,28 @@ pub fn summary_note(result: &FilterResult) -> String {
 /// the room for it, the inline status line.
 pub(crate) struct FilterOutcome {
     replacements: HashMap<(usize, usize), String>,
+    delivery_protected: std::collections::HashSet<(usize, usize)>,
     pub(crate) inline_note: Option<String>,
 }
 
 impl FilterOutcome {
     pub(crate) fn from_result(input: &FilterInput, result: &FilterResult) -> Self {
         let mut replacements = HashMap::new();
+        let mut delivery_protected = std::collections::HashSet::new();
         let mut freed_bytes: usize = 0;
         for decision in &result.decisions {
+            let entity = &input.entities[decision.entity];
+            if matches!(
+                decision.reason,
+                Some(RetentionReason::JudgedRelated | RetentionReason::Uncertain)
+            ) {
+                if let Some(block_index) = entity.block_index {
+                    delivery_protected.insert((entity.file_index, block_index));
+                }
+            }
             if decision.is_retained {
                 continue;
             }
-            let entity = &input.entities[decision.entity];
             let Some(block_index) = entity.block_index else {
                 continue;
             };
@@ -1168,12 +1180,17 @@ impl FilterOutcome {
         .then_some(summary);
         Self {
             replacements,
+            delivery_protected,
             inline_note,
         }
     }
 
     pub(crate) fn replacement_for(&self, file_index: usize, block_index: usize) -> Option<String> {
         self.replacements.get(&(file_index, block_index)).cloned()
+    }
+
+    pub(crate) fn is_delivery_protected(&self, file_index: usize, block_index: usize) -> bool {
+        self.delivery_protected.contains(&(file_index, block_index))
     }
 
     #[cfg(test)]

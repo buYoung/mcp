@@ -669,7 +669,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
     assert_eq!(applied["model"], "jev-1.13.0");
     assert_eq!(
         applied["versions"],
-        "search-task-evidence/6 search-task-questions/4 search-selection-policy/4-experimental"
+        "search-task-evidence/7 search-task-questions/5 search-selection-policy/4-experimental"
     );
     let counts = detail_counts(applied);
     assert_eq!(counts["bodies"], "2");

@@ -41,7 +41,7 @@ Search returns explicit partial output; read requests a narrower range. Overview
 
 `output.client.codex_output_token_limit` accepts a positive token count. `codemap-search codex-config` prints TOML for all six `mcp_servers.codemap-search.tools.<tool>.output_token_limit` entries. Use `--server-name NAME` if the registered server has a different ID. Merge the printed fragment into Codex configuration to apply it; the command never writes client files. [Codex reference](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
 
-Characters, tokens and bytes are not converted at a fixed ratio. Client settings do not change server response ceilings, Code Mode `functions.exec` aggregate budgets, or the global tool-history limit. Unset client settings leave client defaults in control.
+An explicit `codex_output_token_limit` also guards ranked-search presentation after judgment at `min(output.search.max_bytes, floor(tokens × 3.5))` bytes. This is a headroom estimate, not tokenization. Candidate/Jev input budgets stay unchanged; evaluated matched/uncertain bodies receive priority, while lower-priority whole bodies that exceed the delivery budget leave exact read ranges, with space reserved for relationships and discovery. An unset value adds no guard. Claude metadata and multi-tool Codex exec cell limits remain separate; arbitrary batches can still exceed the client limit.
 
 ## Files and precedence
 
@@ -150,7 +150,7 @@ MCP watches the repo/global config directories that exist at startup, independen
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
 | `[output.client].claude_max_result_chars` | Next tools/list after reload; reconnect MCP to refresh client metadata |
-| `[output.client].codex_output_token_limit` | Re-run codex-config and merge the fragment into Codex settings |
+| `[output.client].codex_output_token_limit` | Server presentation guard after reload; re-export/merge codex-config for the client |
 
 Manual exclusion changes update file filters and request a full index refresh. Removed files disappear from results and newly included files become searchable when the refresh finishes. If indexing is unavailable, recover or restart the server before checking the results.
 
@@ -165,7 +165,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output].is_redact_enabled` | bool | `true` | Mask detected credentials and selected PII in MCP responses; matching and local indexes retain original data |
 | `[output].max_bytes` | integer bytes or size string | unset | Common MCP response ceiling; a same-layer tool override wins |
 | `[output.client].claude_max_result_chars` | integer characters, 1–500000 | unset | Claude tools/list metadata; reconnect required |
-| `[output.client].codex_output_token_limit` | positive integer tokens | unset | Per-tool Codex budget exported by codex-config |
+| `[output.client].codex_output_token_limit` | positive integer tokens | unset | Codex export and post-judgment ranked-search delivery guard |
 | `[output.overview].is_stats_enabled` | bool | `true` | Include indexed-file language statistics in repository-root and monorepo project-root `overview` output; `false` omits the section |
 | `[output.overview].max_bytes` | integer bytes or size string | common budget | Overview ceiling; no extra cap if common is unset |
 | `[output.search].detail_file_limit` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
@@ -446,7 +446,9 @@ is_redact_enabled = true
 
 # Codex output limit per tool, in tokens. Unset leaves the client default.
 # Run codemap-search codex-config and merge the printed settings into Codex configuration.
-# The command does not write client files; client limits are separate from server byte limits.
+# The command does not write client files. Ranked search also uses a post-selection
+# delivery guard of at most 3.5 bytes per configured token, capped by output.search.max_bytes.
+# This estimate leaves JSON headroom; deferred bodies keep read ranges. Jev input is unchanged.
 # codex_output_token_limit = 50000
 
 [output.overview]
@@ -871,11 +873,13 @@ Only enabled search advertises `openWorldHint: true`; every tool remains read-on
 
 Each eligible function is evaluated against every registered criterion with Noul. The function body appears once in a group state, with identity, source range, completeness, masking status and bounded static call evidence. Missing cross-file or channel evidence is explicit and must not be treated as proof of irrelevance. Questions refer to their named candidate and the same flow; two unrelated true properties do not prove a connection.
 
+Flow criteria include source-backed delegation, payload construction and validation, delivery conditions, ordered failure/retry branches, lifecycle, and alternate routes needed to explain the requested boundary. A supporting function need not perform transport itself. The bootstrap guidance asks the main model to reconcile entry points and material exceptions before claiming exhaustive coverage; it does not prescribe a fixed navigation sequence.
+
 `search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of a criterion being false for a no decision. A yes requires the same threshold on the positive answer; values between the two are uncertain. `all` fails on any decisive no and matches only if every leaf is yes; `any` matches on any decisive yes and fails only if every leaf is no. All other combinations are uncertain. These are discrete decisions, not calibrated joint probabilities. The threshold remains provisional.
 
 Partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments. Non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
 
-Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base search response. Exact `event_key` maps bypass selection.
+Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller/callee source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base search response. Exact `event_key` maps bypass selection.
 
 ### Selection before rendering
 
@@ -885,7 +889,9 @@ Uncertain, partial and identity-unverified source stays. A matched function can 
 
 Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their recovery note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
 
-Each candidate receives its prepared annotations and scoped event evidence independently, without a search-wide 16 KiB prefix quota or 1 KiB per-part caps. Direct caller source uses ordinary read permissions and full-file redaction, checks the declaration identity and complete returned range, and is deduplicated in `state.supporting_sources`. Named references connect each candidate to this evidence without claiming verified runtime dispatch. Shared evidence policy is stored once, and question instructions explicitly reference it and their candidate. If required supporting context cannot fit, that candidate remains unjudged and visible; complete source is not cut to manufacture a negative judgment. The body-only preliminary bound is derived from the whole state-plus-question budget; final eligibility uses complete encoded requests. `caller_context=false` disables extra caller reads and caller event anchors; `include_events=false` disables event evidence. Warming, stopped or failed snapshots bypass evaluation.
+Each candidate receives its prepared annotations and scoped event evidence independently, without a search-wide 16 KiB prefix quota or 1 KiB per-part caps. Direct caller/callee source uses ordinary read permissions and full-file redaction, checks the declaration identity and complete returned range, and is deduplicated in `state.supporting_sources`. Named references connect each candidate to this evidence without claiming verified runtime dispatch. Shared evidence policy is stored once, and question instructions explicitly reference it and their candidate. If required supporting context cannot fit, that candidate remains unjudged and visible; complete source is not cut to manufacture a negative judgment. The body-only preliminary bound is derived from the whole state-plus-question budget; final eligibility uses complete encoded requests. `caller_context=false` disables extra caller/callee reads and caller event anchors; `include_events=false` disables event evidence. Warming, stopped or failed snapshots bypass evaluation.
+
+After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive composed task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them.
 
 Compact omission notes preserve source locations and ordinary read recovery. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations.
 
@@ -1040,3 +1046,9 @@ Legacy root keys and sections remain readable. A canonical spelling in the same 
 | `analysis.navigation.*` (v18) | `output.navigation.*` |
 | `analysis.macro_expansion.*` (v18) | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` (v18) | `output.event_navigation.*` |
+
+### Search display compaction and grouped grep source
+
+Search compacts presentation annotations after capturing Jev evidence. Non-call references retain every returned file/line location while omitting source previews; unresolved call names share a line. Repeated analysis caveats are defined at their first `[N1]`-style label and referenced at later applicable locations. Source bodies are unchanged. Confirmed relationship locations retain their original format. Duplicate literal previews are omitted only when their complete enclosing body is already visible. Bodies deferred by the delivery budget are distinct from relevance judgments.
+
+`grep` with `view="source_grouped"` places source rows beneath a heading for every returned file. With `expand="none"`, `42:match` and `43-context` remain distinct; callable expansion is also supported. File/line/page order, masking, column limits and response caps remain effective, without declaration/relationship analysis. The old path-per-row `view="source"` format is unchanged. This view is content-mode-only and is not a read option.

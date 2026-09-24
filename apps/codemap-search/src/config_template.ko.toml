@@ -22,8 +22,10 @@ is_redact_enabled = true
 # claude_max_result_chars = 200000
 
 # Codex 도구별 출력의 토큰 수 한도입니다. 미지정 시 클라이언트 기본값을 사용합니다.
-# codemap-search codex-config로 출력한 설정을 Codex 설정에 병합해야 적용됩니다.
-# 이 명령은 클라이언트 파일을 수정하지 않으며 클라이언트 한도는 서버의 바이트 한도와 별개입니다.
+# codemap-search codex-config로 출력한 설정을 Codex 설정에 병합해야 클라이언트에 적용됩니다.
+# 순위 검색은 판정 후 표시에도 토큰당 3.5바이트의 추정 한도를 적용합니다(output.search.max_bytes 이하).
+# JSON 여유를 위한 추정치이며 미표시 본문은 읽기 범위를 남깁니다. Jev 입력은 바꾸지 않습니다.
+# 이 명령은 클라이언트 파일을 수정하지 않습니다.
 # codex_output_token_limit = 50000
 
 [output.overview]

@@ -26,6 +26,7 @@ fn catalog() -> &'static [Rule] {
             ("credential.authorization", Credential, r#"(?i)\b(?:authorization|proxy[-_]authorization)["']?[ \t]*[:=][ \t]*["']?(?:Bearer|Basic)[ \t]+(?P<secret>[A-Za-z0-9_~+/=.-]+)"#),
             ("credential.bearer", Credential, r"\bBearer[ \t]+(?P<secret>[A-Za-z0-9_~+/=.-]{8,})"),
             ("credential.url-password", Credential, r"(?i)\b[a-z][a-z0-9+.-]*://[^\s/:@]+:(?P<secret>[^\s/@]+)@"),
+            ("credential.webhook-url", Credential, r#"(?i)\bhttps?://[^\s/"'`<>]+/(?:[^\s?\#"'`<>]*/)?hooks/(?P<secret>[A-Za-z0-9_-]{16,}(?:[/?\#][^\s"'`<>]*)?)"#),
         ].into_iter().map(|(id, kind, pattern)| Rule {
             id, kind, pattern: Regex::new(pattern).expect("built-in redaction rule"),
         }).collect()

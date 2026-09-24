@@ -243,7 +243,7 @@ fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
     if !jev.search_filter_enabled {
         return None;
     }
-    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows in scope; missing evidence means uncertainty. Enabled search sends masked task/evidence to TypeSafe and preserves uncertain or unavailable evidence. Read/grep return original source without registration. Re-register only when the task changes.".into())
+    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows, their conditions, message contracts and relevant alternate routes in scope; missing evidence means uncertainty. Enabled search sends masked task/evidence to TypeSafe and preserves uncertain or unavailable evidence. Read/grep return original source without registration. Re-register only when the task changes.\n\nFor exhaustive flow requests, ranked matches and bounded caller lists are discovery evidence. Reconcile producers/callers at shared entry points with grep when needed; distinguish alternate paths. Before answering, use already-read evidence to check entry points, ordered failure/retry branches, conditional message fields and lifecycle. Explain material exceptions to the normal path and state any remaining coverage gaps. Follow-up call candidates need source verification; choose the next tool only for missing evidence.".into())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -447,7 +447,7 @@ pub fn list_tools() -> Value {
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "view": { "type": "string", "enum": ["full", "source", "source_grouped", "definitions", "relations"], "default": "full", "description": format!("{live_view_description} source_grouped keeps all source rows under file headings without declaration/relationship work; prefer it for source inspection.") },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },

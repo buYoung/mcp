@@ -23,7 +23,9 @@ is_redact_enabled = true
 
 # Codex output limit per tool, in tokens. Unset leaves the client default.
 # Run codemap-search codex-config and merge the printed settings into Codex configuration.
-# The command does not write client files; client limits are separate from server byte limits.
+# The command does not write client files. Ranked search also uses a post-selection
+# delivery guard of at most 3.5 bytes per configured token, capped by output.search.max_bytes.
+# This estimate leaves JSON headroom; deferred bodies keep read ranges. Jev input is unchanged.
 # codex_output_token_limit = 50000
 
 [output.overview]

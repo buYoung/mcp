@@ -1,4 +1,5 @@
-//! Client-specific delivery limits. Server byte budgets remain independent.
+//! Client-specific delivery limits. An explicit Codex limit also bounds the final
+//! ranked-search presentation, after candidate capture and Jev evaluation.
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ClientOutputConfig {

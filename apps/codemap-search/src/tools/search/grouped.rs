@@ -248,6 +248,43 @@ impl FileOutput {
                 .map(|(_, range)| &section.text[range.clone()])
         })
     }
+    /// Called only after evidence capture/selection. Source and declaration identities stay
+    /// unchanged; rebuild ranges so later consumers cannot observe stale byte offsets.
+    pub(super) fn compact_display(&mut self, display: &mut super::display::DisplayContext) {
+        for section in &mut self.sections {
+            let mut text = String::with_capacity(section.text.len());
+            let mut previous_end = 0;
+            for (_, range) in &mut section.annotations {
+                text.push_str(&section.text[previous_end..range.start]);
+                let start = text.len();
+                let annotation = display.compact(&section.text[range.clone()]);
+                text.push_str(&annotation);
+                previous_end = range.end;
+                *range = start..text.len();
+            }
+            text.push_str(&section.text[previous_end..]);
+            section.text = text;
+        }
+        // A literal whose entire source line is already visible adds no source evidence.
+        // This recognizes only our own literal-row format, never code inside a body.
+        let visible_ranges = self
+            .blocks
+            .iter()
+            .filter(|block| block.is_complete_body())
+            .filter_map(|block| block.displayed)
+            .collect::<Vec<_>>();
+        self.retain_blocks(|_, block| {
+            if block.symbol.is_some() || !block.text.starts_with("- Literal: ") {
+                return None;
+            }
+            let (_, suffix) = block.text.rsplit_once(" [L")?;
+            let line = suffix.strip_suffix("]\n")?.parse::<usize>().ok()?;
+            visible_ranges
+                .iter()
+                .any(|(first, last)| *first <= line && line <= *last)
+                .then(String::new)
+        });
+    }
     /// Every declaration row shown in the file's sections, in output order.
     pub(crate) fn shown_symbols(&self) -> Vec<BlockSymbol> {
         self.sections
@@ -338,6 +375,38 @@ impl FileOutput {
             } else {
                 0
             }
+    }
+    pub(super) fn primary_bytes(&self, is_partial_file: bool) -> usize {
+        self.written_len(is_partial_file)
+            .saturating_sub(self.base_bytes)
+    }
+
+    /// Defer whole low-ranked bodies only after judgment. These notes are delivery limits,
+    /// never unrelatedness decisions, and retain exact original-source recovery ranges.
+    pub(super) fn defer_bodies(
+        &mut self,
+        primary_bytes: &mut usize,
+        budget_bytes: usize,
+        is_protected: impl Fn(usize) -> bool,
+    ) -> usize {
+        let path = self.path.clone();
+        let protected_ranges = self
+            .blocks
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| is_protected(*index))
+            .filter_map(|(_, block)| block.displayed)
+            .collect::<Vec<_>>();
+        self.retain_blocks(|index, block| {
+            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) { return None; }
+            block.symbol.as_ref()?;
+            let (first, last) = block.displayed?;
+            if protected_ranges.iter().any(|(start, end)| first <= *start && *end <= last) { return None; }
+            let note = format!("_Body deferred by delivery budget, not a relevance judgment; read {path} offset {first} limit {} to restore._\n", last - first + 1);
+            if note.len().saturating_add(512) > block.rendered_len() { return None; }
+            *primary_bytes -= block.rendered_len() - note.len();
+            Some(note)
+        })
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
         let Some(index) = self.current else {
@@ -586,15 +655,25 @@ impl FileOutput {
     }
 }
 
+pub(super) struct RelationOptions {
+    pub should_include_calls: bool,
+    pub should_include_events: bool,
+    pub byte_cap: usize,
+}
+
 pub(super) fn append_relations(
     text: &mut String,
     files: &[FileOutput],
     snapshot: &crate::index::PublishedIndexSnapshot,
     scope: Option<&str>,
-    should_include_calls: bool,
-    should_include_events: bool,
+    options: RelationOptions,
+    display: &mut super::display::DisplayContext,
 ) {
-    let cap = crate::config::get().search_detail_byte_cap;
+    let RelationOptions {
+        should_include_calls,
+        should_include_events,
+        byte_cap: cap,
+    } = options;
     let mut remaining = cap
         .saturating_sub(text.len())
         .min(cap / 2)
@@ -670,7 +749,10 @@ pub(super) fn append_relations(
                 }
                 nested.push_str(line);
             }
+            let mut next_display = display.clone();
+            let nested = next_display.compact(&nested);
             if nested.len() <= section_cap {
+                *display = next_display;
                 available -= nested.len();
                 remaining -= nested.len();
                 insertions.push((section.insertion, nested));

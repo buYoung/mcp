@@ -19,7 +19,10 @@ fn returned_source_files(
     options: crate::tools::live_options::LiveOptions,
 ) -> Vec<crate::analyze::FileObservation> {
     use crate::tools::live_options::LiveView;
-    if !matches!(options.view, LiveView::Full | LiveView::Source) {
+    if !matches!(
+        options.view,
+        LiveView::Full | LiveView::Source | LiveView::SourceGrouped
+    ) {
         return Vec::new();
     }
     let mut files = output
@@ -30,7 +33,7 @@ fn returned_source_files(
     for span in &output.files {
         if let Some(bytes) = files.get_mut(span.file_path.as_str()) {
             let mut result_bytes = span.end_byte.saturating_sub(span.start_byte);
-            if options.view == LiveView::Full {
+            if matches!(options.view, LiveView::Full | LiveView::SourceGrouped) {
                 // Full view removes the producer-written path prefixes under file headings.
                 let prefix_bytes = output
                     .path_prefixes

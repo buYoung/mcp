@@ -1,0 +1,271 @@
+{
+  "status": "implemented_and_one_run_completed_with_quality_regression",
+  "implementation_and_requested_measurement_complete": true,
+  "quality_preservation_accepted": false,
+  "original_child_04_acceptance_complete": false,
+  "product_changes_this_step": true,
+  "main_model_runs": 1,
+  "main_concurrency": 1,
+  "baseline_reruns": 0,
+  "automatic_replacement_runs": 0,
+  "offline_main_runs": 0,
+  "offline_provider_requests": 0,
+  "report": "apps/codemap-search/validation/jev-search/09-output-single.md",
+  "report_sha256": "0ad063037ffbd8b7b9d01082fbf00e75467a19e5190eba0c71c8d9e26d0d4280",
+  "external_run": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single",
+  "external_report": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/data/report.md",
+  "manifest": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/manifest.json",
+  "metrics": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/data/improved-on-1-metrics.json",
+  "quality": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/data/improved-on-1-quality.json",
+  "quality_gap": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/data/quality-gap.json",
+  "final_validation": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/data/final-validation.json",
+  "source_head": "e795bfaecdd5523fdadea52e067168451ee89152",
+  "source_identity_sha256": "691340037c2e0855917548d2aa5814c81f6dc1371af1d028fe82ab2f895e6cf3",
+  "source_file_count": 327,
+  "source_identity_scope": "Rust/TOML/lock sources plus embedded src/**/*.md; measured working tree is uncommitted",
+  "binary_sha256": "8900426a2414767935731156f4006aafd8aa86a6e84f96f48f425b25a61be05b",
+  "rubric_sha256": "4eb18df2a2983adc544cfbf24e254716c0dccdb2be1f316a3b9738a81f6ef179",
+  "main": {
+    "input_tokens": 947313,
+    "cached_input_tokens": 818944,
+    "uncached_input_tokens": 128369,
+    "output_tokens": 13390,
+    "reasoning_output_tokens": 6233,
+    "total_tokens": 960703,
+    "model_response_count": 13,
+    "mcp_call_count": 68,
+    "mcp_call_counts": {
+      "initial_instructions": 1,
+      "find": 3,
+      "search": 1,
+      "grep": 18,
+      "read": 45
+    },
+    "elapsed_s": 303.094,
+    "last_request_input_tokens": 126313
+  },
+  "jev": {
+    "input_tokens": 128540,
+    "output_tokens": 2262,
+    "total_tokens": 130802,
+    "http_requests": 7,
+    "reported_responses": 7,
+    "unreported_responses": 0,
+    "applied_calls": 1,
+    "bypassed_calls": 0,
+    "fallback_calls": 0,
+    "rendered_omissions": 32
+  },
+  "combined_total_tokens": 1091505,
+  "observed_main_comparison": {
+    "previous_main_values": [
+      1304883,
+      1553773,
+      1417622
+    ],
+    "previous_main_mean": 1425426,
+    "main_delta": -464723,
+    "main_delta_percent": -32.60239395100132,
+    "causal_limit": "1회 실측에는 질의·질문·후속 탐색·품질 누락 차이가 섞인다. 메인 감소율 전체를 출력 압축의 인과 효과로 취급하지 않는다."
+  },
+  "duration_comparison": {
+    "previous_elapsed_mean_s": 276.372,
+    "observed_elapsed_s": 303.094,
+    "elapsed_delta_percent": 9.668852126843518
+  },
+  "quality_scores": {
+    "core": {
+      "api_queue": true,
+      "queue_worker": true,
+      "worker_redis": true,
+      "redis_eventbus": true,
+      "eventbus_ws": true,
+      "claim_lambda": true
+    },
+    "extended": {
+      "service_candidate": false,
+      "custom_bypass": true,
+      "mio_precedence": true,
+      "publish_failure": true,
+      "manual_extra": true
+    },
+    "core_passed": 6,
+    "core_total": 6,
+    "extended_passed": 4,
+    "extended_total": 5,
+    "quality_preserved": false
+  },
+  "quality_regression": {
+    "criterion": "service_candidate",
+    "previous_covered_runs": "3/3",
+    "current_covered_runs": "0/1",
+    "observed_mechanism": "Caller search for processPendingMeasurements restricted to src/techAdmin; external ServiceCandidate caller not retrieved.",
+    "format_change_caused_scope_choice": "unconfirmed"
+  },
+  "offline_search_replay": [
+    {
+      "session": 1,
+      "original_search_bytes": 64154,
+      "search_bytes": 61850,
+      "serialized_cell_bytes": 66355,
+      "body_deferrals": 0,
+      "unannounced_source_loss": 0,
+      "original_source_rows": 771,
+      "new_source_rows": 771,
+      "requests": 6,
+      "question_ids": 86,
+      "archived_judgment_identity_valid": true,
+      "webhook_masked": true,
+      "source_recovery_verified": true
+    },
+    {
+      "session": 2,
+      "original_search_bytes": 152067,
+      "search_bytes": 107514,
+      "serialized_cell_bytes": 112755,
+      "body_deferrals": 1,
+      "unannounced_source_loss": 0,
+      "original_source_rows": 1061,
+      "new_source_rows": 981,
+      "requests": 9,
+      "question_ids": 183,
+      "archived_judgment_identity_valid": true,
+      "webhook_masked": true,
+      "source_recovery_verified": true
+    },
+    {
+      "session": 3,
+      "original_search_bytes": 161632,
+      "search_bytes": 108928,
+      "serialized_cell_bytes": 112952,
+      "body_deferrals": 6,
+      "unannounced_source_loss": 0,
+      "original_source_rows": 1388,
+      "new_source_rows": 1128,
+      "requests": 8,
+      "question_ids": 116,
+      "archived_judgment_identity_valid": true,
+      "webhook_masked": true,
+      "source_recovery_verified": true
+    }
+  ],
+  "offline_grep": {
+    "paired_calls": 64,
+    "rows": 3231,
+    "plain_bytes": 356659,
+    "grouped_bytes": 211936,
+    "delta_percent": -40.57741428086772,
+    "all_rows_identical": true
+  },
+  "delivery": {
+    "configured_client_output_tokens": 32000,
+    "derived_search_byte_cap": 112000,
+    "first_search_raw_bytes": 66932,
+    "max_outer_delivered_bytes": 71562,
+    "outer_truncations": 0,
+    "mcp_errors": 0,
+    "grep_source_grouped_calls": 18,
+    "raw_omission_notices": 32,
+    "delivered_omission_notices": 32,
+    "delivery_body_deferrals": 0
+  },
+  "verification": {
+    "initial_existing_cases_passed": 154,
+    "existing_ignored_cases": 1,
+    "ignored_reason": "Existing Clang-dependent case",
+    "new_test_cases": 0,
+    "final_checks": [
+      {
+        "name": "check",
+        "command": [
+          "cargo",
+          "check",
+          "--manifest-path",
+          "apps/codemap-search/Cargo.toml"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--manifest-path",
+          "apps/codemap-search/Cargo.toml",
+          "--lib",
+          "--bin",
+          "codemap-search",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "jev-unit",
+        "command": [
+          "cargo",
+          "test",
+          "--manifest-path",
+          "apps/codemap-search/Cargo.toml",
+          "--lib",
+          "tools::search::jev::"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "jev-e2e",
+        "command": [
+          "cargo",
+          "test",
+          "--manifest-path",
+          "apps/codemap-search/Cargo.toml",
+          "--test",
+          "e2e_tests",
+          "jev::"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "release",
+        "command": [
+          "cargo",
+          "build",
+          "--release",
+          "--manifest-path",
+          "apps/codemap-search/Cargo.toml"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "probe",
+        "command": [
+          "cargo",
+          "build",
+          "--release",
+          "--offline",
+          "--manifest-path",
+          "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-output-06-single/probe/Cargo.toml",
+          "--target-dir",
+          "apps/codemap-search/target"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "target_unchanged": true,
+    "configuration_restored": true,
+    "product_source_unchanged_after_measurement": true
+  },
+  "limits": [
+    "ServiceCandidate 항목은 이전 세 세션 모두 통과했으나 이번에는 누락됐다. 확장 합계만 비교하면 이 회귀가 가려진다.",
+    "전체 답변의 모든 부수 주장을 독립적으로 재감사하지 않았다. 11개 항목에서 확인한 문제는 누락이며, 이 범위에서 새 모순은 확인하지 않았다.",
+    "탐색 경로 차이 자체를 오류로 분류하지 않는다. 사용자의 모든 구간 확인 요청에서 필요한 호출자가 빠진 결과를 품질 누락으로 분류한다.",
+    "형식 변경이 좁은 검색 범위 선택을 유발했는지는 단일 실행으로 확인할 수 없다.",
+    "One live session cannot establish stable reduction or separate format savings from search-route and coverage differences.",
+    "Main total is cumulative input plus output; it is not unique newly read tokens or billing.",
+    "Deterministic replay byte reductions are not model-token reductions.",
+    "The 112000-byte display budget is a headroom estimate, not a tokenizer conversion or a guarantee for arbitrary multi-tool output cells.",
+    "Measured total remains above retained #11.1 and #13 references. No baseline was rerun.",
+    "No further main or standalone Jev evaluation was performed after this single session."
+  ]
+}
