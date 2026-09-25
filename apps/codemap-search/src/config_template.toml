@@ -1,4 +1,4 @@
-# codemap-config-version: 25
+# codemap-config-version: 26
 # codemap-search settings for this repository.
 # Active values override global settings. Delete or comment out a key to inherit.
 # Lists replace inherited lists; [] clears them.
@@ -272,8 +272,8 @@ is_build_support_enabled = false
 # target_os = ""
 
 [analysis.jev]
-# Optional TypeSafe Jev search judgments; off by default. Register the full task once through
-# initial_instructions(task_query, questions). Enabled search then applies automatically to eligible calls;
+# Optional TypeSafe Jev search/read/grep judgments; off by default. Register the full task once through
+# initial_instructions(task_query, questions). Enabled search/read/grep then apply automatically to eligible calls;
 # missing registration is an error. The API key comes from the environment variable below.
 
 
@@ -281,6 +281,10 @@ is_build_support_enabled = false
 # unrelated to the task_query; each omitted body leaves an inline note with the exact read
 # range. Bypasses and failures return the plain output; the reason is logged on stderr.
 # search_filter_enabled = false
+
+# Omitted live-tool flags inherit search_filter_enabled; explicit false disables that tool.
+# read_filter_enabled = false
+# grep_filter_enabled = false
 
 # Concrete provider model, validated against every response; alias names are rejected.
 # model = "jev-1.13.0"

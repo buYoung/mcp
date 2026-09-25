@@ -110,7 +110,8 @@ async fn with_in_process_server<F, Fut>(
 }
 
 fn search_arguments(query: &str) -> Value {
-    json!({ "query": query })
+    // These assertions isolate Jev selection from independent delivery deduplication.
+    json!({ "query": query, "include_seen": true })
 }
 
 /// One judge for both stages: files under `qualifying_prefix` qualify with a clear margin,
@@ -369,7 +370,7 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
         assert!(text.contains("const reserve = footer.length + 8;"), "the partial window of keepMe stays: {text}");
         assert!(text.contains("more lines)"), "the window keeps its elision marker: {text}");
         assert!(!text.contains("padEnd(160"), "the complete unrelated body is omitted: {text}");
-        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) did not match the task questions; read src/window.ts offset 10 limit 3 to restore._"), "{text}");
+        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) did not match the task questions; read src/window.ts offset 10 limit 3 to inspect._"), "{text}");
         assert_eq!(judged_names(&judge), vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]], "only the complete body is judged");
     })
     .await;
@@ -413,7 +414,7 @@ async fn test_jev_search_keeps_linked_rust_methods_and_never_judges_data_declara
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("- _omitted body: L25-33 (fn banner) did not match the task questions; read src/checkout.rs offset 25 limit 9 to restore._"), "{text}");
+        assert!(text.contains("- _omitted body: L25-33 (fn banner) did not match the task questions; read src/checkout.rs offset 25 limit 9 to inspect._"), "{text}");
         assert!(!text.contains("rendered.push_str"), "{text}");
         assert!(text.contains("Ok(self.total())"), "submit stays through its call to the related total: {text}");
         assert!(text.contains("line.price * line.quantity"), "{text}");
@@ -648,7 +649,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
             )
             .await
             .unwrap();
-        // A read never involves Jev and never logs a stage.
+        // An inherited read filter logs a bypass for an incomplete body without inference.
         client
             .call(
                 "tools/call",
@@ -694,10 +695,13 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
         "{applied:?}"
     );
     assert!(
-        stages.iter().all(|stage| stage["tool"] == "search"
+        stages.iter().all(|stage| (stage["tool"] == "search"
             && (stage["outcome"] == "applied"
-                || (stage["outcome"] == "bypassed" && stage["status"] == "no_ranked_candidates"))),
-        "only startup searches without candidates may bypass evaluation: {log}"
+                || (stage["outcome"] == "bypassed" && stage["status"] == "no_ranked_candidates")))
+            || (stage["tool"] == "read"
+                && stage["outcome"] == "bypassed"
+                && stage["status"] == "bypassed:no_complete_bodies")),
+        "startup searches and partial read bodies bypass evaluation: {log}"
     );
     assert_eq!(
         stages
@@ -705,7 +709,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
             .filter(|stage| stage["outcome"] == "applied")
             .count(),
         2,
-        "both populated searches run automatically after one registration, none for read:\n{log}"
+        "both populated searches run after one registration; the partial read sends no questions:\n{log}"
     );
     assert!(
         !log.contains("const reserve") && !log.contains("input.split"),
@@ -790,7 +794,7 @@ async fn test_jev_omitted_bodies_restore_through_read_and_retained_lines_are_ver
         }
         assert!(text.contains("dropMe (fn) [L10-15]"), "declaration rows stay: {text}");
         let restored = client
-            .call("tools/call", json!({ "name": "read", "arguments": { "file_path": "src/budget.ts", "offset": 10, "limit": 6 } }))
+            .plain_call("read", json!({ "file_path": "src/budget.ts", "offset": 10, "limit": 6, "include_seen": true }))
             .await
             .unwrap();
         let restored = response_text(&restored);

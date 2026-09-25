@@ -5,7 +5,13 @@
 use crate::e2e::helpers::{create_mock_repo, McpClient};
 use serde_json::Value;
 
-fn call(client_id_name: &str, args: Value) -> Value {
+fn call(client_id_name: &str, mut args: Value) -> Value {
+    // Format, range and permission comparisons need source even after a previous delivery.
+    if matches!(client_id_name, "read" | "grep") {
+        if let Some(arguments) = args.as_object_mut() {
+            arguments.entry("include_seen").or_insert(Value::Bool(true));
+        }
+    }
     serde_json::json!({ "name": client_id_name, "arguments": args })
 }
 
@@ -45,7 +51,7 @@ async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
         let response = client
             .send_tool_until(
                 "read",
-                serde_json::json!({"file_path":"src/bus.ts","offset":6,"limit":1,"debug":should_debug}),
+                serde_json::json!({"include_seen": true, "file_path":"src/bus.ts","offset":6,"limit":1,"debug":should_debug}),
                 |out| out.contains("setup [function"),
             )
             .await
@@ -126,7 +132,7 @@ async fn test_live_diagnostics_distinguish_empty_excluded_and_stale_source() {
     client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path":"src/defs.ts","offset":1,"limit":1}),
+            serde_json::json!({"include_seen": true, "file_path":"src/defs.ts","offset":1,"limit":1}),
             |text| text.contains("beforeChange [function"),
         )
         .await
@@ -249,9 +255,11 @@ async fn test_implementation_context_cli_views_refresh_and_restart() {
     let args = serde_json::json!({"file_path":"src/base.ts","offset":1,"limit":1});
     let baseline = text(
         &client
-            .send_tool_until("read", args.clone(), |out| {
-                out.contains("implementation candidate: Child.run")
-            })
+            .send_tool_until(
+                "read",
+                call("read", args.clone())["arguments"].clone(),
+                |out| out.contains("implementation candidate: Child.run"),
+            )
             .await
             .unwrap(),
     );
@@ -341,9 +349,11 @@ async fn test_implementation_context_cli_views_refresh_and_restart() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let restarted = text(
         &client
-            .send_tool_until("read", args.clone(), |out| {
-                out.contains("implementation candidate: Child.run")
-            })
+            .send_tool_until(
+                "read",
+                call("read", args.clone())["arguments"].clone(),
+                |out| out.contains("implementation candidate: Child.run"),
+            )
             .await
             .unwrap(),
     );
@@ -376,7 +386,15 @@ async fn test_events_live_modes_forward_reverse_and_schema() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let args = serde_json::json!({"file_path":"src/users.ts","offset":2,"limit":1});
     let baseline = client
-        .send_tool_until("read", args.clone(), |out| out.contains("save [function"))
+        .send_tool_until(
+            "read",
+            {
+                let mut original = args.clone();
+                original["include_seen"] = Value::Bool(true);
+                original
+            },
+            |out| out.contains("save [function"),
+        )
         .await
         .unwrap();
     let baseline = text(&baseline);
@@ -547,7 +565,7 @@ async fn test_events_many_grep_anchors_do_not_spend_the_candidate_budget_twice()
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
-    let response=client.send_tool_until("grep",serde_json::json!({"path":"src/register.ts","pattern":"bus\\.on","head_limit":100,"view":"relations"}),|out|out.contains("Event relationships")).await.unwrap();
+    let response=client.send_tool_until("grep",serde_json::json!({"include_seen": true, "path":"src/register.ts","pattern":"bus\\.on","head_limit":100,"view":"relations"}),|out|out.contains("Event relationships")).await.unwrap();
     let out = text(&response);
     assert!(out.contains("publisher: src/a_publish.ts:1"), "{out}");
     assert!(out.contains("registration: L2"), "{out}");
@@ -568,9 +586,11 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let args = serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":5});
     let baseline = client
-        .send_tool_until("read", args.clone(), |out| {
-            out.contains("2 callee(s) unresolved")
-        })
+        .send_tool_until(
+            "read",
+            call("read", args.clone())["arguments"].clone(),
+            |out| out.contains("2 callee(s) unresolved"),
+        )
         .await
         .unwrap();
     let full = text(&baseline);
@@ -677,7 +697,7 @@ async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path":"src/lib.rs","offset":2,"limit":1}),
+            serde_json::json!({"include_seen": true, "file_path":"src/lib.rs","offset":2,"limit":1}),
             |out| out.contains("first [function"),
         )
         .await
@@ -860,7 +880,7 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
     let ready = client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path": "src/config.rs", "offset": 5, "limit": 5}),
+            serde_json::json!({"include_seen": true, "file_path": "src/config.rs", "offset": 5, "limit": 5}),
             |out| out.contains("load [function"),
         )
         .await
@@ -933,7 +953,7 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
     let precise = client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path": "src/config.rs", "offset": 5, "limit": 5}),
+            serde_json::json!({"include_seen": true, "file_path": "src/config.rs", "offset": 5, "limit": 5}),
             |out| out.contains("callers (tree-sitter precise"),
         )
         .await
@@ -977,7 +997,7 @@ async fn test_live_constant_context_respects_the_read_output_budget() {
     let response = client
         .send_tool_until(
             "read",
-            serde_json::json!({
+            serde_json::json!({"include_seen": true,
                 "file_path": "src/values.rs", "offset": 101, "limit": 1
             }),
             |out| out.contains("consume_values [function"),
@@ -1037,7 +1057,7 @@ async fn test_test_context_rules_reload_and_can_disable_builtin_detection() {
     ].into_iter().enumerate() {
         std::fs::write(temp.path().join(".codemap/config.toml"), format!("{base_config}{settings}")).unwrap();
         // Poll the actual consumer, including config reload and index warm-up.
-        let ready = client.send_tool_until("read", serde_json::json!({
+        let ready = client.send_tool_until("read", serde_json::json!({"include_seen": true,
             "file_path": "src/inline.rs", "offset": 2, "limit": 1
         }), |out| {
             let context = out.split_once("\n### results\n").map(|(context, _)| context).unwrap_or("");
@@ -1313,7 +1333,7 @@ async fn test_non_utf8_source_explains_index_exclusion_without_hiding_read() {
     let resp = client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path":"legacy.rs"}),
+            serde_json::json!({"include_seen": true, "file_path":"legacy.rs"}),
             |out| out.contains("Not indexed: invalid UTF-8"),
         )
         .await
@@ -1618,7 +1638,7 @@ async fn test_grep_count_mode() {
     client
         .send_tool_until(
             "read",
-            serde_json::json!({"file_path": "src/core.rs", "offset": 1, "limit": 1}),
+            serde_json::json!({"include_seen": true, "file_path": "src/core.rs", "offset": 1, "limit": 1}),
             |out| out.contains("run_engine [function"),
         )
         .await

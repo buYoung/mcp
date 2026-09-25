@@ -1,4 +1,4 @@
-# codemap-config-version: 25
+# codemap-config-version: 26
 # 이 저장소의 codemap-search 설정입니다.
 # 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
 # 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
@@ -273,7 +273,7 @@ is_build_support_enabled = false
 
 [analysis.jev]
 # 선택적 TypeSafe Jev 단계이며 기본으로 꺼져 있습니다. initial_instructions(task_query, questions)에서
-# 전체 작업 목적을 한 번 등록하면 켜진 search가 대상 함수에 자동 적용됩니다. 미등록은 오류이며,
+# 전체 작업 목적을 한 번 등록하면 켜진 search/read/grep이 대상 함수에 자동 적용됩니다. 미등록은 오류이며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
 
 
@@ -281,6 +281,10 @@ is_build_support_enabled = false
 # 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는
 # 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
 # search_filter_enabled = false
+
+# 도구별 설정을 생략하면 search_filter_enabled를 따릅니다. 명시한 false는 해당 도구만 끕니다.
+# read_filter_enabled = false
+# grep_filter_enabled = false
 
 # 모든 응답에서 검증하는 구체적인 제공자 모델입니다. 별칭 이름은 거부합니다.
 # model = "jev-1.13.0"

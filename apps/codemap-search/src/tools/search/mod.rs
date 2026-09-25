@@ -606,7 +606,7 @@ pub(crate) fn run_inner_with_metadata(
 ) -> Result<SearchOutput, (i64, String)> {
     match prepare_detail(ctx, workspace_scope, search_limit)? {
         Prepared::Done(output) => Ok(output),
-        Prepared::Detail(state) => Ok(finish_detail(*state, None).0),
+        Prepared::Detail(state) => Ok(finish_detail(*state, None, None).0),
     }
 }
 
@@ -662,17 +662,11 @@ pub(crate) async fn run_inner_with_filter(
         && state.caller_context_enabled
         && input.is_snapshot_fresh
         && !state.output_was_capped;
-    let snapshot = std::sync::Arc::clone(&state.published_snapshot);
-    let (mut output, rendered_omissions) = finish_detail(*state, Some(outcome));
-    if should_add_candidates {
-        jev::append_call_candidates(
-            &mut output.text,
-            &input,
-            &result,
-            &snapshot,
-            workspace_scope,
-        );
-    }
+    let (output, rendered_omissions) = finish_detail(
+        *state,
+        Some(outcome),
+        should_add_candidates.then_some((&input, &result)),
+    );
     result.rendered_omissions = rendered_omissions;
     result.timing.elapsed = selection_started.elapsed();
     tracing::info!(
@@ -1241,7 +1235,11 @@ pub(crate) fn prepare_detail(
 /// Write the rendered files (after any retention mask), then the ranked tail, the output
 /// cap, the post-cap source observations and the relation blocks. Returns the output and
 /// the number of body blocks the retention mask actually replaced.
-fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (SearchOutput, usize) {
+fn finish_detail(
+    state: DetailState,
+    filter: Option<jev::FilterOutcome>,
+    call_candidates: Option<(&jev::FilterInput, &jev::FilterResult)>,
+) -> (SearchOutput, usize) {
     let DetailState {
         mut text,
         files,
@@ -1423,6 +1421,21 @@ fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (Sea
             })
         })
         .collect();
+    // Plan candidate text once before allocating relation space. Empty or ineligible
+    // candidates must not reduce that space; nonempty candidates keep the existing reserve.
+    let call_candidate_text = if let Some((input, result)) = call_candidates {
+        let start = text.len();
+        jev::append_call_candidates(
+            &mut text,
+            input,
+            result,
+            &published_snapshot,
+            workspace_scope,
+        );
+        text.split_off(start)
+    } else {
+        String::new()
+    };
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
     if !is_partial && !is_warming && !is_dead && !has_refresh_error {
@@ -1434,7 +1447,7 @@ fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (Sea
             grouped::RelationOptions {
                 should_include_calls: caller_context_enabled,
                 should_include_events,
-                byte_cap: if filter.is_some() {
+                byte_cap: if !call_candidate_text.is_empty() {
                     byte_cap.saturating_sub(4096)
                 } else {
                     byte_cap
@@ -1443,6 +1456,7 @@ fn finish_detail(state: DetailState, filter: Option<jev::FilterOutcome>) -> (Sea
             &mut display,
         );
     }
+    text.push_str(&call_candidate_text);
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started

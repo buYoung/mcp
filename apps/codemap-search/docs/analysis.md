@@ -66,7 +66,7 @@ Totals cover all matching files, not just the displayed page. An activity path f
 - **`Reads`** counts files with returned source rows or search excerpts, once per file per successful response. Path-only and declaration/relation-only responses and failed calls contribute to calls/response volume but not reads. A file represented only by Jev omission notes is not a source read.
 - **Repeated reads** are responses after a file's first appearance. They may cover different ranges or revisions; they are not evidence of wasted tokens.
 - **`File size`** is the latest disk size recorded within the window. Unknown sizes are `?` and excluded from size totals.
-- **`Results`** measures UTF-8 bytes in delivered per-file source/excerpt blocks, including their line/path prefixes. It is measured after source-stage masking and search-only Jev selection before rendering, but before response-wide masking. Omitted bodies and Jev omission notes do not count as delivered source. Read and grep retain their original source path and never apply Jev filtering.
+- **`Results`** measures UTF-8 bytes in delivered per-file source/excerpt blocks, including their line/path prefixes. It is measured after source-stage masking and Jev selection (search before rendering; read/grep over frozen live output), but before response-wide masking. Omitted bodies and Jev omission notes do not count as delivered source. Common source deduplication then adjusts the retained byte count; find is not deduplicated.
 - **`Response`** measures final masked content text or error messages, including declarations, relations, headings and omission notes, but excluding JSON framing.
 - **Processing time** covers server request handling, excluding SQLite recording and client/network time.
 

@@ -102,7 +102,7 @@ fn request(
                 "links":"Call links are bounded indexed name-resolution candidates, not verified target identity. Caller/callee source, when available, is at the named source_reference; no_source describes the search display, not that supporting excerpt. Event context preserves its static identity and qualifiers. Missing target or caller evidence must remain uncertain rather than being treated as an unrelated implementation."
             },
             "filter":{"group_index":group,"group_candidates":entities.len(),"displayed_files":input.file_count,
-                "displayed_declarations":input.entities.len(),"evidence_version":EVIDENCE_VERSION,"question_version":QUESTION_VERSION}
+                "displayed_declarations":input.entities.len(),"evidence_version":input.evidence_version,"question_version":QUESTION_VERSION}
         }),
         questions,
     )

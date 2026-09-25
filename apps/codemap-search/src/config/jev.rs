@@ -1,5 +1,5 @@
-//! `[analysis.jev]`: optional TypeSafe Jev search body selection.
-//! Search is off by default.
+//! `[analysis.jev]`: optional TypeSafe Jev body selection for search/read/grep.
+//! All filters are off by default; live tools inherit search unless explicitly configured.
 //! Register the full task once through `initial_instructions`; enabled stages automatically
 //! use it for eligible calls. The API key comes from the environment variable named by
 //! `api_key_env`, never from configuration or tool arguments.
@@ -19,6 +19,9 @@ pub const DEFAULT_API_KEY_ENV: &str = "TYPESAFE_API_KEY";
 pub struct JevConfig {
     /// Mode #2: filter complete declaration bodies in `search` details.
     pub search_filter_enabled: bool,
+    /// Live body filters; omitted configuration inherits the resolved search flag.
+    pub read_filter_enabled: bool,
+    pub grep_filter_enabled: bool,
     /// Concrete provider model, validated against every response.
     pub model: String,
     /// Name of the environment variable that holds the TypeSafe API key.
@@ -39,6 +42,8 @@ impl Default for JevConfig {
         let https = crate::jev::HttpsSettings::default();
         Self {
             search_filter_enabled: false,
+            read_filter_enabled: false,
+            grep_filter_enabled: false,
             model: evaluator.model,
             api_key_env: DEFAULT_API_KEY_ENV.into(),
             timeout_ms: evaluator.deadline.as_millis() as u64,
@@ -54,7 +59,7 @@ impl Default for JevConfig {
 
 impl JevConfig {
     pub fn is_any_enabled(&self) -> bool {
-        self.search_filter_enabled
+        self.search_filter_enabled || self.read_filter_enabled || self.grep_filter_enabled
     }
 
     /// The runtime settings this configuration selects (validated by the evaluator).
@@ -85,6 +90,8 @@ impl JevConfig {
 #[derive(Default, PartialEq)]
 pub(super) struct JevLayer {
     search_filter_enabled: Option<bool>,
+    read_filter_enabled: Option<bool>,
+    grep_filter_enabled: Option<bool>,
     model: Option<String>,
     api_key_env: Option<String>,
     timeout_ms: Option<u64>,
@@ -209,6 +216,12 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
             "search_filter_enabled" => {
                 layer.search_filter_enabled = super::as_bool(value, &label, path)
             }
+            "read_filter_enabled" => {
+                layer.read_filter_enabled = super::as_bool(value, &label, path)
+            }
+            "grep_filter_enabled" => {
+                layer.grep_filter_enabled = super::as_bool(value, &label, path)
+            }
             "model" => layer.model = super::as_nonempty_string(value, &label, path),
             "api_key_env" => layer.api_key_env = as_env_var_name(value, &label, path),
             "timeout_ms" => layer.timeout_ms = as_safe_timeout_ms(value, &label, path),
@@ -237,11 +250,20 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
 
 pub(super) fn merge(repo: JevLayer, global: JevLayer) -> JevConfig {
     let defaults = JevConfig::default();
+    let search_filter_enabled = repo
+        .search_filter_enabled
+        .or(global.search_filter_enabled)
+        .unwrap_or(defaults.search_filter_enabled);
     JevConfig {
-        search_filter_enabled: repo
-            .search_filter_enabled
-            .or(global.search_filter_enabled)
-            .unwrap_or(defaults.search_filter_enabled),
+        search_filter_enabled,
+        read_filter_enabled: repo
+            .read_filter_enabled
+            .or(global.read_filter_enabled)
+            .unwrap_or(search_filter_enabled),
+        grep_filter_enabled: repo
+            .grep_filter_enabled
+            .or(global.grep_filter_enabled)
+            .unwrap_or(search_filter_enabled),
         model: repo.model.or(global.model).unwrap_or(defaults.model),
         api_key_env: repo
             .api_key_env

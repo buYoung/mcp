@@ -304,10 +304,16 @@ impl InProcessClient {
         }
         let original = std::fs::read_to_string(&path).unwrap();
         let mut config: toml::Value = toml::from_str(&original).unwrap();
-        config["analysis"]["jev"]
-            .as_table_mut()
-            .unwrap()
-            .insert("search_filter_enabled".into(), toml::Value::Boolean(false));
+        for key in [
+            "search_filter_enabled",
+            "read_filter_enabled",
+            "grep_filter_enabled",
+        ] {
+            config["analysis"]["jev"]
+                .as_table_mut()
+                .unwrap()
+                .insert(key.into(), toml::Value::Boolean(false));
+        }
         std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
         codemap_search::config::reload(&root);
         let response = self

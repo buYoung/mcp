@@ -654,15 +654,17 @@ async fn test_caller_context_repo_off_is_byte_identical() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let omitted = client
-        .send_tool_until("search", serde_json::json!({ "query": "target" }), |t| {
-            t.contains("target") && !t.contains("warming up")
-        })
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "target", "include_seen": true }),
+            |t| t.contains("target") && !t.contains("warming up"),
+        )
         .await
         .unwrap();
     let explicit_false = client
         .send_tool_until(
             "search",
-            serde_json::json!({ "query": "target", "caller_context": false }),
+            serde_json::json!({ "query": "target", "caller_context": false, "include_seen": true }),
             |t| t.contains("target") && !t.contains("warming up"),
         )
         .await
@@ -994,7 +996,7 @@ export function dropMe(input: string): string {
             let response = client.receive().await.unwrap();
             let text = response_text(&response);
             assert!(
-                text.contains("- _omitted body: L10-15 (fn dropMe) did not match the task questions; read src/budget.ts offset 10 limit 6 to restore._"),
+                text.contains("- _omitted body: L10-15 (fn dropMe) did not match the task questions; read src/budget.ts offset 10 limit 6 to inspect._"),
                 "{text}"
             );
             assert!(!text.contains("input.split"), "the omitted body is gone: {text}");

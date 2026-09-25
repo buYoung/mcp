@@ -1,4 +1,4 @@
-//! Actual MCP regressions for original source despite retired live-filter flags. Judges never run;
+//! Actual MCP regressions for task-based read/grep filtering;
 //! SQLite assertions inspect the real final response accounting, not a copied policy.
 use super::helpers::{
     create_mock_repo, response_text, with_in_process_server_logging as run_server, InProcessClient,
@@ -43,7 +43,7 @@ fn judge() -> MockEvaluator {
                 let name = q.instructions()["candidate"]["name"].as_str().unwrap();
                 (
                     q.id().clone(),
-                    answers::noul(if name == "keepBody" { 0.01 } else { 0.99 }),
+                    answers::noul(if name == "keepBody" { 0.99 } else { 0.01 }),
                 )
             })
             .collect())
@@ -58,9 +58,17 @@ async fn with_in_process_server_logging<F, Fut>(
     F: FnOnce(InProcessClient) -> Fut,
     Fut: std::future::Future<Output = ()>,
 {
-    run_server(root, evaluator, should_record_calls, |client| async move {
-        script(client).await;
-    })
+    run_server(
+        root,
+        evaluator,
+        should_record_calls,
+        |mut client| async move {
+            client
+                .register_task("Find functions implementing the response output budget")
+                .await;
+            script(client).await;
+        },
+    )
     .await;
 }
 
@@ -115,7 +123,7 @@ fn observations(root: &Path, response: &Value) -> Vec<(String, u64)> {
         .unwrap()
 }
 #[tokio::test]
-async fn read_and_grep_preserve_original_bodies_and_record_delivered_bytes() {
+async fn read_and_grep_omit_unrelated_bodies_and_record_delivered_bytes() {
     for tool in ["read", "grep"] {
         for view in ["source", "full"] {
             let source = source();
@@ -132,18 +140,35 @@ async fn read_and_grep_preserve_original_bodies_and_record_delivered_bytes() {
                 assert_eq!(before.len(), 1);
                 let filtered = call(&mut client, tool, arguments(tool, view)).await;
                 let text = response_text(&filtered);
-                assert_eq!(text, response_text(&plain));
-                assert!(text.contains("UNRELATED_MARKER"));
+                assert!(text.contains("_omitted body:"));
+                assert!(!text.contains("UNRELATED_MARKER"));
                 assert!(text.contains("const reserve = footer.length + 8;"));
-                assert_eq!(observations(&root, &filtered), before);
-                assert_eq!(recorded.request_count(), 0);
+                let after = observations(&root, &filtered);
+                assert_eq!(after.len(), 1);
+                assert!(after[0].1 < before[0].1);
                 let (start, end) = drop_range();
-                let restored = call(&mut client, "read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source"})).await;
+                let plain_text = response_text(&plain);
+                let removed_bytes: usize = plain_text.split_inclusive('\n').filter(|row| {
+                    let row = row.trim_start();
+                    let number = if tool == "read" {
+                        row.split_once('→').map(|(number, _)| number)
+                    } else {
+                        let row = row.strip_prefix("src/budget.ts:").or_else(|| row.strip_prefix("src/budget.ts-")).unwrap_or(row);
+                        row.split_once([':', '-']).map(|(number, _)| number)
+                    };
+                    number.and_then(|number| number.parse::<usize>().ok())
+                        .is_some_and(|line| start <= line && line <= end)
+                }).map(str::len).sum();
+                assert_eq!(after[0].1, before[0].1 - removed_bytes as u64);
+                assert!(recorded.request_count() > 0);
+                let requests_before_restore = recorded.request_count();
+                let (start, end) = drop_range();
+                let restored = client.plain_call("read", json!({"file_path":"src/budget.ts","offset":start,"limit":end-start+1,"view":"source","include_seen":true})).await.unwrap();
                 for (i, line) in DROP.lines().enumerate() {
                     assert!(response_text(&restored).contains(&format!("{:>6}→{line}", start+i)));
                 }
                 assert!(!response_text(&restored).contains("_omitted body:"));
-                assert_eq!(recorded.request_count(), 0);
+                assert_eq!(recorded.request_count(), requests_before_restore);
                 assert_eq!(observations(&root, &restored)[0].1, response_text(&restored).len() as u64);
             }).await;
         }
@@ -186,7 +211,7 @@ async fn all_keep_and_provider_failure_preserve_text_and_source_observations() {
                 Ok(request
                     .questions()
                     .iter()
-                    .map(|q| (q.id().clone(), answers::noul(0.0)))
+                    .map(|q| (q.id().clone(), answers::noul(1.0)))
                     .collect())
             })
         };
@@ -215,7 +240,7 @@ async fn all_keep_and_provider_failure_preserve_text_and_source_observations() {
                         assert_eq!(observations(&root, &filtered), before);
                     }
                 }
-                assert_eq!(recorded.request_count(), 0);
+                assert!(recorded.request_count() > 0);
             },
         )
         .await;

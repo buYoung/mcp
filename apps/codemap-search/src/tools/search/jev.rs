@@ -1,4 +1,4 @@
-//! Search-only evaluation of registered task questions over bounded source evidence.
+//! Shared evaluation of registered task questions over bounded source evidence.
 //! Each candidate body appears once in its group state. Code composes separate Noul
 //! answers as all/any/uncertain decisions; it never reports a joint probability.
 //! Any required evaluation failure preserves the entire ordinary search response.
@@ -152,13 +152,19 @@ pub struct FilterEntity {
     pub unresolved_calls: usize,
     pub supporting_context: String,
     pub is_context_clipped: bool,
+    /// The body is complete, but an observed dependency or enclosing context is not.
+    /// A negative relevance score cannot establish irrelevance without that evidence.
+    pub has_missing_context: bool,
 }
 
 impl FilterEntity {
     /// A body is judged only when it is a callable displayed completely with a verified
     /// identity and usable text.
     pub fn is_judgeable(&self) -> bool {
-        self.is_callable && self.evidence == EvidenceStatus::Complete && !self.is_context_clipped
+        self.is_callable
+            && self.evidence == EvidenceStatus::Complete
+            && !self.is_context_clipped
+            && !self.has_missing_context
     }
 
     pub fn qualified_name(&self) -> String {
@@ -190,6 +196,8 @@ pub struct EvidenceSummary {
 /// declaration.
 #[derive(Clone, Debug)]
 pub struct FilterInput {
+    /// Capture contract of the producer; search and live tools build different evidence.
+    pub evidence_version: &'static str,
     pub task: RegisteredTask,
     pub search_arguments: Value,
     pub entities: Vec<FilterEntity>,
@@ -230,6 +238,7 @@ fn entity_index(
             unresolved_calls: 0,
             supporting_context: String::new(),
             is_context_clipped: false,
+            has_missing_context: false,
         });
         entities.len() - 1
     })
@@ -481,6 +490,7 @@ impl FilterInput {
 
         Self {
             task: task.masked(),
+            evidence_version: EVIDENCE_VERSION,
             search_arguments,
             entities,
             file_count: files.len(),
@@ -498,6 +508,9 @@ impl FilterInput {
         if entity.evidence != EvidenceStatus::Complete {
             return Some(RetentionReason::IncompleteEvidence(entity.evidence));
         }
+        if entity.has_missing_context || entity.is_context_clipped {
+            return Some(RetentionReason::MissingContext);
+        }
         if omission_note(entity).len() >= entity.body_bytes {
             return Some(RetentionReason::TooSmallToOmit);
         }
@@ -506,6 +519,8 @@ impl FilterInput {
             let container = &self.entities[parent];
             if (!container.is_callable
                 || container.evidence != EvidenceStatus::Complete
+                || container.has_missing_context
+                || container.is_context_clipped
                 || omission_note(container).len() >= container.body_bytes)
                 && container.displayed.is_some_and(|(first, last)| {
                     first <= entity.symbol.start_line && entity.symbol.end_line <= last
@@ -588,6 +603,8 @@ pub enum RetentionReason {
     /// The body is not displayed completely, is oversized, could not be identified in the
     /// displayed buffer, or is masked beyond use, so no judgment is fair.
     IncompleteEvidence(EvidenceStatus),
+    /// Required supporting evidence is unavailable or exceeds the context budget.
+    MissingContext,
     /// Judgeable, but the evaluation returned no answer for it.
     NoJudgment,
     /// Judged unrelated, but its rendered body is no larger than the omission note that
@@ -609,6 +626,7 @@ impl RetentionReason {
             Self::Uncertain => "uncertain",
             Self::NotCallable => "not_callable",
             Self::IncompleteEvidence(_) => "incomplete_evidence",
+            Self::MissingContext => "missing_context",
             Self::NoJudgment => "no_judgment",
             Self::TooSmallToOmit => "too_small_to_omit",
             Self::ConnectedToRetained(_) => "connected_to_retained",
@@ -623,6 +641,7 @@ impl RetentionReason {
             self,
             Self::NotCallable
                 | Self::IncompleteEvidence(_)
+                | Self::MissingContext
                 | Self::Uncertain
                 | Self::NoJudgment
                 | Self::TooSmallToOmit
@@ -868,7 +887,7 @@ impl FilterResult {
                 ..timing
             },
             requests,
-            evidence_version: EVIDENCE_VERSION,
+            evidence_version: input.evidence_version,
             question_version: QUESTION_VERSION,
             policy_version: POLICY_VERSION,
         }
@@ -938,6 +957,10 @@ pub async fn evaluate(
         return bypass(
             if input.evidence_summary().complete == 0 {
                 "no_complete_bodies"
+            } else if input.entities.iter().any(|entity| {
+                entity.evidence == EvidenceStatus::Complete && entity.has_missing_context
+            }) {
+                "missing_context"
             } else {
                 "no_shrinkable_bodies"
             },
@@ -1095,17 +1118,17 @@ pub async fn evaluate(
             ..timing
         },
         requests,
-        evidence_version: EVIDENCE_VERSION,
+        evidence_version: input.evidence_version,
         question_version: QUESTION_VERSION,
         policy_version: POLICY_VERSION,
     }
 }
 
 /// The inline note that replaces an omitted body. It keeps the declaration identity and
-/// the exact `read` arguments, so the reader can restore the evidence in one call.
+/// the exact read range. Tool guidance describes the read filter opt-out for recovery.
 pub fn omission_note(entity: &FilterEntity) -> String {
     format!(
-        "- _omitted body: L{start}-{end} ({kind} {name}) did not match the task questions; read {path} offset {start} limit {lines} to restore._\n",
+        "- _omitted body: L{start}-{end} ({kind} {name}) did not match the task questions; read {path} offset {start} limit {lines} to inspect._\n",
         start = entity.symbol.start_line,
         end = entity.symbol.end_line,
         kind = entity.symbol.kind,
@@ -1126,7 +1149,7 @@ pub fn summary_note(result: &FilterResult) -> String {
             protected,
             linked,
         } => format!(
-            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Omitted ranges are noted inline; use read to restore them._\n",
+            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Omitted ranges and recovery conditions are noted inline._\n",
             policy = POLICY_VERSION,
             threshold = result.effective_threshold,
             uncertain = result.decisions.iter().filter(|decision| decision.reason == Some(RetentionReason::Uncertain)).count(),

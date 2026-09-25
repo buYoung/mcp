@@ -27,7 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
-| `analysis.jev` | Optional search-only task judgments; off by default |
+| `analysis.jev` | Optional search/read/grep task judgments; off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -212,6 +212,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
 | `[analysis.jev].search_filter_enabled` | bool | `false` | Automatically filter complete, identity-verified search bodies against the registered task, leaving read notes |
+| `[analysis.jev].read_filter_enabled` | bool | inherit resolved search flag | Filter complete returned read bodies; explicit false disables only read |
+| `[analysis.jev].grep_filter_enabled` | bool | inherit resolved search flag | Filter complete returned grep bodies in content mode; file/count modes stay local |
 | `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
 | `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
 | `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
@@ -838,11 +840,11 @@ search_filter_enabled = true
 export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
 ```
 
-Jev search is off by default. Enabling it permits external requests only for search. `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `search_filter_enabled=true` enables search and, unless overridden, read and grep. Explicit `read_filter_enabled` and `grep_filter_enabled` values take precedence per tool; omitted values inherit the resolved search flag. `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
 ### Task registration
 
-When `search_filter_enabled=true`, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns `-32602`. Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
+When any Jev filter is enabled, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns `-32602`. Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
 
 ```json
 {
@@ -865,9 +867,9 @@ When `search_filter_enabled=true`, the main agent derives focused yes/no questio
 | `match` | `all` (default) or `any`; no nested expressions |
 | Whole registration | At most 65,536 encoded JSON bytes; question fields do not accept nested values |
 
-Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve ordinary search output.
+Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
 
-Only enabled search advertises `openWorldHint: true`; every tool remains read-only. Overview, read and grep always use local original evidence without registration or credentials. Retired overview/read/grep enable flags warn and are ignored, preserving unrelated configuration values. Ordinary `read` of an omitted location restores its source without changing settings.
+Each enabled search/read/grep filter advertises `openWorldHint: true`; every tool remains read-only. Overview, find and analyze do not invoke Jev. Read/grep flags are supported; retired overview enable flags still warn and are ignored. For unfiltered read recovery, set `analysis.jev.read_filter_enabled=false`. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 
@@ -879,7 +881,7 @@ Flow criteria include source-backed delegation, payload construction and validat
 
 Partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments. Non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
 
-Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller/callee source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base search response. Exact `event_key` maps bypass selection.
+Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller/callee source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base response of that tool. Exact `event_key` maps bypass selection.
 
 ### Selection before rendering
 
@@ -893,11 +895,19 @@ Each candidate receives its prepared annotations and scoped event evidence indep
 
 After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive composed task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them.
 
-Compact omission notes preserve source locations and ordinary read recovery. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations.
+Compact omission notes preserve source locations and the conditions for read recovery. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations.
+
+### Live read/grep selection
+
+Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. Complete returned function/method bodies are eligible in full/source views and grep source_grouped. Partial windows, clipped columns, unverified syntax/identity and oversized bodies remain visible. Declaration/relation views and grep file/count modes are not evaluated.
+
+Body completeness does not establish complete relevance evidence. Live selection collects same-file callers, callees and referenced declarations from the same fully masked buffer, within the existing evidence byte and link-count budgets. Those excerpts are Jev-only supporting context; they do not expand the returned source window. An imported implementation, unresolved non-local receiver, outer binding, ambiguous declaration or exhausted context budget keeps the affected body under `missing_context`, regardless of a negative score. Calls on locally declared values and parameters remain eligible when their required evidence is available. No repository-specific names or paths govern this rule, and no external files are read to fill missing context. These conservative cases can retain more source; token savings are not guaranteed.
+
+The registered task, all/any decisions, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
 
 ### Data sent to TypeSafe
 
-Only search sends the masked registered goal and questions, search arguments, eligible function bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
+Enabled search/read/grep filters send the masked registered goal and questions, tool arguments, eligible function bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
 
 ### Transport limits
 

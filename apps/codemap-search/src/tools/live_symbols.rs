@@ -2,6 +2,7 @@
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
+pub(crate) mod jev;
 mod locations;
 mod references;
 mod render;
@@ -39,19 +40,76 @@ pub(crate) struct LiveOutput {
     // Exact producer-written path prefixes to omit beneath a file heading.
     // Source view retains the original text, including these prefixes.
     pub path_prefixes: Vec<std::ops::Range<usize>>,
+    pub jev: jev::Capture,
 }
 
 impl LiveOutput {
-    fn append_file_source(&self, file: &LiveFileSpan, text: &mut String) {
+    pub(crate) fn source_files(
+        &self,
+        options: LiveOptions,
+    ) -> Vec<crate::analyze::FileObservation> {
+        use crate::tools::live_options::LiveView;
+        if !matches!(
+            options.view,
+            LiveView::Full | LiveView::Source | LiveView::SourceGrouped
+        ) {
+            return Vec::new();
+        }
+        let mut files = self
+            .source_ranges
+            .iter()
+            .map(|(path, _, _)| (path.as_str(), 0u64))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for span in &self.files {
+            if let Some(bytes) = files.get_mut(span.file_path.as_str()) {
+                let mut result_bytes = span.end_byte.saturating_sub(span.start_byte);
+                if matches!(options.view, LiveView::Full | LiveView::SourceGrouped) {
+                    // Full view removes the producer-written path prefixes under file headings.
+                    let prefix_bytes = self
+                        .path_prefixes
+                        .iter()
+                        .filter(|prefix| {
+                            span.start_byte <= prefix.start && prefix.end <= span.end_byte
+                        })
+                        .map(|prefix| prefix.end - prefix.start)
+                        .sum::<usize>();
+                    result_bytes = result_bytes.saturating_sub(prefix_bytes);
+                }
+                *bytes = bytes.saturating_add(result_bytes as u64);
+            }
+        }
+        files
+            .into_iter()
+            .map(|(path, result_bytes)| crate::analyze::FileObservation {
+                path: path.into(),
+                result_bytes,
+            })
+            .collect()
+    }
+
+    fn append_file_source(
+        &self,
+        file: &LiveFileSpan,
+        text: &mut String,
+        copies: &mut Vec<jev::SourceCopy>,
+    ) {
         let mut start = file.start_byte;
         for prefix in self
             .path_prefixes
             .iter()
             .filter(|prefix| file.start_byte <= prefix.start && prefix.end <= file.end_byte)
         {
+            copies.push(jev::SourceCopy {
+                original: start..prefix.start,
+                rendered_start: text.len(),
+            });
             text.push_str(&self.text[start..prefix.start]);
             start = prefix.end;
         }
+        copies.push(jev::SourceCopy {
+            original: start..file.end_byte,
+            rendered_start: text.len(),
+        });
         text.push_str(&self.text[start..file.end_byte]);
     }
 
@@ -132,9 +190,18 @@ pub(super) fn bounded_notice(notice: &str, cap: usize) -> String {
     }
 }
 
-fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> String {
+fn frame(
+    output: &LiveOutput,
+    contexts: &[String],
+    options: LiveOptions,
+    copies: &mut Vec<jev::SourceCopy>,
+) -> String {
     let mut text = String::from("# codemap-search\n\n");
     if output.files.is_empty() {
+        copies.push(jev::SourceCopy {
+            original: 0..output.text.len(),
+            rendered_start: text.len(),
+        });
         text.push_str(&output.text);
     } else {
         text.push_str(if options.view == LiveView::SourceGrouped {
@@ -174,7 +241,7 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
                 if options.view == LiveView::Full {
                     text.push_str("\n### results\n");
                 }
-                output.append_file_source(file, &mut text);
+                output.append_file_source(file, &mut text, copies);
             }
         }
         if let Some(footer) = &output.footer {
@@ -193,13 +260,18 @@ fn frame(output: &LiveOutput, contexts: &[String], options: LiveOptions) -> Stri
 
 /// Source stays byte-for-byte compatible. Rich views reserve every returned source
 /// row and file heading before sharing one bounded context budget across files.
-pub(crate) fn append(
+fn render(
     engine: &EngineSupervisor,
     output: LiveOutput,
     output_byte_cap: Option<usize>,
     options: LiveOptions,
+    copies: &mut Vec<jev::SourceCopy>,
 ) -> Result<String, (i64, String)> {
     if options.view == LiveView::Source {
+        copies.push(jev::SourceCopy {
+            original: 0..output.text.len(),
+            rendered_start: 0,
+        });
         let text = if output.notices.is_empty() {
             output.text
         } else {
@@ -215,7 +287,7 @@ pub(crate) fn append(
         return Ok(text);
     }
     if options.view == LiveView::SourceGrouped {
-        let text = frame(&output, &[], options);
+        let text = frame(&output, &[], options, copies);
         if output_byte_cap.is_some_and(|cap| text.len() > cap) {
             return Err((
                 -32602,
@@ -224,14 +296,19 @@ pub(crate) fn append(
         }
         return Ok(text);
     }
-    let empty = frame(&output, &vec![String::new(); output.files.len()], options);
+    let empty = frame(
+        &output,
+        &vec![String::new(); output.files.len()],
+        options,
+        &mut Vec::new(),
+    );
     let limit = output_byte_cap.unwrap_or(usize::MAX);
     if empty.len() > limit {
         return Err((-32602, "Read window leaves no room for file/section headers; retry with a smaller limit or view=source.".into()));
     }
     let cap = limit.saturating_sub(empty.len()).min(PAYLOAD_BYTE_CAP * 2);
     let contexts = context::build(engine, &output, cap, options);
-    let text = frame(&output, &contexts, options);
+    let text = frame(&output, &contexts, options, copies);
     if text.len() > limit {
         return Err((
             -32602,
@@ -240,4 +317,30 @@ pub(crate) fn append(
         ));
     }
     Ok(text)
+}
+
+pub(crate) struct PreparedLiveOutput {
+    pub text: String,
+    pub source_files: Vec<crate::analyze::FileObservation>,
+    pub capture: jev::Capture,
+    pub copies: Vec<jev::SourceCopy>,
+}
+
+/// Freeze the exact rendered response and source mappings before asynchronous judgment.
+pub(crate) fn prepare(
+    engine: &EngineSupervisor,
+    mut output: LiveOutput,
+    output_byte_cap: Option<usize>,
+    options: LiveOptions,
+) -> Result<PreparedLiveOutput, (i64, String)> {
+    let source_files = output.source_files(options);
+    let capture = std::mem::take(&mut output.jev);
+    let mut copies = Vec::new();
+    let text = render(engine, output, output_byte_cap, options, &mut copies)?;
+    Ok(PreparedLiveOutput {
+        text,
+        source_files,
+        capture,
+        copies,
+    })
 }

@@ -91,7 +91,7 @@ pub(crate) fn parse(
     }
     if !is_required && arguments.get("questions").is_none() {
         // Disabled Jev keeps ordinary initialization and legacy text-only initialization
-        // usable, but cannot leave an incomplete task for a later enabled search.
+        // usable, but cannot leave an incomplete task for a later enabled filter.
         if let Some(goal) = arguments.get("task_query").filter(|value| !value.is_null()) {
             if !goal.is_string() {
                 return Err(invalid("task_query must be a string"));
@@ -100,7 +100,7 @@ pub(crate) fn parse(
         return Ok(None);
     }
     let mut task: RegisteredTask = serde_json::from_value(arguments.clone())
-        .map_err(|_| invalid("a goal and a nonempty structured questions list are required; legacy text-only registration is unsupported when search filtering is enabled"))?;
+        .map_err(|_| invalid("a goal and a nonempty structured questions list are required; legacy text-only registration is unsupported when Jev filtering is enabled"))?;
     task.validate()?;
     for (index, question) in task.questions.iter_mut().enumerate() {
         question.id = format!("q{index}");

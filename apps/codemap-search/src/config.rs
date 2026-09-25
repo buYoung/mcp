@@ -104,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 25;
+const CONFIG_VERSION: u32 = 26;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -1537,13 +1537,28 @@ const MIGRATIONS: &[Migration] = &[
         english_block: "# Include test regions in automatic symbol/call context. Live read/grep source is unchanged.\n# should_include_test_code = false",
         korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
     },
+    Migration {
+        version: 26,
+        key: "read_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Omitted live-tool flags inherit search_filter_enabled; explicit false disables only that tool.\n# read_filter_enabled = false",
+        korean_block: "# 생략한 도구별 설정은 search_filter_enabled를 따릅니다. 명시한 false는 해당 도구만 끕니다.\n# read_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "grep_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Omitted: inherit search_filter_enabled. Only complete source bodies are eligible.\n# grep_filter_enabled = false",
+        korean_block: "# 생략하면 search_filter_enabled를 따릅니다. 완전한 소스 본문만 판단합니다.\n# grep_filter_enabled = false",
+    },
+
 ];
 
 /// v24: the whole `[analysis.jev]` section as one commented block. The header line carries
 /// the presence guard (`jev`), so a file that already has the section is never touched.
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Optional TypeSafe Jev body filters, off by default. Register the full task once through
-# initial_instructions(task_query, questions); enabled search then applies automatically.
+# initial_instructions(task_query, questions); enabled search/read/grep then apply automatically.
 # The API key comes from the environment variable named below.
 # Omit complete, identity-verified declaration bodies from search details that Jev judges
 # unrelated to the task_query; each omitted body leaves an inline note with the exact read
@@ -1571,7 +1586,7 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # 선택적 TypeSafe Jev 본문 필터이며 기본으로 꺼져 있습니다. initial_instructions(task_query, questions)로
-# 전체 목적을 한 번 등록하면 켜진 search가 자동 적용되며,
+# 전체 목적을 한 번 등록하면 켜진 search/read/grep이 자동 적용되며,
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
 # search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
 # 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는

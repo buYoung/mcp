@@ -6,6 +6,7 @@
 
 mod jev;
 pub mod protocol;
+mod source_history;
 
 use crate::index::EngineSupervisor;
 use crate::tools::ToolContext;
@@ -13,47 +14,6 @@ use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
 use std::path::Path;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
-
-fn returned_source_files(
-    output: &crate::tools::live_symbols::LiveOutput,
-    options: crate::tools::live_options::LiveOptions,
-) -> Vec<crate::analyze::FileObservation> {
-    use crate::tools::live_options::LiveView;
-    if !matches!(
-        options.view,
-        LiveView::Full | LiveView::Source | LiveView::SourceGrouped
-    ) {
-        return Vec::new();
-    }
-    let mut files = output
-        .source_ranges
-        .iter()
-        .map(|(path, _, _)| (path.as_str(), 0u64))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    for span in &output.files {
-        if let Some(bytes) = files.get_mut(span.file_path.as_str()) {
-            let mut result_bytes = span.end_byte.saturating_sub(span.start_byte);
-            if matches!(options.view, LiveView::Full | LiveView::SourceGrouped) {
-                // Full view removes the producer-written path prefixes under file headings.
-                let prefix_bytes = output
-                    .path_prefixes
-                    .iter()
-                    .filter(|prefix| span.start_byte <= prefix.start && prefix.end <= span.end_byte)
-                    .map(|prefix| prefix.end - prefix.start)
-                    .sum::<usize>();
-                result_bytes = result_bytes.saturating_sub(prefix_bytes);
-            }
-            *bytes = bytes.saturating_add(result_bytes as u64);
-        }
-    }
-    files
-        .into_iter()
-        .map(|(path, result_bytes)| crate::analyze::FileObservation {
-            path: path.into(),
-            result_bytes,
-        })
-        .collect()
-}
 
 /// Search/read already construct bounded output. Other tools reject an oversized
 /// response only when a new common or per-tool response budget was explicitly set.
@@ -87,6 +47,8 @@ pub struct McpServer {
     active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
+    source_history: source_history::SourceHistory,
+    source_history_config: Option<std::sync::Arc<crate::config::ResolvedConfig>>,
     // Task context is connection-local, registered once through initial_instructions.
     // Credentials/evaluator remain separate and are resolved only for enabled stages.
     registered_task: Option<crate::tools::task::RegisteredTask>,
@@ -100,6 +62,8 @@ impl McpServer {
             active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
+            source_history: source_history::SourceHistory::default(),
+            source_history_config: None,
             registered_task: None,
             jev: jev::JevHost::default(),
         }
@@ -255,8 +219,16 @@ impl McpServer {
                     };
 
                     if let Ok(resp_str) = serde_json::to_string(&resp) {
-                        let _ = stdout.write_all(format!("{}\n", resp_str).as_bytes()).await;
-                        let _ = stdout.flush().await;
+                        if stdout
+                            .write_all(format!("{}\n", resp_str).as_bytes())
+                            .await
+                            .is_ok()
+                            && stdout.flush().await.is_ok()
+                        {
+                            self.source_history.commit_written();
+                        } else {
+                            self.source_history.discard_pending();
+                        }
                     }
                 }
                 Ok(None) => break,
@@ -278,6 +250,18 @@ impl McpServer {
         let _redact_scope = crate::redact::begin_request();
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
+        let config = crate::config::get();
+        // A new output/permission/masking configuration starts a fresh delivery
+        // history. Compare the pinned snapshot, including across in-flight reloads.
+        if self
+            .source_history_config
+            .as_ref()
+            .is_none_or(|previous| !std::sync::Arc::ptr_eq(previous, &config))
+        {
+            self.source_history.clear();
+            self.source_history_config = Some(config);
+        }
+        self.source_history.begin_request();
         let tool_name = (method == "tools/call")
             .then(|| {
                 params
@@ -296,10 +280,46 @@ impl McpServer {
                 }
                 tool_name
                     .map_or(Ok(()), |name| enforce_response_cap(name, &value))
-                    .map(|()| value)
+                    .map(|()| {
+                        if let Some(name) = tool_name {
+                            let empty = serde_json::json!({});
+                            let arguments =
+                                params.and_then(|p| p.get("arguments")).unwrap_or(&empty);
+                            let folded = self.source_history.prepare(name, arguments, &mut value);
+                            for file in &mut self.pending_source_files {
+                                if let Some(bytes) = folded.removed_source_bytes.get(&file.path) {
+                                    file.result_bytes =
+                                        file.result_bytes.saturating_sub(*bytes as u64);
+                                }
+                            }
+                            self.pending_source_files
+                                .retain(|file| file.result_bytes > 0);
+                            if matches!(name, "search" | "read" | "grep") {
+                                tracing::info!(
+                                    tool = name,
+                                    folded_spans = folded.spans,
+                                    folded_lines = folded.lines,
+                                    saved_bytes = folded.saved_bytes,
+                                    "source delivery history"
+                                );
+                            }
+                        }
+                        value
+                    })
             }
             Err((code, message)) => Err((code, crate::redact::source(&message).into_owned())),
         };
+        // Removing a very short repeat may add a slightly longer marker. Check
+        // the final response too, and never commit evidence from a rejected one.
+        let result = result.and_then(|value| {
+            if let Some(name) = tool_name {
+                enforce_response_cap(name, &value)?;
+            }
+            Ok(value)
+        });
+        if result.is_err() {
+            self.source_history.discard_pending();
+        }
         if let Some(name) = tool_name {
             let response_bytes = match &result {
                 Ok(value) => value
@@ -331,6 +351,7 @@ impl McpServer {
         match method {
             "initialize" => {
                 self.registered_task = None;
+                self.source_history.clear();
                 // Echo the client's requested protocolVersion when we support it,
                 // otherwise fall back to our newest supported version (MCP negotiation).
                 const SUPPORTED_PROTOCOL_VERSIONS: &[&str] =
@@ -362,6 +383,9 @@ impl McpServer {
                     .ok_or_else(|| (-32602, "Missing tool name".to_string()))?;
                 let default_args = serde_json::Value::Object(serde_json::Map::new());
                 let arguments = params.get("arguments").unwrap_or(&default_args);
+                source_history::SourceHistory::validate_arguments(name, arguments)?;
+                let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);
+                let arguments = tool_arguments.as_ref();
 
                 match name {
                     "analyze" => {
@@ -426,47 +450,21 @@ impl McpServer {
                             ]
                         }))
                     }
-                    "read" => {
-                        let options = crate::tools::live_options::LiveOptions::parse(arguments)?;
-                        let output = crate::tools::read::read_file_with_metadata(arguments)?;
-                        self.pending_source_files = returned_source_files(&output, options);
-                        let text = crate::tools::live_symbols::append(
+                    "read" | "grep" => {
+                        let output = jev::live(
+                            &mut self.jev,
                             &self.engine,
-                            output,
-                            Some(crate::config::get().read_output_byte_cap),
-                            options,
-                        )?;
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": text }]
-                        }))
+                            if name == "read" { "read" } else { "grep" },
+                            arguments,
+                            self.registered_task.as_ref(),
+                            &crate::config::get(),
+                        )
+                        .await?;
+                        self.pending_source_files = output.source_files;
+                        Ok(serde_json::json!({"content": [{"type": "text", "text": output.text}]}))
                     }
                     "find" => {
                         let text = crate::tools::find::find_files(arguments)?;
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": text }]
-                        }))
-                    }
-                    "grep" => {
-                        let options =
-                            crate::tools::live_options::LiveOptions::parse_grep(arguments)?;
-                        let output = crate::tools::grep::grep_with_metadata(arguments)?;
-                        self.pending_source_files = returned_source_files(&output, options);
-                        let output_mode = arguments
-                            .get("output_mode")
-                            .and_then(|value| value.as_str())
-                            .unwrap_or("content");
-                        let text = if output_mode == "content" {
-                            crate::tools::live_symbols::append(
-                                &self.engine,
-                                output,
-                                options
-                                    .should_expand_callable
-                                    .then(|| crate::config::get().grep_output_byte_cap),
-                                options,
-                            )?
-                        } else {
-                            output.text
-                        };
                         Ok(serde_json::json!({
                             "content": [{ "type": "text", "text": text }]
                         }))
@@ -475,9 +473,10 @@ impl McpServer {
                         // A new registration replaces the old task; an invalid registration
                         // must not leave a previous task active for subsequent filtering.
                         self.registered_task = None;
+                        self.source_history.clear();
                         self.registered_task = crate::tools::task::parse(
                             arguments,
-                            crate::config::get().jev.search_filter_enabled,
+                            crate::config::get().jev.is_any_enabled(),
                         )?;
                         let text = if crate::codemap::looks_like_monorepo_workspace() {
                             // Match `overview` lifecycle behavior so the initial response can

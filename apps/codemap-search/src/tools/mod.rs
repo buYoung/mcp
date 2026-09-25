@@ -205,9 +205,9 @@ pub fn server_instructions() -> String {
     let mut text = include_str!("instructions/server.md")
         .trim_end()
         .to_string();
-    if crate::config::get().jev.search_filter_enabled {
+    if crate::config::get().jev.is_any_enabled() {
         text = text.replace("Call initial_instructions once without arguments before using the tools.",
-            "Before search, register this task through initial_instructions using its schema. IDs are automatic. Read/grep return original source without registration. Enabled search may send masked evidence to TypeSafe.");
+            "Before an enabled search/read/grep filter, register this task through initial_instructions using its schema. IDs are automatic. Enabled filters may send masked evidence to TypeSafe.");
     }
     text
 }
@@ -233,17 +233,17 @@ pub fn instructions() -> String {
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
 pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
     if get_arg(arguments, "task_query").is_some() {
-        return Err((-32602, "task_query is not a search option. Register the full task once with initial_instructions; enabled search runs automatically.".into()));
+        return Err((-32602, "task_query is not a per-tool option. Register the full task once with initial_instructions; enabled search/read/grep filters run automatically.".into()));
     }
     Ok(())
 }
 
-/// Navigation guidance for search task registration.
+/// Navigation guidance for shared task registration.
 fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
-    if !jev.search_filter_enabled {
+    if !jev.is_any_enabled() {
         return None;
     }
-    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows, their conditions, message contracts and relevant alternate routes in scope; missing evidence means uncertainty. Enabled search sends masked task/evidence to TypeSafe and preserves uncertain or unavailable evidence. Read/grep return original source without registration. Re-register only when the task changes.\n\nFor exhaustive flow requests, ranked matches and bounded caller lists are discovery evidence. Reconcile producers/callers at shared entry points with grep when needed; distinguish alternate paths. Before answering, use already-read evidence to check entry points, ordered failure/retry branches, conditional message fields and lifecycle. Explain material exceptions to the normal path and state any remaining coverage gaps. Follow-up call candidates need source verification; choose the next tool only for missing evidence.".into())
+    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows, their conditions, message contracts and relevant alternate routes in scope; missing evidence means uncertainty. Enabled search/read/grep filters send masked task/evidence to TypeSafe and preserve uncertain or unavailable evidence. include_seen only bypasses delivery deduplication. Disable analysis.jev.read_filter_enabled for unfiltered source recovery. Re-register only when the task changes.\n\nFor exhaustive flow requests, ranked matches and bounded caller lists are discovery evidence. Reconcile producers/callers at shared entry points with grep when needed; distinguish alternate paths. Before answering, use already-read evidence to check entry points, ordered failure/retry branches, conditional message fields and lifecycle. Explain material exceptions to the normal path and state any remaining coverage gaps. Follow-up call candidates need source verification; choose the next tool only for missing evidence.".into())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -298,11 +298,15 @@ pub fn list_tools() -> Value {
     let unresolved_description = "Unresolved call targets in full/relations: list gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
     let debug_description = "Legacy compatibility flag; does not change analysis or output.";
+    let include_seen_schema = serde_json::json!({
+        "type": "boolean", "default": false,
+        "description": "True restores repeated content; false omits it. Other filters and limits still apply."
+    });
     let search_path_description =
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
-    let read_description = format!(
+    let mut read_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/read.md").trim_end(),
@@ -316,7 +320,7 @@ pub fn list_tools() -> Value {
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = format!(
+    let mut grep_description = format!(
         "{}\n\n{}",
         filesystem_tool_description(
             include_str!("instructions/tools/grep.md").trim_end(),
@@ -326,9 +330,16 @@ pub fn list_tools() -> Value {
         include_str!("instructions/tools/grep.evidence.md").trim_end(),
     );
     let jev = &config.jev;
+    let live_filter_notice = "\n\nJev body filtering is enabled. Register task_query and questions once through initial_instructions. Complete returned callable bodies use those criteria; partial, uncertain or unavailable evidence stays. Masked evidence may be sent to TypeSafe. include_seen only bypasses delivery deduplication; disable analysis.jev.read_filter_enabled for unfiltered read recovery.";
+    if jev.read_filter_enabled {
+        read_description.push_str(live_filter_notice);
+    }
+    if jev.grep_filter_enabled {
+        grep_description.push_str(live_filter_notice);
+    }
     let search_description = if jev.search_filter_enabled {
         format!(
-            "{}\n\nJev body filter is enabled and runs automatically using the task goal and focused questions registered once through initial_instructions. Do not pass task_query to search. Missing registration is an error. Masked task questions and bounded candidate bodies/support may be sent to TypeSafe. Selection precedes final body rendering; unrelated bodies leave read-range notes, while uncertain evidence stays. Bodies with no possible selection benefit bypass evaluation. Credentials/provider failures and ineligible evidence preserve the base output. Ordinary read always restores original source; no configuration change or registration is needed.",
+            "{}\n\nJev body filter is enabled and runs automatically using the task goal and focused questions registered once through initial_instructions. Do not pass task_query to search. Missing registration is an error. Masked task questions and bounded candidate bodies/support may be sent to TypeSafe. Selection precedes final body rendering; unrelated bodies leave read-range notes, while uncertain evidence stays. Bodies with no possible selection benefit bypass evaluation. Credentials/provider failures and ineligible evidence preserve the base output. include_seen=true bypasses delivery deduplication only. Disable analysis.jev.read_filter_enabled for unfiltered read recovery.",
             include_str!("instructions/tools/search.md").trim_end()
         )
     } else {
@@ -343,6 +354,7 @@ pub fn list_tools() -> Value {
         serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.search_filter_enabled });
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -364,8 +376,8 @@ pub fn list_tools() -> Value {
     let initial_description = format!(
         "{}{}",
         include_str!("instructions/tools/initial_instructions.md").trim_end(),
-        if jev.search_filter_enabled {
-            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when Jev search is enabled. Call again when the task changes."
+        if jev.is_any_enabled() {
+            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when any Jev filter is enabled. Call again when the task changes."
         } else {
             ""
         }
@@ -376,7 +388,7 @@ pub fn list_tools() -> Value {
                         "name": "initial_instructions",
                         "description": initial_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": task::schema(jev.search_filter_enabled)
+                        "inputSchema": task::schema(jev.is_any_enabled())
                     },
                     {
                         "name": "overview",
@@ -407,10 +419,11 @@ pub fn list_tools() -> Value {
                     {
                         "name": "read",
                         "description": read_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.read_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
@@ -443,10 +456,11 @@ pub fn list_tools() -> Value {
                     {
                         "name": "grep",
                         "description": grep_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.grep_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "source_grouped", "definitions", "relations"], "default": "full", "description": format!("{live_view_description} source_grouped keeps all source rows under file headings without declaration/relationship work; prefer it for source inspection.") },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
