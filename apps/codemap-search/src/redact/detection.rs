@@ -1,7 +1,8 @@
 //! Find sensitive ranges in original source without changing its contents.
-use super::{is_enabled, pii, rules, syntax, text};
+use super::{cache, is_enabled, pii, rules, syntax, text};
 use std::ops::Range;
 use std::path::Path;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum DetectionKind {
@@ -31,10 +32,10 @@ impl Detection {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct SourceScan {
-    pub(super) detections: Vec<Detection>,
-    pub(super) literals: Vec<(Range<usize>, usize)>,
+    pub(super) detections: Arc<[Detection]>,
+    pub(super) literals: Arc<[(Range<usize>, usize)]>,
 }
 
 impl SourceScan {
@@ -42,8 +43,11 @@ impl SourceScan {
         if !is_enabled() {
             return Self::default();
         }
-        let syntax = syntax::parse(path, source).unwrap_or_default();
-        Self::collect(source, Some(path), syntax)
+        let _config_scope = crate::config::pin_request();
+        cache::source_scan(path, source, || {
+            syntax::parse(path, source).map(|syntax| Self::collect(source, Some(path), syntax))
+        })
+        .unwrap_or_else(|| Self::collect(source, Some(path), syntax::Context::default()))
     }
 
     pub(crate) fn with_tree(source: &str, tree: &tree_sitter::Tree) -> Self {
@@ -85,7 +89,7 @@ impl SourceScan {
         );
         detections.extend(syntax.detections);
         let mut scan = Self::finish(source, detections);
-        scan.literals = syntax.literals;
+        scan.literals = syntax.literals.into();
         scan
     }
 
@@ -103,14 +107,29 @@ impl SourceScan {
             (detection.range.start, detection.range.end, detection.kind)
         });
         Self {
-            detections,
-            literals: Vec::new(),
+            detections: detections.into(),
+            literals: Arc::default(),
         }
     }
 }
 
 pub(super) fn detect_patterns(source: &str) -> Vec<Detection> {
-    let mut detections = rules::detect(source);
-    detections.extend(pii::detect(source));
-    detections
+    patterns_with_context(source, true)
+}
+
+pub(super) fn detect_unambiguous_patterns(source: &str) -> Vec<Detection> {
+    patterns_with_context(source, false)
+}
+
+fn patterns_with_context(source: &str, can_use_labels: bool) -> Vec<Detection> {
+    let _config_scope = crate::config::pin_request();
+    cache::patterns(source, can_use_labels, || {
+        let mut detections = rules::detect(source);
+        detections.extend(if can_use_labels {
+            pii::detect(source)
+        } else {
+            pii::detect_unambiguous(source)
+        });
+        detections
+    })
 }

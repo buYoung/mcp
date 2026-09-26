@@ -143,6 +143,7 @@ impl Interpreter<'_, '_> {
                 fact.via.push(record.location.clone());
             }
         }
+        self.fact_eviction_candidate = None;
         let resolved = if !matches!(returned.kind.as_str(), "unknown" | "result") {
             returned
         } else {

@@ -2,6 +2,7 @@ use super::engine::*;
 use super::model::*;
 use super::syntax::*;
 use std::collections::BTreeSet;
+use std::sync::{Arc, OnceLock};
 
 impl Interpreter<'_, '_> {
     pub fn expression(&mut self, id: Option<NodeId>, depth: usize, is_read: bool) -> Value {
@@ -14,7 +15,10 @@ impl Interpreter<'_, '_> {
                 .insert(("expression_depth_cap".into(), self.identifier.clone()));
             return Value::unknown();
         }
-        let node = self.source.nodes[id].clone();
+        // Source nodes are immutable. Keep their owner alive instead of cloning
+        // every node's child/field/token collections during recursive evaluation.
+        let source = Arc::clone(&self.source);
+        let node = &source.nodes[id];
         let kind = node.kind.as_str();
         if self.is_polyglot() {
             if let Some(value) = self.polyglot_expression(id, depth, is_read) {
@@ -52,7 +56,9 @@ impl Interpreter<'_, '_> {
         ) {
             let text = self.source.text(Some(id));
             if kind == "template_string" && text.contains("${") {
-                let pattern = regex::Regex::new(r"\$\{([A-Za-z_$][\w$]*)\}").unwrap();
+                static INTERPOLATION: OnceLock<regex::Regex> = OnceLock::new();
+                let pattern = INTERPOLATION
+                    .get_or_init(|| regex::Regex::new(r"\$\{([A-Za-z_$][\w$]*)\}").unwrap());
                 let matches: Vec<_> = pattern.captures_iter(text).collect();
                 if !matches.is_empty() && matches.len() == text.matches("${").count() {
                     let values: std::collections::BTreeMap<_, _> = matches
@@ -313,7 +319,8 @@ impl Interpreter<'_, '_> {
         if matches!(kind, "tuple_expression" | "tuple") {
             let values: Vec<_> = node
                 .children
-                .into_iter()
+                .iter()
+                .copied()
                 .map(|part| self.expression(Some(part), depth + 1, true))
                 .collect();
             return Value::tuple(&values);
@@ -435,13 +442,14 @@ impl Interpreter<'_, '_> {
             self.statement(Some(id));
             return Value::unknown();
         }
-        for part in node.children {
+        for &part in &node.children {
             self.expression(Some(part), depth + 1, true);
         }
         Value::unknown()
     }
     pub fn member(&mut self, id: NodeId, depth: usize, is_read: bool) -> Value {
-        let node = self.source.nodes[id].clone();
+        let source = Arc::clone(&self.source);
+        let node = &source.nodes[id];
         let base_node = self
             .source
             .child(
@@ -580,7 +588,8 @@ impl Interpreter<'_, '_> {
         base.field(&field)
     }
     pub fn object_value(&mut self, id: NodeId, depth: usize) -> Value {
-        let node = self.source.nodes[id].clone();
+        let source = Arc::clone(&self.source);
+        let node = &source.nodes[id];
         let value = self.allocation(id, "");
         let type_node = self.source.child(id, &["type", "name"]);
         let type_text = self.source.text(type_node).to_owned();
