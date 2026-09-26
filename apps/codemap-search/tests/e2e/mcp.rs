@@ -371,7 +371,7 @@ async fn test_mcp_missing_arguments() {
         .await
         .unwrap();
 
-    assert!(response.get("error").is_some());
+    assert_eq!(response["result"]["isError"], true, "{response}");
 }
 
 #[tokio::test]
@@ -417,7 +417,7 @@ async fn test_mcp_path_traversal() {
         .await
         .unwrap();
 
-    assert!(response.get("error").is_some());
+    assert_eq!(response["result"]["isError"], true, "{response}");
 }
 
 #[tokio::test]
@@ -947,14 +947,14 @@ export function dropMe(input: string): string {
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
             let missing = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
-            assert_eq!(missing["error"]["code"], -32602, "missing registration is not an opt-out");
+            assert_eq!(missing["result"]["isError"], true, "missing registration is not an opt-out");
             let legacy = client.call("tools/call", json!({"name":"initial_instructions","arguments":{"task_query":TASK}})).await.unwrap();
-            assert_eq!(legacy["error"]["code"], -32602, "text-only registration is rejected");
+            assert_eq!(legacy["result"]["isError"], true, "text-only registration is rejected");
             client.register_task(TASK).await;
             let invalid = client.call("tools/call", json!({"name":"initial_instructions","arguments":{"task_query":TASK,"questions":[]}})).await.unwrap();
-            assert_eq!(invalid["error"]["code"], -32602);
+            assert_eq!(invalid["result"]["isError"], true);
             let stale = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
-            assert_eq!(stale["error"]["code"], -32602, "invalid replacement clears the previous registration");
+            assert_eq!(stale["result"]["isError"], true, "invalid replacement clears the previous registration");
             client.register_task(TASK).await;
             let response = client.plain_call("search", search_arguments()).await.unwrap();
             let plain = response_text(&response).to_string();
@@ -976,7 +976,9 @@ export function dropMe(input: string): string {
             assert_eq!(initial["inputSchema"]["required"], json!(["task_query","questions"]));
             assert_eq!(initial["inputSchema"]["properties"]["match"]["default"], "all");
             let search_tool = tool("search");
-            assert!(initial["description"].as_str().unwrap().contains("Jev filters complete bodies"));
+            let initial_description = initial["description"].as_str().unwrap();
+            assert!(initial_description.starts_with("Return shared navigation guidance"), "{initial_description}");
+            assert!(initial_description.contains("This tool's arguments register the task that Jev uses"), "{initial_description}");
             assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
@@ -1196,11 +1198,11 @@ export function dropMe(input: string): string {
             )
             .await
             .unwrap();
-        assert_eq!(response["error"]["code"], json!(-32602), "{response}");
-        assert!(response["error"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("task_query"));
+        assert_eq!(response["result"]["isError"], true, "{response}");
+        assert!(
+            response_text(&response).contains("task_query"),
+            "{response}"
+        );
         let response = client
             .send_request(
                 "tools/call",
@@ -1209,7 +1211,7 @@ export function dropMe(input: string): string {
             .await
             .unwrap();
         assert!(
-            response["error"].is_null(),
+            response["error"].is_null() && response["result"]["isError"] != true,
             "obsolete overview arguments are ignored: {response}"
         );
 

@@ -144,10 +144,10 @@ async fn test_all_pii_types_preserve_mcp_negotiation() {
         response["result"]["serverInfo"]["version"],
         env!("CARGO_PKG_VERSION")
     );
-    assert!(response["result"]["instructions"]
-        .as_str()
-        .unwrap()
-        .contains("tool_output.is_redact_enabled"));
+    assert_eq!(
+        response["result"]["instructions"],
+        codemap_search::tools::server_instructions()
+    );
     let response = client.send_request("tools/list", json!({})).await.unwrap();
     let tools = response["result"]["tools"].as_array().unwrap();
     let mut names: Vec<_> = tools
@@ -212,7 +212,10 @@ async fn test_selected_pii_rules_reach_mcp_source_and_indexed_outputs() {
     ];
     for (tool, arguments) in requests {
         let response = call(&mut client, tool, arguments).await;
-        assert!(response.get("error").is_none(), "{tool}: {response}");
+        assert!(
+            response.get("error").is_none() && response["result"]["isError"] != true,
+            "{tool}: {response}"
+        );
         for value in ["4111111111111111", "info@presidio.site", "321-54-9876"] {
             assert!(!response.to_string().contains(value), "{tool}: {response}");
         }
@@ -238,7 +241,7 @@ async fn test_selected_pii_rules_reach_mcp_source_and_indexed_outputs() {
         json!({"file_path":"info@presidio.site"}),
     )
     .await;
-    assert!(response.get("error").is_some());
+    assert_eq!(response["result"]["isError"], true, "{response}");
     assert!(
         !response.to_string().contains("info@presidio.site"),
         "{response}"

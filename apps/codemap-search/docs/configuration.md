@@ -831,7 +831,7 @@ Jev is off by default. `search_filter_enabled=true` enables search and, unless o
 
 ### Task registration
 
-When any Jev filter is enabled, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns `-32602`. Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
+When any Jev filter is enabled, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
 
 ```json
 {

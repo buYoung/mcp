@@ -140,7 +140,7 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
             )
             .await
             .unwrap();
-        assert!(response.get("error").is_some(), "{response}");
+        assert_eq!(response["result"]["isError"], true, "{response}");
     }
 }
 

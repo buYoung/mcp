@@ -830,7 +830,7 @@ Jev는 기본으로 꺼져 있습니다. `search_filter_enabled=true`이면 sear
 
 ### 작업 질문 등록
 
-Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `initial_instructions`로 한 번 등록합니다. `task_query`와 `questions`가 필수이며, 기존 텍스트만 등록하는 방식은 `-32602`를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. Jev가 꺼져 있으면 `initial_instructions({})`를 그대로 사용할 수 있습니다.
+Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `initial_instructions`로 한 번 등록합니다. `task_query`와 `questions`가 필수이며, 기존 텍스트만 등록하는 방식은 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. Jev가 꺼져 있으면 `initial_instructions({})`를 그대로 사용할 수 있습니다.
 
 ```json
 {

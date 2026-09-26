@@ -244,11 +244,8 @@ fn response_is_warming(response: &Value) -> bool {
 /// errors and genuinely unsupported files still surface after the same bounded window.
 fn overview_response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
     params.get("name").and_then(Value::as_str) == Some("overview")
-        && response
-            .get("error")
-            .and_then(|error| error.get("message"))
-            .and_then(Value::as_str)
-            .is_some_and(|message| message.contains("is not in the codemap"))
+        && response["result"]["isError"] == true
+        && response_text(response).contains("is not in the codemap")
 }
 
 // --- In-process server for offline Jev scenarios ---------------------------------------
@@ -287,7 +284,10 @@ impl InProcessClient {
             )
             .await
             .unwrap();
-        assert!(response["error"].is_null(), "{response}");
+        assert!(
+            response["error"].is_null() && response["result"]["isError"] != true,
+            "{response}"
+        );
     }
 
     /// Obtain the unfiltered baseline through the real MCP path with all Jev flags off.

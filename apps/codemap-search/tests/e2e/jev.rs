@@ -836,7 +836,10 @@ async fn test_jev_output_caps_bound_stage_output() {
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(response["error"].is_null(), "{response}");
+        assert!(
+            response["error"].is_null() && response["result"]["isError"] != true,
+            "{response}"
+        );
         assert!(
             text.len() <= 1600,
             "{} bytes exceed the 1600-byte cap: {text}",

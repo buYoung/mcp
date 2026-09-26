@@ -23,7 +23,7 @@ fn text(resp: &Value) -> String {
 }
 
 fn is_error(resp: &Value) -> bool {
-    resp.get("error").is_some()
+    resp.get("error").is_some() || resp["result"]["isError"] == true
 }
 
 fn sample_repo() -> tempfile::TempDir {

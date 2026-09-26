@@ -200,20 +200,39 @@ pub(crate) fn arg_required_str<'a>(
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }
 
-/// Shared connection-level bootstrap, embedded in the self-contained binary.
+/// Shared connection-level bootstrap, embedded in the self-contained binary. `server.md` is
+/// the format string, so literal braces in it must be written as `{{` and `}}`.
 pub fn server_instructions() -> String {
-    include_str!("instructions/server.md")
-        .trim_end()
-        .to_string()
+    format!(
+        include_str!("instructions/server.md"),
+        shell_commands = shell_command_replacements()
+    )
+    .trim_end()
+    .to_string()
 }
 
-/// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
+/// Shell commands of the host OS mapped to the tool to use instead. A stdio server runs on
+/// the same host as the agent's shell; other Unix-like targets share the Linux commands.
+fn shell_command_replacements() -> &'static str {
+    if cfg!(target_os = "windows") {
+        include_str!("instructions/server.windows.md")
+    } else if cfg!(target_os = "macos") {
+        include_str!("instructions/server.macos.md")
+    } else {
+        include_str!("instructions/server.linux.md")
+    }
+    .trim_end()
+}
+
+/// The `initial_instructions` tool result: shared navigation and output rules, with only
+/// scope-specific guidance added for monorepos. The tool description lives separately in
+/// `initial_instructions.md`.
 pub fn instructions() -> String {
-    let common = include_str!("instructions/navigation.md").trim_end();
+    let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
     if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
-            include_str!("instructions/navigation.monorepo.md").trim_end()
+            include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
@@ -268,7 +287,8 @@ fn filesystem_tool_description(
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`,
-/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled;
+/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled. `initial_instructions`
+/// instead appends its `.jev.md` to the base prose when any Jev stage is enabled;
 /// live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
 /// Shared option descriptions have one source here but remain on each independent tool schema.
@@ -277,13 +297,13 @@ pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
-    let live_view_description = "full returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
-    let unresolved_description = "Unresolved call targets in full/relations: list gives bounded names plus a count; count hides the names.";
+    let live_view_description = "full (default) returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
+    let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
     let debug_description = "Legacy compatibility flag; does not change analysis or output.";
     let include_seen_schema = serde_json::json!({
         "type": "boolean", "default": false,
-        "description": "True restores repeated content; false omits it. Other filters and limits still apply."
+        "description": "False (default) omits repeated content; true restores it. Other filters and limits still apply."
     });
     let search_path_description =
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
@@ -363,11 +383,16 @@ pub fn list_tools() -> Value {
         }
     }
     let initial_description = if jev.is_any_enabled() {
-        include_str!("instructions/tools/initial_instructions.jev.md")
+        format!(
+            "{}\n\n{}",
+            include_str!("instructions/tools/initial_instructions.md").trim_end(),
+            include_str!("instructions/tools/initial_instructions.jev.md").trim_end()
+        )
     } else {
         include_str!("instructions/tools/initial_instructions.md")
-    }
-    .trim_end();
+            .trim_end()
+            .to_string()
+    };
     let mut result = serde_json::json!({
                 "tools": [
                     {
@@ -414,7 +439,7 @@ pub fn list_tools() -> Value {
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
-                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none reads a line window." },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none (default) reads a line window." },
                                 "file_path": { "type": "string", "description": "File to read, workspace-relative or absolute within the stated permission. Aliases: path/file/query." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
                                 "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }

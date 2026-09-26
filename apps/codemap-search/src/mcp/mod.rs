@@ -2,7 +2,7 @@
 //! construction. Tool business logic lives under [`crate::tools`]; this module only speaks
 //! protocol — it parses frames, routes `tools/call` to the right tool, runs the engine
 //! lifecycle (`ensure_alive`/`trigger_refresh`) on the snapshot-backed tools, and wraps tool
-//! output in the JSON-RPC `result`/`error` envelope.
+//! output and tool failures in the JSON-RPC `result` envelope; protocol failures use `error`.
 
 mod jev;
 pub mod protocol;
@@ -14,6 +14,18 @@ use protocol::{JsonRpcRequest, JsonRpcResponse, LimitedLineReader};
 use serde_json::Value;
 use std::path::Path;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
+
+/// JSON-RPC code for an unknown tool name, the only protocol error raised after tool dispatch.
+const TOOL_NOT_FOUND_CODE: i64 = -32601;
+
+/// A failed tool call as a result the model can read and correct. Clients such as Codex do
+/// not forward `isError`, so the text itself states the failure.
+fn tool_error_result(message: &str) -> Value {
+    serde_json::json!({
+        "content": [{ "type": "text", "text": format!("Error: {message}") }],
+        "isError": true
+    })
+}
 
 fn response_texts(response: &Value) -> impl Iterator<Item = &str> {
     response
@@ -400,7 +412,14 @@ impl McpServer {
                 started.elapsed().as_secs_f64() * 1000.0,
             );
         }
-        result
+        // Tool execution failures, argument validation included, become tool results after
+        // recording. Malformed calls without a tool name and unknown tools stay protocol errors.
+        match result {
+            Err((code, message)) if tool_name.is_some() && code != TOOL_NOT_FOUND_CODE => {
+                Ok(tool_error_result(&message))
+            }
+            result => result,
+        }
     }
 
     async fn handle_request_inner(
@@ -557,7 +576,7 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    _ => Err((-32601, "Tool not found".to_string())),
+                    _ => Err((TOOL_NOT_FOUND_CODE, "Tool not found".to_string())),
                 }
             }
             _ => Err((-32601, "Method not found".to_string())),

@@ -112,16 +112,16 @@ pub(crate) fn schema(is_required: bool) -> Value {
     json!({
         "type":"object", "additionalProperties":false,
         "properties": {
-            "task_query":{"type":"string","minLength":1,"description":"Complete user request, preserving targets, direction and scope. Entire registration: at most 65536 encoded UTF-8 bytes."},
-            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"Focused yes/no criteria; yes means related. Judge supplied evidence: missing cross-file context means uncertainty, not false. Omit IDs.","items":{
+            "task_query":{"type":"string","minLength":1,"description":"Nonempty complete user request, preserving targets, direction and scope. Entire registration: at most 65536 encoded UTF-8 bytes."},
+            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"1-8 focused yes/no criteria, each with nonempty question, when_true and when_false; yes means related. Judge supplied evidence: missing cross-file context means uncertainty, not false. Omit IDs.","items":{
                 "type":"object","additionalProperties":false,"required":["question","when_true","when_false"],"properties":{
                     "id":{"type":"string","description":"Optional legacy label, ignored. Omit this field."},
                     "question":{"type":"string","minLength":1,"description":"One explicit yes/no question about this candidate and its supplied supporting evidence."},
                     "when_true":{"type":"string","minLength":1,"description":"Facts that establish yes."},
-                    "when_false":{"type":"string","minLength":1,"description":"Facts that establish no; missing context alone is insufficient."}
+                    "when_false":{"type":"string","minLength":1,"description":"Facts that establish no, such as unrelated behavior; an absent name or missing context alone is insufficient."}
                 }
             }},
-            "match":{"type":"string","enum":["all","any"],"default":"all","description":"all requires every criterion; any accepts at least one."}
+            "match":{"type":"string","enum":["all","any"],"default":"all","description":"all (default) requires every criterion; any accepts at least one. Use any unless every criterion is mandatory."}
         },
         "required": if is_required { vec!["task_query","questions"] } else { vec![] }
     })

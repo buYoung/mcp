@@ -84,7 +84,10 @@ async fn call(client: &mut InProcessClient, tool: &str, args: Value) -> Value {
         .call("tools/call", json!({"name":tool,"arguments":args}))
         .await
         .unwrap();
-    assert!(response["error"].is_null(), "{response}");
+    assert!(
+        response["error"].is_null() && response["result"]["isError"] != true,
+        "{response}"
+    );
     response
 }
 async fn warm(client: &mut InProcessClient) {
@@ -526,7 +529,7 @@ async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
                 )
                 .await
                 .unwrap();
-            assert_eq!(missing["error"]["code"], -32602);
+            assert_eq!(missing["result"]["isError"], true, "{missing}");
             let missing = client
                 .call(
                     "tools/call",
@@ -535,7 +538,7 @@ async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
                 .await
                 .unwrap();
             assert_eq!(
-                missing["error"]["code"], -32602,
+                missing["result"]["isError"], true,
                 "a failed new registration clears the old task"
             );
             assert_eq!(
@@ -550,7 +553,7 @@ async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
                 )
                 .await
                 .unwrap();
-            assert_eq!(invalid["error"]["code"], -32602);
+            assert_eq!(invalid["result"]["isError"], true, "{invalid}");
         },
     )
     .await;

@@ -31,15 +31,15 @@ pub(super) fn definition() -> Value {
             "type": "object", "additionalProperties": false,
             "properties": {
                 "target": {"type": "string", "enum": ["index", "reads"], "description": "index: committed footprint; reads: recorded MCP activity."},
-                "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10, "description": "File rows per page; totals cover all matches."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10, "description": "File rows per page, 1-100 (default 10); totals cover all matches."},
                 "offset": {"type": "integer", "minimum": 0, "default": 0, "description": "Continue using next_offset with unchanged filters/sort."},
                 "sort": {"type": "string", "enum": ["stored", "size", "lines", "symbols", "literals", "path", "reads", "bytes", "last"], "description": "index: stored(default),size,lines,symbols,literals,path. reads: bytes(default),reads,size,last,path."},
                 "order": {"type": "string", "enum": ["asc", "desc"], "description": "Default: asc for path, desc otherwise."},
                 "filter": {"type": "string", "maxLength": 512, "description": "Case-sensitive literal path substring, at most 512 UTF-8 bytes; not a glob."},
-                "view": {"type": "string", "enum": ["summary", "files", "full"], "default": "files", "description": "summary: totals/groups; files: totals/file rows; full: both plus kinds/daily."},
-                "days": {"type": "integer", "minimum": 1, "maximum": 30, "default": 7, "description": "reads only: rolling days; storage retention stays 30."},
+                "view": {"type": "string", "enum": ["summary", "files", "full"], "default": "files", "description": "summary: totals/groups; files (default): totals/file rows; full: both plus kinds/daily."},
+                "days": {"type": "integer", "minimum": 1, "maximum": 30, "default": 7, "description": "reads only: rolling days, 1-30 (default 7); storage retention stays 30."},
                 "tool": {"type": "string", "enum": ["read", "search", "grep"], "description": "reads only: restrict to one tool."},
-                "compare": {"type": "boolean", "default": true, "description": "reads only: preceding equal window; unavailable above 15 days."},
+                "compare": {"type": "boolean", "default": true, "description": "reads only: compare with the preceding equal window (default true); unavailable above 15 days."},
                 "language": {"type": "string", "description": "index only: indexed language, e.g. rust or typescript."}
             },
             "required": ["target"]
