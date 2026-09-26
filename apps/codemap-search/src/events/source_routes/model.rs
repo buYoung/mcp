@@ -264,7 +264,11 @@ impl Fact {
 }
 impl PartialEq for Fact {
     fn eq(&self, other: &Self) -> bool {
-        self.identity() == other.identity()
+        // Most facts come from different source positions. Reject those before
+        // recursively comparing symbolic values; identity and hashing stay unchanged.
+        self.location.line == other.location.line
+            && self.location.column == other.location.column
+            && self.identity() == other.identity()
     }
 }
 impl Eq for Fact {}

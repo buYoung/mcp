@@ -1,4 +1,5 @@
 //! Mask presentation copies only. All detection offsets refer to the original UTF-8 source.
+mod cache;
 mod detection;
 mod pii;
 mod request;

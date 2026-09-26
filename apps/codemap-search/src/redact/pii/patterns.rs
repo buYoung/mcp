@@ -99,11 +99,11 @@ impl CompiledRule {
     pub fn find(&self, text: &str) -> Vec<Range<usize>> {
         // Upstream compatibility tests exclude adapters which replace prose labels
         // with code-field context. Their production behavior is verified separately.
-        self.find_filtered(text, |pattern, _| !pattern.is_field_pattern)
+        self.find_filtered(text, true, |pattern, _| !pattern.is_field_pattern)
     }
 
     pub fn detect(&self, text: &str, can_use_labels: bool) -> Vec<Range<usize>> {
-        self.find_filtered(text, |pattern, start| {
+        self.find_filtered(text, can_use_labels, |pattern, start| {
             !(pattern.requires_context || pattern.is_field_pattern)
                 || (can_use_labels && self.context.is_relevant(text, start))
         })
@@ -129,11 +129,25 @@ impl CompiledRule {
     fn find_filtered(
         &self,
         text: &str,
+        can_use_labels: bool,
         accepts: impl Fn(&Pattern, usize) -> bool,
     ) -> Vec<Range<usize>> {
         let mut ranges = Vec::new();
+        // Output-only scans cannot accept label-dependent matches. Avoid scanning
+        // entire rendered files for candidates that `accepts` would always reject.
+        if !can_use_labels
+            && self
+                .patterns
+                .iter()
+                .all(|pattern| pattern.requires_context || pattern.is_field_pattern)
+        {
+            return ranges;
+        }
         for index in self.candidates.matches(text) {
             let pattern = &self.patterns[index];
+            if !can_use_labels && (pattern.requires_context || pattern.is_field_pattern) {
+                continue;
+            }
             let mut cursor = 0;
             while let Some(candidate) = pattern.search.find_at(text, cursor) {
                 let start = candidate.start();

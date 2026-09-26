@@ -2,6 +2,7 @@ use super::engine::*;
 use super::model::*;
 use super::syntax::*;
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 impl Interpreter<'_, '_> {
     pub fn statement(&mut self, node: Option<NodeId>) {
@@ -11,7 +12,8 @@ impl Interpreter<'_, '_> {
         if !self.analyzer.tick(&self.identifier) {
             return;
         }
-        let node = self.source.nodes[id].clone();
+        let source = Arc::clone(&self.source);
+        let node = &source.nodes[id];
         let kind = node.kind.as_str();
         if self.is_polyglot() && self.polyglot_statement(id) {
             return;
@@ -132,7 +134,7 @@ impl Interpreter<'_, '_> {
         ) {
             let prior = self.conditions.clone();
             self.conditions.push("iteration_may_be_empty".into());
-            for part in node.children {
+            for &part in &node.children {
                 self.statement(Some(part));
             }
             self.conditions = prior;
@@ -170,7 +172,8 @@ impl Interpreter<'_, '_> {
         }
         let parts: Vec<_> = node
             .children
-            .into_iter()
+            .iter()
+            .copied()
             .filter(|p| {
                 !matches!(
                     self.source.nodes[*p].kind.as_str(),

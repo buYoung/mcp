@@ -43,12 +43,12 @@ impl SourceScan {
         }
         let mut found = false;
         let mut ranges = Vec::new();
-        for (range, line) in &self.literals {
+        for (range, line) in self.literals.iter() {
             if *line != literal.line || source.get(range.clone()) != Some(literal.text.as_str()) {
                 continue;
             }
             found = true;
-            for detection in &self.detections {
+            for detection in self.detections.iter() {
                 let left = range.start.max(detection.range.start);
                 let right = range.end.min(detection.range.end);
                 if left < right {
