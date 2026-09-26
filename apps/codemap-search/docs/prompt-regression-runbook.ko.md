@@ -92,7 +92,7 @@ If grep/search already supplied the needed file and line, use read directly.
 | [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions` | 최초 안내 호출과 마스킹 안내 |
 | [navigation.md](../src/tools/instructions/navigation.md) | `initial_instructions` 응답 | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
 | [navigation.monorepo.md](../src/tools/instructions/navigation.monorepo.md) | 모노레포의 공통 안내 확장 | 범위 선택과 이미 제공한 루트 개요의 재사용 |
-| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description` | 도구 선택·추가 호출 판단·도구별 출력 설명 |
+| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 `<도구>.jev.md`만 사용 | 도구 선택·추가 호출 판단·도구별 출력 설명 |
 | [tools/mod.rs](../src/tools/mod.rs)의 `list_tools` | 실제 도구 설명과 입력 스키마 | 문구 조합, 동적 권한 안내, 인자 계약 |
 | [codemap/monorepo.rs](../src/codemap/monorepo.rs)의 `WorkspaceCatalog` 출력 | 모노레포 범위 목록 | 범위·언어 목록을 유지하고, 중복 `Next Step` 안내는 모노레포 공통 안내에 통합 |
 | [tools/grep.rs](../src/tools/grep.rs)의 `empty_result_hint` | grep 결과가 없을 때의 안내 | 활성 필터·정규식 안내와 재시도 전 패턴 또는 필터 조정 조건 |

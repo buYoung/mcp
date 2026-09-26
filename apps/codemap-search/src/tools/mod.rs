@@ -200,34 +200,24 @@ pub(crate) fn arg_required_str<'a>(
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }
 
-/// Connection-level bootstrap and masking notice, embedded in the self-contained binary.
+/// Shared connection-level bootstrap, embedded in the self-contained binary.
 pub fn server_instructions() -> String {
-    let mut text = include_str!("instructions/server.md")
+    include_str!("instructions/server.md")
         .trim_end()
-        .to_string();
-    if crate::config::get().jev.is_any_enabled() {
-        text = text.replace("Call initial_instructions once without arguments before using the tools.",
-            "Before an enabled search/read/grep filter, register this task through initial_instructions using its schema. IDs are automatic. Enabled filters may send masked evidence to TypeSafe.");
-    }
-    text
+        .to_string()
 }
 
 /// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
 pub fn instructions() -> String {
     let common = include_str!("instructions/navigation.md").trim_end();
-    let mut text = if crate::codemap::looks_like_monorepo_workspace() {
+    if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/navigation.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
-    };
-    if let Some(guidance) = jev_guidance(&crate::config::get().jev) {
-        text.push_str("\n\n");
-        text.push_str(&guidance);
     }
-    text
 }
 
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
@@ -236,14 +226,6 @@ pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, Stri
         return Err((-32602, "task_query is not a per-tool option. Register the full task once with initial_instructions; enabled search/read/grep filters run automatically.".into()));
     }
     Ok(())
-}
-
-/// Navigation guidance for shared task registration.
-fn jev_guidance(jev: &crate::config::JevConfig) -> Option<String> {
-    if !jev.is_any_enabled() {
-        return None;
-    }
-    Some("Register the full task once with task_query, positive yes/no questions (question, when_true, when_false), and match=all or any. IDs are automatic. Keep indirect and bidirectional flows, their conditions, message contracts and relevant alternate routes in scope; missing evidence means uncertainty. Enabled search/read/grep filters send masked task/evidence to TypeSafe and preserve uncertain or unavailable evidence. include_seen only bypasses delivery deduplication. Disable analysis.jev.read_filter_enabled for unfiltered source recovery. Re-register only when the task changes.\n\nFor exhaustive flow requests, ranked matches and bounded caller lists are discovery evidence. Reconcile producers/callers at shared entry points with grep when needed; distinguish alternate paths. Before answering, use already-read evidence to check entry points, ordered failure/retry branches, conditional message fields and lifecycle. Explain material exceptions to the normal path and state any remaining coverage gaps. Follow-up call candidates need source verification; choose the next tool only for missing evidence.".into())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -285,7 +267,8 @@ fn filesystem_tool_description(
 
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
-/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`;
+/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`,
+/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled;
 /// live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
 /// Shared option descriptions have one source here but remain on each independent tool schema.
@@ -306,47 +289,53 @@ pub fn list_tools() -> Value {
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
-    let mut read_description = format!(
-        "{}\n\n{}",
+    let jev = &config.jev;
+    // An enabled Jev stage uses its dedicated `<name>.jev.md` as the tool's whole static prose.
+    let read_description = if jev.read_filter_enabled {
         filesystem_tool_description(
-            include_str!("instructions/tools/read.md").trim_end(),
+            include_str!("instructions/tools/read.jev.md").trim_end(),
             permissions.read,
             &permissions.allowed_roots,
-        ),
-        include_str!("instructions/tools/read.evidence.md").trim_end(),
-    );
+        )
+    } else {
+        format!(
+            "{}\n\n{}",
+            filesystem_tool_description(
+                include_str!("instructions/tools/read.md").trim_end(),
+                permissions.read,
+                &permissions.allowed_roots,
+            ),
+            include_str!("instructions/tools/read.evidence.md").trim_end(),
+        )
+    };
     let find_description = filesystem_tool_description(
         include_str!("instructions/tools/find.md").trim_end(),
         permissions.find,
         &permissions.allowed_roots,
     );
-    let mut grep_description = format!(
-        "{}\n\n{}",
+    let grep_description = if jev.grep_filter_enabled {
         filesystem_tool_description(
-            include_str!("instructions/tools/grep.md").trim_end(),
+            include_str!("instructions/tools/grep.jev.md").trim_end(),
             permissions.grep,
             &permissions.allowed_roots,
-        ),
-        include_str!("instructions/tools/grep.evidence.md").trim_end(),
-    );
-    let jev = &config.jev;
-    let live_filter_notice = "\n\nJev body filtering is enabled. Register task_query and questions once through initial_instructions. Complete returned callable bodies use those criteria; partial, uncertain or unavailable evidence stays. Masked evidence may be sent to TypeSafe. include_seen only bypasses delivery deduplication; disable analysis.jev.read_filter_enabled for unfiltered read recovery.";
-    if jev.read_filter_enabled {
-        read_description.push_str(live_filter_notice);
-    }
-    if jev.grep_filter_enabled {
-        grep_description.push_str(live_filter_notice);
-    }
-    let search_description = if jev.search_filter_enabled {
-        format!(
-            "{}\n\nJev body filter is enabled and runs automatically using the task goal and focused questions registered once through initial_instructions. Do not pass task_query to search. Missing registration is an error. Masked task questions and bounded candidate bodies/support may be sent to TypeSafe. Selection precedes final body rendering; unrelated bodies leave read-range notes, while uncertain evidence stays. Bodies with no possible selection benefit bypass evaluation. Credentials/provider failures and ineligible evidence preserve the base output. include_seen=true bypasses delivery deduplication only. Disable analysis.jev.read_filter_enabled for unfiltered read recovery.",
-            include_str!("instructions/tools/search.md").trim_end()
         )
     } else {
-        include_str!("instructions/tools/search.md")
-            .trim_end()
-            .to_string()
+        format!(
+            "{}\n\n{}",
+            filesystem_tool_description(
+                include_str!("instructions/tools/grep.md").trim_end(),
+                permissions.grep,
+                &permissions.allowed_roots,
+            ),
+            include_str!("instructions/tools/grep.evidence.md").trim_end(),
+        )
     };
+    let search_description = if jev.search_filter_enabled {
+        include_str!("instructions/tools/search.jev.md")
+    } else {
+        include_str!("instructions/tools/search.md")
+    }
+    .trim_end();
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
@@ -373,15 +362,12 @@ pub fn list_tools() -> Value {
             );
         }
     }
-    let initial_description = format!(
-        "{}{}",
-        include_str!("instructions/tools/initial_instructions.md").trim_end(),
-        if jev.is_any_enabled() {
-            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Before registering, analyze the user's named target, identifier spellings or split words, requested behavior, symptoms and coverage. Derive 1-8 focused positive questions, each testing one concept or operation, for distinct ways code can be related: names/references, implementation or call paths, and supporting data or execution conditions needed by this task. Do not collapse these into one broad topic question or require every helper to name the target. Use match=any for alternative indicators; use match=all only when every criterion is mandatory for each candidate. Preserve explicit scope and exclusions within the alternatives. Text-only registration is rejected when any Jev filter is enabled. Call again when the task changes."
-        } else {
-            ""
-        }
-    );
+    let initial_description = if jev.is_any_enabled() {
+        include_str!("instructions/tools/initial_instructions.jev.md")
+    } else {
+        include_str!("instructions/tools/initial_instructions.md")
+    }
+    .trim_end();
     let mut result = serde_json::json!({
                 "tools": [
                     {

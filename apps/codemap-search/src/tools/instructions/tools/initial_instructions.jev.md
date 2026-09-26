@@ -1,0 +1,3 @@
+Register the current task for Jev filtering, then return shared navigation guidance and, in monorepos, the current root scope inventory.
+
+Jev filters complete bodies in enabled search/read/grep using the registered task; uncertain or incomplete evidence is kept. Derive distinct positive criteria from the user's request: names/references, behavior/call paths, and supporting data or conditions. Include indirect helpers without requiring the target name. Preserve scope and exclusions. Use any for alternative indicators, all only when each is mandatory. Register once per task; update only when the task changes.

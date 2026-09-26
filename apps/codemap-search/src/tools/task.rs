@@ -112,8 +112,8 @@ pub(crate) fn schema(is_required: bool) -> Value {
     json!({
         "type":"object", "additionalProperties":false,
         "properties": {
-            "task_query":{"type":"string","minLength":1,"description":"The complete current task goal, preserving the user's target, direction and coverage. Entire registration: at most 65536 encoded UTF-8 bytes. Register once per task, not per search query."},
-            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"Derive focused yes/no questions from the task. A yes means the candidate matches that criterion. Preserve indirect and bidirectional flows, their conditions and message contracts, and alternate routes needed to explain the requested boundary. A contributing function need not itself send or receive. Ask about supplied evidence; absent cross-file facts mean uncertainty, not false. Omit IDs; the server generates them. Keep questions concise; evaluation context is budgeted separately.","items":{
+            "task_query":{"type":"string","minLength":1,"description":"Complete user request, preserving targets, direction and scope. Entire registration: at most 65536 encoded UTF-8 bytes."},
+            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"Focused yes/no criteria; yes means related. Judge supplied evidence: missing cross-file context means uncertainty, not false. Omit IDs.","items":{
                 "type":"object","additionalProperties":false,"required":["question","when_true","when_false"],"properties":{
                     "id":{"type":"string","description":"Optional legacy label, ignored. Omit this field."},
                     "question":{"type":"string","minLength":1,"description":"One explicit yes/no question about this candidate and its supplied supporting evidence."},
@@ -121,7 +121,7 @@ pub(crate) fn schema(is_required: bool) -> Value {
                     "when_false":{"type":"string","minLength":1,"description":"Facts that establish no; missing context alone is insufficient."}
                 }
             }},
-            "match":{"type":"string","enum":["all","any"],"default":"all","description":"all requires every criterion; any accepts at least one. Code composes yes/no/uncertain decisions, not a joint probability."}
+            "match":{"type":"string","enum":["all","any"],"default":"all","description":"all requires every criterion; any accepts at least one."}
         },
         "required": if is_required { vec!["task_query","questions"] } else { vec![] }
     })

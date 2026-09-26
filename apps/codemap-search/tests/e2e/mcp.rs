@@ -976,7 +976,7 @@ export function dropMe(input: string): string {
             assert_eq!(initial["inputSchema"]["required"], json!(["task_query","questions"]));
             assert_eq!(initial["inputSchema"]["properties"]["match"]["default"], "all");
             let search_tool = tool("search");
-            assert!(search_tool["description"].as_str().unwrap().contains("Jev body filter is enabled"));
+            assert!(initial["description"].as_str().unwrap().contains("Jev filters complete bodies"));
             assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
