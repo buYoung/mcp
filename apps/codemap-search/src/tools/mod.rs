@@ -377,7 +377,7 @@ pub fn list_tools() -> Value {
         "{}{}",
         include_str!("instructions/tools/initial_instructions.md").trim_end(),
         if jev.is_any_enabled() {
-            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Derive the questions from the user's task; use match=all or any. Text-only registration is rejected when any Jev filter is enabled. Call again when the task changes."
+            "\n\nREQUIRED at the start of every task: pass task_query and a nonempty questions list with question, when_true and when_false. Omit IDs; the server generates them. Before registering, analyze the user's named target, identifier spellings or split words, requested behavior, symptoms and coverage. Derive 1-8 focused positive questions, each testing one concept or operation, for distinct ways code can be related: names/references, implementation or call paths, and supporting data or execution conditions needed by this task. Do not collapse these into one broad topic question or require every helper to name the target. Use match=any for alternative indicators; use match=all only when every criterion is mandatory for each candidate. Preserve explicit scope and exclusions within the alternatives. Text-only registration is rejected when any Jev filter is enabled. Call again when the task changes."
         } else {
             ""
         }
