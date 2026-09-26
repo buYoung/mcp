@@ -94,14 +94,18 @@ impl DisplayContext {
     }
 }
 
-/// Only an explicitly configured Codex limit enables this presentation guard.
-/// A 3.5-byte presentation allowance leaves room below Codex's approximate delivery limit;
-/// it is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
+/// Masking and duplicate folding run after rendering and may lengthen short spans; this
+/// reserve keeps a fitted search clear of the final `output.client` check.
+const POST_RENDER_RESERVE_BYTES: usize = 512;
+
+/// Only an explicitly configured `output.client` limit enables this presentation guard. The
+/// Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
 pub(super) fn delivery_byte_cap(server_cap: usize) -> usize {
     crate::config::get()
         .client_output
-        .codex_output_token_limit
-        .map_or(server_cap, |tokens| {
-            server_cap.min(tokens.saturating_mul(7) / 2)
+        .delivery_byte_cap()
+        .map_or(server_cap, |client_cap| {
+            let reserve_bytes = POST_RENDER_RESERVE_BYTES.min(client_cap / 8);
+            server_cap.min(client_cap - reserve_bytes)
         })
 }

@@ -15,6 +15,19 @@ use serde_json::Value;
 use std::path::Path;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
+fn response_texts(response: &Value) -> impl Iterator<Item = &str> {
+    response
+        .get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|item| item.get("text").and_then(Value::as_str))
+}
+
+fn response_text_bytes(response: &Value) -> usize {
+    response_texts(response).fold(0usize, |total, text| total.saturating_add(text.len()))
+}
+
 /// Search/read already construct bounded output. Other tools reject an oversized
 /// response only when a new common or per-tool response budget was explicitly set.
 fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String)> {
@@ -26,17 +39,62 @@ fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String
         _ => None,
     };
     let Some(cap) = cap else { return Ok(()) };
-    let bytes = response
-        .get("content")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|item| item.get("text").and_then(Value::as_str))
-        .fold(0usize, |total, text| total.saturating_add(text.len()));
+    let bytes = response_text_bytes(response);
     if bytes > cap {
         return Err((-32602, format!("{name} output ({bytes} bytes) exceeds the configured maximum of {cap} bytes. Narrow the path/query or adjust output.max_bytes or the tool's output section.")));
     }
     Ok(())
+}
+
+/// `output.client` bounds the final text after Jev, masking and duplicate folding, however
+/// large the earlier `max_bytes` budgets are. Search defers bodies to fit before this check;
+/// every other tool returns a narrowing error rather than a result the client would clip.
+fn enforce_client_delivery_cap(
+    name: &str,
+    arguments: Option<&Value>,
+    response: &Value,
+) -> Result<(), (i64, String)> {
+    let Some(cap) = crate::config::get().client_output.delivery_byte_cap() else {
+        return Ok(());
+    };
+    let bytes = response_text_bytes(response);
+    if bytes <= cap {
+        return Ok(());
+    }
+    let narrowing = match name {
+        "read" => read_narrowing(arguments, response, bytes, cap),
+        "grep" => "Retry with a smaller head_limit and continue later pages with offset, or narrow the path/glob/pattern.".into(),
+        "search" => "Narrow the query.".into(),
+        _ => "Narrow the path/query.".into(),
+    };
+    Err((-32602, format!("{name} output ({bytes} bytes) exceeds the output.client delivery limit of {cap} bytes. {narrowing}")))
+}
+
+/// Scale the returned numbered source rows to a window that fits the delivery limit.
+fn read_narrowing(arguments: Option<&Value>, response: &Value, bytes: usize, cap: usize) -> String {
+    let expansion_hint = if arguments
+        .and_then(|arguments| arguments.get("expand"))
+        .and_then(Value::as_str)
+        == Some("callable")
+    {
+        "expand=none and "
+    } else {
+        ""
+    };
+    let mut line_numbers = response_texts(response)
+        .flat_map(str::lines)
+        .filter_map(|line| line.trim_start().split_once('→')?.0.parse::<usize>().ok());
+    let Some(first_line) = line_numbers.next() else {
+        return format!("Continue with {expansion_hint}a narrower window.");
+    };
+    let last_line = line_numbers.last().unwrap_or(first_line).max(first_line);
+    let suggested_limit = (last_line - first_line + 1)
+        .saturating_mul(cap)
+        .checked_div(bytes)
+        .unwrap_or(1)
+        .saturating_sub(1)
+        .max(1);
+    format!("Continue with {expansion_hint}a narrower window such as offset={first_line}, limit={suggested_limit}.")
 }
 pub struct McpServer {
     // The live index subsystem: read-only searcher handle, background indexer, optional
@@ -314,6 +372,8 @@ impl McpServer {
         let result = result.and_then(|value| {
             if let Some(name) = tool_name {
                 enforce_response_cap(name, &value)?;
+                let arguments = params.and_then(|params| params.get("arguments"));
+                enforce_client_delivery_cap(name, arguments, &value)?;
             }
             Ok(value)
         });

@@ -43,6 +43,13 @@ settings![
         "codex_output_token_limit",
         ""
     ),
+    ("output.client", "pi_max_bytes", "pi_max_bytes", ""),
+    (
+        "output.client",
+        "opencode_max_bytes",
+        "opencode_max_bytes",
+        ""
+    ),
     (
         "output.overview",
         "is_stats_enabled",

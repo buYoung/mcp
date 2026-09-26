@@ -646,6 +646,12 @@ fn assign_config_key(
             layer.client_output.codex_output_token_limit =
                 as_positive_usize(value, key_display, path)
         }
+        "pi_max_bytes" => {
+            layer.client_output.pi_max_bytes = as_positive_byte_size(value, key_display, path)
+        }
+        "opencode_max_bytes" => {
+            layer.client_output.opencode_max_bytes = as_positive_byte_size(value, key_display, path)
+        }
         "target_os" => {
             layer.analysis_target_os = match value.as_str() {
                 Some("") => Some(None),
@@ -803,6 +809,14 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
                 .client_output
                 .codex_output_token_limit
                 .or(global.client_output.codex_output_token_limit),
+            pi_max_bytes: repo
+                .client_output
+                .pi_max_bytes
+                .or(global.client_output.pi_max_bytes),
+            opencode_max_bytes: repo
+                .client_output
+                .opencode_max_bytes
+                .or(global.client_output.opencode_max_bytes),
         },
         is_redact_enabled: repo
             .is_redact_enabled
@@ -1537,19 +1551,34 @@ const MIGRATIONS: &[Migration] = &[
         english_block: "# Include test regions in automatic symbol/call context. Live read/grep source is unchanged.\n# should_include_test_code = false",
         korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
     },
-    Migration {
-        version: 26,
-        key: "read_filter_enabled",
-        placement: KeyPlacement::Subtable("analysis.jev"),
-        english_block: "# Omitted live-tool flags inherit search_filter_enabled; explicit false disables only that tool.\n# read_filter_enabled = false",
-        korean_block: "# 생략한 도구별 설정은 search_filter_enabled를 따릅니다. 명시한 false는 해당 도구만 끕니다.\n# read_filter_enabled = false",
-    },
+    // Subtable migrations land right after the header, so list them in reverse display order.
     Migration {
         version: 26,
         key: "grep_filter_enabled",
         placement: KeyPlacement::Subtable("analysis.jev"),
-        english_block: "# Omitted: inherit search_filter_enabled. Only complete source bodies are eligible.\n# grep_filter_enabled = false",
-        korean_block: "# 생략하면 search_filter_enabled를 따릅니다. 완전한 소스 본문만 판단합니다.\n# grep_filter_enabled = false",
+        english_block: "# Apply to grep results (default: same as search_filter_enabled).\n# grep_filter_enabled = false",
+        korean_block: "# grep 결과에 적용합니다(기본: search_filter_enabled 값).\n# grep_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "read_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Apply to read results (default: same as search_filter_enabled).\n# read_filter_enabled = false",
+        korean_block: "# read 결과에 적용합니다(기본: search_filter_enabled 값).\n# read_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "opencode_max_bytes",
+        placement: KeyPlacement::Subtable("output.client"),
+        english_block: "# Maximum bytes in a tool result in opencode (default 51200).\n# Use the same value as tool_output.max_bytes in opencode.json.\n# opencode_max_bytes = 51200",
+        korean_block: "# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).\n# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.\n# opencode_max_bytes = 51200",
+    },
+    Migration {
+        version: 26,
+        key: "pi_max_bytes",
+        placement: KeyPlacement::Subtable("output.client"),
+        english_block: "# Maximum bytes in an MCP result in pi (default 51200).\n# Use the same value as settings.outputGuard.maxBytes in pi-mcp-adapter.\n# pi_max_bytes = 51200",
+        korean_block: "# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).\n# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.\n# pi_max_bytes = 51200",
     },
 
 ];
@@ -1557,58 +1586,49 @@ const MIGRATIONS: &[Migration] = &[
 /// v24: the whole `[analysis.jev]` section as one commented block. The header line carries
 /// the presence guard (`jev`), so a file that already has the section is never touched.
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
-# Optional TypeSafe Jev body filters, off by default. Register the full task once through
-# initial_instructions(task_query, questions); enabled search/read/grep then apply automatically.
-# The API key comes from the environment variable named below.
-# Omit complete, identity-verified declaration bodies from search details that Jev judges
-# unrelated to the task_query; each omitted body leaves an inline note with the exact read
-# range. Bypasses and failures return the plain output; the reason is logged on stderr.
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Register the task first with initial_instructions(task_query, questions).
+# Apply to search results. Each removed body leaves a read range to restore it.
+# If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
-# Concrete provider model, validated against every response; alias names are rejected.
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = \"jev-1.13.0\"
-# Environment variable that holds the TypeSafe API key. The key itself is never stored here.
+# Environment variable that holds the TypeSafe API key (default TYPESAFE_API_KEY). Do not put the key here.
 # api_key_env = \"TYPESAFE_API_KEY\"
-# One absolute deadline per tool call in milliseconds (at most 7 days), counted from the
-# start of the stage's preparation and including queue time. Never extended.
+# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
-# HTTP requests in flight at once (1 to 3) and the minimum spacing between request starts
-# (at least 300 ms). Both may only tighten the runtime's initial policy.
+# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
-# Encoded request bytes per batch (1 to 168000); a question that does not fit fails explicitly.
+# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 # max_batch_bytes = 168000
-# Idle HTTPS connection lifetime in milliseconds (at most 7 days) before a fresh connection
-# is opened.
+# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
 # pool_idle_timeout_ms = 30000
-# Per-criterion false-probability threshold (1 - yes). all/any composes decisions.
-# Uncertain evidence stays. Finite, above 0.5, at most 1.0; provisional, not calibrated.
+# Minimum probability for judging a question's answer as \"no\" (above 0.5, at most 1.0, default 0.70).
+# Higher values remove bodies only when Jev is more certain.
 # search_filter_min_unrelated_probability = 0.70";
 
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
-# 선택적 TypeSafe Jev 본문 필터이며 기본으로 꺼져 있습니다. initial_instructions(task_query, questions)로
-# 전체 목적을 한 번 등록하면 켜진 search/read/grep이 자동 적용되며,
-# API 키는 아래에 지정한 환경 변수에서 읽습니다.
-# search 상세에서 Jev가 task_query와 무관하다고 판단한 완전하고 정체성이 확인된 선언 본문을
-# 생략합니다. 생략한 본문마다 정확한 read 범위를 담은 안내 줄을 남깁니다. 건너뜀과 실패는
-# 일반 출력을 그대로 반환하고 사유를 stderr에 기록합니다.
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# search 결과에 적용합니다. 뺀 본문 자리에는 다시 읽을 수 있는 read 범위를 남깁니다.
+# Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
-# 모든 응답에서 검증하는 구체적인 제공자 모델입니다. 별칭 이름은 거부합니다.
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = \"jev-1.13.0\"
-# TypeSafe API 키를 담은 환경 변수 이름입니다. 키 자체는 여기에 저장하지 않습니다.
+# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
 # api_key_env = \"TYPESAFE_API_KEY\"
-# 도구 호출 한 건의 절대 마감 시각(밀리초, 최대 7일)입니다. 단계 준비를 시작한 순간부터
-# 계산하고 대기 시간을 포함하며 늘리지 않습니다.
+# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000
-# 동시에 진행하는 HTTP 요청 수(1~3)와 요청 시작 사이의 최소 간격(300밀리초 이상)입니다.
-# 둘 다 런타임의 초기 정책을 더 조일 수만 있습니다.
+# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
 # max_in_flight_requests = 3
 # request_spacing_ms = 300
-# 배치 하나의 인코딩된 요청 바이트 상한(1~168000)입니다. 들어가지 않는 질문은 명시적으로 실패합니다.
+# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
 # max_batch_bytes = 168000
-# 유휴 HTTPS 연결을 유지하는 시간(밀리초, 최대 7일)입니다. 지나면 새 연결을 엽니다.
+# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
 # pool_idle_timeout_ms = 30000
-# 질문별 거짓 확률(1 - 예 확률)의 임계값입니다. all/any로 조합하며 불확실한 근거는 유지합니다.
-# 유한, 0.5 초과, 1.0 이하의 잠정값이며 보정된 결합 확률이 아닙니다.
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 높일수록 더 확실한 경우에만 본문을 뺍니다.
 # search_filter_min_unrelated_probability = 0.70";
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.

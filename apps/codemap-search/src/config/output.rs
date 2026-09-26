@@ -1,13 +1,34 @@
-//! Client-specific delivery limits. An explicit Codex limit also bounds the final
-//! ranked-search presentation, after candidate capture and Jev evaluation.
+//! Client delivery limits: the largest result each coding agent passes to its model. The
+//! smallest configured limit bounds every final response; `max_bytes` budgets apply earlier.
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ClientOutputConfig {
     pub claude_max_result_chars: Option<usize>,
     pub codex_output_token_limit: Option<usize>,
+    /// pi-mcp-adapter `settings.outputGuard.maxBytes`.
+    pub pi_max_bytes: Option<usize>,
+    /// opencode `tool_output.max_bytes`.
+    pub opencode_max_bytes: Option<usize>,
 }
 
 impl ClientOutputConfig {
+    /// The smallest configured client limit in UTF-8 bytes. Counting Claude characters as
+    /// bytes never undercounts them; Codex tokens use a 3.5-byte estimate with JSON headroom.
+    pub fn delivery_byte_cap(&self) -> Option<usize> {
+        let codex_bytes = self
+            .codex_output_token_limit
+            .map(|tokens| tokens.saturating_mul(7) / 2);
+        [
+            self.claude_max_result_chars,
+            codex_bytes,
+            self.pi_max_bytes,
+            self.opencode_max_bytes,
+        ]
+        .into_iter()
+        .flatten()
+        .min()
+    }
+
     /// Render an explicit configuration fragment; never modify the client's settings.
     pub fn codex_config(&self, server_name: &str) -> Result<String, toml::ser::Error> {
         let Some(limit) = self.codex_output_token_limit else {
