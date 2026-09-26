@@ -687,12 +687,12 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
                     serde_json::json!({
                         "query": caller_query, "caller_context": true
                     }),
-                    |text| text.contains("target_lua (unresolved)"),
+                    |text| text.contains("target_lua (all unresolved)"),
                 )
                 .await
                 .unwrap();
             let text = response["result"]["content"][0]["text"].as_str().unwrap();
-            assert!(text.contains("target_lua (unresolved)"), "{text}");
+            assert!(text.contains("target_lua (all unresolved)"), "{text}");
             assert!(
                 !text.contains("LuaFlow.target_lua —"),
                 "unconfirmed table target linked: {text}"

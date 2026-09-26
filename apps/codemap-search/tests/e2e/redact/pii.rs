@@ -9,7 +9,7 @@ async fn test_pii_live_configuration_and_context_survive_clipped_outputs() {
     let repo =
         create_mock_repo(&[("src/profile.ts", source), (".codemap/config.toml", base)]).unwrap();
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
-    let arguments = json!({"file_path":"src/profile.ts","view":"source"});
+    let arguments = json!({"file_path":"src/profile.ts","view":"source","include_seen":true});
     let response = call(&mut client, "read", arguments.clone()).await;
     assert!(text(&response).contains("4111111111111111"));
     assert!(!text(&response).contains("fixture-live-secret"));

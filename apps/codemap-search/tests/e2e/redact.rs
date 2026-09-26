@@ -63,7 +63,13 @@ fn text(response: &Value) -> &str {
         .expect("MCP text result")
 }
 
-async fn call(client: &mut McpClient, name: &str, arguments: Value) -> Value {
+async fn call(client: &mut McpClient, name: &str, mut arguments: Value) -> Value {
+    // Masking comparisons need source even when an earlier response delivered it.
+    if matches!(name, "read" | "grep" | "search") {
+        if let Some(arguments) = arguments.as_object_mut() {
+            arguments.entry("include_seen").or_insert(Value::Bool(true));
+        }
+    }
     client
         .send_request("tools/call", json!({"name":name,"arguments":arguments}))
         .await

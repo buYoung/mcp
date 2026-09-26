@@ -209,7 +209,7 @@ async fn test_optional_language_groups_toggle_index_discovery_but_keep_direct_ac
         let read = client
             .send_request(
                 "tools/call",
-                tool_call("read", json!({ "file_path": path })),
+                tool_call("read", json!({ "file_path": path, "include_seen": true })),
             )
             .await
             .unwrap();

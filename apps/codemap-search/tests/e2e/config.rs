@@ -380,7 +380,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 25\n"),
+            scaffolded.starts_with("# codemap-config-version: 26\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[analysis.jev]\n"), "{scaffolded}");
@@ -406,7 +406,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 25\n"),
+            migrated.starts_with("# codemap-config-version: 26\n"),
             "{migrated}"
         );
         assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
@@ -431,7 +431,7 @@ export function dropMe(input: string): string {
         );
         drop(client);
 
-        // Existing values survive; retired per-tool flags are never added.
+        // Existing active values survive; additional stage options remain commented.
         let already =
             "# codemap-config-version: 23\n[analysis.jev]\nsearch_filter_enabled = true\n";
         let temp = create_mock_repo(&[
@@ -442,9 +442,9 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 25\n"), "{kept}");
-        assert!(!kept.contains("read_filter_enabled"), "{kept}");
-        assert!(!kept.contains("grep_filter_enabled"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 26\n"), "{kept}");
+        assert!(kept.contains("# read_filter_enabled = false\n"), "{kept}");
+        assert!(kept.contains("# grep_filter_enabled = false\n"), "{kept}");
         assert_eq!(
             toml::from_str::<toml::Value>(&kept).unwrap(),
             toml::from_str::<toml::Value>(already).unwrap(),
