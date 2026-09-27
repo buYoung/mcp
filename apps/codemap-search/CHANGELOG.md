@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-28
+
+### Added
+
+- Added Jev file recommendations and automatic filters for `search`, `read`, `grep`, and non-root overviews using registered task questions.
+- Added repository and global Jev credential files with automatic reload and environment-variable fallback.
+- Added output limits for pi and opencode, with source ranges for oversized searches and guidance to narrow other results.
+
+### Improved
+
+- Reduced repeated source text across tools, with an option to request the original text again.
+- Preserved source bodies when Jev lacks enough context to judge relevance.
+- Reduced processing overhead for large MCP inputs, sensitive-data masking, and source relationship analysis.
+
+### Fixed
+
+- Fixed tool execution errors being reported as JSON-RPC errors by returning error-marked tool results.
+- Fixed Codex-specific output-budget guidance appearing for other clients.
+- Fixed Windows build failures caused by incompatible build-tool versions.
+
+### Changed
+
+- Enabled client output limits by default and unified their default values at `100000`.
+- Simplified Jev filtering settings to an on/off switch and a tool list, with automatic migration of existing settings.
+
+### Removed
+
+- Removed configurable environment-variable names for Jev authentication.
+
 ## [0.10.0] - 2026-09-21
 
 ### Added
