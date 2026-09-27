@@ -19,6 +19,20 @@
 # A longer window reduces refresh frequency but delays results. Restart after changing it.
 # A uniquely confirmed target is marked precise; false uses approximate name matching.
 # API 키는 아래에 지정한 환경 변수에서 읽습니다.
+# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
+# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
+# Maximum characters in a Claude Code result (1–500000, default 25000 tokens).
+# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, 기본 25000토큰).
+# Maximum tokens in a Codex tool result (default: depends on the model).
+# Codex가 받는 도구 결과의 최대 토큰 수입니다(기본: 모델마다 다름).
+# Maximum bytes in an MCP result in pi (default 51200).
+# Use the same value as settings.outputGuard.maxBytes in pi-mcp-adapter.
+# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).
+# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.
+# Maximum bytes in a tool result in opencode (default 51200).
+# Use the same value as tool_output.max_bytes in opencode.json.
+# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).
+# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.
 # Absolute paths and .. are invalid. [] clears optional rules; omitting the key inherits global/default rules.
 # Absolute paths are allowed; symbolic links are resolved before checking access.
 # Access policy for grep: "workspace", "allowed_roots" or "anywhere".

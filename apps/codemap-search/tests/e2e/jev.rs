@@ -91,8 +91,9 @@ pub fn banner(name: &str) -> String {
 }
 ";
 
-const BOTH_STAGES: &str = "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\n";
-const FILTER_ONLY: &str = "[analysis.jev]\nsearch_filter_enabled = true\n";
+const BOTH_STAGES: &str =
+    "[output.jev]\nenabled = true\nscope = ['overview', 'search', 'read', 'grep']\n";
+const FILTER_ONLY: &str = "[output.jev]\nenabled = true\nscope = ['search', 'read', 'grep']\n";
 
 async fn with_in_process_server<F, Fut>(
     root: &std::path::Path,

@@ -10,7 +10,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 const TASK: &str = "Find functions implementing the response output budget";
-const CONFIG: &str = "[analysis.jev]\nread_filter_enabled = true\ngrep_filter_enabled = true\n[index.refresh]\nwatch = false\n";
+const CONFIG: &str = "[output.jev]\nenabled = true\nscope = ['read', 'grep']\nsearch_filter_min_unrelated_probability = 0.70\n[index.refresh]\nwatch = false\n";
 const KEEP: &str =
     "export function keepBody(remainingBytes: number, footer: string, limit: number): number {
   const reserve = footer.length + 8;
@@ -471,9 +471,10 @@ async fn captures_masked_payload_and_keeps_the_snapshot_during_inference() {
 }
 
 #[tokio::test]
-async fn tool_flags_schema_reload_and_threshold_reach_live_consumers() {
+async fn enabled_scope_schema_reload_and_threshold_reach_live_consumers() {
     let source = source();
-    let config = "[analysis.jev]\nread_filter_enabled=true\ngrep_filter_enabled=false\nsearch_filter_min_unrelated_probability=1.0\n";
+    let config =
+        "[output.jev]\nenabled=true\nscope=['read']\nsearch_filter_min_unrelated_probability=1.0\n";
     let temp =
         create_mock_repo(&[(".codemap/config.toml", config), ("src/budget.ts", &source)]).unwrap();
     let root = temp.path().to_path_buf();

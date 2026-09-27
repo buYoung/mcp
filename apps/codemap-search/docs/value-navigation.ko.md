@@ -38,7 +38,7 @@
 - `read`의 `expand=callable`과 `grep`의 기본 함수 확장은 포함된 함수 범위를 사용한다. 큰 함수는 안내된 범위에서 `expand=none`으로 나눠 읽는다.
 - 폴더 `overview`는 파일 목록, 소스 기반 시그니처와 필드·메서드 계층을 제공한다. 파일 `overview`는 색인된 선언 위치를 제공한다.
 - `search`는 순위가 있는 상세 결과와 제한된 나머지 목록을 제공한다. 부분 결과는 완전한 원문 근거가 아니다.
-- [Jev 본문 필터](configuration.ko.md#선택적-jev-판단-단계)를 켜면 `source` 보기에서도 본문을 생략할 수 있다. 생략 안내의 범위를 필터 없이 읽으려면 `analysis.jev.read_filter_enabled`를 끈다.
+- [Jev 본문 필터](configuration.ko.md#선택적-jev-판단-단계)를 켜면 `source` 보기에서도 본문을 생략할 수 있다. 생략 안내의 범위를 필터 없이 읽으려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끈다.
 
 ## MCP 조회 예시
 

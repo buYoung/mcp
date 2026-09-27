@@ -905,7 +905,9 @@ export function dropMe(input: string): string {
 ";
 
     fn search_filter_config(threshold: &str) -> String {
-        format!("[analysis.jev]\nsearch_filter_enabled = true\nsearch_filter_min_unrelated_probability = {threshold}\n")
+        format!(
+            "[output.jev]\nenabled = true\nsearch_filter_min_unrelated_probability = {threshold}\n"
+        )
     }
 
     fn search_arguments() -> serde_json::Value {
@@ -1137,14 +1139,10 @@ export function dropMe(input: string): string {
     #[tokio::test]
     async fn test_jev_missing_credentials_bypass_without_any_request() {
         let temp = create_mock_repo(&[
-            (
-                ".codemap/config.toml",
-                "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\napi_key_env = \"CODEMAP_TEST_JEV_KEY_UNSET\"\n",
-            ),
+            (".codemap/config.toml", "[output.jev]\nenabled = true\n"),
             ("src/budget.ts", BUDGET_TS),
         ])
         .unwrap();
-        std::env::remove_var("CODEMAP_TEST_JEV_KEY_UNSET");
         with_in_process_server(temp.path(), None, |mut client| async move {
             client.register_task(TASK).await;
             let plain = client

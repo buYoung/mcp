@@ -214,7 +214,7 @@ pub fn server_instructions() -> String {
 /// Client-specific guidance, appended only after Codex identifies itself at initialize.
 pub(crate) fn codex_exec_instructions() -> String {
     // The exec budget covers the whole printed batch, independently of the per-tool
-    // limit exported by codex-config. Without an explicit setting, use exec's default.
+    // limit exported by codex-config. Resolved limits include the built-in client default.
     let codex_output_tokens = crate::config::get()
         .client_output
         .codex_output_token_limit
@@ -327,7 +327,7 @@ pub fn list_tools() -> Value {
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
     let jev = &config.jev;
     // An enabled Jev stage uses its dedicated `<name>.jev.md` as the tool's whole static prose.
-    let read_description = if jev.read_filter_enabled {
+    let read_description = if jev.is_enabled_for("read") {
         filesystem_tool_description(
             include_str!("instructions/tools/read.jev.md").trim_end(),
             permissions.read,
@@ -349,7 +349,7 @@ pub fn list_tools() -> Value {
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = if jev.grep_filter_enabled {
+    let grep_description = if jev.is_enabled_for("grep") {
         filesystem_tool_description(
             include_str!("instructions/tools/grep.jev.md").trim_end(),
             permissions.grep,
@@ -366,13 +366,13 @@ pub fn list_tools() -> Value {
             include_str!("instructions/tools/grep.evidence.md").trim_end(),
         )
     };
-    let search_description = if jev.search_filter_enabled {
+    let search_description = if jev.is_enabled_for("search") {
         include_str!("instructions/tools/search.jev.md")
     } else {
         include_str!("instructions/tools/search.md")
     }
     .trim_end();
-    let overview_description = if jev.overview_filter_enabled {
+    let overview_description = if jev.is_enabled_for("overview") {
         include_str!("instructions/tools/overview.jev.md")
     } else {
         include_str!("instructions/tools/overview.md")
@@ -382,7 +382,7 @@ pub fn list_tools() -> Value {
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
     let search_annotations =
-        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.search_filter_enabled });
+        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("search") });
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
         "include_seen": include_seen_schema.clone(),
@@ -430,7 +430,7 @@ pub fn list_tools() -> Value {
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.overview_filter_enabled },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("overview") },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -452,7 +452,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "read",
                         "description": read_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.read_filter_enabled },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("read") },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -489,7 +489,7 @@ pub fn list_tools() -> Value {
                     {
                         "name": "grep",
                         "description": grep_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.grep_filter_enabled },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("grep") },
                         "inputSchema": {
                             "type": "object",
                             "properties": {

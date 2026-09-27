@@ -98,8 +98,8 @@ impl DisplayContext {
 /// reserve keeps a fitted search clear of the final `output.client` check.
 const POST_RENDER_RESERVE_BYTES: usize = 512;
 
-/// Only an explicitly configured `output.client` limit enables this presentation guard. The
-/// Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
+/// Resolved `output.client` limits, including built-in defaults, bound this presentation guard.
+/// The Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
 pub(super) fn delivery_byte_cap(server_cap: usize) -> usize {
     crate::config::get()
         .client_output

@@ -1,8 +1,8 @@
 # codemap-search credentials. Keep this file out of version control.
 # Resolution: repo .codemap/auth.toml > $CODEMAP_HOME/auth.toml (else ~/.codemap/auth.toml)
-# > the environment variable named by config.toml's analysis.jev.api_key_env.
+# > the TYPESAFE_API_KEY environment variable.
 # Missing or empty keys inherit the next source. This file is never overwritten.
-# Model, enable flags and request limits remain in config.toml's [analysis.jev].
+# Model, enable flags and request limits remain in config.toml's [output.jev].
 
 [jev]
 # api_key = ""

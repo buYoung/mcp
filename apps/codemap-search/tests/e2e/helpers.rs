@@ -70,6 +70,7 @@ pub fn run_cli(args: &[&str], cwd: &Path) -> assert_cmd::assert::Assert {
     // developer's real ~/.codemap (Child 05 hermeticity); absent file → defaults.
     cmd.current_dir(cwd)
         .env("CODEMAP_HOME", cwd)
+        .env_remove("TYPESAFE_API_KEY")
         .args(args)
         .assert()
 }
@@ -93,6 +94,7 @@ impl McpClient {
             .current_dir(cwd)
             // Hermetic global config home — never read the developer's real ~/.codemap.
             .env("CODEMAP_HOME", cwd)
+            .env_remove("TYPESAFE_API_KEY")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs
@@ -304,16 +306,19 @@ impl InProcessClient {
         }
         let original = std::fs::read_to_string(&path).unwrap();
         let mut config: toml::Value = toml::from_str(&original).unwrap();
-        for key in [
-            "search_filter_enabled",
-            "read_filter_enabled",
-            "grep_filter_enabled",
-        ] {
-            config["analysis"]["jev"]
-                .as_table_mut()
-                .unwrap()
-                .insert(key.into(), toml::Value::Boolean(false));
-        }
+        let section = if config
+            .get("output")
+            .and_then(|output| output.get("jev"))
+            .is_some()
+        {
+            "output"
+        } else {
+            "analysis"
+        };
+        config[section]["jev"]
+            .as_table_mut()
+            .unwrap()
+            .insert("enabled".into(), toml::Value::Boolean(false));
         std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
         codemap_search::config::reload(&root);
         let response = self
@@ -425,6 +430,7 @@ pub async fn with_in_process_server_logging<F, Fut>(
     Fut: Future<Output = ()>,
 {
     let _serialized = IN_PROCESS.lock().await;
+    std::env::remove_var("TYPESAFE_API_KEY");
     std::env::set_var("CODEMAP_HOME", cwd);
     std::env::set_current_dir(cwd).expect("set the workspace as the current directory");
     codemap_search::config::reload(cwd);

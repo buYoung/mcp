@@ -507,7 +507,7 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let output = if config.jev.search_filter_enabled {
+                        let output = if config.jev.is_enabled_for("search") {
                             jev::search(&mut self.jev, &ctx, self.registered_task.as_ref(), &config)
                                 .await?
                         } else {

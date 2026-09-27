@@ -1,8 +1,8 @@
-//! `[analysis.jev]`: optional TypeSafe Jev selection for search/read/grep and non-root overview.
-//! All filters are off by default; live tools inherit search unless explicitly configured.
+//! `[output.jev]`: optional TypeSafe Jev selection for search/read/grep and non-root overview.
+//! `enabled` is the master switch; `scope` selects eligible output tools. Off by default.
 //! Register the full task once through `initial_instructions`; enabled stages automatically
 //! use it for eligible calls. The API key comes from the separate `auth.toml` file or,
-//! as a fallback, the environment variable named by `api_key_env`, never from this
+//! as a fallback, the fixed `TYPESAFE_API_KEY` environment variable, never from this
 //! behavior section or tool arguments.
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
@@ -11,24 +11,20 @@
 //! batch. Timeouts must be positive and representable on the monotonic clock. Any invalid
 //! value warns and falls back to the lower layer or the default, like every other section.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
-pub const DEFAULT_API_KEY_ENV: &str = "TYPESAFE_API_KEY";
+pub(super) const TOOLS: [&str; 4] = ["overview", "search", "read", "grep"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JevConfig {
-    /// Mode #2: filter complete declaration bodies in `search` details.
-    pub search_filter_enabled: bool,
-    /// Live body filters; omitted configuration inherits the resolved search flag.
-    pub read_filter_enabled: bool,
-    pub grep_filter_enabled: bool,
-    /// Non-root declaration filter; omitted configuration inherits the search flag.
-    pub overview_filter_enabled: bool,
+    /// Master switch for every Jev output filter.
+    pub is_enabled: bool,
+    /// Tool names eligible for filtering when the master switch is on.
+    pub scope: Vec<String>,
     /// Concrete provider model, validated against every response.
     pub model: String,
-    /// Environment variable used when repo/global `auth.toml` provides no API key.
-    pub api_key_env: String,
     /// Whole-call deadline per tool call, including queue time.
     pub timeout_ms: u64,
     pub max_in_flight_requests: usize,
@@ -44,12 +40,9 @@ impl Default for JevConfig {
         let evaluator = crate::jev::EvaluatorConfig::default();
         let https = crate::jev::HttpsSettings::default();
         Self {
-            search_filter_enabled: false,
-            read_filter_enabled: false,
-            grep_filter_enabled: false,
-            overview_filter_enabled: false,
+            is_enabled: false,
+            scope: TOOLS.into_iter().map(str::to_string).collect(),
             model: evaluator.model,
-            api_key_env: DEFAULT_API_KEY_ENV.into(),
             timeout_ms: evaluator.deadline.as_millis() as u64,
             max_in_flight_requests: evaluator.max_in_flight_requests,
             request_spacing_ms: evaluator.request_spacing.as_millis() as u64,
@@ -63,10 +56,11 @@ impl Default for JevConfig {
 
 impl JevConfig {
     pub fn is_any_enabled(&self) -> bool {
-        self.search_filter_enabled
-            || self.read_filter_enabled
-            || self.grep_filter_enabled
-            || self.overview_filter_enabled
+        self.is_enabled && !self.scope.is_empty()
+    }
+
+    pub fn is_enabled_for(&self, tool: &str) -> bool {
+        self.is_enabled && self.scope.iter().any(|name| name == tool)
     }
 
     /// The runtime settings this configuration selects (validated by the evaluator).
@@ -96,12 +90,11 @@ impl JevConfig {
 
 #[derive(Default, PartialEq)]
 pub(super) struct JevLayer {
-    search_filter_enabled: Option<bool>,
-    read_filter_enabled: Option<bool>,
-    grep_filter_enabled: Option<bool>,
-    overview_filter_enabled: Option<bool>,
+    is_enabled: Option<bool>,
+    scope: Option<Vec<String>>,
+    /// Read compatibility only; never used by runtime consumers or new templates.
+    legacy_filters: BTreeMap<String, bool>,
     model: Option<String>,
-    api_key_env: Option<String>,
     timeout_ms: Option<u64>,
     max_in_flight_requests: Option<usize>,
     request_spacing_ms: Option<u64>,
@@ -110,24 +103,28 @@ pub(super) struct JevLayer {
     search_filter_min_unrelated_probability: Option<f64>,
 }
 
-fn as_env_var_name(value: &toml::Value, key: &str, path: &Path) -> Option<String> {
-    match value.as_str() {
-        Some(name)
-            if !name.is_empty()
-                && name
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_') =>
-        {
-            Some(name.to_string())
-        }
-        _ => {
+fn as_scope(value: &toml::Value, path: &Path) -> Option<Vec<String>> {
+    let Some(values) = value.as_array() else {
+        super::warn(&format!(
+            "config 'output.jev.scope' must be a string array: {} — ignored",
+            path.display()
+        ));
+        return None;
+    };
+    let mut scope = Vec::new();
+    for value in values {
+        let Some(tool) = value.as_str().filter(|tool| TOOLS.contains(tool)) else {
             super::warn(&format!(
-                "config '{key}' must be an environment variable name (letters, digits, underscores): {} — ignored",
+                "config 'output.jev.scope' accepts only overview, search, read and grep: {} — ignored",
                 path.display()
             ));
-            None
+            return None;
+        };
+        if !scope.iter().any(|name| name == tool) {
+            scope.push(tool.to_string());
         }
     }
+    Some(scope)
 }
 
 /// A positive integer count of milliseconds that the runtime can turn into a deadline.
@@ -213,28 +210,27 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
     let mut layer = JevLayer::default();
     let Some(table) = value.as_table() else {
         super::warn(&format!(
-            "config 'analysis.jev' must be a table: {} — ignored",
+            "config 'output.jev' must be a table: {} — ignored",
             path.display()
         ));
         return layer;
     };
     for (key, value) in table {
-        let label = format!("analysis.jev.{key}");
+        let label = format!("output.jev.{key}");
         match key.as_str() {
-            "search_filter_enabled" => {
-                layer.search_filter_enabled = super::as_bool(value, &label, path)
-            }
-            "read_filter_enabled" => {
-                layer.read_filter_enabled = super::as_bool(value, &label, path)
-            }
-            "grep_filter_enabled" => {
-                layer.grep_filter_enabled = super::as_bool(value, &label, path)
-            }
-            "overview_filter_enabled" => {
-                layer.overview_filter_enabled = super::as_bool(value, &label, path)
+            "enabled" => layer.is_enabled = super::as_bool(value, &label, path),
+            "scope" => layer.scope = as_scope(value, path),
+            legacy
+                if legacy
+                    .strip_suffix("_filter_enabled")
+                    .is_some_and(|tool| TOOLS.contains(&tool)) =>
+            {
+                if let Some(is_enabled) = super::as_bool(value, &label, path) {
+                    let tool = legacy.trim_end_matches("_filter_enabled");
+                    layer.legacy_filters.insert(tool.to_string(), is_enabled);
+                }
             }
             "model" => layer.model = super::as_nonempty_string(value, &label, path),
-            "api_key_env" => layer.api_key_env = as_env_var_name(value, &label, path),
             "timeout_ms" => layer.timeout_ms = as_safe_timeout_ms(value, &label, path),
             "max_in_flight_requests" => {
                 layer.max_in_flight_requests = as_in_flight_requests(value, &label, path)
@@ -259,31 +255,57 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> JevLayer {
     layer
 }
 
+/// Preserve old per-tool inheritance until an existing file is migrated to enabled/scope.
+fn legacy_selection(filters: &BTreeMap<String, bool>) -> (bool, Vec<String>) {
+    let is_search_enabled = filters.get("search").copied().unwrap_or(false);
+    let scope: Vec<String> = TOOLS
+        .into_iter()
+        .filter(|tool| filters.get(*tool).copied().unwrap_or(is_search_enabled))
+        .map(str::to_string)
+        .collect();
+    if scope.is_empty() {
+        (false, TOOLS.into_iter().map(str::to_string).collect())
+    } else {
+        (true, scope)
+    }
+}
+
+fn selection(repo: &JevLayer, global: &JevLayer) -> (bool, Vec<String>) {
+    let (is_global_legacy_enabled, global_legacy_scope) = legacy_selection(&global.legacy_filters);
+    let is_global_enabled = global.is_enabled.unwrap_or(is_global_legacy_enabled);
+    let global_scope = global.scope.clone().unwrap_or(global_legacy_scope);
+    let (is_inherited_enabled, inherited_scope) = if repo.legacy_filters.is_empty() {
+        (is_global_enabled, global_scope)
+    } else {
+        let mut filters = if global.is_enabled.is_some() || global.scope.is_some() {
+            TOOLS
+                .into_iter()
+                .map(|tool| {
+                    (
+                        tool.to_string(),
+                        is_global_enabled && global_scope.iter().any(|name| name == tool),
+                    )
+                })
+                .collect()
+        } else {
+            global.legacy_filters.clone()
+        };
+        filters.extend(repo.legacy_filters.clone());
+        legacy_selection(&filters)
+    };
+    (
+        repo.is_enabled.unwrap_or(is_inherited_enabled),
+        repo.scope.clone().unwrap_or(inherited_scope),
+    )
+}
+
 pub(super) fn merge(repo: JevLayer, global: JevLayer) -> JevConfig {
     let defaults = JevConfig::default();
-    let search_filter_enabled = repo
-        .search_filter_enabled
-        .or(global.search_filter_enabled)
-        .unwrap_or(defaults.search_filter_enabled);
+    let (is_enabled, scope) = selection(&repo, &global);
     JevConfig {
-        search_filter_enabled,
-        read_filter_enabled: repo
-            .read_filter_enabled
-            .or(global.read_filter_enabled)
-            .unwrap_or(search_filter_enabled),
-        grep_filter_enabled: repo
-            .grep_filter_enabled
-            .or(global.grep_filter_enabled)
-            .unwrap_or(search_filter_enabled),
-        overview_filter_enabled: repo
-            .overview_filter_enabled
-            .or(global.overview_filter_enabled)
-            .unwrap_or(search_filter_enabled),
+        is_enabled,
+        scope,
         model: repo.model.or(global.model).unwrap_or(defaults.model),
-        api_key_env: repo
-            .api_key_env
-            .or(global.api_key_env)
-            .unwrap_or(defaults.api_key_env),
         timeout_ms: repo
             .timeout_ms
             .or(global.timeout_ms)
@@ -323,10 +345,10 @@ mod tests {
     #[test]
     fn defaults_are_off_and_mirror_the_runtime_ceilings() {
         let config = merge(JevLayer::default(), JevLayer::default());
-        assert!(!config.search_filter_enabled);
+        assert!(!config.is_enabled);
+        assert_eq!(config.scope, TOOLS);
         assert!(!config.is_any_enabled());
         assert_eq!(config.model, crate::jev::DEFAULT_MODEL);
-        assert_eq!(config.api_key_env, "TYPESAFE_API_KEY");
         assert_eq!(config.timeout_ms, 45_000);
         assert_eq!(config.max_in_flight_requests, 3);
         assert_eq!(config.request_spacing_ms, 300);
@@ -340,12 +362,13 @@ mod tests {
     #[test]
     fn layers_merge_per_key_with_repo_precedence() {
         let global = layer(
-            "search_filter_enabled = true\nsearch_filter_min_unrelated_probability = 0.9\nmodel = 'jev-1.12.0'\n",
+            "enabled = true\nscope = ['read', 'grep']\nsearch_filter_min_unrelated_probability = 0.9\nmodel = 'jev-1.12.0'\n",
         );
-        let repo =
-            layer("search_filter_enabled = true\nsearch_filter_min_unrelated_probability = 0.75\n");
+        let repo = layer("scope = ['search']\nsearch_filter_min_unrelated_probability = 0.75\n");
         let config = merge(repo, global);
-        assert!(config.search_filter_enabled);
+        assert!(config.is_enabled);
+        assert!(config.is_enabled_for("search"));
+        assert!(!config.is_enabled_for("read"));
         assert_eq!(config.search_filter_min_unrelated_probability, 0.75);
         assert_eq!(config.model, "jev-1.12.0");
     }
@@ -380,11 +403,10 @@ mod tests {
             "an integer 1 is the inclusive upper bound"
         );
         let config = merge(
-            layer("timeout_ms = 0\napi_key_env = 'not a name'\nmax_batch_bytes = 168001\nrequest_spacing_ms = 299\nmax_in_flight_requests = 4\npool_idle_timeout_ms = -5\nmodel = ''\n"),
+            layer("timeout_ms = 0\nmax_batch_bytes = 168001\nrequest_spacing_ms = 299\nmax_in_flight_requests = 4\npool_idle_timeout_ms = -5\nmodel = ''\n"),
             global,
         );
         assert_eq!(config.timeout_ms, 1000);
-        assert_eq!(config.api_key_env, "TYPESAFE_API_KEY");
         assert_eq!(config.max_batch_bytes, 168_000);
         assert_eq!(config.request_spacing_ms, 300);
         assert_eq!(config.max_in_flight_requests, 3);
@@ -405,14 +427,13 @@ mod tests {
         // between starts, a 2 KB batch, a one-byte batch.
         let config = merge(
             layer(
-                "request_spacing_ms = 1000\nmax_in_flight_requests = 1\nmax_batch_bytes = '2kb'\napi_key_env = 'MY_KEY_1'\n"
+                "request_spacing_ms = 1000\nmax_in_flight_requests = 1\nmax_batch_bytes = '2kb'\n",
             ),
             JevLayer::default(),
         );
         assert_eq!(config.request_spacing_ms, 1000);
         assert_eq!(config.max_in_flight_requests, 1);
         assert_eq!(config.max_batch_bytes, 2048);
-        assert_eq!(config.api_key_env, "MY_KEY_1");
         assert!(config.evaluator_config().validate().is_ok());
         assert_eq!(
             merge(layer("max_batch_bytes = 1\n"), JevLayer::default()).max_batch_bytes,

@@ -59,6 +59,7 @@ fn destination(section: &str, key: &str) -> Option<(String, String)> {
         .iter()
         .any(|setting| setting.section == target && setting.key == key)
         || SECTION_MOVES.iter().any(|(_, section)| target == *section)
+        || super::OWNED_SUBTABLES.contains(&target.as_str())
         || target.starts_with("output.context.exclude.test_")
     {
         return Some((target, key.into()));
@@ -150,6 +151,18 @@ fn split_examples(
                     end += 1;
                 }
                 if toml::from_str::<toml::Value>(&example).is_ok() {
+                    if target == "output.jev"
+                        && (key == "api_key_env"
+                            || key
+                                .strip_suffix("_filter_enabled")
+                                .is_some_and(|tool| super::super::jev::TOOLS.contains(&tool)))
+                    {
+                        // Retain user notes, but not retired settings (including multiline examples).
+                        deliver(&mut pending, section, &target, &mut kept, moved);
+                        has_pending_header = false;
+                        index = end;
+                        continue;
+                    }
                     pending.push_str(&line.replacen(key, &renamed, 1));
                     for continuation in &lines[index + 1..end] {
                         pending.push_str(continuation);

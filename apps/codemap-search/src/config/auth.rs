@@ -142,7 +142,7 @@ mod tests {
         .unwrap();
         std::fs::write(
             dir.join("config.toml"),
-            "[analysis.jev]\nsearch_filter_enabled = true\ntimeout_ms = 5000\n",
+            "[output.jev]\nenabled = true\ntimeout_ms = 5000\n",
         )
         .unwrap();
         let path = dir.join(AUTH_FILE_NAME);
@@ -161,7 +161,7 @@ mod tests {
                 resolved.auth.jev_api_key.as_ref().unwrap().expose(),
                 "global-test-key"
             );
-            assert!(resolved.jev.search_filter_enabled);
+            assert!(resolved.jev.is_enabled_for("search"));
             assert_eq!(resolved.jev.timeout_ms, 5000);
         }
         std::fs::write(

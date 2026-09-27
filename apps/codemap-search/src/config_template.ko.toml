@@ -1,4 +1,4 @@
-# codemap-config-version: 27
+# codemap-config-version: 29
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -15,21 +15,21 @@ is_redact_enabled = true
 # max_bytes = "1mb"
 
 [output.client]
-# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, 기본 25000토큰).
+# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, codemap-search 기본값 100000).
 # 바꾼 뒤에는 Claude Code에서 MCP를 다시 연결하세요.
-# claude_max_result_chars = 200000
+claude_max_result_chars = 100000
 
-# Codex가 받는 도구 결과의 최대 토큰 수입니다(기본: 모델마다 다름).
+# Codex가 받는 도구 결과의 최대 토큰 수입니다(codemap-search 기본값 100000).
 # Codex에도 같은 값을 설정하세요. `codemap-search codex-config`가 ~/.codex/config.toml에 넣을 내용을 출력합니다.
-# codex_output_token_limit = 50000
+codex_output_token_limit = 100000
 
-# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).
-# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.
-# pi_max_bytes = 51200
+# pi가 받는 MCP 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
+# pi-mcp-adapter의 settings.outputGuard.maxBytes도 같은 값으로 설정하세요.
+pi_max_bytes = 100000
 
-# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).
-# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.
-# opencode_max_bytes = 51200
+# opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
+# opencode.json의 tool_output.max_bytes도 같은 값으로 설정하세요.
+opencode_max_bytes = 100000
 
 [output.overview]
 # overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
@@ -155,6 +155,39 @@ rules = []
 # 가리지 않을 예외입니다. rule_id와 value가 모두 정확히 일치할 때만 적용합니다.
 exceptions = []
 
+[output.jev]
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+
+# 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
+enabled = false
+
+# enabled일 때 필터를 적용할 도구입니다. []는 적용하지 않으며 전역 목록을 대체합니다.
+# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+scope = ["overview", "search", "read", "grep"]
+
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+model = "jev-1.13.0"
+
+# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
+timeout_ms = 45000
+
+# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
+max_in_flight_requests = 3
+request_spacing_ms = 300
+
+# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
+max_batch_bytes = 168000
+
+# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
+pool_idle_timeout_ms = 30000
+
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 높일수록 더 확실한 경우에만 본문을 뺍니다.
+search_filter_min_unrelated_probability = 0.70
+
 [output.context.exclude]
 # 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
 # false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
@@ -254,47 +287,6 @@ is_build_support_enabled = false
 # Rust 코드의 cfg(target_os) 조건을 판단할 OS입니다(기본: 지정 안 함). 예: "linux", "macos", "windows"
 # ""로 두면 전역 설정의 값을 쓰지 않습니다.
 # target_os = ""
-
-[analysis.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
-
-# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
-# Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
-# search_filter_enabled = false
-
-# read 결과에 적용합니다(기본: search_filter_enabled 값).
-# read_filter_enabled = false
-
-# grep 결과에 적용합니다(기본: search_filter_enabled 값).
-# grep_filter_enabled = false
-
-# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.
-# overview_filter_enabled = false
-
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-# model = "jev-1.13.0"
-
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
-# api_key_env = "TYPESAFE_API_KEY"
-
-# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
-# timeout_ms = 45000
-
-# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
-
-# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
-# max_batch_bytes = 168000
-
-# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
-# pool_idle_timeout_ms = 30000
-
-# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
-# 높일수록 더 확실한 경우에만 본문을 뺍니다.
-# search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.

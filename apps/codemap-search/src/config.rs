@@ -109,7 +109,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 27;
+const CONFIG_VERSION: u32 = 29;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -123,7 +123,7 @@ const VERSION_MARKER_PREFIX: &str = "# codemap-config-version:";
 
 /// English scaffold written to a fresh repo on `mcp` start (see
 /// [`ensure_repo_config`]). The first line is the [`VERSION_MARKER_PREFIX`] schema marker,
-/// and settings with concrete built-in defaults are active. Optional common/grep/client limits,
+/// and settings with concrete built-in defaults are active. Optional common/grep limits,
 /// compilation database paths and target-clearing examples stay commented. Repo values override a
 /// global config until the user deletes or comments out a key. Mirrors the key reference in
 /// `docs/configuration.md`; keep the two aligned when adding or renaming a key. When adding a
@@ -152,7 +152,7 @@ pub struct ResolvedConfig {
     pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
-    /// Optional Jev decision stages (`[analysis.jev]`); all stages are off by default.
+    /// Optional Jev output filters (`[output.jev]`); all stages are off by default.
     pub jev: JevConfig,
     /// Credentials from repo/global `auth.toml`, separate from behavior settings.
     pub auth: AuthConfig,
@@ -307,7 +307,12 @@ impl Default for ResolvedConfig {
             overview_output_byte_cap: None,
             grep_response_byte_cap: None,
             grep_output_byte_cap: 5 * 1024 * 1024,
-            client_output: ClientOutputConfig::default(),
+            client_output: ClientOutputConfig {
+                claude_max_result_chars: Some(100_000),
+                codex_output_token_limit: Some(100_000),
+                pi_max_bytes: Some(100_000),
+                opencode_max_bytes: Some(100_000),
+            },
             is_redact_enabled: true,
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
@@ -813,19 +818,23 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             claude_max_result_chars: repo
                 .client_output
                 .claude_max_result_chars
-                .or(global.client_output.claude_max_result_chars),
+                .or(global.client_output.claude_max_result_chars)
+                .or(defaults.client_output.claude_max_result_chars),
             codex_output_token_limit: repo
                 .client_output
                 .codex_output_token_limit
-                .or(global.client_output.codex_output_token_limit),
+                .or(global.client_output.codex_output_token_limit)
+                .or(defaults.client_output.codex_output_token_limit),
             pi_max_bytes: repo
                 .client_output
                 .pi_max_bytes
-                .or(global.client_output.pi_max_bytes),
+                .or(global.client_output.pi_max_bytes)
+                .or(defaults.client_output.pi_max_bytes),
             opencode_max_bytes: repo
                 .client_output
                 .opencode_max_bytes
-                .or(global.client_output.opencode_max_bytes),
+                .or(global.client_output.opencode_max_bytes)
+                .or(defaults.client_output.opencode_max_bytes),
         },
         is_redact_enabled: repo
             .is_redact_enabled
@@ -1613,8 +1622,6 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = \"jev-1.13.0\"
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
-# api_key_env = \"TYPESAFE_API_KEY\"
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
 # Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
@@ -1637,8 +1644,6 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = \"jev-1.13.0\"
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
-# api_key_env = \"TYPESAFE_API_KEY\"
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000
 # 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
@@ -1773,12 +1778,25 @@ fn migrate_existing(path: &Path, existing: &str) {
             }
         };
     }
-    if file_version < 23 {
+    // v28 relocates Jev; v29 also refreshes its retired per-tool switch examples.
+    if file_version < 29 {
         updated = match layout::migrate(&updated, path) {
             Ok(updated) => updated,
             Err(error) => {
                 warn(&format!(
                     "config layout migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    }
+    if file_version < 29 {
+        updated = match layout::migrate_jev_filters(&updated, &get().jev) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config Jev migration skipped for {}: {error}",
                     path.display()
                 ));
                 return;

@@ -1,8 +1,8 @@
 //! Host boundary for the optional Jev stages: credential resolution from `auth.toml` or
-//! the configured environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
+//! fixed `TYPESAFE_API_KEY` environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
 //! per tool call, and the per-tool glue that turns adapter results into response text plus
 //! secret-free stderr diagnostics. Nothing here runs unless a stage is enabled in
-//! `[analysis.jev]`. Enabled filters use the task registered for this connection; missing
+//! `[output.jev]`. Enabled filters use the task registered for this connection; missing
 //! registration is an error. Other bypasses/fallbacks preserve the base output. The record of what
 //! happened is the `jev stage` diagnostic line, never inline text.
 
@@ -14,13 +14,14 @@ use crate::tools::ToolContext;
 use std::sync::Arc;
 use tokio::time::Instant;
 
+const API_KEY_ENV: &str = "TYPESAFE_API_KEY";
+
 /// The transport-relevant settings an HTTPS evaluator was built with. A change rebuilds
 /// the evaluator on the next enabled request; the enable flags and the filter threshold are
 /// read per request and never require a rebuild.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct TransportFingerprint {
     model: String,
-    api_key_env: String,
     timeout_ms: u64,
     max_in_flight_requests: usize,
     request_spacing_ms: u64,
@@ -32,7 +33,6 @@ impl TransportFingerprint {
     fn of(config: &JevConfig) -> Self {
         Self {
             model: config.model.clone(),
-            api_key_env: config.api_key_env.clone(),
             timeout_ms: config.timeout_ms,
             max_in_flight_requests: config.max_in_flight_requests,
             request_spacing_ms: config.request_spacing_ms,
@@ -79,7 +79,7 @@ impl JevHost {
         let api_key = file_api_key
             .cloned()
             .or_else(|| {
-                std::env::var(&config.api_key_env)
+                std::env::var(API_KEY_ENV)
                     .ok()
                     .filter(|value| !value.trim().is_empty())
                     .map(SecretString::new)
@@ -228,7 +228,7 @@ pub(super) async fn overview(
 ) -> Result<String, (i64, String)> {
     let started = Instant::now();
     let prepared = crate::tools::overview::prepare(ctx)?;
-    if !config.jev.overview_filter_enabled || prepared.is_root() {
+    if !config.jev.is_enabled_for("overview") || prepared.is_root() {
         return Ok(prepared.render());
     }
     let task = require_task(task, "overview")?;
@@ -327,11 +327,7 @@ pub(super) async fn live(
             .and_then(serde_json::Value::as_str)
             .unwrap_or("content")
             == "content";
-    let is_enabled = if is_read {
-        config.jev.read_filter_enabled
-    } else {
-        config.jev.grep_filter_enabled
-    };
+    let is_enabled = config.jev.is_enabled_for(tool);
     let is_source = is_content
         && matches!(
             options.view,
@@ -429,27 +425,16 @@ mod tests {
         std::fs::write(&repo_auth, "[jev]\napi_key = 'repo-test-key'\n").unwrap();
         std::fs::write(&global_auth, "[jev]\napi_key = 'global-test-key'\n").unwrap();
 
-        // A unique test-only variable avoids reading or changing real credentials.
-        struct TestEnv(String);
+        // This is the only unit test resolving environment credentials. Never read a real key.
+        struct TestEnv;
         impl Drop for TestEnv {
             fn drop(&mut self) {
-                std::env::remove_var(&self.0);
+                std::env::remove_var(API_KEY_ENV);
             }
         }
-        let key_env = TestEnv(format!(
-            "CODEMAP_AUTH_TEST_{}",
-            repo.path()
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .replace('.', "_")
-        ));
-        std::env::set_var(&key_env.0, "environment-test-key");
-        let load = || {
-            let mut config = crate::config::load(repo.path(), global.path());
-            config.jev.api_key_env = key_env.0.clone();
-            config
-        };
+        let _key_env = TestEnv;
+        std::env::set_var(API_KEY_ENV, "environment-test-key");
+        let load = || crate::config::load(repo.path(), global.path());
         let mut host = JevHost::default();
         let config = load();
         let first = host
@@ -491,7 +476,7 @@ mod tests {
             host.built.as_ref().unwrap().api_key.expose(),
             "environment-test-key"
         );
-        std::env::remove_var(&key_env.0);
+        std::env::remove_var(API_KEY_ENV);
         assert!(matches!(
             host.resolve(&config.jev, config.auth.jev_api_key.as_ref()),
             Err("missing_credentials")

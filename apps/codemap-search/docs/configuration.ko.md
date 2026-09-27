@@ -4,16 +4,16 @@
 
 codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변경할 키만 설정하면 나머지는 전역 설정이나 내장 기본값을 사용합니다.
 
-`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다. `analysis.jev`는 선택적 Jev 판단 단계 설정이며 명시적으로 켜기 전까지 모든 단계가 꺼져 있습니다([선택적 Jev 판단 단계](#선택적-jev-판단-단계) 참고).
+`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다. `output.jev`는 선택적 Jev 출력 필터 설정이며 명시적으로 켜기 전까지 모든 단계가 꺼져 있습니다([선택적 Jev 판단 단계](#선택적-jev-판단-단계) 참고).
 
 ## 섹션 구성과 출력 한도
 
-동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep·클라이언트 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
 | `output` | 공통 MCP 응답 바이트 한도와 가림 여부 |
-| `output.client` | Claude 문자 한도, Codex 도구별 토큰 한도 |
+| `output.client` | Claude 문자 한도, Codex 도구별 토큰 한도, pi·opencode 바이트 한도 |
 | `output.overview` | 루트 통계와 개요 응답 |
 | `output.search` | 검색 상세 파일·심볼·코드 조각 |
 | `output.read` | 직접 읽기 응답 |
@@ -23,11 +23,11 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `output.macro_expansion` | 매크로 전처리와 생성된 선언의 탐색 결과 |
 | `output.event_navigation` | 이벤트·소스 경로 색인과 탐색 결과 |
 | `output.redact` | 추가 가림 규칙과 예외 |
+| `output.jev` | 선택적 search·read·grep·루트 외 overview 출력 필터, 기본은 꺼짐 |
 | `output.context.exclude` | search 호출 관계와 read/grep 자동 문맥, 이벤트·소스 경로 분석의 공통 테스트 제외 |
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
-| `analysis.jev` | 선택적 search 전용 작업 판단, 기본은 꺼짐 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -37,19 +37,19 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ### 클라이언트 전달 한도
 
-`output.client`는 각 코딩 에이전트가 모델에 넘기는 결과의 최대 크기, 즉 codemap-search의 최종 컨텍스트 크기입니다. `max_bytes` 예산은 그보다 앞 단계인 후보 수집·Jev 입력·렌더링·페이지 나누기에 적용되며, 얼마나 크게 지정하든 모든 최종 응답은 지정한 클라이언트 한도 중 가장 작은 값을 지켜야 합니다. 한도는 UTF-8 바이트로 비교합니다. Claude 문자 수는 바이트로 세므로 실제 문자 수보다 적게 세지 않고, Codex 토큰은 토큰화 결과가 아닌 여유 추정치 `floor(토큰 수 × 3.5)`를 쓰며, pi·opencode 값은 이미 바이트입니다. 미지정 키는 한도를 추가하지 않습니다.
+`output.client`는 각 코딩 에이전트가 모델에 넘기는 결과의 최대 크기, 즉 codemap-search의 최종 컨텍스트 크기입니다. `max_bytes` 예산은 그보다 앞 단계인 후보 수집·Jev 입력·렌더링·페이지 나누기에 적용되며, 얼마나 크게 지정하든 모든 최종 응답은 지정한 클라이언트 한도 중 가장 작은 값을 지켜야 합니다. 한도는 UTF-8 바이트로 비교합니다. Claude 문자 수는 바이트로 세므로 실제 문자 수보다 적게 세지 않고, Codex 토큰은 토큰화 결과가 아닌 여유 추정치 `floor(토큰 수 × 3.5)`를 쓰며, pi·opencode 값은 이미 바이트입니다. 네 키의 기본값은 각 단위 기준 `100000`이며, 모두 기본값이면 최종 전달 한도는 `100000`바이트입니다. 생략한 키는 전역 설정이나 이 내장 기본값을 이어받습니다.
 
 검사는 모든 도구에 대해 Jev 생략·마스킹·중복 제거가 끝난 최종 텍스트에서 수행합니다. 순위 검색은 검사 전에 한도에 맞춥니다. 판정 후 일치·불확실 본문을 우선하고, `min(output.search.max_bytes, 한도 − min(512, 한도 / 8))`를 넘는 낮은 우선순위 본문 전체를 정확한 read 범위로 대체하며 관계와 후속 탐색 공간도 남깁니다. 빼 둔 여유는 렌더링 뒤 붙는 마스킹·중복 표식을 위한 것입니다. 후보·Jev 입력 예산은 유지합니다. 나머지 도구는 클라이언트가 잘라낼 결과 대신 범위 축소 오류를 반환합니다. read는 더 좁은 구간을, grep은 더 작은 `head_limit`와 다음 페이지용 `offset`을 제안합니다. Claude 메타데이터와 Codex exec의 여러 도구 결과 합산 한도는 별개이며, 임의의 묶음 출력이 클라이언트 한도를 넘지 않는다는 보장은 아닙니다.
 
-`output.client.claude_max_result_chars`는 1~500000의 문자 수이며 미지정이면 메타데이터를 보내지 않습니다. 지정하면 여섯 도구의 `tools/list` 항목에 `_meta["anthropic/maxResultSizeChars"]`로 전달합니다. 클라이언트가 도구 목록을 다시 읽도록 MCP를 재연결하세요. [Claude Code 공식 문서](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
+`output.client.claude_max_result_chars`는 1~500000의 문자 수이며 기본값은 `100000`입니다. 각 도구의 `tools/list` 항목에 `_meta["anthropic/maxResultSizeChars"]`로 전달합니다. 클라이언트가 도구 목록을 다시 읽도록 MCP를 재연결하세요. [Claude Code 공식 문서](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
 
-`output.client.codex_output_token_limit`는 양의 토큰 수입니다. 설정한 뒤 `codemap-search codex-config`를 실행하면 여섯 도구의 `mcp_servers.codemap-search.tools.<tool>.output_token_limit` TOML을 출력합니다. 등록한 서버 이름이 다르면 `--server-name 이름`을 지정하세요. 출력 조각을 Codex 설정에 병합해야 적용되며 명령은 클라이언트 파일을 쓰지 않습니다. [Codex 공식 문서](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
+`output.client.codex_output_token_limit`는 양의 토큰 수이며 기본값은 `100000`입니다. `codemap-search codex-config`를 실행하면 모든 도구의 `mcp_servers.codemap-search.tools.<tool>.output_token_limit` TOML을 출력합니다. 등록한 서버 이름이 다르면 `--server-name 이름`을 지정하세요. 출력 조각을 Codex 설정에 병합해야 적용되며 명령은 클라이언트 파일을 쓰지 않습니다. [Codex 공식 문서](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
 
-Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. `initialize` 요청의 `params.clientInfo.name`이 `codex-mcp-client`인 연결에만 Codex 전용 안내를 전달하며, 다른 클라이언트나 식별 정보가 없는 연결에는 공통 안내만 전달합니다. Codex 전용 안내는 에이전트가 첫 줄에 `// @exec: {"max_output_tokens": N}`을 넣고, `N`에는 `codex_output_token_limit` 값(미지정이면 10000)을 쓰며, `wait`에도 같은 출력 예산을 적용하도록 안내합니다. 이 예산은 출력한 결과의 합계에 적용되므로 큰 묶음은 나눠야 합니다. 클라이언트의 `tool_output_token_limit`가 더 작으면 기록에 저장할 때 잘릴 수 있으며, 서버는 이 설정을 읽거나 변경하지 않습니다. 설정값을 바꾸면 MCP를 재연결해 안내를 갱신하세요. Jev 활성화 여부와 무관하게 적용되는 안내이며, 에이전트가 따른다는 보장은 없습니다. [Codex 설정 공식 문서](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
+Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. `initialize` 요청의 `params.clientInfo.name`이 `codex-mcp-client`인 연결에만 Codex 전용 안내를 전달하며, 다른 클라이언트나 식별 정보가 없는 연결에는 공통 안내만 전달합니다. Codex 전용 안내는 에이전트가 첫 줄에 `// @exec: {"max_output_tokens": N}`을 넣고, `N`에는 `codex_output_token_limit` 값(기본 `100000`)을 쓰며, `wait`에도 같은 출력 예산을 적용하도록 안내합니다. 이 예산은 출력한 결과의 합계에 적용되므로 큰 묶음은 나눠야 합니다. 클라이언트의 `tool_output_token_limit`가 더 작으면 기록에 저장할 때 잘릴 수 있으며, 서버는 이 설정을 읽거나 변경하지 않습니다. 설정값을 바꾸면 MCP를 재연결해 안내를 갱신하세요. Jev 활성화 여부와 무관하게 적용되는 안내이며, 에이전트가 따른다는 보장은 없습니다. [Codex 설정 공식 문서](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
 
 `MCP client delivery context` 진단 로그는 `params._meta.callId` 유무, `exec-` 뒤에 하이픈을 포함한 UUID가 오는 형식에 한정한 ID 값, 응답 바이트 수와 설정된 Codex 한도를 기록합니다. 이 내부 ID 형식은 Code Mode의 단서일 뿐이며 실제 exec 예산이나 모델 문맥에 전달됐는지는 알 수 없습니다. 이 값으로 필터·출력 한도·중복 이력을 바꾸지 않습니다.
 
-`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 미지정입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트에 설정한 값을 지정하세요. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
+`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 각각 `100000`바이트입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트와 서버에 같은 값을 설정하세요. 서버 기본값인 `100000`바이트를 사용하려면 클라이언트 한도도 높여야 합니다. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
 
 ## 설정 위치와 우선순위
 
@@ -62,7 +62,7 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 
 ### 인증정보 (`auth.toml`)
 
-Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → `[analysis.jev].api_key_env`에 지정한 환경 변수**(기본 `TYPESAFE_API_KEY`)입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수**입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
 
 ```toml
 # .codemap/auth.toml — 버전 관리에서 제외하세요
@@ -70,16 +70,20 @@ Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미�
 api_key = "<발급받은 키>"
 ```
 
-`config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 기존 `config.toml`의 `[analysis.jev]`에 유지합니다.
+`config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 `config.toml`의 `[output.jev]`에서 관리합니다.
 
 이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search·overview와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **27**이며 주석으로 표시합니다.
+버전 28은 `[analysis.jev]`를 `[output.jev]`로 옮기면서 필터 설정을 보존합니다. 두 위치가 함께 있으면 키별로 새 위치가 우선합니다. 전역 파일이나 자동 갱신을 끈 파일은 기존 위치도 계속 읽습니다. 폐기한 `api_key_env` 옵션과 예시는 이전 과정에서 제거하며 더 이상 읽지 않습니다. 사용자 지정 환경 변수의 키는 `auth.toml` 또는 `TYPESAFE_API_KEY`로 옮기세요.
+
+버전 29는 네 `*_filter_enabled` 설정을 `enabled`와 `scope`로 바꿉니다. 기존 저장소의 활성 설정은 전역에서 상속한 도구별 선택까지 포함해 현재 적용 중인 조합으로 한 번 변환합니다. 변환 이후 명시된 scope 목록은 전역 목록을 대체합니다. 갱신하지 않은 파일의 옛 설정은 호환용으로만 읽으며 같은 파일에서는 새 설정이 우선합니다. 옛 스위치의 주석 예시는 제거합니다. 기존 파일에서 생략한 새 설정은 계속 상속하며, 새 템플릿은 `enabled=false`를 포함한 모든 Jev 기본값을 주석 해제 상태로 제공합니다.
+
+현재 설정 버전은 **29**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 27
+# codemap-config-version: 29
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -185,10 +189,10 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 |---|---|---|---|
 | `[output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보와 선택한 PII를 가림. 검색 일치와 로컬 색인은 원문 유지 |
 | `[output].max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | 공통 MCP 응답 한도. 도구별 예외가 같은 계층에서 우선 |
-| `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | 미지정 | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
-| `[output.client].codex_output_token_limit` | 양의 정수(토큰) | 미지정 | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
-| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | pi 최종 전달 한도 |
-| `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | opencode 최종 전달 한도 |
+| `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | `100000` | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
+| `[output.client].codex_output_token_limit` | 양의 정수(토큰) | `100000` | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
+| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi 최종 전달 한도 |
+| `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | opencode 최종 전달 한도 |
 | `[output.overview].is_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
 | `[output.overview].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | 개요 응답 한도. 공통값도 없으면 추가 제한 없음 |
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
@@ -239,18 +243,15 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
-| `[analysis.jev].search_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 search의 완전하고 정체성이 확인된 본문을 자동 필터링하고 read 안내를 남김 |
-| `[analysis.jev].read_filter_enabled` | bool | 최종 search 설정 상속 | read로 완전히 반환한 본문 판단. 명시한 false는 read만 끔 |
-| `[analysis.jev].grep_filter_enabled` | bool | 최종 search 설정 상속 | grep content의 완전한 본문 판단. 파일·개수 모드는 로컬 유지 |
-| `[analysis.jev].overview_filter_enabled` | bool | 최종 search 설정 상속 | 루트 외 overview의 선언을 실제 소스 근거로 판단. 루트 지도는 항상 로컬 유지 |
-| `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
-| `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | 두 auth 파일에 키가 없을 때 요청 시점에 읽을 대체 환경 변수. 키 자체는 아님 |
-| `[analysis.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
-| `[analysis.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
-| `[analysis.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
-| `[analysis.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
-| `[analysis.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
-| `[analysis.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
+| `[output.jev].enabled` | bool | `false` | 전체 스위치. false이면 scope와 무관하게 모든 Jev 출력 필터를 끔 |
+| `[output.jev].scope` | 문자열 배열 | `["overview", "search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
+| `[output.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
+| `[output.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
+| `[output.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
+| `[output.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
+| `[output.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
+| `[output.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
+| `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
 
 ### 색인과 파일 제외
 
@@ -447,7 +448,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 27
+# codemap-config-version: 29
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -464,21 +465,21 @@ is_redact_enabled = true
 # max_bytes = "1mb"
 
 [output.client]
-# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, 기본 25000토큰).
+# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, codemap-search 기본값 100000).
 # 바꾼 뒤에는 Claude Code에서 MCP를 다시 연결하세요.
-# claude_max_result_chars = 200000
+claude_max_result_chars = 100000
 
-# Codex가 받는 도구 결과의 최대 토큰 수입니다(기본: 모델마다 다름).
+# Codex가 받는 도구 결과의 최대 토큰 수입니다(codemap-search 기본값 100000).
 # Codex에도 같은 값을 설정하세요. `codemap-search codex-config`가 ~/.codex/config.toml에 넣을 내용을 출력합니다.
-# codex_output_token_limit = 50000
+codex_output_token_limit = 100000
 
-# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).
-# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.
-# pi_max_bytes = 51200
+# pi가 받는 MCP 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
+# pi-mcp-adapter의 settings.outputGuard.maxBytes도 같은 값으로 설정하세요.
+pi_max_bytes = 100000
 
-# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).
-# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.
-# opencode_max_bytes = 51200
+# opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
+# opencode.json의 tool_output.max_bytes도 같은 값으로 설정하세요.
+opencode_max_bytes = 100000
 
 [output.overview]
 # overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
@@ -604,6 +605,39 @@ rules = []
 # 가리지 않을 예외입니다. rule_id와 value가 모두 정확히 일치할 때만 적용합니다.
 exceptions = []
 
+[output.jev]
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+
+# 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
+enabled = false
+
+# enabled일 때 필터를 적용할 도구입니다. []는 적용하지 않으며 전역 목록을 대체합니다.
+# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+scope = ["overview", "search", "read", "grep"]
+
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+model = "jev-1.13.0"
+
+# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
+timeout_ms = 45000
+
+# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
+max_in_flight_requests = 3
+request_spacing_ms = 300
+
+# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
+max_batch_bytes = 168000
+
+# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
+pool_idle_timeout_ms = 30000
+
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 높일수록 더 확실한 경우에만 본문을 뺍니다.
+search_filter_min_unrelated_probability = 0.70
+
 [output.context.exclude]
 # 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
 # false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
@@ -704,47 +738,6 @@ is_build_support_enabled = false
 # ""로 두면 전역 설정의 값을 쓰지 않습니다.
 # target_os = ""
 
-[analysis.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
-
-# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
-# Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
-# search_filter_enabled = false
-
-# read 결과에 적용합니다(기본: search_filter_enabled 값).
-# read_filter_enabled = false
-
-# grep 결과에 적용합니다(기본: search_filter_enabled 값).
-# grep_filter_enabled = false
-
-# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.
-# overview_filter_enabled = false
-
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-# model = "jev-1.13.0"
-
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
-# api_key_env = "TYPESAFE_API_KEY"
-
-# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
-# timeout_ms = 45000
-
-# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
-
-# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
-# max_batch_bytes = 168000
-
-# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
-# pool_idle_timeout_ms = 30000
-
-# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
-# 높일수록 더 확실한 경우에만 본문을 뺍니다.
-# search_filter_min_unrelated_probability = 0.70
-
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
@@ -840,10 +833,10 @@ import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 �
 ## 선택적 Jev 판단 단계
 
 ```toml
-[analysis.jev]
-search_filter_enabled = true
-# api_key_env = "TYPESAFE_API_KEY"
-# search_filter_min_unrelated_probability = 0.70
+[output.jev]
+enabled = true
+scope = ["overview", "search", "read", "grep"]
+search_filter_min_unrelated_probability = 0.70
 ```
 
 키는 별도 [`auth.toml`](#인증정보-authtoml)에 저장하세요. 두 auth 파일에 키가 없으면 기존 환경 변수 방식도 그대로 동작합니다.
@@ -852,7 +845,7 @@ search_filter_enabled = true
 export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에 읽는 대체값이며 auth.toml로 복사하지 않습니다
 ```
 
-Jev는 기본으로 꺼져 있습니다. `search_filter_enabled=true`이면 search와, 별도 값을 지정하지 않은 read·grep·루트 외 overview 필터를 켭니다. `read_filter_enabled`, `grep_filter_enabled`, `overview_filter_enabled`는 도구별 명시 값이 우선하며 생략하면 최종 search 설정을 따릅니다. 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
+Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
 
 ### 작업 질문 등록
 
@@ -881,7 +874,7 @@ Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작
 
 등록은 연결 안에서 원자적으로 교체합니다. 잘못된 교체는 이전 작업을 지우며 `initialize`도 초기화합니다. 질문 생성용 별도 서비스를 호출하지 않습니다. 등록 누락은 인수 오류이고 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 공통 중복 제거는 그 뒤에 독립적으로 적용됩니다.
 
-켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. 루트 overview·find·analyze는 Jev를 호출하지 않습니다. 새 `overview_filter_enabled`와 달리 폐기한 `overview_enabled` 설정은 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
+켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. 루트 overview·find·analyze는 Jev를 호출하지 않습니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
 
 ### 질문 판단과 근거
 
@@ -958,7 +951,7 @@ Rust에서 직접 사용할 때는 [`codemap_search::jev`](../src/jev/mod.rs)와
 
 ### 루트 외 overview의 Jev 적용
 
-`overview_filter_enabled`는 파일과 하위 폴더의 선언 행을 판단합니다. 저장소 루트와 그 별칭·절대 경로는 등록이나 외부 호출 없이 기존 지도를 반환합니다. 모노레포의 하위 워크스페이스는 비루트 경로에 해당합니다. 폴더는 바로 포함된 파일 최대 8개의 선언을 판단하며 하위 디렉터리 지도와 파일 항목, 색인 통계는 유지합니다.
+`enabled=true`이고 `scope`에 `"overview"`가 있으면 파일과 하위 폴더의 선언 행을 판단합니다. 저장소 루트와 그 별칭·절대 경로는 등록이나 외부 호출 없이 기존 지도를 반환합니다. 모노레포의 하위 워크스페이스는 비루트 경로에 해당합니다. 폴더는 바로 포함된 파일 최대 8개의 선언을 판단하며 하위 디렉터리 지도와 파일 항목, 색인 통계는 유지합니다.
 
 판정용 소스는 파일 읽기 권한·마스킹·테스트 코드 제외 규칙을 따르고 색인 당시의 소스 해시와 현재 소스를 대조합니다. 판정 완료 후 파일을 다시 읽지 않습니다. 판단할 근거가 없거나 한도를 넘긴 선언은 미판정으로 남으며, 이를 분류 성공으로 집계하지 않습니다. 불확실 선언은 유지하고 일치하지 않는 선언만 제거합니다. 부모 선언이 남아도 그 자식 전체가 자동 보존되지는 않으며, 남은 자식의 구조를 나타내는 부모는 유지합니다.
 

@@ -246,10 +246,11 @@ const SECTION_ALIASES: &[(&str, &str)] = &[
     ("analysis.navigation", "output.navigation"),
     ("analysis.macro_expansion", "output.macro_expansion"),
     ("analysis.event_navigation", "output.event_navigation"),
+    ("analysis.jev", "output.jev"),
 ];
 
-/// Canonical sub-tables whose module owns validation of every key (no legacy spelling).
-const OWNED_SUBTABLES: &[&str] = &["analysis.jev"];
+/// Canonical sub-tables whose module owns validation of every key.
+const OWNED_SUBTABLES: &[&str] = &["output.jev"];
 
 pub(super) fn is_canonical_key(section: &str, key: &str) -> bool {
     let full = format!("{section}.{key}");
@@ -274,9 +275,20 @@ pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Pat
     if let Some(navigation) = value_at(value, "analysis.navigation") {
         normalize_table(layer, "output.navigation", navigation, path);
     }
-    if let Some(jev) = value_at(value, "analysis.jev") {
-        layer.jev = super::jev::normalize(jev, path);
+    let mut jev = toml::Table::new();
+    for section in ["analysis.jev", "output.jev"] {
+        if let Some(value) = value_at(value, section) {
+            if let Some(table) = value.as_table() {
+                jev.extend(table.clone());
+            } else {
+                super::warn(&format!(
+                    "config '{section}' must be a table: {} — ignored",
+                    path.display()
+                ));
+            }
+        }
     }
+    layer.jev = super::jev::normalize(&toml::Value::Table(jev), path);
     for section in ["output", "index", "analysis"] {
         if let Some(value) = value.get(section) {
             normalize_table(layer, section, value, path);
@@ -519,6 +531,7 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
             "macro_expansion",
             "event_navigation",
             "redact",
+            "jev",
         ],
         "index" => &["exclude", "refresh", "language_support"],
         _ => &[],
@@ -571,6 +584,68 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
     }
 }
 
+/// v29 replaces legacy switches with the currently effective selection. An explicit scope
+/// is a complete list, so any inherited legacy per-tool choices are materialized once.
+pub(super) fn migrate_jev_filters(
+    contents: &str,
+    current: &super::JevConfig,
+) -> Result<String, String> {
+    let mut document: DocumentMut = contents
+        .parse()
+        .map_err(|error: toml_edit::TomlError| error.to_string())?;
+    if section_at(&document, "output.jev").is_none() {
+        return Ok(contents.to_string());
+    }
+    let mut has_legacy_filters = false;
+    for tool in super::jev::TOOLS {
+        let key = format!("{tool}_filter_enabled");
+        if let Some((key, item)) =
+            table_at_mut(document.as_table_mut(), "output.jev")?.remove_entry(&key)
+        {
+            has_legacy_filters = true;
+            comments::move_section(&mut document, &key, &item, "output.jev")?;
+        }
+    }
+    let table = table_at_mut(document.as_table_mut(), "output.jev")?;
+    if has_legacy_filters {
+        let has_invalid_scope = table.get("scope").is_some_and(|value| {
+            value.as_array().is_none_or(|values| {
+                values.iter().any(|value| {
+                    !value
+                        .as_str()
+                        .is_some_and(|tool| super::jev::TOOLS.contains(&tool))
+                })
+            })
+        });
+        if table
+            .get("enabled")
+            .is_some_and(|value| value.as_bool().is_none())
+            || has_invalid_scope
+        {
+            return Err("cannot replace legacy Jev switches while enabled or scope is invalid; fix those values first".into());
+        }
+        if !table.contains_key("enabled") {
+            table.insert("enabled", toml_edit::value(current.is_enabled));
+        }
+        if !table.contains_key("scope") {
+            let scope: toml_edit::Array = current.scope.iter().map(String::as_str).collect();
+            table.insert("scope", toml_edit::value(scope));
+        }
+    }
+    for (key, assignment) in [
+        ("enabled", "enabled = false"),
+        (
+            "scope",
+            "scope = [\"overview\", \"search\", \"read\", \"grep\"]",
+        ),
+    ] {
+        if !table.contains_key(key) && !super::file_mentions_key(&table.to_string(), key) {
+            append_example(table, assignment);
+        }
+    }
+    Ok(generated::refresh(&document.to_string()))
+}
+
 pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {
     let before: toml::Value = toml::from_str(contents).map_err(|error| error.to_string())?;
     let marker = contents
@@ -604,6 +679,13 @@ pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {
     }
     for &(legacy, canonical) in SECTION_MOVES {
         move_section(&mut document, &original, legacy, canonical)?;
+    }
+    if section_at(&document, "output.jev").is_some() {
+        if let Some((key, item)) =
+            table_at_mut(document.as_table_mut(), "output.jev")?.remove_entry("api_key_env")
+        {
+            comments::move_section(&mut document, &key, &item, "output.jev")?;
+        }
     }
     move_exclusions(&mut document, &original)?;
     for (section, target) in [

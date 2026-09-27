@@ -1,4 +1,4 @@
-# codemap-config-version: 27
+# codemap-config-version: 29
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -14,21 +14,21 @@ is_redact_enabled = true
 # max_bytes = "1mb"
 
 [output.client]
-# Maximum characters in a Claude Code result (1–500000, default 25000 tokens).
+# Maximum characters in a Claude Code result (1–500000, codemap-search default 100000).
 # Reconnect MCP in Claude Code after changing this.
-# claude_max_result_chars = 200000
+claude_max_result_chars = 100000
 
-# Maximum tokens in a Codex tool result (default: depends on the model).
+# Maximum tokens in a Codex tool result (codemap-search default 100000).
 # Set the same value in Codex; `codemap-search codex-config` prints the lines for ~/.codex/config.toml.
-# codex_output_token_limit = 50000
+codex_output_token_limit = 100000
 
-# Maximum bytes in an MCP result in pi (default 51200).
-# Use the same value as settings.outputGuard.maxBytes in pi-mcp-adapter.
-# pi_max_bytes = 51200
+# Maximum bytes in an MCP result in pi (codemap-search default 100000).
+# Set settings.outputGuard.maxBytes in pi-mcp-adapter to the same value.
+pi_max_bytes = 100000
 
-# Maximum bytes in a tool result in opencode (default 51200).
-# Use the same value as tool_output.max_bytes in opencode.json.
-# opencode_max_bytes = 51200
+# Maximum bytes in a tool result in opencode (codemap-search default 100000).
+# Set tool_output.max_bytes in opencode.json to the same value.
+opencode_max_bytes = 100000
 
 [output.overview]
 # Show per-language file statistics when overview opens the repository root or a subproject root.
@@ -154,6 +154,39 @@ rules = []
 # Exceptions to masking. Each applies only when both rule_id and value match exactly.
 exceptions = []
 
+[output.jev]
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Register the task first with initial_instructions(task_query, questions).
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+
+# Master switch for all Jev output filters. false keeps every tool local.
+enabled = false
+
+# Tools to filter when enabled. [] selects none; this list replaces the global scope.
+# Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
+scope = ["overview", "search", "read", "grep"]
+
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
+model = "jev-1.13.0"
+
+# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
+timeout_ms = 45000
+
+# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
+max_in_flight_requests = 3
+request_spacing_ms = 300
+
+# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
+max_batch_bytes = 168000
+
+# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
+pool_idle_timeout_ms = 30000
+
+# Minimum probability for judging a question's answer as "no" (above 0.5, at most 1.0, default 0.70).
+# Higher values remove bodies only when Jev is more certain.
+search_filter_min_unrelated_probability = 0.70
+
 [output.context.exclude]
 # Include test code in call relationships and automatically added context.
 # Test code still appears in search/overview declarations and read/grep source when false.
@@ -253,47 +286,6 @@ is_build_support_enabled = false
 # OS used for cfg(target_os) conditions in Rust code (default: not set), e.g. "linux", "macos", "windows"
 # "" ignores the value from the global settings.
 # target_os = ""
-
-[analysis.jev]
-# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
-
-# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
-# If Jev cannot be used, the original result is returned.
-# search_filter_enabled = false
-
-# Apply to read results (default: same as search_filter_enabled).
-# read_filter_enabled = false
-
-# Apply to grep results (default: same as search_filter_enabled).
-# grep_filter_enabled = false
-
-# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.
-# overview_filter_enabled = false
-
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-# model = "jev-1.13.0"
-
-# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
-# api_key_env = "TYPESAFE_API_KEY"
-
-# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
-# timeout_ms = 45000
-
-# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
-
-# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
-# max_batch_bytes = 168000
-
-# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
-# pool_idle_timeout_ms = 30000
-
-# Minimum probability for judging a question's answer as "no" (above 0.5, at most 1.0, default 0.70).
-# Higher values remove bodies only when Jev is more certain.
-# search_filter_min_unrelated_probability = 0.70
 
 [filesystem_permissions]
 # Where find, grep, and read may access files.

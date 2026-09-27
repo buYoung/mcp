@@ -4,16 +4,16 @@
 
 Configuration is optional. Add only the keys you want to change; other keys use global settings or built-in defaults.
 
-`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win. `analysis.jev` holds the optional Jev decision stages; all stages stay off unless enabled explicitly (see [Optional Jev decision stages](#optional-jev-decision-stages)).
+`output.event_navigation`, `analysis`, and `output.macro_expansion` are optional sections. Event navigation and native macro expansion are enabled by default. Omitting the target OS inherits the global setting; an empty string clears it. Without a configured target, analysis leaves it unknown and never infers the host OS. Explicit settings, including `is_enabled = false`, still win. `output.jev` holds the optional Jev output filters; all stages stay off unless enabled explicitly (see [Optional Jev decision stages](#optional-jev-decision-stages)).
 
 ## Section layout and output budgets
 
-Keep behavior settings in `config.toml`, grouped by responsibility, and credentials in `auth.toml`. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
+Keep behavior settings in `config.toml`, grouped by responsibility, and credentials in `auth.toml`. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, all four client limits, preprocessing, event rules and custom masking lists. Common/grep limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
 
 | Section | Responsibility |
 |---|---|
 | `output` | Common MCP response byte ceiling and masking switch |
-| `output.client` | Claude character limit and Codex per-tool token limit |
+| `output.client` | Claude character limit, Codex per-tool token limit and pi/opencode byte limits |
 | `output.overview` | Root statistics and overview responses |
 | `output.search` | Ranked files, symbols and snippets |
 | `output.read` | Live file reads |
@@ -23,11 +23,11 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 | `output.macro_expansion` | Native preprocessing and generated declaration results |
 | `output.event_navigation` | Indexed event/source routes and navigation results |
 | `output.redact` | Additional masking rules and exceptions |
+| `output.jev` | Optional search/read/grep/non-root overview output filtering; off by default |
 | `output.context.exclude` | Shared test exclusions for search relationships, read/grep context and event/source-route analysis |
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
-| `analysis.jev` | Optional search/read/grep/non-root overview task judgments; off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -37,19 +37,19 @@ Search returns explicit partial output; read requests a narrower range. Overview
 
 ### Client delivery budgets
 
-`output.client` sets the largest result each coding agent passes to its model: codemap-search's final context size. `max_bytes` budgets apply earlier, to candidate capture, Jev input, rendering and pagination; however large they are, every final response must fit the smallest configured client limit. Limits are compared in UTF-8 bytes: Claude characters count as bytes, which never undercounts them; Codex tokens use `floor(tokens × 3.5)`, a headroom estimate rather than tokenization; pi and opencode values are already bytes. Unset keys add no limit.
+`output.client` sets the largest result each coding agent passes to its model: codemap-search's final context size. `max_bytes` budgets apply earlier, to candidate capture, Jev input, rendering and pagination; however large they are, every final response must fit the smallest configured client limit. Limits are compared in UTF-8 bytes: Claude characters count as bytes, which never undercounts them; Codex tokens use `floor(tokens × 3.5)`, a headroom estimate rather than tokenization; pi and opencode values are already bytes. All four keys default to `100000` in their respective units, giving a final delivery limit of `100000` bytes with the defaults. Omitted keys inherit global settings or these built-in defaults.
 
 The check runs on the final text after Jev omissions, masking and duplicate folding, for every tool. Ranked search fits before the check: after judgment it keeps matched/uncertain bodies first and replaces lower-priority whole bodies with exact read ranges within `min(output.search.max_bytes, limit − min(512, limit / 8))`, with space reserved for relationships and discovery. The reserve absorbs masking and duplicate markers added after rendering. Candidate/Jev input budgets stay unchanged. Other tools return a narrowing error instead of a result the client would clip: read suggests a narrower window, grep a smaller `head_limit` with `offset` for later pages. Claude metadata and multi-tool Codex exec cell limits remain separate; arbitrary batches can still exceed a client limit.
 
-`output.client.claude_max_result_chars` accepts 1–500000 characters and defaults to unset. When configured, each of the six tools advertises `_meta["anthropic/maxResultSizeChars"]` in `tools/list`. Reconnect MCP so the client reloads tool metadata. [Claude Code reference](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
+`output.client.claude_max_result_chars` accepts 1–500000 characters and defaults to `100000`. Each tool advertises `_meta["anthropic/maxResultSizeChars"]` in `tools/list`. Reconnect MCP so the client reloads tool metadata. [Claude Code reference](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
 
-`output.client.codex_output_token_limit` accepts a positive token count. `codemap-search codex-config` prints TOML for all six `mcp_servers.codemap-search.tools.<tool>.output_token_limit` entries. Use `--server-name NAME` if the registered server has a different ID. Merge the printed fragment into Codex configuration to apply it; the command never writes client files. [Codex reference](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
+`output.client.codex_output_token_limit` accepts a positive token count and defaults to `100000`. `codemap-search codex-config` prints TOML for all `mcp_servers.codemap-search.tools.<tool>.output_token_limit` entries. Use `--server-name NAME` if the registered server has a different ID. Merge the printed fragment into Codex configuration to apply it; the command never writes client files. [Codex reference](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
 
-Codex Code Mode has a separate output budget for each `exec` call. Only connections whose `initialize` request identifies `params.clientInfo.name` as `codex-mcp-client` receive the Codex-specific instructions; other or unidentified clients receive only the shared instructions. The Codex instructions ask the agent to set first-line `// @exec: {"max_output_tokens": N}` using `codex_output_token_limit` as `N` (10000 when unset), and to use the same output budget on `wait`. The budget covers the combined printed results, so larger batches must be split. A lower client `tool_output_token_limit` can still truncate history; the server neither reads nor changes that setting. Reconnect MCP after changing the configured value to refresh the instructions. This guidance applies with Jev on or off, but the agent's compliance is not guaranteed. [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
+Codex Code Mode has a separate output budget for each `exec` call. Only connections whose `initialize` request identifies `params.clientInfo.name` as `codex-mcp-client` receive the Codex-specific instructions; other or unidentified clients receive only the shared instructions. The Codex instructions ask the agent to set first-line `// @exec: {"max_output_tokens": N}` using `codex_output_token_limit` as `N` (`100000` by default), and to use the same output budget on `wait`. The budget covers the combined printed results, so larger batches must be split. A lower client `tool_output_token_limit` can still truncate history; the server neither reads nor changes that setting. Reconnect MCP after changing the configured value to refresh the instructions. This guidance applies with Jev on or off, but the agent's compliance is not guaranteed. [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
 
 The `MCP client delivery context` diagnostic records whether `params._meta.callId` was present, its value only when it matches `exec-` followed by a hyphenated UUID, response bytes and the configured Codex limit. This internal ID pattern is only a Code Mode hint; it does not reveal the exec budget or confirm delivery to model context. It does not change filtering, output limits or duplicate history.
 
-`output.client.pi_max_bytes` and `output.client.opencode_max_bytes` accept integer bytes or size strings and default to unset. pi ([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`) and opencode ([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config)) read no server metadata; by default they keep only the leading 51200 bytes of a larger text result and save the rest to a file. Set the value configured in the client; codemap-search never changes client settings. Their line limit (default 2000) is not enforced.
+`output.client.pi_max_bytes` and `output.client.opencode_max_bytes` accept integer bytes or size strings and both default to `100000` bytes. pi ([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`) and opencode ([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config)) read no server metadata; by default they keep only the leading 51200 bytes of a larger text result and save the rest to a file. Set the client and server to matching values; using the server's `100000`-byte default requires raising the client's limit too. codemap-search never changes client settings. Their line limit (default 2000) is not enforced.
 
 ## Files and precedence
 
@@ -64,7 +64,7 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ### Credentials (`auth.toml`)
 
-Jev credentials are separate from behavior settings. Put the API key in `[jev].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Resolution is **repo auth > global auth > the environment variable named by `[analysis.jev].api_key_env`** (default `TYPESAFE_API_KEY`). Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
+Jev credentials are separate from behavior settings. Put the API key in `[jev].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Resolution is **repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable**. Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
 
 ```toml
 # .codemap/auth.toml — keep out of version control
@@ -72,16 +72,16 @@ Jev credentials are separate from behavior settings. Put the API key in `[jev].a
 api_key = "<your key>"
 ```
 
-With `config_auto_update = true`, MCP startup creates a missing repo `auth.toml` as an empty, localized template; existing files are never overwritten and environment keys are never copied into it. New files use owner-only `0600` permissions on Unix; Windows uses inherited filesystem ACLs. No global auth file is generated. Model, enable flags and request limits remain in `config.toml` under `[analysis.jev]`.
+With `config_auto_update = true`, MCP startup creates a missing repo `auth.toml` as an empty, localized template; existing files are never overwritten and environment keys are never copied into it. New files use owner-only `0600` permissions on Unix; Windows uses inherited filesystem ACLs. No global auth file is generated. Model, enable flags and request limits remain in `config.toml` under `[output.jev]`.
 
 Every file named `auth.toml` is excluded case-insensitively from indexing/search/overview and default `find`/`grep`. This is not an access-control boundary: direct `read`/`parse` remains available, and `include_ignored: true` bypasses the filename exclusion for `find`/`grep`. Mandatory `.codemap` directory exclusions still apply to walks. Keep credential files out of Git yourself; codemap-search never edits Git ignore files.
 
 ## Loading and automatic writes
 
-The current configuration schema is **27**. The marker is a comment:
+The current configuration schema is **29**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 27
+# codemap-config-version: 29
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -90,7 +90,9 @@ The current configuration schema is **27**. The marker is a comment:
 - **From version 6 onward, `excluded_directories` is never automatically regenerated or supplemented.** Deleting an entry, using `[]`, commenting out the key, or adding another project does not cause the array to be restored. This is separate from reading manual edits at runtime.
 - Schema updates relocate supported older key names to the current layout while preserving effective values, inheritance, explicit `[]` lists and user comments. Older aliases remain readable, including in the global file. Conflicting or invalid values that cannot be moved safely leave the file unchanged and produce a warning.
 - New settings are added as commented examples, not active assignments. Omitted keys use their inherited or built-in defaults; explicit values such as `is_enabled=false` remain effective. Each Jev stage stays off unless its own flag is enabled.
-- Generated descriptions and section placement may be refreshed, but inactive assignments and user notes are preserved. A current file is not rewritten.
+- Schema 28 moves `[analysis.jev]` to `[output.jev]`, preserving filter settings; the new section wins per key when both exist. The old section remains readable for global files or when automatic writes are disabled. The retired `api_key_env` option and its examples are removed during migration; it is no longer read. Move keys from custom environment variables to `auth.toml` or `TYPESAFE_API_KEY`.
+- Schema 29 replaces the four `*_filter_enabled` switches with `enabled` and `scope`. An existing repo's active switches are converted to its currently effective selection, including inherited per-tool choices. This one-time conversion makes that selection explicit; afterward, the scope list replaces the global list. Old switches remain readable only for compatibility with unmigrated files; same-layer new controls take precedence. Commented switch examples are removed. Omitted controls in existing files remain inherited; fresh templates write every Jev default as an active assignment, with `enabled=false`.
+- Generated descriptions and section placement may be refreshed, but other inactive assignments and user notes are preserved. A current file is not rewritten.
 - `config_auto_update = false` disables initial config/auth template creation and config migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
 
@@ -188,10 +190,10 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 |---|---|---|---|
 | `[output].is_redact_enabled` | bool | `true` | Mask detected credentials and selected PII in MCP responses; matching and local indexes retain original data |
 | `[output].max_bytes` | integer bytes or size string | unset | Common MCP response ceiling; a same-layer tool override wins |
-| `[output.client].claude_max_result_chars` | integer characters, 1–500000 | unset | Claude tools/list metadata and final delivery limit (as bytes); reconnect required |
-| `[output.client].codex_output_token_limit` | positive integer tokens | unset | Codex export and final delivery limit (3.5 bytes per token) |
-| `[output.client].pi_max_bytes` | integer bytes or size string | unset | pi final delivery limit |
-| `[output.client].opencode_max_bytes` | integer bytes or size string | unset | opencode final delivery limit |
+| `[output.client].claude_max_result_chars` | integer characters, 1–500000 | `100000` | Claude tools/list metadata and final delivery limit (as bytes); reconnect required |
+| `[output.client].codex_output_token_limit` | positive integer tokens | `100000` | Codex export and final delivery limit (3.5 bytes per token) |
+| `[output.client].pi_max_bytes` | integer bytes or size string | `100000` | pi final delivery limit |
+| `[output.client].opencode_max_bytes` | integer bytes or size string | `100000` | opencode final delivery limit |
 | `[output.overview].is_stats_enabled` | bool | `true` | Include indexed-file language statistics in repository-root and monorepo project-root `overview` output; `false` omits the section |
 | `[output.overview].max_bytes` | integer bytes or size string | common budget | Overview ceiling; no extra cap if common is unset |
 | `[output.search].detail_file_limit` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
@@ -237,18 +239,15 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_attributes` | language → string array | See test-code context | Attribute/annotation patterns; each language list replaces its inherited list |
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
-| `[analysis.jev].search_filter_enabled` | bool | `false` | Automatically filter complete, identity-verified search bodies against the registered task, leaving read notes |
-| `[analysis.jev].read_filter_enabled` | bool | inherit resolved search flag | Filter complete returned read bodies; explicit false disables only read |
-| `[analysis.jev].grep_filter_enabled` | bool | inherit resolved search flag | Filter complete returned grep bodies in content mode; file/count modes stay local |
-| `[analysis.jev].overview_filter_enabled` | bool | inherit resolved search flag | Filter non-root overview declarations using source evidence; root maps always stay local |
-| `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
-| `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Request-time fallback when neither auth file supplies a key; never the key itself |
-| `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
-| `[analysis.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
-| `[analysis.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
-| `[analysis.jev].max_batch_bytes` | integer bytes or size string, 1 to 168000 | `168000` | Encoded request bytes per batch (168000 is the runtime ceiling); a question that does not fit is an explicit failure |
-| `[analysis.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
-| `[analysis.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
+| `[output.jev].enabled` | bool | `false` | Master switch; false prevents all Jev output filtering regardless of scope |
+| `[output.jev].scope` | string array | `["overview", "search", "read", "grep"]` | Complete tool selection when enabled; [] selects none, repo list replaces global |
+| `[output.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
+| `[output.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
+| `[output.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
+| `[output.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
+| `[output.jev].max_batch_bytes` | integer bytes or size string, 1 to 168000 | `168000` | Encoded request bytes per batch (168000 is the runtime ceiling); a question that does not fit is an explicit failure |
+| `[output.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
+| `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
 | `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -450,7 +449,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 27
+# codemap-config-version: 29
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -466,21 +465,21 @@ is_redact_enabled = true
 # max_bytes = "1mb"
 
 [output.client]
-# Maximum characters in a Claude Code result (1–500000, default 25000 tokens).
+# Maximum characters in a Claude Code result (1–500000, codemap-search default 100000).
 # Reconnect MCP in Claude Code after changing this.
-# claude_max_result_chars = 200000
+claude_max_result_chars = 100000
 
-# Maximum tokens in a Codex tool result (default: depends on the model).
+# Maximum tokens in a Codex tool result (codemap-search default 100000).
 # Set the same value in Codex; `codemap-search codex-config` prints the lines for ~/.codex/config.toml.
-# codex_output_token_limit = 50000
+codex_output_token_limit = 100000
 
-# Maximum bytes in an MCP result in pi (default 51200).
-# Use the same value as settings.outputGuard.maxBytes in pi-mcp-adapter.
-# pi_max_bytes = 51200
+# Maximum bytes in an MCP result in pi (codemap-search default 100000).
+# Set settings.outputGuard.maxBytes in pi-mcp-adapter to the same value.
+pi_max_bytes = 100000
 
-# Maximum bytes in a tool result in opencode (default 51200).
-# Use the same value as tool_output.max_bytes in opencode.json.
-# opencode_max_bytes = 51200
+# Maximum bytes in a tool result in opencode (codemap-search default 100000).
+# Set tool_output.max_bytes in opencode.json to the same value.
+opencode_max_bytes = 100000
 
 [output.overview]
 # Show per-language file statistics when overview opens the repository root or a subproject root.
@@ -606,6 +605,39 @@ rules = []
 # Exceptions to masking. Each applies only when both rule_id and value match exactly.
 exceptions = []
 
+[output.jev]
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Register the task first with initial_instructions(task_query, questions).
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+
+# Master switch for all Jev output filters. false keeps every tool local.
+enabled = false
+
+# Tools to filter when enabled. [] selects none; this list replaces the global scope.
+# Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
+scope = ["overview", "search", "read", "grep"]
+
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
+model = "jev-1.13.0"
+
+# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
+timeout_ms = 45000
+
+# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
+max_in_flight_requests = 3
+request_spacing_ms = 300
+
+# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
+max_batch_bytes = 168000
+
+# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
+pool_idle_timeout_ms = 30000
+
+# Minimum probability for judging a question's answer as "no" (above 0.5, at most 1.0, default 0.70).
+# Higher values remove bodies only when Jev is more certain.
+search_filter_min_unrelated_probability = 0.70
+
 [output.context.exclude]
 # Include test code in call relationships and automatically added context.
 # Test code still appears in search/overview declarations and read/grep source when false.
@@ -706,47 +738,6 @@ is_build_support_enabled = false
 # "" ignores the value from the global settings.
 # target_os = ""
 
-[analysis.jev]
-# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
-
-# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
-# If Jev cannot be used, the original result is returned.
-# search_filter_enabled = false
-
-# Apply to read results (default: same as search_filter_enabled).
-# read_filter_enabled = false
-
-# Apply to grep results (default: same as search_filter_enabled).
-# grep_filter_enabled = false
-
-# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.
-# overview_filter_enabled = false
-
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-# model = "jev-1.13.0"
-
-# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
-# api_key_env = "TYPESAFE_API_KEY"
-
-# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
-# timeout_ms = 45000
-
-# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
-
-# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
-# max_batch_bytes = 168000
-
-# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
-# pool_idle_timeout_ms = 30000
-
-# Minimum probability for judging a question's answer as "no" (above 0.5, at most 1.0, default 0.70).
-# Higher values remove bodies only when Jev is more certain.
-# search_filter_min_unrelated_probability = 0.70
-
 [filesystem_permissions]
 # Where find, grep, and read may access files.
 # "workspace" allows the workspace only, "allowed_roots" adds the allowed_roots paths, and "anywhere" allows any path.
@@ -841,10 +832,10 @@ One response uses one configuration snapshot; a concurrent reload applies to sub
 ## Optional Jev decision stages
 
 ```toml
-[analysis.jev]
-search_filter_enabled = true
-# api_key_env = "TYPESAFE_API_KEY"
-# search_filter_min_unrelated_probability = 0.70
+[output.jev]
+enabled = true
+scope = ["overview", "search", "read", "grep"]
+search_filter_min_unrelated_probability = 0.70
 ```
 
 Store the key separately in [`auth.toml`](#credentials-authtoml). Existing environment-based setups still work when neither auth file supplies a key:
@@ -853,7 +844,7 @@ Store the key separately in [`auth.toml`](#credentials-authtoml). Existing envir
 export TYPESAFE_API_KEY="<your key>"   # request-time fallback; never copied into auth.toml
 ```
 
-Jev is off by default. `search_filter_enabled=true` enables search and, unless overridden, read, grep and non-root overview. Explicit `read_filter_enabled`, `grep_filter_enabled` and `overview_filter_enabled` values take precedence per tool; omitted values inherit the resolved search flag. Root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `overview`, `search`, `read` and `grep`, defaults to all four, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. Root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
 ### Task registration
 
@@ -882,7 +873,7 @@ When any Jev filter is enabled, the main agent derives focused yes/no questions 
 
 Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
 
-Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. Root overview, find and analyze do not invoke Jev. The new `overview_filter_enabled` key is distinct from retired `overview_enabled`, which still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
+Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. Root overview, find and analyze do not invoke Jev. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 
@@ -959,7 +950,7 @@ For direct Rust integration, see [`codemap_search::jev`](../src/jev/mod.rs) and 
 
 ### Jev on non-root overview
 
-`overview_filter_enabled` selects declaration rows in file and subfolder views. The repository root, its aliases and its absolute path return the ordinary local map without registration or external calls. A child workspace in a monorepo is a non-root path. Folder views judge declarations in up to eight immediate files; subdirectory maps, file entries and indexed statistics remain unchanged.
+With `enabled=true` and `"overview"` in `scope`, Jev selects declaration rows in file and subfolder views. The repository root, its aliases and its absolute path return the ordinary local map without registration or external calls. A child workspace in a monorepo is a non-root path. Folder views judge declarations in up to eight immediate files; subdirectory maps, file entries and indexed statistics remain unchanged.
 
 Private classification source follows read permissions, redaction and test-code exclusions, with its digest checked against the committed index. Files are not reread after inference. Unavailable or over-budget evidence stays unjudged, which is not counted as successful classification. Uncertain declarations remain; only unrelated declarations are removed. Retaining a parent does not retain all children, while a retained child preserves its enclosing declaration structure.
 
