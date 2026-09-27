@@ -27,7 +27,7 @@ Keep one configuration file and group keys by responsibility. Generated files de
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
-| `analysis.jev` | Optional search/read/grep task judgments; off by default |
+| `analysis.jev` | Optional search/read/grep/non-root overview task judgments; off by default |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -60,10 +60,10 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 ## Loading and automatic writes
 
-The current configuration schema is **26**. The marker is a comment:
+The current configuration schema is **27**. The marker is a comment:
 
 ```toml
-# codemap-config-version: 26
+# codemap-config-version: 27
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -221,6 +221,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[analysis.jev].search_filter_enabled` | bool | `false` | Automatically filter complete, identity-verified search bodies against the registered task, leaving read notes |
 | `[analysis.jev].read_filter_enabled` | bool | inherit resolved search flag | Filter complete returned read bodies; explicit false disables only read |
 | `[analysis.jev].grep_filter_enabled` | bool | inherit resolved search flag | Filter complete returned grep bodies in content mode; file/count modes stay local |
+| `[analysis.jev].overview_filter_enabled` | bool | inherit resolved search flag | Filter non-root overview declarations using source evidence; root maps always stay local |
 | `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
 | `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
 | `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
@@ -430,7 +431,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 26
+# codemap-config-version: 27
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -690,7 +691,7 @@ is_build_support_enabled = false
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
 # Register the task first with initial_instructions(task_query, questions).
 
-# Apply to search results. Each removed body leaves a read range to restore it.
+# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
 
@@ -699,6 +700,9 @@ is_build_support_enabled = false
 
 # Apply to grep results (default: same as search_filter_enabled).
 # grep_filter_enabled = false
+
+# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.
+# overview_filter_enabled = false
 
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = "jev-1.13.0"
@@ -827,7 +831,7 @@ search_filter_enabled = true
 export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
 ```
 
-Jev is off by default. `search_filter_enabled=true` enables search and, unless overridden, read and grep. Explicit `read_filter_enabled` and `grep_filter_enabled` values take precedence per tool; omitted values inherit the resolved search flag. `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `search_filter_enabled=true` enables search and, unless overridden, read, grep and non-root overview. Explicit `read_filter_enabled`, `grep_filter_enabled` and `overview_filter_enabled` values take precedence per tool; omitted values inherit the resolved search flag. Root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
 ### Task registration
 
@@ -856,13 +860,13 @@ When any Jev filter is enabled, the main agent derives focused yes/no questions 
 
 Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
 
-Each enabled search/read/grep filter advertises `openWorldHint: true`; every tool remains read-only. Overview, find and analyze do not invoke Jev. Read/grep flags are supported; retired overview enable flags still warn and are ignored. For unfiltered read recovery, set `analysis.jev.read_filter_enabled=false`. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
+Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. Root overview, find and analyze do not invoke Jev. The new `overview_filter_enabled` key is distinct from retired `overview_enabled`, which still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 
 Each eligible function is evaluated against every registered criterion with Noul. The function body appears once in a group state, with identity, source range, completeness, masking status and bounded static call evidence. Missing cross-file or channel evidence is explicit and must not be treated as proof of irrelevance. Questions refer to their named candidate and the same flow; two unrelated true properties do not prove a connection.
 
-Flow criteria include source-backed delegation, payload construction and validation, delivery conditions, ordered failure/retry branches, lifecycle, and alternate routes needed to explain the requested boundary. A supporting function need not perform transport itself. The bootstrap guidance asks the main model to reconcile entry points and material exceptions before claiming exhaustive coverage; it does not prescribe a fixed navigation sequence.
+For a relevance criterion, one qualifying branch or callback can establish contribution even in a mixed-purpose function. A wrapper or setup function can contribute through a source-backed connection without implementing the whole flow or naming the target. The shared policy separates the user's task from retrieval arguments and asks Jev to inspect the candidate's body first, then its connected support. Each question independently states the requested target, relationship and scope. Registration guidance asks for one coherent relationship per question, merges equivalent questions and groups spelling variants. Independently useful roles should not be packed into a long checklist merely to reduce the count. The 1–8 question limit is a capacity, not a target count.
 
 `search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of a criterion being false for a no decision. A yes requires the same threshold on the positive answer; values between the two are uncertain. `all` fails on any decisive no and matches only if every leaf is yes; `any` matches on any decisive yes and fails only if every leaf is no. All other combinations are uncertain. These are discrete decisions, not calibrated joint probabilities. The threshold remains provisional.
 
@@ -876,21 +880,21 @@ Search first plans the same ranked candidates and source windows under the ordin
 
 Uncertain, partial and identity-unverified source stays. A matched function can protect directly connected supporting bodies, and overlapping retained source keeps its enclosing body. Retention does not spread transitively from uncertain, small or already protected functions through an entire connected component.
 
-Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their recovery note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
+Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their omission note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
 
 Each candidate receives its prepared annotations and scoped event evidence independently, without a search-wide 16 KiB prefix quota or 1 KiB per-part caps. Direct caller/callee source uses ordinary read permissions and full-file redaction, checks the declaration identity and complete returned range, and is deduplicated in `state.supporting_sources`. Named references connect each candidate to this evidence without claiming verified runtime dispatch. Shared evidence policy is stored once, and question instructions explicitly reference it and their candidate. If a complete encoded candidate request cannot fit, that candidate remains unjudged and visible. Bounded supplementary annotations or event context may be omitted with `is_context_clipped` set; that coverage flag is passed to Jev and does not itself force retention. The body-only preliminary bound is derived from the whole state-plus-question budget; final eligibility uses complete encoded requests. `caller_context=false` disables extra caller/callee reads and caller event anchors; `include_events=false` disables event evidence. Warming, stopped or failed snapshots bypass evaluation.
 
 After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive composed task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them.
 
-Compact omission notes preserve source locations and the conditions for read recovery. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations.
+Compact omission notes preserve source locations and state that a read location does not bypass Jev. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations. Before evaluation, `jev candidate evidence` maps each group/candidate index to its masked path and source range, body/context sizes and hashes, and coverage flags. It does not log source text or task text, and is not part of the main tool response.
 
 ### Live read/grep selection
 
 Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. Complete returned function/method bodies are eligible in full/source views and grep source_grouped. Partial windows, clipped columns, unverified syntax/identity and oversized bodies remain visible. Declaration/relation views and grep file/count modes are not evaluated.
 
-Body completeness and supporting-context coverage are separate. Live selection captures value/type references from the same parsed buffer independently of the optional persisted reference index. Same-file callers, callees, referenced declarations and enclosing member contracts provide masked evidence. Imports, unresolved calls, ambiguous declarations, extraction gaps and exhausted support budgets are described in the Jev input through supporting notes, `has_missing_context` and `is_context_clipped`. These flags neither skip evaluation nor force retention. Jev assesses whether each gap matters to the registered criterion; an unrelated gap does not preclude a decisive answer.
+Body completeness and supporting-context coverage are separate. Live selection captures value/type references from the same parsed buffer independently of the optional persisted reference index. Same-file callers, callees, referenced declarations and enclosing member contracts provide masked evidence. Capture starts with the candidate's own bindings and contracts, then traverses support breadth-first within the existing budgets so a caller's dependency chain cannot consume them before the candidate is visited. Imports, unresolved calls, ambiguous declarations, extraction gaps and exhausted support budgets are described in the Jev input through supporting notes, `has_missing_context` and `is_context_clipped`. These flags neither skip evaluation nor force retention. Jev assesses whether each gap matters to the registered criterion; an unrelated gap does not preclude a decisive answer.
 
-Before classification, bounded indexed candidates supply possible cross-file callers, callees and imported declarations. Existing captured buffers are reused; at most eight other files are read within ordinary read permissions and size limits. Current calls or declarations must match the indexed locations. Context exclusions, scan/link/byte budgets and the caller's absolute deadline and cancellation apply. Excerpts include source bodies or explicitly partial declaration contracts plus import bindings. Name/import hints remain unverified target candidates; they are not automatic evidence of task relevance. These Jev-only excerpts do not expand the main response's source window.
+Before classification, bounded indexed candidates supply possible cross-file callers, callees and imported declarations. The candidate's explicit call/import dependencies are captured before possible callers share the remaining budgets. Existing captured buffers are reused; at most eight other files are read within ordinary read permissions and size limits. Current calls or declarations must match the indexed locations. Context exclusions, scan/link/byte budgets and the caller's absolute deadline and cancellation apply. Excerpts include source bodies or explicitly partial declaration contracts. Referenced enclosing members take priority over other member contracts. Supporting declarations include import bindings referenced by the supplied excerpts; glob and unnamed imports remain because a local spelling cannot establish their scope. Name/import hints remain unverified target candidates; they are not automatic evidence of task relevance. These Jev-only excerpts do not expand the main response's source window.
 
 Complete, identifiable bodies proceed to the ordinary Noul judgment when the encoded request fits. A decisive non-match can omit a body even when supporting evidence has gaps; the model must assess the supplied facts and relevance of those gaps. Existing protections for partial/unidentified bodies, oversized requests, uncertain model judgments and overlapping or directly linked retained source remain separate. Diagnostics count actual evaluated candidates and distinguish `matched`, `no_match`, `judged_uncertain` and `unjudged_bodies` from the final `protected`/`linked` outcomes. These are integration and policy contracts, not a measured improvement in classification accuracy or token use.
 
@@ -898,7 +902,7 @@ The registered task, all/any decisions, uncertainty retention, linked-body prote
 
 ### Data sent to TypeSafe
 
-Enabled search/read/grep filters send the masked registered goal and questions, tool arguments, eligible function bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
+Enabled search/read/grep/non-root overview filters send the masked registered goal and questions, tool arguments, eligible source bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
 
 ### Transport limits
 
@@ -930,6 +934,14 @@ Bypasses, failures and all-keep filters preserve the base output byte for byte. 
 Each executed stage records a `jev stage` line on stderr at `info` level (`codemap_search::mcp::jev`). It includes tool, outcome/reason, model and evidence versions, coverage/judgment/omission counts, known token usage, responses without usage, attempted requests and elapsed/HTTP/queue times. It does not log the task, source evidence, credentials or provider error bodies. Disabled stages log nothing.
 
 For direct Rust integration, see [`codemap_search::jev`](../src/jev/mod.rs) and the [decision example](../examples/jev_decisions.rs). The example's `--mock` mode is offline; `--live` uses an API key and sends a real request.
+
+### Jev on non-root overview
+
+`overview_filter_enabled` selects declaration rows in file and subfolder views. The repository root, its aliases and its absolute path return the ordinary local map without registration or external calls. A child workspace in a monorepo is a non-root path. Folder views judge declarations in up to eight immediate files; subdirectory maps, file entries and indexed statistics remain unchanged.
+
+Private classification source follows read permissions, redaction and test-code exclusions, with its digest checked against the committed index. Files are not reread after inference. Unavailable or over-budget evidence stays unjudged, which is not counted as successful classification. Uncertain declarations remain; only unrelated declarations are removed. Retaining a parent does not retain all children, while a retained child preserves its enclosing declaration structure.
+
+Classification bodies are neither returned by overview nor recorded in common source delivery history, so later reads do not fold them as already delivered. Supporting evidence for read, grep and overview includes up to eight same-container member assignment/use or callback-reference links. These are evidence for Jev, not automatic retention rules or proof of runtime dispatch.
 
 ## Indexed event navigation
 

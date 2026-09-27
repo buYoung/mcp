@@ -983,7 +983,7 @@ export function dropMe(input: string): string {
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
             let overview_tool = tool("overview");
-            assert_eq!(overview_tool["annotations"]["openWorldHint"], json!(false), "the overview stage is off");
+            assert_eq!(overview_tool["annotations"]["openWorldHint"], json!(true), "non-root overview inherits the search flag");
             assert!(!overview_tool["description"].as_str().unwrap().contains("is enabled"));
 
             // In flight: the threshold captured at 0.70 survives a config change to 0.90.
@@ -998,7 +998,7 @@ export function dropMe(input: string): string {
             let response = client.receive().await.unwrap();
             let text = response_text(&response);
             assert!(
-                text.contains("- _omitted body: L10-15 (fn dropMe) did not match the task questions; read src/budget.ts offset 10 limit 6 to inspect._"),
+                text.contains("- _omitted body: L10-15 (fn dropMe) Jev found no task match; read src/budget.ts offset 10 limit 6 does not bypass Jev._"),
                 "{text}"
             );
             assert!(!text.contains("input.split"), "the omitted body is gone: {text}");
@@ -1026,7 +1026,7 @@ export function dropMe(input: string): string {
 
     #[tokio::test]
     async fn test_jev_stages_are_independent_and_failures_preserve_the_base_output() {
-        // Only the search filter is on: registration does not enable overview.
+        // Root overview remains local even when non-root overview inherits the search flag.
         let temp = create_mock_repo(&[
             (".codemap/config.toml", &search_filter_config("0.70")),
             ("src/budget.ts", BUDGET_TS),
@@ -1044,7 +1044,7 @@ export function dropMe(input: string): string {
             let text = response_text(&response);
             assert!(
                 !text.contains("Jev"),
-                "overview stays plain while only the filter is enabled: {text}"
+                "root overview stays plain while Jev is enabled: {text}"
             );
             assert_eq!(judge.request_count(), 0);
             client.register_task(TASK).await;
@@ -1054,9 +1054,7 @@ export function dropMe(input: string): string {
                 })
                 .await
                 .unwrap();
-            assert!(
-                response_text(&response).contains("(fn dropMe) did not match the task questions")
-            );
+            assert!(response_text(&response).contains("(fn dropMe) Jev found no task match"));
             assert_eq!(judge.request_count(), 1);
         })
         .await;

@@ -21,6 +21,7 @@ pub(crate) struct CapturedSource {
     pub file: crate::parser::ExtractedFile,
     pub bounds: Vec<CallableBounds>,
     pub reference_gaps: Vec<crate::parser::CodeRange>,
+    pub self_member_uses: Vec<super::references::SelfMemberUse>,
     pub declaration_headers: Vec<Option<(usize, usize)>>,
 }
 
@@ -48,10 +49,12 @@ pub(crate) fn capture(
     let tree = crate::parser::parse_source(&mut parser, source.as_bytes())?;
     let mut file = TreeSitterExtractor::new().extract(source, &path.to_string_lossy())?;
     let mut reference_gaps = Vec::new();
+    let mut self_member_uses = Vec::new();
     if should_capture_context {
-        let (references, gaps) =
+        let dependencies =
             super::references::capture_dependencies(&tree, source, spec.language_name());
-        reference_gaps = gaps;
+        reference_gaps = dependencies.gaps;
+        self_member_uses = dependencies.self_member_uses;
         if let Some(navigation) = &mut file.navigation {
             // These observations belong to this immutable request buffer, not the index.
             let mut seen: std::collections::HashSet<_> = navigation
@@ -60,7 +63,7 @@ pub(crate) fn capture(
                 .map(|r| (r.name.clone(), r.range.start_line, r.range.start_col))
                 .collect();
             navigation.references.extend(
-                references.into_iter().filter(|r| {
+                dependencies.references.into_iter().filter(|r| {
                     seen.insert((r.name.clone(), r.range.start_line, r.range.start_col))
                 }),
             );
@@ -175,6 +178,7 @@ pub(crate) fn capture(
         file,
         bounds: result,
         reference_gaps,
+        self_member_uses,
         declaration_headers,
     })
 }

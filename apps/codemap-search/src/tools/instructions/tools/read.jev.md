@@ -4,4 +4,4 @@ The default full view combines source with declaration and relationship context.
 
 Unbounded large reads and windows exceeding the output cap are refused. For an oversized callable, use expand=none with smaller offset/limit windows. Missing or stale indexed context is reported separately from the live source.
 
-Read only evidence still needed; a partial analysis notice is not a request to reread the same source.
+Read only missing evidence. A Jev omission is a task judgment: repeating the same window, view=source or include_seen=true does not bypass enabled filtering. A partial analysis notice is not a request to reread the same source.

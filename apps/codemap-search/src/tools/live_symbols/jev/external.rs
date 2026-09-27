@@ -8,7 +8,7 @@ use crate::tools::search::jev::{
 };
 use std::collections::{HashMap, HashSet};
 
-fn has_stopped(policy: &FilterPolicy) -> bool {
+pub(super) fn has_stopped(policy: &FilterPolicy) -> bool {
     policy
         .cancel
         .as_ref()
@@ -241,6 +241,23 @@ fn load(
     file: &ExtractedFile,
     exclusions: &crate::callers::test_code::TestCodeFilter,
 ) -> Option<CapturedFile> {
+    load_source(file, exclusions, false)
+}
+
+/// Overview declarations belong to the committed snapshot. Reject a changed buffer
+/// before pairing its bodies with the already rendered declaration rows.
+pub(super) fn load_indexed(
+    file: &ExtractedFile,
+    exclusions: &crate::callers::test_code::TestCodeFilter,
+) -> Option<CapturedFile> {
+    load_source(file, exclusions, true)
+}
+
+fn load_source(
+    file: &ExtractedFile,
+    exclusions: &crate::callers::test_code::TestCodeFilter,
+    should_verify_digest: bool,
+) -> Option<CapturedFile> {
     let path = crate::workspace::resolve_for_filesystem_tool(
         &file.file_path,
         crate::workspace::FilesystemTool::Read,
@@ -254,6 +271,17 @@ fn load(
         return None;
     }
     let mut source = crate::workspace::read_source_for_parse(&path)?.into_bytes();
+    if should_verify_digest
+        && file
+            .navigation
+            .as_ref()?
+            .implementations
+            .as_ref()?
+            .source_digest
+            != crate::implementations::digest(&source)
+    {
+        return None;
+    }
     exclusions.mask_source(&file.file_path, &mut source);
     CapturedFile::new(&file.file_path, &String::from_utf8(source).ok()?)
 }
@@ -311,6 +339,21 @@ pub(super) fn augment(
     let exclusions = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let config = crate::config::get();
     let mut remaining = config.navigation_callsite_budget;
+    let mut loaded: HashMap<String, Option<CapturedFile>> = HashMap::new();
+    // Resolve the candidate's own operations before possible callers spend the shared
+    // source and scan budgets. This supplies a wrapper's delegated implementation first.
+    add_dependencies(
+        input,
+        &indices,
+        EvidenceFiles {
+            indexed: &files,
+            captured: captured_files,
+        },
+        &mut loaded,
+        &exclusions,
+        policy,
+        &mut remaining,
+    );
     let mut counts = vec![0usize; input.entities.len()];
     let mut pending = Vec::new();
     'files: for file in files
@@ -374,7 +417,6 @@ pub(super) fn augment(
     }
     // Capture before classification. Finding a possible relationship must not remove
     // its candidate from evaluation or make this evidence path unreachable.
-    let mut loaded: HashMap<String, Option<CapturedFile>> = HashMap::new();
     let mut shown = HashSet::new();
     for (index, file, call) in pending {
         let entity = &mut input.entities[index];
@@ -420,16 +462,4 @@ pub(super) fn augment(
         }
         append_support(entity, excerpt, "Possible cross-file caller");
     }
-    add_dependencies(
-        input,
-        &indices,
-        EvidenceFiles {
-            indexed: &files,
-            captured: captured_files,
-        },
-        &mut loaded,
-        &exclusions,
-        policy,
-        &mut remaining,
-    );
 }

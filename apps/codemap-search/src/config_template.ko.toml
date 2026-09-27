@@ -1,4 +1,4 @@
-# codemap-config-version: 26
+# codemap-config-version: 27
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -259,7 +259,7 @@ is_build_support_enabled = false
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
 # 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
 
-# search 결과에 적용합니다. 뺀 본문 자리에는 다시 읽을 수 있는 read 범위를 남깁니다.
+# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
 
@@ -268,6 +268,9 @@ is_build_support_enabled = false
 
 # grep 결과에 적용합니다(기본: search_filter_enabled 값).
 # grep_filter_enabled = false
+
+# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.
+# overview_filter_enabled = false
 
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = "jev-1.13.0"

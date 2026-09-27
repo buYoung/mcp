@@ -1,22 +1,50 @@
 use crate::declarations;
-use crate::parser::ExtractedFile;
-use std::fmt::Write;
+use crate::parser::{ExtractedFile, ExtractedSymbol};
 use std::path::Path;
+
+/// Producer-owned rows let Jev remove declarations without reparsing Markdown or
+/// rereading changed files after the asynchronous judgment.
+#[derive(Debug, Clone)]
+pub(crate) struct DeclarationOutline {
+    rows: Vec<(Option<ExtractedSymbol>, String)>,
+}
+
+impl DeclarationOutline {
+    pub(crate) fn retain(&mut self, is_retained: impl Fn(&ExtractedSymbol) -> bool) {
+        self.rows
+            .retain(|(symbol, _)| symbol.as_ref().is_none_or(&is_retained));
+    }
+}
+
+impl std::fmt::Display for DeclarationOutline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (_, text) in &self.rows {
+            f.write_str(text)?;
+        }
+        Ok(())
+    }
+}
 
 /// Enrich only the folder's immediate files. Never combine stale symbol spans
 /// with changed source, nor run source extraction in call-target resolution.
-pub(super) fn render(file: &ExtractedFile) -> Option<String> {
+pub(super) fn render(file: &ExtractedFile) -> Option<DeclarationOutline> {
     let path = Path::new(&file.file_path);
     let spec = crate::lang::spec_for_path(path)?;
     let source = std::fs::read_to_string(path).ok()?;
     let indexed = file.navigation.as_ref()?.implementations.as_ref()?;
     if indexed.source_digest != crate::implementations::digest(source.as_bytes()) {
-        let mut output = String::new();
+        let mut rows = Vec::new();
         for symbol in super::summary::significant_symbols(&file.symbols) {
-            let _ = writeln!(output, "  - {} ({})", symbol.name, symbol.kind);
+            rows.push((
+                Some(symbol.clone()),
+                format!("  - {} ({})\n", symbol.name, symbol.kind),
+            ));
         }
-        output.push_str("  - [Source changed since indexing; signatures unavailable.]\n");
-        return Some(output);
+        rows.push((
+            None,
+            "  - [Source changed since indexing; signatures unavailable.]\n".into(),
+        ));
+        return Some(DeclarationOutline { rows });
     }
     let extension = path.extension()?.to_str()?;
     let mut parser = tree_sitter::Parser::new();
@@ -47,7 +75,7 @@ pub(super) fn render(file: &ExtractedFile) -> Option<String> {
         .rev()
         .map(|&i| (i, 1))
         .collect();
-    let mut output = String::new();
+    let mut rows = Vec::new();
     while let Some((i, depth)) = pending.pop() {
         let symbol = &file.symbols[i];
         let signature = declarations::folder_signature(symbol, &tree, &source);
@@ -59,8 +87,11 @@ pub(super) fn render(file: &ExtractedFile) -> Option<String> {
         } else {
             signature
         };
-        let _ = writeln!(output, "{}- {signature}", "  ".repeat(depth));
+        rows.push((
+            Some(symbol.clone()),
+            format!("{}- {signature}\n", "  ".repeat(depth)),
+        ));
         pending.extend(children[i].iter().rev().map(|&child| (child, depth + 1)));
     }
-    Some(output)
+    Some(DeclarationOutline { rows })
 }

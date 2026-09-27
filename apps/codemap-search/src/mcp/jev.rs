@@ -209,6 +209,46 @@ fn require_task<'a>(
     task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through initial_instructions. Register the user's complete task and focused yes/no criteria, then retry.")))
 }
 
+/// Root maps remain local and usable before task registration. Non-root views use
+/// the same registered criteria and transport limits as the other Jev tools.
+pub(super) async fn overview(
+    host: &mut JevHost,
+    ctx: &ToolContext<'_>,
+    task: Option<&crate::tools::task::RegisteredTask>,
+    config: &ResolvedConfig,
+) -> Result<String, (i64, String)> {
+    let started = Instant::now();
+    let prepared = crate::tools::overview::prepare(ctx)?;
+    if !config.jev.overview_filter_enabled || prepared.is_root() {
+        return Ok(prepared.render());
+    }
+    let task = require_task(task, "overview")?;
+    let Some(deadline_at) = started.checked_add(config.jev.deadline()) else {
+        log_bypass("overview", "invalid_config", &config.jev.model);
+        return Ok(prepared.render());
+    };
+    let evaluator = match host.resolve(&config.jev) {
+        Ok(evaluator) => evaluator,
+        Err(reason) => {
+            log_bypass("overview", reason, &config.jev.model);
+            return Ok(prepared.render());
+        }
+    };
+    let policy = FilterPolicy {
+        min_unrelated_probability: config.jev.search_filter_min_unrelated_probability,
+        max_group_bytes: config.jev.max_batch_bytes,
+        model: config.jev.model.clone(),
+        deadline_at: Some(deadline_at),
+        cancel: None,
+    };
+    let (text, mut result) = prepared
+        .filter(ctx, task, evaluator.as_ref(), &policy)
+        .await;
+    result.timing.elapsed = started.elapsed();
+    log_filter_result("overview", result, &config.jev.model);
+    Ok(text)
+}
+
 fn log_filter_result(
     tool: &'static str,
     result: crate::tools::search::jev::FilterResult,

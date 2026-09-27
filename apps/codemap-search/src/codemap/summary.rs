@@ -13,7 +13,7 @@ pub struct ExtractedFileSummary<'a> {
     pub total_lines: usize,
     pub symbol_count: usize,
     pub symbols: Vec<ExtractedSymbolSummary<'a>>,
-    pub(crate) outline: Option<String>,
+    pub(crate) outline: Option<super::outline::DeclarationOutline>,
 }
 
 /// One directory node in the root overview: its path plus the number of source

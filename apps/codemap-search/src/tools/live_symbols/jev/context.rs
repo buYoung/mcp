@@ -6,7 +6,7 @@ use crate::parser::{CallSite, ExtractedSymbol};
 use crate::tools::search::jev::{
     is_callable_kind, simple_name, MAX_COMPLETE_BODY_BYTES, MAX_LINKS_PER_QUESTION,
 };
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::fmt::Write;
 
 #[derive(Default)]
@@ -187,7 +187,23 @@ fn append_owner_contract(
     let Some(container) = container else { return };
     append_contract(output, file, container, lines, seen);
     let parent = &file.file.symbols[container];
-    for (ordinal, (member, _)) in file
+    let referenced_names: HashSet<_> = file
+        .file
+        .navigation
+        .iter()
+        .flat_map(|navigation| &navigation.references)
+        .filter(|reference| contains(symbol, reference.range.start_line))
+        .map(|reference| simple_name(&reference.name))
+        .chain(
+            file.file
+                .navigation
+                .iter()
+                .flat_map(|navigation| &navigation.calls)
+                .filter(|call| contains(symbol, call.range.start_line))
+                .map(|call| simple_name(&call.name)),
+        )
+        .collect();
+    let mut members: Vec<_> = file
         .file
         .symbols
         .iter()
@@ -202,8 +218,11 @@ fn append_owner_contract(
                         && crate::declarations::contains(parent, scope)
                 })
         })
-        .enumerate()
-    {
+        .collect();
+    // Stable ordering keeps the ordinary declaration order within each tier, but a
+    // referenced member must not lose its contract to earlier unrelated siblings.
+    members.sort_by_key(|(_, child)| !referenced_names.contains(simple_name(&child.name)));
+    for (ordinal, (member, _)) in members.into_iter().enumerate() {
         if ordinal == MAX_LINKS_PER_QUESTION * 2 {
             output.note_gap("The enclosing member-contract list is bounded.");
             output.is_clipped = true;
@@ -252,7 +271,37 @@ pub(super) fn supporting_declaration(file: &CapturedFile, index: usize) -> Suppo
     append_contract(&mut output, file, index, &lines, &mut seen);
     append_owner_contract(&mut output, file, index, &lines, &mut seen);
     if let Some(navigation) = &file.file.navigation {
-        for import in &navigation.imports {
+        // Bind only the supplied source, not every unrelated method in the file.
+        // Glob imports cannot be resolved by a single local spelling and stay visible.
+        let in_excerpt = |line| {
+            seen.iter()
+                .any(|&(start, end)| start <= line && line <= end)
+        };
+        let referenced_names: HashSet<_> = navigation
+            .references
+            .iter()
+            .filter(|reference| in_excerpt(reference.range.start_line))
+            .map(|reference| reference.name.as_str())
+            .chain(
+                navigation
+                    .calls
+                    .iter()
+                    .filter(|call| in_excerpt(call.range.start_line))
+                    .map(|call| {
+                        call.receiver
+                            .as_deref()
+                            .unwrap_or(&call.name)
+                            .split(['.', '[', ':', '?', '('])
+                            .next()
+                            .unwrap_or("")
+                    }),
+            )
+            .collect();
+        for import in navigation.imports.iter().filter(|import| {
+            referenced_names.contains(import.local_name.as_str())
+                || import.local_name.is_empty()
+                || matches!(import.kind, crate::parser::ImportKind::Glob)
+        }) {
             append_range(
                 &mut output,
                 file,
@@ -267,6 +316,64 @@ pub(super) fn supporting_declaration(file: &CapturedFile, index: usize) -> Suppo
     output
 }
 
+/// Lexical member evidence, not a retention link or a runtime dataflow claim. Match
+/// the enclosing container span as well as its name so same-named types do not mix.
+fn member_support(file: &CapturedFile, candidate: usize) -> Vec<usize> {
+    let symbol = &file.file.symbols[candidate];
+    let container = |index: usize| {
+        let child = &file.file.symbols[index];
+        file.file
+            .symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, parent)| {
+                crate::declarations::container(parent)
+                    && child.owner.as_deref() == Some(parent.name.as_str())
+                    && crate::declarations::contains(parent, child)
+            })
+            .min_by_key(|(_, parent)| parent.range.end_line - parent.range.start_line)
+            .map(|(index, _)| index)
+    };
+    let Some(owner) = container(candidate) else {
+        return Vec::new();
+    };
+    let own_uses: Vec<_> = file
+        .self_member_uses
+        .iter()
+        .filter(|usage| contains(symbol, usage.range.start_line))
+        .collect();
+    let mut support = Vec::new();
+    for usage in &file.self_member_uses {
+        if contains(symbol, usage.range.start_line) {
+            continue;
+        }
+        let is_reference =
+            usage.name == simple_name(&symbol.name) && is_callable_kind(&symbol.kind);
+        let shares_assignment = own_uses
+            .iter()
+            .any(|own| own.name == usage.name && (own.is_assignment || usage.is_assignment));
+        if !is_reference && !shares_assignment {
+            continue;
+        }
+        let other = file
+            .file
+            .symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, other)| {
+                is_callable_kind(&other.kind) && contains(other, usage.range.start_line)
+            })
+            .min_by_key(|(_, other)| other.range.end_line - other.range.start_line)
+            .map(|(index, _)| index);
+        if let Some(other) = other.filter(|&index| container(index) == Some(owner)) {
+            if !support.contains(&other) {
+                support.push(other);
+            }
+        }
+    }
+    support
+}
+
 pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContext {
     let mut output = SupportingContext::default();
     let Some(navigation) = file.file.navigation.as_ref() else {
@@ -275,8 +382,15 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
     };
     let lines: Vec<_> = file.source.split('\n').collect();
     let mut ranges = HashSet::new();
-    let mut pending = vec![candidate];
+    // Process the candidate's own bindings first, then direct support before deeper
+    // dependencies. A caller's dependency chain must not consume the budget first.
+    let mut pending = VecDeque::from([candidate]);
     let mut visited = HashSet::new();
+    let member_support = member_support(file, candidate);
+    if member_support.len() > MAX_LINKS_PER_QUESTION {
+        output.note_gap("Same-container member uses exceed the link budget.");
+        output.is_clipped = true;
+    }
     // Capture direct callers as well as callees. A leaf helper may implement a flow
     // through its callers without naming that flow in its own body.
     for call in navigation
@@ -289,7 +403,7 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
                 && !pending.contains(&owner)
                 && local_target(file, call, owner) == Some(candidate)
             {
-                pending.push(owner);
+                pending.push_back(owner);
                 if pending.len() > MAX_LINKS_PER_QUESTION * 2 + 1 {
                     output.note_gap("The same-file caller list exceeds the link budget.");
                     output.is_clipped = true;
@@ -298,7 +412,7 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
             }
         }
     }
-    while let Some(index) = pending.pop() {
+    while let Some(index) = pending.pop_front() {
         if !visited.insert(index) {
             continue;
         }
@@ -383,7 +497,7 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
                         });
                 if let Some((definition, _)) = definitions.next() {
                     if definitions.next().is_none() {
-                        pending.push(definition);
+                        pending.push_back(definition);
                     } else {
                         output.note_gap(
                             "A referenced same-file name has multiple possible declarations.",
@@ -414,10 +528,15 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
             .filter(|call| contains(symbol, call.range.start_line))
         {
             if let Some(target) = local_target(file, call, index) {
-                pending.push(target);
+                pending.push_back(target);
             } else if !is_local_value_call(file, call, index) {
                 output.note_gap("Some non-local call targets are unresolved; inspect any supplied cross-file evidence.");
             }
+        }
+        if index == candidate {
+            // Direct calls/import dependencies are queued first. Member-use evidence
+            // must not displace the implementation that a wrapper actually invokes.
+            pending.extend(member_support.iter().copied().take(MAX_LINKS_PER_QUESTION));
         }
     }
     output

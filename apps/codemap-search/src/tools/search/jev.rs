@@ -21,6 +21,7 @@ pub(crate) fn simple_name(name: &str) -> &str {
 }
 
 use serde_json::{json, Map, Value};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tokio::time::Instant;
 
@@ -36,8 +37,8 @@ mod tests;
 
 /// Version of the evidence capture (statuses, identity check, masking rule, links).
 pub const EVIDENCE_VERSION: &str = "search-task-evidence/8";
-pub const QUESTION_VERSION: &str = "search-task-questions/6";
-pub const POLICY_VERSION: &str = "search-selection-policy/5-experimental";
+pub const QUESTION_VERSION: &str = "search-task-questions/9";
+pub const POLICY_VERSION: &str = "search-selection-policy/6-experimental";
 /// Provisional default for `search_filter_min_unrelated_probability`. It is a starting
 /// policy value, not a calibrated one: omission needs a decisive composed no-match; a Noul
 /// answer assigns at least this much mass to a criterion being false.
@@ -193,6 +194,7 @@ pub struct EvidenceSummary {
 /// declaration.
 #[derive(Clone, Debug)]
 pub struct FilterInput {
+    pub selection_unit: SelectionUnit,
     /// Capture contract of the producer; search and live tools build different evidence.
     pub evidence_version: &'static str,
     pub task: RegisteredTask,
@@ -202,6 +204,15 @@ pub struct FilterInput {
     pub is_snapshot_fresh: bool,
     /// Masked direct caller/callee source shared by candidate groups.
     pub supporting_sources: HashMap<usize, String>,
+}
+
+/// Body output is indivisible; overview rows can be selected independently of their
+/// enclosing declaration. This distinction changes rendering safety, not relevance.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionUnit {
+    Body,
+    Declaration,
 }
 
 fn symbol_key(symbol: &BlockSymbol) -> (String, usize, usize) {
@@ -486,6 +497,7 @@ impl FilterInput {
         }
 
         Self {
+            selection_unit: SelectionUnit::Body,
             task: task.masked(),
             evidence_version: EVIDENCE_VERSION,
             search_arguments,
@@ -499,11 +511,14 @@ impl FilterInput {
     /// Retention known before inference. A judgment cannot shrink these bodies.
     fn deterministic_retention(&self, index: usize) -> Option<RetentionReason> {
         let entity = &self.entities[index];
-        if !entity.is_callable {
+        if self.selection_unit == SelectionUnit::Body && !entity.is_callable {
             return Some(RetentionReason::NotCallable);
         }
         if entity.evidence != EvidenceStatus::Complete {
             return Some(RetentionReason::IncompleteEvidence(entity.evidence));
+        }
+        if self.selection_unit == SelectionUnit::Declaration {
+            return None;
         }
         if omission_note(entity).len() >= entity.body_bytes {
             return Some(RetentionReason::TooSmallToOmit);
@@ -531,7 +546,9 @@ impl FilterInput {
             .iter()
             .enumerate()
             .filter(|(index, entity)| {
-                entity.is_judgeable()
+                (entity.is_judgeable()
+                    || (self.selection_unit == SelectionUnit::Declaration
+                        && entity.evidence == EvidenceStatus::Complete))
                     && (self.deterministic_retention(*index).is_none()
                     // A small/covered function may still decide whether a neighboring
                     // shrinkable body supplies direct support. Do not skip that judgment.
@@ -559,7 +576,9 @@ impl FilterInput {
         {
             if !entity.is_callable {
                 summary.non_callable += 1;
-                continue;
+                if self.selection_unit == SelectionUnit::Body {
+                    continue;
+                }
             }
             match entity.evidence {
                 EvidenceStatus::Complete => summary.complete += 1,
@@ -742,7 +761,8 @@ pub fn apply_policy(
             }
             let entity = &input.entities[index];
             let nested = entity.parent.filter(|parent| {
-                reasons[*parent].is_some()
+                input.selection_unit == SelectionUnit::Body
+                    && reasons[*parent].is_some()
                     && input.entities[*parent]
                         .displayed
                         .is_some_and(|(first, last)| {
@@ -927,6 +947,13 @@ impl FilterResult {
     }
 }
 
+fn evidence_sha256(text: &str) -> String {
+    Sha256::digest(text.as_bytes())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
 /// Evaluate bounded groups using the same evaluator, cancellation signal and absolute deadline.
 pub async fn evaluate(
     input: &FilterInput,
@@ -1008,11 +1035,33 @@ pub async fn evaluate(
         let policy = request_policy.clone();
         async move {
             match group {
-                Some(group) => Some((
-                    group.index,
-                    group.entities,
-                    evaluator.evaluate(group.request.with_policy(policy)).await,
-                )),
+                Some(group) => {
+                    for &index in &group.entities {
+                        let entity = &input.entities[index];
+                        // Correlate judgments with bounded, already-masked evidence without
+                        // logging the task, source text, provider payload or credentials.
+                        tracing::info!(
+                            group_index = group.index,
+                            candidate_index = index,
+                            file_path = %entity.path,
+                            start_line = entity.symbol.start_line,
+                            end_line = entity.symbol.end_line,
+                            evidence_status = entity.evidence.label(),
+                            body_bytes = entity.body.as_ref().map_or(0, String::len),
+                            body_sha256 = %evidence_sha256(entity.body.as_deref().unwrap_or_default()),
+                            supporting_context_bytes = entity.supporting_context.len(),
+                            supporting_context_sha256 = %evidence_sha256(&entity.supporting_context),
+                            has_missing_context = entity.has_missing_context,
+                            is_context_clipped = entity.is_context_clipped,
+                            "jev candidate evidence"
+                        );
+                    }
+                    Some((
+                        group.index,
+                        group.entities,
+                        evaluator.evaluate(group.request.with_policy(policy)).await,
+                    ))
+                }
                 None => None,
             }
         }
@@ -1129,10 +1178,10 @@ pub async fn evaluate(
 }
 
 /// The inline note that replaces an omitted body. It keeps the declaration identity and
-/// the exact read range. Tool guidance describes the read filter opt-out for recovery.
+/// the exact source location. A location is not a bypass of enabled read filtering.
 pub fn omission_note(entity: &FilterEntity) -> String {
     format!(
-        "- _omitted body: L{start}-{end} ({kind} {name}) did not match the task questions; read {path} offset {start} limit {lines} to inspect._\n",
+        "- _omitted body: L{start}-{end} ({kind} {name}) Jev found no task match; read {path} offset {start} limit {lines} does not bypass Jev._\n",
         start = entity.symbol.start_line,
         end = entity.symbol.end_line,
         kind = entity.symbol.kind,
@@ -1153,7 +1202,7 @@ pub fn summary_note(result: &FilterResult) -> String {
             protected,
             linked,
         } => format!(
-            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Omitted ranges and recovery conditions are noted inline._\n",
+            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Read locations do not bypass enabled Jev filtering._\n",
             policy = POLICY_VERSION,
             threshold = result.effective_threshold,
             uncertain = result.decisions.iter().filter(|decision| decision.reason == Some(RetentionReason::Uncertain)).count(),

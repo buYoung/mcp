@@ -957,7 +957,7 @@ async fn retention_rewrites_the_results_body_and_drops_omitted_anchors_only() {
         .expect("unrelatedThing is omitted");
     assert_eq!(
         note,
-        "- _omitted body: L1-6 (function unrelatedThing) did not match the task questions; read src/search/other.ts offset 1 limit 6 to inspect._\n"
+        "- _omitted body: L1-6 (function unrelatedThing) Jev found no task match; read src/search/other.ts offset 1 limit 6 does not bypass Jev._\n"
     );
 
     let Fixture { cap, mut other } = fixture;
@@ -1108,7 +1108,7 @@ fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
     assert!(!text.contains("line 12 of get"));
     assert!(!text.contains("line 22 of evict"));
     assert!(text.contains(
-        "(method Cache::get) did not match the task questions; read src/cache.rs offset 12 limit 9"
+        "(method Cache::get) Jev found no task match; read src/cache.rs offset 12 limit 9"
     ));
     assert_eq!(
         text.matches("```").count(),
@@ -1411,7 +1411,7 @@ fn summary_note_names_the_policy_version_and_threshold() {
     };
     result.effective_threshold = 0.85;
     let note = summary_note(&result);
-    assert!(note.contains("search-selection-policy/5-experimental"));
+    assert!(note.contains("search-selection-policy/6-experimental"));
     assert!(note.contains("threshold 0.85"));
     assert!(note.contains("2 of 7 planned bodies omitted"));
     assert!(note.contains("1 kept through direct support or nesting"));

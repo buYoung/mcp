@@ -518,7 +518,13 @@ impl McpServer {
                             arguments,
                             active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
-                        let text = crate::tools::overview::run(&ctx)?;
+                        let text = jev::overview(
+                            &mut self.jev,
+                            &ctx,
+                            self.registered_task.as_ref(),
+                            &crate::config::get(),
+                        )
+                        .await?;
                         self.update_active_workspace_scope_from_overview(arguments);
                         Ok(serde_json::json!({
                             "content": [

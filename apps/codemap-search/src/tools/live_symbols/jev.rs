@@ -18,14 +18,16 @@ use std::path::Path;
 
 mod context;
 mod external;
+pub(crate) mod overview;
 
-const EVIDENCE_VERSION: &str = "live-task-evidence/3";
+const EVIDENCE_VERSION: &str = "live-task-evidence/5";
 
 pub(crate) struct CapturedFile {
     path: String,
     file: ExtractedFile,
     bounds: Vec<CallableBounds>,
     reference_gaps: Vec<crate::parser::CodeRange>,
+    self_member_uses: Vec<super::references::SelfMemberUse>,
     declaration_headers: Vec<Option<(usize, usize)>>,
     // Mask the full immutable buffer before taking any supporting excerpts.
     source: String,
@@ -39,6 +41,7 @@ impl CapturedFile {
             file: captured.file,
             bounds: captured.bounds,
             reference_gaps: captured.reference_gaps,
+            self_member_uses: captured.self_member_uses,
             declaration_headers: captured.declaration_headers,
             source: crate::redact::source(source).into_owned(),
         })
@@ -285,6 +288,7 @@ impl Capture {
         }
         Plan {
             input: FilterInput {
+                selection_unit: policy::SelectionUnit::Body,
                 evidence_version: EVIDENCE_VERSION,
                 task: task.masked(),
                 is_snapshot_fresh: true,

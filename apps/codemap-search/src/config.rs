@@ -104,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 26;
+const CONFIG_VERSION: u32 = 27;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -1553,6 +1553,13 @@ const MIGRATIONS: &[Migration] = &[
     },
     // Subtable migrations land right after the header, so list them in reverse display order.
     Migration {
+        version: 27,
+        key: "overview_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.\n# overview_filter_enabled = false",
+        korean_block: "# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.\n# overview_filter_enabled = false",
+    },
+    Migration {
         version: 26,
         key: "grep_filter_enabled",
         placement: KeyPlacement::Subtable("analysis.jev"),
@@ -1588,7 +1595,7 @@ const MIGRATIONS: &[Migration] = &[
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
 # Register the task first with initial_instructions(task_query, questions).
-# Apply to search results. Each removed body leaves a read range to restore it.
+# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
@@ -1611,7 +1618,7 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
 # 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
-# search 결과에 적용합니다. 뺀 본문 자리에는 다시 읽을 수 있는 read 범위를 남깁니다.
+# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.

@@ -1,4 +1,4 @@
-# codemap-config-version: 26
+# codemap-config-version: 27
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -258,7 +258,7 @@ is_build_support_enabled = false
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
 # Register the task first with initial_instructions(task_query, questions).
 
-# Apply to search results. Each removed body leaves a read range to restore it.
+# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
 
@@ -267,6 +267,9 @@ is_build_support_enabled = false
 
 # Apply to grep results (default: same as search_filter_enabled).
 # grep_filter_enabled = false
+
+# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.
+# overview_filter_enabled = false
 
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = "jev-1.13.0"

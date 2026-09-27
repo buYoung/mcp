@@ -1,11 +1,11 @@
-Register the user's task and relevance questions before search, read or grep. Jev judges each code body with its supplied supporting evidence against these questions to filter unrelated code.
+Register the user's task and relevance questions before search, read, grep or non-root overview. Jev judges each candidate with its supplied source evidence against these questions to filter unrelated code or declarations.
 
-Copy the full user request into task_query. Build questions from the aspects needed for that request: target names and variants, the requested behavior, and contributing callers, data contracts or execution conditions. Each question must cover one aspect and ask whether the candidate contributes to the task, with yes meaning related. For example, "the JSON editor does not work" can become:
+Copy the full user request into task_query. Split it into distinct ways code can contribute to the answer; yes means related. Each question should test one coherent relationship. Merge equivalent questions and keep name or spelling variants as clues within a question, but do not pack independently useful roles into a long checklist merely to reduce the count. The 1–8 question limit is a capacity, not a target count.
 
-- Does this code define or reference the JSON editor, including alternate names?
-- Does it implement the JSON editor's initialization, rendering or editing behavior?
-- Does it provide data, configuration or calls needed for the JSON editor to work?
+Make each question independently state the requested target, relationship and scope. A candidate need only contribute to that part of the task, not implement a whole flow. A short wrapper or setup function can contribute through a source-backed connection without naming the target itself.
 
-Keep the user's scope in each question. A helper can contribute through the supplied evidence without naming the target or performing the main operation itself. Set when_true to facts establishing that relationship and when_false to facts establishing unrelated behavior; a missing name or unavailable context alone does not establish false.
+Set when_true to observable facts establishing that contribution, including a qualifying branch, callback or delegation. Set when_false to facts establishing unrelated behavior; missing names or unavailable context alone do not establish false. Do not turn a request to explain a flow into proof that every candidate performs all its steps.
 
 Set match="any" for these alternative ways of being relevant. Use "all" only when every criterion must hold for each candidate. Reuse the registration across retrieval queries and tool calls; replace it when the user's task changes.
+
+Enabled search, read, grep and non-root overview use the same task criteria. Root overview stays unfiltered. A Jev omission is a classification result, not a missing file. An exact read location, view=source or include_seen=true does not bypass enabled Jev filtering; include_seen controls only duplicate delivery.

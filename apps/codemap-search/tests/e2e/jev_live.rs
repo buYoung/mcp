@@ -374,10 +374,10 @@ async fn retained_callers_and_nested_declarations_protect_their_bodies() {
                     "linked helper must stay: {text}"
                 );
                 assert!(
-                    text.contains("(fn dropBody) did not match the task questions"),
+                    text.contains("(fn dropBody) Jev found no task match"),
                     "{text}"
                 );
-                assert!(!text.contains("(fn helperBudget) did not match the task questions"));
+                assert!(!text.contains("(fn helperBudget) Jev found no task match"));
             }
         },
     )

@@ -370,7 +370,7 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
         assert!(text.contains("const reserve = footer.length + 8;"), "the partial window of keepMe stays: {text}");
         assert!(text.contains("more lines)"), "the window keeps its elision marker: {text}");
         assert!(!text.contains("padEnd(160"), "the complete unrelated body is omitted: {text}");
-        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) did not match the task questions; read src/window.ts offset 10 limit 3 to inspect._"), "{text}");
+        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) Jev found no task match; read src/window.ts offset 10 limit 3 does not bypass Jev._"), "{text}");
         assert_eq!(judged_names(&judge), vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]], "only the complete body is judged");
     })
     .await;
@@ -414,7 +414,7 @@ async fn test_jev_search_keeps_linked_rust_methods_and_never_judges_data_declara
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("- _omitted body: L25-33 (fn banner) did not match the task questions; read src/checkout.rs offset 25 limit 9 to inspect._"), "{text}");
+        assert!(text.contains("- _omitted body: L25-33 (fn banner) Jev found no task match; read src/checkout.rs offset 25 limit 9 does not bypass Jev._"), "{text}");
         assert!(!text.contains("rendered.push_str"), "{text}");
         assert!(text.contains("Ok(self.total())"), "submit stays through its call to the related total: {text}");
         assert!(text.contains("line.price * line.quantity"), "{text}");
@@ -670,7 +670,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
     assert_eq!(applied["model"], "jev-1.13.0");
     assert_eq!(
         applied["versions"],
-        "search-task-evidence/8 search-task-questions/6 search-selection-policy/5-experimental"
+        "search-task-evidence/8 search-task-questions/9 search-selection-policy/6-experimental"
     );
     let counts = detail_counts(applied);
     assert_eq!(counts["bodies"], "2");
@@ -745,7 +745,7 @@ async fn test_jev_korean_intent_reaches_search_verbatim() {
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("(fn dropMe) did not match the task questions"), "{text}");
+        assert!(text.contains("(fn dropMe) Jev found no task match"), "{text}");
         let requests = judge.requests();
         assert_eq!(requests[0].questions.len(), 4);
         for (id, question) in &requests[0].questions {
@@ -898,7 +898,7 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
             "the live buffer is displayed: {text}"
         );
         assert!(
-            !text.contains("(fn dropMe) did not match the task questions"),
+            !text.contains("(fn dropMe) Jev found no task match"),
             "a stale body is never omitted: {text}"
         );
         let judged: Vec<String> = judged_names(&judge)

@@ -146,18 +146,24 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
 /// Request-local dependencies, independent of the optional persisted reference index.
 /// Preserve unsupported syntax as gaps rather than treating an empty list as proof
 /// that a callable has no dependencies. Type references matter for injected values.
-pub(super) fn capture_dependencies(
-    tree: &Tree,
-    source: &str,
-    language: &str,
-) -> (
-    Vec<crate::parser::ReferenceSite>,
-    Vec<crate::parser::CodeRange>,
-) {
+pub(crate) struct SelfMemberUse {
+    pub name: String,
+    pub range: crate::parser::CodeRange,
+    pub is_assignment: bool,
+}
+
+pub(super) struct DependencyCapture {
+    pub references: Vec<crate::parser::ReferenceSite>,
+    pub gaps: Vec<crate::parser::CodeRange>,
+    pub self_member_uses: Vec<SelfMemberUse>,
+}
+
+pub(super) fn capture_dependencies(tree: &Tree, source: &str, language: &str) -> DependencyCapture {
     let root = tree.root_node();
     let mut pending = vec![root];
     let mut references = Vec::new();
     let mut gaps = Vec::new();
+    let mut self_member_uses = Vec::new();
     let mut remaining = 200_000usize;
     let range = |node: Node<'_>| crate::parser::CodeRange {
         start_line: node.start_position().row + 1,
@@ -186,7 +192,11 @@ pub(super) fn capture_dependencies(
             | "c"
             | "cpp"
     ) {
-        return (references, vec![range(root)]);
+        return DependencyCapture {
+            references,
+            gaps: vec![range(root)],
+            self_member_uses,
+        };
     }
     while let Some(node) = pending.pop() {
         if remaining == 0 {
@@ -216,7 +226,12 @@ pub(super) fn capture_dependencies(
         }
         if matches!(
             kind,
-            "member_expression" | "field_expression" | "attribute" | "member_access_expression"
+            "member_expression"
+                | "field_expression"
+                | "attribute"
+                | "member_access_expression"
+                | "field_access"
+                | "member_access"
         ) {
             let receiver = ["object", "value", "argument", "operand", "expression"]
                 .iter()
@@ -230,6 +245,27 @@ pub(super) fn capture_dependencies(
                     .any(|field| parent.child_by_field_name(field) == Some(node))
             });
             if is_instance && !is_call {
+                let member = ["property", "field", "attribute", "name"]
+                    .iter()
+                    .find_map(|field| node.child_by_field_name(field));
+                if let Some(name) =
+                    member.and_then(|member| member.utf8_text(source.as_bytes()).ok())
+                {
+                    let is_assignment = node.parent().is_some_and(|parent| {
+                        matches!(
+                            parent.kind(),
+                            "assignment_expression"
+                                | "assignment"
+                                | "augmented_assignment"
+                                | "compound_assignment_expr"
+                        ) && parent.child_by_field_name("left") == Some(node)
+                    });
+                    self_member_uses.push(SelfMemberUse {
+                        name: name.into(),
+                        range: range(node),
+                        is_assignment,
+                    });
+                }
                 // A class header does not provide an instance field's value or origin.
                 // Calls have their own same-file target/dependency analysis below.
                 gaps.push(range(node));
@@ -262,7 +298,12 @@ pub(super) fn capture_dependencies(
         let mut cursor = node.walk();
         pending.extend(node.named_children(&mut cursor));
     }
-    (references, gaps)
+    self_member_uses.sort_by_key(|usage| (usage.range.start_line, usage.range.start_col));
+    DependencyCapture {
+        references,
+        gaps,
+        self_member_uses,
+    }
 }
 
 fn value_preview(

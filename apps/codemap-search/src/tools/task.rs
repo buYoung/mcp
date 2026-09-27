@@ -113,11 +113,11 @@ pub(crate) fn schema(is_required: bool) -> Value {
         "type":"object", "additionalProperties":false,
         "properties": {
             "task_query":{"type":"string","minLength":1,"description":"Nonempty complete user request, preserving targets, direction and scope. Entire registration: at most 65536 encoded UTF-8 bytes."},
-            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"1-8 focused yes/no criteria, each with nonempty question, when_true and when_false; yes means related. Judge supplied evidence: missing cross-file context means uncertainty, not false. Omit IDs.","items":{
+            "questions":{"type":"array","minItems":1,"maxItems":MAX_QUESTIONS,"description":"Task-derived relevance criteria; yes means related. Test one coherent relationship per question. Merge equivalent questions and spelling variants, not independently useful roles into a checklist. 1-8 is a capacity, not a target. Omit IDs.","items":{
                 "type":"object","additionalProperties":false,"required":["question","when_true","when_false"],"properties":{
                     "id":{"type":"string","description":"Optional legacy label, ignored. Omit this field."},
-                    "question":{"type":"string","minLength":1,"description":"One explicit yes/no question about this candidate and its supplied supporting evidence."},
-                    "when_true":{"type":"string","minLength":1,"description":"Facts that establish yes."},
+                    "question":{"type":"string","minLength":1,"description":"Independently state the requested target, relationship and scope; judge a contribution to it, not an entire flow in one body."},
+                    "when_true":{"type":"string","minLength":1,"description":"Facts establishing contribution, including a relevant branch, callback or source-backed delegation."},
                     "when_false":{"type":"string","minLength":1,"description":"Facts that establish no, such as unrelated behavior; an absent name or missing context alone is insufficient."}
                 }
             }},

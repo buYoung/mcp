@@ -356,6 +356,12 @@ pub fn list_tools() -> Value {
         include_str!("instructions/tools/search.md")
     }
     .trim_end();
+    let overview_description = if jev.overview_filter_enabled {
+        include_str!("instructions/tools/overview.jev.md")
+    } else {
+        include_str!("instructions/tools/overview.md")
+    }
+    .trim_end();
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
@@ -403,12 +409,12 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.overview_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
