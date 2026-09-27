@@ -14,6 +14,7 @@ pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
+pub mod task;
 
 use crate::index::EngineSupervisor;
 use serde_json::Value;
@@ -199,22 +200,67 @@ pub(crate) fn arg_required_str<'a>(
         .ok_or_else(|| (-32602, format!("Missing required '{key}' parameter")))
 }
 
-/// Connection-level bootstrap and masking notice, embedded in the self-contained binary.
-pub fn server_instructions() -> &'static str {
-    include_str!("instructions/server.md").trim_end()
+/// Shared connection-level bootstrap, embedded in the self-contained binary. `server.md` is
+/// the format string, so literal braces in it must be written as `{{` and `}}`.
+pub fn server_instructions() -> String {
+    format!(
+        include_str!("instructions/server.md"),
+        shell_commands = shell_command_replacements()
+    )
+    .trim_end()
+    .to_string()
 }
 
-/// Shared navigation and output rules, with only scope-specific guidance added for monorepos.
+/// Client-specific guidance, appended only after Codex identifies itself at initialize.
+pub(crate) fn codex_exec_instructions() -> String {
+    // The exec budget covers the whole printed batch, independently of the per-tool
+    // limit exported by codex-config. Without an explicit setting, use exec's default.
+    let codex_output_tokens = crate::config::get()
+        .client_output
+        .codex_output_token_limit
+        .unwrap_or(10_000);
+    format!(
+        include_str!("instructions/server.codex.md"),
+        codex_output_tokens = codex_output_tokens
+    )
+    .trim_end()
+    .to_string()
+}
+
+/// Shell commands of the host OS mapped to the tool to use instead. A stdio server runs on
+/// the same host as the agent's shell; other Unix-like targets share the Linux commands.
+fn shell_command_replacements() -> &'static str {
+    if cfg!(target_os = "windows") {
+        include_str!("instructions/server.windows.md")
+    } else if cfg!(target_os = "macos") {
+        include_str!("instructions/server.macos.md")
+    } else {
+        include_str!("instructions/server.linux.md")
+    }
+    .trim_end()
+}
+
+/// The `initial_instructions` tool result: shared navigation and output rules, with only
+/// scope-specific guidance added for monorepos. The tool description lives separately in
+/// `initial_instructions.md`.
 pub fn instructions() -> String {
-    let common = include_str!("instructions/navigation.md").trim_end();
+    let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
     if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
-            include_str!("instructions/navigation.monorepo.md").trim_end()
+            include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
     }
+}
+
+/// Removed body-filter arguments must not silently select, bypass or replace task context.
+pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
+    if get_arg(arguments, "task_query").is_some() {
+        return Err((-32602, "task_query is not a per-tool option. Register the full task once with initial_instructions; enabled search/read/grep filters run automatically.".into()));
+    }
+    Ok(())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
@@ -256,7 +302,9 @@ fn filesystem_tool_description(
 
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
-/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`;
+/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`,
+/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled. `initial_instructions`
+/// instead appends its `.jev.md` to the base prose when any Jev stage is enabled;
 /// live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
 /// Shared option descriptions have one source here but remain on each independent tool schema.
@@ -265,39 +313,79 @@ pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
-    let live_view_description = "full returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
-    let unresolved_description = "Unresolved call targets in full/relations: list gives bounded names plus a count; count hides the names.";
+    let live_view_description = "full (default) returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
+    let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
     let debug_description = "Legacy compatibility flag; does not change analysis or output.";
+    let include_seen_schema = serde_json::json!({
+        "type": "boolean", "default": false,
+        "description": "False (default) omits repeated content; true restores it. Other filters and limits still apply."
+    });
     let search_path_description =
         "Search path (default '.'); absolute paths follow the stated filesystem permission.";
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
-    let read_description = format!(
-        "{}\n\n{}",
+    let jev = &config.jev;
+    // An enabled Jev stage uses its dedicated `<name>.jev.md` as the tool's whole static prose.
+    let read_description = if jev.read_filter_enabled {
         filesystem_tool_description(
-            include_str!("instructions/tools/read.md").trim_end(),
+            include_str!("instructions/tools/read.jev.md").trim_end(),
             permissions.read,
             &permissions.allowed_roots,
-        ),
-        include_str!("instructions/tools/read.evidence.md").trim_end(),
-    );
+        )
+    } else {
+        format!(
+            "{}\n\n{}",
+            filesystem_tool_description(
+                include_str!("instructions/tools/read.md").trim_end(),
+                permissions.read,
+                &permissions.allowed_roots,
+            ),
+            include_str!("instructions/tools/read.evidence.md").trim_end(),
+        )
+    };
     let find_description = filesystem_tool_description(
         include_str!("instructions/tools/find.md").trim_end(),
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = format!(
-        "{}\n\n{}",
+    let grep_description = if jev.grep_filter_enabled {
         filesystem_tool_description(
-            include_str!("instructions/tools/grep.md").trim_end(),
+            include_str!("instructions/tools/grep.jev.md").trim_end(),
             permissions.grep,
             &permissions.allowed_roots,
-        ),
-        include_str!("instructions/tools/grep.evidence.md").trim_end(),
-    );
+        )
+    } else {
+        format!(
+            "{}\n\n{}",
+            filesystem_tool_description(
+                include_str!("instructions/tools/grep.md").trim_end(),
+                permissions.grep,
+                &permissions.allowed_roots,
+            ),
+            include_str!("instructions/tools/grep.evidence.md").trim_end(),
+        )
+    };
+    let search_description = if jev.search_filter_enabled {
+        include_str!("instructions/tools/search.jev.md")
+    } else {
+        include_str!("instructions/tools/search.md")
+    }
+    .trim_end();
+    let overview_description = if jev.overview_filter_enabled {
+        include_str!("instructions/tools/overview.jev.md")
+    } else {
+        include_str!("instructions/tools/overview.md")
+    }
+    .trim_end();
+    // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
+    // effective enable flag of this request, because an enabled stage may contact the
+    // external provider even when no key is present at this moment.
+    let search_annotations =
+        serde_json::json!({ "readOnlyHint": true, "openWorldHint": jev.search_filter_enabled });
     let mut search_properties = serde_json::json!({
         "query": { "type": "string" },
+        "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
@@ -316,22 +404,33 @@ pub fn list_tools() -> Value {
             );
         }
     }
+    let initial_description = if jev.is_any_enabled() {
+        format!(
+            "{}\n\n{}",
+            include_str!("instructions/tools/initial_instructions.md").trim_end(),
+            include_str!("instructions/tools/initial_instructions.jev.md").trim_end()
+        )
+    } else {
+        include_str!("instructions/tools/initial_instructions.md")
+            .trim_end()
+            .to_string()
+    };
     let mut result = serde_json::json!({
                 "tools": [
                     {
                         "name": "initial_instructions",
-                        "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
+                        "description": initial_description,
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": { "type": "object", "properties": {} }
+                        "inputSchema": task::schema(jev.is_any_enabled())
                     },
                     {
                         "name": "overview",
-                        "description": include_str!("instructions/tools/overview.md").trim_end(),
+                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.overview_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -342,8 +441,8 @@ pub fn list_tools() -> Value {
                     },
                     {
                         "name": "search",
-                        "description": include_str!("instructions/tools/search.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "description": search_description,
+                        "annotations": search_annotations,
                         "inputSchema": {
                             "type": "object",
                             "properties": search_properties,
@@ -353,15 +452,16 @@ pub fn list_tools() -> Value {
                     {
                         "name": "read",
                         "description": read_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.read_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
+                                "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
-                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none reads a line window." },
+                                "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none (default) reads a line window." },
                                 "file_path": { "type": "string", "description": "File to read, workspace-relative or absolute within the stated permission. Aliases: path/file/query." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
                                 "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
@@ -389,11 +489,12 @@ pub fn list_tools() -> Value {
                     {
                         "name": "grep",
                         "description": grep_description,
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.grep_filter_enabled },
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "include_seen": include_seen_schema.clone(),
+                                "view": { "type": "string", "enum": ["full", "source", "source_grouped", "definitions", "relations"], "default": "full", "description": format!("{live_view_description} source_grouped keeps all source rows under file headings without declaration/relationship work; prefer it for source inspection.") },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },

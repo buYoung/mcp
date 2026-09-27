@@ -35,8 +35,8 @@
 
 현재 구현은 설명을 압축한 구성에 네 가지 도구별 판단 규칙을 함께 둔다. 유지보수할 때는 다음 역할 분담을 유지한다.
 
-- **서버·공통 안내:** `server.md`에는 최초 안내 호출과 마스킹 공지를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `navigation.md`에 모은다.
-- **모노레포 안내:** 공통 `navigation.md` 뒤에 `navigation.monorepo.md`의 범위 선택 안내를 덧붙인다. `initial_instructions`, `overview`, `search`의 설명은 각각 하나의 Markdown 파일을 사용한다. 이전의 `initial_instructions.monorepo.md`, `overview.monorepo.md`, `search.monorepo.md`는 통합된 파일이다.
+- **서버·공통 안내:** `server.md`에는 도구 소개, 최초 안내 호출, 도구 선택 가이드를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `initial_instructions` 호출 결과인 `initial_instructions.result.md`에 모은다.
+- **모노레포 안내:** 공통 `initial_instructions.result.md` 뒤에 `initial_instructions.result.monorepo.md`의 범위 선택 안내를 덧붙인다. `initial_instructions`, `overview`, `search`의 설명은 각각 하나의 Markdown 파일을 사용한다. 이전의 `initial_instructions.monorepo.md`, `overview.monorepo.md`, `search.monorepo.md`는 통합된 파일이다.
 - **도구·인자 설명:** 도구 설명에는 선택 조건과 필요한 출력 설명을, 입력 스키마에는 인자 계약을 둔다. `tools/mod.rs`의 공통 설명 변수는 소스 중복을 줄이지만, 각 도구의 최종 스키마에는 해당 설명이 각각 포함된다. 네 가지 판단 규칙은 각 도구 설명에서도 유지한다.
 
 이 구성의 Rust 변경은 안내문 조립과 출력 문구에 대응한다. 변경 범위를 확인할 때 설명 문자열과 검색·색인·잠금·설정 로직을 구분한다.
@@ -89,10 +89,10 @@ If grep/search already supplied the needed file and line, use read directly.
 
 | 소스 | 최종 소비 위치 | 유지할 내용 |
 |---|---|---|
-| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions` | 최초 안내 호출과 마스킹 안내 |
-| [navigation.md](../src/tools/instructions/navigation.md) | `initial_instructions` 응답 | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
-| [navigation.monorepo.md](../src/tools/instructions/navigation.monorepo.md) | 모노레포의 공통 안내 확장 | 범위 선택과 이미 제공한 루트 개요의 재사용 |
-| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description` | 도구 선택·추가 호출 판단·도구별 출력 설명 |
+| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개, search 사용 조건, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구). `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
+| [initial_instructions.result.md](../src/tools/instructions/tools/initial_instructions.result.md) | `tools/call initial_instructions`의 결과(도구 설명인 `initial_instructions.md`와 별개) | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
+| [initial_instructions.result.monorepo.md](../src/tools/instructions/tools/initial_instructions.result.monorepo.md) | 모노레포의 `initial_instructions` 결과 확장 | 범위 선택과 이미 제공한 루트 개요의 재사용 |
+| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 `<도구>.jev.md`만 사용. 단, `initial_instructions`는 Jev 단계가 하나라도 켜지면 `initial_instructions.md` 뒤에 `initial_instructions.jev.md`를 붙임. `<도구>.result*.md`는 설명이 아니라 호출 결과 | 도구 선택·추가 호출 판단·도구별 출력 설명 |
 | [tools/mod.rs](../src/tools/mod.rs)의 `list_tools` | 실제 도구 설명과 입력 스키마 | 문구 조합, 동적 권한 안내, 인자 계약 |
 | [codemap/monorepo.rs](../src/codemap/monorepo.rs)의 `WorkspaceCatalog` 출력 | 모노레포 범위 목록 | 범위·언어 목록을 유지하고, 중복 `Next Step` 안내는 모노레포 공통 안내에 통합 |
 | [tools/grep.rs](../src/tools/grep.rs)의 `empty_result_hint` | grep 결과가 없을 때의 안내 | 활성 필터·정규식 안내와 재시도 전 패턴 또는 필터 조정 조건 |

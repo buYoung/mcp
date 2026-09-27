@@ -15,7 +15,13 @@ fn text(response: &Value) -> String {
         .unwrap_or_default()
         .into()
 }
-async fn tool(client: &mut McpClient, name: &str, args: Value) -> String {
+async fn tool(client: &mut McpClient, name: &str, mut args: Value) -> String {
+    // Compare each view's source and relationships independently of delivery history.
+    if matches!(name, "read" | "grep" | "search") {
+        if let Some(arguments) = args.as_object_mut() {
+            arguments.entry("include_seen").or_insert(Value::Bool(true));
+        }
+    }
     let response = client
         .send_request("tools/call", json!({"name":name,"arguments":args}))
         .await

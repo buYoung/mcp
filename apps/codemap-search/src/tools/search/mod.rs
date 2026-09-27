@@ -7,7 +7,9 @@
 //! so it never needs `&mut` access to the engine.
 
 mod arguments;
+mod display;
 mod grouped;
+pub mod jev;
 mod monorepo;
 pub mod render;
 
@@ -537,11 +539,187 @@ pub fn run_with_metadata(ctx: &ToolContext) -> Result<SearchOutput, (i64, String
     run_inner_with_metadata(ctx, None, DEFAULT_SEARCH_LIMIT)
 }
 
+/// Jev mode #2 entry with the same argument validation and workspace-scope routing as
+/// [`run_with_metadata`]. The filter result is `None` when an event-only or unclassified
+/// branch produced the output, which bypasses Jev unchanged. Hosts that decide not to
+/// evaluate (blank intent, missing credentials) call [`run_with_metadata`] instead: the
+/// base output is byte-identical and nothing is reserved or appended for the filter.
+pub(crate) async fn run_with_filter(
+    ctx: &ToolContext<'_>,
+    task: &crate::tools::task::RegisteredTask,
+    evaluator: &dyn crate::jev::Evaluator,
+    policy: &jev::FilterPolicy,
+) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
+    validate_arguments(ctx.arguments)?;
+    let workspace_scope = if monorepo::should_use(ctx) {
+        monorepo::requested_workspace_scope(ctx)?
+    } else {
+        None
+    };
+    run_inner_with_filter(
+        ctx,
+        workspace_scope.as_deref(),
+        DEFAULT_SEARCH_LIMIT,
+        task,
+        evaluator,
+        policy,
+    )
+    .await
+}
+
+/// The bounded detail plan after retrieval: source blocks, identities and metadata,
+/// with source output assembly deferred until after selection. The structured body filter (Jev mode #2)
+/// runs between [`prepare_detail`] and [`finish_detail`]; with no filter the two halves
+/// reproduce the previous single-pass output byte for byte.
+pub(crate) struct DetailState {
+    text: String,
+    /// Rendered files with their per-file partial flag, in output order, not yet written.
+    files: Vec<(grouped::FileOutput, bool)>,
+    results: Vec<crate::index::SearchResult>,
+    remaining_indices: Vec<usize>,
+    output_was_capped: bool,
+    detail_result_count: usize,
+    rendered_detail_count: usize,
+    byte_cap: usize,
+    published_snapshot: std::sync::Arc<crate::index::PublishedIndexSnapshot>,
+    workspace_scope: Option<String>,
+    caller_context_enabled: bool,
+    should_include_events: bool,
+    is_warming: bool,
+    is_dead: bool,
+    has_refresh_error: bool,
+    search_started: std::time::Instant,
+    candidates_elapsed: std::time::Duration,
+    /// Masked copy of the search arguments the filter stage names in its shared state.
+    search_arguments: serde_json::Value,
+}
+
+pub(crate) enum Prepared {
+    Done(SearchOutput),
+    Detail(Box<DetailState>),
+}
+
 pub(crate) fn run_inner_with_metadata(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
 ) -> Result<SearchOutput, (i64, String)> {
+    match prepare_detail(ctx, workspace_scope, search_limit)? {
+        Prepared::Done(output) => Ok(output),
+        Prepared::Detail(state) => Ok(finish_detail(*state, None, None).0),
+    }
+}
+
+/// Jev mode #2: the same preparation with the same budget as the plain search, then
+/// structured body filtering over the selected evidence, then the same finish (tail, caps,
+/// source observations, relations) over the retained bodies. Nothing is reserved for the
+/// filter's own text; a status line is written inline only in the room the omissions
+/// freed. Any whole-call evaluation failure keeps the complete base output.
+pub(crate) async fn run_inner_with_filter(
+    ctx: &ToolContext<'_>,
+    workspace_scope: Option<&str>,
+    search_limit: usize,
+    task: &crate::tools::task::RegisteredTask,
+    evaluator: &dyn crate::jev::Evaluator,
+    policy: &jev::FilterPolicy,
+) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
+    let selection_started = tokio::time::Instant::now();
+    let state = match prepare_detail(ctx, workspace_scope, search_limit)? {
+        Prepared::Done(output) => return Ok((output, None)),
+        Prepared::Detail(state) => state,
+    };
+    let files: Vec<&grouped::FileOutput> = state.files.iter().map(|(file, _)| file).collect();
+    let mut input = jev::FilterInput::capture(task, state.search_arguments.clone(), &files);
+    input.add_supporting_evidence(
+        &files,
+        &state.published_snapshot,
+        workspace_scope,
+        state.should_include_events,
+        !state.is_warming && !state.is_dead && !state.has_refresh_error,
+        policy,
+    );
+    let planned_primary_bytes = state
+        .files
+        .last()
+        .map_or(state.text.len(), |(file, is_partial)| {
+            file.written_len(*is_partial)
+        });
+    tracing::info!(
+        candidate_count = input.entities.len(),
+        complete_bodies = input.evidence_summary().complete,
+        eligible_bodies = input.judgeable().len(),
+        supporting_context_bytes = input
+            .entities
+            .iter()
+            .map(|entity| entity.supporting_context.len())
+            .sum::<usize>(),
+        "jev selection plan"
+    );
+    let mut result = jev::evaluate(&input, evaluator, policy).await;
+    let outcome = jev::FilterOutcome::from_result(&input, &result);
+    result.is_note_inline = outcome.inline_note.is_some();
+    let should_add_candidates = result.status.is_applied()
+        && state.caller_context_enabled
+        && input.is_snapshot_fresh
+        && !state.output_was_capped;
+    let (output, rendered_omissions) = finish_detail(
+        *state,
+        Some(outcome),
+        should_add_candidates.then_some((&input, &result)),
+    );
+    result.rendered_omissions = rendered_omissions;
+    result.timing.elapsed = selection_started.elapsed();
+    tracing::info!(
+        planned_primary_bytes,
+        returned_text_bytes = output.text.len(),
+        returned_source_bytes = output
+            .source_files
+            .iter()
+            .map(|file| file.result_bytes)
+            .sum::<u64>(),
+        rendered_omissions,
+        "jev selection output"
+    );
+    Ok((output, Some(result)))
+}
+
+fn masked_search_arguments(
+    ctx: &ToolContext,
+    query: &str,
+    workspace_scope: Option<&str>,
+    caller_context_enabled: bool,
+) -> serde_json::Value {
+    let mut arguments = serde_json::Map::new();
+    arguments.insert(
+        "query".into(),
+        serde_json::Value::String(crate::redact::source(query).into_owned()),
+    );
+    for key in ["language_hint", "extension_hint"] {
+        if let Some(value) = ctx.arguments.get(key).and_then(|value| value.as_str()) {
+            arguments.insert(
+                key.into(),
+                serde_json::Value::String(crate::redact::named_value(key, value).into_owned()),
+            );
+        }
+    }
+    if let Some(scope) = workspace_scope {
+        arguments.insert("workspace_scope".into(), serde_json::json!(scope));
+    }
+    arguments.insert(
+        "caller_context".into(),
+        serde_json::json!(caller_context_enabled),
+    );
+    serde_json::Value::Object(arguments)
+}
+
+/// Plan ranking, readiness notices, source blocks and metadata under the configured budget.
+/// Large result bodies are assembled once, after any Jev selection. The budget is the
+/// same whether or not a filter follows.
+pub(crate) fn prepare_detail(
+    ctx: &ToolContext,
+    workspace_scope: Option<&str>,
+    search_limit: usize,
+) -> Result<Prepared, (i64, String)> {
     let search_started = std::time::Instant::now();
     let query = ctx
         .arguments
@@ -571,15 +749,15 @@ pub(crate) fn run_inner_with_metadata(
                 )
             })?;
         if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
-            return Ok(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()});
+            return Ok(Prepared::Done(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()}));
         }
         let root = std::env::current_dir().unwrap_or_default();
         let snapshot = ctx.engine.published_snapshot();
         let cap = crate::config::get().search_detail_byte_cap;
-        return Ok(SearchOutput {
+        return Ok(Prepared::Done(SearchOutput {
             text: snapshot.events().for_key(key, workspace_scope, cap, &root),
             ..SearchOutput::default()
-        });
+        }));
     }
 
     // Caller/callee context (default on). Precedence: the per-call
@@ -674,10 +852,10 @@ pub(crate) fn run_inner_with_metadata(
                 " Next: confirm with a scoped `grep` for the exact text (only supported source files are indexed, so unindexed files never appear here), or reword the query with different terms.",
             );
         }
-        return Ok(SearchOutput {
+        return Ok(Prepared::Done(SearchOutput {
             text,
             ..SearchOutput::default()
-        });
+        }));
     }
     // Cross-path presence over the FULL result set (Child 05 repair, computed once): which
     // qualified names appear both as a dispatch/lookup literal and as an implementing symbol, so
@@ -696,17 +874,21 @@ pub(crate) fn run_inner_with_metadata(
     // head (Lever B). Conservative — score order is otherwise preserved and deferred same-dir files
     // fall straight into the tail, so nothing is dropped.
     const DETAIL_DIR_CAP: usize = 3;
-    let ordered: Vec<&crate::index::SearchResult> =
-        diversified_order(&results, result_branch_threshold, DETAIL_DIR_CAP)
-            .into_iter()
-            .map(|index| &results[index])
-            .collect();
-    let detail_results = &ordered[..ordered.len().min(result_branch_threshold)];
-    let remaining_results = &ordered[detail_results.len()..];
+    let order = diversified_order(&results, result_branch_threshold, DETAIL_DIR_CAP);
+    let detail_len = order.len().min(result_branch_threshold);
+    let detail_results: Vec<&crate::index::SearchResult> = order[..detail_len]
+        .iter()
+        .map(|index| &results[*index])
+        .collect();
+    let remaining_indices: Vec<usize> = order[detail_len..].to_vec();
     let mut output_was_capped = false;
-    let mut retained_primary_bytes = usize::MAX;
-    let mut grouped_files = Vec::new();
+    let mut grouped_files: Vec<(grouped::FileOutput, bool)> = Vec::new();
     text.push_str("# codemap-search\n");
+    // Files are planned now and assembled in `finish_detail`; this mirrors what `text.len()`
+    // would be after each write so budgets are identical to the former single pass.
+    let mut projected_len = text.len();
+    let detail_result_count;
+    let rendered_detail_count;
     {
         // Detail view: enclosing code scopes for the pinpointed files,
         // bounded by config caps so a few large or fallback-matched files
@@ -784,27 +966,26 @@ pub(crate) fn run_inner_with_metadata(
                     .is_some_and(|signal| signal.exact_name_hit)
             }));
 
-        let detail_result_count = detail_results.len();
+        detail_result_count = detail_results.len();
         let file_output_budget_bytes = byte_cap
             .div_ceil(detail_result_count.max(1))
             .max(MIN_FILE_OUTPUT_BUDGET_BYTES)
             .min(byte_cap);
-        let mut rendered_detail_count = 0usize;
+        let mut detail_files_rendered = 0usize;
         let mut budget_hit = false;
         // Cross-file caller-block dedup (Child 05 / over-match repair): owned ACROSS the whole
         // detail loop, not per file, so a repeated caller list spanning file boundaries collapses
         // to a "same as `name` above" back-reference instead of re-printing. Threaded into every
-        // file's `render_anchored_symbols` call.
+        // file's `plan_anchored_symbols` call.
         let mut caller_block_dedup = crate::callers::CallerBlockDedup::new();
-        for &res in detail_results {
+        for &res in &detail_results {
             let source = render::RenderSource::new(&res.file_path);
-            if text.len() >= byte_cap {
+            if projected_len >= byte_cap {
                 budget_hit = true;
                 break;
             }
-            rendered_detail_count += 1;
-            let file_byte_cap = text
-                .len()
+            detail_files_rendered += 1;
+            let file_byte_cap = projected_len
                 .saturating_add(file_output_budget_bytes)
                 .min(byte_cap);
             let is_file_budget_limited = file_byte_cap < byte_cap;
@@ -812,11 +993,11 @@ pub(crate) fn run_inner_with_metadata(
             let snapshot_files = published_snapshot.codemap();
             let mut file_output = grouped::FileOutput::new(
                 &res.file_path,
-                rendered_detail_count,
+                detail_files_rendered,
                 snapshot_files
                     .iter()
                     .find(|file| file.file_path == res.file_path),
-                text.len(),
+                projected_len,
                 file_byte_cap,
             );
             if !file_output.can_fit(0) {
@@ -913,7 +1094,7 @@ pub(crate) fn run_inner_with_metadata(
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
                         byte_cap: file_byte_cap,
                     };
-                    let outcome = render::render_anchored_symbols(
+                    let outcome = render::plan_anchored_symbols(
                         text,
                         &source,
                         matched_in_fallback,
@@ -968,7 +1149,7 @@ pub(crate) fn run_inner_with_metadata(
                         anchor_snippet_limit: cfg.search_anchor_snippet_limit,
                         byte_cap: file_byte_cap,
                     };
-                    let outcome = render::render_anchored_symbols(
+                    let outcome = render::plan_anchored_symbols(
                         text,
                         &source,
                         symbols,
@@ -1014,8 +1195,9 @@ pub(crate) fn run_inner_with_metadata(
                 }
             }
             has_hit_file_budget |= file_output.budget_hit;
-            file_output.write_primary(&mut text, has_hit_file_budget && is_file_budget_limited);
-            grouped_files.push(file_output);
+            let is_partial_file = has_hit_file_budget && is_file_budget_limited;
+            projected_len = file_output.written_len(is_partial_file);
+            grouped_files.push((file_output, is_partial_file));
             budget_hit = has_hit_file_budget && !is_file_budget_limited;
             if budget_hit {
                 break;
@@ -1024,13 +1206,125 @@ pub(crate) fn run_inner_with_metadata(
         if budget_hit {
             output_was_capped = true;
         }
-        if output_was_capped {
-            let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
-            if omitted_detail_count > 0 || !remaining_results.is_empty() {
-                let note = tail_omission_note(omitted_detail_count + remaining_results.len());
-                retained_primary_bytes = retained_primary_bytes
-                    .min(append_preserved_partial_note(&mut text, byte_cap, &note));
-            }
+        rendered_detail_count = detail_files_rendered;
+    }
+    let search_arguments =
+        masked_search_arguments(ctx, query, workspace_scope, caller_context_enabled);
+    Ok(Prepared::Detail(Box::new(DetailState {
+        text,
+        files: grouped_files,
+        results,
+        remaining_indices,
+        output_was_capped,
+        detail_result_count,
+        rendered_detail_count,
+        byte_cap: crate::config::get().search_detail_byte_cap,
+        published_snapshot,
+        workspace_scope: workspace_scope.map(ToString::to_string),
+        caller_context_enabled,
+        should_include_events,
+        is_warming,
+        is_dead: ctx.engine.is_dead(),
+        has_refresh_error: ctx.engine.last_error().is_some(),
+        search_started,
+        candidates_elapsed,
+        search_arguments,
+    })))
+}
+
+/// Write the rendered files (after any retention mask), then the ranked tail, the output
+/// cap, the post-cap source observations and the relation blocks. Returns the output and
+/// the number of body blocks the retention mask actually replaced.
+fn finish_detail(
+    state: DetailState,
+    filter: Option<jev::FilterOutcome>,
+    call_candidates: Option<(&jev::FilterInput, &jev::FilterResult)>,
+) -> (SearchOutput, usize) {
+    let DetailState {
+        mut text,
+        files,
+        results,
+        remaining_indices,
+        mut output_was_capped,
+        detail_result_count,
+        rendered_detail_count,
+        byte_cap,
+        published_snapshot,
+        workspace_scope,
+        caller_context_enabled,
+        should_include_events,
+        is_warming,
+        is_dead,
+        has_refresh_error,
+        search_started,
+        candidates_elapsed,
+        search_arguments: _,
+    } = state;
+    let workspace_scope = workspace_scope.as_deref();
+    let remaining_results: Vec<&crate::index::SearchResult> = remaining_indices
+        .iter()
+        .map(|index| &results[*index])
+        .collect();
+    let mut retained_primary_bytes = usize::MAX;
+    let byte_cap = display::delivery_byte_cap(byte_cap);
+    let mut grouped_files = Vec::with_capacity(files.len());
+    let mut rendered_omissions = 0;
+    let mut display = display::DisplayContext::default();
+    for (file_index, (mut file_output, is_partial_file)) in files.into_iter().enumerate() {
+        if let Some(filter) = &filter {
+            rendered_omissions += file_output
+                .retain_blocks(|block_index, _| filter.replacement_for(file_index, block_index));
+        }
+        file_output.compact_display(&mut display);
+        grouped_files.push((file_output, is_partial_file));
+    }
+    // Reserve discovery/relationship space before allowing the client to clip the
+    // middle of source. Candidate capture and Jev input used the original server cap.
+    let reserved_bytes = (byte_cap / 8).min(12 * 1024);
+    let primary_budget_bytes = byte_cap.saturating_sub(reserved_bytes);
+    let mut primary_bytes = text.len()
+        + grouped_files
+            .iter()
+            .map(|(file, partial)| file.primary_bytes(*partial))
+            .sum::<usize>();
+    let mut deferred_bodies = 0;
+    // Apply this additional guard only when the client explicitly tightens the server cap.
+    if byte_cap < crate::config::get().search_detail_byte_cap {
+        for (file_index, (file, _)) in grouped_files.iter_mut().enumerate().rev() {
+            deferred_bodies +=
+                file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |block_index| {
+                    filter
+                        .as_ref()
+                        .is_some_and(|filter| filter.is_delivery_protected(file_index, block_index))
+                });
+        }
+    }
+    let grouped_files = grouped_files
+        .into_iter()
+        .map(|(mut file, partial)| {
+            file.write_primary(&mut text, partial);
+            file
+        })
+        .collect::<Vec<_>>();
+    tracing::info!(
+        delivery_byte_cap = byte_cap,
+        deferred_bodies,
+        "search delivery guard"
+    );
+    if let Some(note) = filter
+        .as_ref()
+        .and_then(|filter| filter.inline_note.as_deref())
+    {
+        // Only present when the omissions freed at least this much; it never displaces
+        // base evidence.
+        text.push_str(note);
+    }
+    if output_was_capped {
+        let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
+        if omitted_detail_count > 0 || !remaining_results.is_empty() {
+            let note = tail_omission_note(omitted_detail_count + remaining_results.len());
+            retained_primary_bytes = retained_primary_bytes
+                .min(append_preserved_partial_note(&mut text, byte_cap, &note));
         }
     }
 
@@ -1041,7 +1335,6 @@ pub(crate) fn run_inner_with_metadata(
     // match) shows a bare header instead of leaking unrelated symbols.
     // Count-capped by `search_overview_file_limit` and byte-capped like
     // the detail view.
-    let byte_cap = crate::config::get().search_detail_byte_cap;
     if !output_was_capped && !remaining_results.is_empty() {
         let tail_cfg = crate::config::get();
         let tail_file_limit = tail_cfg.search_overview_file_limit;
@@ -1120,29 +1413,50 @@ pub(crate) fn run_inner_with_metadata(
             if file.first_source_byte? >= retained_primary_bytes {
                 return None;
             }
-            let span = file.source_span.as_ref()?;
-            let result_bytes = span
-                .end
-                .min(retained_primary_bytes)
-                .saturating_sub(span.start);
+            // Omission notes written by the structured filter are not delivered source.
+            let result_bytes = file.delivered_source_bytes(retained_primary_bytes);
             (result_bytes > 0).then(|| crate::analyze::FileObservation {
                 path: file.path.clone(),
                 result_bytes: result_bytes as u64,
             })
         })
         .collect();
+    // Plan candidate text once before allocating relation space. Empty or ineligible
+    // candidates must not reduce that space; nonempty candidates keep the existing reserve.
+    let call_candidate_text = if let Some((input, result)) = call_candidates {
+        let start = text.len();
+        jev::append_call_candidates(
+            &mut text,
+            input,
+            result,
+            &published_snapshot,
+            workspace_scope,
+        );
+        text.split_off(start)
+    } else {
+        String::new()
+    };
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial && !is_warming && !ctx.engine.is_dead() && ctx.engine.last_error().is_none() {
+    if !is_partial && !is_warming && !is_dead && !has_refresh_error {
         grouped::append_relations(
             &mut text,
             &grouped_files,
             &published_snapshot,
             workspace_scope,
-            caller_context_enabled,
-            should_include_events,
+            grouped::RelationOptions {
+                should_include_calls: caller_context_enabled,
+                should_include_events,
+                byte_cap: if !call_candidate_text.is_empty() {
+                    byte_cap.saturating_sub(4096)
+                } else {
+                    byte_cap
+                },
+            },
+            &mut display,
         );
     }
+    text.push_str(&call_candidate_text);
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started
@@ -1153,5 +1467,5 @@ pub(crate) fn run_inner_with_metadata(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    Ok(SearchOutput { text, source_files })
+    (SearchOutput { text, source_files }, rendered_omissions)
 }

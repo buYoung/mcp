@@ -14,7 +14,9 @@ pub(crate) fn path_is_under_scope(path: &str, scope: &str) -> bool {
     path == scope || path.starts_with(&format!("{scope}/"))
 }
 
-fn requested_workspace_scope(ctx: &ToolContext) -> Result<Option<String>, (i64, String)> {
+pub(super) fn requested_workspace_scope(
+    ctx: &ToolContext,
+) -> Result<Option<String>, (i64, String)> {
     let explicit_scope = crate::tools::get_arg(ctx.arguments, "workspace_scope")
         .or_else(|| crate::tools::get_arg(ctx.arguments, "scope"))
         .and_then(|value| value.as_str());

@@ -9,7 +9,8 @@ pub use monorepo::{
     is_ambiguous_workspace_scope_input, looks_like_monorepo_workspace,
     resolve_workspace_path_input, workspace_scope_for_input,
 };
-use summary::{build_directory_summaries, significant_symbols, summarize_file};
+pub(crate) use summary::significant_symbols;
+use summary::{build_directory_summaries, summarize_file};
 pub use summary::{DirectorySummary, ExtractedFileSummary, ExtractedSymbolSummary};
 use tree::write_directory_tree;
 

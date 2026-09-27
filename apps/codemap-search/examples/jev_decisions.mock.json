@@ -1,0 +1,38 @@
+{
+  "comment": "Fixed mixed-response fixture for `cargo run --example jev_decisions -- --mock`. `response` mirrors the provider's documented wire shape (model, answers keyed by question id with an explicit type, usage). The values are chosen for the example's assertions; they are not a recorded provider answer and say nothing about live behavior.",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "relevance": {
+        "type": "score",
+        "score": 2.0,
+        "confidence": 1.0,
+        "legend": {
+          "0": "No relevant evidence.",
+          "1": "Weak evidence: shares vocabulary or general utility code.",
+          "2": "Strong evidence: implements part of the requested behavior.",
+          "3": "Direct match: the behavior is decided here."
+        },
+        "probabilities": { "0": 0.0, "1": 0.0, "2": 1.0, "3": 0.0 }
+      },
+      "body": {
+        "type": "choice",
+        "choice": "keep",
+        "confidence": 0.9,
+        "probabilities": { "keep": 0.9, "omit": 0.1 }
+      },
+      "helps_task": {
+        "type": "noul",
+        "noul": 0.9
+      }
+    },
+    "usage": { "input_tokens": 296, "output_tokens": 20 }
+  },
+  "expected": {
+    "relevance_score": 2.0,
+    "body_choice": "keep",
+    "helps_task_noul": 0.9,
+    "input_tokens": 296,
+    "output_tokens": 20
+  }
+}

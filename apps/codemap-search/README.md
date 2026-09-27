@@ -70,7 +70,7 @@ This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/d
 
 ## Verify the first connection
 
-1. Ask the client to call `initial_instructions` once. It returns navigation guidance and the root overview; monorepos include selectable scopes and their languages.
+1. Ask the client to call `initial_instructions` once. It returns navigation guidance and the root overview; monorepos include selectable scopes and their languages. If any [Jev stage](#optional-jev-decision-stages) is enabled, register the task goal and focused `questions` as described below.
 2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry `overview` after it completes.
 3. Find a known source file with `find`, then `read` its path. Search for a known symbol with `search` and confirm that the same file appears after indexing completes.
 
@@ -80,13 +80,15 @@ If the binary cannot be found, check the client's `PATH`. If the wrong repositor
 
 | Tool | Use | Main arguments |
 |---|---|---|
-| `initial_instructions` | Load navigation guidance once | none |
+| `initial_instructions` | Load navigation guidance and register the task for Jev | `task_query`, `questions`, `match` (goal and questions required when Jev search is enabled) |
 | `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
 | `analyze` | Inspect index footprint or recorded reading activity as compact JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
+
+The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
 
 Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[output.overview].is_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
 
@@ -96,7 +98,9 @@ In monorepos, `overview` on a directory selects that exact scope for later `sear
 
 MCP `read`/`grep` use declaration-kind/name headings within each file, followed by one source section. Folder `overview` retains its file list and adds source-backed signatures and nested fields/methods. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
 
-Relevant source wrappers also show bounded argument, return, closure, field and callback-use relationships automatically. Default value context groups repeated paths and passing locations; `debug: true` exposes bounded detailed evidence and diagnostics. Basic conditional paths and native tuples are summarized within the existing budgets. These work independently of event API rules and distinguish source evidence, built-in models and unresolved candidates. Stale dependencies are withheld. Composite queries prioritize term coverage and bounded body evidence while exact identifier queries keep exact-name preference. See the [value-navigation reference and CLI examples](./docs/value-navigation.ko.md) for supported cases, limits and verification commands.
+For compact grep source, use `view="source_grouped"` with `expand="none"`: file headings replace repeated paths while source rows and line numbers remain intact. `view="source"` retains its original format. Search compacts annotation copies after Jev judgment; an explicitly configured Codex output limit also enables a final delivery guard with read ranges for deferred bodies. See [configuration](./docs/configuration.md#client-delivery-limits).
+
+Relevant results can also show event maps and `Source routes` connecting storage to callback, argument or data consumers. These are static candidates, not proof of runtime delivery; stale dependencies are withheld. `debug` does not change the output. See the [navigation output reference](./docs/value-navigation.ko.md) and [source-route contract](./docs/source-routes.ko.md) for supported relationships and limits.
 
 Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.
 
@@ -121,11 +125,19 @@ excluded_directories = [
 ]
 ```
 
-**Pre-v6 configs migrate once. From `codemap-config-version: 6` onward, this array is never automatically updated. Manage it yourself when new rules are needed.** Deleting an entry does not cause it to return on restart. `config_auto_update` still controls automatic file creation and ordinary schema additions, not this post-v6 array. With automatic writes disabled, follow the [manual transition](./docs/configuration.md#manual-transition-when-automatic-writes-are-disabled).
+Manage the exclusion array yourself after generation; deleting an entry does not cause it to return on restart. `config_auto_update` controls file creation and schema updates, not ongoing additions to this array. When upgrading a pre-v6 configuration, follow the [configuration transition guidance](./docs/configuration.md#loading-and-automatic-writes).
 
 A bare `build` matches directories at any depth; `./build` means the workspace root; `apps/web/build` scopes it to that project. Explicit arrays replace optional defaults. `[]` clears optional directory rules; omitting the key inherits global/default rules. `.gitignore`, global Git ignores, `.git/info/exclude` and `.codemapignore` still apply. VCS internals, `.codemap`, `.codemap-index` and the actual index location remain excluded from walks regardless of the array. `find`/`grep` can bypass optional exclusions with `include_ignored: true`; direct `read` remains subject to filesystem permissions.
 
 MCP watches existing config directories and reloads after about 1000ms. Manual exclusion or language-support changes request a full index refresh; output limits and filesystem permissions apply to subsequent requests. Restart after changing `index.path`, `index.refresh.watch` or `index.refresh.watch_debounce_ms`, or if config watching was unavailable. See the [full configuration reference](./docs/configuration.md) for every key, common folders, project detection rules, validation, permissions and application timing.
+
+## Optional Jev decision stages
+
+Jev evaluates complete function bodies from search, read and grep against registered task questions. It is off by default. Enable `analysis.jev.search_filter_enabled=true`; omitted `read_filter_enabled`, `grep_filter_enabled` and `overview_filter_enabled` inherit that value, while explicit values override it per tool. Supply credentials through the `TYPESAFE_API_KEY` environment variable.
+
+The main agent registers `task_query` and focused yes/no `questions` once through `initial_instructions`, preserving the task's target, direction and coverage. Each question has `question`, `when_true` and `when_false`; IDs are generated by the server. `match` is `all` (default) or `any`. Register again when the task changes. Retrieval queries never replace task intent. Text-only registration is rejected when any Jev filter is enabled.
+
+Enabled search/read/grep filters send masked goal, questions and function evidence to TypeSafe and compose the separate answers in code. Uncertain evidence stays; omitted bodies retain source locations. Non-root overview uses the same criteria to select declarations; its private classification bodies are not returned or marked as delivered. Root overview and find remain local. For unfiltered read recovery, disable `analysis.jev.read_filter_enabled`; `include_seen=true` bypasses only common delivery deduplication. Provider failure preserves ordinary selection; the independent MCP delivery rule still applies. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
 
 ## Supported languages and formats
 
@@ -182,64 +194,15 @@ codemap-search benchmark --queries <json> [--dir D]
 
 ### Analyze the index and recent reading activity
 
-`codemap-search analyze index` inspects an existing committed index immediately. `codemap-search analyze reads` reports the last seven days of reading activity at execution time. Human-readable tables are the default. Activity recording starts after reconnecting MCP with the updated binary; reports are generated on demand.
+Inspect the committed index or recorded MCP reading activity without reparsing source:
 
 ```sh
 codemap-search analyze index --sort size --limit 10
-codemap-search analyze index --path /path/to/repo --language rust --filter src/
 codemap-search analyze reads --sort bytes --limit 20
 codemap-search analyze reads --days 14 --tool search --filter src/
-codemap-search analyze reads --offset 20 --limit 20 --sort bytes
-codemap-search analyze reads --view summary --format json
-codemap-search analyze index --help
-codemap-search analyze reads --help
 ```
 
-| Section | Output | Measurement |
-| --- | --- | --- |
-| Index footprint | Committed files, segments, deleted documents, disk size, stored JSON size, static call/reference sites | Existing Tantivy snapshot aggregated in an in-memory SQLite database |
-| Languages and symbols | Files, lines, symbols, exported symbols, literals and docstrings by language; test/documentation flags by symbol kind | Stored extraction metadata, which may differ from the full repository or current source |
-| Files and freshness | Largest stored records with path, size, lines, symbols, literals, largest literal and changed/missing/unavailable state | Current filesystem metadata for sizes and mtime comparison only; no source parsing or index refresh |
-| Current/previous window | Calls, errors, content responses, unique files, file reads, response/result volume and changes | Default: rolling 168 hours vs the preceding 168 hours; `n/a` when a baseline is absent |
-| Tool and daily activity | Calls, errors, content responses, files, reads, response share, average/maximum processing time by tool; UTC daily trends | Recorded `read`/`search`/`grep` calls; the first and last calendar dates may be partial |
-| Returned files | Path, latest recorded size, total/per-tool reads, result volume/share, active dates, last observation and repeat summary | One read per file per successful source-bearing response |
-
-Select the `index` or `reads` subcommand; there is no `--section` option. Default sorting is stored JSON size for index records and read count for activity, with 20 file rows. Each subcommand's `--help` includes examples and its valid options.
-
-| Option | Applies to | Behavior |
-| --- | --- | --- |
-| `--path DIR` | Both | Select the repository, its index configuration and usage database |
-| `--limit N`, `-n N` | Both | File rows per page; default 20, `0` for all |
-| `--offset N` | Both | Skip N file rows after filtering/sorting; follow the printed continuation |
-| `--sort KEY`, `-s KEY` | Both | Select a sort key listed for the subcommand above |
-| `--order asc\|desc` | Both | Default: ascending paths, descending other values |
-| `--filter TEXT`, `-f TEXT` | Both | Case-sensitive literal substring of paths, not a glob |
-| `--view summary\|files\|full` | Both | Totals/groups, totals/files, or all detailed tables; CLI default `full` |
-| `--format table\|json` | Both | Human tables or compact JSON with shared column names |
-| `--language NAME`, `-l NAME` | `index` | Filter by indexed language |
-| `--days N`, `-d N` | `reads` | Rolling 1–30 days; default 7 |
-| `--tool read\|search\|grep`, `-t NAME` | `reads` | Restrict to one tool |
-| `--no-compare` | `reads` | Omit the preceding equal-window comparison; windows above 15 days explicitly exceed 30-day retention |
-
-Totals cover all matching files, not just the displayed page. An activity path filter selects calls that returned a matching file: `Response` still measures the whole selected call, while `Results` includes only matching files. Errors without file observations do not match a path filter. Whole-index disk/segment metrics remain global when file filters are applied.
-
-MCP clients can call `analyze` directly, using the same aggregation for the server's current workspace:
-
-```json
-{"name":"analyze","arguments":{"target":"reads","sort":"bytes","limit":10}}
-```
-
-`target` is `index|reads`. Both accept `limit`, `offset`, `sort`, `order`, `filter` and `view`; index also accepts `language`, and reads accepts `days`, `tool` and `compare`. MCP defaults to `view=files`, 10 file rows, sorting index by `stored` and reads by `bytes`. Request `view=full` for additional breakdowns. `limit` is 1–100; continue with `page.next_offset`.
-
-Compact output uses a `summary` object and per-table `columns`/`rows` arrays, without decorative rules or alignment spaces. Keys identify byte/time units; numbers and `null` remain typed, and short interpretation notes appear once. Output stays within 8 KiB or a smaller `output.max_bytes`, trimming whole rows and marking `truncated`/`omitted_tables` while retaining totals and continuation. Sensitive strings are masked before JSON serialization. Analysis calls do not add their own usage observations.
-
-`Reads` counts files with returned source rows or search excerpts. Path-only and declaration/relation-only responses and failed calls contribute to calls/response volume but not reads. `find`, `overview`, `analyze` and internal indexing reads are not recorded. Repeat counts mean responses after a file's first appearance; different ranges or revisions may be involved, so they are not evidence of wasted tokens.
-
-`File size` is the latest disk size recorded within the window; unknown sizes are `?` and excluded from totals. `Results` measures UTF-8 bytes in each formatted source/excerpt result block before masking, including row/path prefixes and local notices. `Response` measures final masked content text or error messages, including declarations, relations and headers but excluding JSON framing. Timing measures server request processing, excluding SQLite recording and client/network time. Client truncation and actual model consumption are unobservable; these are not token counts or physical disk reads.
-
-Calls and file observations are stored in `.codemap/analysis.sqlite3`, without queries, source or response contents. **Retention is fixed at 30 days and cannot be extended.** Expired calls and their file observations are deleted together at MCP startup, recording, analysis, and every minute while MCP runs. If MCP is stopped, expired rows are removed at the next startup or analysis. `secure_delete` and a deleted rollback journal avoid retaining deleted rows in database free pages or a persistent WAL. This applies to the managed database, not separate backups.
-
-`codemap-search mcp --no-call-log` disables new recording while retaining cleanup of existing records. Recording/cleanup failures warn on stderr without failing MCP responses and retry on subsequent activity. The analysis command reports database access failures as errors. Gaps cannot be reconstructed, and week comparisons do not guarantee continuous collection. Earlier JSONL journals are not imported; the `--log` option is no longer used.
+The MCP `analyze` tool provides the same analysis for the current workspace. Reading records contain paths and metrics, not query/source/response contents, and expire after 30 days. `codemap-search mcp --no-call-log` disables new recording while retaining expiry cleanup. Returned bytes are not token counts, and repeated reads may cover different ranges. See the [analysis reference](./docs/analysis.md) for CLI/MCP options, accounting and retention details.
 
 ## Development validation
 

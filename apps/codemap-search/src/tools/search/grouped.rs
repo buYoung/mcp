@@ -8,18 +8,105 @@ pub(super) struct Section {
     heading: String,
     text: String,
     shown: BTreeSet<(String, usize, usize)>,
+    /// Every declaration row written into this section, in row order.
+    members: Vec<BlockSymbol>,
+    annotations: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     pub anchors: Vec<(String, usize, usize)>,
     pub insertion: usize,
 }
 
-pub(super) struct FileOutput {
+/// Identity of one indexed declaration as shown in the output (inclusive end line).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlockSymbol {
+    pub name: String,
+    pub kind: String,
+    pub owner: Option<String>,
+    pub start_line: usize,
+    pub end_line: usize,
+}
+
+impl BlockSymbol {
+    pub(crate) fn from_symbol(symbol: &ExtractedSymbol) -> Self {
+        Self {
+            name: symbol.name.clone(),
+            kind: symbol.kind.clone(),
+            owner: symbol.owner.clone(),
+            start_line: symbol.range.start_line,
+            end_line: symbol.range.end_line_inclusive(),
+        }
+    }
+
+    pub(crate) fn contains(&self, other: &BlockSymbol) -> bool {
+        self.start_line <= other.start_line
+            && other.end_line <= self.end_line
+            && (self.start_line, self.end_line) != (other.start_line, other.end_line)
+    }
+}
+
+/// One unit of the results body exactly as pushed: text plus, for a declaration body, the
+/// declaration and the displayed line range. The structured filter works on these blocks
+/// instead of re-parsing the rendered Markdown.
+#[derive(Clone, Debug)]
+pub struct SourceBlock {
+    /// Evidence text. Callable fences and notices are held separately until selection.
+    pub text: String,
+    pub prefix: String,
+    pub suffix: String,
+    pub source_offset: Option<usize>,
+    pub symbol: Option<BlockSymbol>,
+    /// First and last displayed source line of a declaration body.
+    pub displayed: Option<(usize, usize)>,
+    /// The body was cut by the byte budget (its last displayed line may be incomplete).
+    pub is_clipped: bool,
+    /// The block is an omission note written by the structured filter, not source.
+    pub is_note: bool,
+}
+
+impl SourceBlock {
+    pub(crate) fn rendered_len(&self) -> usize {
+        self.prefix.len() + self.text.len() + self.suffix.len()
+    }
+
+    fn write(&self, output: &mut String) {
+        output.push_str(&self.prefix);
+        output.push_str(&self.text);
+        output.push_str(&self.suffix);
+    }
+
+    /// The body is complete when every line of the declaration is displayed uncut.
+    pub(crate) fn is_complete_body(&self) -> bool {
+        match (&self.symbol, self.displayed) {
+            (Some(symbol), Some((first, last))) => {
+                !self.is_clipped && first == symbol.start_line && last == symbol.end_line
+            }
+            _ => false,
+        }
+    }
+
+    /// The numbered source lines of the block, without the fence or window notice.
+    pub(crate) fn displayed_source(&self) -> String {
+        self.text
+            .lines()
+            .filter(|line| line.contains('\u{2192}'))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
+pub(super) const PARTIAL_FILE_NOTICE: &str = "\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n";
+
+pub(crate) struct FileOutput {
     pub path: String,
     header: String,
     metadata: String,
     sections: Vec<Section>,
     current: Option<usize>,
     current_depth: usize,
-    results: String,
+    current_symbol: Option<BlockSymbol>,
+    // Source blocks are the render plan; the large results string is assembled only
+    // after selection in write_primary. Budgeting needs only its byte count.
+    results_bytes: usize,
+    blocks: Vec<SourceBlock>,
     indexed: Option<ExtractedFile>,
     has_impl_scopes: bool,
     base_bytes: usize,
@@ -45,7 +132,9 @@ impl FileOutput {
             sections: Vec::new(),
             current: None,
             current_depth: 0,
-            results: String::new(),
+            current_symbol: None,
+            results_bytes: 0,
+            blocks: Vec::new(),
             indexed: indexed.cloned(),
             has_impl_scopes: false,
             base_bytes,
@@ -60,7 +149,7 @@ impl FileOutput {
         self.base_bytes
             + self.header.len()
             + self.metadata.len()
-            + self.results.len()
+            + self.results_bytes
             + "\n### results\n".len()
             + self
                 .sections
@@ -94,16 +183,230 @@ impl FileOutput {
         }
     }
     pub fn push_source(&mut self, text: &str, source_offset: Option<usize>) -> bool {
-        if !self.fits(text.len()) {
+        self.push_block(SourceBlock {
+            text: text.into(),
+            prefix: String::new(),
+            suffix: String::new(),
+            source_offset,
+            symbol: None,
+            displayed: None,
+            is_clipped: false,
+            is_note: false,
+        })
+    }
+    /// Plan a callable excerpt without assembling its final Markdown body.
+    pub(crate) fn plan_source_for_symbol(
+        &mut self,
+        source: &str,
+        notice: &str,
+        symbol: &ExtractedSymbol,
+        displayed: (usize, usize),
+        is_clipped: bool,
+    ) -> bool {
+        let prefix = format!("{notice}```\n");
+        let source_offset = Some(prefix.len());
+        self.push_block(SourceBlock {
+            text: source.into(),
+            prefix,
+            suffix: "\n```\n".into(),
+            source_offset,
+            symbol: Some(BlockSymbol::from_symbol(symbol)),
+            displayed: Some(displayed),
+            is_clipped,
+            is_note: false,
+        })
+    }
+
+    fn push_block(&mut self, block: SourceBlock) -> bool {
+        if !self.fits(block.rendered_len()) {
             return false;
         }
         if self.first_result_source_offset.is_none() {
-            self.first_result_source_offset = source_offset
-                .filter(|offset| *offset < text.len())
-                .map(|offset| self.results.len() + offset);
+            self.first_result_source_offset = block
+                .source_offset
+                .filter(|offset| *offset < block.rendered_len())
+                .map(|offset| self.results_bytes + offset);
         }
-        self.results.push_str(text);
+        self.results_bytes += block.rendered_len();
+        self.blocks.push(block);
         true
+    }
+    pub(crate) fn blocks(&self) -> &[SourceBlock] {
+        &self.blocks
+    }
+    pub(crate) fn indexed(&self) -> Option<&ExtractedFile> {
+        self.indexed.as_ref()
+    }
+    /// Already prepared caller/callee evidence, including its precise/approximate labels.
+    /// Borrow ranges instead of retaining another full annotation catalogue.
+    pub(crate) fn annotation_for(&self, symbol: &BlockSymbol) -> Option<&str> {
+        self.sections.iter().find_map(|section| {
+            section
+                .annotations
+                .iter()
+                .find(|(owner, _)| owner == symbol)
+                .map(|(_, range)| &section.text[range.clone()])
+        })
+    }
+    /// Called only after evidence capture/selection. Source and declaration identities stay
+    /// unchanged; rebuild ranges so later consumers cannot observe stale byte offsets.
+    pub(super) fn compact_display(&mut self, display: &mut super::display::DisplayContext) {
+        for section in &mut self.sections {
+            let mut text = String::with_capacity(section.text.len());
+            let mut previous_end = 0;
+            for (_, range) in &mut section.annotations {
+                text.push_str(&section.text[previous_end..range.start]);
+                let start = text.len();
+                let annotation = display.compact(&section.text[range.clone()]);
+                text.push_str(&annotation);
+                previous_end = range.end;
+                *range = start..text.len();
+            }
+            text.push_str(&section.text[previous_end..]);
+            section.text = text;
+        }
+        // A literal whose entire source line is already visible adds no source evidence.
+        // This recognizes only our own literal-row format, never code inside a body.
+        let visible_ranges = self
+            .blocks
+            .iter()
+            .filter(|block| block.is_complete_body())
+            .filter_map(|block| block.displayed)
+            .collect::<Vec<_>>();
+        self.retain_blocks(|_, block| {
+            if block.symbol.is_some() || !block.text.starts_with("- Literal: ") {
+                return None;
+            }
+            let (_, suffix) = block.text.rsplit_once(" [L")?;
+            let line = suffix.strip_suffix("]\n")?.parse::<usize>().ok()?;
+            visible_ranges
+                .iter()
+                .any(|(first, last)| *first <= line && line <= *last)
+                .then(String::new)
+        });
+    }
+    /// Every declaration row shown in the file's sections, in output order.
+    pub(crate) fn shown_symbols(&self) -> Vec<BlockSymbol> {
+        self.sections
+            .iter()
+            .flat_map(|section| section.members.iter().cloned())
+            .collect()
+    }
+    /// Select blocks for which `replace` returns a note, then recompute the byte budget and
+    /// the first-source offset from what remains. Anchors inside a replaced declaration are
+    /// dropped so relation rendering does not claim evidence that is no longer displayed.
+    /// Returns how many blocks were replaced.
+    pub(crate) fn retain_blocks(
+        &mut self,
+        mut replace: impl FnMut(usize, &SourceBlock) -> Option<String>,
+    ) -> usize {
+        let mut removed_symbols: Vec<BlockSymbol> = Vec::new();
+        let mut replaced = 0;
+        for (index, block) in self.blocks.iter_mut().enumerate() {
+            let Some(note) = replace(index, block) else {
+                continue;
+            };
+            replaced += 1;
+            if let Some(symbol) = block.symbol.take() {
+                removed_symbols.push(symbol);
+            }
+            block.text = note;
+            block.prefix.clear();
+            block.suffix.clear();
+            block.source_offset = None;
+            block.displayed = None;
+            block.is_clipped = false;
+            block.is_note = true;
+        }
+        if replaced == 0 {
+            return 0;
+        }
+        for section in &mut self.sections {
+            section.anchors.retain(|(_, start, end)| {
+                !removed_symbols
+                    .iter()
+                    .any(|symbol| symbol.start_line <= *start && *end <= symbol.end_line)
+            });
+        }
+        self.results_bytes = 0;
+        self.first_result_source_offset = None;
+        for block in &self.blocks {
+            if self.first_result_source_offset.is_none() {
+                self.first_result_source_offset = block
+                    .source_offset
+                    .filter(|offset| *offset < block.rendered_len())
+                    .map(|offset| self.results_bytes + offset);
+            }
+            self.results_bytes += block.rendered_len();
+        }
+        replaced
+    }
+    #[cfg(test)]
+    pub(crate) fn anchors(&self) -> Vec<(String, usize, usize)> {
+        self.sections
+            .iter()
+            .flat_map(|section| section.anchors.iter().cloned())
+            .collect()
+    }
+    /// Bytes of source blocks (omission notes excluded) that `write_primary` delivered
+    /// before the absolute text offset `limit`, for source observations.
+    pub fn delivered_source_bytes(&self, limit: usize) -> usize {
+        let Some(span) = &self.source_span else {
+            return 0;
+        };
+        let mut offset = span.start;
+        let mut delivered = 0;
+        for block in &self.blocks {
+            let start = offset;
+            let end = offset + block.rendered_len();
+            offset = end;
+            if block.is_note {
+                continue;
+            }
+            delivered += end.min(limit).saturating_sub(start.min(limit));
+        }
+        delivered
+    }
+    /// The bytes `write_primary` will append for this file.
+    pub fn written_len(&self, is_partial_file: bool) -> usize {
+        self.len()
+            + if is_partial_file {
+                PARTIAL_FILE_NOTICE.len()
+            } else {
+                0
+            }
+    }
+    pub(super) fn primary_bytes(&self, is_partial_file: bool) -> usize {
+        self.written_len(is_partial_file)
+            .saturating_sub(self.base_bytes)
+    }
+
+    /// Defer whole low-ranked bodies only after judgment. These notes are delivery limits,
+    /// never unrelatedness decisions, and retain exact original-source recovery ranges.
+    pub(super) fn defer_bodies(
+        &mut self,
+        primary_bytes: &mut usize,
+        budget_bytes: usize,
+        is_protected: impl Fn(usize) -> bool,
+    ) -> usize {
+        let path = self.path.clone();
+        let protected_ranges = self
+            .blocks
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| is_protected(*index))
+            .filter_map(|(_, block)| block.displayed)
+            .collect::<Vec<_>>();
+        self.retain_blocks(|index, block| {
+            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) { return None; }
+            block.symbol.as_ref()?;
+            let (first, last) = block.displayed?;
+            if protected_ranges.iter().any(|(start, end)| first <= *start && *end <= last) { return None; }
+            let note = format!("_Body deferred by delivery budget, not a relevance judgment; read {path} offset {first} limit {} to restore._\n", last - first + 1);
+            if note.len().saturating_add(512) > block.rendered_len() { return None; }
+            *primary_bytes -= block.rendered_len() - note.len();
+            Some(note)
+        })
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
         let Some(index) = self.current else {
@@ -123,7 +426,14 @@ impl FileOutput {
         if !self.can_fit(text.len()) {
             return false;
         }
-        self.sections[index].text.push_str(&text);
+        let section = &mut self.sections[index];
+        let start = section.text.len();
+        section.text.push_str(&text);
+        if let Some(symbol) = &self.current_symbol {
+            section
+                .annotations
+                .push((symbol.clone(), start..section.text.len()));
+        }
         true
     }
     pub fn start_symbol(&mut self, symbol: &ExtractedSymbol, source: Option<&str>) -> bool {
@@ -252,6 +562,8 @@ impl FileOutput {
                 heading,
                 text: String::new(),
                 shown: BTreeSet::new(),
+                members: Vec::new(),
+                annotations: Vec::new(),
                 anchors: Vec::new(),
                 insertion: 0,
             });
@@ -264,9 +576,13 @@ impl FileOutput {
                 member.range.start_line,
                 member.range.start_col,
             ));
+            self.sections[index]
+                .members
+                .push(BlockSymbol::from_symbol(member));
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
+        self.current_symbol = Some(BlockSymbol::from_symbol(symbol));
         true
     }
     pub fn anchor(&mut self, start: usize, end: usize) {
@@ -305,6 +621,8 @@ impl FileOutput {
                     heading: heading.into(),
                     text: String::new(),
                     shown: BTreeSet::new(),
+                    members: Vec::new(),
+                    annotations: Vec::new(),
                     anchors: Vec::new(),
                     insertion: 0,
                 });
@@ -324,15 +642,23 @@ impl FileOutput {
         }
         text.push_str("\n### results\n");
         let start = text.len();
-        text.push_str(&self.results);
-        self.source_span = (!self.results.is_empty()).then_some(start..text.len());
+        for block in &self.blocks {
+            block.write(text);
+        }
+        self.source_span = (self.results_bytes > 0).then_some(start..text.len());
         self.first_source_byte = self.first_result_source_offset.map(|offset| start + offset);
         if is_partial_file {
             // fits()/remaining_bytes() reserved the longer global cap footer, so
             // this local notice stays inside the file budget without hiding source.
-            text.push_str("\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n");
+            text.push_str(PARTIAL_FILE_NOTICE);
         }
     }
+}
+
+pub(super) struct RelationOptions {
+    pub should_include_calls: bool,
+    pub should_include_events: bool,
+    pub byte_cap: usize,
 }
 
 pub(super) fn append_relations(
@@ -340,10 +666,14 @@ pub(super) fn append_relations(
     files: &[FileOutput],
     snapshot: &crate::index::PublishedIndexSnapshot,
     scope: Option<&str>,
-    should_include_calls: bool,
-    should_include_events: bool,
+    options: RelationOptions,
+    display: &mut super::display::DisplayContext,
 ) {
-    let cap = crate::config::get().search_detail_byte_cap;
+    let RelationOptions {
+        should_include_calls,
+        should_include_events,
+        byte_cap: cap,
+    } = options;
     let mut remaining = cap
         .saturating_sub(text.len())
         .min(cap / 2)
@@ -419,7 +749,10 @@ pub(super) fn append_relations(
                 }
                 nested.push_str(line);
             }
+            let mut next_display = display.clone();
+            let nested = next_display.compact(&nested);
             if nested.len() <= section_cap {
+                *display = next_display;
                 available -= nested.len();
                 remaining -= nested.len();
                 insertions.push((section.insertion, nested));

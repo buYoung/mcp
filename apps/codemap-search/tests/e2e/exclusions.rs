@@ -3,7 +3,7 @@ use predicates::prelude::PredicateBooleanExt;
 use serde_json::{json, Value};
 use std::fs;
 
-const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 23";
+const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 26";
 
 fn result_text(response: &Value) -> &str {
     response["result"]["content"][0]["text"].as_str().unwrap()
@@ -176,7 +176,12 @@ async fn test_exclusions_generated_common_and_project_globs() {
         "{}",
         result_text(&visible)
     );
-    let read = call(&mut client, "read", json!({"path": ".idea/settings.json"})).await;
+    let read = call(
+        &mut client,
+        "read",
+        json!({"path": ".idea/settings.json", "include_seen": true}),
+    )
+    .await;
     assert!(result_text(&read).contains("common_exclusion"));
 }
 

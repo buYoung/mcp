@@ -7,11 +7,129 @@
 mod monorepo;
 mod stats;
 
+use crate::codemap::CodemapView;
 use crate::tools::ToolContext;
+
+pub(crate) struct PreparedOverview {
+    snapshot: std::sync::Arc<Vec<crate::parser::ExtractedFile>>,
+    scope: Option<(String, bool)>,
+    root_text: String,
+    stats: String,
+}
+
+impl PreparedOverview {
+    pub(crate) fn is_root(&self) -> bool {
+        self.scope.is_none()
+    }
+
+    pub(crate) fn render(&self) -> String {
+        let text = match &self.scope {
+            Some((path, true)) => {
+                let file = self
+                    .snapshot
+                    .iter()
+                    .find(|file| &file.file_path == path)
+                    .expect("file presence checked during preparation");
+                crate::codemap::CodemapGenerator::generate_detail_view(file).to_markdown()
+            }
+            Some((path, false)) => {
+                crate::codemap::CodemapGenerator::generate_folder_view(&self.snapshot, path)
+                    .to_markdown()
+            }
+            None => self.root_text.clone(),
+        };
+        text + &self.stats
+    }
+
+    pub(crate) async fn filter(
+        &self,
+        ctx: &ToolContext<'_>,
+        task: &crate::tools::task::RegisteredTask,
+        evaluator: &dyn crate::jev::Evaluator,
+        policy: &crate::tools::search::jev::FilterPolicy,
+    ) -> (String, crate::tools::search::jev::FilterResult) {
+        use crate::tools::{live_symbols::jev::overview, search::jev};
+        let (path, is_file) = self.scope.as_ref().expect("root is never filtered");
+        // Materialize signatures before awaiting Jev; neither applying decisions nor
+        // rendering the response may read a later filesystem state.
+        let mut folder = (!is_file)
+            .then(|| crate::codemap::CodemapGenerator::generate_folder_view(&self.snapshot, path));
+        let mut files: Vec<_> = self
+            .snapshot
+            .iter()
+            .filter(|file| {
+                if *is_file {
+                    file.file_path == *path
+                } else {
+                    std::path::Path::new(&file.file_path)
+                        .parent()
+                        .is_some_and(|parent| parent == std::path::Path::new(path))
+                }
+            })
+            .collect();
+        files.sort_by(|left, right| left.file_path.cmp(&right.file_path));
+        let base_text = folder.as_ref().map_or_else(
+            || crate::codemap::CodemapGenerator::generate_detail_view(files[0]).to_markdown(),
+            CodemapView::to_markdown,
+        );
+        let mut plan = overview::capture(&files, task, ctx.arguments, policy);
+        plan.add_indexed_context(ctx.engine, policy);
+        let mut result = jev::evaluate(&plan.input, evaluator, policy).await;
+        let omitted = plan.omitted(&result);
+        if omitted.is_empty() {
+            return (base_text + &self.stats, result);
+        }
+        let mut text = if let Some(folder) = &mut folder {
+            for file in &mut folder.files {
+                file.symbols.retain(|symbol| {
+                    !omitted.contains(&overview::DeclarationKey::new(
+                        &file.file_path,
+                        symbol.name,
+                        symbol.kind,
+                        symbol.start_line,
+                        symbol.end_line,
+                    ))
+                });
+                if let Some(outline) = &mut file.outline {
+                    outline.retain(|symbol| {
+                        !omitted.contains(&overview::DeclarationKey::from_symbol(
+                            &file.file_path,
+                            symbol,
+                        ))
+                    });
+                }
+            }
+            folder.to_markdown()
+        } else {
+            let mut file = (*files[0]).clone();
+            file.symbols = crate::codemap::significant_symbols(&file.symbols)
+                .filter(|symbol| {
+                    !omitted.contains(&overview::DeclarationKey::from_symbol(
+                        &file.file_path,
+                        symbol,
+                    ))
+                })
+                .cloned()
+                .collect();
+            crate::codemap::CodemapGenerator::generate_detail_view(&file).to_markdown()
+        };
+        result.rendered_omissions = omitted.len();
+        let note = format!("\n_Jev omitted {} declarations._\n", omitted.len());
+        if text.len().saturating_add(note.len()) <= base_text.len() {
+            text.push_str(&note);
+        }
+        text.push_str(&self.stats);
+        (text, result)
+    }
+}
 
 /// Run the `overview` tool and return the rendered codemap text (or a warming/dead notice).
 /// The MCP dispatch arm wraps the returned string in the JSON-RPC `content` envelope.
 pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    Ok(prepare(ctx)?.render())
+}
+
+pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, String)> {
     // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
     // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
     // back to the ROOT overview, wasting agent turns. Earlier aliases win.
@@ -84,19 +202,25 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
         };
-        return Ok(text.to_string());
+        return Ok(PreparedOverview {
+            snapshot,
+            scope: None,
+            root_text: text.into(),
+            stats: String::new(),
+        });
     }
 
-    use crate::codemap::CodemapView;
-    let mut codemap_text = if let Some(p) = path {
+    let scope = resolved_path.as_ref().and_then(|target| {
+        let relative = crate::workspace::workspace_relative_key(target, &cwd);
+        (!relative.is_empty()).then_some((relative, target.is_file()))
+    });
+    let root_text = if let Some(p) = path.filter(|_| scope.is_some()) {
         let target_path = resolved_path
             .as_ref()
             .ok_or_else(|| (-32603, format!("Failed to process path '{}'", p)))?;
         if target_path.is_file() {
             let rel_path_str = crate::workspace::workspace_relative_key(target_path, &cwd);
-            if let Some(file) = extracted_files.iter().find(|f| f.file_path == rel_path_str) {
-                crate::codemap::CodemapGenerator::generate_detail_view(file).to_markdown()
-            } else {
+            if !extracted_files.iter().any(|f| f.file_path == rel_path_str) {
                 // On disk but absent from the codemap: skipped, not
                 // broken — non-source extension, over the size cap, or
                 // unparseable. Say so rather than imply a failure, and name
@@ -129,9 +253,8 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
                     p
                 )));
             }
-        } else {
-            crate::codemap::CodemapGenerator::generate_folder_view(extracted_files, p).to_markdown()
         }
+        String::new()
     } else {
         if format == Some("llms-txt") {
             crate::codemap::CodemapGenerator::generate_llms_txt_view(extracted_files)
@@ -142,11 +265,12 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         }
     };
 
+    let mut stats_text = String::new();
     if let Some(stats_scope) = stats_scope {
         let workspace = cwd.to_string_lossy().into_owned();
         let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
-        codemap_text.push_str("\n\n");
-        codemap_text.push_str(&stats::render(
+        stats_text.push_str("\n\n");
+        stats_text.push_str(&stats::render(
             &cwd,
             &workspace,
             snapshot_id,
@@ -156,5 +280,10 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
         ));
     }
 
-    Ok(codemap_text)
+    Ok(PreparedOverview {
+        snapshot,
+        scope,
+        root_text,
+        stats: stats_text,
+    })
 }

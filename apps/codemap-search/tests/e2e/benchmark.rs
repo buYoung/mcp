@@ -106,15 +106,33 @@ fn test_benchmark_large_query_list() {
     // Generate >1000 queries
     let mut queries = String::from("[");
     for i in 0..1010 {
-        queries.push_str(&format!(r#"{{"query": "q{}", "expected": []}},"#, i));
+        let expected = if i == 0 { r#"["src/lib.rs"]"# } else { "[]" };
+        queries.push_str(&format!(
+            r#"{{"query": "q{}", "expected": {}}},"#,
+            i, expected
+        ));
     }
     queries.pop(); // remove trailing comma
     queries.push(']');
 
-    let temp = create_mock_repo(&[("queries.json", &queries)]).unwrap();
+    // Query input is not source: otherwise the baseline reparses this entire 1010-item
+    // JSON document for every query. Keep a real source hit and the full query count.
+    let query_file = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(query_file.path(), queries).unwrap();
+    let temp = create_mock_repo(&[("src/lib.rs", "pub fn q0() {}\n")]).unwrap();
 
-    let assert = run_cli(&["benchmark", "--queries", "queries.json"], temp.path());
-    assert.success();
+    let assert = run_cli(
+        &[
+            "benchmark",
+            "--queries",
+            query_file.path().to_str().unwrap(),
+        ],
+        temp.path(),
+    );
+    assert
+        .success()
+        .stdout(predicates::str::contains("| Recall | 100% | 100% |"))
+        .stdout(predicates::str::contains("Results: Identical (0% diff)"));
 }
 
 #[test]

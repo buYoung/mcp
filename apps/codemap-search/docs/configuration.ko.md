@@ -4,7 +4,7 @@
 
 codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변경할 키만 설정하면 나머지는 전역 설정이나 내장 기본값을 사용합니다.
 
-`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다.
+`output.event_navigation`, `analysis`, `output.macro_expansion` 섹션은 생략해도 됩니다. 이벤트 탐색과 매크로 확장은 기본으로 켜지며, 분석 대상 OS를 생략하면 전역 값을 상속하고 빈 문자열은 상속한 대상을 해제합니다. 대상이 없으면 미지정 상태로 분석하며 실행 컴퓨터의 OS를 추정하지 않습니다. `is_enabled = false`를 포함해 기존에 명시한 설정은 계속 우선합니다. `analysis.jev`는 선택적 Jev 판단 단계 설정이며 명시적으로 켜기 전까지 모든 단계가 꺼져 있습니다([선택적 Jev 판단 단계](#선택적-jev-판단-단계) 참고).
 
 ## 섹션 구성과 출력 한도
 
@@ -27,6 +27,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `analysis.jev` | 선택적 search 전용 작업 판단, 기본은 꺼짐 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -36,11 +37,19 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ### 클라이언트 전달 한도
 
+`output.client`는 각 코딩 에이전트가 모델에 넘기는 결과의 최대 크기, 즉 codemap-search의 최종 컨텍스트 크기입니다. `max_bytes` 예산은 그보다 앞 단계인 후보 수집·Jev 입력·렌더링·페이지 나누기에 적용되며, 얼마나 크게 지정하든 모든 최종 응답은 지정한 클라이언트 한도 중 가장 작은 값을 지켜야 합니다. 한도는 UTF-8 바이트로 비교합니다. Claude 문자 수는 바이트로 세므로 실제 문자 수보다 적게 세지 않고, Codex 토큰은 토큰화 결과가 아닌 여유 추정치 `floor(토큰 수 × 3.5)`를 쓰며, pi·opencode 값은 이미 바이트입니다. 미지정 키는 한도를 추가하지 않습니다.
+
+검사는 모든 도구에 대해 Jev 생략·마스킹·중복 제거가 끝난 최종 텍스트에서 수행합니다. 순위 검색은 검사 전에 한도에 맞춥니다. 판정 후 일치·불확실 본문을 우선하고, `min(output.search.max_bytes, 한도 − min(512, 한도 / 8))`를 넘는 낮은 우선순위 본문 전체를 정확한 read 범위로 대체하며 관계와 후속 탐색 공간도 남깁니다. 빼 둔 여유는 렌더링 뒤 붙는 마스킹·중복 표식을 위한 것입니다. 후보·Jev 입력 예산은 유지합니다. 나머지 도구는 클라이언트가 잘라낼 결과 대신 범위 축소 오류를 반환합니다. read는 더 좁은 구간을, grep은 더 작은 `head_limit`와 다음 페이지용 `offset`을 제안합니다. Claude 메타데이터와 Codex exec의 여러 도구 결과 합산 한도는 별개이며, 임의의 묶음 출력이 클라이언트 한도를 넘지 않는다는 보장은 아닙니다.
+
 `output.client.claude_max_result_chars`는 1~500000의 문자 수이며 미지정이면 메타데이터를 보내지 않습니다. 지정하면 여섯 도구의 `tools/list` 항목에 `_meta["anthropic/maxResultSizeChars"]`로 전달합니다. 클라이언트가 도구 목록을 다시 읽도록 MCP를 재연결하세요. [Claude Code 공식 문서](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
 
 `output.client.codex_output_token_limit`는 양의 토큰 수입니다. 설정한 뒤 `codemap-search codex-config`를 실행하면 여섯 도구의 `mcp_servers.codemap-search.tools.<tool>.output_token_limit` TOML을 출력합니다. 등록한 서버 이름이 다르면 `--server-name 이름`을 지정하세요. 출력 조각을 Codex 설정에 병합해야 적용되며 명령은 클라이언트 파일을 쓰지 않습니다. [Codex 공식 문서](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
 
-문자·토큰·바이트를 고정 비율로 변환하지 않습니다. 이 두 설정은 서버 응답 한도를 바꾸지 않으며 Codex `functions.exec`의 묶음 출력 한도나 전역 기록 한도도 변경하지 않습니다. 미지정인 클라이언트 한도에는 새 기본값을 강제로 넣지 않습니다.
+Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. `initialize` 요청의 `params.clientInfo.name`이 `codex-mcp-client`인 연결에만 Codex 전용 안내를 전달하며, 다른 클라이언트나 식별 정보가 없는 연결에는 공통 안내만 전달합니다. Codex 전용 안내는 에이전트가 첫 줄에 `// @exec: {"max_output_tokens": N}`을 넣고, `N`에는 `codex_output_token_limit` 값(미지정이면 10000)을 쓰며, `wait`에도 같은 출력 예산을 적용하도록 안내합니다. 이 예산은 출력한 결과의 합계에 적용되므로 큰 묶음은 나눠야 합니다. 클라이언트의 `tool_output_token_limit`가 더 작으면 기록에 저장할 때 잘릴 수 있으며, 서버는 이 설정을 읽거나 변경하지 않습니다. 설정값을 바꾸면 MCP를 재연결해 안내를 갱신하세요. Jev 활성화 여부와 무관하게 적용되는 안내이며, 에이전트가 따른다는 보장은 없습니다. [Codex 설정 공식 문서](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
+
+`MCP client delivery context` 진단 로그는 `params._meta.callId` 유무, `exec-` 뒤에 하이픈을 포함한 UUID가 오는 형식에 한정한 ID 값, 응답 바이트 수와 설정된 Codex 한도를 기록합니다. 이 내부 ID 형식은 Code Mode의 단서일 뿐이며 실제 exec 예산이나 모델 문맥에 전달됐는지는 알 수 없습니다. 이 값으로 필터·출력 한도·중복 이력을 바꾸지 않습니다.
+
+`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 미지정입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트에 설정한 값을 지정하세요. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
 
 ## 설정 위치와 우선순위
 
@@ -53,33 +62,19 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 ## 설정 읽기와 자동 작성
 
-현재 설정 버전은 **23**이며 주석으로 표시합니다.
+현재 설정 버전은 **27**이며 주석으로 표시합니다.
 
 ```toml
-# codemap-config-version: 23
+# codemap-config-version: 27
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
 - `[update].config_auto_update = true`이면 MCP 시작 시 누락된 저장소 설정을 만듭니다. 제외 배열에는 공통 폴더와 감지한 프로젝트 종류의 재귀 glob을 넣고, 다른 활성 키에는 내장 기본값을 씁니다. 활성 저장소 키는 전역값보다 우선합니다.
 - 버전 표시가 없거나 6 이전인 저장소 설정은 **제외 목록을 한 번 전환**합니다. 사용자 규칙, 이전에 적용되던 제외값, 공통 폴더, 추천 재귀 glob을 배열에 명시합니다. 기존 항목과 주석은 보존하고 누락된 값만 중복 없이 추가한 뒤 현재 스키마 버전으로 바꿉니다.
 - **버전 6부터 `excluded_directories`는 자동으로 만들거나 보충하지 않습니다.** 항목 삭제, `[]` 지정, 키 주석 처리, 새 프로젝트 추가 후에도 목록을 복원하지 않습니다. 수동 변경을 읽어 적용하는 동작은 계속됩니다.
-- 버전 8은 최상위 또는 `[caller_context]`의 활성 테스트 설정을 `[exclude]`로 옮깁니다. 적용값과 사용자 주석을 보존하며 자동 작성 여부는 `config_auto_update`를 따릅니다. 전역 파일을 포함해 기존 위치도 계속 읽습니다. 잘못되거나 충돌하는 값을 동작 변경 없이 옮길 수 없으면 파일을 유지하고 경고합니다.
-- 버전 9는 `[index]` 또는 최상위의 `excluded_directories`, `use_git_exclude`도 `[exclude]`로 옮깁니다. 기존 배열, 명시한 `[]`, 불리언 값과 주석을 보존하며 이 위치 전환으로 디렉터리 규칙을 추가하지 않습니다. 같은 파일에서는 유효한 `[exclude]` 값이 우선합니다.
-- 버전 12는 `[event_navigation].is_enabled` 주석을 추가했습니다. 해당 버전에서는 이벤트 색인이 기본으로 꺼져 있었습니다.
-- 버전 13부터 이벤트 색인과 관련 탐색 결과를 기본으로 제공합니다. 기존 `is_enabled=false` 값은 유지하며, 요청별로 `include_events=false`를 지정하면 이벤트 문맥을 생략합니다.
-- 버전 14는 기본값이 `true`인 `[tool_output].is_redact_enabled`를 추가합니다. 기존 설정에는 주석으로 추가되며, 값을 명시하지 않으면 내장 기본값을 적용합니다.
-- 버전 15는 `[redact]`의 `sensitive_fields`, `rules`, `exceptions`를 빈 목록 주석으로 추가합니다. 기존 규칙과 예외 설정은 보존합니다.
-- 버전 16은 `[redact].pii_entities`를 빈 목록 주석으로 추가합니다. PII 규칙은 선택 활성화하며 기존 인증정보 마스킹 기본값을 유지합니다.
-- 버전 17은 기본값이 `true`인 `[tool_output].is_overview_stats_enabled`를 추가합니다. 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계를 포함하며, `false`면 해당 섹션을 생략합니다.
-- 버전 11은 `[analysis].target_os` 주석을 추가합니다. 생략하거나 빈 값이면 분석 대상을 추정하지 않습니다.
-- 버전 10은 `[macro_expansion]` 주석 섹션을 추가했으며 당시에는 기본으로 꺼져 있었습니다. 현재는 외부 전처리기를 기본으로 사용하지만, 기존에 명시한 `is_enabled=false`는 유지합니다. 전환 시 TOML 문자열 안의 섹션 이름·버전 주석을 실제 설정 구조로 오인하지 않습니다.
-- 버전 18은 출력 설정을 `output` 하위로 모으고, `output.client`를 바로 아래에 배치합니다. 갱신·언어 지원은 `index`, 호출 분석·매크로·이벤트는 `analysis` 하위로 이전합니다. 기존 키도 계속 읽으며, 자동 이전은 설정값과 상속 여부를 비교해 같은 경우에만 저장합니다. 공통·클라이언트 한도는 선택 사항이며 자동으로 활성화하지 않습니다.
-- 버전 19는 navigation·macro_expansion·event_navigation을 `output` 하위로 모으고 항목별 설명을 복원합니다. v18의 `analysis.*` 위치는 호환 별칭으로 계속 읽으며 자동 이전 시 값과 사용자 주석을 유지합니다.
-- 버전 20은 기존 `[exclude]`의 디렉터리 규칙을 `[index.exclude]`, 테스트 문맥 규칙을 `[output.context.exclude]`로 옮깁니다. 적용 대상·값·상속은 유지하며 도구별 독립 제외 규칙을 추가하지 않습니다. 이전 위치는 계속 읽고, 자동 이전은 사용자 주석과 명시한 `[]`를 보존합니다.
-- 버전 21은 섹션 설명과 비활성 설정 예시도 관련 새 섹션으로 옮기며, 예시의 키 이름을 새 이름에 맞춥니다. 설정값은 활성화하지 않습니다. 이전 전환에서 소속 정보가 없어진 임의 메모는 위치를 추측하지 않고 그대로 보존합니다.
-- 버전 22는 `output.context.exclude`와 하위 테스트 규칙을 `output` 묶음의 맨 아래로 옮깁니다. 설정 경로·값·적용 범위는 유지하며 주석도 함께 이동합니다.
-- 버전 23은 확인 가능한 자동 생성 설명을 현재 언어의 문구로 교체하고, 자동 생성된 변경 이력을 제거하며 파일 전체 안내를 맨 위에 둡니다. 기존 설정값·주석 처리 상태·자동 생성 설명으로 식별되지 않는 메모·문자열 내용은 보존합니다. 추가 기본값의 활성화는 새로 생성하는 파일에만 적용합니다.
-- 일반 설정 버전 갱신은 새 키를 주석으로 추가하며 자동으로 활성화하지 않습니다. 이미 최신인 파일은 다시 쓰지 않습니다.
+- 스키마 갱신은 지원하는 이전 키를 현재 구조로 옮기되 적용값·상속·명시한 `[]`·사용자 주석을 보존합니다. 전역 파일을 포함해 이전 별칭도 계속 읽습니다. 충돌하거나 잘못된 값을 안전하게 옮길 수 없으면 파일을 유지하고 경고합니다.
+- 새 키는 활성 설정이 아닌 주석 예시로 추가합니다. 생략된 키는 상속값이나 내장 기본값을 사용하며 `is_enabled=false`처럼 명시한 값은 유지합니다. Jev는 각 도구의 활성화 설정을 직접 켜야 동작합니다.
+- 자동 생성 설명과 섹션 배치는 갱신할 수 있지만 비활성 설정과 사용자 메모는 보존합니다. 이미 최신인 파일은 다시 쓰지 않습니다.
 - `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
 
@@ -159,8 +154,9 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
-| `[output.client].claude_max_result_chars` | 다시 읽은 도구 정의에 반영. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
-| `[output.client].codex_output_token_limit` | codex-config를 다시 실행하고 출력 조각을 Codex 설정에 반영 |
+| `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
+| `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
+| `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
 
 제외 규칙을 직접 바꾸면 파일 필터를 갱신하고 전체 색인 갱신을 요청합니다. 갱신 완료 후 제외된 파일은 결과에서 사라지고 새로 포함한 파일은 검색할 수 있습니다. 색인 기능을 사용할 수 없으면 복구하거나 서버를 재시작한 뒤 결과를 확인하세요.
 
@@ -168,14 +164,16 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 숫자 키는 양의 정수이며 `output.grep.max_columns`만 `0`도 허용합니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `result_threshold = 5` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
 
-바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.macro_expansion.max_output_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
+바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.client.pi_max_bytes`, `output.client.opencode_max_bytes`, `output.macro_expansion.max_output_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
 
 | 키 | 자료형 | 기본값 | 설명 |
 |---|---|---|---|
 | `[output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보와 선택한 PII를 가림. 검색 일치와 로컬 색인은 원문 유지 |
 | `[output].max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | 공통 MCP 응답 한도. 도구별 예외가 같은 계층에서 우선 |
-| `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | 미지정 | Claude tools/list 메타데이터. 재연결 필요 |
-| `[output.client].codex_output_token_limit` | 양의 정수(토큰) | 미지정 | codex-config 명령으로 내보낼 Codex 도구별 한도 |
+| `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | 미지정 | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
+| `[output.client].codex_output_token_limit` | 양의 정수(토큰) | 미지정 | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
+| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | pi 최종 전달 한도 |
+| `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | opencode 최종 전달 한도 |
 | `[output.overview].is_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
 | `[output.overview].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | 개요 응답 한도. 공통값도 없으면 추가 제한 없음 |
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
@@ -226,6 +224,18 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
+| `[analysis.jev].search_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 search의 완전하고 정체성이 확인된 본문을 자동 필터링하고 read 안내를 남김 |
+| `[analysis.jev].read_filter_enabled` | bool | 최종 search 설정 상속 | read로 완전히 반환한 본문 판단. 명시한 false는 read만 끔 |
+| `[analysis.jev].grep_filter_enabled` | bool | 최종 search 설정 상속 | grep content의 완전한 본문 판단. 파일·개수 모드는 로컬 유지 |
+| `[analysis.jev].overview_filter_enabled` | bool | 최종 search 설정 상속 | 루트 외 overview의 선언을 실제 소스 근거로 판단. 루트 지도는 항상 로컬 유지 |
+| `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
+| `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | 요청 시점에 API 키를 읽을 환경 변수. 키 자체는 아님 |
+| `[analysis.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
+| `[analysis.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
+| `[analysis.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
+| `[analysis.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
+| `[analysis.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
+| `[analysis.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
 
 ### 색인과 파일 제외
 
@@ -422,36 +432,41 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 23
-# 이 저장소의 codemap-search 설정입니다.
-# 지정한 값은 전역 설정보다 우선합니다. 전역 값을 상속하려면 키를 삭제하거나 주석 처리하세요.
-# 목록은 상속한 목록을 대체하며 []는 해당 목록을 비웁니다.
-# 숫자 설정은 양의 정수이며 output.grep.max_columns만 0도 허용합니다.
-# 바이트 크기는 "50mb"처럼 b/kb/mb/gb 단위를 사용할 수 있습니다. 각 단위는 1024배입니다.
-# MCP 시작 시 존재하는 설정 디렉터리를 감시합니다. 감시를 사용할 수 없으면 재시작하세요.
+# codemap-config-version: 27
+# 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
+# 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
+# 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
+# 개수·시간·크기는 1 이상의 정수로 적습니다. output.grep.max_columns만 0을 쓸 수 있습니다.
+# 바이트 크기에는 "50mb"처럼 b/kb/mb/gb를 붙일 수 있습니다(1kb = 1024바이트).
+# 파일을 저장하면 서버가 설정을 다시 읽습니다. 반영되지 않으면 서버를 재시작하세요.
 
 [output]
-# MCP 응답에서 탐지한 인증정보를 가립니다. false이면 출력 마스킹을 모두 끕니다.
-# 검색은 원문으로 수행하며 로컬 파일과 색인은 변경하지 않습니다.
+# MCP 응답에 나온 인증정보를 가립니다. false이면 가리기를 모두 끕니다.
 is_redact_enabled = true
 
-# MCP 응답의 공통 출력 한도입니다. 단위는 바이트이며 이 파일의 도구별 max_bytes가 우선합니다.
-# 한도는 저장소 도구별 > 저장소 공통 > 전역 도구별 > 전역 공통 > 내장 기본값 순으로 적용합니다.
-# 아래 값은 예시입니다. 기본 상태에서는 공통 한도를 지정하지 않습니다.
+# 모든 도구에 공통으로 적용할 응답 최대 크기입니다(기본: 제한 없음).
+# 도구별 max_bytes를 지정하면 그 값이 우선합니다.
 # max_bytes = "1mb"
 
 [output.client]
-# Claude Code 결과의 문자 수 한도입니다(1~500000). 미지정 시 클라이언트 기본값을 사용합니다.
-# 변경 후 Claude가 도구 정의를 다시 읽도록 MCP를 재연결하세요.
+# Claude Code가 받는 결과의 최대 문자 수입니다(1~500000, 기본 25000토큰).
+# 바꾼 뒤에는 Claude Code에서 MCP를 다시 연결하세요.
 # claude_max_result_chars = 200000
 
-# Codex 도구별 출력의 토큰 수 한도입니다. 미지정 시 클라이언트 기본값을 사용합니다.
-# codemap-search codex-config로 출력한 설정을 Codex 설정에 병합해야 적용됩니다.
-# 이 명령은 클라이언트 파일을 수정하지 않으며 클라이언트 한도는 서버의 바이트 한도와 별개입니다.
+# Codex가 받는 도구 결과의 최대 토큰 수입니다(기본: 모델마다 다름).
+# Codex에도 같은 값을 설정하세요. `codemap-search codex-config`가 ~/.codex/config.toml에 넣을 내용을 출력합니다.
 # codex_output_token_limit = 50000
 
+# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).
+# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.
+# pi_max_bytes = 51200
+
+# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).
+# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.
+# opencode_max_bytes = 51200
+
 [output.overview]
-# 저장소·모노레포 프로젝트 루트의 overview에 색인 파일의 언어별 통계를 표시합니다.
+# overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
 is_stats_enabled = true
 
 [output.search]
@@ -461,88 +476,80 @@ detail_file_limit = 24
 # 간략 결과 목록의 최대 파일 수입니다.
 overview_file_limit = 80
 
-# 일치한 심볼마다 표시할 최대 발췌 줄 수입니다.
+# 검색된 정의(함수, 클래스 등)마다 표시할 코드의 최대 줄 수입니다.
 snippet_max_lines = 500
 
-# 상세 결과의 파일마다 표시할 최대 심볼 수입니다.
+# 상세 결과에서 파일마다 표시할 최대 정의 수입니다.
 symbol_limit = 100
 
-# 일치한 리터럴의 최대 표시 길이입니다. 단위는 문자 수입니다.
+# 코드에서 추출한 문자열 값 중 검색어와 일치한 값을 표시할 최대 문자 수입니다.
 literal_max_chars = 1200
 
-# 파일마다 표시할 최대 일치 리터럴 수입니다.
+# 파일마다 표시할 문자열 값의 최대 개수입니다.
 literal_limit = 60
 
-# 파일마다 전체 발췌를 표시할 최대 심볼 수입니다. 나머지는 짧은 선언으로 표시합니다.
+# 파일마다 코드 전체를 표시할 최대 정의 수입니다. 나머지는 선언부를 3줄까지만 표시합니다.
 anchor_snippet_limit = 20
 
-# 부분 출력 안내를 포함한 검색 응답의 최대 크기입니다. 단위는 바이트입니다.
-# 이 파일의 output.max_bytes보다 우선합니다. 공통·상속 한도를 쓰려면 이 키를 생략하세요.
+# search 응답의 최대 크기입니다.
 max_bytes = "1mb"
 
 [output.read]
-# 줄 번호와 문맥을 포함한 read 응답의 최대 크기입니다. 단위는 바이트입니다.
-# 이 파일의 output.max_bytes보다 우선합니다. 같은 계층에 grep·공통 한도가 없으면
-# 함수 본문으로 확장한 grep에도 적용합니다. read가 한도를 넘으면 범위 축소를 안내하고,
-# 확장한 grep은 페이지를 나누거나 단일 본문이 한도를 넘었음을 안내합니다.
+# read 응답의 최대 크기입니다.
 max_bytes = "5mb"
 
 [output.grep]
-# grep의 content 모드에서 일치 줄의 최대 열 수입니다. 0이면 제한을 끕니다.
-# 초과 줄은 `[Omitted long matching line]`으로 표시합니다.
+# grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
+# 더 긴 줄은 `[Omitted long matching line]` 같은 생략 표시로 바뀝니다.
 max_columns = 0
 
-# grep 전체 응답의 한도입니다. 단위는 바이트이며 같은 계층의 output.max_bytes보다 우선합니다.
-# 확장 본문은 같은 계층의 read 한도, 하위 설정, 내장 기본값 5 MiB 순으로 적용합니다.
-# 저장소·전역에 grep·공통 한도가 모두 없으면 확장하지 않은 응답에는 바이트 한도를 두지 않습니다.
+# grep 응답의 최대 크기입니다(기본: 제한 없음).
+# 함수 본문을 함께 보여 주는 grep은 이 값과 output.max_bytes가 없으면 output.read.max_bytes를 씁니다.
 # max_bytes = "5mb"
 
 [output.context]
-# 검색 결과에 호출자·호출 대상을 표시합니다. 요청의 caller_context 인자가 우선합니다.
+# search 결과에 호출자와 호출 대상을 보여 줍니다. search 호출에 caller_context를 넘기면 그 값이 우선합니다.
 is_enabled = true
 
-# 심볼마다 표시할 최대 호출자 또는 함수 호출 외의 참조 수입니다.
+# 정의마다 표시할 최대 호출자 수입니다. 호출이 아닌 참조도 포함합니다.
 caller_limit = 1000
 
-# 심볼마다 표시할 최대 호출 대상 수입니다.
+# 정의마다 표시할 최대 호출 대상 수입니다.
 callee_limit = 1000
 
-# `output.search.max_bytes` 안에서 호출 관계의 출력 크기 제한입니다. 단위는 바이트입니다.
-# 원문 발췌가 우선이며 생략한 정보는 안내합니다.
+# search 응답에서 호출 관계가 차지할 최대 크기입니다. 코드를 먼저 넣고, 호출 관계는 남은 공간에 넣습니다.
 max_bytes = "128kb"
 
-# 같은 이름의 정의가 이 수 이상이면 추정 호출 관계에 모호함을 표시합니다.
+# 같은 이름의 정의가 이 개수 이상이면 이름으로 추정한 호출 관계를 모호하다고 표시합니다.
 common_name_threshold = 2
 
-# 같은 이름의 정의가 이 수 이상이면 추정 호출자 목록 대신 grep을 안내합니다.
-# 호출 대상 목록에는 적용하지 않으며 확인된 대상은 계속 표시할 수 있습니다.
+# 같은 이름의 정의가 이 개수 이상이면 추정한 호출자 목록 대신 grep 검색을 안내합니다.
 caller_omit_def_threshold = 5
 
 [output.navigation]
-# 소스 구조·import·지역 변수를 분석해 호출 대상을 확인합니다.
-# 대상이 하나로 확인되면 precise로 표시합니다. false이면 이름으로만 추정합니다.
+# import 문과 코드 구조를 분석해 실제 호출 대상을 찾습니다. 찾은 대상에는 `precise`를 붙입니다.
+# false이면 이름만으로 추정합니다.
 is_enabled = false
 
-# 이름 기반 추정으로 전환하기 전에 확인할 최대 호출 위치 수입니다.
+# 이 개수만큼 호출 위치를 확인한 뒤에는 이름으로 추정합니다.
 callsite_budget = 1000
 
-# 호출자 탐색의 검색 건수 제한입니다. 이름별로 나누되 이름당 최소 25건을 허용합니다.
+# 호출자를 찾을 때 확인할 최대 검색 결과 수입니다.
 scan_limit = 16000
 
 [output.macro_expansion]
-# 설치된 Clang/NASM으로 C/C++/ASM을 전처리합니다. false이면 외부 전처리기 실행을 끕니다.
-# 확장에 실패하면 원문 선언과 실패 사유를 표시합니다. 이 섹션의 설정을 변경하면
-# 설정을 다시 읽은 뒤 전체 색인 갱신을 요청합니다.
+# 설치된 Clang/NASM으로 C/C++/어셈블리 코드의 매크로를 펼쳐 분석합니다.
+# 실패하면 원래 선언을 그대로 보여 줍니다.
 is_enabled = true
 
-# compile_commands.json 파일·디렉터리 또는 compile_flags.txt 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
-# 저장소·전역 설정에 경로가 없으면 소스 파일의 상위 디렉터리부터 작업공간 루트까지 탐색합니다.
+# compile_commands.json(또는 그 폴더)이나 compile_flags.txt의 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
+# 지정하지 않으면 소스 파일 폴더에서 작업공간 루트까지 올라가며 찾습니다.
 # compilation_database = "build/compile_commands.json"
 
-# PATH에서 찾을 Clang 실행 파일 이름 또는 실행 파일 경로입니다.
+# Clang 실행 파일 이름(PATH에서 찾음) 또는 경로입니다.
 clang_path = "clang"
 
-# PATH에서 찾을 NASM 실행 파일 이름 또는 실행 파일 경로입니다.
+# NASM 실행 파일 이름(PATH에서 찾음) 또는 경로입니다.
 nasm_path = "nasm"
 
 # 빌드 설정 뒤에 추가할 Clang 인자입니다.
@@ -551,53 +558,48 @@ clang_flags = []
 # 빌드 설정 뒤에 추가할 NASM 인자입니다.
 nasm_flags = []
 
-# 전처리기 프로세스 한 번의 실행 시간 제한입니다. 단위는 밀리초입니다.
+# 전처리 한 번에 허용할 최대 시간(밀리초)입니다.
 timeout_ms = 5000
 
-# 전처리 결과 또는 NASM 확장 목록의 최대 크기입니다. 단위는 바이트입니다.
-# MCP 응답 한도인 output.max_bytes와 별개로 적용합니다.
+# 전처리 결과의 최대 크기입니다.
 max_output_bytes = "8mb"
 
 [output.event_navigation]
-# 이벤트·소스 경로 관계를 색인하고 관련 탐색 결과를 표시합니다. false이면 분석을 끕니다.
-# 요청의 include_events=false는 해당 요청의 이벤트 출력만 생략합니다.
+# 이벤트를 보내고 받는 코드와 값이 전달되는 경로를 분석해 탐색 결과에 보여 줍니다.
 is_enabled = true
 
-# 내장 이벤트 API 규칙을 사용합니다. false여도 사용자 규칙은 적용합니다.
+# EventEmitter의 on/emit 같은 기본 이벤트 규칙을 사용합니다. false여도 직접 추가한 규칙은 적용합니다.
 use_builtin_rules = true
 
-# 사용자 이벤트 API 규칙입니다. 각 규칙에 API, 이벤트 인자, 버스 정보를 지정합니다.
-# 규칙 형식과 예시는 docs/configuration.ko.md를 참고하세요.
+# 직접 추가할 이벤트 규칙입니다. 형식과 예시는 docs/configuration.ko.md를 참고하세요.
 rules = []
 
 [output.redact]
-# 추가로 가릴 개인정보 유형입니다. 예: ["EMAIL_ADDRESS", "CREDIT_CARD"].
-# []이면 이 개인정보 탐지를 끄며, 내장 인증정보 규칙과 사용자 규칙은 계속 적용합니다.
-# 지원 유형: docs/pii-redaction.ko.md.
+# 추가로 가릴 개인정보 유형입니다. 예: ["EMAIL_ADDRESS", "CREDIT_CARD"]
+# 지원하는 유형은 docs/pii-redaction.ko.md를 참고하세요.
 pii_entities = []
 
-# 추가로 가릴 민감 필드 이름입니다. 대소문자와 구분자를 무시하고 이름을 비교합니다.
-# 내장 민감 필드 규칙은 계속 적용합니다.
+# 값을 가릴 키나 변수 이름을 추가합니다(예: "internalCredential"). 대소문자와 _, - 같은 기호는 무시하고 비교합니다.
 sensitive_fields = []
 
-# 추가 정규식 규칙입니다. 각 항목에 고유한 custom.* id와 pattern을 지정합니다.
-# 예시는 docs/configuration.ko.md를 참고하세요.
+# 직접 추가할 정규식 규칙입니다. 항목마다 id와 pattern을 적습니다.
+# id는 custom.으로 시작해야 하며 다른 규칙과 겹치면 안 됩니다. 예시는 docs/configuration.ko.md를 참고하세요.
 rules = []
 
-# 마스킹 예외입니다. rule_id와 탐지한 value가 모두 정확히 일치할 때만 적용합니다.
+# 가리지 않을 예외입니다. rule_id와 value가 모두 정확히 일치할 때만 적용합니다.
 exceptions = []
 
 [output.context.exclude]
-# search의 호출 관계와 read/grep의 자동 심볼·관계 문맥에 테스트 영역을 포함합니다.
-# 이벤트·소스 경로 분석에도 적용합니다. read/grep 원문과 일반 search/overview 선언은 유지됩니다.
+# 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
+# false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
 should_include_test_code = false
 
-# 작업공간 기준 테스트 파일 경로·이름 glob입니다. 목록은 상속값을 대체하며 []로 판별을 끕니다.
+# 테스트 파일로 볼 경로 패턴입니다(*, ** 사용 가능). 작업공간 기준이며, /가 없으면 파일 이름과 비교합니다.
 test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
 
 [output.context.exclude.test_attributes]
-# 언어별 목록은 상속한 기본값을 대체합니다. []는 해당 목록을 끄고 키·언어를 생략하면 상속합니다.
-# 이름은 #[...]·@를 뺀 glob입니다. cfg(test)는 all/any/not 조건 중 테스트 전용인 영역도 판별합니다.
+# #[test]나 @Test처럼 테스트 코드에 붙는 표시를 언어별로 적습니다. #[...]와 @는 빼고 적으며 *를 쓸 수 있습니다.
+# 적지 않은 언어는 기본 목록을 씁니다. cfg(test)는 all/any/not으로 조합한 조건도 인식합니다.
 rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
 
 java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
@@ -611,9 +613,11 @@ swift = ["Test", "Suite"]
 php = ["Test"]
 
 [output.context.exclude.test_decorators]
+# @pytest.fixture처럼 테스트 코드에 붙는 Python 표시입니다. @는 빼고 적습니다.
 python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
 
 [output.context.exclude.test_calls]
+# describe(...)나 it(...)처럼 테스트를 정의하는 함수 이름입니다.
 javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
 
 typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
@@ -625,92 +629,122 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# 색인 저장 경로입니다. 절대 경로나 작업공간 루트 기준 상대 경로를 사용합니다. 변경 후 서버를 재시작하세요.
+# 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 
-# 색인에 포함할 최대 파일 크기입니다. 단위는 바이트이며 초과 파일도 read/find/grep으로 직접 확인할 수 있습니다.
-# 값을 늘리면 더 큰 파일을 포함하며 CPU·메모리·디스크 사용량이 늘 수 있습니다.
+# 색인할 파일의 최대 크기입니다. 더 큰 파일도 read/find/grep으로는 볼 수 있습니다.
+# 값을 늘리면 CPU, 메모리, 디스크 사용량이 늘어날 수 있습니다.
 max_file_bytes = "1mb"
 
-# 함수 호출 외의 참조 위치를 저장합니다. 호출 대상 확인에 필수인 설정은 아닙니다.
-# 일부 구조화 형식은 참조를 항상 저장합니다.
-# 파싱 시 적용하므로 값 변경이나 재시작만으로 변경되지 않은 파일을 다시 파싱하지 않을 수 있습니다.
+# 함수 호출이 아닌 참조 위치도 색인에 저장합니다.
+# 이미 색인한 파일은 내용이 바뀌어야 반영됩니다.
 store_references = false
 
 [index.exclude]
-# 색인·search/overview·호출자 탐색·find/grep의 디렉터리 제외 규칙입니다. 직접 read에는 적용하지 않습니다.
-# "build"와 "**/build"는 모든 깊이, "./build"는 작업공간 루트만 제외합니다.
-# "apps/web/build" 같은 경로·glob은 작업공간 기준입니다. 절대 경로와 ..은 허용하지 않습니다.
-# 무시 파일은 별도로 적용합니다. 최초 목록에는 감지한 프로젝트 폴더를 포함하며 이후에는 직접 관리합니다.
-# 변경하면 전체 색인 갱신을 요청합니다. find/grep의 include_ignored=true는 선택적 제외 규칙을 건너뜁니다.
-# 버전 관리 내부 폴더, .codemap, .codemap-index, 실제 색인 경로는 탐색에서 항상 제외합니다.
+# 색인과 find/grep에서 제외할 폴더입니다. read로 직접 여는 파일에는 적용하지 않습니다.
+# "build"나 "**/build"는 모든 위치의 build를, "./build"는 작업공간 루트의 build만 제외합니다.
+# "apps/web/build"처럼 작업공간 기준 경로도 쓸 수 있으며, 절대 경로와 ..은 쓸 수 없습니다.
+# 처음에는 감지한 프로젝트에 맞는 폴더가 들어가고, 이후에는 직접 관리합니다.
+# .git 같은 버전 관리 폴더, .codemap, 색인 폴더는 항상 제외합니다.
 excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".vscode", ".vs", ".codemap", ".codemap-index"]
 
-# `.git/info/exclude`를 적용합니다. false이면 이 파일만으로 제외한 경로를 표시합니다.
-# `.gitignore`, 전역 Git 무시 규칙, `.codemapignore`는 계속 적용합니다.
-# 변경하면 설정 재로드 후 전체 색인 갱신을 요청합니다.
+# `.git/info/exclude`에 적힌 경로도 제외합니다. `.gitignore`, 전역 gitignore, `.codemapignore`는 항상 적용합니다.
 use_git_exclude = true
 
 [index.refresh]
-# 파일 변경을 감시해 백그라운드에서 색인을 갱신합니다.
-# false이거나 감시를 쓸 수 없으면 search/overview가 `index.refresh.index_staleness_ms`에 따라 갱신을 요청합니다.
-# 변경 후 서버를 재시작하세요.
+# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search/overview를 호출할 때 갱신합니다.
+# 바꾼 뒤에는 서버를 재시작하세요.
 watch = true
 
-# 파일 변경을 모아서 처리할 시간입니다. 단위는 밀리초입니다.
-# 길게 설정하면 갱신 횟수가 줄지만 반영이 늦어집니다. 변경 후 서버를 재시작하세요.
+# 파일 변경을 모아서 처리할 시간(밀리초)입니다. 길수록 갱신 횟수는 줄고 반영은 늦어집니다.
+# 바꾼 뒤에는 서버를 재시작하세요.
 watch_debounce_ms = 500
 
-# 요청 기반 갱신의 최소 간격입니다. 단위는 밀리초입니다.
-# 파일 감시가 꺼져 있거나 사용할 수 없을 때만 적용하며, 길게 설정하면 결과 반영이 늦어질 수 있습니다.
+# 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
 index_staleness_ms = 5000
 
-# 백그라운드 색인이 중단되면 다음 search/overview에서 제한된 횟수로 복구를 시도합니다.
-# false이면 서버 재시작 전까지 결과가 고정됩니다. read/find/grep은 계속 실제 파일을 읽습니다.
+# 색인 작업이 멈추면 다음 search/overview 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search/overview 결과가 갱신되지 않습니다.
 indexer_auto_restart = true
 
 [index.language_support]
-# 다음 설정은 색인·search·overview·codemap·파일 변경 갱신을 제어합니다.
-# 그룹이 꺼져 있어도 실시간 read/find/grep과 직접 parse는 사용할 수 있습니다.
-# 변경 시 설정을 다시 읽은 뒤 전체 색인 갱신을 요청합니다.
-# Markdown `.md`, `.mdx`를 포함합니다.
+# 아래 파일 종류를 색인할지 정합니다. 꺼 두어도 read/find/grep으로는 볼 수 있습니다.
+# Markdown: `.md`, `.mdx`
 is_document_support_enabled = false
 
-# `.sh`, `.bash`, `.zsh`를 포함합니다.
+# 셸 스크립트: `.sh`, `.bash`, `.zsh`
 is_shell_support_enabled = false
 
-# HCL/Terraform `.hcl`, `.tf`, `.tfvars`, Dockerfile, Nix `.nix`를 포함합니다.
+# 인프라: HCL/Terraform(`.hcl`, `.tf`, `.tfvars`), Dockerfile, Nix(`.nix`)
 is_infrastructure_support_enabled = false
 
-# Protocol Buffers `.proto`, GraphQL `.graphql`, `.gql`을 포함합니다.
+# 인터페이스 정의: Protocol Buffers(`.proto`), GraphQL(`.graphql`, `.gql`)
 is_interface_support_enabled = false
 
-# Makefile, `.mk`, CMakeLists.txt, `.cmake`, BUILD, BUILD.bazel, `.bzl`을 포함합니다.
+# 빌드 파일: Makefile, `.mk`, CMakeLists.txt, `.cmake`, BUILD, BUILD.bazel, `.bzl`
 is_build_support_enabled = false
 
 [analysis]
-# Rust 분석 대상 OS입니다. 예: "linux", "macos", "windows". 실행 컴퓨터의 OS를 추정하지 않습니다.
-# 키를 생략하면 전역 값을 상속합니다. ""를 지정하면 상속한 대상을 해제하고 미지정으로 둡니다.
+# Rust 코드의 cfg(target_os) 조건을 판단할 OS입니다(기본: 지정 안 함). 예: "linux", "macos", "windows"
+# ""로 두면 전역 설정의 값을 쓰지 않습니다.
 # target_os = ""
 
+[analysis.jev]
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+
+# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
+# Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
+# search_filter_enabled = false
+
+# read 결과에 적용합니다(기본: search_filter_enabled 값).
+# read_filter_enabled = false
+
+# grep 결과에 적용합니다(기본: search_filter_enabled 값).
+# grep_filter_enabled = false
+
+# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.
+# overview_filter_enabled = false
+
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+# model = "jev-1.13.0"
+
+# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
+# api_key_env = "TYPESAFE_API_KEY"
+
+# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
+# timeout_ms = 45000
+
+# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+
+# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
+# max_batch_bytes = 168000
+
+# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
+# pool_idle_timeout_ms = 30000
+
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 높일수록 더 확실한 경우에만 본문을 뺍니다.
+# search_filter_min_unrelated_probability = 0.70
+
 [filesystem_permissions]
-# find/grep/read의 파일 접근 범위입니다. "workspace"는 작업공간만,
-# "allowed_roots"는 작업공간과 아래 지정한 경로, "anywhere"는 프로세스가 접근 가능한 모든 경로를 허용합니다.
+# find, grep, read가 파일에 접근할 수 있는 범위입니다.
+# "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
 find = "workspace"
 
-# grep의 접근 범위입니다. "workspace", "allowed_roots", "anywhere" 중 하나를 사용합니다.
 grep = "workspace"
 
-# read의 접근 범위입니다. "workspace", "allowed_roots", "anywhere" 중 하나를 사용합니다.
 read = "workspace"
 
-# "allowed_roots"를 사용하는 도구에 허용할 추가 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
-# 절대 경로도 허용하며, 접근 권한은 심볼릭 링크의 실제 경로를 기준으로 확인합니다.
+# "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
+# 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
 allowed_roots = []
 
 [update]
-# MCP 시작 시 저장소 설정 파일을 만들거나 이전 버전의 파일을 갱신합니다.
-# 기존 값과 주석 처리 상태는 보존합니다. false이면 자동 파일 작성만 끕니다.
+# 서버가 시작될 때 이 파일이 없으면 만들고, 새 설정이 생기면 주석으로 추가합니다.
+# 직접 바꾼 값과 주석은 그대로 둡니다.
 config_auto_update = true
 ```
 
@@ -787,6 +821,130 @@ import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 �
 
 한 응답 안에서는 같은 설정을 사용합니다. 처리 도중 설정이 갱신되면 후속 요청부터 적용합니다.
 
+## 선택적 Jev 판단 단계
+
+```toml
+[analysis.jev]
+search_filter_enabled = true
+# api_key_env = "TYPESAFE_API_KEY"
+# search_filter_min_unrelated_probability = 0.70
+```
+
+```sh
+export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에만 읽으며 어떤 설정 파일에도 기록하지 않습니다
+```
+
+Jev는 기본으로 꺼져 있습니다. `search_filter_enabled=true`이면 search와, 별도 값을 지정하지 않은 read·grep·루트 외 overview 필터를 켭니다. `read_filter_enabled`, `grep_filter_enabled`, `overview_filter_enabled`는 도구별 명시 값이 우선하며 생략하면 최종 search 설정을 따릅니다. 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
+
+### 작업 질문 등록
+
+Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `initial_instructions`로 한 번 등록합니다. `task_query`와 `questions`가 필수이며, 기존 텍스트만 등록하는 방식은 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. Jev가 꺼져 있으면 `initial_instructions({})`를 그대로 사용할 수 있습니다.
+
+```json
+{
+  "task_query": "응답 바이트 상한은 어디에서 적용되는가?",
+  "questions": [{
+    "question": "이 함수가 응답 바이트 상한을 구현하거나 구체적으로 지원하는가?",
+    "when_true": "제공된 소스가 해당 응답 바이트 예산을 계산·예약·제한하거나 전달한다.",
+    "when_false": "제공된 사실이 해당 예산과 구체적 관계가 없는 별개 동작임을 보여준다. 파일 간 근거가 없다는 이유만으로는 아니오가 아니며 불확실하다."
+  }],
+  "match": "all"
+}
+```
+
+| 필드 | 계약 |
+| --- | --- |
+| `task_query` | 비어 있지 않은 목적. 전체 등록 크기 제한 적용 |
+| `questions` | 독립적인 예/아니오 기준 1~8개. 요청한 대상·방향·범위를 보존 |
+| `id` | 기존 호출 호환용 선택 필드이며 무시함. 생략하면 서버가 연결용 ID를 생성 |
+| `question`, `when_true`, `when_false` | 비어 있지 않은 필수 문자열. 개별 바이트 상한 없이 전체 등록·평가 예산 적용. true는 기준에 해당한다는 뜻 |
+| `match` | `all`(기본) 또는 `any`. 중첩 표현식은 없음 |
+| 전체 등록 | 인코딩한 JSON 최대 65,536바이트. 질문 필드에 중첩 값은 허용하지 않음 |
+
+등록은 연결 안에서 원자적으로 교체합니다. 잘못된 교체는 이전 작업을 지우며 `initialize`도 초기화합니다. 질문 생성용 별도 서비스를 호출하지 않습니다. 등록 누락은 인수 오류이고 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 공통 중복 제거는 그 뒤에 독립적으로 적용됩니다.
+
+켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. 루트 overview·find·analyze는 Jev를 호출하지 않습니다. 새 `overview_filter_enabled`와 달리 폐기한 `overview_enabled` 설정은 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
+
+### 질문 판단과 근거
+
+판단 가능한 함수마다 등록한 모든 기준을 Noul로 평가합니다. 함수 본문은 묶음 공통 상태에 한 번 넣고 정체성·소스 범위·완전성·마스킹 상태와 제한된 정적 호출 근거를 함께 제공합니다. 파일 간 연결이나 채널 근거가 없으면 명시하며, 근거 부재를 무관함의 증명으로 취급하지 않습니다. 각 질문은 지정한 후보의 같은 흐름을 판단합니다. 별개 속성 두 개가 참이라고 연결이 증명되지는 않습니다.
+
+관련성을 묻는 기준에서는 여러 기능이 섞인 함수도 관련된 분기나 콜백 하나로 기여가 확인될 수 있습니다. 위임·초기화 함수는 소스로 연결이 확인되면 전체 흐름을 구현하거나 대상 이름을 포함하지 않아도 기여할 수 있습니다. 공통 정책은 사용자 작업과 검색 인자를 구분하고 후보 본문부터 확인한 뒤 연결 근거를 판단하도록 합니다. 각 질문에 요청한 대상·관계·범위를 독립적으로 명시합니다. 등록 안내는 질문 하나가 일관된 관계를 판정하도록 하며 같은 의미의 질문과 표기 변형만 묶습니다. 질문 수를 줄이려는 목적으로 독립적으로 필요한 역할을 긴 체크리스트로 합치지 않습니다. 질문 1~8개는 허용 범위이며 채워야 할 목표가 아닙니다.
+
+`search_filter_min_unrelated_probability`는 부정 판단의 의미를 유지합니다. 기본 `0.70`은 기준이 거짓일 확률이 이 값 이상이어야 아니오로 판단한다는 뜻입니다. 예는 긍정 답변에 같은 임계값을 적용하고 그 사이는 불확실로 둡니다. `all`은 하나라도 명확한 아니오면 불일치이고 모두 예일 때만 일치합니다. `any`는 하나라도 예면 일치이고 모두 아니오일 때만 불일치합니다. 나머지는 불확실입니다. 이는 개별 판단의 조합이며 보정된 결합 확률이 아닙니다. 임계값은 잠정 정책값입니다.
+
+부분·오래된·과대·판단 불가 마스킹·정체성 미확인 본문과 불확실한 판단은 보존합니다. 호출 불가 선언·소스 위치·읽기 안내도 유지합니다. 생략 안내는 [읽기 동작 지표](./analysis.ko.md#횟수와-바이트-해석)의 전달된 원문 바이트에 포함하지 않습니다.
+
+전송 전에 최대 후보 8개씩 근거를 묶습니다. 평가기와 같은 직렬화·사전 검사로 `max_batch_bytes`와 운영 예산을 적용합니다. 운영 예산은 state+가장 긴 질문 28,000 추정 토큰, state+모든 질문 56,000 추정 토큰으로, 제공자 한도 32k/64k에서 12.5% 여유를 둡니다. 바이트 기반 추정은 실제 제공자 토크나이저가 아닙니다. 질문을 추가할 때 바이트·토큰 중 어느 예산이든 넘기기 전에 분할합니다. 후보 하나가 들어가지 않으면 그 후보를 보존하고 나머지를 평가합니다. 본문과 직접 호출자·피호출자 소스는 그룹 안에서 중복하지 않습니다. 최대 128개 그룹이 절대 마감·호출자 취소 신호·연결 풀을 공유합니다. 필수 답변 누락이나 실제 평가 실패는 해당 도구의 전체 기본 결과를 보존합니다. 정확한 `event_key` 맵은 평가하지 않습니다.
+
+### 렌더링 전 선택
+
+검색은 일반 출력 예산 안에서 같은 순위의 후보와 소스 범위를 먼저 계획합니다. Jev가 소스 블록을 선택한 뒤 최종 코드 블록과 큰 결과 문자열을 조립합니다. 같은 입력의 Jev 비활성 출력은 바이트 단위로 유지하고, 평가가 실패하면 일반 소스 계획 전체를 반환합니다.
+
+불확실·부분·정체성 미확인 소스는 보존합니다. 관련성이 확인된 함수는 직접 연결된 지원 본문을 보존할 수 있고, 겹치는 보존 소스가 있으면 이를 포함한 본문도 유지합니다. 불확실한 함수·작은 함수·이미 보호된 함수에서 연결 요소 전체로 보존을 전파하지 않습니다.
+
+평가를 건너뛰는 조건은 해당 본문과 이웃 후보의 지원 판단 모두에서 이득이 없는 경우입니다. 생략 안내보다 작고 고립된 본문이나 무조건 보존되는 상위 본문이 이미 포함한 근거 등이 해당합니다. 작은 함수라도 판단 결과가 다른 본문의 보존에 영향을 주면 평가합니다. 건너뜀 사유와 평가 가능·생략·보호 개수를 기록합니다.
+
+준비된 분석 주석과 해당 범위의 이벤트 근거를 후보별로 확보합니다. 검색 전체에서 앞쪽 후보부터 16 KiB를 차감하거나 각 부분을 1 KiB로 자르는 제한은 없습니다. 직접 호출자·피호출자의 실제 소스는 일반 read 권한과 전체 파일 마스킹을 거치고, 선언 정체성과 반환 범위의 완전성을 확인합니다. 같은 소스는 `state.supporting_sources`에 한 번만 넣고 후보에서 이름으로 참조하며 실제 런타임 호출 대상을 증명했다고 표현하지 않습니다. 공통 근거 정책도 한 번 저장하고 각 질문이 정책과 해당 후보를 명시적으로 참조합니다. 완전한 후보 요청을 인코딩한 크기가 한도를 넘으면 해당 후보는 판단하지 않고 보존합니다. 부가 주석이나 이벤트 근거는 예산에 맞지 않으면 제외하고 `is_context_clipped`를 Jev에 전달하며, 이 표시만으로 본문을 보존하지 않습니다. 본문만의 사전 한도는 전체 state+질문 예산에서 계산하고, 최종 여부는 실제 인코딩한 요청으로 검사합니다. `caller_context=false`이면 추가 호출자·피호출자 읽기와 호출자 이벤트 지점 수집을 하지 않고, `include_events=false`이면 이벤트 근거를 추가하지 않습니다. 준비 중·중단·갱신 실패 스냅샷은 평가하지 않습니다.
+
+필터가 성공하면 작업 기준 조합에서 관련성이 확인된 함수에 한해, 표시한 원문 밖에서 같은 호출 이름이 색인된 위치를 후속 후보로 추가할 수 있습니다. 근거 부족이나 불확실성 때문에 보존한 선언은 확장의 시작점으로 사용하지 않습니다. 연결이 확인된 호출 관계나 전달된 원문으로 취급하지 않습니다. 남은 출력 공간과 주석 예산 안에서 최대 4 KiB, 이름마다 호출자 표시 한도 이내의 최대 8곳, 설정한 호출 지점 분석 예산을 사용합니다. 작업 범위와 문맥 제외 규칙을 적용하고 목록이 잘리면 grep으로 전체 호출 위치를 확인하도록 안내합니다. 비활성·실패·오래된 색인·기본 출력 잘림·`caller_context=false` 검색에는 추가하지 않습니다.
+
+짧은 생략 안내에 소스 위치와 read가 Jev를 우회하지 않는다는 사실을 남깁니다. 생략으로 공간을 확보한 경우 요약에 보존한 불확실성도 표시하며 점수표용 공간을 예약하지 않습니다. 진단 바이트는 계획한 기본 출력·실제 반환 텍스트·전달한 원문을 구분하고, 생략 안내를 원문 관측에 포함하지 않습니다. 평가 전 `jev candidate evidence` 로그는 그룹·후보 번호를 마스킹된 경로와 소스 범위, 본문·문맥 크기 및 해시, 근거 확보 상태에 연결합니다. 소스·사용자 질문 원문은 기록하지 않으며 메인 도구 응답에도 포함하지 않습니다.
+
+### read·grep의 실제 원문 판정
+
+Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행을 확보합니다. `full`, `source`, grep의 `source_grouped` 보기에서 완전히 반환된 함수·메서드 본문만 판단합니다. 부분 범위, 열 잘림, 구문·정체성 미확인, 너무 큰 본문은 보존합니다. 선언·관계 보기와 grep의 파일 목록·개수 모드는 판단하지 않습니다.
+
+본문의 완전성과 보조 문맥의 확보 범위는 구분합니다. 선택적인 참조 색인 설정과 독립적으로 같은 파싱 버퍼에서 값·타입 참조를 수집합니다. 같은 파일의 호출자·피호출자·참조 선언과 소속 타입의 멤버 선언을 마스킹된 근거로 제공합니다. 후보 자신의 바인딩·선언을 먼저 처리하고 기존 예산 안에서 가까운 연결부터 너비 우선으로 수집하여, 호출자의 의존성 연쇄가 후보를 처리하기 전에 예산을 소진하지 않게 합니다. import, 미해결 호출, 모호한 선언, 분석 공백과 보조 근거 예산 초과는 근거 설명과 `has_missing_context`, `is_context_clipped`로 Jev에 전달합니다. 이 상태만으로 평가를 제외하거나 본문을 보존하지 않습니다. Jev가 각 공백이 등록된 판단 기준에 필요한지 평가하며, 기준과 무관한 공백은 확정적인 판단을 막지 않습니다.
+
+분류 전에 색인 후보에서 파일 간 호출자·피호출자·import 선언의 근거를 제한적으로 확보합니다. 후보 소스의 명시적인 호출·import 의존성을 먼저 확보하고 남은 예산을 호출자 후보와 공유합니다. 이미 읽은 버퍼를 재사용하며 다른 파일은 일반 read 권한·크기 한도 안에서 최대 8개만 읽습니다. 현재 소스의 호출 또는 선언을 색인 위치와 대조하고 문맥 제외 규칙, 탐색·연결·바이트 예산, 호출자의 절대 마감과 취소를 적용합니다. 발췌에는 본문 또는 부분임을 표시한 선언 정보가 포함됩니다. 소속 타입의 멤버 선언은 후보가 참조하는 멤버를 우선합니다. 보조 선언의 import는 제공한 발췌에서 참조한 바인딩으로 좁히되, 개별 이름만으로 범위를 판단할 수 없는 glob·무명 import는 유지합니다. 이름·import 단서는 미확정 대상 후보이며 그 자체로 과제 관련성을 인정하지 않습니다. 발췌는 Jev 전용으로, 메인 응답의 원문 범위를 넓히지 않습니다.
+
+식별된 완전한 본문은 인코딩한 요청이 한도 안에 들어오면 기존 Noul 판정을 받습니다. 보조 근거에 공백이 있어도 Jev의 확정적인 불일치 판정으로 생략될 수 있으며, Jev는 제공된 사실과 공백이 해당 기준에 미치는 영향을 판단해야 합니다. 부분·정체성 미확인 본문, 요청 크기 초과, 모델의 불확실 판정, 겹치거나 직접 연결된 보존 본문의 기존 보호는 별도로 유지합니다. 진단은 실제 평가한 후보를 세고 `matched`, `no_match`, `judged_uncertain`, `unjudged_bodies`를 최종 `protected`·`linked` 결과와 구분합니다. 이는 연결·정책 동작의 명세이며 실제 분류 정확도나 토큰 개선을 측정한 결과가 아닙니다.
+
+현재 과제·질문, all/any 조합, 불확실 보존, 연결된 본문 보호, 전송 예산과 절대 마감을 search와 공유합니다. 원래 페이지와 렌더링을 먼저 확정한 뒤 생략 부분만 바꾸므로, 평가 도중 파일이 바뀌어도 새 버퍼와 섞지 않고 생략한 만큼 다음 페이지를 채우지 않습니다. 공통 중복 제거는 Jev 뒤에 적용하며 find는 제외합니다.
+
+### TypeSafe에 전송하는 데이터
+
+활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.13.0`입니다.
+
+### 전송 한도
+
+| 설정 또는 제한 | 계약 |
+| --- | --- |
+| `max_in_flight_requests` | 동시 요청 1~3개 |
+| `request_spacing_ms` | 최소 300ms |
+| `max_batch_bytes` | 인코딩 1~168,000바이트. 명시한 더 작은 값은 유지 |
+| 토큰 추정 | 운영 기본값: state+가장 긴 질문 28,000, state+전체 질문 56,000. `ceil(인코딩 바이트/3)`은 실제 사용량이 아닌 추정값 |
+| `timeout_ms` | 양수, 최대 7일; 준비 과정과 모든 배치를 하나의 마감으로 제한 |
+| `pool_idle_timeout_ms` | 양수, 최대 7일 |
+| 배치/응답 제한 | 평가당 최대 8,192개 질문·128개 배치, 응답당 최대 4 MiB |
+| 재시도/리다이렉트 | 없음 |
+
+잘못된 설정값은 경고 후 하위 설정이나 기본값으로 대체합니다. 각 단계는 시작 시점의 설정을 고정하며 설정 변경은 후속 요청에만 적용하고 진행 중 마감을 늘리지 않습니다.
+
+런타임은 3바이트당 1토큰으로 추정해 제공자의 64k(상태와 모든 질문)·32k(상태와 가장 긴 질문) 한도를 확인합니다. 실제 토큰 수를 보장하지는 않습니다. 제공자가 거부하면 근거를 조용히 자르지 않고 기본 출력을 보존합니다.
+
+### 결과와 진단
+
+| 결과 | 의미 |
+| --- | --- |
+| `applied` | 평가 완료; 보존 규칙에 따라 모든 본문을 유지할 수도 있음 |
+| `bypassed` | 인증정보 없음·완전한 본문 없음·색인 준비 중·출력 공간 부족 등으로 평가하지 않음 |
+| `fallback` | 마감 초과·요청 제한·잘못되거나 불완전한 답변·불완전한 근거 구성 등 평가 실패 |
+
+건너뜀·실패·모든 본문 유지 시 기본 출력을 바이트 단위로 그대로 반환합니다. 필요한 작업 등록이 없으면 대신 MCP 인수 오류를 반환합니다. 자동 필터링은 적격 근거가 없는 호출까지 HTTP 요청을 보낸다는 뜻이 아닙니다.
+
+실행한 단계마다 stderr에 `info` 수준의 `jev stage` 줄을 기록합니다(`codemap_search::mcp::jev`). 도구·결과/사유·모델과 근거 버전·평가 범위/판단/생략 개수·알려진 토큰 사용량·사용량 미보고 응답 수·요청 시도 수·경과/HTTP/대기 시간을 담습니다. 작업 목적·소스 근거·인증정보·제공자 오류 본문은 기록하지 않습니다. 꺼진 단계는 아무것도 기록하지 않습니다.
+
+Rust에서 직접 사용할 때는 [`codemap_search::jev`](../src/jev/mod.rs)와 [판단 예제](../examples/jev_decisions.rs)를 참고하세요. 예제의 `--mock`은 오프라인이며 `--live`는 API 키로 실제 요청을 보냅니다.
+
+### 루트 외 overview의 Jev 적용
+
+`overview_filter_enabled`는 파일과 하위 폴더의 선언 행을 판단합니다. 저장소 루트와 그 별칭·절대 경로는 등록이나 외부 호출 없이 기존 지도를 반환합니다. 모노레포의 하위 워크스페이스는 비루트 경로에 해당합니다. 폴더는 바로 포함된 파일 최대 8개의 선언을 판단하며 하위 디렉터리 지도와 파일 항목, 색인 통계는 유지합니다.
+
+판정용 소스는 파일 읽기 권한·마스킹·테스트 코드 제외 규칙을 따르고 색인 당시의 소스 해시와 현재 소스를 대조합니다. 판정 완료 후 파일을 다시 읽지 않습니다. 판단할 근거가 없거나 한도를 넘긴 선언은 미판정으로 남으며, 이를 분류 성공으로 집계하지 않습니다. 불확실 선언은 유지하고 일치하지 않는 선언만 제거합니다. 부모 선언이 남아도 그 자식 전체가 자동 보존되지는 않으며, 남은 자식의 구조를 나타내는 부모는 유지합니다.
+
+판정에 사용한 소스 본문은 overview 응답이나 공통 중복 제거 이력에 등록하지 않습니다. 이후 read에서 그 본문이 이미 전달됐다고 잘못 접히지 않습니다. read·grep과 overview의 보조 근거에는 같은 클래스 범위에서 확인한 멤버 대입·사용 및 콜백 참조도 최대 8개 연결까지 포함합니다. 이는 관련성 판단을 위한 근거이며 자동 보존 조건이나 런타임 연결 증명은 아닙니다.
 
 ## 이벤트 관계 탐색
 
@@ -904,3 +1062,9 @@ UTF-8 소스만 저장하며 색인·Git·디렉터리 제외 규칙을 적용�
 | `analysis.navigation.*` (v18) | `output.navigation.*` |
 | `analysis.macro_expansion.*` (v18) | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` (v18) | `output.event_navigation.*` |
+
+### 검색 표시 압축과 grep 원문 묶음
+
+검색은 Jev 근거를 구성한 뒤 표시용 주석만 압축합니다. 비호출 참조는 반환된 모든 파일·행 위치를 유지하고 원문 미리보기를 줄이며, 미해결 호출 이름은 한 줄로 묶습니다. 반복 분석 안내는 처음에 `[N1]`처럼 정의하고 이후 해당 위치에서 참조합니다. 코드 본문은 압축하지 않습니다. 확인된 관계의 위치 형식은 유지하며, 완전한 본문에 이미 보이는 리터럴 행의 중복 안내만 생략합니다. 전달 예산 때문에 미표시한 본문은 관련성 판정과 구분됩니다.
+
+`grep`의 `view="source_grouped"`는 모든 반환 파일의 제목 아래에 원문 행을 묶습니다. `expand="none"`이면 `42:일치`와 `43-문맥`을 유지하고, callable 확장도 지원합니다. 파일·행·페이지 순서, 마스킹, 줄 길이 및 응답 한도를 유지하며 선언·관계 분석은 수행하지 않습니다. 기존 `view="source"`의 행별 경로 형식은 그대로입니다. 새 보기는 content 모드 전용이며 read에는 적용되지 않습니다.

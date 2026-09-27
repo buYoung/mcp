@@ -63,7 +63,13 @@ fn text(response: &Value) -> &str {
         .expect("MCP text result")
 }
 
-async fn call(client: &mut McpClient, name: &str, arguments: Value) -> Value {
+async fn call(client: &mut McpClient, name: &str, mut arguments: Value) -> Value {
+    // Masking comparisons need source even when an earlier response delivered it.
+    if matches!(name, "read" | "grep" | "search") {
+        if let Some(arguments) = arguments.as_object_mut() {
+            arguments.entry("include_seen").or_insert(Value::Bool(true));
+        }
+    }
     client
         .send_request("tools/call", json!({"name":name,"arguments":arguments}))
         .await
@@ -216,7 +222,7 @@ async fn test_redact_applies_to_errors_and_can_be_disabled_in_config() {
         json!({"file_path":"missing-sk-proj-abcdefghijklmnopqrstuv0123456789"}),
     )
     .await;
-    assert_eq!(response["error"]["code"], -32602);
+    assert_eq!(response["result"]["isError"], true, "{response}");
     assert!(
         !response
             .to_string()
@@ -414,7 +420,7 @@ exceptions = [{ rule_id = 'custom.acme', value = 'ACME_EXAMPLE' }]
         json!({"file_path":"ACME_MISSINGVALUE.ts"}),
     )
     .await;
-    assert!(response.get("error").is_some(), "{response}");
+    assert_eq!(response["result"]["isError"], true, "{response}");
     assert!(
         !response.to_string().contains("ACME_MISSINGVALUE"),
         "{response}"

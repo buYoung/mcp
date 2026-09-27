@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-searc
 
 설치 후 `codemap-search --version`을 실행하세요. 명령을 찾지 못하면 설치 디렉터리를 `PATH`에 추가합니다. 스크립트가 출력하는 `export PATH` 줄을 `~/.zshrc` 또는 `~/.bashrc`에 추가하면 이후 셸에서도 유지됩니다.
 
-선택한 릴리스에 압축 파일과 `.sha256` 파일이 모두 있어야 합니다. 2026-09-11 문서 검토에서 실제 다운로드 제공 여부를 확인하지 못했습니다. 사용할 태그와 파일을 [GitHub Releases](https://github.com/buYoung/mcp/releases)에서 확인하세요.
+선택한 릴리스에 압축 파일과 `.sha256` 파일이 모두 있어야 합니다. 사용할 태그와 파일을 [GitHub Releases](https://github.com/buYoung/mcp/releases)에서 확인하세요. 파일이 없으면 설치를 중단합니다.
 
 ## 설치 위치와 버전
 
@@ -60,8 +60,4 @@ musl 빌드는 glibc에 의존하지 않습니다. x86_64 GNU 빌드를 선택�
 - 쓰기 오류: 쓰기 가능한 `INSTALL_DIR`을 지정하세요.
 - 명령을 찾지 못함: 터미널뿐 아니라 클라이언트의 `PATH`도 확인하세요.
 
-## 배포 담당자 안내
-
-스크립트는 [install.sh](../../install.sh)에 있습니다. 공개 릴리스 파일을 사용하므로 API 토큰이 필요하지 않습니다. 설치 파일 이름과 체크섬은 [릴리스 워크플로](../../../../.github/workflows/codemap-search-release.yml)와 일치해야 합니다. `.sha256` 파일 형식은 `<hash>  <basename>`이며 대상별로 압축 파일과 체크섬을 함께 게시합니다.
-
-소스 빌드와 다른 패키지 관리자는 [설치 채널 개요](./index.ko.md)를 참고하세요.
+소스 빌드와 다른 패키지 관리자는 [설치 채널 개요](./index.ko.md), 압축 파일·체크섬 게시는 [배포 담당자 안내](./releasing.ko.md#3-압축-파일과-설치기-확인)를 참고하세요.

@@ -920,7 +920,7 @@ async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
 
     // Each priority reaches the same watcher → index → MCP-search final consumer. Exact-name
     // formats use the same grammar-backed indexing path as extension-based formats.
-    for (file, body) in [
+    let cases = [
         ("config.json", "{\"value\": \"needle\"}"),
         ("config.jsonc", "// needle\n{}"),
         ("settings.toml", "value = \"needle\""),
@@ -959,25 +959,56 @@ async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
         ("BUILD.bazel", "# needle"),
         ("defs.bzl", "# needle"),
         ("default.nix", "# needle\n{}"),
-    ] {
+    ];
+    // Coalesce notifications within each lifecycle stage while checking every format.
+    // Complete all create checks before editing, and all update checks before deleting.
+    for &(file, body) in &cases {
         let created = format!("lsr_007_created_{}", file.replace('.', "_"));
-        let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));
         let path = temp.path().join(file);
         fs::write(&path, format!("{body}\n# {created}\n")).unwrap();
-        client
+    }
+    for &(file, _) in &cases {
+        let created = format!("lsr_007_created_{}", file.replace('.', "_"));
+        let response = client
             .send_tool_until("search", serde_json::json!({ "query": created }), |text| {
                 text.contains(file)
             })
             .await
             .unwrap();
+        assert!(
+            response["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains(file),
+            "watcher did not index created {file}: {response}"
+        );
+    }
+    for &(file, body) in &cases {
+        let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));
+        let path = temp.path().join(file);
         fs::write(&path, format!("{body}\n# {updated}\n")).unwrap();
-        client
+    }
+    for &(file, _) in &cases {
+        let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));
+        let response = client
             .send_tool_until("search", serde_json::json!({ "query": updated }), |text| {
                 text.contains(file)
             })
             .await
             .unwrap();
-        fs::remove_file(&path).unwrap();
+        assert!(
+            response["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains(file),
+            "watcher did not index updated {file}: {response}"
+        );
+    }
+    for &(file, _) in &cases {
+        fs::remove_file(temp.path().join(file)).unwrap();
+    }
+    for &(file, _) in &cases {
+        let updated = format!("lsr_007_updated_{}", file.replace('.', "_"));
         let removed = client
             .send_tool_until("search", serde_json::json!({ "query": updated }), |text| {
                 text.starts_with("No indexed matches")

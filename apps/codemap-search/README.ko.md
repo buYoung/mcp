@@ -15,6 +15,8 @@ codemap-search --version
 
 `~/.cargo/bin`이 `PATH`에 있어야 합니다. macOS/Linux에서 운영체제에 맞는 설치 파일을 받으려면 [설치 스크립트 안내](./docs/distribution/curl-installer.ko.md)를 따르세요. 소스 빌드, 버전 선택, Homebrew·WinGet 제공 상태는 [설치 채널 개요](./docs/distribution/index.ko.md)에 있습니다.
 
+
+간결한 grep 원문은 `view="source_grouped"`, `expand="none"`으로 요청합니다. 반복 경로를 파일 제목으로 묶고 원문 행과 줄 번호는 유지합니다. 기존 `view="source"` 형식은 바뀌지 않습니다. 검색 주석은 Jev 판정 후 표시용 복사본에서 압축하며, 명시한 Codex 출력 한도에 따른 전달 보호가 미표시 본문의 읽기 범위를 남깁니다. [설정 문서](./docs/configuration.ko.md#클라이언트-전달-한도)를 참고하세요.
 ## MCP 클라이언트 등록
 
 클라이언트가 **탐색할 저장소를 작업 디렉터리로 지정**해 `codemap-search mcp`를 실행해야 합니다. 사용자 전역 등록으로 같은 바이너리를 여러 프로젝트에서 재사용할 수 있지만, 실행 위치는 클라이언트 설정을 확인하세요. 사용자 홈 자체는 거부하며 `~/work/project` 같은 하위 프로젝트는 허용합니다.
@@ -70,7 +72,7 @@ args = ["mcp"]
 
 ## 첫 연결 확인
 
-1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다.
+1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다. [Jev 단계](#선택적-jev-판단-단계)를 하나라도 켰다면 `task_query`와 집중된 `questions`를 아래 계약에 맞춰 등록합니다.
 2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 `overview`를 다시 호출합니다.
 3. 알고 있는 소스 파일을 `find`로 찾고 `read`로 읽습니다. 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
 
@@ -80,13 +82,15 @@ args = ["mcp"]
 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
-| `initial_instructions` | 탐색 안내를 한 번 읽기 | 없음 |
+| `initial_instructions` | 탐색 안내와 Jev 작업 목적 등록 | `task_query`, `questions`, `match` (Jev search를 켜면 목적·질문은 필수) |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
 | `analyze` | 인덱스 용량 또는 기록된 읽기 동작을 압축 JSON으로 분석 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
+
+MCP 도구 `search`·`read`·`grep`은 공통 불리언 옵션 `include_seen`을 제공하며 기본값은 `false`입니다. 이미 전달한 변경 없는 소스와 같은 응답 안의 반복 소스를 생략합니다. 새 원문은 유지하고 응답마다 `<--removed duplicated-->` 안내를 한 번만 남깁니다. `include_seen=true`는 이 중복 제거만 우회하며 Jev·마스킹·출력 상한은 그대로 적용합니다. `find`는 중복 제거에서 제외하며 매번 현재 결과를 반환합니다. 전달 이력은 연결별로 관리하고 초기화·작업 등록·설정 변경 시 지웁니다. 파일이 바뀌면 새 원문을 반환하며 Jev가 꺼져 있어도 중복 제거는 적용됩니다.
 
 저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
 
@@ -95,6 +99,8 @@ args = ["mcp"]
 모노레포에서 `overview`로 선택한 폴더는 이후 `search`의 범위가 됩니다. 파일은 부모 폴더를 선택합니다. 명시적 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체입니다. 구현 위치를 모르면 읽기 전용 전체 검색으로 시작해 실제 경로를 확인한 뒤 좁힙니다. 선택된 범위는 임의로 확대하지 않습니다. 상위 결과는 상세 발췌, 나머지는 제한된 목록으로 표시합니다. 출력이 잘리면 질의를 좁히거나 안내된 줄 범위를 읽으세요.
 
 MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호출 관계를 표시합니다. 호출 대상이 정해지면 정의 파일과 줄 번호를 붙입니다. 같은 파일의 상수 참조에는 정의 위치와 초기값 미리보기를 표시하고, 이름이 모호하면 생략합니다. 색인 정보는 최근 편집을 아직 반영하지 않았을 수 있습니다.
+
+관련 결과에는 이벤트 지도와 저장 위치를 콜백·인자·데이터 소비 위치에 연결하는 `Source routes`도 표시합니다. 정적 후보이지 실제 실행·전달의 증명은 아니며, 근거 파일이 바뀐 연결은 갱신 전까지 숨깁니다. `debug`는 출력을 바꾸지 않습니다. 지원 관계와 한계는 [탐색 출력 계약](./docs/value-navigation.ko.md)과 [소스 경로 탐색 계약](./docs/source-routes.ko.md)을 참고하세요.
 
 도구는 설정된 파일시스템 범위를 읽기 전용으로 다룹니다. 서버 자체는 색인과 파일 내용 반환 기록을 저장하고, 자동 업데이트가 켜져 있으면 저장소 설정을 생성·전환합니다. MCP 리소스와 프롬프트는 등록하지 않습니다.
 
@@ -119,11 +125,19 @@ excluded_directories = [
 ]
 ```
 
-**버전 6 이전 설정의 제외 목록은 한 번 전환합니다. `codemap-config-version: 6`부터는 이 배열을 자동 갱신하지 않습니다. 새 규칙이 필요하면 직접 관리하세요.** 삭제한 항목은 재시작해도 복원하지 않습니다. `config_auto_update`는 설정 생성과 일반 스키마 추가를 제어하며, 버전 6 이후 제외 배열을 자동 보충하는 옵션이 아닙니다. 자동 쓰기를 껐다면 [수동 전환 안내](./docs/configuration.ko.md#자동-작성을-껐을-때-수동-전환)를 따르세요.
+생성된 제외 배열은 직접 관리합니다. 삭제한 항목은 재시작해도 복원하지 않습니다. `config_auto_update`는 설정 생성과 스키마 갱신을 제어하며, 이 배열을 계속 보충하는 옵션이 아닙니다. 버전 6 이전 설정을 갱신한다면 [설정 전환 안내](./docs/configuration.ko.md#설정-읽기와-자동-작성)를 따르세요.
 
 `build`는 모든 깊이의 해당 폴더, `./build`는 루트만, `apps/web/build`는 지정 프로젝트만 제외합니다. 명시한 배열은 선택적 기본 목록을 대체합니다. `[]`는 선택적 제외 해제, 키 생략은 전역/기본값 상속입니다. `.gitignore`, 전역 Git ignore, `.git/info/exclude`, `.codemapignore`는 별도로 적용합니다. VCS 내부, `.codemap`, `.codemap-index`, 실제 색인 위치는 배열과 무관하게 탐색에서 제외합니다. `find`·`grep`의 `include_ignored: true`는 선택적 제외를 우회하며, 직접 `read`는 파일시스템 권한을 따릅니다.
 
 MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 재읽기합니다. 제외 배열이나 언어 지원을 직접 바꾸면 전체 색인 갱신을 요청하고, 출력 상한·파일시스템 권한은 다음 요청에 적용합니다. `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms`를 바꿨거나 설정 감시를 사용할 수 없었다면 서버를 재시작하세요. 모든 키와 공통 목록, 프로젝트 감지 규칙, 유효값·권한·적용 시점은 [설정 상세 문서](./docs/configuration.ko.md)에 있습니다.
+
+## 선택적 Jev 판단 단계
+
+Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `analysis.jev.search_filter_enabled=true`로 켜면 생략한 `read_filter_enabled`·`grep_filter_enabled`·`overview_filter_enabled`도 그 값을 따릅니다. 도구별 값을 명시하면 해당 도구에 우선 적용합니다. 인증정보는 `TYPESAFE_API_KEY` 환경 변수로 전달합니다.
+
+주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
+
+켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. 루트 overview·find는 로컬 도구로 유지합니다. Jev 생략 없이 read로 복구하려면 `analysis.jev.read_filter_enabled=false`를 지정합니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 
@@ -180,64 +194,15 @@ codemap-search benchmark --queries <json> [--dir D]
 
 ### 인덱스와 최근 읽기 동작 분석
 
-`codemap-search analyze index`는 저장된 인덱스를 즉시 분석하고, `codemap-search analyze reads`는 실행 시점의 최근 7일 읽기 동작을 분석합니다. 기본 출력은 사람이 읽기 쉬운 표입니다. 읽기 동작은 업데이트한 바이너리로 MCP를 다시 연결한 뒤부터 기록되며, 보고서는 명령을 실행할 때 생성됩니다.
+소스를 다시 파싱하지 않고 커밋된 색인이나 기록된 MCP 읽기 동작을 확인합니다.
 
 ```sh
 codemap-search analyze index --sort size --limit 10
-codemap-search analyze index --path /path/to/repo --language rust --filter src/
 codemap-search analyze reads --sort bytes --limit 20
 codemap-search analyze reads --days 14 --tool search --filter src/
-codemap-search analyze reads --offset 20 --limit 20 --sort bytes
-codemap-search analyze reads --view summary --format json
-codemap-search analyze index --help
-codemap-search analyze reads --help
 ```
 
-| 구분 | 출력 내용 | 집계 기준 |
-| --- | --- | --- |
-| 인덱스 용량 | 커밋된 파일·세그먼트·삭제 문서 수, 디스크 용량, 저장 JSON 크기, 정적 호출·참조 지점 수 | 기존 Tantivy 스냅샷을 읽어 메모리 SQLite에서 집계 |
-| 언어·심볼 | 언어별 파일·행·심볼·공개 심볼·리터럴·문서 문자열 수, 심볼 종류별 테스트·문서화 플래그 | 저장된 추출 결과; 전체 저장소 파일이나 최신 소스 분석 결과와 다를 수 있음 |
-| 파일·최신성 | 큰 저장 레코드의 경로·파일 크기·행·심볼·리터럴·최대 리터럴 크기, 변경·삭제·접근 불가 상태 | 크기와 변경 여부만 현재 파일 메타데이터로 확인; 소스 재파싱·인덱스 갱신 없음 |
-| 현재/직전 기간 | 호출·오류·내용 반환 응답·고유 파일·읽은 횟수·응답량과 증감률 | 기본 최근 168시간과 직전 168시간; 기준값이 없으면 `n/a` |
-| 도구·일별 | 도구별 호출·오류·내용 반환·고유 파일·읽은 횟수·응답량 비중·평균/최대 처리 시간, UTC 날짜별 추이 | `read`·`search`·`grep`의 기록만 집계; 날짜 표의 양끝은 하루 일부일 수 있음 |
-| 파일별 읽기 | 경로·최신 기록 크기·전체/도구별 읽은 횟수·결과 반환량·비중·활동일·마지막 시각, 반복 조회 요약 | 한 성공 응답에서 같은 파일은 한 번만 계산 |
-
-`--section` 대신 `index` 또는 `reads` 하위 명령을 선택합니다. 기본 정렬은 인덱스의 저장 JSON 크기, 읽기의 반환 횟수이며 파일 20개를 표시합니다. 자세한 옵션은 각 하위 명령의 `--help`에서 확인할 수 있습니다.
-
-| 옵션 | 적용 대상 | 동작 |
-| --- | --- | --- |
-| `--path DIR` | 공통 | 분석할 저장소와 해당 저장소의 인덱스 설정·기록 DB 선택 |
-| `--limit N`, `-n N` | 공통 | 파일 표시 수; 기본 20, `0`이면 전부 |
-| `--offset N` | 공통 | 필터·정렬 이후 파일 행을 N개 건너뛰기; 출력의 다음 페이지 안내 사용 |
-| `--sort KEY`, `-s KEY` | 공통 | 위 명령별 정렬 키 선택 |
-| `--order asc\|desc` | 공통 | 정렬 방향; 기본은 경로 오름차순, 나머지는 내림차순 |
-| `--filter TEXT`, `-f TEXT` | 공통 | 경로에 포함된 대소문자 구분 문자열; glob 아님 |
-| `--view summary\|files\|full` | 공통 | 요약·그룹, 요약·파일, 전체 상세 보기; CLI 기본 `full` |
-| `--format table\|json` | 공통 | 사람이 보는 표 또는 열 이름을 공유하는 압축 JSON |
-| `--language NAME`, `-l NAME` | `index` | 언어 필터 |
-| `--days N`, `-d N` | `reads` | 최근 1~30일; 기본 7일 |
-| `--tool read\|search\|grep`, `-t NAME` | `reads` | 특정 도구만 집계 |
-| `--no-compare` | `reads` | 직전 동일 길이 기간 비교 생략; 16일 이상은 30일 보존 범위를 넘으므로 비교 불가 안내 |
-
-합계는 표시 페이지가 아닌 필터에 맞는 전체 파일을 포함합니다. 읽기 경로 필터는 해당 파일을 반환한 호출을 선택합니다. 이때 `Response`는 선택된 호출의 전체 응답량이며 `Results`는 일치한 파일의 반환량입니다. 파일 관측이 없는 오류는 경로 필터 결과에 포함되지 않습니다. 인덱스의 전체 디스크 용량·세그먼트 지표는 파일 필터와 무관한 전체 인덱스 값입니다.
-
-MCP에서는 `analyze` 도구를 직접 호출합니다. CLI와 같은 집계 결과를 사용하며 현재 서버의 작업공간만 분석합니다.
-
-```json
-{"name":"analyze","arguments":{"target":"reads","sort":"bytes","limit":10}}
-```
-
-`target`은 `index|reads`이며 `limit`, `offset`, `sort`, `order`, `filter`, `view`를 지원합니다. `index`는 `language`, `reads`는 `days`, `tool`, `compare`도 받습니다. MCP 기본은 `view=files`, 파일 10개이며 인덱스는 `stored`, 읽기는 `bytes` 순입니다. 더 넓은 분석은 `view=full`로 요청합니다. `limit`은 1~100이고 `page.next_offset`으로 이어서 조회합니다.
-
-응답은 긴 구분선·정렬 공백 없이 `summary`와 표별 `columns`·`rows` 배열을 사용합니다. 바이트·시간 단위를 키에 표시하고, 숫자·`null`을 유지하며, 해석상 주의점은 짧게 한 번만 제공합니다. 최대 8 KiB 또는 더 작은 `output.max_bytes` 안에서 완전한 행 단위로 줄입니다. 잘림은 `truncated`, 생략한 표는 `omitted_tables`로 알리며 합계와 다음 페이지 위치는 유지합니다. 민감정보 마스킹은 JSON 직렬화 전에 적용합니다. `analyze` 호출 자체는 읽기 기록에 추가되지 않습니다.
-
-`Reads`는 성공 응답에 원문 행이나 검색 발췌가 포함된 파일마다 1회입니다. 경로 목록·선언/관계 전용 보기·실패 호출은 호출/응답량에는 포함되지만 읽은 횟수에는 포함되지 않습니다. `find`·`overview`·`analyze`와 내부 색인 읽기는 기록 대상이 아닙니다. 반복 조회는 동일 파일의 첫 반환 이후 횟수이며, 다른 구간이나 변경된 내용일 수 있으므로 낭비된 토큰으로 해석하면 안 됩니다.
-
-`File size`는 분석 기간 안에서 마지막으로 기록한 디스크 크기입니다. 알 수 없으면 `?`로 표시하고 크기 합계에서 제외합니다. `Results`는 마스킹 전 파일별 원문/발췌 결과 블록의 UTF-8 바이트 수로 행 번호·경로 접두사·해당 블록의 안내도 포함합니다. `Response`는 마스킹 후 최종 응답 본문 또는 오류 메시지의 UTF-8 바이트 수로 선언·관계·헤더를 포함하고 JSON 포장은 제외합니다. 처리 시간은 서버의 요청 처리 시간이며 SQLite 기록과 클라이언트/네트워크 시간은 제외합니다. 클라이언트의 추가 잘림과 모델의 실제 소비량은 관측하지 않으므로 토큰 수나 물리적 디스크 읽기 횟수가 아닙니다.
-
-호출과 파일별 관측은 `.codemap/analysis.sqlite3`에 저장합니다. 질의·소스·응답 내용은 저장하지 않습니다. **보존 기간은 30일 고정이며 연장할 수 없습니다.** MCP 시작·새 기록·분석 시, 그리고 MCP 실행 중 매분 만료 호출과 연결된 파일 기록을 함께 삭제합니다. MCP가 꺼져 있는 동안 만료된 기록은 다음 실행 또는 분석 시 삭제됩니다. `secure_delete`와 삭제형 rollback journal을 사용해 삭제된 행을 DB 여유 페이지나 상시 WAL에 남기지 않습니다. 이 정책은 관리 대상 DB에 적용되며 별도 백업까지 삭제하지는 않습니다.
-
-`codemap-search mcp --no-call-log`는 새 기록만 끄며 기존 DB의 만료 정리는 계속합니다. 저장/정리 실패는 stderr에 알리고 MCP 응답은 유지하며 다음 작업에서 재시도합니다. 분석 명령은 DB에 접근하지 못하면 오류를 보고합니다. 기록 중단 기간은 복원할 수 없고, 직전 7일 비교도 연속 수집을 보장하지 않습니다. 이전 JSONL 기록은 가져오지 않으며 `--log` 옵션은 사용하지 않습니다.
+MCP `analyze` 도구도 현재 작업공간에 같은 분석을 제공합니다. 읽기 기록은 질의·소스·응답 내용 대신 경로와 지표를 저장하며 30일 후 만료됩니다. `codemap-search mcp --no-call-log`는 새 기록만 끄고 만료 정리는 유지합니다. 반환 바이트는 토큰 수가 아니며 반복 읽기도 서로 다른 구간일 수 있습니다. CLI/MCP 옵션·집계·보존 정책은 [분석 참조](./docs/analysis.ko.md)를 참고하세요.
 
 ## 개발 중 검증
 

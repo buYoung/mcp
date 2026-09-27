@@ -1,0 +1,39 @@
+{
+  "status": "implementation_and_single_quality_measurement_complete",
+  "completed": true,
+  "full_quality_acceptance_established": false,
+  "quality_and_token_acceptance": false,
+  "checkpoint_commit": "e795bfaec",
+  "measurement_mode": "#2 search only",
+  "fresh_sessions": 1,
+  "baseline_reruns": 0,
+  "measured_source_identity_sha256": "1955e26a1c1acfaa9204ae8212b9a1d25cb5b40fdd361277a88a61c2b4d99cb6",
+  "measured_binary_sha256": "1915193b73bcb0677c03103e2c07f1dd5447141469f1c4fab561f6fb415eee08",
+  "final_source_identity_sha256": "54c0f8f5f55b003978a3573c543df92a0a18aef543c42e0b69e5de16330348c3",
+  "final_binary_sha256": "505f6b0837c8d8ff791859d09d5fac44196e7fb5305704773df26fc4dac32b5a",
+  "final_implementation_measured": false,
+  "post_measurement_change": "Only positive composed task matches seed follow-up call candidates; protected but unjudged/uncertain declarations no longer expand.",
+  "report": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-quality-03-single/data/report.md",
+  "validation": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-quality-03-single/data/final-validation.json",
+  "post_measurement_verification": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-quality-03-single/data/post-measurement-verification.json",
+  "main_total_tokens": 1069306,
+  "jev_total_tokens": 100693,
+  "main_total_increase_from_context_02_percent": 82.92681257847863,
+  "core_coverage": "6/6",
+  "extended_coverage": "4/5",
+  "newly_covered": [
+    "service_candidate",
+    "custom_bypass",
+    "mio_precedence"
+  ],
+  "remaining_omissions": [
+    "manual_extra"
+  ],
+  "remaining_omission_detail": "Producer extra absence is explained, but its connection to worker conditional verification-history persistence is not.",
+  "existing_checks_before_measurement": 115,
+  "existing_e2e_checks_after_narrowing": 19,
+  "new_test_cases": 0,
+  "configuration_restored": true,
+  "target_unchanged": true,
+  "further_model_runs_require_user_instruction": true
+}

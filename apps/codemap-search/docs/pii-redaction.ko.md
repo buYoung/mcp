@@ -2,7 +2,7 @@
 
 한국어 | [English](./pii-redaction.md)
 
-설정 버전 16부터 MCP 출력에 PII 마스킹을 선택 적용할 수 있습니다. 인증정보 마스킹의 기존 기본값은 유지하며, `pii_entities`의 기본값은 `[]`입니다. 저장소에 필요한 종류만 정확한 이름으로 지정합니다.
+MCP 출력에 PII 마스킹을 선택 적용할 수 있습니다. 인증정보 마스킹은 기본으로 켜져 있으며, `[output.redact].pii_entities`의 기본값은 `[]`입니다. 저장소에 필요한 종류만 정확한 이름으로 지정합니다.
 
 ```toml
 [output]
@@ -15,12 +15,12 @@ exceptions = [{ rule_id = "pii.email-address", value = "info@presidio.site" }]
 
 | 설정 | 동작 |
 | --- | --- |
-| `redact.pii_entities` | 아래 표의 이름을 대소문자까지 정확히 지정. 와일드카드·국가 자동 선택 없음 |
+| `output.redact.pii_entities` | 아래 표의 이름을 대소문자까지 정확히 지정. 와일드카드·국가 자동 선택 없음 |
 | 키 생략 | 전역 목록을 상속하며 전역값도 없으면 `[]` |
 | 명시적 `[]` | 상속된 선택을 포함해 추가 PII 종류를 해제 |
 | 잘못된 목록 | 값을 출력하지 않고 경고한 뒤 해당 키만 하위 설정으로 대체. 다른 유효한 키는 유지 |
-| `tool_output.is_redact_enabled = false` | 인증정보·PII 마스킹을 모두 끔 |
-| `redact.exceptions` | 규칙 ID와 탐지한 원문 값 전체가 정확히 일치할 때만 제외. `CREDIT_CARD`의 ID는 `pii.credit-card`이며 나머지도 소문자 변환·밑줄을 하이픈으로 바꾸는 규칙을 따름 |
+| `output.is_redact_enabled = false` | 인증정보·PII 마스킹을 모두 끔 |
+| `output.redact.exceptions` | 규칙 ID와 탐지한 원문 값 전체가 정확히 일치할 때만 제외. `CREDIT_CARD`의 ID는 `pii.credit-card`이며 나머지도 소문자 변환·밑줄을 하이픈으로 바꾸는 규칙을 따름 |
 
 특정 규칙의 예외로 다른 규칙이 탐지한 겹치는 범위까지 해제하지 않습니다. 저장소 목록은 전역 목록을 대체합니다. 변경은 설정을 다시 읽은 뒤 후속 요청부터 적용하며 색인을 다시 만들 필요가 없습니다.
 

@@ -16,7 +16,7 @@ pub(crate) use storage::CallRecorder;
 /// Internal measurement metadata, never included in the MCP response envelope.
 pub struct FileObservation {
     pub path: String,
-    /// Rendered per-file result block, before response-wide credential masking.
+    /// Rendered per-file source evidence; source-history omission notices are excluded.
     pub result_bytes: u64,
 }
 

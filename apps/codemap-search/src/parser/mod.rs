@@ -848,7 +848,7 @@ fn local_binding_names_from_node(node: Node, source: &[u8]) -> Vec<String> {
     field_or_descendant_name(node, source).into_iter().collect()
 }
 
-fn local_bindings_from_node(node: Node, source: &[u8]) -> Vec<LocalBinding> {
+pub(crate) fn local_bindings_from_node(node: Node, source: &[u8]) -> Vec<LocalBinding> {
     let names = local_binding_names_from_node(node, source);
     if names.is_empty() {
         return Vec::new();

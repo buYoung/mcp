@@ -6,7 +6,7 @@ Windows Package Manager(WinGet) 또는 릴리스 압축 파일로 설치합니�
 
 ## 제공 상태와 설치
 
-2026-09-11 문서 검토에서 공개 제공 여부를 확인하지 못했습니다. [공식 WinGet 저장소](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search)를 확인하세요. 패키지가 제공되면 다음 명령으로 설치합니다.
+[공식 WinGet 저장소](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search)에서 제공 여부를 확인하세요. 패키지가 등록되어 있다면 다음 명령으로 설치합니다.
 
 ```powershell
 winget install com.livteam.codemap-search
@@ -23,29 +23,6 @@ winget install com.livteam.codemap-search
 
 릴리스 워크플로는 Windows 빌드가 실패해도 다른 대상의 게시를 막지 않으며 해당 파일만 빠질 수 있습니다. 선택한 릴리스에 필요한 압축 파일이 있는지 확인하세요. arm64는 x64 실행기에서 크로스 빌드하며 이 워크플로에서 arm64 하드웨어로 실행하지 않습니다. [설치 스크립트](./curl-installer.ko.md)는 macOS와 Linux 전용입니다.
 
-## 로컬 매니페스트로 설치
+저장소의 [로컬 매니페스트](../../packaging/winget/)에는 임시 체크섬이 있어 그대로 설치할 수 없습니다. 갱신·검증·제출 방법은 [배포 담당자 안내](./releasing.ko.md#winget)를 따릅니다.
 
-[매니페스트 디렉터리](../../packaging/winget/)에는 x64·arm64용 버전·기본 언어·설치 매니페스트가 있습니다. 현재 파일의 버전은 `0.1.0`, 스키마는 `1.12.0`이며 `InstallerSha256`는 0으로 채운 임시값입니다. 설치 전 제공되는 릴리스에 맞게 URL·버전·체크섬을 갱신해야 합니다.
-
-Windows에서 WinGet의 로컬 매니페스트 설치를 활성화한 뒤 모노레포 루트에서 실행합니다.
-
-```powershell
-winget install --manifest apps/codemap-search/packaging/winget
-```
-
-임시 체크섬으로는 설치에 실패합니다. 스키마 검사만으로 압축 파일을 다운로드하거나 해시를 확인하지는 않습니다. 다운로드 오류는 릴리스 파일을, 해시 오류는 매니페스트와 릴리스의 `.sha256` 값을 확인하세요.
-
-## 배포 담당자 제출 절차
-
-1. 세 매니페스트의 버전을 맞추고 설치 매니페스트에 실제 체크섬을 넣습니다.
-2. Windows의 모노레포 루트에서 검증합니다.
-
-```powershell
-   winget validate apps/codemap-search/packaging/winget
-   ```
-
-3. 로컬 매니페스트로 설치와 CLI 시작을 확인합니다.
-4. `microsoft/winget-pkgs`에 해당 버전의 매니페스트를 제출합니다. 기존 `manifests/c/com/livteam/codemap-search/0.1.0/` 구조에서 버전 부분을 게시할 값으로 맞춥니다.
-5. 수용을 확인한 뒤 공개 WinGet 설치를 안내합니다.
-
-다른 방법은 [설치 채널 개요](./index.ko.md)를 참고하세요.
+다운로드 오류는 선택한 릴리스의 파일을 확인하고, 해시 오류는 검증을 우회하지 말고 해당 `.sha256`와 대조하세요. 다른 방법은 [설치 채널 개요](./index.ko.md)를 참고하세요.

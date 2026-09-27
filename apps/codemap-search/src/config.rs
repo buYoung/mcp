@@ -41,8 +41,10 @@ mod layout;
 mod output;
 pub use event_navigation::EventNavigationConfig;
 pub use output::ClientOutputConfig;
+mod jev;
 mod macro_expansion;
 pub(crate) mod redact;
+pub use jev::JevConfig;
 pub use macro_expansion::MacroExpansionConfig;
 pub use redact::RedactConfig;
 mod scaffold;
@@ -102,7 +104,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
-const CONFIG_VERSION: u32 = 23;
+const CONFIG_VERSION: u32 = 27;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -145,6 +147,8 @@ pub struct ResolvedConfig {
     pub redact: RedactConfig,
     pub macro_expansion: MacroExpansionConfig,
     pub event_navigation: EventNavigationConfig,
+    /// Optional Jev decision stages (`[analysis.jev]`); all stages are off by default.
+    pub jev: JevConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
@@ -301,6 +305,7 @@ impl Default for ResolvedConfig {
             redact: RedactConfig::default(),
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
+            jev: JevConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
@@ -368,6 +373,7 @@ struct ConfigLayer {
     redact: redact::RedactLayer,
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
+    jev: jev::JevLayer,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     index_path: Option<String>,
@@ -640,6 +646,12 @@ fn assign_config_key(
             layer.client_output.codex_output_token_limit =
                 as_positive_usize(value, key_display, path)
         }
+        "pi_max_bytes" => {
+            layer.client_output.pi_max_bytes = as_positive_byte_size(value, key_display, path)
+        }
+        "opencode_max_bytes" => {
+            layer.client_output.opencode_max_bytes = as_positive_byte_size(value, key_display, path)
+        }
         "target_os" => {
             layer.analysis_target_os = match value.as_str() {
                 Some("") => Some(None),
@@ -797,6 +809,14 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
                 .client_output
                 .codex_output_token_limit
                 .or(global.client_output.codex_output_token_limit),
+            pi_max_bytes: repo
+                .client_output
+                .pi_max_bytes
+                .or(global.client_output.pi_max_bytes),
+            opencode_max_bytes: repo
+                .client_output
+                .opencode_max_bytes
+                .or(global.client_output.opencode_max_bytes),
         },
         is_redact_enabled: repo
             .is_redact_enabled
@@ -805,6 +825,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         redact: redact::merge(repo.redact, global.redact),
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
+        jev: jev::merge(repo.jev, global.jev),
         analysis_target_os: repo
             .analysis_target_os
             .or(global.analysis_target_os)
@@ -1309,6 +1330,9 @@ enum KeyPlacement {
     TopLevel,
     /// A key under the named sub-table — inserted right after that table's header line.
     Subtable(&'static str),
+    /// A whole new sub-table block — inserted as its own paragraph after the named table's
+    /// section (before the next table header), so its keys never fall under another table.
+    AfterSubtable(&'static str),
 }
 
 /// One additive schema change: the commented block for a key introduced at `version`.
@@ -1348,6 +1372,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 24,
+        key: "jev",
+        placement: KeyPlacement::AfterSubtable("analysis"),
+        english_block: JEV_MIGRATION_BLOCK_EN,
+        korean_block: JEV_MIGRATION_BLOCK_KO,
+    },
     Migration {
         version: 17,
         key: "is_overview_stats_enabled",
@@ -1520,7 +1551,92 @@ const MIGRATIONS: &[Migration] = &[
         english_block: "# Include test regions in automatic symbol/call context. Live read/grep source is unchanged.\n# should_include_test_code = false",
         korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
     },
+    // Subtable migrations land right after the header, so list them in reverse display order.
+    Migration {
+        version: 27,
+        key: "overview_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.\n# overview_filter_enabled = false",
+        korean_block: "# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.\n# overview_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "grep_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Apply to grep results (default: same as search_filter_enabled).\n# grep_filter_enabled = false",
+        korean_block: "# grep 결과에 적용합니다(기본: search_filter_enabled 값).\n# grep_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "read_filter_enabled",
+        placement: KeyPlacement::Subtable("analysis.jev"),
+        english_block: "# Apply to read results (default: same as search_filter_enabled).\n# read_filter_enabled = false",
+        korean_block: "# read 결과에 적용합니다(기본: search_filter_enabled 값).\n# read_filter_enabled = false",
+    },
+    Migration {
+        version: 26,
+        key: "opencode_max_bytes",
+        placement: KeyPlacement::Subtable("output.client"),
+        english_block: "# Maximum bytes in a tool result in opencode (default 51200).\n# Use the same value as tool_output.max_bytes in opencode.json.\n# opencode_max_bytes = 51200",
+        korean_block: "# opencode가 받는 도구 결과의 최대 바이트 수입니다(기본 51200).\n# opencode.json의 tool_output.max_bytes와 같은 값을 넣으세요.\n# opencode_max_bytes = 51200",
+    },
+    Migration {
+        version: 26,
+        key: "pi_max_bytes",
+        placement: KeyPlacement::Subtable("output.client"),
+        english_block: "# Maximum bytes in an MCP result in pi (default 51200).\n# Use the same value as settings.outputGuard.maxBytes in pi-mcp-adapter.\n# pi_max_bytes = 51200",
+        korean_block: "# pi가 받는 MCP 결과의 최대 바이트 수입니다(기본 51200).\n# pi-mcp-adapter의 settings.outputGuard.maxBytes와 같은 값을 넣으세요.\n# pi_max_bytes = 51200",
+    },
+
 ];
+
+/// v24: the whole `[analysis.jev]` section as one commented block. The header line carries
+/// the presence guard (`jev`), so a file that already has the section is never touched.
+const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Register the task first with initial_instructions(task_query, questions).
+# Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
+# If Jev cannot be used, the original result is returned.
+# search_filter_enabled = false
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
+# model = \"jev-1.13.0\"
+# Environment variable that holds the TypeSafe API key (default TYPESAFE_API_KEY). Do not put the key here.
+# api_key_env = \"TYPESAFE_API_KEY\"
+# Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
+# timeout_ms = 45000
+# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
+# max_batch_bytes = 168000
+# How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
+# pool_idle_timeout_ms = 30000
+# Minimum probability for judging a question's answer as \"no\" (above 0.5, at most 1.0, default 0.70).
+# Higher values remove bodies only when Jev is more certain.
+# search_filter_min_unrelated_probability = 0.70";
+
+const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
+# Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
+# search_filter_enabled = false
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+# model = \"jev-1.13.0\"
+# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
+# api_key_env = \"TYPESAFE_API_KEY\"
+# 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
+# timeout_ms = 45000
+# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
+# max_in_flight_requests = 3
+# request_spacing_ms = 300
+# 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
+# max_batch_bytes = 168000
+# 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
+# pool_idle_timeout_ms = 30000
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 높일수록 더 확실한 경우에만 본문을 뺍니다.
+# search_filter_min_unrelated_probability = 0.70";
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
 fn version_marker_line(version: u32) -> String {
@@ -1749,6 +1865,7 @@ fn apply_migrations_with_language(
         out = match migration.placement {
             KeyPlacement::TopLevel => insert_top_level(&out, block),
             KeyPlacement::Subtable(table) => insert_subtable(&out, table, block),
+            KeyPlacement::AfterSubtable(table) => insert_after_subtable(&out, table, block),
         };
     }
     // `file_version < target_version` here, so the marker always advances → always a change.
@@ -1819,6 +1936,48 @@ fn insert_subtable(contents: &str, table: &str, block: &str) -> String {
         offset += line.len();
     }
     insert_top_level(contents, &format!("# {header}\n{block}"))
+}
+
+/// Insert a new sub-table `block` as its own paragraph after the `[table]` section: before
+/// the next table header that follows it, or at end-of-file when `[table]` is the last
+/// section. Falls back to top-level placement when the header is absent.
+fn insert_after_subtable(contents: &str, table: &str, block: &str) -> String {
+    let header = format!("[{table}]");
+    let value_ranges = config_value_ranges(contents);
+    let mut offset = 0;
+    let mut is_inside = false;
+    for line in contents.split_inclusive('\n') {
+        let body = line.trim_start();
+        let body = body.strip_prefix('#').map(str::trim_start).unwrap_or(body);
+        let is_header =
+            body.starts_with('[') && !value_ranges.iter().any(|range| range.contains(&offset));
+        if is_header && is_inside {
+            let mut out = String::with_capacity(contents.len() + block.len() + 2);
+            out.push_str(&contents[..offset]);
+            if !out.ends_with("\n\n") {
+                out.push('\n');
+            }
+            out.push_str(block);
+            out.push_str("\n\n");
+            out.push_str(&contents[offset..]);
+            return out;
+        }
+        if is_header && body.starts_with(&header) {
+            is_inside = true;
+        }
+        offset += line.len();
+    }
+    if !is_inside {
+        return insert_top_level(contents, block);
+    }
+    let mut out = contents.to_string();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push('\n');
+    out.push_str(block);
+    out.push('\n');
+    out
 }
 
 /// Immutable TOML documents retain the physical spans discarded by DocumentMut.

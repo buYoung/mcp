@@ -9,6 +9,7 @@ pub mod events;
 pub(crate) mod flow;
 pub mod implementations;
 pub mod index;
+pub mod jev;
 pub mod lang;
 pub(crate) mod locations;
 pub mod mcp;

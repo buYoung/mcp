@@ -1,5 +1,8 @@
 //! Apply redaction while preserving the JSON-RPC response structure.
-use super::{detection::SourceScan, is_enabled, named_value, pii, rules, source};
+use super::{
+    detection::{detect_unambiguous_patterns, SourceScan},
+    is_enabled, named_value, rules, source,
+};
 
 fn response_text(text: &str, is_tool_text: bool) -> String {
     if !is_enabled() {
@@ -9,10 +12,9 @@ fn response_text(text: &str, is_tool_text: bool) -> String {
         // Source producers inspect full originals before slicing/formatting. Only
         // context-free rules run again here: guessing assignments in formatted code
         // would undo AST decisions about references and type declarations.
-        let mut detections = rules::detect(text);
         // Label-based PII rules already ran on complete originals. Formatting can
         // place labels next to unrelated line numbers or symbol references.
-        detections.extend(pii::detect_unambiguous(text));
+        let detections = detect_unambiguous_patterns(text);
         return SourceScan::finish(text, detections)
             .render(text)
             .into_owned();

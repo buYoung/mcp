@@ -1,0 +1,109 @@
+{
+  "status": "completed_session_analysis_and_jev_only_validation",
+  "product_changes_this_step": false,
+  "main_model_runs": 0,
+  "future_main_benchmark_runs": 1,
+  "baseline_reruns": 0,
+  "source_identity_sha256": "54c0f8f5f55b003978a3573c543df92a0a18aef543c42e0b69e5de16330348c3",
+  "report": "apps/codemap-search/validation/jev-search/08-main-token-diagnosis.md",
+  "external_run": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-main-token-diagnosis-05",
+  "validation": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-main-token-diagnosis-05/data/final-validation.json",
+  "original_main_tokens": [
+    1304883,
+    1553773,
+    1417622
+  ],
+  "original_main_mean": 1425426,
+  "original_quality": {
+    "core": [
+      "6/6",
+      "6/6",
+      "6/6"
+    ],
+    "extended": [
+      "5/5",
+      "5/5",
+      "4/5"
+    ]
+  },
+  "replay": {
+    "original_requests_byte_identical": 23,
+    "original_outputs_identical": 3,
+    "missing_answers": 0
+  },
+  "live_jev": {
+    "input_tokens": 436459,
+    "output_tokens": 9029,
+    "http_requests": 27,
+    "questions": 463,
+    "unreported_responses": 0,
+    "total_tokens": 445488,
+    "body": {
+      "input_tokens": 369134,
+      "output_tokens": 3486,
+      "questions": 162,
+      "http_requests": 23
+    },
+    "refs": {
+      "input_tokens": 67325,
+      "output_tokens": 5543,
+      "questions": 301,
+      "http_requests": 4
+    }
+  },
+  "live_sweeps_per_input": 1,
+  "automatic_retries": 0,
+  "metadata_candidate": [
+    {
+      "session": 1,
+      "original_bytes": 64154,
+      "references_only_bytes": 64154,
+      "metadata_compact_bytes": 62036,
+      "source_lines_identical": true,
+      "fenced_source_blocks_identical": true,
+      "shared_note_definitions": 2,
+      "removed_references": 0,
+      "kept_references": 0,
+      "body_variant_bytes": 67880,
+      "combined_bytes": 65420,
+      "original_source_rows": 777,
+      "body_variant_source_rows": 825
+    },
+    {
+      "session": 2,
+      "original_bytes": 152067,
+      "references_only_bytes": 122991,
+      "metadata_compact_bytes": 112533,
+      "source_lines_identical": true,
+      "fenced_source_blocks_identical": true,
+      "shared_note_definitions": 3,
+      "removed_references": 300,
+      "kept_references": 1,
+      "body_variant_bytes": 148802,
+      "combined_bytes": 109496,
+      "original_source_rows": 1067,
+      "body_variant_source_rows": 1002
+    },
+    {
+      "session": 3,
+      "original_bytes": 161632,
+      "references_only_bytes": 132556,
+      "metadata_compact_bytes": 121870,
+      "source_lines_identical": true,
+      "fenced_source_blocks_identical": true,
+      "shared_note_definitions": 3,
+      "removed_references": 300,
+      "kept_references": 1,
+      "body_variant_bytes": 143600,
+      "combined_bytes": 103838,
+      "original_source_rows": 1398,
+      "body_variant_source_rows": 968
+    }
+  ],
+  "recommendation": "Prioritize output compaction preserving source and confirmed relations; do not adopt narrowed body criterion wholesale. Function-range hints and source-contract synthesis remain unmeasured candidates.",
+  "main_token_reduction_established": false,
+  "new_main_answer_quality_established": false,
+  "product_source_unchanged": true,
+  "target_unchanged": true,
+  "configuration_restored": true
+}

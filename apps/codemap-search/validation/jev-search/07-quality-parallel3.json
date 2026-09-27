@@ -1,0 +1,67 @@
+{
+  "status": "completed_parallel_measurement",
+  "completed": true,
+  "measurement_mode": "#2 search only",
+  "fresh_sessions": 3,
+  "concurrency": 3,
+  "baseline_reruns": 0,
+  "automatic_replacements": 0,
+  "source_unchanged_during_measurement": true,
+  "implementation_changes_this_step": false,
+  "source_identity_sha256": "54c0f8f5f55b003978a3573c543df92a0a18aef543c42e0b69e5de16330348c3",
+  "binary_sha256": "505f6b0837c8d8ff791859d09d5fac44196e7fb5305704773df26fc4dac32b5a",
+  "final_implementation_measured": true,
+  "report": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-quality-04-parallel3/data/report.md",
+  "validation": "/Users/buyong/.codex/checkpoints/codemap-search-comparison/runs/20260924-jev-search-quality-04-parallel3/data/final-validation.json",
+  "main_total_tokens": [
+    1304883,
+    1553773,
+    1417622
+  ],
+  "main_total_mean": 1425426,
+  "main_total_median": 1417622,
+  "main_total_sum": 4276278,
+  "jev_total_tokens": [
+    93148,
+    192027,
+    149991
+  ],
+  "core_coverage": [
+    "6/6",
+    "6/6",
+    "6/6"
+  ],
+  "extended_coverage": [
+    "5/5",
+    "5/5",
+    "4/5"
+  ],
+  "extended_covered_runs": {
+    "service_candidate": 3,
+    "custom_bypass": 3,
+    "mio_precedence": 3,
+    "publish_failure": 3,
+    "manual_extra": 2
+  },
+  "mcp_errors": [
+    1,
+    0,
+    1
+  ],
+  "outer_output_truncations": [
+    0,
+    1,
+    1
+  ],
+  "jev_fallbacks": [
+    0,
+    0,
+    0
+  ],
+  "configuration_restored": true,
+  "target_unchanged": true,
+  "owned_processes_remaining": 0,
+  "token_reduction_observed_against_retained_results": false,
+  "full_quality_acceptance_established": false,
+  "further_model_runs_require_user_instruction": true
+}

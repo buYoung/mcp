@@ -145,6 +145,7 @@ struct FileResult {
     occurrences: usize,
     /// Modification time, used only to sort `files_with_matches` output (newest first).
     mtime: SystemTime,
+    filter_file: Option<super::live_symbols::jev::CapturedFile>,
 }
 
 #[derive(Clone)]
@@ -154,6 +155,7 @@ struct ContentRow {
     line_number: u64,
     is_match: bool,
     is_source_complete: bool,
+    filter_source: Option<String>,
 }
 
 fn content_anchors(page: &[ContentRow]) -> Vec<LiveAnchor> {
@@ -276,6 +278,14 @@ pub fn grep(args: &Value) -> Result<String, (i64, String)> {
 }
 
 pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, String)> {
+    grep_impl(args, false)
+}
+
+pub(crate) fn grep_for_filter(args: &Value) -> Result<LiveOutput, (i64, String)> {
+    grep_impl(args, true)
+}
+
+fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i64, String)> {
     let pattern = arg_required_str(args, "pattern")?;
     let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
     // Accept `include`/`file_pattern` as aliases for `glob`: agents were observed sending both,
@@ -381,6 +391,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
         Box::new(entries)
     };
     let mut expanded = expansion::ExpansionPage::new(offset, head_limit);
+    let mut content_row_count = 0usize;
     for result in entries {
         let entry = match result {
             Ok(e) => e,
@@ -406,7 +417,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
             hits: Vec::new(),
             occurrences: 0,
         };
-        let bytes = if options.should_expand_callable {
+        let bytes = if options.should_expand_callable || should_capture_bodies {
             use std::io::Read;
             std::fs::File::open(p).ok().and_then(|file| {
                 let cap = super::live_symbols::callable::input_byte_cap();
@@ -446,6 +457,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     &sink.hits,
                     show_line_numbers,
                     crate::config::get().grep_max_columns,
+                    should_capture_bodies,
                 );
                 continue;
             }
@@ -454,11 +466,28 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                 .ok()
                 .and_then(|m| m.modified().ok())
                 .unwrap_or(SystemTime::UNIX_EPOCH);
+            let is_selected = content_row_count.saturating_add(sink.hits.len()) > offset
+                && (head_limit == 0 || content_row_count < offset.saturating_add(head_limit));
+            content_row_count = content_row_count.saturating_add(sink.hits.len());
+            let filter_file = if should_capture_bodies && is_selected {
+                bytes
+                    .as_deref()
+                    .and_then(|bytes| std::str::from_utf8(bytes).ok())
+                    .and_then(|source| {
+                        super::live_symbols::jev::CapturedFile::new(
+                            &display,
+                            source.strip_prefix('\u{feff}').unwrap_or(source),
+                        )
+                    })
+            } else {
+                None
+            };
             files.push(FileResult {
                 path: display,
                 hits: sink.hits,
                 occurrences: sink.occurrences,
                 mtime,
+                filter_file,
             });
         }
     }
@@ -550,6 +579,7 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                         line_number: hit.line_number,
                         is_match: hit.is_match,
                         is_source_complete: max_columns == 0 || hit.source_byte_len <= max_columns,
+                        filter_source: should_capture_bodies.then(|| hit.text.clone()),
                     });
                 }
             }
@@ -563,6 +593,10 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
             let mut output = LiveOutput::default();
+            output.jev.files = files
+                .iter_mut()
+                .filter_map(|file| file.filter_file.take())
+                .collect();
             for row in &page {
                 if !output.text.is_empty() {
                     output.text.push('\n');
@@ -573,6 +607,17 @@ pub(crate) fn grep_with_metadata(args: &Value) -> Result<LiveOutput, (i64, Strin
                     .path_prefixes
                     .push(start..start + row.path.len() + usize::from(show_line_numbers));
                 output.record_file(&row.path, start, output.text.len());
+                if let Some(content) = &row.filter_source {
+                    if let Ok(line) = usize::try_from(row.line_number) {
+                        output.jev.rows.push(super::live_symbols::jev::SourceRow {
+                            path: row.path.clone(),
+                            line,
+                            range: start..output.text.len(),
+                            is_complete: row.is_source_complete,
+                            content: content.clone(),
+                        });
+                    }
+                }
                 if row.is_source_complete {
                     if let Ok(line) = usize::try_from(row.line_number) {
                         output.record_source(&row.path, line, line);

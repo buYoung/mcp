@@ -3,7 +3,7 @@
 //! file's already-selected symbols and the parsed query — no `self`, no engine, no I/O
 //! beyond reading the matched source files for snippet bodies.
 //!
-//! Caller-annotation dedup contract: [`render_anchored_symbols`] fulfils the
+//! Caller-annotation dedup contract: [`plan_anchored_symbols`] fulfils the
 //! [`crate::callers::DetailAnnotations`] dedup protocol. For each emitted symbol it asks the
 //! annotations for a [`crate::callers::PreparedAnnotation`] keyed on the current
 //! [`crate::callers::CallerBlockDedup`] state (so a repeated caller block renders as a "same as
@@ -601,7 +601,7 @@ fn get_signature_snippet(
     (String::new(), 0)
 }
 
-/// Tunable caps threaded into [`render_anchored_symbols`] — the subset of search-detail
+/// Tunable caps threaded into [`plan_anchored_symbols`] — the subset of search-detail
 /// config the shared anchoring/render path needs, so both the name-matched branch and the
 /// symbol-fallback branch render with one identical rule set (P2-loop-2 C1/C3 unification).
 pub(super) struct AnchoredRenderCaps {
@@ -610,7 +610,7 @@ pub(super) struct AnchoredRenderCaps {
     pub(super) byte_cap: usize,
 }
 
-/// Result of [`render_anchored_symbols`]: whether the byte budget was hit mid-file (so the
+/// Result of [`plan_anchored_symbols`]: whether the byte budget was hit mid-file (so the
 /// caller emits the truncation notice and stops), plus the start lines actually emitted as a
 /// snippet/summary. The fallback branch uses `emitted_starts` to skip those symbols when it
 /// prints the residual name-only list, so a symbol is never both rendered AND re-listed.
@@ -632,7 +632,7 @@ pub(super) struct AnchoredRenderOutcome {
 /// in the given order (so callers pass it in rank order before any range sort). Containers
 /// enclosing an anchor are excluded from the promoted cap so a summarized container never
 /// steals a full-snippet slot from a real member anchor (P2-loop-2 promoted/summary interaction).
-pub(super) fn render_anchored_symbols(
+pub(super) fn plan_anchored_symbols(
     text: &mut super::grouped::FileOutput,
     source: &RenderSource<'_>,
     symbols: Vec<&crate::parser::ExtractedSymbol>,
@@ -779,18 +779,24 @@ pub(super) fn render_anchored_symbols(
                 let capped = cap_snippet(&body, sig_lines + 1, remaining);
                 let is_clipped = capped.ends_with("\n… (truncated)");
                 text.budget_hit |= is_clipped;
-                if !text.push_source(&format!("```\n{capped}\n```\n"), Some("```\n".len())) {
-                    return AnchoredRenderOutcome {
-                        budget_hit: true,
-                        emitted_starts,
-                    };
-                }
                 let shown = capped
                     .lines()
                     .filter(|line| line.contains('→'))
                     .count()
                     .saturating_sub(usize::from(is_clipped));
                 let displayed_end = start + shown.saturating_sub(1);
+                if !text.plan_source_for_symbol(
+                    &capped,
+                    "",
+                    sym,
+                    (start, displayed_end),
+                    is_clipped,
+                ) {
+                    return AnchoredRenderOutcome {
+                        budget_hit: true,
+                        emitted_starts,
+                    };
+                }
                 emitted_ranges.push((start, displayed_end));
                 if is_full_anchor {
                     text.anchor(start, displayed_end);
@@ -857,7 +863,7 @@ pub(super) fn render_anchored_symbols(
             displayed_end = shown_lines.last().copied().unwrap_or(snippet_start);
             is_byte_clipped = capped.ends_with("\n… (truncated)");
             text.budget_hit |= is_byte_clipped;
-            let mut source_block = String::new();
+            let mut source_notice = String::new();
             if needs_notice && displayed_lines > 0 {
                 // Repeat a partially printed last line; never skip its hidden suffix.
                 let next = if is_byte_clipped {
@@ -868,11 +874,15 @@ pub(super) fn render_anchored_symbols(
                     start
                 };
                 let request = serde_json::json!({"file_path":file_path,"offset":next,"limit":end.saturating_sub(next).saturating_add(1).min(snippet_max_lines.max(1)),"view":"source"});
-                source_block.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
+                source_notice.push_str(&format!("- source window: L{snippet_start}-{displayed_end} of L{start}-{end}; remaining source omitted. Next: read {request}\n"));
             }
-            let source_offset = source_block.len() + "```\n".len();
-            source_block.push_str(&format!("```\n{}\n```\n", capped));
-            if !text.push_source(&source_block, Some(source_offset)) {
+            if !text.plan_source_for_symbol(
+                &capped,
+                &source_notice,
+                sym,
+                (snippet_start, displayed_end),
+                is_byte_clipped,
+            ) {
                 return AnchoredRenderOutcome {
                     budget_hit: true,
                     emitted_starts,

@@ -300,6 +300,7 @@ impl<'a> Analyzer<'a> {
                 let mut interpreter = Interpreter::new(self, source, None);
                 for declaration in declarations {
                     interpreter.facts.clear();
+                    interpreter.fact_eviction_candidate = None;
                     interpreter.statement(Some(declaration));
                     initial.extend(interpreter.facts.clone());
                     interpreter.analyzer.globals[source] = interpreter.env.clone();
@@ -510,6 +511,8 @@ pub(super) struct Interpreter<'a, 'p> {
     pub local_bindings: BTreeSet<String>,
     pub conditions: Vec<String>,
     pub facts: Vec<Fact>,
+    // Invalidated on insertion/removal/clear or a change to a fact's kind/via rank.
+    pub fact_eviction_candidate: Option<(usize, (bool, u8))>,
     pub returns: Vec<Value>,
     pub calls: Vec<UnresolvedCall>,
     pub depth: usize,
@@ -643,6 +646,7 @@ impl<'a, 'p> Interpreter<'a, 'p> {
             local_bindings,
             conditions,
             facts: Vec::new(),
+            fact_eviction_candidate: None,
             returns: Vec::new(),
             calls: Vec::new(),
             depth: 0,
@@ -823,17 +827,22 @@ impl<'a, 'p> Interpreter<'a, 'p> {
                     },
                 )
             }
-            let (index, victim) = self
-                .facts
-                .iter()
-                .enumerate()
-                .max_by_key(|(_, f)| rank(f))
-                .unwrap();
-            if rank(&fact) >= rank(victim) {
+            // Once full, many facts are rejected without changing the retained set.
+            // Reuse its worst rank, preserving max_by_key's last-equal-victim choice.
+            let (index, victim_rank) = *self.fact_eviction_candidate.get_or_insert_with(|| {
+                self.facts
+                    .iter()
+                    .enumerate()
+                    .map(|(index, fact)| (index, rank(fact)))
+                    .max_by_key(|(_, rank)| *rank)
+                    .unwrap()
+            });
+            if rank(&fact) >= victim_rank {
                 return;
             }
             self.facts.remove(index);
         }
+        self.fact_eviction_candidate = None;
         self.facts.push(fact);
     }
     pub fn binding(&self, name: &str) -> Value {

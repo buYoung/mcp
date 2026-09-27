@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-searc
 
 After installation, run `codemap-search --version`. If the command is not found, add the installed directory to `PATH`. The script prints the required `export PATH` line; add it to `~/.zshrc` or `~/.bashrc` to keep it across sessions.
 
-The selected release must contain the archive and its `.sha256` file. Live download availability was not confirmed during the 2026-09-11 documentation review; check [GitHub Releases](https://github.com/buYoung/mcp/releases) for the tag and files you intend to use.
+The selected release must contain both the archive and its `.sha256` file. Check the intended tag and files in [GitHub Releases](https://github.com/buYoung/mcp/releases); a missing file stops installation.
 
 ## Installation directory and version
 
@@ -60,8 +60,4 @@ The musl build has no glibc dependency. Set `CODEMAP_LINUX_LIBC=gnu` on `sh` in 
 - Write error: choose a writable `INSTALL_DIR`.
 - Command not found: check the client's `PATH`, as well as the terminal's.
 
-## Maintainer publishing
-
-The script is at [install.sh](../../install.sh). It reads public release files and needs no API token. Keep archive names and checksum files aligned with the [release workflow](../../../../.github/workflows/codemap-search-release.yml). Each `.sha256` file must contain `<hash>  <basename>`. Publish both the archive and checksum for every supported target.
-
-See [installation channels](./index.md) for source builds and other package managers.
+See [installation channels](./index.md) for source builds and other package managers. Archive/checksum publishing is covered in the [maintainer guide](./releasing.md#3-verify-archives-and-the-installer).
