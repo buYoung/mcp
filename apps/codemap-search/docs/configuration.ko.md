@@ -45,6 +45,10 @@ search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합�
 
 `output.client.codex_output_token_limit`는 양의 토큰 수입니다. 설정한 뒤 `codemap-search codex-config`를 실행하면 여섯 도구의 `mcp_servers.codemap-search.tools.<tool>.output_token_limit` TOML을 출력합니다. 등록한 서버 이름이 다르면 `--server-name 이름`을 지정하세요. 출력 조각을 Codex 설정에 병합해야 적용되며 명령은 클라이언트 파일을 쓰지 않습니다. [Codex 공식 문서](https://learn.chatgpt.com/docs/extend/mcp#other-configuration-options)
 
+Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. `initialize` 요청의 `params.clientInfo.name`이 `codex-mcp-client`인 연결에만 Codex 전용 안내를 전달하며, 다른 클라이언트나 식별 정보가 없는 연결에는 공통 안내만 전달합니다. Codex 전용 안내는 에이전트가 첫 줄에 `// @exec: {"max_output_tokens": N}`을 넣고, `N`에는 `codex_output_token_limit` 값(미지정이면 10000)을 쓰며, `wait`에도 같은 출력 예산을 적용하도록 안내합니다. 이 예산은 출력한 결과의 합계에 적용되므로 큰 묶음은 나눠야 합니다. 클라이언트의 `tool_output_token_limit`가 더 작으면 기록에 저장할 때 잘릴 수 있으며, 서버는 이 설정을 읽거나 변경하지 않습니다. 설정값을 바꾸면 MCP를 재연결해 안내를 갱신하세요. Jev 활성화 여부와 무관하게 적용되는 안내이며, 에이전트가 따른다는 보장은 없습니다. [Codex 설정 공식 문서](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml)
+
+`MCP client delivery context` 진단 로그는 `params._meta.callId` 유무, `exec-` 뒤에 하이픈을 포함한 UUID가 오는 형식에 한정한 ID 값, 응답 바이트 수와 설정된 Codex 한도를 기록합니다. 이 내부 ID 형식은 Code Mode의 단서일 뿐이며 실제 exec 예산이나 모델 문맥에 전달됐는지는 알 수 없습니다. 이 값으로 필터·출력 한도·중복 이력을 바꾸지 않습니다.
+
 `output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 미지정입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트에 설정한 값을 지정하세요. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
 
 ## 설정 위치와 우선순위

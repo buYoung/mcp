@@ -404,6 +404,15 @@ impl McpServer {
                     .sum(),
                 Err((_, message)) => message.len(),
             };
+            tracing::info!(
+                tool = name,
+                has_meta_call_id = params.and_then(|p| p.pointer("/_meta/callId")).is_some(),
+                exec_call_id = protocol::exec_call_id(params),
+                response_bytes,
+                codex_output_token_limit =
+                    crate::config::get().client_output.codex_output_token_limit,
+                "MCP client delivery context"
+            );
             self.call_recorder.record(
                 name,
                 &self.pending_source_files,
@@ -440,6 +449,16 @@ impl McpServer {
                     .and_then(|v| v.as_str())
                     .filter(|v| SUPPORTED_PROTOCOL_VERSIONS.contains(v))
                     .unwrap_or(SUPPORTED_PROTOCOL_VERSIONS[0]);
+                let mut instructions = crate::tools::server_instructions();
+                // Codex sends this clientInfo.name. An output setting or an arbitrary
+                // client name containing "codex" does not identify a Codex connection.
+                let client_name = params
+                    .and_then(|p| p.pointer("/clientInfo/name"))
+                    .and_then(Value::as_str);
+                if client_name == Some("codex-mcp-client") {
+                    instructions.push_str("\n\n");
+                    instructions.push_str(&crate::tools::codex_exec_instructions());
+                }
                 Ok(serde_json::json!({
                     "protocolVersion": protocol_version,
                     "capabilities": {
@@ -449,7 +468,7 @@ impl McpServer {
                         "name": "codemap-search-server",
                         "version": env!("CARGO_PKG_VERSION")
                     },
-                    "instructions": crate::tools::server_instructions()
+                    "instructions": instructions
                 }))
             }
             "ping" => Ok(serde_json::json!({})),

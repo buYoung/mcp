@@ -20,6 +20,22 @@ pub struct JsonRpcResponse {
     pub id: Option<serde_json::Value>,
 }
 
+/// A version-dependent Codex code-mode hint, not a negotiated capability or an
+/// acknowledgement that the client retained the result. Only log validated IDs.
+pub(super) fn exec_call_id(params: Option<&serde_json::Value>) -> Option<&str> {
+    let call_id = params?.get("_meta")?.get("callId")?.as_str()?;
+    let uuid = call_id.strip_prefix("exec-")?;
+    (uuid.len() == 36
+        && uuid.bytes().enumerate().all(|(index, byte)| {
+            if matches!(index, 8 | 13 | 18 | 23) {
+                byte == b'-'
+            } else {
+                byte.is_ascii_hexdigit()
+            }
+        }))
+    .then_some(call_id)
+}
+
 pub(crate) struct LimitedLineReader<R> {
     reader: R,
     buffer: Vec<u8>,

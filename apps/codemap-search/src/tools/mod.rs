@@ -211,6 +211,22 @@ pub fn server_instructions() -> String {
     .to_string()
 }
 
+/// Client-specific guidance, appended only after Codex identifies itself at initialize.
+pub(crate) fn codex_exec_instructions() -> String {
+    // The exec budget covers the whole printed batch, independently of the per-tool
+    // limit exported by codex-config. Without an explicit setting, use exec's default.
+    let codex_output_tokens = crate::config::get()
+        .client_output
+        .codex_output_token_limit
+        .unwrap_or(10_000);
+    format!(
+        include_str!("instructions/server.codex.md"),
+        codex_output_tokens = codex_output_tokens
+    )
+    .trim_end()
+    .to_string()
+}
+
 /// Shell commands of the host OS mapped to the tool to use instead. A stdio server runs on
 /// the same host as the agent's shell; other Unix-like targets share the Linux commands.
 fn shell_command_replacements() -> &'static str {

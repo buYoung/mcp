@@ -1,0 +1,1 @@
+Codex exec: start result-printing scripts with `// @exec: {{"max_output_tokens": {codex_output_tokens}}}`; set the same budget on wait. It covers all printed results together: split larger batches and respect any lower client history limit.
