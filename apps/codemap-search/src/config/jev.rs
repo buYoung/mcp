@@ -1,8 +1,9 @@
 //! `[analysis.jev]`: optional TypeSafe Jev selection for search/read/grep and non-root overview.
 //! All filters are off by default; live tools inherit search unless explicitly configured.
 //! Register the full task once through `initial_instructions`; enabled stages automatically
-//! use it for eligible calls. The API key comes from the environment variable named by
-//! `api_key_env`, never from configuration or tool arguments.
+//! use it for eligible calls. The API key comes from the separate `auth.toml` file or,
+//! as a fallback, the environment variable named by `api_key_env`, never from this
+//! behavior section or tool arguments.
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
 //! `MAX_IN_FLIGHT_REQUESTS` (3) requests in flight, at least `MIN_REQUEST_SPACING`
@@ -26,7 +27,7 @@ pub struct JevConfig {
     pub overview_filter_enabled: bool,
     /// Concrete provider model, validated against every response.
     pub model: String,
-    /// Name of the environment variable that holds the TypeSafe API key.
+    /// Environment variable used when repo/global `auth.toml` provides no API key.
     pub api_key_env: String,
     /// Whole-call deadline per tool call, including queue time.
     pub timeout_ms: u64,

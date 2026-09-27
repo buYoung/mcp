@@ -99,6 +99,7 @@ These rules take priority over supported extensions and ignore ASCII case:
 | Category | Names or patterns |
 |---|---|
 | Plain text | `.txt` |
+| Credentials | `auth.toml` |
 | Lockfiles | `*.lock`, `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `Cargo.lock`, `Gemfile.lock`, `composer.lock`, `poetry.lock`, `Pipfile.lock` |
 | Source maps | `*.map` |
 | Minified files | `*.min.js`, `*.min.mjs`, `*.min.cjs`, `*.min.css`, `*.min.html` |

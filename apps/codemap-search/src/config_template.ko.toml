@@ -275,7 +275,8 @@ is_build_support_enabled = false
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = "jev-1.13.0"
 
-# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
 # api_key_env = "TYPESAFE_API_KEY"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).

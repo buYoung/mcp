@@ -8,7 +8,7 @@ Configuration is optional. Add only the keys you want to change; other keys use 
 
 ## Section layout and output budgets
 
-Keep one configuration file and group keys by responsibility. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
+Keep behavior settings in `config.toml`, grouped by responsibility, and credentials in `auth.toml`. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, preprocessing, event rules and custom masking lists. Common/grep/client limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
 
 | Section | Responsibility |
 |---|---|
@@ -62,6 +62,20 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 "Per key" means a repo file that sets only `[output.search].detail_file_limit` still inherits every other setting from the global file (if set there) or the default. Layers are not all-or-nothing.
 
+### Credentials (`auth.toml`)
+
+Jev credentials are separate from behavior settings. Put the API key in `[jev].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Resolution is **repo auth > global auth > the environment variable named by `[analysis.jev].api_key_env`** (default `TYPESAFE_API_KEY`). Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
+
+```toml
+# .codemap/auth.toml — keep out of version control
+[jev]
+api_key = "<your key>"
+```
+
+With `config_auto_update = true`, MCP startup creates a missing repo `auth.toml` as an empty, localized template; existing files are never overwritten and environment keys are never copied into it. New files use owner-only `0600` permissions on Unix; Windows uses inherited filesystem ACLs. No global auth file is generated. Model, enable flags and request limits remain in `config.toml` under `[analysis.jev]`.
+
+Every file named `auth.toml` is excluded case-insensitively from indexing/search/overview and default `find`/`grep`. This is not an access-control boundary: direct `read`/`parse` remains available, and `include_ignored: true` bypasses the filename exclusion for `find`/`grep`. Mandatory `.codemap` directory exclusions still apply to walks. Keep credential files out of Git yourself; codemap-search never edits Git ignore files.
+
 ## Loading and automatic writes
 
 The current configuration schema is **27**. The marker is a comment:
@@ -77,7 +91,7 @@ The current configuration schema is **27**. The marker is a comment:
 - Schema updates relocate supported older key names to the current layout while preserving effective values, inheritance, explicit `[]` lists and user comments. Older aliases remain readable, including in the global file. Conflicting or invalid values that cannot be moved safely leave the file unchanged and produce a warning.
 - New settings are added as commented examples, not active assignments. Omitted keys use their inherited or built-in defaults; explicit values such as `is_enabled=false` remain effective. Each Jev stage stays off unless its own flag is enabled.
 - Generated descriptions and section placement may be refreshed, but inactive assignments and user notes are preserved. A current file is not rewritten.
-- `config_auto_update = false` disables both initial file creation and migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
+- `config_auto_update = false` disables initial config/auth template creation and config migration writes. It does not disable reads or config watching. The global file is never generated or migrated.
 - Korean OS locale selects Korean generated comments; other/unknown locales use English. Both templates have the same keys and values before project discovery.
 
 If the config changes during migration, contains malformed TOML, cannot be written, or uses an unsupported table layout, the server leaves it untouched and warns. Correct the reported problem and restart. For a dotted/inline index table without an exclusion array, add an explicit array before retrying. A symlinked config keeps its symlink.
@@ -145,7 +159,7 @@ SQL, Lua, PowerShell, standalone shell/web/configuration files and documents do 
 
 ## When changes take effect
 
-MCP watches the repo/global config directories that exist at startup, independently of `[index.refresh].watch`. It batches config events for about **1000ms**, then reloads the settings. If a directory did not exist or watching could not start, restart the server after creating/editing the config. CLI commands load configuration when invoked.
+MCP watches `config.toml` and `auth.toml` in the repo/global config directories that exist at startup, independently of `[index.refresh].watch`. It batches config events for about **1000ms**, then reloads the settings. If a directory did not exist or watching could not start, restart the server after creating/editing the config. CLI commands load configuration when invoked.
 
 | Settings | Application point |
 |---|---|
@@ -157,6 +171,7 @@ MCP watches the repo/global config directories that exist at startup, independen
 | `index.store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
+| `auth.toml` `[jev].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
 | `[output.client].claude_max_result_chars` | Final delivery limit after reload; reconnect MCP to refresh client metadata |
 | `[output.client].codex_output_token_limit` | Final delivery limit after reload; re-export/merge codex-config for the client |
 | `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | Final delivery limit after reload; no client change |
@@ -227,7 +242,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[analysis.jev].grep_filter_enabled` | bool | inherit resolved search flag | Filter complete returned grep bodies in content mode; file/count modes stay local |
 | `[analysis.jev].overview_filter_enabled` | bool | inherit resolved search flag | Filter non-root overview declarations using source evidence; root maps always stay local |
 | `[analysis.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
-| `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Where the API key is read from at request time; never the key itself |
+| `[analysis.jev].api_key_env` | string (environment variable name) | `"TYPESAFE_API_KEY"` | Request-time fallback when neither auth file supplies a key; never the key itself |
 | `[analysis.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
 | `[analysis.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
 | `[analysis.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
@@ -238,13 +253,13 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
-| `[update].config_auto_update` | bool | `true` | Create missing repo config and append commented schema-sync blocks on `mcp` startup |
+| `[update].config_auto_update` | bool | `true` | Create missing repo config/auth templates and sync config schema on `mcp` startup |
 
 ### Indexing and file exclusions
 
 The user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target; a project beneath it is valid. If neither `HOME` nor `USERPROFILE` is available, the server warns and continues.
 
-`.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `index.max_file_bytes` are also skipped by indexing. Indexing accepts UTF-8 source only. Invalid UTF-8 removes any stale indexed symbols; `overview` and `read` explain the exclusion with the first invalid byte offset. `read` keeps its replacement-character display and never rewrites the source.
+`auth.toml`, `.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `index.max_file_bytes` are also skipped by indexing. Indexing accepts UTF-8 source only. Invalid UTF-8 removes any stale indexed symbols; `overview` and `read` explain the exclusion with the first invalid byte offset. `read` keeps its replacement-character display and never rewrites the source.
 
 The five `[index.language_support]` switches control indexing, search, overview, codemap, and file-change refreshes. They do not disable live `find`/`grep`/`read` or direct `parse`.
 
@@ -711,7 +726,8 @@ is_build_support_enabled = false
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = "jev-1.13.0"
 
-# Environment variable that holds the TypeSafe API key (default TYPESAFE_API_KEY). Do not put the key here.
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
 # api_key_env = "TYPESAFE_API_KEY"
 
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
@@ -831,8 +847,10 @@ search_filter_enabled = true
 # search_filter_min_unrelated_probability = 0.70
 ```
 
+Store the key separately in [`auth.toml`](#credentials-authtoml). Existing environment-based setups still work when neither auth file supplies a key:
+
 ```sh
-export TYPESAFE_API_KEY="<your key>"   # read at request time; never written to any config file
+export TYPESAFE_API_KEY="<your key>"   # request-time fallback; never copied into auth.toml
 ```
 
 Jev is off by default. `search_filter_enabled=true` enables search and, unless overridden, read, grep and non-root overview. Explicit `read_filter_enabled`, `grep_filter_enabled` and `overview_filter_enabled` values take precedence per tool; omitted values inherit the resolved search flag. Root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.

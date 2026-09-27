@@ -1,5 +1,5 @@
-//! Host boundary for the optional Jev stages: credential resolution from the configured
-//! environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
+//! Host boundary for the optional Jev stages: credential resolution from `auth.toml` or
+//! the configured environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
 //! per tool call, and the per-tool glue that turns adapter results into response text plus
 //! secret-free stderr diagnostics. Nothing here runs unless a stage is enabled in
 //! `[analysis.jev]`. Enabled filters use the task registered for this connection; missing
@@ -68,14 +68,23 @@ impl JevHost {
 
     /// Resolve the evaluator for one request. `Err(reason)` is a bypass label
     /// (`missing_credentials`, `invalid_config`); nothing is sent in that case.
-    pub fn resolve(&mut self, config: &JevConfig) -> Result<Arc<dyn Evaluator>, &'static str> {
+    pub fn resolve(
+        &mut self,
+        config: &JevConfig,
+        file_api_key: Option<&SecretString>,
+    ) -> Result<Arc<dyn Evaluator>, &'static str> {
         if let Some(injected) = &self.injected {
             return Ok(Arc::clone(injected));
         }
-        let api_key = match std::env::var(&config.api_key_env) {
-            Ok(value) if !value.trim().is_empty() => SecretString::new(value),
-            _ => return Err("missing_credentials"),
-        };
+        let api_key = file_api_key
+            .cloned()
+            .or_else(|| {
+                std::env::var(&config.api_key_env)
+                    .ok()
+                    .filter(|value| !value.trim().is_empty())
+                    .map(SecretString::new)
+            })
+            .ok_or("missing_credentials")?;
         let fingerprint = TransportFingerprint::of(config);
         let is_current = self.built.as_ref().is_some_and(|built| {
             built.fingerprint == fingerprint && built.api_key.expose() == api_key.expose()
@@ -173,7 +182,7 @@ pub(super) async fn search(
         log_bypass("search", "invalid_config", model);
         return crate::tools::search::run_with_metadata(ctx);
     };
-    let evaluator = match host.resolve(jev) {
+    let evaluator = match host.resolve(jev, config.auth.jev_api_key.as_ref()) {
         Ok(evaluator) => evaluator,
         Err(reason) => {
             log_bypass("search", reason, model);
@@ -227,7 +236,7 @@ pub(super) async fn overview(
         log_bypass("overview", "invalid_config", &config.jev.model);
         return Ok(prepared.render());
     };
-    let evaluator = match host.resolve(&config.jev) {
+    let evaluator = match host.resolve(&config.jev, config.auth.jev_api_key.as_ref()) {
         Ok(evaluator) => evaluator,
         Err(reason) => {
             log_bypass("overview", reason, &config.jev.model);
@@ -333,7 +342,7 @@ pub(super) async fn live(
     if is_enabled && is_source {
         require_task(task, tool)?;
         if let Some(deadline_at) = deadline_at(&config.jev) {
-            match host.resolve(&config.jev) {
+            match host.resolve(&config.jev, config.auth.jev_api_key.as_ref()) {
                 Ok(evaluator) => {
                     evaluation = Some((
                         evaluator,
@@ -403,4 +412,90 @@ pub(super) async fn live(
         log_filter_result(tool, result, &config.jev.model);
     }
     Ok(prepared)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_auth_key_resolution_reuses_and_rotates_the_https_evaluator() {
+        let repo = tempfile::tempdir().unwrap();
+        let global = tempfile::tempdir().unwrap();
+        let dir = repo.path().join(crate::config::CODEMAP_DIR_NAME);
+        std::fs::create_dir_all(&dir).unwrap();
+        let repo_auth = dir.join(crate::config::AUTH_FILE_NAME);
+        let global_auth = global.path().join(crate::config::AUTH_FILE_NAME);
+        std::fs::write(&repo_auth, "[jev]\napi_key = 'repo-test-key'\n").unwrap();
+        std::fs::write(&global_auth, "[jev]\napi_key = 'global-test-key'\n").unwrap();
+
+        // A unique test-only variable avoids reading or changing real credentials.
+        struct TestEnv(String);
+        impl Drop for TestEnv {
+            fn drop(&mut self) {
+                std::env::remove_var(&self.0);
+            }
+        }
+        let key_env = TestEnv(format!(
+            "CODEMAP_AUTH_TEST_{}",
+            repo.path()
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .replace('.', "_")
+        ));
+        std::env::set_var(&key_env.0, "environment-test-key");
+        let load = || {
+            let mut config = crate::config::load(repo.path(), global.path());
+            config.jev.api_key_env = key_env.0.clone();
+            config
+        };
+        let mut host = JevHost::default();
+        let config = load();
+        let first = host
+            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
+            .unwrap();
+        let reused = host
+            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
+            .unwrap();
+        assert!(Arc::ptr_eq(&first, &reused));
+        assert_eq!(
+            host.built.as_ref().unwrap().api_key.expose(),
+            "repo-test-key"
+        );
+
+        std::fs::write(&repo_auth, "[jev]\napi_key = 'rotated-test-key'\n").unwrap();
+        let config = load();
+        let rotated = host
+            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
+            .unwrap();
+        assert!(!Arc::ptr_eq(&first, &rotated));
+        assert_eq!(
+            host.built.as_ref().unwrap().api_key.expose(),
+            "rotated-test-key"
+        );
+
+        std::fs::remove_file(repo_auth).unwrap();
+        let config = load();
+        host.resolve(&config.jev, config.auth.jev_api_key.as_ref())
+            .unwrap();
+        assert_eq!(
+            host.built.as_ref().unwrap().api_key.expose(),
+            "global-test-key"
+        );
+        std::fs::remove_file(global_auth).unwrap();
+        let config = load();
+        host.resolve(&config.jev, config.auth.jev_api_key.as_ref())
+            .unwrap();
+        assert_eq!(
+            host.built.as_ref().unwrap().api_key.expose(),
+            "environment-test-key"
+        );
+        std::env::remove_var(&key_env.0);
+        assert!(matches!(
+            host.resolve(&config.jev, config.auth.jev_api_key.as_ref()),
+            Err("missing_credentials")
+        ));
+        // Resolving constructs the actual HTTPS evaluator but never sends a request.
+    }
 }

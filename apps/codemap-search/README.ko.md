@@ -133,7 +133,7 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 ## 선택적 Jev 판단 단계
 
-Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `analysis.jev.search_filter_enabled=true`로 켜면 생략한 `read_filter_enabled`·`grep_filter_enabled`·`overview_filter_enabled`도 그 값을 따릅니다. 도구별 값을 명시하면 해당 도구에 우선 적용합니다. 인증정보는 `TYPESAFE_API_KEY` 환경 변수로 전달합니다.
+Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `analysis.jev.search_filter_enabled=true`로 켜면 생략한 `read_filter_enabled`·`grep_filter_enabled`·`overview_filter_enabled`도 그 값을 따릅니다. 도구별 값을 명시하면 해당 도구에 우선 적용합니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → `TYPESAFE_API_KEY`(또는 지정한 `api_key_env`) 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다.
 
 주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
 

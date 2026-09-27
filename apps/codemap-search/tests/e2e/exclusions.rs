@@ -3,7 +3,7 @@ use predicates::prelude::PredicateBooleanExt;
 use serde_json::{json, Value};
 use std::fs;
 
-const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 26";
+const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 27";
 
 fn result_text(response: &Value) -> &str {
     response["result"]["content"][0]["text"].as_str().unwrap()
@@ -14,6 +14,86 @@ async fn call(client: &mut McpClient, name: &str, arguments: Value) -> Value {
         .send_request("tools/call", json!({"name": name, "arguments": arguments}))
         .await
         .unwrap()
+}
+
+#[tokio::test]
+async fn test_auth_files_are_excluded_by_default_but_explicit_access_is_preserved() {
+    let auth = "[jev]\napi_key = 'auth-private-marker'\n";
+    let repo = create_mock_repo(&[
+        ("auth.toml", auth),
+        ("secrets/AUTH.TOML", auth),
+        (".codemap/auth.toml", auth),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update = false\n[output]\nis_redact_enabled = false\n",
+        ),
+        ("visible.rs", "pub fn visible_function() {}"),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(repo.path()).await.unwrap();
+    for (name, args) in [
+        ("find", json!({"pattern": "*"})),
+        (
+            "grep",
+            json!({"pattern": "api_key", "output_mode": "files_with_matches"}),
+        ),
+        ("overview", json!({})),
+        (
+            "search",
+            json!({"query": "api_key", "workspace_scope": "all"}),
+        ),
+    ] {
+        let response = call(&mut client, name, args).await;
+        assert_ne!(response["result"]["isError"], json!(true), "{response}");
+        let text = result_text(&response);
+        assert!(
+            !text.to_ascii_lowercase().contains("auth.toml"),
+            "{name}: {text}"
+        );
+        assert!(!text.contains("auth-private-marker"), "{name}: {text}");
+    }
+    for path in ["auth.toml", "secrets/AUTH.TOML"] {
+        for include_ignored in [false, true] {
+            let response = call(
+                &mut client,
+                "grep",
+                json!({
+                    "path": path,
+                    "pattern": "api_key",
+                    "output_mode": "files_with_matches",
+                    "include_ignored": include_ignored,
+                }),
+            )
+            .await;
+            assert_eq!(
+                result_text(&response).contains(path),
+                include_ignored,
+                "{response}"
+            );
+        }
+    }
+    for (name, args) in [
+        ("find", json!({"pattern": "*", "include_ignored": true})),
+        (
+            "grep",
+            json!({"pattern": "api_key", "output_mode": "files_with_matches", "include_ignored": true}),
+        ),
+    ] {
+        let response = call(&mut client, name, args).await;
+        let text = result_text(&response);
+        assert!(text.contains("auth.toml"), "{text}");
+        assert!(text.contains("secrets/AUTH.TOML"), "{text}");
+        assert!(!text.contains(".codemap/auth.toml"), "{text}");
+    }
+    let read = call(
+        &mut client,
+        "read",
+        json!({
+            "path": ".codemap/auth.toml", "view": "source", "include_seen": true,
+        }),
+    )
+    .await;
+    assert!(result_text(&read).contains("auth-private-marker"), "{read}");
 }
 
 #[tokio::test]

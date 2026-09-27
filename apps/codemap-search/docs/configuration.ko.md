@@ -8,7 +8,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 섹션 구성과 출력 한도
 
-설정 파일을 추가로 나누지 않고 역할별 하위 섹션으로 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep·클라이언트 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep·클라이언트 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
@@ -60,6 +60,20 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 | 저장소 | `<repo>/.codemap/config.toml` |
 | 전역 | `$CODEMAP_HOME/config.toml`, 미지정 시 `~/.codemap/config.toml` |
 
+### 인증정보 (`auth.toml`)
+
+Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → `[analysis.jev].api_key_env`에 지정한 환경 변수**(기본 `TYPESAFE_API_KEY`)입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+
+```toml
+# .codemap/auth.toml — 버전 관리에서 제외하세요
+[jev]
+api_key = "<발급받은 키>"
+```
+
+`config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 기존 `config.toml`의 `[analysis.jev]`에 유지합니다.
+
+이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search·overview와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
+
 ## 설정 읽기와 자동 작성
 
 현재 설정 버전은 **27**이며 주석으로 표시합니다.
@@ -75,7 +89,7 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 - 스키마 갱신은 지원하는 이전 키를 현재 구조로 옮기되 적용값·상속·명시한 `[]`·사용자 주석을 보존합니다. 전역 파일을 포함해 이전 별칭도 계속 읽습니다. 충돌하거나 잘못된 값을 안전하게 옮길 수 없으면 파일을 유지하고 경고합니다.
 - 새 키는 활성 설정이 아닌 주석 예시로 추가합니다. 생략된 키는 상속값이나 내장 기본값을 사용하며 `is_enabled=false`처럼 명시한 값은 유지합니다. Jev는 각 도구의 활성화 설정을 직접 켜야 동작합니다.
 - 자동 생성 설명과 섹션 배치는 갱신할 수 있지만 비활성 설정과 사용자 메모는 보존합니다. 이미 최신인 파일은 다시 쓰지 않습니다.
-- `config_auto_update = false`는 최초 생성과 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
+- `config_auto_update = false`는 config/auth 템플릿 최초 생성과 config 전환을 모두 끕니다. 설정 읽기와 감시는 계속되며, 전역 파일은 항상 자동 생성·전환 대상에서 제외됩니다.
 - 운영체제 언어가 한국어이면 한국어 주석을, 그 밖에는 영어 주석을 생성합니다. 프로젝트 감지 전 두 템플릿의 키와 값은 같습니다.
 
 전환 중 파일이 바뀌거나 TOML 구문·쓰기 권한·지원하지 않는 테이블 구조 때문에 전환할 수 없으면 파일을 그대로 두고 경고합니다. 원인을 수정한 뒤 재시작하세요. 점으로 연결하거나 인라인으로 작성한 index 테이블에 제외 배열이 없다면 배열을 명시하고 다시 시도하세요. 설정 파일의 심볼릭 링크는 유지합니다.
@@ -143,7 +157,7 @@ SQL, Lua, PowerShell, 독립 셸·웹·설정 파일과 문서에는 출력 경�
 
 ## 변경 적용 시점
 
-MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 설정 디렉터리를 감시합니다. 변경을 약 **1000ms** 동안 모은 뒤 설정을 다시 읽습니다. 디렉터리가 없었거나 감시를 시작하지 못했다면 설정 생성·편집 후 서버를 재시작하세요. CLI는 명령 실행 시 설정을 읽습니다.
+MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·전역 설정 디렉터리의 `config.toml`과 `auth.toml`을 감시합니다. 변경을 약 **1000ms** 동안 모은 뒤 설정을 다시 읽습니다. 디렉터리가 없었거나 감시를 시작하지 못했다면 설정 생성·편집 후 서버를 재시작하세요. CLI는 명령 실행 시 설정을 읽습니다.
 
 | 설정 | 적용 시점 |
 |---|---|
@@ -154,6 +168,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
+| `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
 | `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
@@ -223,13 +238,13 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
-| `[update].config_auto_update` | bool | `true` | 누락된 저장소 설정 생성과 시작 시 새 설정 주석 추가 |
+| `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
 | `[analysis.jev].search_filter_enabled` | bool | `false` | 등록한 목적에 맞춰 search의 완전하고 정체성이 확인된 본문을 자동 필터링하고 read 안내를 남김 |
 | `[analysis.jev].read_filter_enabled` | bool | 최종 search 설정 상속 | read로 완전히 반환한 본문 판단. 명시한 false는 read만 끔 |
 | `[analysis.jev].grep_filter_enabled` | bool | 최종 search 설정 상속 | grep content의 완전한 본문 판단. 파일·개수 모드는 로컬 유지 |
 | `[analysis.jev].overview_filter_enabled` | bool | 최종 search 설정 상속 | 루트 외 overview의 선언을 실제 소스 근거로 판단. 루트 지도는 항상 로컬 유지 |
 | `[analysis.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
-| `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | 요청 시점에 API 키를 읽을 환경 변수. 키 자체는 아님 |
+| `[analysis.jev].api_key_env` | 문자열(환경 변수 이름) | `"TYPESAFE_API_KEY"` | 두 auth 파일에 키가 없을 때 요청 시점에 읽을 대체 환경 변수. 키 자체는 아님 |
 | `[analysis.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
 | `[analysis.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
 | `[analysis.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
@@ -241,7 +256,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 사용자 홈 자체는 MCP 작업공간이나 명시적 `index`/`benchmark` 대상이 될 수 없지만 홈 아래 프로젝트는 허용합니다. `HOME`과 `USERPROFILE`을 모두 확인할 수 없으면 경고하고 계속 실행합니다.
 
-`.txt`, `*.lock`, 알려진 패키지 관리 잠금 파일, `*.map`, 압축·번들 파일은 대소문자 구분 없이 색인·코드맵·호출자 탐색에서 제외합니다. `find`/`grep`도 기본적으로 숨기지만 `include_ignored: true`로 볼 수 있고 직접 `read`/`parse`도 가능합니다. 전체 목록은 [지원 언어와 파일 제외](./language-support-checklist.ko.md)에 있습니다. `index.max_file_bytes`보다 큰 파일도 색인에서 제외합니다.
+`auth.toml`, `.txt`, `*.lock`, 알려진 패키지 관리 잠금 파일, `*.map`, 압축·번들 파일은 대소문자 구분 없이 색인·코드맵·호출자 탐색에서 제외합니다. `find`/`grep`도 기본적으로 숨기지만 `include_ignored: true`로 볼 수 있고 직접 `read`/`parse`도 가능합니다. 전체 목록은 [지원 언어와 파일 제외](./language-support-checklist.ko.md)에 있습니다. `index.max_file_bytes`보다 큰 파일도 색인에서 제외합니다.
 
 다섯 `[index.language_support]` 키는 색인, search, overview, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
 
@@ -709,7 +724,8 @@ is_build_support_enabled = false
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = "jev-1.13.0"
 
-# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
 # api_key_env = "TYPESAFE_API_KEY"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
@@ -830,8 +846,10 @@ search_filter_enabled = true
 # search_filter_min_unrelated_probability = 0.70
 ```
 
+키는 별도 [`auth.toml`](#인증정보-authtoml)에 저장하세요. 두 auth 파일에 키가 없으면 기존 환경 변수 방식도 그대로 동작합니다.
+
 ```sh
-export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에만 읽으며 어떤 설정 파일에도 기록하지 않습니다
+export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에 읽는 대체값이며 auth.toml로 복사하지 않습니다
 ```
 
 Jev는 기본으로 꺼져 있습니다. `search_filter_enabled=true`이면 search와, 별도 값을 지정하지 않은 read·grep·루트 외 overview 필터를 켭니다. `read_filter_enabled`, `grep_filter_enabled`, `overview_filter_enabled`는 도구별 명시 값이 우선하며 생략하면 최종 search 설정을 따릅니다. 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.

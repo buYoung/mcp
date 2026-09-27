@@ -152,7 +152,8 @@ pub fn is_explicitly_excluded_file(path: &Path) -> bool {
 /// Permanent junk-file exclusions used by default live `find`/`grep` walks. Optional language
 /// groups deliberately do not participate: `find`, `grep`, and `read` remain available even when
 /// a group is disabled for index-backed discovery. `include_ignored=true` still bypasses this
-/// predicate for explicit access to lockfiles, source maps, minified assets, and generated bundles.
+/// predicate for explicit access to auth files, lockfiles, source maps, minified assets,
+/// and generated bundles. Direct reads retain their filesystem permission checks.
 pub fn is_default_live_tool_excluded_file(path: &Path) -> bool {
     is_always_excluded_file(path)
 }
@@ -162,7 +163,8 @@ fn is_always_excluded_file(path: &Path) -> bool {
         return false;
     };
     let normalized = file_name.to_ascii_lowercase();
-    normalized.ends_with(".lock")
+    normalized == crate::config::AUTH_FILE_NAME
+        || normalized.ends_with(".lock")
         || normalized.ends_with(".map")
         || EXCLUDED_LOCKFILE_NAMES.contains(&normalized.as_str())
         || is_minified_bundle(&normalized)
@@ -637,6 +639,8 @@ mod tests {
     #[test]
     fn test_explicit_file_exclusions_are_case_insensitive_and_narrow() {
         for excluded in [
+            "auth.toml",
+            "nested/AUTH.TOML",
             "Cargo.lock",
             "PACKAGE-LOCK.JSON",
             "npm-shrinkwrap.json",
@@ -663,6 +667,8 @@ mod tests {
         }
 
         for included in [
+            "auth_template.toml",
+            "oauth.toml",
             "Cargo.toml",
             "package.json",
             "pnpm-workspace.yaml",
