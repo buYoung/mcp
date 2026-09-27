@@ -85,6 +85,15 @@ impl FilterInput {
         }
         let root = std::env::current_dir().unwrap_or_default();
         for index in indices {
+            let entity = &self.entities[index];
+            self.entities[index].has_missing_context = entity.unresolved_calls > 0
+                || entity.omitted_indexed_callers > 0
+                || entity.outgoing.len() > MAX_LINKS_PER_QUESTION
+                || entity.incoming.len() > MAX_LINKS_PER_QUESTION
+                || entity.direct_support().iter().any(|support| {
+                    self.entities[*support].body.is_none()
+                        && !self.supporting_sources.contains_key(support)
+                });
             // Keep direct support intact; do not silently cut it to make a negative
             // judgment fit. Preflight also accounts for the goal and every criterion.
             if !questions::candidate_fits(self, index, policy) {

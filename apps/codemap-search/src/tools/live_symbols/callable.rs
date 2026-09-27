@@ -14,15 +14,22 @@ pub(crate) fn input_byte_cap() -> usize {
 }
 
 pub(crate) fn bounds(path: &Path, source: &str) -> Result<Vec<CallableBounds>, String> {
-    capture(path, source, false).map(|(_, bounds)| bounds)
+    capture(path, source, false).map(|capture| capture.bounds)
+}
+
+pub(crate) struct CapturedSource {
+    pub file: crate::parser::ExtractedFile,
+    pub bounds: Vec<CallableBounds>,
+    pub reference_gaps: Vec<crate::parser::CodeRange>,
+    pub declaration_headers: Vec<Option<(usize, usize)>>,
 }
 
 /// Parse the exact source buffer once for both declaration identity and safe body bounds.
 pub(crate) fn capture(
     path: &Path,
     source: &str,
-    should_capture_parameters: bool,
-) -> Result<(crate::parser::ExtractedFile, Vec<CallableBounds>), String> {
+    should_capture_context: bool,
+) -> Result<CapturedSource, String> {
     if source.len() > input_byte_cap() {
         return Err(format!(
             "live parsing input exceeds {} bytes",
@@ -40,6 +47,46 @@ pub(crate) fn capture(
         .map_err(|e| e.to_string())?;
     let tree = crate::parser::parse_source(&mut parser, source.as_bytes())?;
     let mut file = TreeSitterExtractor::new().extract(source, &path.to_string_lossy())?;
+    let mut reference_gaps = Vec::new();
+    if should_capture_context {
+        let (references, gaps) =
+            super::references::capture_dependencies(&tree, source, spec.language_name());
+        reference_gaps = gaps;
+        if let Some(navigation) = &mut file.navigation {
+            // These observations belong to this immutable request buffer, not the index.
+            let mut seen: std::collections::HashSet<_> = navigation
+                .references
+                .iter()
+                .map(|r| (r.name.clone(), r.range.start_line, r.range.start_col))
+                .collect();
+            navigation.references.extend(
+                references.into_iter().filter(|r| {
+                    seen.insert((r.name.clone(), r.range.start_line, r.range.start_col))
+                }),
+            );
+        }
+    }
+    // Keep source ranges rather than inferred signatures. These identify parameter
+    // types and member contracts without copying every sibling implementation.
+    let declaration_headers = if should_capture_context {
+        file.symbols
+            .iter()
+            .map(|symbol| {
+                let node = super::structure::symbol_node(&tree, symbol, source)?;
+                if node.has_error() || node.is_missing() {
+                    return None;
+                }
+                let end = node
+                    .child_by_field_name("body")
+                    .map_or(symbol.range.end_line_inclusive(), |body| {
+                        body.start_position().row + 1
+                    });
+                Some((symbol.range.start_line, end))
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     let mut result = Vec::new();
     for (symbol_index, symbol) in file
         .symbols
@@ -57,7 +104,7 @@ pub(crate) fn capture(
         // not record parameters. Live context must distinguish a parameter's value
         // operations from calls through an unavailable global/service receiver.
         if let (true, Some(parameters), Some(navigation)) = (
-            should_capture_parameters,
+            should_capture_context,
             node.child_by_field_name("parameters"),
             file.navigation.as_mut(),
         ) {
@@ -124,7 +171,12 @@ pub(crate) fn capture(
         });
     }
     result.sort_by_key(|r| (r.start, r.end));
-    Ok((file, result))
+    Ok(CapturedSource {
+        file,
+        bounds: result,
+        reference_gaps,
+        declaration_headers,
+    })
 }
 
 pub(crate) fn containing(

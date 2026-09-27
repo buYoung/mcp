@@ -349,12 +349,13 @@ pub(super) async fn live(
         return Ok(prepared);
     }
     if let Some((evaluator, policy)) = evaluation {
-        let plan = std::mem::take(&mut prepared.capture).prepare(
+        let mut plan = std::mem::take(&mut prepared.capture).prepare(
             &prepared.text,
             &prepared.copies,
             require_task(task, tool)?,
             arguments,
         );
+        plan.add_indexed_context(engine, &policy);
         let mut result =
             crate::tools::search::jev::evaluate(&plan.input, evaluator.as_ref(), &policy).await;
         plan.apply(&mut prepared.text, &mut prepared.source_files, &mut result);

@@ -1,6 +1,6 @@
 //! Supporting evidence from the same immutable buffer as a live read/grep response.
-//! Local dependencies are bounded; unavailable runtime/imported dependencies preserve
-//! the candidate instead of treating missing communication context as a negative answer.
+//! Local dependencies and declaration contracts inform Jev's relevance judgment.
+//! Gaps describe evidence coverage; they do not decide retention on the server.
 use super::CapturedFile;
 use crate::parser::{CallSite, ExtractedSymbol};
 use crate::tools::search::jev::{
@@ -14,6 +14,22 @@ pub(super) struct SupportingContext {
     pub text: String,
     pub has_missing: bool,
     pub is_clipped: bool,
+    notes: HashSet<&'static str>,
+}
+
+impl SupportingContext {
+    pub(super) fn note_gap(&mut self, reason: &'static str) {
+        self.has_missing = true;
+        if !self.notes.insert(reason) {
+            return;
+        }
+        let note = format!("\nEvidence gap: {reason}\n");
+        if self.text.len().saturating_add(note.len()) <= MAX_COMPLETE_BODY_BYTES {
+            self.text.push_str(&note);
+        } else {
+            self.is_clipped = true;
+        }
+    }
 }
 
 fn contains(symbol: &ExtractedSymbol, line: usize) -> bool {
@@ -92,11 +108,14 @@ fn append_range(
     role: &str,
     seen: &mut HashSet<(usize, usize)>,
 ) {
-    if !seen.insert((start, end)) {
+    if seen
+        .iter()
+        .any(|&(first, last)| first <= start && end <= last)
+    {
         return;
     }
     let Some(slice) = start.checked_sub(1).and_then(|first| lines.get(first..end)) else {
-        output.has_missing = true;
+        output.note_gap("A supporting source range is unavailable.");
         return;
     };
     let mut source = String::new();
@@ -104,7 +123,7 @@ fn append_range(
         let _ = writeln!(source, "{}→{line}", start + offset);
     }
     if crate::tools::search::jev::is_masked_unavailable(&source) {
-        output.has_missing = true;
+        output.note_gap("Redaction left a supporting excerpt unavailable.");
         return;
     }
     let excerpt = format!(
@@ -112,17 +131,146 @@ fn append_range(
         crate::redact::source(&file.path)
     );
     if output.text.len().saturating_add(excerpt.len()) > MAX_COMPLETE_BODY_BYTES {
-        output.has_missing = true;
+        output.note_gap("Supporting excerpts exceed the evidence byte budget.");
         output.is_clipped = true;
         return;
     }
     output.text.push_str(&excerpt);
+    seen.insert((start, end));
+}
+
+fn append_contract(
+    output: &mut SupportingContext,
+    file: &CapturedFile,
+    index: usize,
+    lines: &[&str],
+    seen: &mut HashSet<(usize, usize)>,
+) {
+    let Some((start, end)) = file.declaration_headers.get(index).copied().flatten() else {
+        output.note_gap("A declaration header could not be captured.");
+        return;
+    };
+    append_range(
+        output,
+        file,
+        lines,
+        start,
+        end,
+        "Declaration contract (body not expanded)",
+        seen,
+    );
+}
+
+fn append_owner_contract(
+    output: &mut SupportingContext,
+    file: &CapturedFile,
+    index: usize,
+    lines: &[&str],
+    seen: &mut HashSet<(usize, usize)>,
+) {
+    let symbol = &file.file.symbols[index];
+    let container = if crate::declarations::container(symbol) {
+        Some(index)
+    } else {
+        file.file
+            .symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, parent)| {
+                crate::declarations::container(parent)
+                    && symbol.owner.as_deref() == Some(parent.name.as_str())
+                    && crate::declarations::contains(parent, symbol)
+            })
+            .min_by_key(|(_, parent)| parent.range.end_line - parent.range.start_line)
+            .map(|(index, _)| index)
+    };
+    let Some(container) = container else { return };
+    append_contract(output, file, container, lines, seen);
+    let parent = &file.file.symbols[container];
+    for (ordinal, (member, _)) in file
+        .file
+        .symbols
+        .iter()
+        .enumerate()
+        .filter(|(member, child)| {
+            *member != index
+                && child.owner.as_deref() == Some(parent.name.as_str())
+                && crate::declarations::contains(parent, child)
+                && !file.file.symbols.iter().any(|scope| {
+                    is_callable_kind(&scope.kind)
+                        && crate::declarations::contains(scope, child)
+                        && crate::declarations::contains(parent, scope)
+                })
+        })
+        .enumerate()
+    {
+        if ordinal == MAX_LINKS_PER_QUESTION * 2 {
+            output.note_gap("The enclosing member-contract list is bounded.");
+            output.is_clipped = true;
+            break;
+        }
+        append_contract(output, file, member, lines, seen);
+    }
+}
+
+/// Source for a cross-file candidate, with its imports and enclosing member contracts.
+/// The caller establishes the candidate location; this does not prove runtime dispatch.
+pub(super) fn supporting_declaration(file: &CapturedFile, index: usize) -> SupportingContext {
+    let mut output = SupportingContext::default();
+    let symbol = &file.file.symbols[index];
+    let lines: Vec<_> = file.source.split('\n').collect();
+    let mut seen = HashSet::new();
+    if is_callable_kind(&symbol.kind) {
+        if let Some(bounds) = file
+            .bounds
+            .iter()
+            .find(|bounds| bounds.symbol_index == index)
+        {
+            append_range(
+                &mut output,
+                file,
+                &lines,
+                bounds.start,
+                bounds.end,
+                "Supporting callable",
+                &mut seen,
+            );
+        } else {
+            output.note_gap("The supporting callable body could not be captured.");
+        }
+    } else if !crate::declarations::container(symbol) {
+        append_range(
+            &mut output,
+            file,
+            &lines,
+            symbol.range.start_line,
+            symbol.range.end_line_inclusive(),
+            "Supporting declaration",
+            &mut seen,
+        );
+    }
+    append_contract(&mut output, file, index, &lines, &mut seen);
+    append_owner_contract(&mut output, file, index, &lines, &mut seen);
+    if let Some(navigation) = &file.file.navigation {
+        for import in &navigation.imports {
+            append_range(
+                &mut output,
+                file,
+                &lines,
+                import.range.start_line,
+                import.range.end_line_inclusive(),
+                "Import binding (not target identity proof)",
+                &mut seen,
+            );
+        }
+    }
+    output
 }
 
 pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContext {
     let mut output = SupportingContext::default();
     let Some(navigation) = file.file.navigation.as_ref() else {
-        output.has_missing = true;
+        output.note_gap("Navigation observations are unavailable for this source.");
         return output;
     };
     let lines: Vec<_> = file.source.split('\n').collect();
@@ -143,7 +291,7 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
             {
                 pending.push(owner);
                 if pending.len() > MAX_LINKS_PER_QUESTION * 2 + 1 {
-                    output.has_missing = true;
+                    output.note_gap("The same-file caller list exceeds the link budget.");
                     output.is_clipped = true;
                     break;
                 }
@@ -155,11 +303,17 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
             continue;
         }
         if visited.len() > MAX_LINKS_PER_QUESTION * 2 + 1 {
-            output.has_missing = true;
+            output.note_gap("Same-file dependencies exceed the link budget.");
             output.is_clipped = true;
             break;
         }
         let symbol = &file.file.symbols[index];
+        if file.reference_gaps.iter().any(|gap| {
+            gap.start_line <= symbol.range.end_line_inclusive()
+                && symbol.range.start_line <= gap.end_line_inclusive()
+        }) {
+            output.note_gap("Some dependency syntax was not resolved by the local extractor.");
+        }
         if index != candidate {
             let (start, end) = if is_callable_kind(&symbol.kind) {
                 let Some(bounds) = file
@@ -167,10 +321,14 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
                     .iter()
                     .find(|bounds| bounds.symbol_index == index)
                 else {
-                    output.has_missing = true;
+                    output.note_gap("A supporting callable has no verified body boundary.");
                     continue;
                 };
                 (bounds.start, bounds.end)
+            } else if crate::declarations::container(symbol) {
+                append_contract(&mut output, file, index, &lines, &mut ranges);
+                append_owner_contract(&mut output, file, index, &lines, &mut ranges);
+                continue;
             } else {
                 (symbol.range.start_line, symbol.range.end_line_inclusive())
             };
@@ -184,43 +342,27 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
                 &mut ranges,
             );
         }
-        if let Some(owner) = symbol.owner.as_deref() {
-            if let Some(container) = file.file.symbols.iter().find(|container| {
-                !is_callable_kind(&container.kind)
-                    && container.name == owner
-                    && contains(container, symbol.range.start_line)
-            }) {
-                append_range(
-                    &mut output,
-                    file,
-                    &lines,
-                    container.range.start_line,
-                    container.range.start_line,
-                    "Enclosing declaration (header only)",
-                    &mut ranges,
-                );
-            }
-        }
+        append_owner_contract(&mut output, file, index, &lines, &mut ranges);
         for reference in navigation
             .references
             .iter()
             .filter(|reference| contains(symbol, reference.range.start_line))
         {
-            // An import declaration identifies a dependency but does not supply its
-            // implementation. Do not let a negative score erase that uncertainty.
+            // Imports are evidence of bindings. Cross-file augmentation may add the
+            // declaration, but this observation alone does not supply an implementation.
             for import in navigation
                 .imports
                 .iter()
                 .filter(|import| import.local_name == reference.name)
             {
-                output.has_missing = true;
+                output.note_gap("Import bindings alone do not establish dependency behavior; inspect any supplied cross-file evidence.");
                 append_range(
                     &mut output,
                     file,
                     &lines,
                     import.range.start_line,
                     import.range.end_line_inclusive(),
-                    "Imported dependency (implementation unavailable)",
+                    "Imported dependency binding",
                     &mut ranges,
                 );
             }
@@ -243,14 +385,16 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
                     if definitions.next().is_none() {
                         pending.push(definition);
                     } else {
-                        output.has_missing = true;
+                        output.note_gap(
+                            "A referenced same-file name has multiple possible declarations.",
+                        );
                     }
                 } else {
                     for binding in navigation.local_bindings.iter().filter(|binding| {
                         binding.name == reference.name
                             && !contains(symbol, binding.range.start_line)
                     }) {
-                        output.has_missing = true;
+                        output.note_gap("An outer binding's runtime value or scope is unresolved.");
                         append_range(
                             &mut output,
                             file,
@@ -272,7 +416,7 @@ pub(super) fn capture(file: &CapturedFile, candidate: usize) -> SupportingContex
             if let Some(target) = local_target(file, call, index) {
                 pending.push(target);
             } else if !is_local_value_call(file, call, index) {
-                output.has_missing = true;
+                output.note_gap("Some non-local call targets are unresolved; inspect any supplied cross-file evidence.");
             }
         }
     }

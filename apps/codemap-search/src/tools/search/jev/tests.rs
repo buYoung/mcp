@@ -1411,7 +1411,7 @@ fn summary_note_names_the_policy_version_and_threshold() {
     };
     result.effective_threshold = 0.85;
     let note = summary_note(&result);
-    assert!(note.contains("search-selection-policy/4-experimental"));
+    assert!(note.contains("search-selection-policy/5-experimental"));
     assert!(note.contains("threshold 0.85"));
     assert!(note.contains("2 of 7 planned bodies omitted"));
     assert!(note.contains("1 kept through direct support or nesting"));

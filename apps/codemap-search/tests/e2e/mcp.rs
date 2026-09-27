@@ -978,7 +978,7 @@ export function dropMe(input: string): string {
             let search_tool = tool("search");
             let initial_description = initial["description"].as_str().unwrap();
             assert!(initial_description.starts_with("Return shared navigation guidance"), "{initial_description}");
-            assert!(initial_description.contains("This tool's arguments register the task that Jev uses"), "{initial_description}");
+            assert!(initial_description.contains("task_query") && initial_description.contains("questions"), "{initial_description}");
             assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));

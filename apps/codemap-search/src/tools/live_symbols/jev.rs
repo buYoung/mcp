@@ -17,24 +17,29 @@ use std::ops::Range;
 use std::path::Path;
 
 mod context;
+mod external;
 
-const EVIDENCE_VERSION: &str = "live-task-evidence/1";
+const EVIDENCE_VERSION: &str = "live-task-evidence/3";
 
 pub(crate) struct CapturedFile {
     path: String,
     file: ExtractedFile,
     bounds: Vec<CallableBounds>,
+    reference_gaps: Vec<crate::parser::CodeRange>,
+    declaration_headers: Vec<Option<(usize, usize)>>,
     // Mask the full immutable buffer before taking any supporting excerpts.
     source: String,
 }
 
 impl CapturedFile {
     pub fn new(path: &str, source: &str) -> Option<Self> {
-        let (file, bounds) = callable::capture(Path::new(path), source, true).ok()?;
+        let captured = callable::capture(Path::new(path), source, true).ok()?;
         Some(Self {
             path: path.into(),
-            file,
-            bounds,
+            file: captured.file,
+            bounds: captured.bounds,
+            reference_gaps: captured.reference_gaps,
+            declaration_headers: captured.declaration_headers,
             source: crate::redact::source(source).into_owned(),
         })
     }
@@ -65,6 +70,7 @@ pub(crate) struct Plan {
     pub input: FilterInput,
     spans: Vec<Option<Range<usize>>>,
     rows: Vec<SourceRow>,
+    captured_files: Vec<CapturedFile>,
 }
 
 fn masked_value(value: &Value) -> Value {
@@ -289,11 +295,21 @@ impl Capture {
             },
             spans,
             rows,
+            captured_files: self.files,
         }
     }
 }
 
 impl Plan {
+    pub(crate) fn add_indexed_context(
+        &mut self,
+        engine: &crate::index::EngineSupervisor,
+        policy: &policy::FilterPolicy,
+    ) {
+        let captured = std::mem::take(&mut self.captured_files);
+        external::augment(&mut self.input, engine, &captured, policy);
+    }
+
     pub fn apply(
         self,
         text: &mut String,

@@ -35,9 +35,9 @@ use questions::question_id;
 mod tests;
 
 /// Version of the evidence capture (statuses, identity check, masking rule, links).
-pub const EVIDENCE_VERSION: &str = "search-task-evidence/7";
-pub const QUESTION_VERSION: &str = "search-task-questions/5";
-pub const POLICY_VERSION: &str = "search-selection-policy/4-experimental";
+pub const EVIDENCE_VERSION: &str = "search-task-evidence/8";
+pub const QUESTION_VERSION: &str = "search-task-questions/6";
+pub const POLICY_VERSION: &str = "search-selection-policy/5-experimental";
 /// Provisional default for `search_filter_min_unrelated_probability`. It is a starting
 /// policy value, not a calibrated one: omission needs a decisive composed no-match; a Noul
 /// answer assigns at least this much mass to a criterion being false.
@@ -152,8 +152,8 @@ pub struct FilterEntity {
     pub unresolved_calls: usize,
     pub supporting_context: String,
     pub is_context_clipped: bool,
-    /// The body is complete, but an observed dependency or enclosing context is not.
-    /// A negative relevance score cannot establish irrelevance without that evidence.
+    /// Bounded supporting evidence has gaps. This is input to the relevance judgment,
+    /// not a server-side decision to skip evaluation or retain the body.
     pub has_missing_context: bool,
 }
 
@@ -161,10 +161,7 @@ impl FilterEntity {
     /// A body is judged only when it is a callable displayed completely with a verified
     /// identity and usable text.
     pub fn is_judgeable(&self) -> bool {
-        self.is_callable
-            && self.evidence == EvidenceStatus::Complete
-            && !self.is_context_clipped
-            && !self.has_missing_context
+        self.is_callable && self.evidence == EvidenceStatus::Complete
     }
 
     pub fn qualified_name(&self) -> String {
@@ -508,9 +505,6 @@ impl FilterInput {
         if entity.evidence != EvidenceStatus::Complete {
             return Some(RetentionReason::IncompleteEvidence(entity.evidence));
         }
-        if entity.has_missing_context || entity.is_context_clipped {
-            return Some(RetentionReason::MissingContext);
-        }
         if omission_note(entity).len() >= entity.body_bytes {
             return Some(RetentionReason::TooSmallToOmit);
         }
@@ -519,8 +513,6 @@ impl FilterInput {
             let container = &self.entities[parent];
             if (!container.is_callable
                 || container.evidence != EvidenceStatus::Complete
-                || container.has_missing_context
-                || container.is_context_clipped
                 || omission_note(container).len() >= container.body_bytes)
                 && container.displayed.is_some_and(|(first, last)| {
                     first <= entity.symbol.start_line && entity.symbol.end_line <= last
@@ -595,7 +587,7 @@ pub struct BodyJudgment {
 /// Why a body stayed in the output.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RetentionReason {
-    /// Judged below the threshold: probably related.
+    /// The registered criteria compose to a positive task match.
     JudgedRelated,
     Uncertain,
     /// Structs, enums, classes and other non-callable declarations are never judged.
@@ -603,8 +595,6 @@ pub enum RetentionReason {
     /// The body is not displayed completely, is oversized, could not be identified in the
     /// displayed buffer, or is masked beyond use, so no judgment is fair.
     IncompleteEvidence(EvidenceStatus),
-    /// Required supporting evidence is unavailable or exceeds the context budget.
-    MissingContext,
     /// Judgeable, but the evaluation returned no answer for it.
     NoJudgment,
     /// Judged unrelated, but its rendered body is no larger than the omission note that
@@ -626,7 +616,6 @@ impl RetentionReason {
             Self::Uncertain => "uncertain",
             Self::NotCallable => "not_callable",
             Self::IncompleteEvidence(_) => "incomplete_evidence",
-            Self::MissingContext => "missing_context",
             Self::NoJudgment => "no_judgment",
             Self::TooSmallToOmit => "too_small_to_omit",
             Self::ConnectedToRetained(_) => "connected_to_retained",
@@ -641,7 +630,6 @@ impl RetentionReason {
             self,
             Self::NotCallable
                 | Self::IncompleteEvidence(_)
-                | Self::MissingContext
                 | Self::Uncertain
                 | Self::NoJudgment
                 | Self::TooSmallToOmit
@@ -909,15 +897,31 @@ impl FilterResult {
                 omitted,
                 protected,
                 linked,
-            } => format!(
-                "bodies={bodies} judged={judged} omitted={omitted} rendered_omissions={} protected={protected} linked={linked} unverified={} masked_unavailable={} threshold={:.2} criteria_answers={} uncertain={}",
+            } => {
+                let evaluated: std::collections::BTreeSet<_> =
+                    self.judgments.iter().map(|answer| answer.entity).collect();
+                let classified = |state| {
+                    self.decisions
+                        .iter()
+                        .filter(|decision| {
+                            evaluated.contains(&decision.entity) && decision.match_state == state
+                        })
+                        .count()
+                };
+                format!(
+                "bodies={bodies} judged={judged} omitted={omitted} rendered_omissions={} protected={protected} linked={linked} unverified={} masked_unavailable={} threshold={:.2} criteria_answers={} uncertain={} matched={} no_match={} judged_uncertain={} unjudged_bodies={}",
                 self.rendered_omissions,
                 self.evidence.identity_unverified,
                 self.evidence.masked_unavailable,
                 self.effective_threshold,
                 self.judgments.len(),
-                self.decisions.iter().filter(|decision| decision.reason == Some(RetentionReason::Uncertain)).count()
-            ),
+                self.decisions.iter().filter(|decision| decision.reason == Some(RetentionReason::Uncertain)).count(),
+                classified(MatchState::Matched),
+                classified(MatchState::NoMatch),
+                classified(MatchState::Uncertain),
+                bodies.saturating_sub(*judged),
+            )
+            }
             FilterStatus::Bypassed(reason) | FilterStatus::Fallback(reason) => reason.clone(),
         }
     }
@@ -957,10 +961,6 @@ pub async fn evaluate(
         return bypass(
             if input.evidence_summary().complete == 0 {
                 "no_complete_bodies"
-            } else if input.entities.iter().any(|entity| {
-                entity.evidence == EvidenceStatus::Complete && entity.has_missing_context
-            }) {
-                "missing_context"
             } else {
                 "no_shrinkable_bodies"
             },
@@ -1075,7 +1075,11 @@ pub async fn evaluate(
         |decision: &&RetentionDecision| input.entities[decision.entity].block_index.is_some();
     let status = FilterStatus::Applied {
         bodies: input.body_count(),
-        judged: judgeable.len(),
+        judged: judgments
+            .iter()
+            .map(|answer| answer.entity)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
         omitted: decisions
             .iter()
             .filter(with_body)

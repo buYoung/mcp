@@ -143,6 +143,128 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
     IdentifierRole::Reference
 }
 
+/// Request-local dependencies, independent of the optional persisted reference index.
+/// Preserve unsupported syntax as gaps rather than treating an empty list as proof
+/// that a callable has no dependencies. Type references matter for injected values.
+pub(super) fn capture_dependencies(
+    tree: &Tree,
+    source: &str,
+    language: &str,
+) -> (
+    Vec<crate::parser::ReferenceSite>,
+    Vec<crate::parser::CodeRange>,
+) {
+    let root = tree.root_node();
+    let mut pending = vec![root];
+    let mut references = Vec::new();
+    let mut gaps = Vec::new();
+    let mut remaining = 200_000usize;
+    let range = |node: Node<'_>| crate::parser::CodeRange {
+        start_line: node.start_position().row + 1,
+        start_col: node.start_position().column + 1,
+        end_line: node.end_position().row + 1,
+        end_col: node.end_position().column + 1,
+    };
+    if !matches!(
+        language,
+        "rust"
+            | "go"
+            | "typescript"
+            | "javascript"
+            | "python"
+            | "java"
+            | "csharp"
+            | "php"
+            | "ruby"
+            | "lua"
+            | "kotlin"
+            | "swift"
+            | "dart"
+            | "scala"
+            | "groovy"
+            | "powershell"
+            | "c"
+            | "cpp"
+    ) {
+        return (references, vec![range(root)]);
+    }
+    while let Some(node) = pending.pop() {
+        if remaining == 0 {
+            gaps.push(range(root));
+            break;
+        }
+        remaining -= 1;
+        let kind = node.kind();
+        if kind.contains("comment")
+            || matches!(kind, "string" | "string_literal" | "raw_string_literal")
+        {
+            continue;
+        }
+        if node.is_error() || node.is_missing() || kind == "token_tree" {
+            gaps.push(range(node));
+            continue;
+        }
+        if matches!(
+            kind,
+            "scoped_identifier"
+                | "scoped_type_identifier"
+                | "qualified_identifier"
+                | "qualified_name"
+        ) {
+            // A qualified spelling alone does not establish the imported definition.
+            gaps.push(range(node));
+        }
+        if matches!(
+            kind,
+            "member_expression" | "field_expression" | "attribute" | "member_access_expression"
+        ) {
+            let receiver = ["object", "value", "argument", "operand", "expression"]
+                .iter()
+                .find_map(|field| node.child_by_field_name(field));
+            let is_instance = receiver
+                .and_then(|n| n.utf8_text(source.as_bytes()).ok())
+                .is_some_and(|name| matches!(name, "this" | "self" | "Self" | "$this"));
+            let is_call = node.parent().is_some_and(|parent| {
+                ["function", "method"]
+                    .iter()
+                    .any(|field| parent.child_by_field_name(field) == Some(node))
+            });
+            if is_instance && !is_call {
+                // A class header does not provide an instance field's value or origin.
+                // Calls have their own same-file target/dependency analysis below.
+                gaps.push(range(node));
+            }
+        }
+        let is_type_reference = kind == "type_identifier"
+            && node.parent().is_some_and(|parent| {
+                parent.child_by_field_name("name") != Some(node)
+                    && parent.child_by_field_name("declarator") != Some(node)
+            });
+        if is_type_reference
+            || matches!(
+                kind,
+                "identifier"
+                    | "simple_identifier"
+                    | "name"
+                    | "shorthand_property_identifier"
+                    | "shorthand_field_identifier"
+                    | "constant"
+            ) && matches!(identifier_role(node, root), IdentifierRole::Reference)
+        {
+            if let Ok(name) = node.utf8_text(source.as_bytes()) {
+                references.push(crate::parser::ReferenceSite {
+                    name: name.into(),
+                    range: range(node),
+                    scope_id: None,
+                });
+            }
+        }
+        let mut cursor = node.walk();
+        pending.extend(node.named_children(&mut cursor));
+    }
+    (references, gaps)
+}
+
 fn value_preview(
     value: Node<'_>,
     source: &str,
