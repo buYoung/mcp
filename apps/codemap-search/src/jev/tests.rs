@@ -1831,6 +1831,39 @@ fn answer_for_wire(body: &[u8]) -> Vec<u8> {
 }
 
 #[tokio::test]
+async fn auth_file_key_reaches_the_http_authorization_header_only() {
+    let repo = tempfile::tempdir().unwrap();
+    let global = tempfile::tempdir().unwrap();
+    let dir = repo.path().join(crate::config::CODEMAP_DIR_NAME);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join(crate::config::AUTH_FILE_NAME),
+        "[jev]\napi_key = 'file-auth-test-key'\n",
+    )
+    .unwrap();
+    let config = crate::config::load(repo.path(), global.path());
+    let server = local_server(|_, body| ok_reply(answer_for_wire(body))).await;
+    let transport = HttpsTransport::with_endpoint_for_tests(
+        config.auth.jev_api_key.unwrap(),
+        config.jev.https_settings(),
+        server.url.clone(),
+    )
+    .unwrap();
+    let evaluator = JevEvaluator::new(Arc::new(transport), config.jev.evaluator_config()).unwrap();
+    evaluator
+        .evaluate(request(vec![noul_question("auth")]))
+        .await
+        .unwrap();
+    let seen = server.seen();
+    assert_eq!(seen.len(), 1);
+    assert!(seen[0]
+        .headers
+        .to_ascii_lowercase()
+        .contains("authorization: bearer file-auth-test-key\r\n"));
+    assert!(!String::from_utf8_lossy(&seen[0].body).contains("file-auth-test-key"));
+}
+
+#[tokio::test]
 async fn https_client_reuses_one_idle_connection_and_sends_the_documented_headers() {
     let server = local_server(|_, body| ok_reply(answer_for_wire(body))).await;
     let evaluator = local_evaluator(&server, HttpsSettings::default());

@@ -2,7 +2,8 @@
 //!
 //! Resolution precedence is per-key `repo > global > default` (the scout pattern): a
 //! repo-local `<repo>/.codemap/config.toml` overrides a global `<global>/config.toml`
-//! overrides the compiled-in defaults. The loader is **never-exit**: a missing file,
+//! overrides the compiled-in defaults. Credentials live in separate repo/global `auth.toml`
+//! files. The loader is **never-exit**: a missing file,
 //! parse error, unknown key, or type mismatch warns to stderr and falls back to the
 //! default for that key — it never panics or exits the process.
 //!
@@ -20,7 +21,8 @@
 //! exclusions; from v6 onward that array is never automatically changed. Sync never
 //! rewrites a file already at the current version, never touches any git file, and
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
-//! user's `.gitignore` choice.
+//! user's `.gitignore` choice. A missing repo `auth.toml` is also scaffolded with no key;
+//! existing auth files are never rewritten.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -35,6 +37,9 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use crate::config_locale::{config_comment_language, ConfigCommentLanguage};
 use crate::workspace::exclusions::DirectoryExclusions;
 
+mod auth;
+pub use auth::AuthConfig;
+pub(crate) use auth::AUTH_FILE_NAME;
 mod event_navigation;
 mod exclude;
 mod layout;
@@ -149,9 +154,11 @@ pub struct ResolvedConfig {
     pub event_navigation: EventNavigationConfig,
     /// Optional Jev decision stages (`[analysis.jev]`); all stages are off by default.
     pub jev: JevConfig,
+    /// Credentials from repo/global `auth.toml`, separate from behavior settings.
+    pub auth: AuthConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
     pub analysis_target_os: Option<String>,
-    /// Whether `mcp` may create/sync the repo-local `.codemap/config.toml` file.
+    /// Whether `mcp` may create/sync repo config and create a missing auth template.
     pub config_auto_update: bool,
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
@@ -306,6 +313,7 @@ impl Default for ResolvedConfig {
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             jev: JevConfig::default(),
+            auth: AuthConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
@@ -429,6 +437,7 @@ pub fn load(repo_root: &Path, global_dir: &Path) -> ResolvedConfig {
     let repo_layer = read_layer(&repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME));
     let global_layer = read_layer(&global_dir.join(CONFIG_FILE_NAME));
     let mut resolved = merge(repo_layer, global_layer);
+    resolved.auth = auth::load(repo_root, global_dir);
     resolved.index_root =
         crate::workspace::canonicalize_path_lenient(&repo_root.join(&resolved.index_path));
     resolved
@@ -826,6 +835,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
         jev: jev::merge(repo.jev, global.jev),
+        auth: AuthConfig::default(),
         analysis_target_os: repo
             .analysis_target_os
             .or(global.analysis_target_os)
@@ -1057,7 +1067,7 @@ pub fn init(repo_root: &Path) {
 }
 
 /// The resolved in-memory config snapshot. This never reads disk; [`reload`] and the
-/// config watcher replace the snapshot only after `config.toml` changes.
+/// config watcher replace the snapshot after `config.toml` or `auth.toml` changes.
 pub fn get() -> Arc<ResolvedConfig> {
     if let Some(config) = REQUEST_CONFIG.with(|slot| slot.borrow().clone()) {
         return config;
@@ -1145,7 +1155,7 @@ impl Drop for ConfigWatcherHandle {
     }
 }
 
-/// Watch repo/global `config.toml` files and refresh the in-memory config after a fixed
+/// Watch repo/global `config.toml` and `auth.toml` files and refresh the snapshot after a fixed
 /// one-second debounce window. This is independent of the index watcher and runs even when
 /// `[refresh].watch` is disabled.
 pub fn spawn_config_watcher(
@@ -1225,6 +1235,8 @@ fn watched_config_paths(repo_root: &Path, global: &Path) -> BTreeSet<PathBuf> {
     [
         repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME),
         global.join(CONFIG_FILE_NAME),
+        repo_root.join(CODEMAP_DIR_NAME).join(AUTH_FILE_NAME),
+        global.join(AUTH_FILE_NAME),
     ]
     .into_iter()
     .map(|path| crate::workspace::canonicalize_path_lenient(&path))
@@ -1600,7 +1612,8 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # search_filter_enabled = false
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = \"jev-1.13.0\"
-# Environment variable that holds the TypeSafe API key (default TYPESAFE_API_KEY). Do not put the key here.
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
 # api_key_env = \"TYPESAFE_API_KEY\"
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
@@ -1623,7 +1636,8 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # search_filter_enabled = false
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
 # model = \"jev-1.13.0\"
-# TypeSafe API 키가 들어 있는 환경 변수 이름입니다(기본 TYPESAFE_API_KEY). 키 값은 여기에 적지 마세요.
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없을 때 사용할 환경 변수 이름입니다(기본 TYPESAFE_API_KEY).
 # api_key_env = \"TYPESAFE_API_KEY\"
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000
@@ -1656,7 +1670,8 @@ fn version_marker_line(version: u32) -> String {
 /// keys are still commented; v6 materializes directory exclusions once. v8/v9 relocate
 /// test-code and workspace exclusions into `[exclude]` without changing effective values.
 /// v18 groups output/index/analysis settings; v23 refreshes generated comments. Both preserve
-/// configured values, inactive settings and inheritance.
+/// configured values, inactive settings and inheritance. A missing repo `auth.toml` is
+/// scaffolded separately with no credentials; existing auth files are never rewritten.
 pub fn ensure_repo_config(repo_root: &Path) {
     ensure_repo_config_with_auto_update(repo_root, get().config_auto_update);
 }
@@ -1675,6 +1690,7 @@ fn ensure_repo_config_with_auto_update(repo_root: &Path, config_auto_update: boo
             path.display()
         )),
     }
+    auth::ensure_repo_auth(repo_root);
 }
 
 /// Write the version-stamped localized template for a repo that has no config file yet.
@@ -2824,6 +2840,35 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         let prepended = set_version_marker("foo = 1\n", 3);
         assert!(prepended.starts_with("# codemap-config-version: 3\n"));
         assert!(prepended.contains("foo = 1"));
+    }
+
+    #[test]
+    fn test_auth_file_events_trigger_config_reload() {
+        let repo = tempfile::tempdir().unwrap();
+        let global = tempfile::tempdir().unwrap();
+        let paths = watched_config_paths(repo.path(), global.path());
+        for path in [
+            repo.path().join(CODEMAP_DIR_NAME).join(AUTH_FILE_NAME),
+            global.path().join(AUTH_FILE_NAME),
+        ] {
+            for kind in [
+                EventKind::Create(notify::event::CreateKind::File),
+                EventKind::Modify(notify::event::ModifyKind::Any),
+                EventKind::Remove(notify::event::RemoveKind::File),
+            ] {
+                assert!(is_config_event(
+                    Ok(notify::Event::new(kind).add_path(path.clone())),
+                    &paths,
+                ));
+            }
+        }
+        assert!(!is_config_event(
+            Ok(
+                notify::Event::new(EventKind::Modify(notify::event::ModifyKind::Any))
+                    .add_path(repo.path().join("unrelated.toml"))
+            ),
+            &paths,
+        ));
     }
 
     #[test]

@@ -274,7 +274,8 @@ is_build_support_enabled = false
 # Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
 # model = "jev-1.13.0"
 
-# Environment variable that holds the TypeSafe API key (default TYPESAFE_API_KEY). Do not put the key here.
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# Environment fallback when neither auth file supplies a key (default TYPESAFE_API_KEY).
 # api_key_env = "TYPESAFE_API_KEY"
 
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).

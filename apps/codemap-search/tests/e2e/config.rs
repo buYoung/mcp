@@ -3,6 +3,27 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use std::process::Command;
 
+#[test]
+fn test_auth_diagnostics_never_print_values_or_parser_source() {
+    for auth in [
+        "[jev]\napi_key = 'auth-secret-sentinel\n",
+        "[jev]\napi_key = ['auth-secret-sentinel']\n",
+        "[jev]\n'auth-secret-sentinel' = 'ignored'\n",
+        "['auth-secret-sentinel']\napi_key = 'ignored'\n",
+    ] {
+        let temp = create_mock_repo(&[
+            (".codemap/auth.toml", auth),
+            ("src/a.rs", "fn visible_function() {}"),
+        ])
+        .unwrap();
+        run_cli(&["codemap"], temp.path())
+            .success()
+            .stdout(predicate::str::contains("auth-secret-sentinel").not())
+            .stderr(predicate::str::contains("auth-secret-sentinel").not())
+            .stderr(predicate::str::contains("auth.toml"));
+    }
+}
+
 #[tokio::test]
 async fn test_config_threshold_override_changes_branching() {
     // result_threshold = 1 means 2 matches render hybrid: detail for the single top file,
@@ -380,7 +401,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 26\n"),
+            scaffolded.starts_with("# codemap-config-version: 27\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[analysis.jev]\n"), "{scaffolded}");
@@ -406,7 +427,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 26\n"),
+            migrated.starts_with("# codemap-config-version: 27\n"),
             "{migrated}"
         );
         assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
@@ -442,7 +463,7 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 26\n"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 27\n"), "{kept}");
         assert!(kept.contains("# read_filter_enabled = false\n"), "{kept}");
         assert!(kept.contains("# grep_filter_enabled = false\n"), "{kept}");
         assert_eq!(

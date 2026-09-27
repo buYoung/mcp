@@ -99,6 +99,7 @@ C#·PHP·Ruby·Lua는 정적으로 확인되는 선언·경로가 명시된 impo
 | 구분 | 이름 또는 패턴 |
 |---|---|
 | 일반 텍스트 | `.txt` |
+| 인증정보 | `auth.toml` |
 | 잠금 파일 | `*.lock`, `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `Cargo.lock`, `Gemfile.lock`, `composer.lock`, `poetry.lock`, `Pipfile.lock` |
 | 소스 맵 | `*.map` |
 | 압축 파일 | `*.min.js`, `*.min.mjs`, `*.min.cjs`, `*.min.css`, `*.min.html` |
