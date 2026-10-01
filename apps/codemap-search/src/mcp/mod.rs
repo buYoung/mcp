@@ -4,6 +4,7 @@
 //! lifecycle (`ensure_alive`/`trigger_refresh`) on the snapshot-backed tools, and wraps tool
 //! output and tool failures in the JSON-RPC `result` envelope; protocol failures use `error`.
 
+mod global_instructions;
 mod jev;
 pub mod protocol;
 mod source_history;
@@ -122,6 +123,7 @@ pub struct McpServer {
     // Task context is connection-local, registered once through initial_instructions.
     // Credentials/evaluator remain separate and are resolved only for enabled stages.
     registered_task: Option<crate::tools::task::RegisteredTask>,
+    global_instructions: global_instructions::GlobalInstructions,
     jev: jev::JevHost,
 }
 
@@ -135,6 +137,7 @@ impl McpServer {
             source_history: source_history::SourceHistory::default(),
             source_history_config: None,
             registered_task: None,
+            global_instructions: global_instructions::GlobalInstructions::default(),
             jev: jev::JevHost::default(),
         }
     }
@@ -321,6 +324,10 @@ impl McpServer {
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
         let config = crate::config::get();
+        if method != "initialize" {
+            self.global_instructions
+                .synchronize(config.is_global_instructions_enabled);
+        }
         // A new output/permission/masking configuration starts a fresh delivery
         // history. Compare the pinned snapshot, including across in-flight reloads.
         if self
@@ -440,6 +447,8 @@ impl McpServer {
             "initialize" => {
                 self.registered_task = None;
                 self.source_history.clear();
+                self.global_instructions
+                    .initialize(params, crate::config::get().is_global_instructions_enabled);
                 // Echo the client's requested protocolVersion when we support it,
                 // otherwise fall back to our newest supported version (MCP negotiation).
                 const SUPPORTED_PROTOCOL_VERSIONS: &[&str] =

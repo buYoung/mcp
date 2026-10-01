@@ -28,6 +28,7 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
 | `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
+| `global_instructions` | User-global opt-in for a managed client instruction line; ignored in repo config |
 
 Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
@@ -62,6 +63,36 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 
 "Per key" means a repo file that sets only `[output.search].detail_file_limit` still inherits every other setting from the global file (if set there) or the default. Layers are not all-or-nothing.
 
+### Global instructions
+
+`[global_instructions].enabled` is a boolean, defaults to `false`, and is read **only from the global config**. Repo values warn and are ignored. Add the following to `~/.codemap/config.toml` or `$CODEMAP_HOME/config.toml`; no `clients` list is required:
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+On MCP initialization, the server matches the exact `clientInfo.name` and chooses the client's global instruction file using environment variables inherited by the server:
+
+| Client name | Default file | Overrides and existing-file precedence |
+|---|---|---|
+| `codex-mcp-client` | `~/.codex/AGENTS.md` | `CODEX_HOME`; a non-empty `AGENTS.override.md` takes precedence |
+| `claude-code` | `~/.claude/CLAUDE.md` | `CLAUDE_CONFIG_DIR` |
+| `pi` | `~/.pi/agent/AGENTS.md` | `PI_CODING_AGENT_DIR`; the first existing file among `AGENTS.override.md`, `AGENTS.md`, `AGENTS.MD`, `CLAUDE.md`, `CLAUDE.MD` wins |
+| `opencode` | `$XDG_CONFIG_HOME/opencode/AGENTS.md`, normally `~/.config/opencode/AGENTS.md` | `OPENCODE_CONFIG_DIR`; v1 uses an existing `~/.claude/CLAUDE.md` fallback when native AGENTS.md is absent and Claude prompts are enabled; v2 uses AGENTS.md |
+
+These paths follow the [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Claude Code](https://code.claude.com/docs/en/memory), [pi](https://pi.dev/docs/latest/configuration), and [OpenCode v1](https://dev.opencode.ai/docs/rules/) / [v2](https://opencode.ai/v2/docs/instructions/) instruction conventions. OpenCode's config-directory override follows its [global path implementation](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts). Unknown names are skipped. If an OpenCode fallback exists but its version is unavailable, selection is skipped rather than hiding that fallback.
+
+The server appends or updates exactly one line:
+
+```md
+- 코드 탐색에는 사용 가능한 codemap-search를 우선 사용하고, 먼저 `initial_instructions`를 호출해 반환된 지침을 따른다. <!-- codemap-search:managed -->
+```
+
+`global-instructions.json` in the codemap global directory records the actual paths and owned lines. `enabled = false` removes previously recorded lines across clients, without deleting the files or unmarked user instructions. Existing line endings, file permissions and symlinks are preserved. Existing managed markers without ownership records, edited managed lines and ambiguous duplicates are left unchanged with a warning. Concurrent codemap processes share a registry lock; file updates use atomic replacement and check for intervening edits. Read, write and lock failures warn on stderr and leave MCP available; reconnect to retry after resolving the cause.
+
+Synchronization runs on initialization and the next request after the config watcher reloads a changed toggle. Create a new agent session to load the updated instructions; modifying the file does not guarantee that the current session reloads it or that the agent calls the tool. Repo config templates, migrations and version markers do not manage this global-only preference.
+
 ### Credentials (`auth.toml`)
 
 Jev credentials are separate from behavior settings. Put the API key in `[jev].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Resolution is **repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable**. Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
@@ -78,7 +109,7 @@ Every file named `auth.toml` is excluded case-insensitively from indexing/search
 
 ## Loading and automatic writes
 
-The current configuration schema is **29**. The marker is a comment:
+The current **repository** configuration schema is **29**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
 
 ```toml
 # codemap-config-version: 29
@@ -173,6 +204,7 @@ MCP watches `config.toml` and `auth.toml` in the repo/global config directories 
 | `index.store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
+| `[global_instructions].enabled` (global-only) | MCP initialization or the next request after a reloaded toggle; new agent session to load the updated file |
 | `auth.toml` `[jev].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
 | `[output.client].claude_max_result_chars` | Final delivery limit after reload; reconnect MCP to refresh client metadata |
 | `[output.client].codex_output_token_limit` | Final delivery limit after reload; re-export/merge codex-config for the client |
@@ -188,6 +220,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 
 | Key | Type | Default | Summary |
 |---|---|---|---|
+| `[global_instructions].enabled` | bool | `false` | Global-only managed instruction line for the connected client; false removes previously recorded lines |
 | `[output].is_redact_enabled` | bool | `true` | Mask detected credentials and selected PII in MCP responses; matching and local indexes retain original data |
 | `[output].max_bytes` | integer bytes or size string | unset | Common MCP response ceiling; a same-layer tool override wins |
 | `[output.client].claude_max_result_chars` | integer characters, 1–500000 | `100000` | Claude tools/list metadata and final delivery limit (as bytes); reconnect required |

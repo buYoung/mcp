@@ -366,10 +366,9 @@ pub fn list_tools() -> Value {
             include_str!("instructions/tools/grep.evidence.md").trim_end(),
         )
     };
-    let search_description = if jev.is_enabled_for("search") {
-        include_str!("instructions/tools/search.jev.md")
-    } else {
-        include_str!("instructions/tools/search.md")
+    let search_description = match jev.is_enabled_for("search") {
+        true => include_str!("instructions/tools/search.jev.md"),
+        false => include_str!("instructions/tools/search.md"),
     }
     .trim_end();
     let overview_description = if jev.is_enabled_for("overview") {

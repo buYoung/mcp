@@ -3,7 +3,8 @@
 //! Resolution precedence is per-key `repo > global > default` (the scout pattern): a
 //! repo-local `<repo>/.codemap/config.toml` overrides a global `<global>/config.toml`
 //! overrides the compiled-in defaults. Credentials live in separate repo/global `auth.toml`
-//! files. The loader is **never-exit**: a missing file,
+//! files. `global_instructions.enabled` is global-only; repo values are ignored.
+//! The loader is **never-exit**: a missing file,
 //! parse error, unknown key, or type mismatch warns to stderr and falls back to the
 //! default for that key — it never panics or exits the process.
 //!
@@ -109,6 +110,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// pre-existing repo files pick the key up (as a localized commented block) on their next `mcp`
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
+/// This version belongs to repository config only; global files are not schema-synced.
 const CONFIG_VERSION: u32 = 29;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
@@ -160,6 +162,8 @@ pub struct ResolvedConfig {
     pub analysis_target_os: Option<String>,
     /// Whether `mcp` may create/sync repo config and create a missing auth template.
     pub config_auto_update: bool,
+    /// Global-only opt-in to maintain a line in the connected client's instruction file.
+    pub is_global_instructions_enabled: bool,
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
     /// Number of top-ranked files `search` renders as details before remaining matches
@@ -321,6 +325,7 @@ impl Default for ResolvedConfig {
             auth: AuthConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
+            is_global_instructions_enabled: false,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
             result_threshold: 24,
@@ -389,6 +394,7 @@ struct ConfigLayer {
     jev: jev::JevLayer,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
+    is_global_instructions_enabled: Option<bool>,
     index_path: Option<String>,
     result_threshold: Option<usize>,
     max_file_size: Option<u64>,
@@ -439,7 +445,15 @@ struct FilesystemPermissionsLayer {
 /// Load and resolve config from `repo_root` and an explicitly-injected `global_dir`.
 /// Pure (no globals, no env reads) so it is unit-testable with temp directories.
 pub fn load(repo_root: &Path, global_dir: &Path) -> ResolvedConfig {
-    let repo_layer = read_layer(&repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME));
+    let repo_path = repo_root.join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+    let repo_layer = read_layer(&repo_path);
+    if repo_layer.is_global_instructions_enabled.is_some() {
+        warn(&format!(
+            "config 'global_instructions.enabled' is global-only: {} — ignored; set it in {}",
+            repo_path.display(),
+            global_dir.join(CONFIG_FILE_NAME).display()
+        ));
+    }
     let global_layer = read_layer(&global_dir.join(CONFIG_FILE_NAME));
     let mut resolved = merge(repo_layer, global_layer);
     resolved.auth = auth::load(repo_root, global_dir);
@@ -500,6 +514,9 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
             }
             "redact" => layer.redact = redact::normalize(&value, path),
             "macro_expansion" => layer.macro_expansion = macro_expansion::normalize(&value, path),
+            "global_instructions" => {
+                layer.is_global_instructions_enabled = normalize_global_instructions(&value, path)
+            }
             "exclude" => exclude_value = Some(value),
             "update" | "index" | "refresh" | "search" | "tool_output" | "caller_context"
             | "language_support" | "analysis" => {
@@ -526,6 +543,28 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     }
     layout::normalize(&mut layer, &canonical, path);
     layer
+}
+
+fn normalize_global_instructions(value: &toml::Value, path: &Path) -> Option<bool> {
+    let Some(table) = value.as_table() else {
+        warn(&format!(
+            "config 'global_instructions' must be a table: {} — ignored",
+            path.display()
+        ));
+        return None;
+    };
+    let mut is_enabled = None;
+    for (key, value) in table {
+        if key == "enabled" {
+            is_enabled = as_bool(value, "global_instructions.enabled", path);
+        } else {
+            warn(&format!(
+                "unknown config key 'global_instructions.{key}': {} — ignored",
+                path.display()
+            ));
+        }
+    }
+    is_enabled
 }
 
 fn normalize_config_section(
@@ -853,6 +892,9 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .config_auto_update
             .or(global.config_auto_update)
             .unwrap_or(defaults.config_auto_update),
+        is_global_instructions_enabled: global
+            .is_global_instructions_enabled
+            .unwrap_or(defaults.is_global_instructions_enabled),
         index_path: repo
             .index_path
             .or(global.index_path)
@@ -1059,7 +1101,7 @@ fn merge_filesystem_permissions(
 
 /// Resolve the global config directory: `$CODEMAP_HOME`, else `~/.codemap`
 /// (`$HOME`/`$USERPROFILE`), else a bare `.codemap` as a last resort.
-fn global_dir() -> PathBuf {
+pub(crate) fn global_dir() -> PathBuf {
     if let Some(home) = std::env::var_os(HOME_ENV) {
         return PathBuf::from(home);
     }
