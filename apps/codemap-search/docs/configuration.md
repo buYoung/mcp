@@ -83,10 +83,10 @@ On MCP initialization, the server matches the exact `clientInfo.name` and choose
 
 These paths follow the [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Claude Code](https://code.claude.com/docs/en/memory), [pi](https://pi.dev/docs/latest/configuration), and [OpenCode v1](https://dev.opencode.ai/docs/rules/) / [v2](https://opencode.ai/v2/docs/instructions/) instruction conventions. OpenCode's config-directory override follows its [global path implementation](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts). Unknown names are skipped. If an OpenCode fallback exists but its version is unavailable, selection is skipped rather than hiding that fallback.
 
-The server appends or updates exactly one line:
+The server appends or updates exactly one line, always in English regardless of locale:
 
 ```md
-- 코드 탐색에는 사용 가능한 codemap-search를 우선 사용하고, 먼저 `initial_instructions`를 호출해 반환된 지침을 따른다. <!-- codemap-search:managed -->
+- Prefer codemap-search for code navigation when available. Call `initial_instructions` first and follow the returned guidance. <!-- codemap-search:managed -->
 ```
 
 `global-instructions.json` in the codemap global directory records the actual paths and owned lines. `enabled = false` removes previously recorded lines across clients, without deleting the files or unmarked user instructions. Existing line endings, file permissions and symlinks are preserved. Existing managed markers without ownership records, edited managed lines and ambiguous duplicates are left unchanged with a warning. Concurrent codemap processes share a registry lock; file updates use atomic replacement and check for intervening edits. Read, write and lock failures warn on stderr and leave MCP available; reconnect to retry after resolving the cause.
