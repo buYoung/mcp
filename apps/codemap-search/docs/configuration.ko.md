@@ -81,10 +81,10 @@ MCP 초기화 요청의 정확한 `clientInfo.name`과 서버가 상속한 환�
 
 경로와 우선순위는 [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Claude Code](https://code.claude.com/docs/en/memory), [pi](https://pi.dev/docs/latest/configuration), [OpenCode v1](https://dev.opencode.ai/docs/rules/)·[v2](https://opencode.ai/v2/docs/instructions/)의 지침 규칙을 따릅니다. OpenCode의 설정 디렉터리 변경은 [전역 경로 구현](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts)을 기준으로 합니다. 알 수 없는 이름은 건너뜁니다. OpenCode의 Claude 대체 파일이 있는데 버전을 확인할 수 없다면, 기존 지침이 가려지지 않도록 파일 선택을 건너뜁니다.
 
-추가·갱신하는 문구는 다음 한 줄입니다.
+추가·갱신하는 문구는 로캘과 관계없이 다음 영문 한 줄로 고정됩니다.
 
 ```md
-- 코드 탐색에는 사용 가능한 codemap-search를 우선 사용하고, 먼저 `initial_instructions`를 호출해 반환된 지침을 따른다. <!-- codemap-search:managed -->
+- Prefer codemap-search for code navigation when available. Call `initial_instructions` first and follow the returned guidance. <!-- codemap-search:managed -->
 ```
 
 codemap 전역 디렉터리의 `global-instructions.json`에 실제 적용 경로와 관리한 줄을 기록합니다. `enabled = false`는 클라이언트와 관계없이 이전에 기록한 줄을 제거하며, 파일 자체와 표식 없는 사용자 지침은 보존합니다. 기존 줄바꿈·파일 권한·심볼릭 링크도 유지합니다. 표식만 있고 기록이 없거나 관리 줄이 수정됐거나 같은 줄이 여러 곳에 있어 구분할 수 없으면 그대로 두고 경고합니다. 여러 codemap 프로세스는 적용 기록의 잠금을 공유하며, 파일은 원자적으로 교체하고 그 사이에 편집됐는지 확인합니다. 읽기·쓰기·잠금 실패는 stderr에 경고하고 MCP는 계속 동작합니다. 원인을 해결한 뒤 재연결하면 다시 시도합니다.

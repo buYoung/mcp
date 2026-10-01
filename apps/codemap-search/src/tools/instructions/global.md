@@ -1,1 +1,1 @@
-- 코드 탐색에는 사용 가능한 codemap-search를 우선 사용하고, 먼저 `initial_instructions`를 호출해 반환된 지침을 따른다. <!-- codemap-search:managed -->
+- Prefer codemap-search for code navigation when available. Call `initial_instructions` first and follow the returned guidance. <!-- codemap-search:managed -->
