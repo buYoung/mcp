@@ -302,8 +302,8 @@ fn filesystem_tool_description(
 
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
-/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`,
-/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled. Task registration
+/// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`.
+/// Read/grep/overview use `<name>.jev.md` when their Jev stage is enabled. Task registration
 /// has its own tool; `initial_instructions` has no arguments.
 /// Live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
@@ -366,12 +366,7 @@ pub fn list_tools() -> Value {
             include_str!("instructions/tools/grep.evidence.md").trim_end(),
         )
     };
-    let search_description = if jev.is_enabled_for("search") {
-        include_str!("instructions/tools/search.jev.md")
-    } else {
-        include_str!("instructions/tools/search.md")
-    }
-    .trim_end();
+    let search_description = include_str!("instructions/tools/search.md").trim_end();
     let overview_description = if jev.is_enabled_for("overview") {
         include_str!("instructions/tools/overview.jev.md")
     } else {

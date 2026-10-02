@@ -5,6 +5,7 @@ use std::time::Instant;
 
 const FILE_PATH: &str = "src/large_fixture.ts";
 const LINE_COUNT: usize = 10_000;
+const READ_WINDOW_LINES: usize = 500;
 
 struct SecretCase {
     line: usize,
@@ -131,19 +132,24 @@ async fn test_redact_ten_secrets_in_ten_thousand_line_file() {
     );
 
     let started = Instant::now();
-    // Explicit range exercises the original file beyond the default unbounded-read ceiling.
-    let response = call(
-        &mut client,
-        "read",
-        json!({"file_path":FILE_PATH, "offset":1, "limit":LINE_COUNT, "view":"source"}),
-    )
-    .await;
+    // Read every source line in windows that fit the default client delivery limit.
+    let mut output = String::new();
+    for offset in (1..=LINE_COUNT).step_by(READ_WINDOW_LINES) {
+        let response = call(
+            &mut client,
+            "read",
+            json!({"file_path":FILE_PATH, "offset":offset, "limit":READ_WINDOW_LINES, "view":"source"}),
+        )
+        .await;
+        assert_no_secrets(&response, &cases);
+        assert!(response["result"]["isError"] != true, "{}", text(&response));
+        output.push_str(text(&response));
+        output.push('\n');
+    }
     eprintln!(
-        "large redaction fixture: full read={}ms",
+        "large redaction fixture: source windows={}ms",
         started.elapsed().as_millis()
     );
-    assert_no_secrets(&response, &cases);
-    let output = text(&response);
     assert_eq!(
         output.lines().filter(|line| line.contains('→')).count(),
         LINE_COUNT
@@ -206,6 +212,15 @@ async fn test_redact_ten_secrets_in_ten_thousand_line_file() {
         );
         assert_no_secrets(&response, &cases);
         let output = text(&response);
+        if expand == "callable" {
+            // The single 10,000-line callable cannot fit the default client delivery limit.
+            assert_eq!(response["result"]["isError"], true, "{response}");
+            assert!(
+                output.contains("exceeds the output.client delivery limit of 100000 bytes"),
+                "{response}"
+            );
+            continue;
+        }
         for case in &cases {
             let line = source
                 .lines()

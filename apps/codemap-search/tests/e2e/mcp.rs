@@ -333,8 +333,8 @@ async fn test_mcp_branching_scope_view() {
 
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     // Branching format check: should contain actual code scopes/spans
-    assert!(text.contains("fn match_func"));
-    assert!(text.contains("println!"));
+    assert!(text.contains("fn match_func"), "{text}");
+    assert!(text.contains("println!"), "{text}");
 }
 
 #[tokio::test]
