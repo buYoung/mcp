@@ -1615,7 +1615,7 @@ const MIGRATIONS: &[Migration] = &[
 /// the presence guard (`jev`), so a file that already has the section is never touched.
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
+# Register the task with register_task(task_query, questions) before using an enabled filter.
 # Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
@@ -1637,7 +1637,7 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
 # search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false

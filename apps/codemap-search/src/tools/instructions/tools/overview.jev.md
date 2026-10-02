@@ -1,6 +1,6 @@
 Inspect an unfamiliar repository area or locate declaration ranges missing from other results. Use grep for a known identifier and read for a known file window. In monorepos, choosing a path also sets the scope of subsequent search calls.
 
-Root maps stay unfiltered and require no Jev judgment. Folder and file views use the registered task to filter declaration rows with source-backed evidence. Related and uncertain declarations stay visible; a kept container does not imply that all its members match. Folder file entries and directory maps remain available for navigation. Exact declaration ranges are shown in file views.
+Root maps stay unfiltered and require no task registration or Jev judgment; call overview with no arguments ({}) for the root. Before a filtered folder or file view, use register_task once for the current task. These views filter declaration rows with source-backed evidence. Related and uncertain declarations stay visible; a kept container does not imply that all its members match. Folder file entries and directory maps remain available for navigation. Exact declaration ranges are shown in file views.
 
 Filtering uses bounded, current source evidence for up to eight immediate files. Unverified or unjudged declarations remain visible. Source used for classification is not returned by overview and is not marked as delivered by duplicate filtering. Jev may use the external provider.
 

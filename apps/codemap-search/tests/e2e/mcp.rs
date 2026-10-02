@@ -950,10 +950,10 @@ export function dropMe(input: string): string {
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
             let missing = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
             assert_eq!(missing["result"]["isError"], true, "missing registration is not an opt-out");
-            let legacy = client.call("tools/call", json!({"name":"initial_instructions","arguments":{"task_query":TASK}})).await.unwrap();
+            let legacy = client.call("tools/call", json!({"name":"register_task","arguments":{"task_query":TASK}})).await.unwrap();
             assert_eq!(legacy["result"]["isError"], true, "text-only registration is rejected");
             client.register_task(TASK).await;
-            let invalid = client.call("tools/call", json!({"name":"initial_instructions","arguments":{"task_query":TASK,"questions":[]}})).await.unwrap();
+            let invalid = client.call("tools/call", json!({"name":"register_task","arguments":{"task_query":TASK,"questions":[]}})).await.unwrap();
             assert_eq!(invalid["result"]["isError"], true);
             let stale = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
             assert_eq!(stale["result"]["isError"], true, "invalid replacement clears the previous registration");
@@ -975,12 +975,15 @@ export function dropMe(input: string): string {
                     .clone()
             };
             let initial = tool("initial_instructions");
-            assert_eq!(initial["inputSchema"]["required"], json!(["task_query","questions"]));
-            assert_eq!(initial["inputSchema"]["properties"]["match"]["default"], "all");
+            assert_eq!(initial["inputSchema"]["required"], json!([]));
+            assert_eq!(initial["inputSchema"]["properties"], json!({}));
             let search_tool = tool("search");
             let initial_description = initial["description"].as_str().unwrap();
             assert!(initial_description.starts_with("Return shared navigation guidance"), "{initial_description}");
-            assert!(initial_description.contains("task_query") && initial_description.contains("questions"), "{initial_description}");
+            assert!(!initial_description.contains("task_query") && !initial_description.contains("questions"), "{initial_description}");
+            let registration = tool("register_task");
+            assert_eq!(registration["inputSchema"]["required"], json!(["task_query","questions"]));
+            assert_eq!(registration["inputSchema"]["properties"]["match"]["default"], "all");
             assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));

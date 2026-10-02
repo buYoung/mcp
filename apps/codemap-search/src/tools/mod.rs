@@ -258,7 +258,7 @@ pub fn instructions() -> String {
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
 pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
     if get_arg(arguments, "task_query").is_some() {
-        return Err((-32602, "task_query is not a per-tool option. Register the full task once with initial_instructions; enabled search/read/grep filters run automatically.".into()));
+        return Err((-32602, "task_query is not a per-tool option. Register the full task once with register_task; enabled search/read/grep filters run automatically.".into()));
     }
     Ok(())
 }
@@ -303,9 +303,9 @@ fn filesystem_tool_description(
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`,
-/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled. `initial_instructions`
-/// instead appends its `.jev.md` to the base prose when any Jev stage is enabled;
-/// live filesystem tools append their currently configured permission policy. Tool descriptions
+/// or from `<name>.jev.md` alone when that tool's Jev stage is enabled. Task registration
+/// has its own tool; `initial_instructions` has no arguments.
+/// Live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
 /// Shared option descriptions have one source here but remain on each independent tool schema.
 /// Cross-tool workflow and output interpretation live in [`instructions`].
@@ -404,24 +404,13 @@ pub fn list_tools() -> Value {
             );
         }
     }
-    let initial_description = if jev.is_any_enabled() {
-        format!(
-            "{}\n\n{}",
-            include_str!("instructions/tools/initial_instructions.md").trim_end(),
-            include_str!("instructions/tools/initial_instructions.jev.md").trim_end()
-        )
-    } else {
-        include_str!("instructions/tools/initial_instructions.md")
-            .trim_end()
-            .to_string()
-    };
     let mut result = serde_json::json!({
                 "tools": [
                     {
                         "name": "initial_instructions",
-                        "description": initial_description,
+                        "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": task::schema(jev.is_any_enabled())
+                        "inputSchema": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }
                     },
                     {
                         "name": "overview",
@@ -519,6 +508,16 @@ pub fn list_tools() -> Value {
                     }
                 ]
     });
+    // Clients may cache the tool list; configuration reloads must not hide registration.
+    result["tools"].as_array_mut().unwrap().insert(
+        1,
+        serde_json::json!({
+            "name": "register_task",
+            "description": include_str!("instructions/tools/register_task.md").trim_end(),
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
+            "inputSchema": task::schema()
+        }),
+    );
     result["tools"]
         .as_array_mut()
         .unwrap()
