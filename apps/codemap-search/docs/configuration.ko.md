@@ -28,6 +28,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
 | `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
+| `global_instructions` | 클라이언트 전역 지침 한 줄 관리. 사용자 전역 전용이며 저장소 값은 무시 |
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
@@ -60,6 +61,36 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 | 저장소 | `<repo>/.codemap/config.toml` |
 | 전역 | `$CODEMAP_HOME/config.toml`, 미지정 시 `~/.codemap/config.toml` |
 
+### 전역 지침
+
+`[global_instructions].enabled`는 불리언이며 기본값은 `false`입니다. **사용자 전역 설정에서만 읽고**, 저장소 값은 경고 후 무시합니다. `~/.codemap/config.toml` 또는 `$CODEMAP_HOME/config.toml`에 다음을 추가하세요. `clients` 목록은 필요 없습니다.
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+MCP 초기화 요청의 정확한 `clientInfo.name`과 서버가 상속한 환경 변수로 전역 지침 파일을 선택합니다.
+
+| 클라이언트 이름 | 기본 파일 | 경로 변경과 기존 파일 우선순위 |
+|---|---|---|
+| `codex-mcp-client` | `~/.codex/AGENTS.md` | `CODEX_HOME`. 내용이 있는 `AGENTS.override.md`가 우선 |
+| `claude-code` | `~/.claude/CLAUDE.md` | `CLAUDE_CONFIG_DIR` |
+| `pi` | `~/.pi/agent/AGENTS.md` | `PI_CODING_AGENT_DIR`. `AGENTS.override.md`, `AGENTS.md`, `AGENTS.MD`, `CLAUDE.md`, `CLAUDE.MD` 중 처음 존재하는 파일 |
+| `opencode` | `$XDG_CONFIG_HOME/opencode/AGENTS.md`, 보통 `~/.config/opencode/AGENTS.md` | `OPENCODE_CONFIG_DIR`. v1은 자체 AGENTS.md가 없고 Claude 지침이 켜져 있으면 기존 `~/.claude/CLAUDE.md`를 사용. v2는 AGENTS.md 사용 |
+
+경로와 우선순위는 [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Claude Code](https://code.claude.com/docs/en/memory), [pi](https://pi.dev/docs/latest/configuration), [OpenCode v1](https://dev.opencode.ai/docs/rules/)·[v2](https://opencode.ai/v2/docs/instructions/)의 지침 규칙을 따릅니다. OpenCode의 설정 디렉터리 변경은 [전역 경로 구현](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/global.ts)을 기준으로 합니다. 알 수 없는 이름은 건너뜁니다. OpenCode의 Claude 대체 파일이 있는데 버전을 확인할 수 없다면, 기존 지침이 가려지지 않도록 파일 선택을 건너뜁니다.
+
+추가·갱신하는 문구는 로캘과 관계없이 다음 영문 한 줄로 고정됩니다.
+
+```md
+- Prefer codemap-search for code navigation when available. Call `initial_instructions` first and follow the returned guidance. <!-- codemap-search:managed -->
+```
+
+codemap 전역 디렉터리의 `global-instructions.json`에 실제 적용 경로와 관리한 줄을 기록합니다. `enabled = false`는 클라이언트와 관계없이 이전에 기록한 줄을 제거하며, 파일 자체와 표식 없는 사용자 지침은 보존합니다. 기존 줄바꿈·파일 권한·심볼릭 링크도 유지합니다. 표식만 있고 기록이 없거나 관리 줄이 수정됐거나 같은 줄이 여러 곳에 있어 구분할 수 없으면 그대로 두고 경고합니다. 여러 codemap 프로세스는 적용 기록의 잠금을 공유하며, 파일은 원자적으로 교체하고 그 사이에 편집됐는지 확인합니다. 읽기·쓰기·잠금 실패는 stderr에 경고하고 MCP는 계속 동작합니다. 원인을 해결한 뒤 재연결하면 다시 시도합니다.
+
+초기화 시 또는 설정 감시자가 활성화 값의 변경을 다시 읽은 뒤 다음 요청에서 동기화합니다. 새 에이전트 세션을 시작해야 변경된 지침을 읽을 수 있습니다. 현재 세션의 재읽기나 도구 호출을 보장하지 않습니다. 이 전역 전용 설정은 로컬 설정 템플릿·전환·버전 표식의 관리 대상이 아닙니다.
+
 ### 인증정보 (`auth.toml`)
 
 Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수**입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
@@ -80,7 +111,7 @@ api_key = "<발급받은 키>"
 
 버전 29는 네 `*_filter_enabled` 설정을 `enabled`와 `scope`로 바꿉니다. 기존 저장소의 활성 설정은 전역에서 상속한 도구별 선택까지 포함해 현재 적용 중인 조합으로 한 번 변환합니다. 변환 이후 명시된 scope 목록은 전역 목록을 대체합니다. 갱신하지 않은 파일의 옛 설정은 호환용으로만 읽으며 같은 파일에서는 새 설정이 우선합니다. 옛 스위치의 주석 예시는 제거합니다. 기존 파일에서 생략한 새 설정은 계속 상속하며, 새 템플릿은 `enabled=false`를 포함한 모든 Jev 기본값을 주석 해제 상태로 제공합니다.
 
-현재 설정 버전은 **29**이며 주석으로 표시합니다.
+현재 **로컬 설정** 버전은 **29**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
 
 ```toml
 # codemap-config-version: 29
@@ -172,6 +203,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
 | `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
+| `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
 | `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
@@ -187,6 +219,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 | 키 | 자료형 | 기본값 | 설명 |
 |---|---|---|---|
+| `[global_instructions].enabled` | bool | `false` | 사용자 전역 전용. 연결 클라이언트의 지침 한 줄 관리, false이면 이전 기록의 줄 제거 |
 | `[output].is_redact_enabled` | bool | `true` | MCP 응답의 탐지된 인증정보와 선택한 PII를 가림. 검색 일치와 로컬 색인은 원문 유지 |
 | `[output].max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | 공통 MCP 응답 한도. 도구별 예외가 같은 계층에서 우선 |
 | `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | `100000` | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
