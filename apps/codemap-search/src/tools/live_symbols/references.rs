@@ -344,6 +344,11 @@ pub(super) fn collect_with_resolver(
     source: &str,
     resolver: Option<&crate::callers::resolution::SourceResolver<'_>>,
 ) -> BTreeMap<usize, Vec<String>> {
+    // Only selected callables consume these bindings. Markup and declaration-only
+    // windows must not scan every symbol and redact the full file for an empty result.
+    if !selected.iter().any(|&index| callable(&file.symbols[index])) {
+        return BTreeMap::new();
+    }
     let redaction = crate::redact::SourceScan::with_tree(source, tree);
     let mut definitions: HashMap<&str, Vec<_>> = HashMap::new();
     let language = crate::lang::spec_for_path(std::path::Path::new(&file.file_path))

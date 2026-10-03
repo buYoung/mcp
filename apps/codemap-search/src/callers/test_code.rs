@@ -5,6 +5,7 @@ use crate::config::TestCodeRules;
 use crate::parser::{CodeRange, ExtractedFile};
 use globset::{GlobBuilder, GlobMatcher};
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -68,6 +69,11 @@ pub(crate) struct TestCodeFilter {
     root: PathBuf,
     should_include: bool,
     max_file_size_bytes: u64,
+    compiled: Arc<CompiledTestCodeRules>,
+}
+
+#[derive(Clone)]
+struct CompiledTestCodeRules {
     rules: TestCodeRules,
     rules_hash: u64,
     file_patterns: Vec<(GlobMatcher, bool)>,
@@ -75,6 +81,13 @@ pub(crate) struct TestCodeFilter {
     decorators: BTreeMap<String, Vec<GlobMatcher>>,
     calls: BTreeMap<String, Vec<GlobMatcher>>,
     marker_prefilters: BTreeMap<String, Option<regex::bytes::Regex>>,
+}
+
+thread_local! {
+    // One immutable rule set per thread, shared by all filters on that thread.
+    // Compare complete rules so reloads remain correct without hash collisions;
+    // workspace paths and other config options always stay on each filter.
+    static COMPILED_RULES: RefCell<Option<Arc<CompiledTestCodeRules>>> = const { RefCell::new(None) };
 }
 
 fn marker_prefilter(patterns: &[&str], language: &str) -> Option<regex::bytes::Regex> {
@@ -147,22 +160,11 @@ fn compile_languages(
         .collect()
 }
 
-impl TestCodeFilter {
-    pub(crate) fn including_tests(root: &Path) -> Self {
-        let mut filter = Self::from_config(root);
-        filter.should_include = true;
-        filter
-    }
-
-    pub(crate) fn from_config(root: &Path) -> Self {
-        let cfg = crate::config::get();
-        let rules = cfg.test_code_rules.clone();
+impl CompiledTestCodeRules {
+    fn new(rules: &TestCodeRules) -> Self {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         rules.hash(&mut hasher);
         Self {
-            root: root.to_path_buf(),
-            should_include: cfg.should_include_test_code,
-            max_file_size_bytes: cfg.max_file_size,
             rules_hash: hasher.finish(),
             file_patterns: rules
                 .file_patterns
@@ -181,17 +183,50 @@ impl TestCodeFilter {
             attributes: compile_languages(&rules.attributes),
             decorators: compile_languages(&rules.decorators),
             calls: compile_languages(&rules.calls),
-            marker_prefilters: compile_marker_prefilters(&rules),
-            rules,
+            marker_prefilters: compile_marker_prefilters(rules),
+            rules: rules.clone(),
+        }
+    }
+
+    fn shared(rules: &TestCodeRules) -> Arc<Self> {
+        COMPILED_RULES.with(|slot| {
+            let mut cached = slot.borrow_mut();
+            if let Some(compiled) = cached.as_ref().filter(|compiled| compiled.rules == *rules) {
+                return Arc::clone(compiled);
+            }
+            let compiled = Arc::new(Self::new(rules));
+            *cached = Some(Arc::clone(&compiled));
+            compiled
+        })
+    }
+}
+
+impl TestCodeFilter {
+    pub(crate) fn including_tests(root: &Path) -> Self {
+        let mut filter = Self::from_config(root);
+        filter.should_include = true;
+        filter
+    }
+
+    pub(crate) fn from_config(root: &Path) -> Self {
+        let cfg = crate::config::get();
+        Self {
+            root: root.to_path_buf(),
+            should_include: cfg.should_include_test_code,
+            max_file_size_bytes: cfg.max_file_size,
+            compiled: CompiledTestCodeRules::shared(&cfg.test_code_rules),
         }
     }
 
     fn is_test_file(&self, file_path: &str) -> bool {
         let normalized = file_path.replace('\\', "/");
         let name = normalized.rsplit('/').next().unwrap_or(&normalized);
-        self.file_patterns.iter().any(|(pattern, is_basename)| {
-            pattern.is_match(if *is_basename { name } else { &normalized })
-        })
+        self.compiled
+            .file_patterns
+            .iter()
+            .any(|(pattern, is_basename)| {
+                pattern.is_match(if *is_basename { name } else { &normalized })
+            })
     }
 
     pub(crate) fn is_file_excluded(&self, file_path: &str) -> bool {
@@ -219,9 +254,17 @@ impl TestCodeFilter {
             return Arc::new(Vec::new());
         };
         let language = spec.language_name();
-        if self.attributes.get(language).is_none_or(Vec::is_empty)
-            && self.decorators.get(language).is_none_or(Vec::is_empty)
-            && self.calls.get(language).is_none_or(Vec::is_empty)
+        if self
+            .compiled
+            .attributes
+            .get(language)
+            .is_none_or(Vec::is_empty)
+            && self
+                .compiled
+                .decorators
+                .get(language)
+                .is_none_or(Vec::is_empty)
+            && self.compiled.calls.get(language).is_none_or(Vec::is_empty)
         {
             return Arc::new(Vec::new());
         }
@@ -237,7 +280,7 @@ impl TestCodeFilter {
             if let Some(entry) = cache.entries.get(&path) {
                 if entry.modified == modified
                     && entry.size_bytes == metadata.len()
-                    && entry.rules_hash == self.rules_hash
+                    && entry.rules_hash == self.compiled.rules_hash
                 {
                     return Arc::clone(&entry.regions);
                 }
@@ -247,6 +290,7 @@ impl TestCodeFilter {
             return Arc::new(Vec::new());
         };
         let may_have_marker = self
+            .compiled
             .marker_prefilters
             .get(language)
             .and_then(Option::as_ref)
@@ -264,7 +308,7 @@ impl TestCodeFilter {
                 CacheEntry {
                     modified,
                     size_bytes: metadata.len(),
-                    rules_hash: self.rules_hash,
+                    rules_hash: self.compiled.rules_hash,
                     regions: Arc::clone(&regions),
                 },
             );
@@ -350,6 +394,7 @@ impl TestCodeFilter {
                 .strip_suffix(']')?
                 .trim();
             let is_cfg_test = self
+                .compiled
                 .rules
                 .attributes
                 .get(language)
@@ -357,7 +402,8 @@ impl TestCodeFilter {
                 && is_test_only_cfg(attribute);
             let name = marker_name(attribute);
             if is_cfg_test
-                || (name != "cfg" && has_matching_test_marker(&self.attributes, language, name))
+                || (name != "cfg"
+                    && has_matching_test_marker(&self.compiled.attributes, language, name))
             {
                 if kind == "inner_attribute_item" {
                     return declaration_parent(node).or_else(|| node.parent());
@@ -376,7 +422,7 @@ impl TestCodeFilter {
             }
         } else if kind == "decorator" {
             let text = node.utf8_text(source).ok()?.trim().trim_start_matches('@');
-            if has_matching_test_marker(&self.decorators, language, marker_name(text)) {
+            if has_matching_test_marker(&self.compiled.decorators, language, marker_name(text)) {
                 return declaration_parent(node);
             }
         } else if matches!(
@@ -388,7 +434,7 @@ impl TestCodeFilter {
                 | "attribute"
         ) {
             let text = node.utf8_text(source).ok()?.trim().trim_start_matches('@');
-            if has_matching_test_marker(&self.attributes, language, marker_name(text)) {
+            if has_matching_test_marker(&self.compiled.attributes, language, marker_name(text)) {
                 return declaration_parent(node);
             }
         } else if matches!(kind, "call_expression" | "call" | "method_call" | "command") {
@@ -398,7 +444,7 @@ impl TestCodeFilter {
                 .or_else(|| node.child_by_field_name("name"))
                 .or_else(|| node.named_child(0))?;
             let name = marker_name(function.utf8_text(source).ok()?.trim());
-            if has_matching_test_name(&self.calls, language, name) {
+            if has_matching_test_name(&self.compiled.calls, language, name) {
                 return Some(node);
             }
         }
@@ -641,7 +687,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let mut filter = TestCodeFilter::from_config(root.path());
         filter.should_include = false;
-        filter.file_patterns.clear();
+        Arc::make_mut(&mut filter.compiled).file_patterns.clear();
         std::fs::write(root.path().join("commands.ps1"), b"$text = 'Describe demo {}'\n# It 'comment' {}\nfunction Visible {}\nDescribe 'real' { function Hidden {} }\n").unwrap();
         let regions = filter.regions("commands.ps1");
         assert_eq!(regions.len(), 1);

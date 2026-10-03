@@ -259,6 +259,11 @@ pub(crate) fn live_signature(
     source: &str,
     is_go: bool,
 ) -> String {
+    // Other declaration kinds render only their indexed name. Avoid a tree lookup
+    // for every HTML tag or container when no syntax can change that signature.
+    if !(is_go && callable(s)) && !matches!(s.kind.as_str(), "field" | "variable" | "const") {
+        return s.name.clone();
+    }
     let Some(node) = tree.and_then(|t| symbol_node(t, s, source)) else {
         return s.name.clone();
     };
