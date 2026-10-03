@@ -120,17 +120,17 @@ impl McpClient {
 
     /// Send a JSON-RPC request and wait for the response. For `tools/call`, transparently
     /// poll through the initial background-index warm-up: the server answers immediately
-    /// while indexing, tagging search/overview output as "warming up", and tests want the
-    /// post-index result. Other methods return on the first response.
-    pub async fn send_request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+    /// while indexing, and tests using symbol context want the post-index result.
+    /// Other methods return on the first response.
+    pub async fn send_request(&mut self, method: &str, mut params: Value) -> Result<Value, String> {
         let start = Instant::now();
         loop {
             let response = self.send_request_once(method, params.clone()).await?;
             if method == "tools/call"
-                && (response_is_warming(&response)
-                    || overview_response_is_waiting_for_index(&params, &response))
+                && response_is_waiting_for_index(&params, &response)
                 && start.elapsed() < Duration::from_secs(10)
             {
+                restore_source_on_retry(&mut params);
                 sleep(Duration::from_millis(50)).await;
                 continue;
             }
@@ -228,26 +228,39 @@ impl Drop for McpClient {
     }
 }
 
-/// True when a `tools/call` response carries the search/overview warm-up notice, i.e. the
-/// initial background index is still building.
-fn response_is_warming(response: &Value) -> bool {
-    response
-        .get("result")
-        .and_then(|r| r.get("content"))
-        .and_then(|c| c.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|item| item.get("text"))
-        .and_then(|t| t.as_str())
-        .is_some_and(|text| text.contains("warming up"))
+/// read/grep use a different notice from search/overview during initial indexing.
+/// Persistent index failures still return unchanged after the bounded retry window.
+fn response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
+    let text = response_text(response);
+    text.contains("warming up")
+        || (matches!(params["name"].as_str(), Some("read" | "grep"))
+            && text.lines().any(|line| {
+                line == "[Symbol index unavailable or stale; live results remain available below.]"
+            }))
+        || (params["name"] == "overview"
+            && response["result"]["isError"] == true
+            && text.contains("is not in the codemap"))
 }
 
-/// A contended initial pass can finish without publishing a file snapshot, while the request
-/// itself queues the next refresh. Retry only this overview-specific transient; ordinary tool
-/// errors and genuinely unsupported files still surface after the same bounded window.
-fn overview_response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
-    params.get("name").and_then(Value::as_str) == Some("overview")
-        && response["result"]["isError"] == true
-        && response_text(response).contains("is not in the codemap")
+fn restore_source_on_retry(params: &mut Value) {
+    // Discarded warm-up responses still enter delivery history. Preserve explicit
+    // caller choices, including supported key aliases, when restoring their source.
+    let is_source_tool = matches!(params["name"].as_str(), Some("search" | "read" | "grep"));
+    if let Some(arguments) = params
+        .get_mut("arguments")
+        .and_then(Value::as_object_mut)
+        .filter(|arguments| {
+            is_source_tool
+                && !arguments.keys().any(|key| {
+                    key.chars()
+                        .filter(|c| *c != '_' && *c != '-')
+                        .flat_map(char::to_lowercase)
+                        .eq("includeseen".chars())
+                })
+        })
+    {
+        arguments.insert("include_seen".into(), Value::Bool(true));
+    }
 }
 
 // --- In-process server for offline Jev scenarios ---------------------------------------
@@ -278,7 +291,7 @@ impl InProcessClient {
             .call(
                 "tools/call",
                 serde_json::json!({
-                    "name": "initial_instructions", "arguments": { "task_query": task, "questions": [
+                    "name": "register_task", "arguments": { "task_query": task, "questions": [
                         {"id":"budget", "question":"Does this function implement or concretely support the requested output-budget behavior?", "when_true":"It computes, reserves, caps, renders or passes the requested output budget.", "when_false":"Supplied code establishes a separate behavior with no concrete budget role."},
                         {"id":"flow", "question":"Does the same function participate in the requested output-budget flow?", "when_true":"The body or supplied call evidence connects it to that output-budget flow.", "when_false":"Supplied evidence establishes an unrelated flow; missing links alone are uncertain."}
                     ], "match":"all" }
@@ -363,16 +376,16 @@ impl InProcessClient {
     }
 
     /// One round trip; `tools/call` polls through the initial index warm-up like `McpClient`.
-    pub async fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
+    pub async fn call(&mut self, method: &str, mut params: Value) -> Result<Value, String> {
         let start = Instant::now();
         loop {
             self.send(method, params.clone()).await?;
             let response = self.receive().await?;
             if method == "tools/call"
-                && (response_is_warming(&response)
-                    || overview_response_is_waiting_for_index(&params, &response))
+                && response_is_waiting_for_index(&params, &response)
                 && start.elapsed() < Duration::from_secs(10)
             {
+                restore_source_on_retry(&mut params);
                 sleep(Duration::from_millis(50)).await;
                 continue;
             }

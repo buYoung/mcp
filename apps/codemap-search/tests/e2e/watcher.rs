@@ -7,7 +7,7 @@
 //! The `watch = false` test inverts this: a tiny staleness window and a disabled watcher
 //! must reproduce the pre-watcher request-triggered behavior exactly.
 
-use crate::e2e::helpers::{create_mock_repo, McpClient};
+use crate::e2e::helpers::{create_mock_repo, response_text, McpClient};
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
@@ -709,7 +709,7 @@ async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delet
         .unwrap();
     let_seeded_refresh_settle().await;
 
-    for (path, created_source, created_symbol, updated_source, updated_symbol) in [
+    let cases = [
         (
             "watch.rs",
             "pub struct WatchCreatedRust;\n",
@@ -864,10 +864,14 @@ async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delet
             "function WatchUpdatedModule {}\n",
             "WatchUpdatedModule",
         ),
-    ] {
-        let file = temp.path().join(path);
-        fs::write(&file, created_source).unwrap();
-        client
+    ];
+    // Coalesce events per lifecycle stage, as in the format watcher fixture below.
+    // Verify every created file before any modification, and every update before deletion.
+    for &(path, created_source, _, _, _) in &cases {
+        fs::write(temp.path().join(path), created_source).unwrap();
+    }
+    for &(path, _, created_symbol, _, _) in &cases {
+        let created = client
             .send_tool_until(
                 "search",
                 serde_json::json!({ "query": created_symbol }),
@@ -875,9 +879,16 @@ async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delet
             )
             .await
             .unwrap();
-
-        fs::write(&file, updated_source).unwrap();
-        client
+        assert!(
+            response_text(&created).contains(path),
+            "watcher did not index created {path}: {created}"
+        );
+    }
+    for &(path, _, _, updated_source, _) in &cases {
+        fs::write(temp.path().join(path), updated_source).unwrap();
+    }
+    for &(path, _, _, _, updated_symbol) in &cases {
+        let updated = client
             .send_tool_until(
                 "search",
                 serde_json::json!({ "query": updated_symbol }),
@@ -885,22 +896,26 @@ async fn test_watcher_refreshes_programming_languages_on_create_modify_and_delet
             )
             .await
             .unwrap();
-
-        fs::remove_file(&file).unwrap();
+        assert!(
+            response_text(&updated).contains(path),
+            "watcher did not index updated {path}: {updated}"
+        );
+    }
+    for &(path, _, _, _, _) in &cases {
+        fs::remove_file(temp.path().join(path)).unwrap();
+    }
+    for &(path, _, _, _, updated_symbol) in &cases {
         let removed = client
             .send_tool_until(
                 "search",
                 serde_json::json!({ "query": updated_symbol }),
-                |text| !text.contains(path),
+                |text| text.starts_with("No indexed matches"),
             )
             .await
             .unwrap();
         assert!(
-            !removed["result"]["content"][0]["text"]
-                .as_str()
-                .unwrap()
-                .contains(path),
-            "{path} should be removed from the watcher index"
+            response_text(&removed).starts_with("No indexed matches"),
+            "watcher retained deleted {path}: {removed}"
         );
     }
 }

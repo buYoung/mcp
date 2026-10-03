@@ -40,6 +40,6 @@ pub(crate) fn validate(arguments: &Value) -> Result<(), (i64, String)> {
         .join(", ");
     let more = if unsupported.len() > 8 { ", …" } else { "" };
     Err((-32602, format!(
-        "Unsupported search arguments: {names}{more}. Register task_query once with initial_instructions, not search. Supported: query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
+        "Unsupported search arguments: {names}{more}. Register task_query once with register_task, not search. Supported: query, caller_context, language_hint, extension_hint, debug, include_events, event_key, workspace_scope (alias: scope). Use a workspace_scope listed by root overview to restrict search; path and per-request limit are not supported."
     )))
 }

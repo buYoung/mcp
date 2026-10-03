@@ -640,7 +640,7 @@ exceptions = []
 
 [output.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
 
@@ -878,11 +878,13 @@ search_filter_min_unrelated_probability = 0.70
 export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에 읽는 대체값이며 auth.toml로 복사하지 않습니다
 ```
 
-Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
+Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
 
 ### 작업 질문 등록
 
-Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `initial_instructions`로 한 번 등록합니다. `task_query`와 `questions`가 필수이며, 기존 텍스트만 등록하는 방식은 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. Jev가 꺼져 있으면 `initial_instructions({})`를 그대로 사용할 수 있습니다.
+`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않고 기존 등록을 유지합니다.
+
+주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않습니다. 설정을 다시 불러와도 도구는 계속 제공하며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
 
 ```json
 {
@@ -907,7 +909,7 @@ Jev 필터가 하나라도 켜져 있으면 주 에이전트가 사용자의 작
 
 등록은 연결 안에서 원자적으로 교체합니다. 잘못된 교체는 이전 작업을 지우며 `initialize`도 초기화합니다. 질문 생성용 별도 서비스를 호출하지 않습니다. 등록 누락은 인수 오류이고 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 공통 중복 제거는 그 뒤에 독립적으로 적용됩니다.
 
-켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. 루트 overview·find·analyze는 Jev를 호출하지 않습니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
+켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. `initial_instructions`·루트 overview·find·analyze는 Jev를 호출하지 않습니다. `register_task`도 로컬로 동작합니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
 
 ### 질문 판단과 근거
 

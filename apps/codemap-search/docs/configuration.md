@@ -640,7 +640,7 @@ exceptions = []
 
 [output.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
+# Register the task with register_task(task_query, questions) before using an enabled filter.
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # If neither auth file supplies a key, TYPESAFE_API_KEY is used.
 
@@ -877,11 +877,13 @@ Store the key separately in [`auth.toml`](#credentials-authtoml). Existing envir
 export TYPESAFE_API_KEY="<your key>"   # request-time fallback; never copied into auth.toml
 ```
 
-Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `overview`, `search`, `read` and `grep`, defaults to all four, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. Root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `overview`, `search`, `read` and `grep`, defaults to all four, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
 
 ### Task registration
 
-When any Jev filter is enabled, the main agent derives focused yes/no questions from the user's task and registers them once through `initial_instructions`. A valid registration requires `task_query` and `questions`; legacy text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. With Jev disabled, `initial_instructions({})` remains valid.
+`initial_instructions({})`, `find` and root `overview` require no task registration, regardless of Jev settings. `initial_instructions` takes no arguments and preserves the current registration.
+
+Before using an enabled Jev filter, the main agent derives focused yes/no questions from the user's task and registers them once through `register_task`. Registration is unnecessary while Jev is disabled. The tool remains available across configuration reloads, and a pre-registered task can be used after enabling a filter. A valid registration requires `task_query` and `questions`; text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. Clients that previously registered through `initial_instructions` must switch to `register_task`. The following object is the input to `register_task`:
 
 ```json
 {
@@ -906,7 +908,7 @@ When any Jev filter is enabled, the main agent derives focused yes/no questions 
 
 Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
 
-Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. Root overview, find and analyze do not invoke Jev. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
+Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. `initial_instructions`, root overview, find and analyze do not invoke Jev. `register_task` also remains local. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 

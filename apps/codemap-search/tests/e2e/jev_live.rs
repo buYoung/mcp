@@ -526,7 +526,7 @@ async fn enabled_scope_schema_reload_and_threshold_reach_live_consumers() {
             let missing = client
                 .call(
                     "tools/call",
-                    json!({"name":"initial_instructions","arguments":{"task_query":" "}}),
+                    json!({"name":"register_task","arguments":{"task_query":" "}}),
                 )
                 .await
                 .unwrap();

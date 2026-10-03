@@ -48,7 +48,7 @@ fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String
     let cap = match name {
         "overview" => config.overview_output_byte_cap,
         "grep" => config.grep_response_byte_cap,
-        "find" | "initial_instructions" | "analyze" => config.output_byte_cap,
+        "find" | "initial_instructions" | "register_task" | "analyze" => config.output_byte_cap,
         _ => None,
     };
     let Some(cap) = cap else { return Ok(()) };
@@ -120,7 +120,7 @@ pub struct McpServer {
     pending_source_files: Vec<crate::analyze::FileObservation>,
     source_history: source_history::SourceHistory,
     source_history_config: Option<std::sync::Arc<crate::config::ResolvedConfig>>,
-    // Task context is connection-local, registered once through initial_instructions.
+    // Task context is connection-local, registered separately through register_task.
     // Credentials/evaluator remain separate and are resolved only for enabled stages.
     registered_task: Option<crate::tools::task::RegisteredTask>,
     global_instructions: global_instructions::GlobalInstructions,
@@ -582,15 +582,20 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    "initial_instructions" => {
+                    "register_task" => {
                         // A new registration replaces the old task; an invalid registration
                         // must not leave a previous task active for subsequent filtering.
                         self.registered_task = None;
                         self.source_history.clear();
-                        self.registered_task = crate::tools::task::parse(
-                            arguments,
-                            crate::config::get().jev.is_any_enabled(),
-                        )?;
+                        self.registered_task = Some(crate::tools::task::parse(arguments)?);
+                        Ok(serde_json::json!({
+                            "content": [{ "type": "text", "text": "Jev task registered. Enabled filters reuse these criteria; register again when the user's task changes." }]
+                        }))
+                    }
+                    "initial_instructions" => {
+                        if !arguments.as_object().is_some_and(|args| args.is_empty()) {
+                            return Err((-32602, "initial_instructions takes no arguments. Call it with {}. Use register_task for Jev task context.".into()));
+                        }
                         let text = if crate::codemap::looks_like_monorepo_workspace() {
                             // Match `overview` lifecycle behavior so the initial response can
                             // include the same root scope selection without a second MCP call.
