@@ -29,8 +29,8 @@
   },
   "files": {
     "README.md": {
-      "sha256": "0cf11af50c2760d3a3cd44d29c8d6bf2615b0dfb92484a6601bab3f3a72232e4",
-      "bytes": 10795
+      "sha256": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
+      "bytes": 11114
     },
     "dataset.json": {
       "sha256": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -130,5 +130,11 @@
     ],
     "grading": "인용 부족과 검증 불가를 구분하고 사실·차원별 판정, 핵심/확장 분리, 비채점 참고 사항의 역할을 명시했다.",
     "are_solver_questions_unchanged": true
+  },
+  "documentation_update": {
+    "date": "2026-10-03",
+    "reason": "이전 벤치마크 제거에 따른 현재 준비 안내와 링크 갱신",
+    "previous_manifest_sha256": "f477a2ebea472c2cd46a9ef739ab181b30fdd522e92a27632799d1a47f94216b",
+    "question_evidence_grading_bytes_changed": false
   }
 }

@@ -1,4 +1,4 @@
-"""Offline regression checks. All Codex executions use an isolated local substitute."""
+"""Existing offline execution checks; every Codex invocation uses a local substitute."""
 from __future__ import annotations
 
 import copy
@@ -13,11 +13,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from . import evaluate, execution, grading_support, resources, settings
-from .v2 import runner
-from .v2.checks import example_question
-from .v2.core import SPEC, ContractError, digest, file_digest, read_json, write_json
-from .v2.transport import BASELINE_TOOLS, Relay
+from . import grading_support, resources, runner, settings
+from .core import ContractError, read_jsonl, write_json
+from .responses import source_lines, text_result
+from .usage import usage_metrics
 
 
 FAKE_CODEX = r'''#!/usr/bin/env python3
@@ -65,24 +64,20 @@ if 'FIXTURE_DRAIN' in prompt:
     record('late-completion',2)
     usage={key:value*2 for key,value in usage.items()}
     answer='제한 이후의 답변'
-if '--output-schema' in args:
-    # The test-only substitute reads private controls to produce deterministic codec results.
-    batch = folder.parent
-    registry=json.loads((batch/'registry.json').read_text())
-    judgments=[]
-    for ident,item in registry.items():
-        if item['control']:
-            value=item['expected']
-            value.update(answer_id=ident,question_id=item['question_id'])
-            for part in value['facts']+value['major_errors']:
-                quote=part.pop('answer_quote')
-                part['answer_unit_id']='none' if not quote else next(u['id'] for u in item['units'] if quote in u['text'])
-            judgments.append(value)
-    answer=json.dumps({'judgments':judgments})
 row({'type':'response_item','payload':{'role':'assistant','phase':'final_answer','content':[{'type':'output_text','text':answer}]}})
 row({'type':'event_msg','payload':{'type':'task_complete'}})
 print(json.dumps({'type':'turn.completed','usage':usage}),flush=True)
 '''
+
+
+
+def fixture_usage(input_tokens=100, output_tokens=20, cached_input_tokens=30):
+    usage = {"input_tokens": input_tokens, "output_tokens": output_tokens, "cached_input_tokens": cached_input_tokens,
+             "total_tokens": input_tokens + output_tokens}
+    return [{"type": "token_usage_record", "payload": {"response_id": "r1", "usage": usage,
+             "turn_id": "t1", "thread_id": "s1", "turn_token_usage": usage, "thread_token_usage": usage}},
+            {"type": "event_msg", "payload": {"type": "token_count", "info": {"total_token_usage": usage}}}]
+
 
 
 class BenchChecks(unittest.TestCase):
@@ -98,30 +93,16 @@ class BenchChecks(unittest.TestCase):
                                                  "CODEX_HOME": str(self.root / "empty-auth")})
         self.environment.start()
 
+        self.spec = settings.execution_settings()
+        self.spec["preparation_only"] = False
+        self.defaults = patch("benchmark.runner.default_settings", side_effect=lambda: copy.deepcopy(self.spec))
+        self.defaults.start()
+
     def tearDown(self):
+        self.defaults.stop()
         self.environment.stop()
         self.temporary.cleanup()
 
-    def test_profiles_preserve_original_questions_and_subset(self):
-        original = read_json(settings.ROOT / "v2/data/dataset.json")
-        lookup = {q["id"]: q for q in original["questions"]}
-        for name, count in [("candidate", 3), ("validation", 10), ("formal", 30)]:
-            dataset = settings.dataset_for(name)
-            self.assertEqual(len(dataset["questions"]), count)
-            self.assertTrue(all(q == lookup[q["id"]] for q in dataset["questions"]))
-        self.assertEqual(original["spec_sha256"], digest(SPEC))
-
-    def test_approved_A_manifest_and_regex_help(self):
-        self.assertEqual(file_digest(settings.ROOT / "data/a-tools.json"),
-                         "00ec51d0ca1f2202942bb988db4f43ef530b473701bcdb07810a765b63bf64a0")
-        self.assertEqual(BASELINE_TOOLS, read_json(settings.ROOT / "data/a-tools.json"))
-
-    def test_relay_receives_selected_call_limit(self):
-        (self.root / "demo.ts").write_text("hello\n")
-        relay = Relay({"group": "A", "source": str(self.root), "log": str(self.root / "relay.jsonl"),
-                       "limits": {"exploration_calls": 1}})
-        self.assertFalse(relay.call(1, {"name": "read", "arguments": {"file_path": "demo.ts"}}).get("isError"))
-        self.assertTrue(relay.call(2, {"name": "read", "arguments": {"file_path": "demo.ts"}})["isError"])
 
     def test_snapshot_tracks_dirty_new_deleted_and_git_reference(self):
         repo = self.root / "repo"
@@ -149,8 +130,10 @@ class BenchChecks(unittest.TestCase):
         self.assertNotEqual(current["source_sha256"], frozen["source_sha256"])
         self.assertIn("old.rs", frozen["files"])
 
+
     def test_explicit_settings_version_and_usage_reach_execution(self):
-        spec = settings.execution_settings(settings.load_config())
+        spec = settings.execution_settings()
+        spec["preparation_only"] = False
         spec.update(model="fixture-model", reasoning_effort="high")
         spec["limits"]["total_tokens"] = 4321
         result = runner.execute_codex(self.root / "session", "fixture", settings=spec, usage_drain_seconds=30,
@@ -161,6 +144,7 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(result["budget"]["limit_tokens"], 4321)
         self.assertEqual(result["usage_collection"]["drain_seconds"], 30)
         self.assertEqual(result["usage"]["total_tokens"]["value"], 120)
+
 
     def test_cancel_skips_drain_and_reaps_process(self):
         cancelled = threading.Event()
@@ -183,8 +167,10 @@ class BenchChecks(unittest.TestCase):
         with self.assertRaises(ProcessLookupError):
             os.kill(int((folder / "fixture-pid").read_text()), 0)
 
+
     def test_drain_excludes_late_answer_but_certifies_completed_usage(self):
-        spec = settings.execution_settings(settings.load_config())
+        spec = settings.execution_settings()
+        spec["preparation_only"] = False
         spec["limits"]["total_tokens"] = 100
         folder = self.root / "drain-session"
         result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=30,
@@ -197,132 +183,199 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(result["budget"]["observed_cleanup_tokens"], 120)
         self.assertEqual(result["shutdown"]["steps"], [])
 
+
     def test_unsupported_log_is_failure(self):
         result = runner.execute_codex(self.root / "malformed", "FIXTURE_MALFORMED", codex_version="future")
         self.assertEqual(result["status"], "environment_error")
 
-    def test_label_ranges_do_not_expand_single_anchor_or_mismatched_file(self):
-        self.assertEqual(grading_support.label_ranges("[f.go:10-20](pkg/f.go:10)")[0]["end_line"], 20)
-        self.assertEqual(grading_support.label_ranges("[f.go:10](pkg/f.go:10)"), [])
-        self.assertEqual(grading_support.label_ranges("[other.go:10-20](pkg/f.go:10)"), [])
 
-    def test_alternative_evidence_and_masking_keep_original(self):
+    def test_masking_keeps_original(self):
         source = self.root / "source"
         (source / "pkg").mkdir(parents=True)
         (source / "pkg/gold.go").write_text("gold\n")
         (source / "pkg/other.go").write_text("\n".join(map(str, range(100))))
         raw = f"근거 [{source}/pkg/other.go:10-20]({source}/pkg/other.go:10)"
         run = {"id": "sample", "answer": raw, "source_snapshot": str(source)}
-        _, masked, replacements, _, flags = grading_support.mask_answer(run, source, self.root)
+        _, masked, replacements, _, flags = grading_support.mask_answer(run, source, self.root, seed=self.spec["seed"])
         restored = masked
         for original, anonymous in reversed(replacements):
             restored = restored.replace(anonymous, original)
         self.assertEqual(raw, restored)
         self.assertFalse(flags)
-        extra = grading_support.source_supplement({"evidence": [{"path": "pkg/gold.go"}]}, [{"answer": "pkg/other.go:10-20"}], source)
-        self.assertEqual(extra[1]["explicit_cited_ranges"], [[10, 20]])
-        self.assertTrue(extra[1]["context_does_not_expand_answer_citation"])
-
-    def test_schedule_denominators_and_baseline_conditions(self):
-        plan = {"dataset": settings.dataset_for("candidate"), "spec": settings.execution_settings(settings.load_config()),
-                "targets": {t["id"]: t for t in settings.targets(settings.load_config())}, "repeats": 3,
-                "profile": "candidate", "harness_sha256": "fixture", "source": {}, "codex_version": "one"}
-        rows = execution.schedule(plan)
-        self.assertEqual(len(rows), 18)
-        self.assertEqual(len({r["id"] for r in rows}), 18)
-        other = {**plan, "codex_version": "two"}
-        self.assertNotEqual(execution.baseline_key(plan), execution.baseline_key(other))
-
-    def test_full_scheduler_fake_codex_report_resume_and_A_reuse(self):
-        source = self.root / "source"
-        source.mkdir()
-        (source / "fixture.go").write_text("package fixture\n")
-        config = settings.load_config()
-        spec = settings.execution_settings(config)
-        selected_dataset = settings.dataset_for("candidate")
-        plan = {"profile": "candidate", "dataset": selected_dataset, "spec": spec,
-                "source": {"snapshot": str(source), "source_sha256": digest(runner.source_manifest(source))},
-                "targets": {"A": {"id": "A", "name": "A", "group": "A", "snapshot": str(source)}},
-                "codex_version": "codex-cli fixture-99.1", "harness_sha256": "fixture-harness", "repeats": 3,
-                "reuse_choices": []}
-        plan["baseline_key"] = execution.baseline_key(plan)
-        cache = self.root / "cache"
-        runs = self.root / "runs"
-        with patch.object(settings, "CACHE", cache), patch.object(settings, "RUNS", runs), \
-                patch.object(settings, "harness_identity", return_value="fixture-harness"), \
-                patch.object(resources, "environment", return_value={"codex_version": plan["codex_version"]}):
-            plan_id = "a" * 32
-            write_json(cache / "plans" / f"{plan_id}.json", plan)
-            root = execution.create_run(plan_id, None)
-            result = execution.execute(root, lambda _: None)
-            self.assertEqual(result["status"], "complete")
-            saved = read_json(root / "report/summary.json")
-            self.assertEqual(saved["scheduled"], 9)
-            self.assertEqual(saved["targets"]["A"]["categories"], {"no_answer": 9})
-            self.assertEqual(saved["targets"]["A"]["metrics"]["total_tokens"]["sum"]["value"], 1080)
-            hashes = {str(p): file_digest(p) for p in root.glob("runs/*/seal.json")}
-            execution.execute(root, lambda _: None)
-            self.assertEqual(hashes, {str(p): file_digest(p) for p in root.glob("runs/*/seal.json")})
-            plan["reuse_choices"] = [{"id": root.name, "runs": 9}]
-            write_json(cache / "plans" / f"{plan_id}.json", plan)
-            reused_root = execution.create_run(plan_id, root.name)
-            execution.execute(reused_root, lambda _: None)
-            reused = read_json(reused_root / "report/summary.json")
-            self.assertEqual(reused["targets"]["A"]["reused_runs"], 9)
-            self.assertEqual(len(list(reused_root.glob("runs/*/command.json"))), 0)
-
-    def test_bounded_supplement_keeps_all_evidence_and_explicit_ranges(self):
-        source = self.root / "source"
-        (source / "pkg").mkdir(parents=True)
-        (source / "pkg/large.go").write_text("\n".join(f"source {i}" for i in range(1, 10001)))
-        question = {"evidence": [{"path": "pkg/large.go", "start_line": 300, "end_line": 350}]}
-        packet = grading_support.source_supplement(question, [{"answer": "pkg/large.go:1000-1010"}], source, full_files=False)[0]
-        lines = {int(line.split(":", 1)[0]) for line in packet["numbered_source"].splitlines()}
-        self.assertTrue(set(range(300, 351)) <= lines)
-        self.assertTrue(set(range(1000, 1011)) <= lines)
-        self.assertFalse(packet["full_file"])
-
-    def test_resume_preserves_completed_and_recovers_interrupted_slots(self):
-        root = self.root / "run"
-        entries = [{"id": f"q-A-{r}", "question_id": "q", "group": "A", "target": "A", "repeat": r, "phase": "main"} for r in range(1, 4)]
-        write_json(root / "schedule.json", entries)
-        for index, entry in enumerate(entries):
-            folder = root / "runs" / entry["id"]
-            row = runner.placeholder_run(entry, ["completed", "running", "scheduled"][index])
-            write_json(folder / "run.json", row)
-            if index == 0:
-                runner.seal_run(folder)
-        before = file_digest(root / "runs/q-A-1/run.json")
-        execution.recover(root)
-        rows = runner.load_experiment_runs(root)
-        self.assertEqual([r["status"] for r in rows], ["completed", "interrupted", "scheduled"])
-        self.assertEqual(file_digest(root / "runs/q-A-1/run.json"), before)
-
-    def test_grader_controls_codec_is_executable_and_resumable(self):
-        question = example_question()
-        # Fixture paths are outside Grafana's public/pkg prefix; render_control leaves them intact.
-        source = self.root / "source"
-        source.mkdir()
-        for evidence in question["evidence"]:
-            path = source / evidence["path"]
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(evidence["text"])
-        root = self.root / "experiment"
-        root.mkdir()
-        packet, registry, _ = evaluate.packet(question, [], source, root, 1)
-        folder = root / "grading/batch-001"
-        write_json(folder / "packet.json", packet)
-        write_json(folder / "registry.json", registry)
-        schema = grading_support.unit_schema(max(len(item["units"]) for item in registry.values()))
-        write_json(folder / "schema.json", schema)
-        (folder / "prompt.txt").write_text(evaluate.INSTRUCTIONS + json.dumps(packet))
-        write_json(root / "grading/mechanical.json", {})
-        with patch.object(evaluate, "prepare", return_value=[folder]):
-            first = evaluate.run(root, {"questions": [question]}, [], source, settings.execution_settings(settings.load_config()), threading.Event(), lambda _: None)
-            second = evaluate.run(root, {"questions": [question]}, [], source, settings.execution_settings(settings.load_config()), threading.Event(), lambda _: None)
-        self.assertTrue(first["complete"])
-        self.assertEqual(first, second)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class RuntimeChecks(unittest.TestCase):
+    def test_model_content_field_is_not_mcp_content_array(self):
+        from .runner import delivered_leaves
+        self.assertEqual(delivered_leaves('{"file":"demo.ts","content":"demo.ts:1:answer"}'), ["demo.ts", "demo.ts:1:answer"])
+        self.assertEqual(delivered_leaves('{"content":["one", "two"]}'), ["one", "two"])
+
+
+    def test_truncated_serialized_source_prefix(self):
+        from .runner import delivered_leaves
+        raw = json.dumps(text_result("demo.ts:1:const delay = 5000;\ndemo.ts:2:setTimeout(work, delay);"))
+        clipped = raw[:raw.index("setTimeout") + 3]
+        leaves = delivered_leaves(clipped)
+        prefix = next(leaf for leaf in leaves if leaf.startswith("demo.ts:1:"))
+        lines = source_lines("read", {"file_path": "demo.ts"}, prefix, partial=True)
+        self.assertEqual(lines, [{"path": "demo.ts", "line": 1, "text": "const delay = 5000;"}])
+
+
+    def test_duplicate_usage_cache_and_cumulative(self):
+        rows = fixture_usage()
+        result = usage_metrics(rows + rows, terminal_complete=True, evidence="fixture")
+        self.assertEqual(result["total_tokens"]["value"], 120)
+        self.assertEqual(result["cached_input_ratio"]["value"], .3)
+        self.assertEqual(result["model_responses"]["value"], 1)
+        conflict = copy.deepcopy(rows[0]); conflict["payload"]["usage"]["input_tokens"] = 101
+        self.assertIsNone(usage_metrics(rows + [conflict], terminal_complete=True, evidence="fixture")["total_tokens"]["value"])
+        self.assertIsNone(usage_metrics(rows[1:], terminal_complete=True, evidence="fixture")["total_tokens"]["value"])
+
+
+    def test_delayed_legacy_usage_and_latest_response_snapshots(self):
+        rows = fixture_usage()
+        second = copy.deepcopy(rows[0]); second["payload"]["response_id"] = "r2"
+        for field in ["turn_token_usage", "thread_token_usage"]:
+            second["payload"][field] = {k: v * 2 for k, v in rows[0]["payload"]["usage"].items()}
+        rows += [second, copy.deepcopy(rows[1])]
+        result = usage_metrics(rows, terminal_complete=False, evidence="fixture")
+        self.assertEqual(result["consistency"]["status"], "valid")
+        self.assertEqual(result["observed"]["total_tokens"], 240)
+        self.assertTrue(all(e["status"] == "delayed" for e in result["consistency"]["legacy_events"]))
+        self.assertIsNone(result["total_tokens"]["value"])
+        self.assertEqual(usage_metrics(rows, terminal_complete=True, evidence="fixture")["total_tokens"]["value"], 240)
+        for field in ["turn_token_usage", "thread_token_usage"]:
+            conflict = copy.deepcopy(rows)
+            conflict[2]["payload"][field]["cached_input_tokens"] += 1
+            self.assertEqual(usage_metrics(conflict, terminal_complete=True, evidence="fixture")["consistency"]["status"], "invalid")
+        missing = [second, rows[-1]]
+        self.assertEqual(usage_metrics(missing, terminal_complete=True, evidence="fixture")["consistency"]["status"], "invalid")
+
+
+    def test_duplicate_snapshot_conflict_and_real_legacy_mismatch(self):
+        rows = fixture_usage()
+        duplicate = copy.deepcopy(rows[0]); duplicate["payload"]["thread_token_usage"] = dict(duplicate["payload"]["thread_token_usage"], input_tokens=999)
+        result = usage_metrics(rows + [duplicate], terminal_complete=True, evidence="fixture")
+        self.assertTrue(any("conflicting duplicate" in e for e in result["errors"]))
+        rows[1] = copy.deepcopy(rows[1]); rows[1]["payload"]["info"]["total_token_usage"]["cached_input_tokens"] = 2
+        self.assertEqual(usage_metrics(rows, terminal_complete=True, evidence="fixture")["consistency"]["status"], "invalid")
+
+
+    def test_stop_latches_cutoff_and_escalates_after_three_seconds(self):
+        from unittest.mock import Mock, patch
+        from .runner import ExecutionStop
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary); process = Mock(pid=12345); process.poll.return_value = None
+            with patch("benchmark.runner.time.monotonic") as clock, patch("benchmark.runner.signal_target", return_value=True) as send:
+                clock.return_value = 10
+                stop = ExecutionStop(folder, process, 0); stop.request("token_limit", {"total_tokens": 504000})
+                stop.request("timeout", {"total_tokens": 900000})
+                clock.return_value = 12.99; stop.advance(); self.assertEqual(send.call_count, 1)
+                clock.return_value = 13; stop.advance()
+                clock.return_value = 15.99; stop.advance(); self.assertEqual(send.call_count, 2)
+                clock.return_value = 16; stop.advance()
+                self.assertEqual([s["signal"] for s in stop.steps], ["SIGINT", "SIGTERM", "SIGKILL"])
+                self.assertEqual(stop.cutoff["observed_usage"]["total_tokens"], 504000)
+                self.assertEqual(stop.cutoff["reason"], "token_limit")
+
+    def test_terminal_certification_requires_normal_completion_and_collection(self):
+        from .core import append_jsonl
+        from .runner import recorded_usage
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            runtime = {"exit_code": 0, "termination": None, "record_collection_complete": True}
+            write_json(folder / "runtime.json", runtime)
+            rows = fixture_usage() + [{"type": "event_msg", "payload": {"type": "task_complete"}}]
+            for row in rows: append_jsonl(folder / "rollout.jsonl", row)
+            append_jsonl(folder / "events.jsonl", {"type": "turn.completed", "usage": rows[0]["payload"]["usage"]})
+            self.assertTrue(recorded_usage(folder)["complete"])
+            for change in [{"exit_code": -9}, {"record_collection_complete": False}, {"shutdown": {"steps": [{"signal": "SIGTERM"}]}}]:
+                write_json(folder / "runtime.json", {**runtime, **change})
+                result = recorded_usage(folder)
+                self.assertEqual(result["consistency"]["status"], "valid")
+                self.assertIsNone(result["total_tokens"]["value"])
+            write_json(folder / "runtime.json", {**runtime, "termination": "token_limit"})
+            self.assertTrue(recorded_usage(folder)["complete"])
+            write_json(folder / "runtime.json", runtime)
+            append_jsonl(folder / "rollout.jsonl", {"type": "response_item", "payload": {"type": "custom_tool_call", "call_id": "pending"}})
+            self.assertEqual(recorded_usage(folder)["cost_completeness"]["pending_host_call_ids"], ["pending"])
+            append_jsonl(folder / "rollout.jsonl", {"type": "event_msg", "payload": {"type": "turn_aborted"}})
+            self.assertFalse(recorded_usage(folder)["complete"])
+
+
+    def test_execute_collects_usage_on_sigint_and_reaggregation_agrees(self):
+        import subprocess
+        import sys
+        from unittest.mock import patch
+        from .runner import execute_codex, recorded_usage
+        script = '''
+import json, os, signal, sys, time
+from pathlib import Path
+home = Path(os.environ["CODEX_HOME"])
+rollout = home / "sessions" / "fixture-thread.jsonl"
+rollout.parent.mkdir(parents=True)
+def row(value):
+    with rollout.open("a") as stream: stream.write(json.dumps(value) + "\\n")
+usage = {"input_tokens": 100, "output_tokens": 20, "cached_input_tokens": 30, "total_tokens": 120}
+def record(response, factor):
+    total = {k:v*factor for k,v in usage.items()}
+    row({"type":"token_usage_record","payload":{"response_id":response,"usage":usage,"turn_token_usage":total,"thread_token_usage":total}})
+def stop(signum, frame):
+    record("r2", 2)
+    row({"type":"event_msg","payload":{"type":"turn_aborted"}})
+    print(json.dumps({"type":"turn.failed"}), flush=True)
+    sys.exit(0)
+signal.signal(signal.SIGINT, stop)
+print(json.dumps({"type":"thread.started","thread_id":"fixture-thread"}), flush=True)
+record("r1", 1)
+while True: time.sleep(.02)
+'''
+        spec = settings.execution_settings()
+        spec["preparation_only"] = False
+        spec["limits"]["total_tokens"] = 100
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            popen = subprocess.Popen
+            def launch(args, **kwargs):
+                return popen([sys.executable, "-c", script], **kwargs)
+            def environment(path):
+                import os
+                home = path / "codex-home"; home.mkdir()
+                return {**os.environ, "CODEX_HOME": str(home)}, home
+            with patch("benchmark.runner.subprocess.Popen", side_effect=launch), patch("benchmark.runner.isolated_environment", side_effect=environment):
+                result = execute_codex(folder, "fixture", settings=spec)
+            self.assertEqual(result["status"], "token_limit")
+            self.assertEqual(result["budget"]["observed_tokens_at_cutoff"], 120)
+            self.assertEqual(result["budget"]["observed_cleanup_tokens"], 120)
+            self.assertEqual(result["usage"]["observed"]["total_tokens"], 240)
+            self.assertEqual(result["usage"], recorded_usage(folder))
+            self.assertIsNone(result["usage"]["total_tokens"]["value"])
+            self.assertEqual([s["signal"] for s in result["shutdown"]["steps"]], ["SIGINT"])
+
+
+    def test_internal_budget_options_removed(self):
+        from .runner import codex_options
+        self.assertFalse(any("rollout_budget" in option for option in codex_options()))
+
+
+    def test_relay_cleanup_finishes(self):
+        import subprocess
+        import sys
+        import time
+        from .core import file_digest
+        from .runner import cleanup_relay
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], start_new_session=True)
+            try:
+                write_json(folder / "relay-runtime.json", {"pid": child.pid, "pgid": child.pid})
+                def pump():
+                    child.poll()
+                    time.sleep(.01)
+                result = cleanup_relay(folder, pump)
+                self.assertTrue(result["complete"])
+                self.assertIsNotNone(child.poll())
+                write_json(folder / "run.json", {"status": "token_limit"})
+            finally:
+                if child.poll() is None: child.kill()
+                child.wait()

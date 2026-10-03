@@ -10,7 +10,7 @@
   "dataset": {
     "id": "grafana-routes-v2",
     "manifest_path": "../grafana-routes-v2/manifest.json",
-    "manifest_sha256": "f477a2ebea472c2cd46a9ef739ab181b30fdd522e92a27632799d1a47f94216b",
+    "manifest_sha256": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"

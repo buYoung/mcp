@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "profile": "grafana-routes",
+  "name": "Grafana 3개 경로 · 6개 비교군 · 준비 전용",
+  "dataset_id": "grafana-routes-v2",
+  "comparison_lock_id": "grafana-comparison-targets-v1",
+  "solver": {
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "grader": {
+    "model": "gpt-6-astra",
+    "reasoning_effort": "high"
+  },
+  "repetitions": 1,
+  "concurrency": 1,
+  "seed": 20260907,
+  "limits": {
+    "elapsed_seconds": 300,
+    "exploration_calls": 80,
+    "total_tokens": 500000
+  },
+  "arm_ids": [
+    "codemap-search",
+    "codegraph",
+    "zvec-grep",
+    "graphify",
+    "codebase-memory-mcp",
+    "rg"
+  ],
+  "baseline": {
+    "arm": "rg",
+    "mode": "native_agent",
+    "search_product_mcp": false,
+    "tools": "Codex native defaults; shell and filesystem navigation remain available",
+    "rg_version": "15.2.0",
+    "call_unit": "native command_execution items, counted once by item ID",
+    "source_access": "read-only fixed corpus and minimal runtime; no reference/report access"
+  },
+  "native_output_policy": {
+    "product_defaults": true,
+    "harness_byte_limit": null,
+    "harness_line_limit": null,
+    "automatic_pagination": false,
+    "enrichment": false,
+    "client_delivery": "record_observed_limits_and_unknowns_separately"
+  },
+  "tool_access": {
+    "default": "native_only",
+    "allowed_auxiliaries": [
+      "rg",
+      "read"
+    ],
+    "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+    "quality_based_fallback": false
+  },
+  "index_mode": {
+    "external_ai": false,
+    "codemap_jev": false,
+    "graphify": "fresh_code_only",
+    "zvec_model": "local/potion-code-16m-v2",
+    "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+  },
+  "execution_authorized": false,
+  "policy_decisions": {
+    "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
+    "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+    "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다",
+    "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
+    "index_mode": "로컬 검색·색인으로 준비 (권장)",
+    "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+    "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다."
+  }
+}
